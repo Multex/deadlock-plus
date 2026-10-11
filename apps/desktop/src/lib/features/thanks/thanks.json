@@ -11,6 +11,13 @@
     ],
     "translators": [
         {
+            "name": "l1zzzard1sss",
+            "url": "https://crowdin.com/profile/l1zzzard1sss",
+            "languages": [
+                "ru"
+            ]
+        },
+        {
             "name": "Jerixport",
             "url": "https://crowdin.com/profile/Jerixport",
             "languages": [
@@ -22,13 +29,6 @@
             "url": "https://crowdin.com/profile/rekknec",
             "languages": [
                 "tr"
-            ]
-        },
-        {
-            "name": "l1zzzard1sss",
-            "url": "https://crowdin.com/profile/l1zzzard1sss",
-            "languages": [
-                "ru"
             ]
         },
         {
