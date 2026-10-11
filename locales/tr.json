@@ -103,6 +103,10 @@
             "no_backup_name": "",
             "backup_failed": "",
             "write_failed": ""
+        },
+        "match_history": {
+            "too_large": "",
+            "not_json": ""
         }
     },
     "settings": {
@@ -539,7 +543,8 @@
             "performance": "Performans",
             "voice_bans": "Susturmalar",
             "demos": "Tekrarlar",
-            "storage": "Depolama"
+            "storage": "Depolama",
+            "match_history": ""
         },
         "sidebar": {
             "unread": "{count} okunmamış",
@@ -585,7 +590,6 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
-                "connected": "",
                 "connected_title": ""
             },
             "live": {
@@ -612,7 +616,8 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "storage": ""
+            "storage": "",
+            "match_history": ""
         }
     },
     "ui": {},
@@ -1434,6 +1439,14 @@
                 "description": "",
                 "consequence": ""
             },
+            "match_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
             "other_app_files": {
                 "label": "",
                 "clear_name": "",
@@ -1471,6 +1484,22 @@
                 "units_other": ""
             },
             "gameinfo_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "match_ping": {
                 "label": "",
                 "clear_name": "",
                 "description": "",
@@ -1779,6 +1808,7 @@
             "deadlock_running": "",
             "deadlock_not_running": "",
             "direct_note": "",
+            "engine_note": "",
             "waiting_server": ""
         },
         "current": {
@@ -1795,12 +1825,6 @@
             "empty": "",
             "chart_label": ""
         },
-        "matches": {
-            "title": "",
-            "avg": "",
-            "worst": "",
-            "note": ""
-        },
         "notices": {
             "permission": "",
             "allow": "",
@@ -1813,6 +1837,8 @@
             "max": "",
             "jitter": "",
             "loss": "",
+            "loss_down": "",
+            "loss_up": "",
             "samples_one": "",
             "samples_other": ""
         }
@@ -2153,5 +2179,256 @@
         "saved": "",
         "save_failed": "",
         "build_failed": ""
+    },
+    "match_history": {
+        "api_error": "",
+        "detail_invalid": "",
+        "team": {
+            "hidden_king": "",
+            "archmother": ""
+        },
+        "list": {
+            "title": "",
+            "subtitle": "",
+            "empty": "",
+            "no_results": "",
+            "provisional": "",
+            "provisional_hint": "",
+            "mode": {
+                "custom": "",
+                "other": ""
+            },
+            "outcome": {
+                "unscored": ""
+            },
+            "filter": {
+                "label": "",
+                "mode": "",
+                "hero": "",
+                "outcome": "",
+                "window": "",
+                "any_hero": "",
+                "any_outcome": "",
+                "custom": "",
+                "reset": ""
+            },
+            "pager": {
+                "label": ""
+            },
+            "summary": {
+                "label": "",
+                "matches": ""
+            },
+            "row": {
+                "souls": "",
+                "duration": "",
+                "kda_split": "",
+                "kda_ratio": ""
+            },
+            "count_one": "",
+            "count_other": ""
+        },
+        "deep_dive": {
+            "not_available": "",
+            "player": "",
+            "player_fallback": "",
+            "progress": {
+                "heading": "",
+                "souls": "",
+                "damage": "",
+                "lead_heading": "",
+                "lead_aria": "",
+                "lead_hint": "",
+                "player_heading": "",
+                "player_aria": "",
+                "player_hint": ""
+            },
+            "deaths": {
+                "heading": "",
+                "time": "",
+                "killer": "",
+                "respawn": "",
+                "position": "",
+                "other_killer": "",
+                "seconds": ""
+            },
+            "items": {
+                "heading": "",
+                "bought_sold": "",
+                "bought_held": ""
+            },
+            "damage": {
+                "heading": "",
+                "hint": "",
+                "dealer": "",
+                "other": "",
+                "target": "",
+                "other_hint": ""
+            },
+            "objectives": {
+                "heading": "",
+                "objective": "",
+                "owner": "",
+                "destroyed": "",
+                "players": "",
+                "creeps": "",
+                "spirit": "",
+                "standing": "",
+                "mid_boss": "",
+                "killed_by": "",
+                "claimed_by": "",
+                "kind_core": "",
+                "kind_guardian": "",
+                "kind_walker": "",
+                "kind_patron": "",
+                "kind_shrine": "",
+                "kind_base_guardian": "",
+                "kind_unknown": "",
+                "indexed_name": ""
+            },
+            "abilities": {
+                "heading": ""
+            },
+            "accolades": {
+                "heading": "",
+                "tier": "",
+                "hint": ""
+            },
+            "names": {
+                "item": "",
+                "ability": "",
+                "accolade": ""
+            },
+            "lanes": {
+                "yellow": "",
+                "blue": "",
+                "green": "",
+                "street_yellow": "",
+                "street_blue": "",
+                "street_green": "",
+                "named": "",
+                "ordinal": ""
+            }
+        },
+        "detail": {
+            "title": "",
+            "back": "",
+            "loading": "",
+            "unavailable": "",
+            "error": "",
+            "invalid": "",
+            "summary": "",
+            "bans": "",
+            "you": "",
+            "player_fallback": "",
+            "item_unknown": "",
+            "result": {
+                "unscored": "",
+                "team_won": "",
+                "unknown": ""
+            },
+            "mode": {
+                "ranked": "",
+                "unranked": "",
+                "streetBrawl": "",
+                "custom": "",
+                "bot": "",
+                "other": ""
+            },
+            "col": {
+                "items": "",
+                "damage": ""
+            },
+            "board": {
+                "label": "",
+                "stat": "",
+                "best": "",
+                "unranked": ""
+            },
+            "mvp": "",
+            "key_player": "",
+            "avg_rank": "",
+            "versus": {
+                "above": "",
+                "below": "",
+                "equal": "",
+                "average": "",
+                "souls_rate": "",
+                "hint": "",
+                "summary": ""
+            },
+            "export": {
+                "group": "",
+                "save": "",
+                "copy": "",
+                "working": "",
+                "saved": "",
+                "copied": "",
+                "save_failed": "",
+                "copy_failed": "",
+                "made_with": ""
+            },
+            "replay": {
+                "heading": "",
+                "map_aria": "",
+                "no_paths": "",
+                "no_art": "",
+                "no_events": "",
+                "no_kinds": "",
+                "unknown": "",
+                "unknown_hero": "",
+                "dead": "",
+                "dot_dead": "",
+                "play": "",
+                "pause": "",
+                "speed": "",
+                "speed_aria": "",
+                "time": "",
+                "scrubber_aria": "",
+                "kinds_aria": "",
+                "kind_death": "",
+                "kind_objective": "",
+                "kind_mid_boss": "",
+                "kind_item_buy": "",
+                "kind_item_sell": "",
+                "kind_swing": "",
+                "lane_death": "",
+                "lane_objective": "",
+                "lane_mid_boss": "",
+                "lane_swing": "",
+                "lane_item": "",
+                "marker_death": "",
+                "marker_objective": "",
+                "marker_mid_boss": "",
+                "marker_item_buy": "",
+                "marker_item_sell": "",
+                "marker_swing": "",
+                "death_map": "",
+                "death_marker": "",
+                "killed_by": "",
+                "filter_player": "",
+                "all_players": "",
+                "filter_role": "",
+                "role_victim": "",
+                "role_killer": "",
+                "range_from": "",
+                "range_to": "",
+                "deaths_shown": ""
+            }
+        },
+        "ping": {
+            "heading": "",
+            "source": "",
+            "source_engine": "",
+            "source_icmp": "",
+            "partial": "",
+            "avg": "",
+            "worst": "",
+            "samples": "",
+            "loading": "",
+            "empty": "",
+            "chart_aria": "",
+            "hint": ""
+        }
     }
 }

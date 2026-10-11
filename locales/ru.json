@@ -103,6 +103,10 @@
             "no_backup_name": "",
             "backup_failed": "",
             "write_failed": ""
+        },
+        "match_history": {
+            "too_large": "",
+            "not_json": ""
         }
     },
     "settings": {
@@ -545,7 +549,8 @@
             "performance": "",
             "voice_bans": "Муты",
             "demos": "Повторы",
-            "storage": "Хранилище"
+            "storage": "Хранилище",
+            "match_history": ""
         },
         "sidebar": {
             "unread": "{count} Не прочитано",
@@ -591,7 +596,6 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
-                "connected": "",
                 "connected_title": ""
             },
             "live": {
@@ -618,7 +622,8 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "storage": ""
+            "storage": "",
+            "match_history": ""
         }
     },
     "ui": {},
@@ -1518,6 +1523,16 @@
                 "description": "",
                 "consequence": ""
             },
+            "match_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
             "other_app_files": {
                 "label": "",
                 "clear_name": "",
@@ -1561,6 +1576,26 @@
                 "units_other": ""
             },
             "gameinfo_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "match_ping": {
                 "label": "",
                 "clear_name": "",
                 "description": "",
@@ -1671,37 +1706,37 @@
         "read_full": "",
         "indexing": "",
         "searching": "",
-        "no_matches": "",
-        "no_matches_hint": "",
+        "no_matches": "Нет совпадений для \"{query}\".",
+        "no_matches_hint": "Попробуйте имя героя или предмета или описать изменение по-другому.",
         "source": {
-            "steam": "",
-            "forum": ""
+            "steam": "Steam",
+            "forum": "Форум"
         }
     },
     "onboarding": {
-        "progress_label": "",
-        "skip": "",
-        "back": "",
-        "next": "",
-        "finish": "",
-        "autostart_error": "",
+        "progress_label": "Прогресс настройки",
+        "skip": "Пропустить",
+        "back": "Назад",
+        "next": "Следующий",
+        "finish": "Закончить",
+        "autostart_error": "Не удалось включить {name}: {error}",
         "welcome": {
-            "step_title": "",
-            "returning_title": "",
+            "step_title": "Добро пожаловать в Deadlock+",
+            "returning_title": "У Deadlock+ есть обновленный процесс установки, давайте приступим.",
             "returning_body": "",
             "new_title": "",
-            "new_body": "",
-            "found": "",
-            "not_found": "",
-            "not_found_body": ""
+            "new_body": "Deadlock+ готов к выбору серверов, отслеживайте ваше подключение и отслеживайте каждый матч.",
+            "found": "Deadlock найден",
+            "not_found": "Deadlock не найден",
+            "not_found_body": "Установите его через Steam. Повторы, муты и хранилище нуждаются в папке игры. Остальное работает без него."
         },
         "features": {
-            "title": ""
+            "title": "Что делает Deadlock+"
         },
         "groups": {
-            "play": "",
-            "progress": "",
-            "news": "",
+            "play": "Воспроизвести",
+            "progress": "Прогресс",
+            "news": "Новости",
             "housekeeping": ""
         },
         "blurbs": {
@@ -1723,7 +1758,7 @@
             "unavailable": "",
             "untested_label": "",
             "untested": "",
-            "broken_label": "",
+            "broken_label": "Что-то сломалось?",
             "broken": "",
             "windows_title": "",
             "windows_body": "",
@@ -1738,7 +1773,7 @@
             "title": "",
             "body": "",
             "signed_in": "",
-            "none_title": "",
+            "none_title": "Аккаунт Steam не найден",
             "none_body": "",
             "looking": ""
         },
@@ -1774,147 +1809,144 @@
             "step_title": "",
             "title": "",
             "body": "",
-            "home": "",
-            "settings": "",
-            "whats_new": ""
+            "home": "Домой",
+            "settings": "Настройки",
+            "whats_new": "Что нового"
         }
     },
     "patch_notes": {
-        "no_link": "",
-        "open_link_error": "",
-        "loading": "",
+        "no_link": "Это обновление не имеет действительной ссылки.",
+        "open_link_error": "Не удалось открыть ссылку: {error}",
+        "loading": "Загрузка полных заметок...",
         "load_error": "",
         "not_indexed": "",
         "shallow_notice": "",
         "read_full": "",
         "expand_image": "",
         "close_image": "",
-        "close": "",
+        "close": "Закрыть",
         "view_on": ""
     },
     "updates": {
-        "toast_available": "",
-        "toast_details": "",
+        "toast_available": "Deadlock+ {version} доступен",
+        "toast_details": "Подробности",
         "status": {
             "idle": "",
             "checking": "",
-            "up_to_date": "",
-            "available": "",
-            "downloading": "",
-            "downloading_percent": "",
-            "error": ""
+            "up_to_date": "У вас последняя версия.",
+            "available": "Доступна новая версия {version}.",
+            "downloading": "Загрузка {version}. Deadlock+ перезапускается после завершения.",
+            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения.",
+            "error": "Ошибка обновления: % {error}"
         }
     },
     "live": {
         "state": {
-            "game_closed": "",
-            "menus": "",
-            "queuing": "",
-            "pregame": "",
-            "in_match": "",
-            "post_match": "",
-            "game_closed_hint": "",
-            "menus_hint": "",
-            "queuing_hint": "",
-            "pregame_hint": "",
-            "in_match_hint": "",
-            "post_match_hint": "",
-            "loading_match": "",
-            "loading_match_hint": ""
+            "game_closed": "Deadlock не запущен",
+            "menus": "В Меню",
+            "queuing": "Поиск матча",
+            "pregame": "Начало матча",
+            "in_match": "В матче",
+            "post_match": "Матч окончен",
+            "game_closed_hint": "Начни игру и эта страница загрузиться.",
+            "menus_hint": "Вступите в очередь или присоединитесь к лобби, чтобы увидеть матч здесь.",
+            "queuing_hint": "Доска появится после того, как матч будет найден.",
+            "pregame_hint": "Игроки и герои появляются, когда они блокируют.",
+            "in_match_hint": "Загрузка матча.",
+            "post_match_hint": "Результаты сохраняются в вашей истории матчей.",
+            "loading_match": "Загрузка матча",
+            "loading_match_hint": "Данные игрока отображаются в данный момент."
         },
         "team": {
-            "amber": "",
-            "sapphire": ""
+            "amber": "Скрытый король",
+            "sapphire": "Архиматерь"
         },
         "mode": {
-            "unranked": "",
-            "ranked": "",
-            "privateLobby": "",
-            "coopBot": "",
-            "tutorial": "",
-            "other": ""
+            "unranked": "Без ранга",
+            "ranked": "Рейтинговая",
+            "privateLobby": "Приватная",
+            "coopBot": "Кооп",
+            "tutorial": "Обучение",
+            "other": "Другое"
         },
         "game": {
-            "normal": "",
-            "streetBrawl": "",
-            "sandbox": "",
-            "exploreNyc": "",
-            "other": ""
+            "normal": "Стандарт",
+            "streetBrawl": "Уличная драка",
+            "sandbox": "Песочница",
+            "exploreNyc": "Исследует Нью-Йорк",
+            "other": "Другое"
         },
         "col": {
-            "rank": "",
-            "souls": "",
-            "souls_per_min": "",
-            "kills": "",
-            "deaths": "",
-            "assists": "",
-            "kill_participation": "",
-            "hero_damage": "",
-            "objective_damage": "",
-            "healing": ""
+            "rank": "Ранг",
+            "souls": "Души",
+            "souls_per_min": "Душ в минуту",
+            "kills": "Убийств",
+            "deaths": "Смерти",
+            "assists": "Помощь",
+            "kill_participation": "Участие в убийствах",
+            "hero_damage": "Урон по героям",
+            "objective_damage": "Урон по целям",
+            "healing": "Лечение"
         },
-        "paused": "",
+        "paused": "Приостановлено",
         "player": {
-            "steam_profile": "",
-            "statlocker": "",
-            "open_failed": ""
+            "steam_profile": "Открыть профиль Steam",
+            "statlocker": "Открыть на Statlocker",
+            "open_failed": "Не удалось открыть ссылку: {error}"
         },
         "queue": {
-            "party": ""
+            "party": "Размер группы"
         },
         "swaps": {
-            "line": "",
-            "named": "",
+            "line": "{from} переключен на {to}",
+            "named": "{name} переключен с {from} на {to}",
             "dismiss": ""
         }
     },
     "connection": {
-        "subtitle": "",
-        "unit_ms": "",
-        "ms": "",
-        "pkt_per_second": "",
+        "subtitle": "Обе команды в вашем матче, плюс ваш сервер, пинг и потеря пакетов.",
+        "unit_ms": "мс",
+        "ms": "{value} ms",
+        "pkt_per_second": "{value} pkt/s",
         "series": {
-            "ping": ""
+            "ping": "Задержка"
         },
         "page": {
-            "title": "",
-            "deadlock_running": "",
-            "deadlock_not_running": "",
+            "title": "Прямой эфир",
+            "deadlock_running": "Deadlock запущен",
+            "deadlock_not_running": "Deadlock не запущен",
             "direct_note": "",
+            "engine_note": "",
             "waiting_server": ""
         },
         "current": {
-            "title": "",
-            "not_running": "",
+            "title": "Текущий сервер",
+            "not_running": "Deadlock не запущен.",
             "not_connected": "",
-            "unknown_relay": "",
-            "in": "",
-            "out": "",
+            "unknown_relay": "Неизвестный ретранслятор",
+            "in": "в",
+            "out": "из",
             "gap": ""
         },
         "history": {
-            "title": "",
-            "empty": "",
-            "chart_label": ""
-        },
-        "matches": {
-            "title": "",
-            "avg": "",
-            "worst": "",
-            "note": ""
+            "title": "Последние {minutes} мин",
+            "empty": "История пингов появляется, когда вы находитесь в игре.",
+            "chart_label": "История пинга"
         },
         "notices": {
             "permission": "",
-            "allow": "",
-            "retry": ""
+            "allow": "Разрешить",
+            "retry": "Повторить"
         },
         "ping": {
-            "no_data": "",
-            "avg": "",
-            "min": "",
-            "max": "",
+            "no_data": "Пока нет данных.",
+            "avg": "средний",
+            "min": "мин",
+            "max": "макс",
             "jitter": "",
-            "loss": "",
+            "loss": "потери",
+            "loss_down": "",
+            "loss_up": "",
             "samples_one": "",
             "samples_few": "",
             "samples_many": "",
@@ -1922,84 +1954,84 @@
         }
     },
     "logging": {
-        "copied": "",
-        "copy_failed": "",
-        "save_filter": "",
-        "saved": "",
+        "copied": "Скопировал отчет",
+        "copy_failed": "Не удалось скопировать отчет",
+        "save_filter": "Текст",
+        "saved": "Журнал сохранён",
         "save_failed": "",
         "open_failed": "",
         "min_level": "",
-        "search": "",
-        "search_label": "",
-        "auto_scroll": "",
-        "refresh": "",
-        "copy": "",
-        "save": "",
-        "open_folder": "",
-        "read_failed": "",
-        "loading": "",
-        "no_match": "",
+        "search": "Поиск",
+        "search_label": "Поиск в логе",
+        "auto_scroll": "Автопрокрутка",
+        "refresh": "Обновить",
+        "copy": "Копировать",
+        "save": "Сохранить",
+        "open_folder": "Открыть папку",
+        "read_failed": "Не удалось построить отчет: {error}",
+        "loading": "Пожалуйста, подождите...",
+        "no_match": "Нет совпадений.",
         "showing_latest": ""
     },
     "home": {
         "today": "",
         "yesterday": "",
-        "stats_error": "",
-        "stats_loading": "",
-        "tier": "",
-        "glance_label": "",
-        "tools": "",
-        "your_deadlock": "",
+        "stats_error": "Не удалось загрузить.",
+        "stats_loading": "Пожалуйста, подождите...",
+        "tier": "Тир {tier}",
+        "glance_label": "Самое главное",
+        "tools": "Инструменты",
+        "your_deadlock": "Ваш Deadlock",
         "game": {
-            "running": "",
-            "launch": ""
+            "running": "Запущено",
+            "launch": "Запуск"
         },
         "maintenance": {
-            "title": "",
-            "line": "",
+            "title": "Техническое обслуживание Steam",
+            "line": "Обычно начинается {day} на {time}, через {countdown}.",
             "note": "",
-            "reminder_on": "",
-            "reminder_off": ""
+            "reminder_on": "Напоминание включено.",
+            "reminder_off": "Напоминание выключено."
         },
         "tiles": {
-            "blocked": "",
-            "muted": "",
-            "replays": ""
+            "blocked": "Заблокированные регионы",
+            "muted": "Замученные игроки",
+            "replays": "Сохранённые повторы"
         },
         "rank": {
-            "title": "",
-            "progress": "",
-            "empty": ""
+            "title": "Ранг",
+            "progress": "{percent}% пути к {rank}",
+            "empty": "Ранга пока нет."
         },
         "form": {
-            "title": "",
-            "summary": "",
-            "empty": ""
+            "title": "Недавняя форма",
+            "summary": "{wins}W {losses}L, {net} очков ранга, последний {games}",
+            "empty": "Пока нет рейтинговых матчей."
         },
         "update": {
-            "title": "",
-            "unread": "",
-            "empty": ""
+            "title": "Последнее обновление",
+            "unread": "{count} новых",
+            "empty": "Пока ничего нет. Откройте обновления для проверки."
         },
         "session": {
-            "title": "",
+            "title": "Последняя сессия",
             "summary": "",
             "summary_delta": "",
-            "empty": ""
+            "empty": "Пока нет матчей."
         },
         "verdict": {
-            "excellent": "",
-            "good": "",
-            "bad": "",
-            "neutral": ""
+            "excellent": "Отличная сессия",
+            "good": "Хорошая сессия",
+            "bad": "Сложная сессия",
+            "neutral": "Ровная сессия"
         },
         "greetings": {
             "late_night": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Поздней ночью, {name}?",
+                "2": "Все еще в строю, {name}?",
+                "3": "Играете до поздна, {name}?",
+                "4": "Гринд никогда не кончиться, да {name}?",
+                "5": "Еще одну катку, {name}?"
             },
             "early_morning": {
                 "1": "",
@@ -2012,83 +2044,83 @@
                 "2": "",
                 "3": "",
                 "4": "",
-                "5": ""
+                "5": "Готов, когда вы готовы - {name}"
             },
             "midday": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": ""
+                "1": "Доброго дня, {name}",
+                "2": "Обеденная очередь, {name}?",
+                "3": "Время для быстрого полуденного матча, {name}?",
+                "4": "Снова здравствуйте, {name}"
             },
             "afternoon": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго дня, {name}",
+                "2": "Денёчка вам, {name}",
+                "3": "Как идёт день, {name}?",
+                "4": "Готовы к матчу, {name}?",
+                "5": "С возвращением, {name}"
             },
             "evening": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Добрый вечер, {name}",
+                "2": "Вечера, {name}",
+                "3": "Время праймовой очереди, {name}?",
+                "4": "С возвращением, {name}",
+                "5": "Заминка или разминка, {name}?"
             },
             "night": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго вечера, {name}",
+                "2": "Ночная сессия, {name}?",
+                "3": "Ещё одну перед сном, {name}?",
+                "4": "Вечера, {name}. Давайте приступим",
+                "5": "Всё ещё играете, {name}?"
             }
         },
         "greetings_nameless": {
             "late_night": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Поздний ночью?",
+                "2": "Всё ещё играете?",
+                "3": "Играете до поздна?",
+                "4": "Гринд никогда не кончиться, да?",
+                "5": "Ещё одну катку?"
             },
             "early_morning": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": ""
+                "1": "Низкий старт?",
+                "2": "С восходом солнца?",
+                "3": "Утречка. Может чашечку кофе?",
+                "4": "Восход и гринд."
             },
             "morning": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго утра",
+                "2": "Утречка",
+                "3": "Новый день, новый поиск?",
+                "4": "Приветствую",
+                "5": "Приступим, когда будете готовы"
             },
             "midday": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": ""
+                "1": "Доброго вечера",
+                "2": "Обеденная очередь?",
+                "3": "Время для короткого полуденного матча?",
+                "4": "И снова здравствуйте"
             },
             "afternoon": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго дня",
+                "2": "День",
+                "3": "Как идёт день?",
+                "4": "Готовы к игре?",
+                "5": "С возвращением"
             },
             "evening": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго вечера",
+                "2": "Вечер",
+                "3": "Время прайвой очереди?",
+                "4": "С возвращением",
+                "5": "Заминка или разминка?"
             },
             "night": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "1": "Доброго вечера",
+                "2": "Ночная сессия?",
+                "3": "Ещё одну перед сном?",
+                "4": "Вечерочка. Давайте сыграем",
+                "5": "Все еще идёт?"
             }
         },
         "days_ago_one": "",
@@ -2097,57 +2129,57 @@
         "days_ago_other": ""
     },
     "keyboard": {
-        "settings_section": "",
-        "open_settings": "",
-        "check_updates": "",
-        "support": "",
+        "settings_section": "Настройки: {section}",
+        "open_settings": "Открыть настройки",
+        "check_updates": "Проверить на наличие обновлений",
+        "support": "Поддержать Deadlock+",
         "open_palette": "",
         "jump": "",
-        "open_link_error": "",
-        "palette_title": "",
-        "palette_description": "",
-        "palette_placeholder": "",
-        "palette_input_label": "",
-        "no_match": "",
+        "open_link_error": "Не удалось открыть ссылку: {error}",
+        "palette_title": "Палитра Команд",
+        "palette_description": "Поиск страниц, настроек и действий.",
+        "palette_placeholder": "Поиск страниц, настроек и действий",
+        "palette_input_label": "Поиск команд",
+        "no_match": "Нет совпадений.",
         "groups": {
-            "pages": "",
-            "settings": "",
-            "actions": "",
-            "shortcuts": ""
+            "pages": "Страницы",
+            "settings": "Настройки",
+            "actions": "Действия",
+            "shortcuts": "Горячие клавиши"
         },
         "keywords": {
-            "page": "",
-            "settings": "",
+            "page": "открыть",
+            "settings": "настройки предпочтений",
             "updates": "",
             "support": "",
-            "palette": "",
+            "palette": "Поисковые команды",
             "jump": ""
         }
     },
     "crash": {
-        "heading_unclean": "",
-        "heading_error": "",
-        "detail_unclean": "",
+        "heading_unclean": "В последний раз у Deadlock+ произошёл краш",
+        "heading_error": "В последний раз Deadlock+ столкнулся с ошибкой",
+        "detail_unclean": "Он не закрылся чисто. Это может последовать за аварией, принудительным закрытием или потерей энергии.",
         "detail_error": "",
         "attach_note": "",
         "meta": "",
         "privacy": "",
-        "dismiss": "",
-        "open_folder": "",
-        "report_github": ""
+        "dismiss": "Отменить",
+        "open_folder": "Открыть папку отчетов",
+        "report_github": "Сообщить на GitHub"
     },
     "notification_list": {
-        "title": "",
-        "unread": "",
-        "mark_all_read": "",
-        "mark_read": "",
-        "empty": "",
+        "title": "Уведомления",
+        "unread": "Непрочитанное:",
+        "mark_all_read": "Отметить всё прочитанным",
+        "mark_read": "Отметить как прочитанное",
+        "empty": "Уведомлений пока нет.",
         "relative": {
-            "now": "",
-            "minutes": "",
-            "hours": "",
-            "yesterday": "",
-            "days": ""
+            "now": "только что",
+            "minutes": "{count}мин. назад",
+            "hours": "{count}ч. назад",
+            "yesterday": "вчера",
+            "days": "{count}дн. назад"
         },
         "unread_count_one": "",
         "unread_count_few": "",
@@ -2155,39 +2187,39 @@
         "unread_count_other": ""
     },
     "error_page": {
-        "title": "",
-        "body": "",
-        "retry": "",
-        "copy": "",
-        "open_logs": "",
-        "copied": "",
-        "copy_failed": "",
-        "unknown": ""
+        "title": "Что-то пошло не так",
+        "body": "Эта страница столкнулась с ошибкой. Остальная версия приложения все еще запущена.",
+        "retry": "Повторите попытку",
+        "copy": "Скопировать детали",
+        "open_logs": "Открыть логи",
+        "copied": "Скопированы детали ошибки",
+        "copy_failed": "Не удалось скопировать отчет",
+        "unknown": "Неизвестная ошибка"
     },
     "telemetry": {
-        "notice": "",
-        "notice_action": ""
+        "notice": "Deadlock+ отправляет анонимные данные об использовании и отчеты об ошибках. Вы можете отключить их в настройках.",
+        "notice_action": "Открыть настройки"
     },
     "support": {
-        "nudge": "",
-        "action": "",
-        "open_link_error": ""
+        "nudge": "Нравится Deadlock+? Это бесплатно и сделано небольшой командой.",
+        "action": "Поддержать Deadlock+",
+        "open_link_error": "Не удалось открыть ссылку: {error}"
     },
     "connectivity": {
-        "offline": ""
+        "offline": "Вы не в сети. Для работы Deadlock требуется подключение, поэтому данные в режиме реального времени приостановлены и сохранены в папке с сохраненными копиями."
     },
     "whats_new": {
-        "title": "",
-        "subtitle": "",
-        "empty": "",
-        "show_all": "",
-        "back_home": ""
+        "title": "Что нового",
+        "subtitle": "Примечания к релизу для Deadlock+, сначала новые.",
+        "empty": "Пока нет заметок о релизе.",
+        "show_all": "Показать все релизы",
+        "back_home": "Назад на главную"
     },
     "account": {
-        "default_name": "",
-        "none": "",
-        "none_found": "",
-        "tooltip": ""
+        "default_name": "Аккаунт Steam",
+        "none": "Нет аккаунта Steam",
+        "none_found": "Аккаунт Steam не найден",
+        "tooltip": "{name} ({id})"
     },
     "heroes": {},
     "jobs": {
@@ -2207,19 +2239,19 @@
         },
         "policy": {
             "always": "",
-            "pause_in_game": "",
-            "slow_in_game": ""
+            "pause_in_game": "Пауза",
+            "slow_in_game": "Замедлить"
         },
         "status": {
             "paused": "",
-            "starting": "",
-            "progress": "",
-            "progress_labeled": ""
+            "starting": "{title}...",
+            "progress": "{title}... {done}/{total}",
+            "progress_labeled": "{title}... {done}/{total} · {label}"
         }
     },
     "gc": {
         "status": {
-            "off": "",
+            "off": "выключено",
             "looking_for_login": "",
             "last_pass_failed": "",
             "using": "",
@@ -2233,13 +2265,13 @@
     "steam_account": {},
     "ingest": {},
     "about": {
-        "version": "",
+        "version": "Версия",
         "dev_build": "",
-        "running_as": "",
-        "system": "",
-        "data_folder": "",
-        "game_build": "",
-        "game_built": "",
+        "running_as": "Запущено как",
+        "system": "Система",
+        "data_folder": "Папка с данными",
+        "game_build": "Игровая сборка",
+        "game_built": "Игра построена",
         "source_revision": "",
         "install_folder": "",
         "administrator": "",
@@ -2248,20 +2280,273 @@
         "regular_user": ""
     },
     "support_report": {
-        "title": "",
-        "description": "",
+        "title": "Отчет поддержки",
+        "description": "Собирает, что Deadlock+ знает об этом ПК в один текст, который вы можете отправить на поддержку. Ничего не отправлено для вас: вы прочитаете его здесь, затем скопируйте или сохраните его.",
         "included": "",
-        "create": "",
-        "refresh": "",
-        "creating": "",
-        "preview": "",
-        "copy": "",
-        "copied": "",
-        "copy_failed": "",
-        "save": "",
-        "save_filter": "",
-        "saved": "",
-        "save_failed": "",
-        "build_failed": ""
+        "create": "Создать отчет о поддержке",
+        "refresh": "Создать еще раз",
+        "creating": "Создание отчета...",
+        "preview": "Предпросмотр отчета",
+        "copy": "Копировать",
+        "copied": "Скопировал отчет",
+        "copy_failed": "Не удалось скопировать отчет",
+        "save": "Сохранить",
+        "save_filter": "Текст",
+        "saved": "Отчет сохранён",
+        "save_failed": "Не удалось сохранить отчет: {error}",
+        "build_failed": "Не удалось построить отчет: {error}"
+    },
+    "match_history": {
+        "api_error": "API Deadlock вернул ошибку ({status}).",
+        "detail_invalid": "API \"Deadlock API\" вернул не подходящие данные для этого матча.",
+        "team": {
+            "hidden_king": "Скрытый король",
+            "archmother": "Архиматерь"
+        },
+        "list": {
+            "title": "История матчей",
+            "subtitle": "Ваши матчи из Deadlock API и те что захваченные из игры.",
+            "empty": "Пока нет матчей. Они появляются, как только ваш Deadlock API получит один из ваших.",
+            "no_results": "Нет матчей подходящий фильтру.",
+            "provisional": "неподтвержденный",
+            "provisional_hint": "",
+            "mode": {
+                "custom": "Пользовательское",
+                "other": "Другое"
+            },
+            "outcome": {
+                "unscored": "Не засчитано"
+            },
+            "filter": {
+                "label": "Соответствует фильтру",
+                "mode": "Режим",
+                "hero": "Герой",
+                "outcome": "Результат",
+                "window": "Окно даты",
+                "any_hero": "Все герои",
+                "any_outcome": "Все исходы",
+                "custom": "Пользовательские матчи",
+                "reset": "Сбросить фильтры"
+            },
+            "pager": {
+                "label": "Страницы истории матчей"
+            },
+            "summary": {
+                "label": "Сумма матчей в этом списке",
+                "matches": "Матчи"
+            },
+            "row": {
+                "souls": "Души",
+                "duration": "Длительность",
+                "kda_split": "Убийства / Смерти / Помощь",
+                "kda_ratio": "{ratio} KDA"
+            },
+            "count_one": "{count} Матч",
+            "count_few": "{count} Матчей",
+            "count_many": "{count} Матчей",
+            "count_other": "{count} Матчи"
+        },
+        "deep_dive": {
+            "not_available": "Недоступно для этого матча.",
+            "player": "Игрок",
+            "player_fallback": "Игрок {slot}",
+            "progress": {
+                "heading": "Души и урон",
+                "souls": "Души",
+                "damage": "Урон",
+                "lead_heading": "",
+                "lead_aria": "",
+                "lead_hint": "",
+                "player_heading": "Выбранный игрок за время",
+                "player_aria": "",
+                "player_hint": "Толстые линии - это выбранный игрок."
+            },
+            "deaths": {
+                "heading": "Смерти",
+                "time": "Время",
+                "killer": "Был убит",
+                "respawn": "Возродиться",
+                "position": "Положение",
+                "other_killer": "Слот {slot}",
+                "seconds": "{value} s"
+            },
+            "items": {
+                "heading": "Предметы",
+                "bought_sold": "Купили {bought}, продано {sold}",
+                "bought_held": "Купили {bought}, хранится"
+            },
+            "damage": {
+                "heading": "Урон между героями",
+                "hint": "Каждый ряд - это игрок, наносящий ему урон, каждый столбец игрок который получает его. Урон, записанный в собственной ячейки игрока, отображается как Другой урон.",
+                "dealer": "Наносящий",
+                "other": "Другой урон",
+                "target": "Цель",
+                "other_hint": ""
+            },
+            "objectives": {
+                "heading": "Задачи (цели, Objectives)",
+                "objective": "Задача (цель, Objective)",
+                "owner": "Владелец",
+                "destroyed": "Уничтожено",
+                "players": "Урон игроков",
+                "creeps": "Урон крипов",
+                "spirit": "Спритический урон",
+                "standing": "",
+                "mid_boss": "Центральный босс",
+                "killed_by": "Убит {team}",
+                "claimed_by": "Забрано {team}",
+                "kind_core": "",
+                "kind_guardian": "Страж",
+                "kind_walker": "Ходок",
+                "kind_patron": "Патрон",
+                "kind_shrine": "Святилище",
+                "kind_base_guardian": "",
+                "kind_unknown": "Задача (цель, Objective)",
+                "indexed_name": "{name} {index}"
+            },
+            "abilities": {
+                "heading": "Способности"
+            },
+            "accolades": {
+                "heading": "Аколады",
+                "tier": "Тир {tier}",
+                "hint": ""
+            },
+            "names": {
+                "item": "Предмет",
+                "ability": "Способность",
+                "accolade": "Акколада"
+            },
+            "lanes": {
+                "yellow": "Желтый",
+                "blue": "Синяя",
+                "green": "Зелёная",
+                "street_yellow": "Йорк",
+                "street_blue": "Бродвей",
+                "street_green": "Гринвич",
+                "named": "{colour} линия ({street})",
+                "ordinal": "Линия {n}"
+            }
+        },
+        "detail": {
+            "title": "Матч %{id}",
+            "back": "Вернуться к истории матчей",
+            "loading": "Загрузка матча...",
+            "unavailable": "API для Deadlock еще не имеет этого матча. Рейтинг появится здесь, как только он его получит.",
+            "error": "Не удалось загрузить этот матч. {error}",
+            "invalid": "Это некорректный идентификатор матча.",
+            "summary": "Сводка матча",
+            "bans": "Баны",
+            "you": "Вы",
+            "player_fallback": "Игрок {slot}",
+            "item_unknown": "Предмет {id}",
+            "result": {
+                "unscored": "Не засчитано",
+                "team_won": "{team} победила",
+                "unknown": "Результат неизвестен"
+            },
+            "mode": {
+                "ranked": "Рейтинговая",
+                "unranked": "Без ранга",
+                "streetBrawl": "Уличная драка",
+                "custom": "Пользовательское",
+                "bot": "Боты",
+                "other": "Другое"
+            },
+            "col": {
+                "items": "Предметы",
+                "damage": "Урон"
+            },
+            "board": {
+                "label": "Табло",
+                "stat": "Статистика",
+                "best": "Лучший в матче",
+                "unranked": "Без ранга"
+            },
+            "mvp": "MVP",
+            "key_player": "Ключевой игрок",
+            "avg_rank": "Среднее ранг",
+            "versus": {
+                "above": "Выше вашего среднего",
+                "below": "Ниже вашего среднего",
+                "equal": "Около вашего среднего",
+                "average": "Ср {value}",
+                "souls_rate": "Ср {value}/мин",
+                "hint": "Ваше среднее на этом герое за {samples} других матчей",
+                "summary": "Ваш средний% против этого героя ({samples} другие матчи): лучше на {better}, хуже {worse}."
+            },
+            "export": {
+                "group": "Экспорт таблиц",
+                "save": "Сохранить изображение",
+                "copy": "Копировать изображение",
+                "working": "Отрисовка...",
+                "saved": "Изображение таблицы результатов сохранено.",
+                "copied": "Изображение скопировано в буфер обмена.",
+                "save_failed": "Не удалось сохранить это изображение: {error}",
+                "copy_failed": "",
+                "made_with": "Сделано с"
+            },
+            "replay": {
+                "heading": "Повтор",
+                "map_aria": "Мини-карта с позициями игрока",
+                "no_paths": "",
+                "no_art": "",
+                "no_events": "",
+                "no_kinds": "",
+                "unknown": "Неизвестно",
+                "unknown_hero": "Неизвестный герой",
+                "dead": "Мёртв",
+                "dot_dead": "{label} (мертвый)",
+                "play": "Воспроизвести",
+                "pause": "Пауза",
+                "speed": "{speed}x",
+                "speed_aria": "Скорость воспроизведения",
+                "time": "{current} / {total}",
+                "scrubber_aria": "Время матча",
+                "kinds_aria": "Типы событий на хронологии",
+                "kind_death": "Смерти",
+                "kind_objective": "Цели",
+                "kind_mid_boss": "Центральный Босс",
+                "kind_item_buy": "Покупка предмета",
+                "kind_item_sell": "Продажа предмета",
+                "kind_swing": "Колебания ценности",
+                "lane_death": "Смерти",
+                "lane_objective": "Цели",
+                "lane_mid_boss": "Центральный Босс",
+                "lane_swing": "Колебания",
+                "lane_item": "Предметы",
+                "marker_death": "{victim} был убит {killer} на {time}",
+                "marker_objective": "{objective} {team} уничтожен на {time}",
+                "marker_mid_boss": "Центральный босс побежден, награждена команда {team}, на {time}",
+                "marker_item_buy": "{player} купил {item} на {time}",
+                "marker_item_sell": "{player} продал {item} на {time}",
+                "marker_swing": "{team} получила перевес {souls} душ на {time}",
+                "death_map": "Карта смертей",
+                "death_marker": "Смерть {victim} на {time}",
+                "killed_by": "Убит {killer}",
+                "filter_player": "Игрок",
+                "all_players": "Все игроки",
+                "filter_role": "Показывать смерть как",
+                "role_victim": "Жертва",
+                "role_killer": "Убийца",
+                "range_from": "с {time}",
+                "range_to": "по {time}",
+                "deaths_shown": "Показано смертей {count}"
+            }
+        },
+        "ping": {
+            "heading": "Задержка",
+            "source": "Ретрансляция (ICMP)",
+            "source_engine": "Подключение к игре",
+            "source_icmp": "Сетевой трафик",
+            "partial": "Запись из середины матча",
+            "avg": "Средний",
+            "worst": "Наихудшее",
+            "samples": "Образцы",
+            "loading": "Загрузка данных задержки...",
+            "empty": "Нет данных задержки для этого матча.",
+            "chart_aria": "Задержка в матчах",
+            "hint": "Сырая задержка сбрасывалась один раз в секунду во время работы Deadlock+."
+        }
     }
 }
