@@ -97,6 +97,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - On Linux, Deadlock is now detected when it runs under Proton.
+- On Linux with Proton, the Live page no longer says Deadlock is not running while the game is open.
+- On Linux with Proton, the Live page now loads the player table.
 - Heroes released after the app last loaded its hero list now show their art in the app and in Discord, instead of a placeholder.
 - Unreleased test heroes no longer appear in the hero list.
 
