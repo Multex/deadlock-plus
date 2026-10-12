@@ -10,6 +10,7 @@ import {
     midBossInfo,
     objectiveInfo,
     rowEntries,
+    weakenedPatronInfo,
     type MapObjectInfo,
 } from "./map-object-info";
 import { MID_BOSS_CLAIM_MARKER_S, campSpawned, midBossClaimAt, midBossOpacity } from "./map-spawns";
@@ -24,6 +25,8 @@ export const MAP_OBJECT_STEMS: readonly MinimapIcon[] = [
     "boss_health_fill_t2",
     "boss_health_final",
     "boss_health_final_fill",
+    "boss_health_final_stage2",
+    "boss_health_final_stage2_fill",
     "super_neutral_marker",
     "neutral_small",
     "neutral_medium",
@@ -96,6 +99,12 @@ const LOOKS: Partial<Record<MapItem["kind"], Look>> = {
     camp_strong: { fill: "neutral_large", size: MAP_OBJECT_SIZE.camp, tinted: false },
     camp_vault: { fill: "neutral_vault", size: MAP_OBJECT_SIZE.camp, tinted: false },
     shop: { fill: "minimap_shop", size: MAP_OBJECT_SIZE.shop, tinted: false },
+};
+
+/** The patron's centre diamond: the same box as the arc, with the diamond at the box centre. */
+const PATRON_CORE = { frame: "boss_health_final_stage2", fill: "boss_health_final_stage2_fill" } as const satisfies {
+    frame: MinimapIcon;
+    fill: MinimapIcon;
 };
 
 const LANE_KINDS = new Set<MapItem["kind"]>(["guardian", "walker", "base_guardian"]);
@@ -345,38 +354,43 @@ export function mapObjects(input: MapObjectsInput): MapObject[] {
         const info = objectiveInfo(row, input.objectives, input.time);
         const fallen = info.destroyedS !== undefined;
         const fade = fallen ? highlightOpacity(info.destroyedS!, input.time) : 1;
-        if (fade <= 0) return;
         const tint = tintOf(row, viewer);
-        out.push({
-            ...base,
-            parts: [
-                { src: frame!, tint: null },
-                { src: fill, tint },
-            ],
-            z: MAP_OBJECT_Z.objective,
-            flipY: row.kind === "patron" && row.team === 0,
-            ...(fallen ? { highlight: { opacity: fade, color: tint } } : {}),
-            info,
-        });
-        if (fallen) return;
-
-        const guardianFrame = input.icons[LOOKS.guardian!.frame!];
-        const guardianFill = input.icons[LOOKS.guardian!.fill];
-        if (row.kind === "patron" && guardianFrame && guardianFill) {
-            // The game draws a guardian diamond centred on the patron's flat edge, which is the row position.
-            // It follows the patron's tint and is drawn after every other object so it stays on top.
-            cores.push({
+        const coreFrame = input.icons[PATRON_CORE.frame];
+        const coreFill = input.icons[PATRON_CORE.fill];
+        const hasCore = row.kind === "patron" && coreFrame !== undefined && coreFill !== undefined;
+        if (fade > 0) {
+            out.push({
                 ...base,
-                key: `${index}-core`,
-                kind: "guardian",
-                size: MAP_OBJECT_SIZE.guardian,
                 parts: [
-                    { src: guardianFrame, tint: null },
-                    { src: guardianFill, tint: tintOf({ ...row, kind: "guardian", laneSlot: null }, viewer) },
+                    { src: frame!, tint: null },
+                    { src: fill, tint },
                 ],
                 z: MAP_OBJECT_Z.objective,
+                flipY: row.kind === "patron" && row.team === 0,
+                ...(fallen ? { highlight: { opacity: fade, color: tint } } : {}),
+                ...(hasCore ? {} : { info }),
             });
         }
+        if (!hasCore) return;
+
+        const coreInfo = fallen ? weakenedPatronInfo(row, input.objectives, input.time) : info;
+        const coreFallen = coreInfo.destroyedS !== undefined;
+        const coreFade = coreFallen ? highlightOpacity(coreInfo.destroyedS!, input.time) : 1;
+        if (coreFade <= 0) return;
+        // The diamond sits at the centre of the patron's box, which is the row position, and outlives the arc:
+        // it is the patron's second health bar. It is drawn after every other object so it stays on top, and it
+        // takes the patron's hover so the target survives the arc.
+        cores.push({
+            ...base,
+            key: `${index}-core`,
+            parts: [
+                { src: coreFrame, tint: null },
+                { src: coreFill, tint },
+            ],
+            z: MAP_OBJECT_Z.objective,
+            ...(coreFallen ? { highlight: { opacity: coreFade, color: tint } } : {}),
+            info: coreInfo,
+        });
     });
     return [...out, ...cores];
 }

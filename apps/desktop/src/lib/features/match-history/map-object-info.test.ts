@@ -11,6 +11,7 @@ import {
     objectiveInfo,
     rowEntries,
     takesTab,
+    weakenedPatronInfo,
 } from "./map-object-info";
 import { buildTimeline } from "./timeline";
 import paths from "./fixtures/api-paths.json";
@@ -166,6 +167,40 @@ describe("objectiveInfo", () => {
         const r = row({ kind: "base_guardian", objectiveId: 12, laneSlot: 1 });
         expect(objectiveInfo(r, pair, 920, 2).destroyedS).toBeUndefined();
         expect(objectiveInfo(r, pair, 950, 2).destroyedS).toBe(950);
+    });
+});
+
+describe("weakenedPatronInfo", () => {
+    const patron = row({ kind: "patron", team: 1, objectiveId: 9, laneSlot: null });
+    const objectives = [
+        objective({ objectiveId: 9, team: "archmother", destroyedS: 500, playerDamage: 900, spiritDamage: 300 }),
+        objective({ objectiveId: 0, team: "archmother", destroyedS: 700, playerDamage: 80, spiritDamage: 20 }),
+        objective({ objectiveId: 0, team: "hidden-king", destroyedS: 100, playerDamage: 7 }),
+    ];
+
+    it("is still a patron of the row's team, with the Core entry's damage", () => {
+        expect(weakenedPatronInfo(patron, objectives, 600)).toEqual({
+            type: "objective",
+            kind: "patron",
+            team: "archmother",
+            damage: expect.objectContaining({ gun: 60, spirit: 20, trooper: 0, total: 80 }),
+        });
+    });
+
+    it("is destroyed from the Core's destroy time on", () => {
+        expect(weakenedPatronInfo(patron, objectives, 699).destroyedS).toBeUndefined();
+        expect(weakenedPatronInfo(patron, objectives, 700).destroyedS).toBe(700);
+    });
+
+    it("stands with no damage when the match has no Core entry or only a placeholder time", () => {
+        expect(weakenedPatronInfo(patron, objectives.slice(0, 1), 3000)).toEqual({
+            type: "objective",
+            kind: "patron",
+            team: "archmother",
+            damage: null,
+        });
+        const placeholder = [objective({ objectiveId: 0, team: "archmother", destroyedS: 1 })];
+        expect(weakenedPatronInfo(patron, placeholder, 3000).destroyedS).toBeUndefined();
     });
 });
 

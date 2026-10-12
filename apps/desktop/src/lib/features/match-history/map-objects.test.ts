@@ -226,34 +226,9 @@ describe("mapObjects", () => {
             ["patron", false],
             ["walker", false],
             ["mid_boss", false],
-            ["guardian", false],
-            ["guardian", false],
+            ["patron", false],
+            ["patron", false],
         ]);
-    });
-
-    it("draws a guardian diamond on each patron's flat edge with the guardian look and tint rule", () => {
-        const rows = [
-            row({ kind: "patron", team: 0, objectiveId: 9, x: -1280, y: -8034 }),
-            row({ kind: "patron", team: 1, objectiveId: 9, x: 1280, y: 8048 }),
-        ];
-        const out = mapObjects(input({ rows }));
-        const [mine, theirs] = out.filter((o) => o.kind === "guardian");
-        const patron = mapPercent(-1280, -8034, WORLD_RADIUS);
-        expect(mine!.left).toBe(patron.left);
-        expect(mine!.top).toBe(patron.top);
-        expect(mine!.size).toBe(MAP_OBJECT_SIZE.guardian);
-        expect(mine!.parts.map((p) => p.src)).toEqual(["boss_health.png", "boss_health_fill.png"]);
-        expect(mine!.parts[1]!.tint).toBe("#FFEFD7");
-        expect(theirs!.parts[1]!.tint).toBe(ENEMY_LANE_COLOR);
-        expect(mine!.z).toBeGreaterThanOrEqual(out[0]!.z);
-    });
-
-    it("drops the patron diamond with its patron", () => {
-        const rows = [row({ kind: "patron", team: 1, objectiveId: 9 })];
-        const objectives = [objective({ objectiveId: 9, team: "archmother", destroyedS: 500 })];
-        expect(mapObjects(input({ rows, objectives, time: 499 }))).toHaveLength(2);
-        expect(mapObjects(input({ rows, objectives, time: 500 })).map((o) => o.key)).toEqual(["0"]);
-        expect(mapObjects(input({ rows, objectives, time: 500 + OBJECTIVE_HIGHLIGHT_S }))).toEqual([]);
     });
 
     it("orders the layers: camps under mid boss under dots under objectives", () => {
@@ -266,6 +241,188 @@ describe("mapObjects", () => {
         expect(z("guardian", 0)).toBeGreaterThan(MAP_OBJECT_Z.friendlyDot);
         expect(z("guardian", 0)).toBeLessThan(MAP_OBJECT_Z.localDot);
         expect(z("patron", 1)).toBe(z("guardian", 0));
+    });
+});
+
+describe("patron phases", () => {
+    const hk = row({ kind: "patron", team: 0, objectiveId: 9, x: -1280, y: -8034 });
+    const am = row({ kind: "patron", team: 1, objectiveId: 9, x: 1280, y: 8048 });
+    const titan = objective({
+        objectiveId: 9,
+        team: "archmother",
+        destroyedS: 500,
+        playerDamage: 900,
+        spiritDamage: 300,
+        creepDamage: 100,
+    });
+    const core = objective({
+        objectiveId: 0,
+        team: "archmother",
+        destroyedS: 700,
+        playerDamage: 80,
+        spiritDamage: 20,
+        creepDamage: 40,
+    });
+    const at = (time: number, objectives: MatchObjective[] = [titan, core], over: Partial<MapObjectsInput> = {}) =>
+        mapObjects(input({ rows: [am], objectives, time, ...over }));
+    const keys = (out: ReturnType<typeof mapObjects>) => out.map((o) => o.key);
+    const STAGE2_PARTS = ["boss_health_final_stage2.png", "boss_health_final_stage2_fill.png"];
+
+    it("loads the game's second phase art with the other object icons", () => {
+        expect(MAP_OBJECT_STEMS).toContain("boss_health_final_stage2");
+        expect(MAP_OBJECT_STEMS).toContain("boss_health_final_stage2_fill");
+    });
+
+    it("draws the centre diamond from the second phase art, in the patron's box and on its position", () => {
+        const out = mapObjects(input({ rows: [hk, am] }));
+        expect(keys(out)).toEqual(["0", "1", "0-core", "1-core"]);
+        const [arc, , mine, theirs] = out;
+        const p = mapPercent(-1280, -8034, WORLD_RADIUS);
+        expect([mine!.left, mine!.top]).toEqual([p.left, p.top]);
+        expect([mine!.left, mine!.top, mine!.size]).toEqual([arc!.left, arc!.top, arc!.size]);
+        expect(mine!.size).toBe(MAP_OBJECT_SIZE.patron);
+        expect(mine!.kind).toBe("patron");
+        expect(mine!.parts).toEqual([
+            { src: STAGE2_PARTS[0], tint: null },
+            { src: STAGE2_PARTS[1], tint: "#FFEFD7" },
+        ]);
+        expect(theirs!.parts[1]!.tint).toBe(ENEMY_LANE_COLOR);
+        expect(theirs!.parts[1]!.tint).toBe(out[1]!.parts[1]!.tint);
+        expect(mine!.z).toBeGreaterThanOrEqual(arc!.z);
+    });
+
+    it("never mirrors the diamond, which is the same either way up", () => {
+        const out = mapObjects(input({ rows: [hk, am] }));
+        expect(out.map((o) => [o.key, o.flipY])).toEqual([
+            ["0", true],
+            ["1", false],
+            ["0-core", false],
+            ["1-core", false],
+        ]);
+    });
+
+    it("keeps the diamond after the first health bar is gone, while the arc rings out", () => {
+        expect(keys(at(499))).toEqual(["0", "0-core"]);
+        expect(at(499).map((o) => o.highlight)).toEqual([undefined, undefined]);
+
+        const fresh = at(500);
+        expect(keys(fresh)).toEqual(["0", "0-core"]);
+        expect(fresh[0]!.highlight).toEqual({ opacity: 1, color: ENEMY_LANE_COLOR });
+        expect(fresh[1]!.highlight).toBeUndefined();
+        expect(fresh[1]!.parts).toEqual(at(499)[1]!.parts);
+        expect(at(505)[0]!.highlight!.opacity).toBeCloseTo(0.5);
+
+        expect(keys(at(500 + OBJECTIVE_HIGHLIGHT_S))).toEqual(["0-core"]);
+        expect(keys(at(699))).toEqual(["0-core"]);
+        expect(at(699)[0]!.highlight).toBeUndefined();
+        expect(at(699)[0]!.opacity).toBeUndefined();
+    });
+
+    it("rings the diamond out when the Core falls, then drops it", () => {
+        const fresh = at(700);
+        expect(keys(fresh)).toEqual(["0-core"]);
+        expect(fresh[0]!.highlight).toEqual({ opacity: 1, color: ENEMY_LANE_COLOR });
+        expect(fresh[0]!.parts).toEqual(at(699)[0]!.parts);
+        expect(at(705)[0]!.highlight!.opacity).toBeCloseTo(0.5);
+        expect(at(700 + OBJECTIVE_HIGHLIGHT_S)).toEqual([]);
+        expect(at(3000)).toEqual([]);
+    });
+
+    it("restores every state when the replay is scrubbed back", () => {
+        expect(at(3000)).toEqual([]);
+        expect(keys(at(702))).toEqual(["0-core"]);
+        expect(keys(at(600))).toEqual(["0-core"]);
+        expect(keys(at(503))).toEqual(["0", "0-core"]);
+        expect(at(100)).toEqual(at(499));
+    });
+
+    it("keeps the diamond to the end when the match has no Core destroy time", () => {
+        const { destroyedS: _never, ...standing } = core;
+        for (const objectives of [[titan], [titan, standing], [titan, { ...core, destroyedS: 1 }]]) {
+            expect(keys(at(3000, objectives))).toEqual(["0-core"]);
+            expect(at(3000, objectives)[0]!.highlight).toBeUndefined();
+        }
+    });
+
+    it("keeps arc and diamond all match for a team whose patron was never brought down", () => {
+        const { destroyedS: _never, ...standing } = titan;
+        for (const objectives of [[], [standing], [{ ...titan, destroyedS: 1 }], [core]]) {
+            for (const time of [0, 600, 3000]) {
+                const out = at(time, objectives);
+                expect(keys(out)).toEqual(["0", "0-core"]);
+                expect(out.map((o) => o.highlight)).toEqual([undefined, undefined]);
+            }
+        }
+    });
+
+    it("follows only its own team's entries", () => {
+        const out = mapObjects(input({ rows: [hk, am], objectives: [titan, core], time: 3000 }));
+        expect(keys(out)).toEqual(["0", "0-core"]);
+    });
+
+    it("draws no diamond without the second phase art, and the arc as before", () => {
+        const { boss_health_final_stage2: _frame, ...noFrame } = ICONS;
+        const { boss_health_final_stage2_fill: _fill, ...noFill } = ICONS;
+        for (const icons of [noFrame, noFill]) {
+            expect(keys(at(499, undefined, { icons }))).toEqual(["0"]);
+            const fresh = at(500, undefined, { icons });
+            expect(keys(fresh)).toEqual(["0"]);
+            expect(fresh[0]!.highlight).toEqual({ opacity: 1, color: ENEMY_LANE_COLOR });
+            expect(fresh[0]!.info).toMatchObject({ kind: "patron", destroyedS: 500 });
+            expect(at(500 + OBJECTIVE_HIGHLIGHT_S, undefined, { icons })).toEqual([]);
+            expect(at(499, undefined, { icons })[0]!.info).toMatchObject({ kind: "patron", damage: { total: 1000 } });
+        }
+    });
+
+    it("has one hover target per patron at every time, at the patron position and box size", () => {
+        const p = mapPercent(1280, 8048, WORLD_RADIUS);
+        for (const time of [0, 499, 500, 505, 510, 699, 700, 709]) {
+            const targets = at(time).filter((o) => o.info !== undefined);
+            expect(targets).toHaveLength(1);
+            expect(targets[0]!.key).toBe("0-core");
+            expect([targets[0]!.left, targets[0]!.top, targets[0]!.size]).toEqual([
+                p.left,
+                p.top,
+                MAP_OBJECT_SIZE.patron,
+            ]);
+        }
+        expect(at(710).filter((o) => o.info !== undefined)).toEqual([]);
+    });
+
+    it("reports the patron's own damage in the first phase", () => {
+        const target = at(499).find((o) => o.info)!;
+        expect(target.info).toEqual({
+            type: "objective",
+            kind: "patron",
+            team: "archmother",
+            damage: expect.objectContaining({ gun: 600, spirit: 300, trooper: 100 }),
+        });
+    });
+
+    it("reports the Core's damage in the second phase, as a patron that still stands", () => {
+        for (const time of [500, 505, 699]) {
+            const target = at(time).find((o) => o.info)!;
+            expect(target.info).toEqual({
+                type: "objective",
+                kind: "patron",
+                team: "archmother",
+                damage: expect.objectContaining({ gun: 60, spirit: 20, trooper: 40 }),
+            });
+        }
+    });
+
+    it("says the patron is destroyed only once the Core is", () => {
+        expect(at(699).find((o) => o.info)!.info).not.toHaveProperty("destroyedS");
+        expect(at(700).find((o) => o.info)!.info).toMatchObject({ kind: "patron", destroyedS: 700 });
+    });
+
+    it("shows a second phase patron without a Core entry as an objective with no entry", () => {
+        expect(at(600, [titan]).find((o) => o.info)!.info).toEqual({
+            type: "objective",
+            kind: "patron",
+            team: "archmother",
+            damage: null,
+        });
     });
 });
 
@@ -804,14 +961,6 @@ describe("object info and hover targets", () => {
         const kill = { destroyedS: 900, killedBy: "hidden-king" as const, claimedBy: "archmother" as const };
         const out = mapObjects(input({ rows: [boss], midBoss: [kill], time: 905 }));
         expect(out.map((o) => o.info)).toEqual([{ type: "mid-boss", lastKill: kill }]);
-    });
-
-    it("leaves the patron diamond without info so the patron under it takes the hover", () => {
-        const out = mapObjects(input({ rows: [row({ kind: "patron", team: 1, objectiveId: 9 })] }));
-        expect(out.map((o) => [o.key, o.info?.type])).toEqual([
-            ["0", "objective"],
-            ["0-core", undefined],
-        ]);
     });
 
     it("puts every hover target under every player dot, in the drawing order", () => {

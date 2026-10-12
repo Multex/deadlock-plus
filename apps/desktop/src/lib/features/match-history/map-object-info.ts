@@ -135,6 +135,15 @@ export function objectiveInfo(
     };
 }
 
+const CORE_OBJECTIVE_ID = 0;
+
+/**
+ * A patron whose first health bar is gone fights on as the weakened Patron, and the match records that
+ * second bar as the team's Core objective.
+ */
+export const weakenedPatronInfo = (row: MapItem, objectives: readonly MatchObjective[], time: number): ObjectiveInfo =>
+    objectiveInfo({ ...row, objectiveId: CORE_OBJECTIVE_ID }, objectives, time);
+
 const CAMP_TIERS: Partial<Record<MapItem["kind"], CampTier>> = {
     camp_weak: "weak",
     camp_medium: "medium",
