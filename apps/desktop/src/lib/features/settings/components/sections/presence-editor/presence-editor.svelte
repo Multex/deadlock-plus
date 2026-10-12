@@ -1,16 +1,16 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
-    import { Copy, RotateCcw, Upload } from "@lucide/svelte";
+    import { CircleHelp, Copy, RotateCcw, Upload, Users } from "@lucide/svelte";
     import Button from "$lib/ui/button.svelte";
     import ConfirmDialog from "$lib/ui/confirm-dialog.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { errorText } from "$lib/core/errors";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { presencePreview } from "$lib/features/presence/api";
-    import { loadRankNames } from "$lib/features/ranks/ranks";
+    import { loadRankTiers, rankNames as namesOf } from "$lib/features/ranks/ranks";
     import { isCustomised, resetScope, type Scope } from "$lib/features/presence/config";
     import { presenceConfigStore as store } from "$lib/features/presence/config.svelte";
     import type { PresenceCard } from "$lib/generated/types/PresenceCard";
@@ -19,13 +19,15 @@
     import CardPreview from "./card-preview.svelte";
     import SlotFields from "./slot-fields.svelte";
     import StateList from "./state-list.svelte";
-    import { heroOptions, previewSample, scopeFor } from "./editor";
+    import { SAMPLE_RANK_TIER, heroOptions, previewSample, scopeFor } from "./editor";
     import { STATE_LABELS, VARIANT_LABELS } from "./labels";
+    import { heroIdFromValue, heroItems, type SourceArt } from "./select-items";
 
     const PREVIEW_DELAY_MS = 250;
 
     let heroes = $state<Hero[]>([]);
     let rankNames = $state<Record<number, string>>({});
+    let rankBadge = $state<string | null>(null);
     let stateId = $state<PresenceStateId>("playing");
     let variant = $state<PresenceVariantId | undefined>();
     let heroId = $state<number | undefined>();
@@ -43,11 +45,21 @@
     );
     const scopeCustom = $derived(isCustomised(store.config, scope));
     const ready = $derived(store.loaded && store.layout.length > 0);
+    const heroChoices = $derived(heroItems(heroes, t("settings.discord_editor.all_heroes")));
+    const sample = $derived(previewSample(heroes, heroId, t("settings.discord_editor.sample_hero"), rankNames));
+    const art = $derived<SourceArt>({
+        heroPortrait: sample.heroPortrait,
+        heroIcon: sample.heroIcon,
+        rankBadge,
+    });
 
     onMount(() => {
         void store.load();
         void loadHeroes().then((all) => (heroes = heroOptions(all)));
-        void loadRankNames().then((names) => (rankNames = names));
+        void loadRankTiers().then((tiers) => {
+            rankNames = namesOf(tiers);
+            rankBadge = tiers.find((tier) => tier.tier === SAMPLE_RANK_TIER)?.image ?? null;
+        });
         return onHeroesRefreshed((all) => (heroes = heroOptions(all)));
     });
 
@@ -55,10 +67,10 @@
         if (!store.loaded) return;
         const config = store.config;
         const { state, variant: v, heroId: h } = scope;
-        const sample = previewSample(heroes, heroId, t("settings.discord_editor.sample_hero"), rankNames);
+        const shown = sample;
         let stale = false;
         const timer = setTimeout(() => {
-            presencePreview(config, state, v ?? null, h ?? null, sample).then(
+            presencePreview(config, state, v ?? null, h ?? null, shown).then(
                 (next) => {
                     if (stale) return;
                     card = next;
@@ -124,17 +136,23 @@
     {:else}
         <div class="flex flex-col gap-1.5">
             <label for="pe-hero" class="text-sm font-medium">{t("settings.discord_editor.editing")}</label>
-            <Select
+            <SelectMenu
                 id="pe-hero"
-                class="w-fit max-w-full"
+                class="w-64 max-w-full"
+                items={heroChoices}
                 value={heroId === undefined ? "" : String(heroId)}
-                onchange={(e) => (heroId = e.currentTarget.value ? Number(e.currentTarget.value) : undefined)}
+                onValueChange={(v) => (heroId = heroIdFromValue(v))}
             >
-                <option value="">{t("settings.discord_editor.all_heroes")}</option>
-                {#each heroes as h (h.id)}
-                    <option value={String(h.id)}>{h.name}</option>
-                {/each}
-            </Select>
+                {#snippet leading(item)}
+                    {#if item.icon}
+                        <img src={item.icon} alt="" />
+                    {:else if item.all}
+                        <Users aria-hidden="true" />
+                    {:else}
+                        <CircleHelp aria-hidden="true" />
+                    {/if}
+                {/snippet}
+            </SelectMenu>
             <p class="text-xs text-muted-foreground">
                 {hero
                     ? t("settings.discord_editor.editing_hero_hint", { hero: hero.name })
@@ -179,6 +197,7 @@
                         config={store.config}
                         defaults={store.defaults}
                         placeholders={store.placeholders}
+                        {art}
                         edit={(c) => store.edit(c)}
                     />
                 {/key}

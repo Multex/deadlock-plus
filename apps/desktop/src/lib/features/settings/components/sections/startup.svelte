@@ -2,9 +2,10 @@
     import { t } from "$lib/core/i18n.svelte";
     import Card from "$lib/ui/card.svelte";
     import SettingRow from "$lib/ui/setting-row.svelte";
-    import { onMount } from "svelte";
+    import { onMount, type Component } from "svelte";
+    import { Gauge, Pause, Play } from "@lucide/svelte";
     import { errorText } from "$lib/core/errors";
-    import Select from "$lib/ui/select.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import { jobDescription, jobTitle, POLICY_OPTIONS, type Policy } from "$lib/features/jobs/jobs";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
@@ -19,6 +20,9 @@
     } from "$lib/features/settings/autostart";
 
     let { show }: { show: (id: string) => boolean } = $props();
+
+    const POLICY_ICONS: Record<Policy, Component> = { always: Play, pauseInGame: Pause, slowInGame: Gauge };
+    const policyItems = $derived(POLICY_OPTIONS.map((o) => ({ value: o.value, label: o.label, policy: o.value })));
 
     let autostart = $state<AutostartStatus | null>(null);
     let autostartError = $state<string | null>(null);
@@ -145,16 +149,19 @@
                                     <label for="job-{job.id}-policy" class="text-xs text-muted-foreground"
                                         >{t("settings.startup.while_running")}</label
                                     >
-                                    <Select
+                                    <SelectMenu
                                         id="job-{job.id}-policy"
+                                        items={policyItems}
                                         value={job.policy}
                                         disabled={!jobs.allEnabled || !job.enabled}
-                                        onchange={(e) => void jobs.setPolicy(job.id, e.currentTarget.value as Policy)}
+                                        onValueChange={(v) => void jobs.setPolicy(job.id, v as Policy)}
+                                        class="w-44"
                                     >
-                                        {#each POLICY_OPTIONS as option (option.value)}
-                                            <option value={option.value}>{option.label}</option>
-                                        {/each}
-                                    </Select>
+                                        {#snippet leading(item)}
+                                            {@const Icon = POLICY_ICONS[item.policy]}
+                                            <Icon aria-hidden="true" />
+                                        {/snippet}
+                                    </SelectMenu>
                                 </div>
                             {/if}
                         </div>

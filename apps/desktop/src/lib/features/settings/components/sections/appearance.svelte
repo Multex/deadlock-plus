@@ -2,7 +2,9 @@
     import Card from "$lib/ui/card.svelte";
     import SettingRow from "$lib/ui/setting-row.svelte";
     import Button from "$lib/ui/button.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import type { Component } from "svelte";
+    import { Monitor, Sparkles, Turtle } from "@lucide/svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { THEMES, resolveMotionPreference } from "$lib/features/settings/themes";
@@ -10,6 +12,13 @@
     import { t } from "$lib/core/i18n.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
+
+    const MOTION_ICONS: Record<string, Component> = { system: Monitor, reduce: Turtle, full: Sparkles };
+    const motionItems = $derived([
+        { value: "system", label: t("settings.appearance.motion_system") },
+        { value: "reduce", label: t("settings.appearance.motion_reduce") },
+        { value: "full", label: t("settings.appearance.motion_full") },
+    ]);
 
     function onThemeKeydown(e: KeyboardEvent) {
         const next = radioTarget(
@@ -71,15 +80,18 @@
             for="reduced-motion"
             description={t("settings.appearance.motion_description")}
         >
-            <Select
+            <SelectMenu
                 id="reduced-motion"
+                items={motionItems}
                 value={settings.motion}
-                onchange={(e) => settings.setMotion(resolveMotionPreference(e.currentTarget.value))}
+                onValueChange={(v) => settings.setMotion(resolveMotionPreference(v))}
+                class="w-48 shrink-0"
             >
-                <option value="system">{t("settings.appearance.motion_system")}</option>
-                <option value="reduce">{t("settings.appearance.motion_reduce")}</option>
-                <option value="full">{t("settings.appearance.motion_full")}</option>
-            </Select>
+                {#snippet leading(item)}
+                    {@const Icon = MOTION_ICONS[item.value] ?? Monitor}
+                    <Icon aria-hidden="true" />
+                {/snippet}
+            </SelectMenu>
         </SettingRow>
     </Card>
 {/if}

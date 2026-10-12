@@ -1,18 +1,22 @@
 <script lang="ts">
+    import type { Component } from "svelte";
+    import { Gamepad2, Image, Link, Medal, SquareUser } from "@lucide/svelte";
     import Input from "$lib/ui/input.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { PresencePartialImage } from "$lib/generated/types/PresencePartialImage";
     import FieldFrame from "./field-frame.svelte";
-    import { SOURCE_KINDS, sourceFromKind, sourceKind, sourceUrl, type SourceKind } from "./editor";
+    import { sourceFromKind, sourceKind, sourceUrl, type SourceKind } from "./editor";
     import { SOURCE_LABELS } from "./labels";
+    import { sourceItems, sourceThumb, type SourceArt } from "./select-items";
 
     let {
         id,
         label,
         value,
         custom,
+        art,
         onchange,
         onreset,
     }: {
@@ -20,13 +24,23 @@
         label: string;
         value: PresencePartialImage;
         custom: boolean;
+        art: SourceArt;
         onchange: (patch: PresencePartialImage) => void;
         onreset: () => void;
     } = $props();
 
+    const SOURCE_ICONS: Record<SourceKind, Component> = {
+        heroPortrait: Image,
+        heroIcon: SquareUser,
+        rankBadge: Medal,
+        modeIcon: Gamepad2,
+        customUrl: Link,
+    };
+
     const kind = $derived(sourceKind(value.source) ?? "heroPortrait");
     const url = $derived(sourceUrl(value.source));
     const enabled = $derived(value.enabled ?? false);
+    const items = $derived(sourceItems(kind, (k) => SOURCE_LABELS[k]()));
 </script>
 
 <FieldFrame {id} {label} {custom} {onreset}>
@@ -37,17 +51,25 @@
             aria-label={t("settings.discord_editor.image_enabled", { image: label })}
             onCheckedChange={(v) => onchange({ enabled: v })}
         />
-        <Select
+        <SelectMenu
             {id}
+            {items}
             value={kind}
             disabled={!enabled}
             aria-label={t("settings.discord_editor.image_source", { image: label })}
-            onchange={(e) => onchange({ source: sourceFromKind(e.currentTarget.value as SourceKind, url) })}
+            onValueChange={(v) => onchange({ source: sourceFromKind(v as SourceKind, url) })}
+            class="w-48"
         >
-            {#each kind === "modeIcon" ? [...SOURCE_KINDS, kind] : SOURCE_KINDS as option (option)}
-                <option value={option}>{SOURCE_LABELS[option]()}</option>
-            {/each}
-        </Select>
+            {#snippet leading(item)}
+                {@const thumb = sourceThumb(item.kind, art)}
+                {#if thumb}
+                    <img src={thumb} alt="" class="object-top" />
+                {:else}
+                    {@const Icon = SOURCE_ICONS[item.kind]}
+                    <Icon aria-hidden="true" />
+                {/if}
+            {/snippet}
+        </SelectMenu>
     </div>
     {#if enabled && kind === "customUrl"}
         <Input

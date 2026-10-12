@@ -7,7 +7,7 @@
     import { Copy, FolderOpen, RefreshCw, Save } from "@lucide/svelte";
     import Button from "$lib/ui/button.svelte";
     import Input from "$lib/ui/input.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import {
         exportLogs,
@@ -29,6 +29,7 @@
         DEBUG: "text-green-400",
         TRACE: "text-blue-400",
     };
+    const LEVEL_ITEMS = LEVELS.map((l) => ({ value: l, label: l, level: l }));
 
     let entries = $state<LogEntry[] | null>(null);
     let failed = $state<string | null>(null);
@@ -89,16 +90,17 @@
 
 <div class="flex min-h-0 flex-col gap-3 {full ? 'h-full' : ''}">
     <div class="flex flex-wrap items-center gap-2">
-        <Select
+        <SelectMenu
+            items={LEVEL_ITEMS}
             value={level}
-            onchange={(e) => (level = e.currentTarget.value as LogLevel)}
+            onValueChange={(v) => (level = v as LogLevel)}
             aria-label={t("logging.min_level")}
-            class="w-28"
+            class="w-32"
         >
-            {#each LEVELS as l (l)}
-                <option value={l}>{l}</option>
-            {/each}
-        </Select>
+            {#snippet leading(item)}
+                <span class="size-2 rounded-full bg-current {TAG_CLASS[item.level]}"></span>
+            {/snippet}
+        </SelectMenu>
         <Input
             bind:value={query}
             placeholder={t("logging.search")}

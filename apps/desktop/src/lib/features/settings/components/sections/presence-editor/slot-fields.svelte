@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { tick } from "svelte";
-    import Select from "$lib/ui/select.svelte";
+    import { tick, type Component } from "svelte";
+    import { Hourglass, Swords, Timer, TimerOff } from "@lucide/svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { effectiveSlot, getSlot, resetField, setField, type Scope } from "$lib/features/presence/config";
@@ -12,22 +13,33 @@
     import ImageField from "./image-field.svelte";
     import TextField from "./text-field.svelte";
     import VariablesMenu from "./variables-menu.svelte";
-    import { TIMERS, insertPlaceholder } from "./editor";
+    import { insertPlaceholder } from "./editor";
     import { TIMER_LABELS } from "./labels";
+    import { timerItems, type SourceArt } from "./select-items";
 
     let {
         scope,
         config,
         defaults,
         placeholders,
+        art,
         edit,
     }: {
         scope: Scope;
         config: PresenceConfig;
         defaults: PresenceConfig;
         placeholders: PresencePlaceholder[];
+        art: SourceArt;
         edit: (next: PresenceConfig) => void;
     } = $props();
+
+    const TIMER_ICONS: Record<PresenceTimer, Component> = {
+        none: TimerOff,
+        elapsedInState: Timer,
+        matchTime: Swords,
+        queueTime: Hourglass,
+    };
+    const timers = $derived(timerItems((timer) => TIMER_LABELS[timer]()));
 
     const own = $derived(getSlot(config, scope));
     const shown = $derived(effectiveSlot(config, defaults, scope));
@@ -93,6 +105,7 @@
         label={t("settings.discord_editor.field_large_image")}
         value={shown.largeImage ?? {}}
         custom={own.largeImage !== undefined}
+        {art}
         onchange={(patch) => set({ largeImage: patch })}
         onreset={() => reset("largeImage")}
     />
@@ -111,6 +124,7 @@
         label={t("settings.discord_editor.field_small_image")}
         value={shown.smallImage ?? {}}
         custom={own.smallImage !== undefined}
+        {art}
         onchange={(patch) => set({ smallImage: patch })}
         onreset={() => reset("smallImage")}
     />
@@ -146,15 +160,17 @@
         custom={own.timer !== undefined}
         onreset={() => reset("timer")}
     >
-        <Select
+        <SelectMenu
             id={`${idBase}-timer`}
-            class="w-fit"
+            class="w-52 max-w-full"
+            items={timers}
             value={shown.timer ?? "none"}
-            onchange={(e) => set({ timer: e.currentTarget.value as PresenceTimer })}
+            onValueChange={(v) => set({ timer: v as PresenceTimer })}
         >
-            {#each TIMERS as timer (timer)}
-                <option value={timer}>{TIMER_LABELS[timer]()}</option>
-            {/each}
-        </Select>
+            {#snippet leading(item)}
+                {@const Icon = TIMER_ICONS[item.timer]}
+                <Icon aria-hidden="true" />
+            {/snippet}
+        </SelectMenu>
     </FieldFrame>
 </div>

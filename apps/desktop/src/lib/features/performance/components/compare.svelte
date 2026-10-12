@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
-    import { Copy, Save, Trash2 } from "@lucide/svelte";
+    import { Copy, Gauge, Save, Trash2 } from "@lucide/svelte";
 
     import { errorText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
@@ -10,6 +10,7 @@
     import Badge from "$lib/ui/badge.svelte";
     import Button from "$lib/ui/button.svelte";
     import Card from "$lib/ui/card.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
 
     import { formatDuration } from "$lib/features/performance/performance";
     import {
@@ -21,6 +22,7 @@
         type Better,
     } from "$lib/features/performance/runs";
     import { savedRuns } from "$lib/features/performance/runs.svelte";
+    import { runItems } from "./compare-items";
 
     let aId = $state("");
     let bId = $state("");
@@ -79,21 +81,15 @@
     const cell = (better: Better, side: "a" | "b") =>
         better === side ? "font-semibold text-success" : "text-foreground";
     const date = (at: number) => formatDate(at, { dateStyle: "medium", timeStyle: "short" });
+    const items = $derived(runItems(runs, t("performance.compare.pick_run"), date));
 </script>
 
 {#snippet picker(id: string, onchange: (v: string) => void, label: string)}
     <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
         {label}
-        <select
-            class="h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground"
-            value={id}
-            onchange={(e) => onchange(e.currentTarget.value)}
-        >
-            <option value="">{t("performance.compare.pick_run")}</option>
-            {#each runs as r (r.id)}
-                <option value={r.id}>{r.label} · {date(r.savedAt)}</option>
-            {/each}
-        </select>
+        <SelectMenu {items} value={id} onValueChange={onchange} triggerMeta class="w-full">
+            {#snippet icon()}<Gauge aria-hidden="true" />{/snippet}
+        </SelectMenu>
     </label>
 {/snippet}
 

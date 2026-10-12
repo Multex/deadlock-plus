@@ -3,12 +3,22 @@
     import Card from "$lib/ui/card.svelte";
     import SettingRow from "$lib/ui/setting-row.svelte";
     import Input from "$lib/ui/input.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import { BellRing, CalendarDays } from "@lucide/svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import Switch from "$lib/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { formatTime, LEAD_OPTIONS, parseTime, weekdays } from "$lib/features/settings/maintenance";
+    import { leadItems, weekdayItems } from "./select-items";
 
     let { show }: { show: (id: string) => boolean } = $props();
+
+    const dayItems = $derived(weekdayItems(weekdays()));
+    const leadOptions = $derived(
+        leadItems(LEAD_OPTIONS, {
+            minutes: (minutes) => t("settings.notifications.lead_minutes", { minutes }),
+            hours: (hours) => t("settings.notifications.lead_hours", { hours }),
+        }),
+    );
 
     let maintenanceTime = $state(formatTime(settings.maintenance.minuteOfDay));
     $effect(() => {
@@ -54,14 +64,14 @@
         <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
             <label class="flex items-center gap-2 text-muted-foreground">
                 {t("settings.notifications.day")}
-                <Select
-                    value={settings.maintenance.weekday}
-                    onchange={(e) => settings.setMaintenance({ weekday: Number(e.currentTarget.value) })}
+                <SelectMenu
+                    items={dayItems}
+                    value={String(settings.maintenance.weekday)}
+                    onValueChange={(v) => settings.setMaintenance({ weekday: Number(v) })}
+                    class="w-40"
                 >
-                    {#each weekdays() as day, i (day)}
-                        <option value={i}>{day}</option>
-                    {/each}
-                </Select>
+                    {#snippet icon()}<CalendarDays aria-hidden="true" />{/snippet}
+                </SelectMenu>
             </label>
             <label class="flex items-center gap-2 text-muted-foreground">
                 {t("settings.notifications.time")}
@@ -75,18 +85,14 @@
             </label>
             <label class="flex items-center gap-2 text-muted-foreground">
                 {t("settings.notifications.remind")}
-                <Select
-                    value={settings.maintenance.leadMinutes}
-                    onchange={(e) => settings.setMaintenance({ leadMinutes: Number(e.currentTarget.value) })}
+                <SelectMenu
+                    items={leadOptions}
+                    value={String(settings.maintenance.leadMinutes)}
+                    onValueChange={(v) => settings.setMaintenance({ leadMinutes: Number(v) })}
+                    class="w-44"
                 >
-                    {#each LEAD_OPTIONS as m (m)}
-                        <option value={m}
-                            >{m >= 60
-                                ? t("settings.notifications.lead_hours", { hours: m / 60 })
-                                : t("settings.notifications.lead_minutes", { minutes: m })}</option
-                        >
-                    {/each}
-                </Select>
+                    {#snippet icon()}<BellRing aria-hidden="true" />{/snippet}
+                </SelectMenu>
             </label>
         </div>
     </Card>
