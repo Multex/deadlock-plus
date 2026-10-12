@@ -1,34 +1,61 @@
 <script lang="ts">
     import { untrack } from "svelte";
-    import { Map as MapIcon, Pause, Play, Skull } from "@lucide/svelte";
+    import { Crosshair, Gauge, Map as MapIcon, Pause, Play, Skull, Tent, UserRound, Users } from "@lucide/svelte";
     import { formatNumber, i18n, t } from "$lib/core/i18n.svelte";
-    import { loadMinimapArt, type MinimapArt } from "$lib/features/gamedata/gamedata";
+    import {
+        loadHeroMinimapArt,
+        loadMapItems,
+        loadMinimapArt,
+        loadMinimapIcons,
+        type MinimapArt,
+    } from "$lib/features/gamedata/gamedata";
     import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
+    import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
     import { formatClock } from "$lib/features/live/live";
     import Button from "$lib/ui/button.svelte";
     import Section from "$lib/ui/section.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
+    import Slider from "$lib/ui/slider.svelte";
+    import {
+        deathFacts,
+        deathSteps,
+        resolveScope,
+        scopeFilter,
+        stepIndex,
+        stepScene,
+        stepTo,
+        type DeathRole,
+        type DeathScope,
+        type DeathStep,
+    } from "../../death-steps";
     import { resolveItemListVisuals, type IdVisual } from "../../deep-dive/catalog";
     import { objectiveNameKey, objectiveRows } from "../../deep-dive/objective-rows";
     import { allPlayers, findPlayer, playerBySlot, type MatchDetail, type MatchTeam } from "../../detail";
+    import { laneStrokes, type LaneTable } from "../../lane-lines";
+    import { MAP_OBJECT_STEMS, mapObjects, type MapObjectIcons } from "../../map-objects";
     import { decodePaths, WORLD_RADIUS } from "../../paths";
+    import { deathScopeItems, groupTeam, parseDeathScope, roleItems, speedOptions } from "../../player-menu";
     import {
         DEFAULT_KINDS,
         SPEEDS,
         advance,
-        deathMarkers,
         mapDots,
+        markerPercent,
         replayDuration,
         type DeathEvent,
         type ReplaySpeed,
     } from "../../replay";
     import { buildTimeline, type TimelineEvent, type TimelineKind } from "../../timeline";
+    import Segmented from "../list/segmented.svelte";
+    import DeathStepper from "./death-stepper.svelte";
+    import TeamMark from "./deep-dive/team-mark.svelte";
     import ReplayMap from "./replay-map.svelte";
     import ReplayTimeline from "./replay-timeline.svelte";
 
     let { detail, ownAccountIds = [] }: { detail: MatchDetail; ownAccountIds?: number[] } = $props();
 
     const MAX_FRAME_MS = 250;
+    const uid = $props.id();
 
     const decoded = $derived(decodePaths(detail));
     const events = $derived(buildTimeline(detail));
@@ -41,8 +68,9 @@
     let speed = $state<ReplaySpeed>(1);
     let kinds = $state<TimelineKind[]>([...DEFAULT_KINDS]);
     let deathMode = $state(false);
-    let filterSlot = $state<number | null>(null);
-    let filterRole = $state<"victim" | "killer">("victim");
+    let showCamps = $state(true);
+    let scopeChoice = $state<DeathScope | null>(null);
+    let filterRole = $state<DeathRole>("victim");
     let rangeFrom = $state(0);
     let rangeTo = $state(0);
     let rangeTouched = $state(false);
@@ -51,6 +79,11 @@
     let art = $state.raw<MinimapArt | null>(null);
     let artLoaded = $state(false);
     let heroes = $state.raw<Record<number, Hero>>({});
+    let heroArt = $state.raw<Record<number, string>>({});
+    let markerArt = $state.raw<string | null>(null);
+    let coneArt = $state.raw<string | null>(null);
+    let mapTable = $state.raw<LaneTable | null>(null);
+    let objectIcons = $state.raw<MapObjectIcons>({});
     let itemVisuals = $state.raw(new Map<number, IdVisual>());
 
     $effect(() => {
@@ -58,7 +91,7 @@
         time = 0;
         playing = false;
         selected = null;
-        filterSlot = null;
+        scopeChoice = null;
         rangeTouched = false;
     });
 
@@ -68,6 +101,35 @@
             if (!live) return;
             art = found;
             artLoaded = true;
+        });
+        return () => (live = false);
+    });
+
+    $effect(() => {
+        let live = true;
+        void loadMapItems().then((found) => {
+            if (live) mapTable = found?.table ?? null;
+        });
+        return () => (live = false);
+    });
+
+    $effect(() => {
+        let live = true;
+        void loadMinimapIcons([...MAP_OBJECT_STEMS]).then((found) => {
+            if (live) objectIcons = found;
+        });
+        return () => (live = false);
+    });
+
+    $effect(() => {
+        let live = true;
+        void loadHeroMinimapArt().then((found) => {
+            if (live) heroArt = found;
+        });
+        void loadMinimapIcons(["player_marker_self", "player_cone"]).then((found) => {
+            if (!live) return;
+            markerArt = found.player_marker_self ?? null;
+            coneArt = found.player_cone ?? null;
         });
         return () => (live = false);
     });
@@ -120,22 +182,37 @@
 
     const radius = $derived(art?.radius ?? WORLD_RADIUS);
     const dots = $derived(decoded ? mapDots(decoded, time, radius) : []);
+    const viewerTeam = $derived(dots.find((d) => d.slot === ownSlot)?.team ?? null);
+    const laneLines = $derived(mapTable ? laneStrokes(mapTable, viewerTeam, radius) : []);
+    const objects = $derived(
+        mapTable
+            ? mapObjects({
+                  rows: mapTable.rows,
+                  objectives: detail.objectives,
+                  viewerTeam,
+                  time,
+                  radius,
+                  icons: objectIcons,
+                  showCamps,
+                  midBoss: detail.midBoss,
+              })
+            : [],
+    );
     const effectiveTo = $derived(rangeTouched ? Math.min(rangeTo, duration) : duration);
     const effectiveFrom = $derived(rangeTouched ? Math.min(rangeFrom, effectiveTo) : 0);
-    const markers = $derived(
+    const scope = $derived(resolveScope(scopeChoice, ownSlot));
+    const steps = $derived(
         deathMode
-            ? deathMarkers(
+            ? deathSteps(
+                  detail,
                   events,
-                  {
-                      slot: filterSlot ?? undefined,
-                      role: filterRole,
-                      fromS: effectiveFrom,
-                      toS: effectiveTo,
-                  },
+                  scopeFilter(scope, ownSlot, filterRole, { fromS: effectiveFrom, toS: effectiveTo }),
                   radius,
               )
             : [],
     );
+    const step = $derived(selected?.kind === "death" ? (steps[stepIndex(steps, selected)] ?? null) : null);
+    const scene = $derived(decoded && step ? stepScene(decoded, step, radius) : null);
 
     const objectiveLabels = $derived.by(() => {
         const out = new Map<string, string>();
@@ -170,6 +247,24 @@
         return (id === null ? undefined : heroes[id]?.name) ?? t("match_history.detail.replay.unknown_hero");
     };
     const itemName = (id: number) => itemVisuals.get(id)?.name ?? t("match_history.deep_dive.names.item");
+
+    const scopeItems = $derived(
+        deathScopeItems(detail, ownSlot, {
+            teamName,
+            fallbackName: (slot) => t("match_history.deep_dive.player_fallback", { slot }),
+            heroName: (heroId) => heroes[heroId]?.name ?? t("match_history.detail.replay.unknown_hero"),
+            you: t("match_history.detail.you"),
+            mine: t("match_history.detail.replay.my_deaths"),
+            all: t("match_history.detail.replay.all_players"),
+        }),
+    );
+    const roles = $derived(
+        roleItems({
+            victim: t("match_history.detail.replay.role_victim"),
+            killer: t("match_history.detail.replay.role_killer"),
+        }),
+    );
+    const speeds = $derived(speedOptions((s) => t("match_history.detail.replay.speed", { speed: s })));
 
     function labelOf(e: TimelineEvent): string {
         const time = clock(e.timeS);
@@ -214,18 +309,55 @@
         }
     }
 
+    function deathLines(s: DeathStep): string[] {
+        const facts = deathFacts(s);
+        const killer = facts.killerKnown
+            ? `${nameOf(facts.killerSlot)} · ${heroNameOf(facts.killerSlot)}`
+            : t("match_history.detail.replay.killer_slot", { slot: facts.killerSlot });
+        return [
+            `${nameOf(facts.victimSlot)} · ${heroNameOf(facts.victimSlot)}`,
+            clock(facts.timeS),
+            t("match_history.detail.replay.killed_by", { killer }),
+            ...(facts.respawnS === undefined
+                ? []
+                : [
+                      t("match_history.detail.replay.death_respawn", {
+                          seconds: formatNumber(Math.round(facts.respawnS)),
+                      }),
+                  ]),
+            ...(facts.position ? [t("match_history.detail.replay.death_position", facts.position)] : []),
+        ];
+    }
+
     function togglePlay() {
         if (!playing && time >= duration) time = 0;
         playing = !playing;
+        if (playing && deathMode) selected = null;
     }
 
     function onseek(timeS: number, event: TimelineEvent) {
-        time = Math.min(Math.max(timeS, 0), duration);
-        selected = event.kind === "death" ? event : null;
+        if (event.kind !== "death") {
+            time = Math.min(Math.max(timeS, 0), duration);
+            selected = null;
+            return;
+        }
+        if (deathMode && stepIndex(steps, event) < 0) {
+            scopeChoice = "all";
+            rangeTouched = false;
+        }
+        onselect(event);
     }
 
     function onselect(event: DeathEvent | null) {
         selected = event;
+        if (!event) return;
+        time = Math.min(Math.max(event.timeS, 0), duration);
+        if (deathMode) playing = false;
+    }
+
+    function onscrub(timeS: number) {
+        time = timeS;
+        if (deathMode) selected = null;
     }
 
     function setFrom(value: number) {
@@ -241,6 +373,16 @@
     }
 </script>
 
+{#snippet keptRange()}
+    <span
+        class="kept"
+        style:left="{markerPercent(effectiveFrom, duration)}%"
+        style:right="{100 - markerPercent(effectiveTo, duration)}%"
+        style:margin-left={effectiveFrom <= 0 ? "-8px" : undefined}
+        style:margin-right={effectiveTo >= duration ? "-8px" : undefined}
+    ></span>
+{/snippet}
+
 <Section class="replay flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 class="flex items-center gap-2 text-sm font-medium">
@@ -248,18 +390,32 @@
             {t("match_history.detail.replay.heading")}
         </h2>
         {#if decoded}
-            <Button
-                size="sm"
-                variant={deathMode ? "default" : "outline"}
-                aria-pressed={deathMode}
-                onclick={() => {
-                    deathMode = !deathMode;
-                    selected = null;
-                }}
-            >
-                <Skull size={14} aria-hidden="true" />
-                {t("match_history.detail.replay.death_map")}
-            </Button>
+            <div class="flex flex-wrap items-center gap-2">
+                {#if !deathMode}
+                    <Button
+                        size="sm"
+                        variant="toggle"
+                        aria-pressed={showCamps}
+                        title={t("match_history.detail.replay.camps_hint")}
+                        onclick={() => (showCamps = !showCamps)}
+                    >
+                        <Tent size={14} aria-hidden="true" />
+                        {t("match_history.detail.replay.camps")}
+                    </Button>
+                {/if}
+                <Button
+                    size="sm"
+                    variant="toggle"
+                    aria-pressed={deathMode}
+                    onclick={() => {
+                        deathMode = !deathMode;
+                        selected = null;
+                    }}
+                >
+                    <Skull size={14} aria-hidden="true" />
+                    {t("match_history.detail.replay.death_map")}
+                </Button>
+            </div>
         {/if}
     </div>
 
@@ -268,62 +424,103 @@
             <div class="flex flex-wrap items-end gap-x-4 gap-y-2 text-sm">
                 <label class="flex flex-col gap-1 text-xs text-muted-foreground">
                     {t("match_history.detail.replay.filter_player")}
-                    <Select
-                        value={filterSlot ?? ""}
-                        onchange={(e) => {
-                            filterSlot = e.currentTarget.value === "" ? null : Number(e.currentTarget.value);
-                            selected = null;
-                        }}
+                    <SelectMenu
+                        items={scopeItems}
+                        class="w-52"
+                        bind:value={
+                            () => String(scope),
+                            (value) => {
+                                scopeChoice = parseDeathScope(value);
+                                selected = null;
+                            }
+                        }
                     >
-                        <option value="">{t("match_history.detail.replay.all_players")}</option>
-                        {#each players as p (p.slot)}
-                            <option value={p.slot}>{nameOf(p.slot)} · {heroNameOf(p.slot)}</option>
-                        {/each}
-                    </Select>
+                        {#snippet leading(item)}
+                            {#if item.kind === "player"}
+                                <HeroIcon heroId={item.heroId} {heroes} size={24} />
+                            {:else if item.kind === "mine"}
+                                <UserRound aria-hidden="true" />
+                            {:else}
+                                <Users aria-hidden="true" />
+                            {/if}
+                        {/snippet}
+                        {#snippet groupHeading(group)}
+                            {@const team = groupTeam(scopeItems, group)}
+                            <span class="flex items-center gap-1.5">
+                                {#if team}
+                                    <span class="flex" aria-hidden="true"><TeamMark {team} size={8} /></span>
+                                {/if}
+                                {group}
+                            </span>
+                        {/snippet}
+                    </SelectMenu>
                 </label>
-                {#if filterSlot !== null}
+                {#if typeof scope === "number"}
                     <label class="flex flex-col gap-1 text-xs text-muted-foreground">
                         {t("match_history.detail.replay.filter_role")}
-                        <Select
-                            value={filterRole}
-                            onchange={(e) => {
-                                filterRole = e.currentTarget.value === "killer" ? "killer" : "victim";
-                                selected = null;
-                            }}
+                        <SelectMenu
+                            items={roles}
+                            class="w-36"
+                            bind:value={
+                                () => filterRole,
+                                (value) => {
+                                    filterRole = value === "killer" ? "killer" : "victim";
+                                    selected = null;
+                                }
+                            }
                         >
-                            <option value="victim">{t("match_history.detail.replay.role_victim")}</option>
-                            <option value="killer">{t("match_history.detail.replay.role_killer")}</option>
-                        </Select>
+                            {#snippet leading(item)}
+                                {#if item.value === "killer"}
+                                    <Crosshair aria-hidden="true" />
+                                {:else}
+                                    <Skull aria-hidden="true" />
+                                {/if}
+                            {/snippet}
+                        </SelectMenu>
                     </label>
                 {/if}
-                <label class="flex min-w-36 flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                    {t("match_history.detail.replay.range_from", { time: clock(effectiveFrom) })}
-                    <input
-                        type="range"
-                        min="0"
-                        max={duration}
-                        step="1"
-                        value={effectiveFrom}
-                        class="accent-primary"
-                        oninput={(e) => setFrom(Number(e.currentTarget.value))}
-                    />
-                </label>
-                <label class="flex min-w-36 flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                    {t("match_history.detail.replay.range_to", { time: clock(effectiveTo) })}
-                    <input
-                        type="range"
-                        min="0"
-                        max={duration}
-                        step="1"
-                        value={effectiveTo}
-                        class="accent-primary"
-                        oninput={(e) => setTo(Number(e.currentTarget.value))}
-                    />
-                </label>
+                <div class="flex min-w-72 flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                    <div class="flex items-baseline justify-between gap-2 tabular-nums">
+                        <span id="{uid}-from">
+                            {t("match_history.detail.replay.range_from", { time: clock(effectiveFrom) })}
+                        </span>
+                        <span id="{uid}-to">
+                            {t("match_history.detail.replay.range_to", { time: clock(effectiveTo) })}
+                        </span>
+                    </div>
+                    <div class="grid h-9 grid-cols-2 items-center gap-3">
+                        <Slider
+                            class="kept-slider"
+                            bind:value={() => effectiveFrom, setFrom}
+                            min={0}
+                            max={duration}
+                            step={1}
+                            formatValue={clock}
+                            bubble={false}
+                            aria-labelledby="{uid}-from"
+                            track={keptRange}
+                        />
+                        <Slider
+                            class="kept-slider"
+                            bind:value={() => effectiveTo, setTo}
+                            min={0}
+                            max={duration}
+                            step={1}
+                            formatValue={clock}
+                            bubble={false}
+                            aria-labelledby="{uid}-to"
+                            track={keptRange}
+                        />
+                    </div>
+                </div>
             </div>
-            <p class="text-xs text-muted-foreground" role="status">
-                {t("match_history.detail.replay.deaths_shown", { count: markers.length })}
-            </p>
+            <DeathStepper
+                index={stepIndex(steps, step?.event ?? null)}
+                count={steps.length}
+                summary={step ? deathLines(step).join(" · ") : null}
+                onstep={(delta) => onselect(stepTo(steps, step?.event ?? null, delta))}
+                onclear={() => (selected = null)}
+            />
         {/if}
 
         <ReplayMap
@@ -331,13 +528,20 @@
             {artLoaded}
             {dots}
             {heroOf}
-            {heroes}
+            {heroArt}
+            {markerArt}
+            {coneArt}
+            {laneLines}
+            {objects}
             {nameOf}
             {heroNameOf}
             {ownSlot}
             {deathMode}
-            {markers}
-            selected={selected?.kind === "death" ? selected : null}
+            markers={steps}
+            detailed={scope === "mine"}
+            {scene}
+            {deathLines}
+            selected={step?.event ?? null}
             {onselect}
         />
     {:else}
@@ -347,27 +551,22 @@
     {/if}
 
     <div class="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" aria-pressed={playing} onclick={togglePlay} disabled={duration <= 0}>
+        <Button size="sm" class="min-w-24" aria-pressed={playing} onclick={togglePlay} disabled={duration <= 0}>
             {#if playing}
-                <Pause aria-hidden="true" />
+                <Pause class="fill-current" aria-hidden="true" />
                 {t("match_history.detail.replay.pause")}
             {:else}
-                <Play aria-hidden="true" />
+                <Play class="fill-current" aria-hidden="true" />
                 {t("match_history.detail.replay.play")}
             {/if}
         </Button>
-        <div class="flex items-center gap-1" role="group" aria-label={t("match_history.detail.replay.speed_aria")}>
-            {#each SPEEDS as s (s)}
-                <Button
-                    size="sm"
-                    variant={speed === s ? "default" : "outline"}
-                    aria-pressed={speed === s}
-                    onclick={() => (speed = s)}
-                >
-                    {t("match_history.detail.replay.speed", { speed: s })}
-                </Button>
-            {/each}
-        </div>
+        <Segmented
+            label={t("match_history.detail.replay.speed_aria")}
+            icon={Gauge}
+            options={speeds.options}
+            value={String(speed)}
+            onselect={(value) => (speed = speeds.parse(value))}
+        />
         <span class="ml-auto text-sm tabular-nums text-muted-foreground">
             {t("match_history.detail.replay.time", { current: clock(time), total: clock(duration) })}
         </span>
@@ -385,18 +584,28 @@
             {selected}
             onkinds={(next) => (kinds = next)}
             {onseek}
-            onscrub={(s) => (time = s)}
+            {onscrub}
         />
     {/if}
 </Section>
 
 <style>
-    :global(.replay) {
-        --dd-hk: oklch(0.8 0.125 82);
-        --dd-am: oklch(0.72 0.11 245);
+    /* Both sliders light the kept window instead of the span below their own thumb. */
+    :global(.replay .kept-slider) {
+        --slider-fill: transparent;
+        --slider-thumb: var(--brass);
     }
-    :global(:root[data-theme="daylight"] .replay) {
-        --dd-hk: oklch(0.6 0.12 70);
-        --dd-am: oklch(0.5 0.12 245);
+    .kept {
+        position: absolute;
+        top: 50%;
+        height: 4px;
+        translate: 0 -50%;
+        border-radius: 999px;
+        background: linear-gradient(
+            to right,
+            color-mix(in oklch, var(--brass) 55%, transparent),
+            var(--brass),
+            color-mix(in oklch, var(--brass) 55%, transparent)
+        );
     }
 </style>

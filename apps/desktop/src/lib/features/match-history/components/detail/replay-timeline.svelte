@@ -6,6 +6,7 @@
     import { TIMELINE_LANES, eventTeam, markerPercent, toggleKind, type LaneId } from "../../replay";
     import type { TimelineEvent, TimelineKind } from "../../timeline";
     import Button from "$lib/ui/button.svelte";
+    import Slider from "$lib/ui/slider.svelte";
 
     interface Props {
         events: TimelineEvent[];
@@ -83,15 +84,16 @@
         {#each ALL_KINDS as kind (kind)}
             {@const Glyph = ICONS[kind]}
             {@const on = kinds.includes(kind)}
-            <Button
-                size="sm"
-                variant={on ? "default" : "outline"}
-                aria-pressed={on}
-                onclick={() => onkinds(toggleKind(kinds, kind))}
-            >
+            <Button size="sm" variant="toggle" aria-pressed={on} onclick={() => onkinds(toggleKind(kinds, kind))}>
                 <Glyph size={14} aria-hidden="true" />
                 {t(KIND_KEYS[kind])}
-                <span class="tabular-nums opacity-70">{counts.get(kind) ?? 0}</span>
+                <span
+                    class="-mr-1 rounded-sm px-1 text-[11px] leading-4 tabular-nums {on
+                        ? 'bg-brass/20 text-foreground'
+                        : 'bg-muted text-muted-foreground'}"
+                >
+                    {counts.get(kind) ?? 0}
+                </span>
             </Button>
         {/each}
     </div>
@@ -139,16 +141,15 @@
 
         <div class="grid grid-cols-[5.5rem_1fr] items-center gap-2">
             <span class="text-xs text-muted-foreground tabular-nums">{clock(time)}</span>
-            <input
-                type="range"
-                class="scrub w-full"
-                min="0"
-                max={duration}
-                step="1"
-                value={Math.round(time)}
+            <Slider
+                bind:value={() => Math.round(time), onscrub}
+                min={0}
+                max={Math.max(duration, 1)}
+                step={1}
+                disabled={duration <= 0}
+                formatValue={clock}
+                bubble={false}
                 aria-label={t("match_history.detail.replay.scrubber_aria")}
-                aria-valuetext={clock(time)}
-                oninput={(e) => onscrub(Number(e.currentTarget.value))}
             />
         </div>
     </div>
@@ -157,11 +158,6 @@
 <style>
     .tl {
         --thumb-half: 8px;
-    }
-    .scrub {
-        accent-color: var(--color-primary);
-        height: 20px;
-        margin: 0;
     }
     .mk {
         transition: scale 0.12s;

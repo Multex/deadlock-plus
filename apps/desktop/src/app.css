@@ -83,6 +83,8 @@
     --border: oklch(0.8 0.1 82 / 20%);
     --input: oklch(0.8 0.1 82 / 26%);
     --ring: oklch(0.8 0.125 82);
+    --dd-hk: oklch(0.8 0.125 82);
+    --dd-am: oklch(0.72 0.11 245);
     --radius: 0.45rem;
     --script-fallback: ui-sans-serif, system-ui, sans-serif;
     --app-font: "Retail Demo", "Valve Oracle", var(--script-fallback);
@@ -142,6 +144,8 @@
     --border: oklch(0.45 0.08 75 / 22%);
     --input: oklch(0.45 0.08 75 / 30%);
     --ring: oklch(0.6 0.12 70);
+    --dd-hk: oklch(0.6 0.12 70);
+    --dd-am: oklch(0.5 0.12 245);
 }
 
 :root[data-theme="contrast"] {

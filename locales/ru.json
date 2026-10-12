@@ -2361,20 +2361,6 @@
                 "player_aria": "",
                 "player_hint": "Толстые линии - это выбранный игрок."
             },
-            "deaths": {
-                "heading": "Смерти",
-                "time": "Время",
-                "killer": "Был убит",
-                "respawn": "Возродиться",
-                "position": "Положение",
-                "other_killer": "Слот {slot}",
-                "seconds": "{value} s"
-            },
-            "items": {
-                "heading": "Предметы",
-                "bought_sold": "Купили {bought}, продано {sold}",
-                "bought_held": "Купили {bought}, хранится"
-            },
             "damage": {
                 "heading": "Урон между героями",
                 "hint": "Каждый ряд - это игрок, наносящий ему урон, каждый столбец игрок который получает его. Урон, записанный в собственной ячейки игрока, отображается как Другой урон.",
@@ -2403,9 +2389,6 @@
                 "kind_base_guardian": "",
                 "kind_unknown": "Задача (цель, Objective)",
                 "indexed_name": "{name} {index}"
-            },
-            "abilities": {
-                "heading": "Способности"
             },
             "accolades": {
                 "heading": "Аколады",
@@ -2530,8 +2513,7 @@
                 "role_victim": "Жертва",
                 "role_killer": "Убийца",
                 "range_from": "с {time}",
-                "range_to": "по {time}",
-                "deaths_shown": "Показано смертей {count}"
+                "range_to": "по {time}"
             }
         },
         "ping": {

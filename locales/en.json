@@ -2235,23 +2235,29 @@
                 "lead_heading": "Team lead over time",
                 "lead_aria": "Chart of the team lead over time",
                 "lead_hint": "Above the line: The Hidden King ahead. Below: The Archmother ahead.",
+                "lead_even": "Teams are level",
+                "others_range": "Other players, lowest to highest",
                 "player_heading": "Selected player over time",
                 "player_aria": "Chart of the selected player and everyone else over time",
                 "player_hint": "The thick line is the selected player."
             },
-            "deaths": {
-                "heading": "Deaths",
-                "time": "Time",
-                "killer": "Killed by",
-                "respawn": "Respawn",
-                "position": "Position",
-                "other_killer": "Slot {slot}",
-                "seconds": "{value} s"
-            },
-            "items": {
-                "heading": "Items",
-                "bought_sold": "Bought {bought}, sold {sold}",
-                "bought_held": "Bought {bought}, kept"
+            "purchases": {
+                "heading": "Purchases",
+                "slider_aria": "Purchase step",
+                "previous": "Previous action",
+                "next": "Next action",
+                "step": "{current} of {total}",
+                "item_buy": "Bought {name}",
+                "item_sell": "Sold {name}",
+                "ability_unlock": "Unlocked {name}",
+                "ability_upgrade": "Upgraded {name} ({count} of {total})",
+                "imbued": "Imbued on {ability}",
+                "holding": "Items held",
+                "no_items": "No items held",
+                "abilities": "Abilities",
+                "no_abilities": "No abilities unlocked",
+                "ability_level_aria": "{count} of {total} upgrades",
+                "list_aria": "All actions"
             },
             "damage": {
                 "heading": "Damage between heroes",
@@ -2281,9 +2287,6 @@
                 "kind_base_guardian": "Base Guardian",
                 "kind_unknown": "Objective",
                 "indexed_name": "{name} {index}"
-            },
-            "abilities": {
-                "heading": "Abilities"
             },
             "accolades": {
                 "heading": "Accolades",
@@ -2375,6 +2378,19 @@
                 "unknown_hero": "Unknown hero",
                 "dead": "Dead",
                 "dot_dead": "{label} (dead)",
+                "camps": "Camps",
+                "camps_hint": "Camp times are estimated from the game's spawn rules.",
+                "mid_boss_hint": "Mid boss times are estimated from the game's spawn rules.",
+                "mid_boss_last_kill": "Last defeated at {time}",
+                "object_destroyed_at": "Destroyed at {time}",
+                "object_damage": "Damage taken over the match",
+                "damage_gun": "Gun",
+                "damage_spirit": "Spirit",
+                "damage_trooper": "Trooper",
+                "camp_weak": "Weak camp",
+                "camp_medium": "Medium camp",
+                "camp_strong": "Strong camp",
+                "camp_vault": "Vault",
                 "play": "Play",
                 "pause": "Pause",
                 "speed": "{speed}x",
@@ -2400,6 +2416,15 @@
                 "marker_item_sell": "{player} sold {item} at {time}",
                 "marker_swing": "{team} gained a {souls} souls lead at {time}",
                 "death_map": "Death map",
+                "my_deaths": "My deaths",
+                "death_step": "{index} / {total}",
+                "step_prev": "Previous death",
+                "step_next": "Next death",
+                "step_show_all": "Show all",
+                "stepper_aria": "Step through deaths",
+                "killer_slot": "Slot {slot}",
+                "death_respawn": "Respawn {seconds} s",
+                "death_position": "Position {x}, {y}",
                 "death_marker": "Death of {victim} at {time}",
                 "killed_by": "Killed by {killer}",
                 "filter_player": "Player",
@@ -2409,7 +2434,10 @@
                 "role_killer": "Killer",
                 "range_from": "From {time}",
                 "range_to": "To {time}",
-                "deaths_shown": "{count} deaths shown"
+                "death_count_one": "{count} death",
+                "death_count_other": "{count} deaths",
+                "step_start": "Step through",
+                "no_deaths": "No deaths"
             }
         },
         "ping": {
