@@ -75,6 +75,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Dropdowns across the app are now drawn by the app instead of the system, with an icon for each option.
 - Hero dropdowns show each hero's icon.
 - Buttons have clearer hover, pressed and switched-on states.
+- On Windows, the right-click menu now only offers Back, Forward, Refresh, text editing, Copy link and Copy image.
 - Russian and Turkish are now partly translated. Untranslated text shows in English.
 - On Linux, the capture helper runs from a root-owned copy, only accepts connections from root and gives up its privileges once capture starts.
 - On Linux, capture and the firewall report an error if `pkexec` or `nft` is not in a standard system folder.
