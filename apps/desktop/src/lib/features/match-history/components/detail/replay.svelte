@@ -29,6 +29,7 @@
         type DeathStep,
     } from "../../death-steps";
     import { resolveItemListVisuals, type IdVisual } from "../../deep-dive/catalog";
+    import { campClears } from "../../camp-clears";
     import { objectiveNameKey, objectiveRows } from "../../deep-dive/objective-rows";
     import { allPlayers, findPlayer, playerBySlot, type MatchDetail, type MatchTeam } from "../../detail";
     import { laneStrokes, type LaneTable } from "../../lane-lines";
@@ -184,10 +185,13 @@
     const dots = $derived(decoded ? mapDots(decoded, time, radius) : []);
     const viewerTeam = $derived(dots.find((d) => d.slot === ownSlot)?.team ?? null);
     const laneLines = $derived(mapTable ? laneStrokes(mapTable, viewerTeam, radius) : []);
+    const mapRows = $derived(mapTable?.rows ?? null);
+    // Keyed by index into `mapRows`, so the objects below must be built from the same array.
+    const campDowns = $derived(decoded && mapRows ? campClears(mapRows, decoded, detail.durationS) : null);
     const objects = $derived(
-        mapTable
+        mapRows
             ? mapObjects({
-                  rows: mapTable.rows,
+                  rows: mapRows,
                   objectives: detail.objectives,
                   viewerTeam,
                   time,
@@ -195,6 +199,7 @@
                   icons: objectIcons,
                   showCamps,
                   midBoss: detail.midBoss,
+                  campDowns,
               })
             : [],
     );

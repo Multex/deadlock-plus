@@ -2381,7 +2381,7 @@
                 "camps": "Camps",
                 "shop": "Shop",
                 "teleporter": "Teleporter",
-                "camps_hint": "Camp times are estimated from the game's spawn rules.",
+                "camps_hint": "Camp spawns and clears are estimated from the game's spawn rules and player movement.",
                 "mid_boss_hint": "Mid boss times are estimated from the game's spawn rules.",
                 "mid_boss_last_kill": "Last defeated at {time}",
                 "object_destroyed_at": "Destroyed at {time}",

@@ -507,6 +507,68 @@ describe("spawn times", () => {
     });
 });
 
+describe("camp clears", () => {
+    const neutral = (kind: MapItem["kind"], x = 0) => row({ kind, team: null, laneSlot: null, objectiveId: null, x });
+    const down = (clearedS: number, respawnS: number) => ({ clearedS, respawnS });
+    const keys = (over: Partial<MapObjectsInput>) => mapObjects(input(over)).map((o) => o.key);
+
+    it("hides a camp from its clear until its respawn, and shows it again when scrubbing back", () => {
+        const rows = [neutral("camp_weak"), neutral("camp_weak", 2000)];
+        const campDowns = new Map([[1, [down(700, 785), down(900, 985)]]]);
+        const at = (time: number) => keys({ rows, campDowns, time });
+        expect(at(699)).toEqual(["0", "1"]);
+        expect(at(700)).toEqual(["0"]);
+        expect(at(784.9)).toEqual(["0"]);
+        expect(at(785)).toEqual(["0", "1"]);
+        expect(at(950)).toEqual(["0"]);
+        expect(at(650)).toEqual(["0", "1"]);
+    });
+
+    it("hides every camp tier", () => {
+        const rows = [neutral("camp_weak"), neutral("camp_medium"), neutral("camp_strong"), neutral("camp_vault")];
+        const campDowns = new Map(rows.map((_, i) => [i, [down(700, 800)]]));
+        expect(keys({ rows, time: 750 })).toHaveLength(4);
+        expect(keys({ rows, campDowns, time: 750 })).toEqual([]);
+    });
+
+    it("draws every camp when there are no clears", () => {
+        const rows = [neutral("camp_weak"), neutral("camp_medium", 2000)];
+        const plain = mapObjects(input({ rows, time: 750 }));
+        expect(plain).toHaveLength(2);
+        expect(mapObjects(input({ rows, time: 750, campDowns: null }))).toEqual(plain);
+        expect(mapObjects(input({ rows, time: 750, campDowns: new Map() }))).toEqual(plain);
+        expect(mapObjects(input({ rows, time: 750, campDowns: new Map([[0, []]]) }))).toEqual(plain);
+    });
+
+    it("leaves shops, teleporters, the mid boss and objectives alone", () => {
+        const rows = [
+            neutral("shop"),
+            neutral("teleporter", 2000),
+            neutral("mid_boss"),
+            row({}),
+            row({ kind: "patron", objectiveId: 1, laneSlot: null }),
+        ];
+        const campDowns = new Map(rows.map((_, i) => [i, [down(0, 5000)]]));
+        const plain = mapObjects(input({ rows, time: 750 }));
+        expect(plain.map((o) => o.key)).toEqual(["0", "1", "2", "3", "4", "4-core"]);
+        expect(mapObjects(input({ rows, campDowns, time: 750 }))).toEqual(plain);
+    });
+
+    it("keeps the first spawn rule and the layer toggle", () => {
+        const rows = [neutral("camp_strong")];
+        const campDowns = new Map([[0, [down(700, 1035)]]]);
+        expect(keys({ rows, campDowns, time: 479 })).toEqual([]);
+        expect(keys({ rows, campDowns, time: 480 })).toEqual(["0"]);
+        expect(keys({ rows, campDowns, time: 1035, showCamps: false })).toEqual([]);
+    });
+
+    it("keeps a camp cleared late down on the final frame", () => {
+        const rows = [neutral("camp_weak")];
+        const campDowns = new Map([[0, [down(1990, 2075)]]]);
+        expect(keys({ rows, campDowns, time: 2000 })).toEqual([]);
+    });
+});
+
 describe("shops", () => {
     const spots: [number | null, number, number][] = [
         [null, -3920, 1120],

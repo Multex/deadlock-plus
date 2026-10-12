@@ -1,6 +1,7 @@
 import { teleporterIconSvg } from "$lib/features/gamedata/map-icons";
 import type { MapItem } from "$lib/generated/types/MapItem";
 import type { MinimapIcon } from "$lib/generated/types/MinimapIcon";
+import { campDownAt, type CampDown } from "./camp-clears";
 import type { MatchObjective, MatchTeam, MidBossEvent } from "./detail";
 import { ENEMY_LANE_COLOR, LANE_COLORS } from "./lane-lines";
 import {
@@ -166,6 +167,8 @@ export interface MapObjectsInput {
     icons: MapObjectIcons;
     showCamps: boolean;
     midBoss: readonly MidBossEvent[];
+    /** Estimated down intervals per camp, keyed by index into `rows`. */
+    campDowns?: ReadonlyMap<number, readonly CampDown[]> | null;
 }
 
 const teamOf = (n: number): MatchTeam => (n === 1 ? "archmother" : "hidden-king");
@@ -340,6 +343,7 @@ export function mapObjects(input: MapObjectsInput): MapObject[] {
 
         if (!look.tinted) {
             if (!campSpawned(row.kind, input.time)) return;
+            if (CAMP_KINDS.has(row.kind) && campDownAt(input.campDowns?.get(index), input.time)) return;
             const owner = owners.get(index);
             if (owner !== undefined && isObjectiveDead(input.rows[owner]!, input.objectives, input.time)) return;
             out.push({

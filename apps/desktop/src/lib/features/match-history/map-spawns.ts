@@ -1,7 +1,7 @@
 import type { MapItem } from "$lib/generated/types/MapItem";
 import type { MatchTeam, MidBossEvent } from "./detail";
 
-/** First spawn per camp tier, from the game's spawn rules. Match data has no per-camp clear, so a camp never hides again. */
+/** First spawn per camp tier, from the game's spawn rules. Clears after that are estimated from player movement in `camp-clears.ts`. */
 export const CAMP_FIRST_SPAWN_S = {
     camp_weak: 120,
     camp_medium: 300,
