@@ -39,6 +39,11 @@ export function accoladeCategory(trackedStat: string | null | undefined): Accola
     return (trackedStat && CATEGORY_BY_STAT[trackedStat]) || "other";
 }
 
+/** The game sends a negative threshold for an accolade that has no tiers. */
+export function accoladeTier(tier: number | null | undefined): number | null {
+    return typeof tier === "number" && Number.isFinite(tier) && tier >= 0 ? tier : null;
+}
+
 /** Index of the `}` closing the `{` at `open`, or -1. */
 function closingBrace(text: string, open: number): number {
     let depth = 0;

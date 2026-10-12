@@ -5,6 +5,9 @@ import {
     BOARD_ROWS,
     BOARD_COLUMN_MIN_REM,
     BOARD_LABEL_REM,
+    ITEM_GAP_PX,
+    ITEM_TILE_PX,
+    anyRanked,
     boardMinWidth,
     rankArtVars,
     ITEM_GRID_COLUMNS,
@@ -403,5 +406,31 @@ describe("rankArtVars", () => {
         expect(rankArtVars(8)).toContain("--rank-art-scale:0.9");
         expect(rankArtVars(99)).toBe("");
         expect(rankArtVars(null)).toBe("");
+    });
+});
+
+describe("anyRanked", () => {
+    const rank = (displayRank: number) => ({ displayRank }) as NonNullable<MatchPlayer["rank"]>;
+
+    it("is false when no player has a rank", () => {
+        const d = detail({}, [player(1, "hidden-king")], [player(7, "archmother", { rank: rank(0) })]);
+        expect(anyRanked(boardTeams(d, null))).toBe(false);
+    });
+
+    it("is true when one player has a rank", () => {
+        const d = detail({}, [player(1, "hidden-king")], [player(7, "archmother", { rank: rank(54) })]);
+        expect(anyRanked(boardTeams(d, null))).toBe(true);
+    });
+});
+
+describe("item tile size", () => {
+    it("is a whole pixel size that fits a player column of the full board", () => {
+        const BOARD_INNER_PX = 1198;
+        const CELL_PADDING_PX = 12;
+        const column = (BOARD_INNER_PX - BOARD_LABEL_REM * 16) / 12 - CELL_PADDING_PX;
+        const grid = ITEM_GRID_COLUMNS * ITEM_TILE_PX + (ITEM_GRID_COLUMNS - 1) * ITEM_GAP_PX;
+        expect(Number.isInteger(ITEM_TILE_PX)).toBe(true);
+        expect(grid).toBeLessThanOrEqual(column);
+        expect(grid + ITEM_GRID_COLUMNS).toBeGreaterThan(column);
     });
 });

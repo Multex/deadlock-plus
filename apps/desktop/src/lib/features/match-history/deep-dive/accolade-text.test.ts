@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accoladeCategory, renderAccoladeDescription } from "./accolade-text";
+import { accoladeCategory, accoladeTier, renderAccoladeDescription } from "./accolade-text";
 
 const number = (n: number) => n.toLocaleString("en-US");
 const render = (template: string, value: number) => renderAccoladeDescription(template, value, "en", number);
@@ -52,5 +52,19 @@ describe("accoladeCategory", () => {
     it("falls back for stats it does not know", () => {
         expect(accoladeCategory("something_new")).toBe("other");
         expect(accoladeCategory(null)).toBe("other");
+    });
+});
+
+describe("accoladeTier", () => {
+    it("keeps a real tier", () => {
+        expect(accoladeTier(0)).toBe(0);
+        expect(accoladeTier(2)).toBe(2);
+    });
+
+    it("has no tier for a negative or missing value", () => {
+        expect(accoladeTier(-1)).toBeNull();
+        expect(accoladeTier(undefined)).toBeNull();
+        expect(accoladeTier(null)).toBeNull();
+        expect(accoladeTier(Number.NaN)).toBeNull();
     });
 });

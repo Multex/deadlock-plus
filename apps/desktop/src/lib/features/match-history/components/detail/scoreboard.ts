@@ -103,6 +103,10 @@ export function boardTeams(detail: MatchDetail, ownAccountId: number | null): Bo
         : teams;
 }
 
+export function anyRanked(boards: readonly BoardTeam[]): boolean {
+    return boards.some((b) => b.columns.some((c) => c.badge !== null));
+}
+
 const hasOwn = (t: BoardTeam) => t.columns.some((c) => c.own);
 
 export interface HeaderSummary {
@@ -168,6 +172,10 @@ export function itemSlots(items: MatchItem[], visuals: ReadonlyMap<number, IdVis
 /** The shop shows three banks of four slots (weapon, vitality, spirit). */
 export const ITEM_GRID_COLUMNS = 4;
 export const MIN_ITEM_SLOTS = 12;
+
+/** Whole pixels, so the item art is never drawn at a fractional size. Four tiles fit a column of the full board. */
+export const ITEM_TILE_PX = 18;
+export const ITEM_GAP_PX = 2;
 
 /** One grid size for every player so the item cells line up. Rounds up to whole rows. */
 export function itemGridSize(counts: readonly number[]): number {

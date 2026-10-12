@@ -25,10 +25,13 @@
     import {
         BOARD_COLUMN_MIN_REM,
         BOARD_LABEL_REM,
+        anyRanked,
         BOARD_ROWS,
         columnName,
         gridSlots,
+        ITEM_GAP_PX,
         ITEM_GRID_COLUMNS,
+        ITEM_TILE_PX,
         itemGridSize,
         itemSlots,
         rankArtVars,
@@ -91,6 +94,7 @@
     const playerName = (c: BoardColumn) =>
         columnName(c.player.name ?? null, t("match_history.detail.player_fallback", { slot: c.player.slot }));
 
+    const showRanks = $derived(anyRanked(boards));
     const columnCount = $derived(Math.max(boards[0].columns.length + boards[1].columns.length, 1));
     const gridSize = $derived(
         itemGridSize(boards.flatMap((b) => b.columns.map((c) => itemSlots(c.player.items, visuals).length))),
@@ -168,15 +172,15 @@
 {#snippet header(c: BoardColumn, i: number)}
     <th scope="col" class="player" class:me={c.own} class:odd={i % 2 === 1} data-team={c.player.team}>
         <span class="who">
-            <span class="badge-slot" style={rankArtVars(rankView(c.badge)?.tier)}>
-                {#if c.badge !== null}
-                    <RankBadge rank={c.badge} {tiers} />
-                {:else}
-                    <span class="unranked" title={t("match_history.detail.board.unranked")}>
+            {#if showRanks}
+                <span class="badge-slot" style={rankArtVars(rankView(c.badge)?.tier)}>
+                    {#if c.badge !== null}
+                        <RankBadge rank={c.badge} {tiers} />
+                    {:else}
                         <span class="sr-only">{t("match_history.detail.board.unranked")}</span>
-                    </span>
-                {/if}
-            </span>
+                    {/if}
+                </span>
+            {/if}
             <span class="portrait" class:mvp={c.mvp === "mvp"} class:key={c.mvp === "key"}>
                 <HeroIcon heroId={c.player.heroId} {heroes} size={52} />
                 {#if c.mvp}
@@ -221,6 +225,8 @@
     class="scroller"
     data-export-board
     style:--item-cols={ITEM_GRID_COLUMNS}
+    style:--item-size="{ITEM_TILE_PX}px"
+    style:--item-gap="{ITEM_GAP_PX}px"
     style:--bar-left="var(--team-{boards[0].team})"
     style:--bar-right="var(--team-{boards[1].team})"
 >
@@ -412,12 +418,6 @@
         align-items: center;
         justify-content: center;
     }
-    .unranked {
-        width: 22px;
-        height: 18px;
-        border: 1px dashed color-mix(in oklch, var(--muted-foreground) 55%, transparent);
-        border-radius: 5px;
-    }
     .portrait {
         position: relative;
         display: flex;
@@ -442,7 +442,7 @@
         translate: -50% 0;
         padding: 0 5px;
         border-radius: 4px;
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 700;
         line-height: 13px;
         white-space: nowrap;
@@ -472,7 +472,7 @@
         translate: -50% 0;
         padding: 0 5px;
         border-radius: 4px;
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 700;
         line-height: 13px;
         text-transform: uppercase;
@@ -550,8 +550,9 @@
     }
     .items {
         display: grid;
-        grid-template-columns: repeat(var(--item-cols), minmax(0, 1fr));
-        gap: 2px;
+        grid-template-columns: repeat(var(--item-cols), minmax(0, var(--item-size)));
+        justify-content: center;
+        gap: var(--item-gap);
         padding: 4px 2px;
     }
     .stat {
