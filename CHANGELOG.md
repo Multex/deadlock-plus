@@ -80,6 +80,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - On Linux, capture and the firewall report an error if `pkexec` or `nft` is not in a standard system folder.
 - Steam links in patch notes now open only if they are store pages, Deadlock launch links or Steam web pages.
 - The thanks page now shows each translator's language in its own name, followed by its name in your language.
+- The Support Deadlock+ link now also shows in Settings > About, What's New, the thanks page, the update notice and the patch notes viewer.
+- Match History, Stats and Demos show the Support Deadlock+ link while they are empty.
 
 #### Game data from your install
 
