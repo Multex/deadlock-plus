@@ -18,16 +18,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A new Match History page lists every match the Deadlock API knows for your account.
 - Filter matches by mode, hero, outcome and date, or show only custom matches.
 - Open a match for the full scoreboard: both teams, items, ranks and bans.
+- The scoreboard marks the game's MVP and key players.
+- A match you just played opens with its full scoreboard before the Deadlock API has it, marked as provisional.
+- That scoreboard is kept until the API has the match. Clear it under Storage > Post-game match data.
 - Match pages include souls and damage over time, a purchase timeline, damage dealt, objectives and accolades.
 - The Purchases card steps through every item a player bought or sold and every ability they unlocked or upgraded.
 - Each purchase step shows the items the player held and their ability levels at that moment.
 - Hover the souls and damage charts to read the values at that moment in a tooltip.
 - Pick the player a match card shows from the card's own header.
-- The scoreboard marks the game's MVP and key players.
 - Match page tables and the scoreboard have written column and stat names, and objectives are named.
 - Opened matches are cached for three days. Clear them under Storage > Match detail cache.
-- A match you just played opens with its full scoreboard before the Deadlock API has it, marked as provisional.
-- That scoreboard is kept until the API has the match. Clear it under Storage > Post-game match data.
 
 #### Match replay
 
@@ -35,23 +35,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Play, pause and scrub the replay, at up to 4x speed.
 - A shared timeline shows deaths, objectives, Mid Boss, item buys and sells, and net worth swings.
 - Click a marker on the timeline to jump the replay to that moment.
-- Death map mode shows every death and who got the kill, filtered by player and time.
-- Death map opens on your own deaths, each with the hero who killed you.
-- Hover a death on the death map to bring it to the front and fade the others.
-- Step through deaths one at a time to see where every player stood at that moment.
-- Players on the replay map use the game's own minimap icons, with allies in cream and enemies in red-orange.
 - The replay map draws the lanes, Guardians, Walkers, Shrines, Base Guardians and Patrons, and removes each one when it falls.
+- Players on the replay map use the game's own minimap icons, with allies in cream and enemies in red-orange.
 - Neutral camps and the Mid Boss appear on the replay map at their estimated spawn times.
 - The Camps button hides or shows neutral camps on the replay map.
 - Hover an objective on the replay map to see how much Gun, Spirit and Trooper damage it took.
 - A destroyed objective stays highlighted on the replay map for a few seconds.
+- Death map mode shows every death and who got the kill, filtered by player and time.
+- Death map opens on your own deaths, each with the hero who killed you.
+- Step through deaths one at a time to see where every player stood at that moment.
+- Hover a death on the death map to bring it to the front and fade the others.
 - Replays need the match's movement data, so they are not available for provisional matches.
-
-#### Match scoreboard extras
-
-- Your row on the scoreboard shows how each stat compares with your average on that hero.
-- A summary line counts how many stats were better or worse than your average.
-- Save the scoreboard as an image, or copy it to the clipboard.
 
 #### Match ping
 
@@ -59,11 +53,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Each match you play is recorded second by second, using the game's own connection when it can be read.
 - If the game's connection can't be read, the card falls back to the ping to the relay.
 - The card says which one it shows, and notes when recording began after the match started.
-- Matches played before this update show ping to the relay for the match's time window, if it is still stored.
-- Clear recordings under Storage > Match ping recordings. The match in progress is kept.
 - The Live page ping card now shows the game's own ping, jitter and packet loss during a match.
 - The Live page ping chart follows the same source.
 - The relay ping is shown only when the game's connection can't be read.
+- Matches played before this update show ping to the relay for the match's time window, if it is still stored.
+- Clear recordings under Storage > Match ping recordings. The match in progress is kept.
+
+#### Match scoreboard extras
+
+- Your row on the scoreboard shows how each stat compares with your average on that hero.
+- A summary line counts how many stats were better or worse than your average.
+- Save the scoreboard as an image, or copy it to the clipboard.
 
 ### Changed
 
@@ -71,17 +71,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Hero dropdowns show each hero's icon.
 - Buttons have clearer hover, pressed and switched-on states.
 - Russian and Turkish are now partly translated. Untranslated text shows in English.
-- The thanks page now shows each translator's language in its own name, followed by its name in your language.
-- Steam links in patch notes now open only if they are store pages, Deadlock launch links or Steam web pages.
 - On Linux, the capture helper runs from a root-owned copy, only accepts connections from root and gives up its privileges once capture starts.
 - On Linux, capture and the firewall report an error if `pkexec` or `nft` is not in a standard system folder.
+- Steam links in patch notes now open only if they are store pages, Deadlock launch links or Steam web pages.
+- The thanks page now shows each translator's language in its own name, followed by its name in your language.
 
 #### Game data from your install
 
-- Hero names now follow the app's language, read from your Deadlock install.
 - Hero portraits and icons now load from your Deadlock install, with the online copy as a fallback.
-- Rank badges now load from your Deadlock install, with the online copy as a fallback.
+- Hero names now follow the app's language, read from your Deadlock install.
 - A newly released hero shows up in the app without waiting for an app update.
+- Rank badges now load from your Deadlock install, with the online copy as a fallback.
 - Objective, camp and shop positions are now read from your Deadlock install.
 - Those positions refresh on their own after a game update.
 - Map marker icons and hero map heads now load from your Deadlock install.
@@ -90,8 +90,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - The app starts faster and uses less memory at launch.
 - The server picker, Steam account, voice ban, storage and demo pages no longer freeze the window while they read files.
-- Patch-note searches are quicker, and the search data takes about half the disk space.
 - Logging, the network monitor and the alerts check do less work in the background, and none while the game is closed.
+- Patch-note searches are quicker, and the search data takes about half the disk space.
 - Country flags load as separate files instead of being packed into the app's main script.
 
 ### Fixed
@@ -104,8 +104,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Removed
 
-- The ExitLag comparison, calibration and path view on the Live page are gone. They were rarely accurate.
 - The ping-only recent matches list on the Live page is gone. Match History replaces it.
+- The ExitLag comparison, calibration and path view on the Live page are gone. They were rarely accurate.
 
 ## [0.10.0] - 2026-10-08
 
