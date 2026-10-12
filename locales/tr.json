@@ -2239,23 +2239,29 @@
                 "lead_heading": "",
                 "lead_aria": "",
                 "lead_hint": "",
+                "lead_even": "",
+                "others_range": "",
                 "player_heading": "",
                 "player_aria": "",
                 "player_hint": ""
             },
-            "deaths": {
+            "purchases": {
                 "heading": "",
-                "time": "",
-                "killer": "",
-                "respawn": "",
-                "position": "",
-                "other_killer": "",
-                "seconds": ""
-            },
-            "items": {
-                "heading": "",
-                "bought_sold": "",
-                "bought_held": ""
+                "slider_aria": "",
+                "previous": "",
+                "next": "",
+                "step": "",
+                "item_buy": "",
+                "item_sell": "",
+                "ability_unlock": "",
+                "ability_upgrade": "",
+                "imbued": "",
+                "holding": "",
+                "no_items": "",
+                "abilities": "",
+                "no_abilities": "",
+                "ability_level_aria": "",
+                "list_aria": ""
             },
             "damage": {
                 "heading": "",
@@ -2285,9 +2291,6 @@
                 "kind_base_guardian": "",
                 "kind_unknown": "",
                 "indexed_name": ""
-            },
-            "abilities": {
-                "heading": ""
             },
             "accolades": {
                 "heading": "",
@@ -2379,6 +2382,21 @@
                 "unknown_hero": "",
                 "dead": "",
                 "dot_dead": "",
+                "camps": "",
+                "shop": "",
+                "teleporter": "",
+                "camps_hint": "",
+                "mid_boss_hint": "",
+                "mid_boss_last_kill": "",
+                "object_destroyed_at": "",
+                "object_damage": "",
+                "damage_gun": "",
+                "damage_spirit": "",
+                "damage_trooper": "",
+                "camp_weak": "",
+                "camp_medium": "",
+                "camp_strong": "",
+                "camp_vault": "",
                 "play": "",
                 "pause": "",
                 "speed": "",
@@ -2404,6 +2422,15 @@
                 "marker_item_sell": "",
                 "marker_swing": "",
                 "death_map": "",
+                "my_deaths": "",
+                "death_step": "",
+                "step_prev": "",
+                "step_next": "",
+                "step_show_all": "",
+                "stepper_aria": "",
+                "killer_slot": "",
+                "death_respawn": "",
+                "death_position": "",
                 "death_marker": "",
                 "killed_by": "",
                 "filter_player": "",
@@ -2413,7 +2440,10 @@
                 "role_killer": "",
                 "range_from": "",
                 "range_to": "",
-                "deaths_shown": ""
+                "step_start": "",
+                "no_deaths": "",
+                "death_count_one": "",
+                "death_count_other": ""
             }
         },
         "ping": {
