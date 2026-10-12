@@ -18,7 +18,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A new Match History page lists every match the Deadlock API knows for your account.
 - Filter matches by mode, hero, outcome and date, or show only custom matches.
 - Open a match for the full scoreboard: both teams, items, ranks and bans.
-- Match pages include souls and damage over time, deaths, item timeline, damage dealt, objectives, abilities and accolades.
+- Match pages include souls and damage over time, a purchase timeline, damage dealt, objectives and accolades.
+- The Purchases card steps through every item a player bought or sold and every ability they unlocked or upgraded.
+- Each purchase step shows the items the player held and their ability levels at that moment.
+- Hover the souls and damage charts to read the values at that moment in a tooltip.
+- Pick the player a match card shows from the card's own header.
 - The scoreboard marks the game's MVP and key players.
 - Match page tables and the scoreboard have written column and stat names, and objectives are named.
 - Opened matches are cached for three days. Clear them under Storage > Match detail cache.
@@ -32,6 +36,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A shared timeline shows deaths, objectives, Mid Boss, item buys and sells, and net worth swings.
 - Click a marker on the timeline to jump the replay to that moment.
 - Death map mode shows every death and who got the kill, filtered by player and time.
+- Death map opens on your own deaths, each with the hero who killed you.
+- Hover a death on the death map to bring it to the front and fade the others.
+- Step through deaths one at a time to see where every player stood at that moment.
+- Players on the replay map use the game's own minimap icons, with allies in cream and enemies in red-orange.
+- The replay map draws the lanes, Guardians, Walkers, Shrines, Base Guardians and Patrons, and removes each one when it falls.
+- Neutral camps and the Mid Boss appear on the replay map at their estimated spawn times.
+- The Camps button hides or shows neutral camps on the replay map.
+- Hover an objective on the replay map to see how much Gun, Spirit and Trooper damage it took.
+- A destroyed objective stays highlighted on the replay map for a few seconds.
 - Replays need the match's movement data, so they are not available for provisional matches.
 
 #### Match scoreboard extras
@@ -54,6 +67,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- Dropdowns across the app are now drawn by the app instead of the system, with an icon for each option.
+- Hero dropdowns show each hero's icon.
+- Buttons have clearer hover, pressed and switched-on states.
 - Russian and Turkish are now partly translated. Untranslated text shows in English.
 - The thanks page now shows each translator's language in its own name, followed by its name in your language.
 - Steam links in patch notes now open only if they are store pages, Deadlock launch links or Steam web pages.
