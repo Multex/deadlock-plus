@@ -94,10 +94,15 @@ export interface ShopInfo {
     type: "shop";
 }
 
-export type MapObjectInfo = ObjectiveInfo | CampInfo | MidBossInfo | ShopInfo;
+export interface TeleporterInfo {
+    type: "teleporter";
+}
 
-/** Camps and shops only carry a name, and there are too many of them to step through with Tab. */
-export const takesTab = (info: MapObjectInfo): boolean => info.type !== "camp" && info.type !== "shop";
+export type MapObjectInfo = ObjectiveInfo | CampInfo | MidBossInfo | ShopInfo | TeleporterInfo;
+
+/** Camps, shops and teleporters only carry a name, and there are too many of them to step through with Tab. */
+export const takesTab = (info: MapObjectInfo): boolean =>
+    info.type !== "camp" && info.type !== "shop" && info.type !== "teleporter";
 
 const OBJECTIVE_KINDS: Partial<Record<MapItem["kind"], ObjectiveKind>> = {
     guardian: "guardian",

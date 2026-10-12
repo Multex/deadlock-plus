@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { teleporterIconSvg } from "$lib/features/gamedata/map-icons";
 import type { MapItem } from "$lib/generated/types/MapItem";
 import type { MatchObjective } from "./detail";
 import { ENEMY_LANE_COLOR, LANE_COLORS } from "./lane-lines";
@@ -9,9 +10,11 @@ import {
     hitZ,
     isObjectiveDead,
     layerKey,
+    layerScale,
     mapObjects,
     pairBaseGuardians,
     shopGuardians,
+    teleporterDataUri,
     type MapObjectIcons,
     type MapObjectsInput,
 } from "./map-objects";
@@ -123,7 +126,7 @@ describe("mapObjects", () => {
     });
 
     it("leaves out kinds that are not drawn in this slice", () => {
-        const kinds: MapItem["kind"][] = ["base_sentry", "souls_dealer", "urn_return", "teleporter", "buff_spawner"];
+        const kinds: MapItem["kind"][] = ["base_sentry", "souls_dealer", "urn_return", "buff_spawner"];
         expect(mapObjects(input({ rows: kinds.map((kind) => row({ kind })) }))).toEqual([]);
     });
 
@@ -417,6 +420,119 @@ describe("shops", () => {
     it("draws nothing when the shop icon is not loaded", () => {
         const { minimap_shop: _shop, ...icons } = ICONS;
         expect(mapObjects(input({ rows: shops, icons }))).toEqual([]);
+    });
+});
+
+describe("teleporters", () => {
+    const spots: [number, number][] = [
+        [-3904, 1792],
+        [-3584, -2784],
+        [3584, 2784],
+        [3904, -1792],
+    ];
+    const teleporters = spots.map(([x, y]) =>
+        row({ kind: "teleporter", team: null, laneSlot: null, objectiveId: null, x, y }),
+    );
+
+    it("draws all four at their table positions with the baked icon", () => {
+        const out = mapObjects(input({ rows: teleporters }));
+        expect(out).toHaveLength(4);
+        out.forEach((o, i) => {
+            const p = mapPercent(spots[i]![0], spots[i]![1], WORLD_RADIUS);
+            expect(o.kind).toBe("teleporter");
+            expect([o.left, o.top]).toEqual([p.left, p.top]);
+            expect(o.parts).toEqual([{ src: teleporterDataUri(), tint: null }]);
+            expect(o.flipY).toBe(false);
+        });
+    });
+
+    it("carries the game's icon as an SVG data URL", () => {
+        const uri = teleporterDataUri();
+        expect(uri.startsWith("data:image/svg+xml;charset=utf-8,")).toBe(true);
+        expect(decodeURIComponent(uri.slice(uri.indexOf(",") + 1))).toBe(teleporterIconSvg());
+    });
+
+    it("is two thirds of a camp icon, as the game's 16 px disc is to its 24 px camp box", () => {
+        expect(MAP_OBJECT_SIZE.teleporter).toBe((MAP_OBJECT_SIZE.camp * 16) / 24);
+        expect(MAP_OBJECT_SIZE.teleporter).toBeCloseTo(20 / 560, 10);
+        for (const o of mapObjects(input({ rows: teleporters }))) expect(o.size).toBe(MAP_OBJECT_SIZE.teleporter);
+    });
+
+    it("mirrors the two on the right half so the figure runs toward its exit", () => {
+        const out = mapObjects(input({ rows: teleporters }));
+        expect(out.map((o) => o.flipX ?? false)).toEqual([false, false, true, true]);
+    });
+
+    it("draws without any icon loaded from an install", () => {
+        expect(mapObjects(input({ rows: teleporters, icons: {} }))).toHaveLength(4);
+    });
+
+    it("stays for the whole match, from the first second on", () => {
+        for (const time of [0, 1, 119, 600, 3000]) {
+            const out = mapObjects(input({ rows: teleporters, time }));
+            expect(out).toHaveLength(4);
+            for (const o of out) {
+                expect(o.opacity).toBeUndefined();
+                expect(o.highlight).toBeUndefined();
+                expect(o.estimated).toBeUndefined();
+            }
+        }
+    });
+
+    it("stays when the camps layer is off", () => {
+        const rows = [...teleporters, row({ kind: "camp_weak", team: null, laneSlot: null, objectiveId: null })];
+        expect(mapObjects(input({ rows, showCamps: false })).map((o) => o.kind)).toEqual(Array(4).fill("teleporter"));
+    });
+
+    it("looks the same for either viewer", () => {
+        const look = (viewerTeam: MapObjectsInput["viewerTeam"]) =>
+            mapObjects(input({ rows: teleporters, viewerTeam }));
+        expect(look("archmother")).toEqual(look("hidden-king"));
+        expect(look(null)).toEqual(look("hidden-king"));
+    });
+
+    it("sits under the camps, as in the game", () => {
+        const [teleporter] = mapObjects(input({ rows: teleporters }));
+        expect(MAP_OBJECT_Z.teleporter).toBe(1);
+        expect(teleporter!.z).toBe(MAP_OBJECT_Z.teleporter);
+        expect(teleporter!.z).toBeLessThan(MAP_OBJECT_Z.neutral);
+        expect(hitZ(teleporter!)).toBe(1);
+    });
+
+    it("carries a name-only tooltip", () => {
+        expect(mapObjects(input({ rows: teleporters })).map((o) => o.info)).toEqual(
+            Array(4).fill({ type: "teleporter" }),
+        );
+    });
+});
+
+describe("layerScale", () => {
+    it("leaves an object that is not mirrored without a scale", () => {
+        expect(layerScale({ flipY: false })).toBeUndefined();
+    });
+
+    it("mirrors left to right and top to bottom on separate axes", () => {
+        expect(layerScale({ flipY: false, flipX: true })).toBe("-1 1");
+        expect(layerScale({ flipY: true })).toBe("1 -1");
+        expect(layerScale({ flipY: true, flipX: true })).toBe("-1 -1");
+    });
+
+    it("mirrors only the Hidden King patron top to bottom and no other object left to right", () => {
+        const rows = [
+            row({ kind: "patron", team: 0, objectiveId: 9 }),
+            row({ kind: "patron", team: 1, objectiveId: 9 }),
+            row({ kind: "shop", team: null, laneSlot: null, objectiveId: null, x: 3920 }),
+            row({ kind: "camp_weak", team: null, laneSlot: null, objectiveId: null, x: 3000 }),
+        ];
+        const scales = mapObjects(input({ rows })).map((o) => [o.key, layerScale(o)]);
+        expect(scales).toEqual([
+            ["0", "1 -1"],
+            ["1", undefined],
+            ["2", undefined],
+            ["3", undefined],
+            ["0-core", undefined],
+            ["1-core", undefined],
+        ]);
     });
 });
 

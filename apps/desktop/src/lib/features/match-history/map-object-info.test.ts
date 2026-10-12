@@ -183,9 +183,10 @@ describe("takesTab", () => {
         expect(takesTab(midBossInfo([], 0))).toBe(true);
     });
 
-    it("skips camps and shops, which only carry a name", () => {
+    it("skips camps, shops and teleporters, which only carry a name", () => {
         expect(takesTab({ type: "camp", tier: "weak" })).toBe(false);
         expect(takesTab({ type: "shop" })).toBe(false);
+        expect(takesTab({ type: "teleporter" })).toBe(false);
     });
 });
 

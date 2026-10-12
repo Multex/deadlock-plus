@@ -6,7 +6,7 @@
     import type { LaneStroke } from "../../lane-lines";
     import { objectiveNameKey } from "../../deep-dive/objective-rows";
     import { takesTab, type MapObjectInfo } from "../../map-object-info";
-    import { MAP_OBJECT_HIT_SCALE, hitZ, layerKey, type MapObject } from "../../map-objects";
+    import { MAP_OBJECT_HIT_SCALE, hitZ, layerKey, layerScale, type MapObject } from "../../map-objects";
     import { playerDotStyle, skullDataUri, type PlayerDotStyle } from "../../player-dot";
     import type { DeathEvent, MapDot } from "../../replay";
     import ReplayObjectTip from "./replay-object-tip.svelte";
@@ -101,6 +101,7 @@
         if (info.type === "objective") return t(objectiveNameKey(info.kind));
         if (info.type === "camp") return t(`match_history.detail.replay.camp_${info.tier}`);
         if (info.type === "shop") return t("match_history.detail.replay.shop");
+        if (info.type === "teleporter") return t("match_history.detail.replay.teleporter");
         return t("match_history.detail.replay.kind_mid_boss");
     }
 
@@ -359,7 +360,7 @@
                 style:height="{o.size * 100}%"
                 style:z-index={o.z}
                 style:opacity={o.highlight ? o.highlight.opacity : o.opacity}
-                style:scale={o.flipY ? "1 -1" : undefined}
+                style:scale={layerScale(o)}
                 aria-hidden="true"
             >
                 {#if o.highlight}

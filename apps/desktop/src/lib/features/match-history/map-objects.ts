@@ -1,3 +1,4 @@
+import { teleporterIconSvg } from "$lib/features/gamedata/map-icons";
 import type { MapItem } from "$lib/generated/types/MapItem";
 import type { MinimapIcon } from "$lib/generated/types/MinimapIcon";
 import type { MatchObjective, MatchTeam, MidBossEvent } from "./detail";
@@ -33,6 +34,7 @@ export const MAP_OBJECT_STEMS: readonly MinimapIcon[] = [
 
 /** The game's minimap stacking order; the dot values match `player-dot.ts`. */
 export const MAP_OBJECT_Z = {
+    teleporter: 1,
     neutral: 2,
     midBoss: 4,
     enemyDot: 13,
@@ -51,6 +53,8 @@ export const MAP_OBJECT_HIT_SCALE = 0.7;
 
 const ALLY_TINT = "#FFEFD7";
 
+const CAMP_SIZE = 30 / 560;
+
 /** Icon side as a fraction of the map side, so markers scale with the displayed map. */
 export const MAP_OBJECT_SIZE = {
     guardian: 0.088,
@@ -60,9 +64,17 @@ export const MAP_OBJECT_SIZE = {
     patron: 0.173,
     midBoss: 0.15,
     midBossClaim: 0.075,
-    camp: 30 / 560,
+    camp: CAMP_SIZE,
     shop: 0.035,
+    // The game draws a 16 px teleporter disc where a camp icon box is 24 px.
+    teleporter: (CAMP_SIZE * 16) / 24,
 } as const;
+
+export function teleporterDataUri(): string {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(teleporterIconSvg())}`;
+}
+
+const TELEPORTER_SRC = teleporterDataUri();
 
 interface Look {
     /** Untinted art under the tinted fill, when the game draws one. */
@@ -112,6 +124,8 @@ export interface MapObject {
     z: number;
     /** Mirrored top to bottom; the Hidden King patron is the Archmother art upside down. */
     flipY: boolean;
+    /** Mirrored left to right; the teleporter art faces right and the game turns it around on the right half. */
+    flipX?: true;
     /** Set only while the object fades in. */
     opacity?: number;
     /** Shown from spawn rules, not from a recorded event. */
@@ -126,6 +140,12 @@ export interface MapObject {
 }
 
 export const hitZ = (object: Pick<MapObject, "z">): number => Math.min(object.z, HIT_Z_MAX);
+
+/** CSS `scale` for the object's layers: both mirrors in one value, so neither overrides the other. */
+export function layerScale(object: Pick<MapObject, "flipX" | "flipY">): string | undefined {
+    if (!object.flipX && !object.flipY) return undefined;
+    return `${object.flipX ? -1 : 1} ${object.flipY ? -1 : 1}`;
+}
 
 export interface MapObjectsInput {
     rows: readonly MapItem[];
@@ -218,6 +238,23 @@ export function mapObjects(input: MapObjectsInput): MapObject[] {
     }
     const owners = shopGuardians(input.rows);
     input.rows.forEach((row, index) => {
+        if (row.kind === "teleporter") {
+            const p = mapPercent(row.x, row.y, input.radius);
+            out.push({
+                key: `${index}`,
+                kind: row.kind,
+                left: p.left,
+                top: p.top,
+                size: MAP_OBJECT_SIZE.teleporter,
+                parts: [{ src: TELEPORTER_SRC, tint: null }],
+                z: MAP_OBJECT_Z.teleporter,
+                flipY: false,
+                ...(row.x > 0 ? { flipX: true as const } : {}),
+                info: { type: "teleporter" },
+            });
+            return;
+        }
+
         const look = LOOKS[row.kind];
         if (!look) return;
         if (CAMP_KINDS.has(row.kind) && !input.showCamps) return;
