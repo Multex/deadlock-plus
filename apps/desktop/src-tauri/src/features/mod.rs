@@ -1,6 +1,7 @@
 pub mod about;
 pub mod alerts;
 pub mod autostart;
+pub mod context_menu;
 pub mod crash;
 pub mod demos;
 pub mod diagnostics;

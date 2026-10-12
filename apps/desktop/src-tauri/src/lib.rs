@@ -77,6 +77,8 @@ pub fn run() {
             dp_firewall::init(&app.path().app_data_dir()?);
             network::commands::start_monitor(app.handle(), false);
             features::tray::setup(app.handle())?;
+            #[cfg(windows)]
+            features::context_menu::install(app.handle());
             app.state::<features::live::link::GameLinkService>().start(app.handle());
             app.state::<PostgameService>().start(app.handle());
             features::maintenance::start(app.handle());

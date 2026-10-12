@@ -84,4 +84,8 @@ ferrisetw = "1.2.0"
 # Matches the version tauri itself depends on, so `WebviewWindow::window_handle()` (raw-window-handle)
 # hands back a type we can use directly, instead of pulling in a second, incompatible semver line.
 raw-window-handle = "0.6"
+# Both match the versions tauri's WebView2 backend already uses. `windows-core` is the 0.61 line `webview2-com`
+# is built on: its `Interface::cast` is the only way to reach the newer `ICoreWebView2_*` interfaces.
+webview2-com = "=0.38.2"
+windows-core = "0.61"
 
