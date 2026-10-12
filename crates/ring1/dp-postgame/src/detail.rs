@@ -38,7 +38,7 @@ fn default_team(object: &mut serde_json::Map<String, Value>, field: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use valveprotos::deadlock::c_msg_match_meta_data_contents::{MatchInfo, Players};
+    use valveprotos::deadlock::c_msg_match_meta_data_contents::{Items, MatchInfo, Players};
 
     const FIXTURE: &str =
         include_str!("../../../../apps/desktop/src/lib/features/match-history/fixtures/api-ranked.json");
@@ -71,7 +71,14 @@ mod tests {
             (
                 "items",
                 Read {
-                    leaves: &["item_id", "game_time_s", "sold_time_s", "upgrade_id", "imbued_ability_id"],
+                    leaves: &[
+                        "item_id",
+                        "game_time_s",
+                        "sold_time_s",
+                        "upgrade_id",
+                        "imbued_ability_id",
+                        "upgrade_info",
+                    ],
                     children: &[],
                 },
             ),
@@ -286,5 +293,19 @@ mod tests {
             }),
         };
         assert_eq!(detail_json(&meta)["match_info"]["players"][0]["team"], 1);
+    }
+
+    #[test]
+    fn an_item_row_keeps_its_raw_upgrade_info() {
+        let meta = CMsgMatchMetaDataContents {
+            match_info: Some(MatchInfo {
+                players: vec![Players {
+                    items: vec![Items { item_id: Some(7), upgrade_info: Some(196_608), ..Default::default() }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+        };
+        assert_eq!(detail_json(&meta)["match_info"]["players"][0]["items"][0]["upgrade_info"], 196_608);
     }
 }
