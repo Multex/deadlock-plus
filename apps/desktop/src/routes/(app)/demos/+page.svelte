@@ -7,6 +7,7 @@
     import EmptyState from "$lib/ui/empty-state.svelte";
     import Page from "$lib/ui/page.svelte";
     import PageHeader from "$lib/ui/page-header.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import CleanupDialog from "$lib/features/demos/components/cleanup-dialog.svelte";
     import DeleteDialog from "$lib/features/demos/components/delete-dialog.svelte";
     import DemoRow from "$lib/features/demos/components/demo-row.svelte";
@@ -20,6 +21,10 @@
 
     onMount(() => list.init());
 </script>
+
+{#snippet support()}
+    <SupportButton />
+{/snippet}
 
 <Page>
     <PageHeader title={t("demos.title")} subtitle={t("demos.subtitle")}>
@@ -93,7 +98,7 @@
                     ondelete={() => list.askDelete([d.fileName])}
                 />
             {:else}
-                <EmptyState as="li">
+                <EmptyState as="li" action={list.demos.length === 0 ? support : undefined}>
                     {list.demos.length === 0 ? t("demos.empty_none") : t("demos.empty_filtered")}
                 </EmptyState>
             {/each}

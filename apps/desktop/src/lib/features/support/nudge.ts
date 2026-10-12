@@ -1,9 +1,7 @@
 import { toast } from "svelte-sonner";
-import { errorText } from "$lib/core/errors";
 import { t } from "$lib/core/i18n.svelte";
-import { openUrl } from "$lib/core/opener";
 import { prefs } from "$lib/core/prefs";
-import { SUPPORT_URL } from "./support";
+import { openSupport } from "./support";
 
 const NUDGE_LAUNCH = 3;
 
@@ -18,12 +16,6 @@ export function nudgeOnLaunch() {
     if (launches !== NUDGE_LAUNCH) return;
     toast(t("support.nudge"), {
         duration: 20000,
-        action: {
-            label: t("support.action"),
-            onClick: () =>
-                void openUrl(SUPPORT_URL).catch((e) =>
-                    toast.error(t("support.open_link_error", { error: errorText(e) })),
-                ),
-        },
+        action: { label: t("support.action"), onClick: openSupport },
     });
 }

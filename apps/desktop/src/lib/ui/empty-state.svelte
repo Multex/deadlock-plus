@@ -39,6 +39,7 @@
 </script>
 
 <script lang="ts">
+    import type { Snippet } from "svelte";
     import type { HTMLAttributes } from "svelte/elements";
     import { cn } from "$lib/core/utils";
 
@@ -48,6 +49,7 @@
         size?: EmptyStateSize;
         tone?: EmptyStateTone;
         spacing?: EmptyStateSpacing;
+        action?: Snippet;
         class?: string;
     };
 
@@ -57,6 +59,7 @@
         size = "sm",
         tone = "muted",
         spacing,
+        action,
         class: className,
         children,
         ...rest
@@ -71,4 +74,7 @@
     {...rest}
 >
     {@render children?.()}
+    {#if action}
+        <span class="mt-3 flex justify-center">{@render action()}</span>
+    {/if}
 </svelte:element>

@@ -5,6 +5,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import Button from "$lib/ui/button.svelte";
     import EmptyState from "$lib/ui/empty-state.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import Page from "$lib/ui/page.svelte";
     import PageHeader from "$lib/ui/page-header.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
@@ -76,6 +77,9 @@
                     <Inbox class="size-7" aria-hidden="true" />
                 </span>
                 <p>{t("match_history.list.empty")}</p>
+                {#snippet action()}
+                    <SupportButton />
+                {/snippet}
             </EmptyState>
         {:else if view.total === 0}
             <EmptyState as="div" size="base" spacing="lg" class="flex flex-col items-center gap-3">

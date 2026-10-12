@@ -231,7 +231,7 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.version");
         },
-        keywords: "about build app info copy bug report",
+        keywords: "about build app info copy bug report support donate ko-fi",
     },
     {
         id: "whats-new",

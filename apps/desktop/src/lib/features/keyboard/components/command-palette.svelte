@@ -2,16 +2,13 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import { Command } from "bits-ui";
-    import { toast } from "svelte-sonner";
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { openUrl } from "$lib/core/opener";
     import { platform } from "$lib/core/platform";
     import * as Dialog from "$lib/ui/dialog";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { NAV_ENTRIES, updater } from "$lib/features/registry";
     import { CATEGORIES } from "$lib/features/settings/catalog";
-    import { SUPPORT_URL } from "$lib/features/support/support";
+    import { openSupport } from "$lib/features/support/support";
     import { buildCommands, type Command as PaletteCommand, type CommandGroup } from "../commands";
     import { palette } from "../palette.svelte";
     import { isPaletteKey, isTypingTarget, pageJumpIndex } from "../shortcuts";
@@ -41,10 +38,7 @@
                 void goto("/settings/about");
                 void updater.check();
             },
-            openSupport: () =>
-                void openUrl(SUPPORT_URL).catch((e) =>
-                    toast.error(t("keyboard.open_link_error", { error: errorText(e) })),
-                ),
+            openSupport,
         }),
     );
 

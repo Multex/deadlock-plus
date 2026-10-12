@@ -57,6 +57,13 @@ describe("catalog", () => {
         expect(ids).not.toContain("auto-index-patch-notes");
     });
 
+    it("finds About when searching for a way to support the app", () => {
+        const about = (query: string) => matchingCategories(matchingItems(query)).includes("about");
+        expect(about("support")).toBe(true);
+        expect(about("donate")).toBe(true);
+        expect(about("ko-fi")).toBe(true);
+    });
+
     it("requires every word to match", () => {
         expect(matchingItems("tray quit")?.has("close-to-tray")).toBe(true);
         expect(matchingItems("tray zzzz")?.size).toBe(0);

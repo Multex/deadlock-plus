@@ -8,6 +8,7 @@
     import { Copy, Download, RefreshCw } from "@lucide/svelte";
     import Button from "$lib/ui/button.svelte";
     import Switch from "$lib/ui/switch.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { updater } from "$lib/features/updates/updater.svelte";
     import { updateLine } from "$lib/features/updates/status";
@@ -41,10 +42,13 @@
     <Card as="section">
         <div class="flex items-center justify-between gap-4">
             <h2 class="font-heading text-sm font-semibold tracking-wide">{t("settings.items.version")}</h2>
-            <Button variant="outline" size="sm" onclick={copyInfo}>
-                <Copy />
-                {t("settings.about_page.copy")}
-            </Button>
+            <div class="flex items-center gap-2">
+                <SupportButton />
+                <Button variant="outline" size="sm" onclick={copyInfo}>
+                    <Copy />
+                    {t("settings.about_page.copy")}
+                </Button>
+            </div>
         </div>
         <div class="mt-3 flex flex-col gap-4">
             {#each aboutGroups(info) as group (group.title)}

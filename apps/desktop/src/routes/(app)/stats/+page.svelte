@@ -3,6 +3,7 @@
 
     import { t } from "$lib/core/i18n.svelte";
     import EmptyState from "$lib/ui/empty-state.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import Page from "$lib/ui/page.svelte";
     import PageHeader from "$lib/ui/page-header.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
@@ -61,7 +62,12 @@
         </p>
 
         {#if windowed.length === 0}
-            <EmptyState size="base" spacing="md">{t("stats.page.empty")}</EmptyState>
+            <EmptyState size="base" spacing="md">
+                {t("stats.page.empty")}
+                {#snippet action()}
+                    <SupportButton />
+                {/snippet}
+            </EmptyState>
         {:else}
             <SummaryTiles {windowed} {summary} {run} {form} />
             {#if perHero[0]}

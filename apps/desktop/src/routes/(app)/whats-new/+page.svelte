@@ -7,6 +7,7 @@
     import Card from "$lib/ui/card.svelte";
     import Page from "$lib/ui/page.svelte";
     import PageHeader from "$lib/ui/page-header.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import ReleaseNotes from "$lib/features/updates/components/release-notes.svelte";
     import { isForcedExit, visibleReleases } from "$lib/features/updates/whats-new";
     import { whatsNew } from "$lib/features/updates/whats-new.svelte";
@@ -35,7 +36,11 @@
 </script>
 
 <Page>
-    <PageHeader title={t("whats_new.title")} subtitle={t("whats_new.subtitle")} />
+    <PageHeader title={t("whats_new.title")} subtitle={t("whats_new.subtitle")}>
+        {#snippet actions()}
+            <SupportButton />
+        {/snippet}
+    </PageHeader>
 
     {#if releases.length === 0}
         <Card as="section">

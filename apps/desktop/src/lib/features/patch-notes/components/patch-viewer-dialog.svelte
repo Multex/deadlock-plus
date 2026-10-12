@@ -9,6 +9,7 @@
     import Button from "$lib/ui/button.svelte";
     import * as Dialog from "$lib/ui/dialog";
     import EmptyState from "$lib/ui/empty-state.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import { formatPublished, safeExternalUrl, sourceLabel } from "$lib/features/alerts/alerts";
     import { getPatchNotes } from "$lib/features/patch-notes/api";
     import {
@@ -254,6 +255,7 @@
         </div>
 
         <div class="flex justify-end gap-2 border-t border-border pt-4">
+            <SupportButton size="default" class="mr-auto" />
             <Button variant="outline" onclick={() => (open = false)}>{t("patch_notes.close")}</Button>
             <Button onclick={openExternal}>
                 {t("patch_notes.view_on", { source: sourceLabel(origin) })}

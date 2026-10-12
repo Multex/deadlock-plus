@@ -5,6 +5,7 @@ import { createPoller } from "$lib/core/poller";
 import { getAppInfo } from "$lib/features/settings/about";
 import { settings } from "$lib/features/settings/settings.svelte";
 import { connectivity } from "$lib/features/connectivity/online.svelte";
+import { openSupport } from "$lib/features/support/support";
 import { updater } from "./updater.svelte";
 
 /** A release check is one cheap GitHub request; hourly is nowhere near enough traffic to matter. */
@@ -27,6 +28,7 @@ async function attemptCheck() {
     toast(t("updates.toast_available", { version: updater.version ?? "" }), {
         duration: 15000,
         action: { label: t("updates.toast_details"), onClick: () => void goto("/settings/about") },
+        cancel: { label: t("support.action"), onClick: openSupport },
     });
 }
 
