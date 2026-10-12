@@ -1,5 +1,6 @@
 import type { Outcome } from "$lib/features/stats/stats";
 import { signed } from "$lib/features/stats/format";
+import type { SelectMenuItem } from "$lib/ui/select-menu";
 import { DEFAULT_FILTERS, type ModeFilter, type RowFilters } from "../../filters";
 import type { MatchRow, RowMode } from "../../list";
 
@@ -62,6 +63,18 @@ export function heroOptions(rows: MatchRow[], nameOf: (heroId: number) => string
     const ids = new Set(rows.map((r) => r.heroId));
     return [...ids].map((id) => ({ id, name: nameOf(id) })).sort((a, b) => a.name.localeCompare(b.name));
 }
+
+export type HeroMenuItem = SelectMenuItem & { heroId?: number };
+
+/** The empty value is the "any hero" choice. */
+export function heroMenuItems(heroes: readonly HeroOption[], anyLabel: string): HeroMenuItem[] {
+    return [
+        { value: "", label: anyLabel },
+        ...heroes.map((h) => ({ value: String(h.id), label: h.name, heroId: h.id })),
+    ];
+}
+
+export const parseHeroValue = (value: string): number | null => (value === "" ? null : Number(value));
 
 export function filtersActive(f: RowFilters): boolean {
     return (Object.keys(DEFAULT_FILTERS) as (keyof RowFilters)[]).some((k) => f[k] !== DEFAULT_FILTERS[k]);

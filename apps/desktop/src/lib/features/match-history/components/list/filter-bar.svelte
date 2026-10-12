@@ -1,12 +1,21 @@
 <script lang="ts">
-    import { Users, X } from "@lucide/svelte";
+    import { CalendarDays, Settings2, Swords, Trophy, Users, X } from "@lucide/svelte";
 
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Select from "$lib/ui/select.svelte";
+    import Button from "$lib/ui/button.svelte";
+    import SelectMenu from "$lib/ui/select-menu.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import type { RowFilters } from "../../filters";
     import Segmented from "./segmented.svelte";
-    import { DAY_OPTIONS, MODE_OPTIONS, OUTCOME_OPTIONS, filtersActive, type HeroOption } from "./view-model";
+    import {
+        DAY_OPTIONS,
+        MODE_OPTIONS,
+        OUTCOME_OPTIONS,
+        filtersActive,
+        heroMenuItems,
+        parseHeroValue,
+        type HeroOption,
+    } from "./view-model";
 
     let {
         filters,
@@ -30,7 +39,7 @@
             label: d === null ? t("stats.filter.all_time") : tn("stats.filter.days", d),
         })),
     );
-    const pickedIcon = $derived(filters.heroId === null ? undefined : heroArt[filters.heroId]?.icon);
+    const heroItems = $derived(heroMenuItems(heroes, t("match_history.list.filter.any_hero")));
 </script>
 
 <div
@@ -40,6 +49,7 @@
 >
     <Segmented
         label={t("match_history.list.filter.mode")}
+        icon={Swords}
         options={modes}
         value={filters.mode}
         disabled={filters.custom}
@@ -47,59 +57,50 @@
     />
     <Segmented
         label={t("match_history.list.filter.outcome")}
+        icon={Trophy}
         options={outcomes}
         value={filters.outcome}
         onselect={(v) => onchange({ outcome: v })}
     />
     <Segmented
         label={t("match_history.list.filter.window")}
+        icon={CalendarDays}
         options={windows}
         value={filters.days === null ? "" : String(filters.days)}
         onselect={(v) => onchange({ days: v === "" ? null : Number(v) })}
     />
-    <div class="relative">
-        <span
-            class="pointer-events-none absolute top-1/2 left-1.5 flex size-6 -translate-y-1/2 items-center justify-center overflow-hidden rounded bg-muted"
-        >
-            {#if pickedIcon}
-                <img src={pickedIcon} alt="" class="size-full object-cover" />
+    <SelectMenu
+        items={heroItems}
+        class="w-48"
+        aria-label={t("match_history.list.filter.hero")}
+        bind:value={
+            () => (filters.heroId === null ? "" : String(filters.heroId)),
+            (v) => onchange({ heroId: parseHeroValue(v) })
+        }
+    >
+        {#snippet leading(item)}
+            {@const icon = item.heroId === undefined ? undefined : heroArt[item.heroId]?.icon}
+            {#if icon}
+                <img src={icon} alt="" />
             {:else}
-                <Users class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                <Users aria-hidden="true" />
             {/if}
-        </span>
-        <Select
-            class="min-w-44 pl-9"
-            aria-label={t("match_history.list.filter.hero")}
-            value={filters.heroId === null ? "" : String(filters.heroId)}
-            onchange={(e) => {
-                const v = e.currentTarget.value;
-                onchange({ heroId: v === "" ? null : Number(v) });
-            }}
-        >
-            <option value="">{t("match_history.list.filter.any_hero")}</option>
-            {#each heroes as h (h.id)}
-                <option value={String(h.id)}>{h.name}</option>
-            {/each}
-        </Select>
-    </div>
-    <button
-        type="button"
+        {/snippet}
+    </SelectMenu>
+    <Button
+        variant="toggle"
+        size="sm"
+        class="h-9"
         aria-pressed={filters.custom}
-        class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {filters.custom
-            ? 'border-transparent bg-primary text-primary-foreground'
-            : 'border-input bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
         onclick={() => onchange({ custom: !filters.custom })}
     >
+        <Settings2 aria-hidden="true" />
         {t("match_history.list.filter.custom")}
-    </button>
+    </Button>
     {#if filtersActive(filters)}
-        <button
-            type="button"
-            class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            onclick={onreset}
-        >
-            <X class="size-3.5" aria-hidden="true" />
+        <Button variant="ghost" size="sm" class="ml-auto h-9 px-2 text-muted-foreground" onclick={onreset}>
+            <X aria-hidden="true" />
             {t("match_history.list.filter.reset")}
-        </button>
+        </Button>
     {/if}
 </div>

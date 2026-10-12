@@ -7,11 +7,13 @@ import {
     OUTCOME_OPTIONS,
     deltaView,
     filtersActive,
+    heroMenuItems,
     heroOptions,
     kdaText,
     matchHref,
     modeLabelKey,
     outcomeLabelKey,
+    parseHeroValue,
 } from "./view-model";
 
 const row = (over: Partial<MatchRow> = {}): MatchRow => ({
@@ -104,5 +106,27 @@ describe("filtersActive", () => {
 describe("matchHref", () => {
     it("points at the detail route", () => {
         expect(matchHref(42)).toBe("/match-history/42");
+    });
+});
+
+describe("heroMenuItems", () => {
+    it("puts the any-hero choice first with an empty value, then the heroes in order", () => {
+        const items = heroMenuItems(
+            [
+                { id: 13, name: "Haze" },
+                { id: 2, name: "Seven" },
+            ],
+            "Any hero",
+        );
+        expect(items).toEqual([
+            { value: "", label: "Any hero" },
+            { value: "13", label: "Haze", heroId: 13 },
+            { value: "2", label: "Seven", heroId: 2 },
+        ]);
+    });
+
+    it("reads a picked value back as a hero id", () => {
+        expect(parseHeroValue("")).toBeNull();
+        expect(parseHeroValue("13")).toBe(13);
     });
 });
