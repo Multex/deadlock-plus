@@ -11,6 +11,7 @@ import {
     layerKey,
     mapObjects,
     pairBaseGuardians,
+    shopGuardians,
     type MapObjectIcons,
     type MapObjectsInput,
 } from "./map-objects";
@@ -122,14 +123,7 @@ describe("mapObjects", () => {
     });
 
     it("leaves out kinds that are not drawn in this slice", () => {
-        const kinds: MapItem["kind"][] = [
-            "base_sentry",
-            "shop",
-            "souls_dealer",
-            "urn_return",
-            "teleporter",
-            "buff_spawner",
-        ];
+        const kinds: MapItem["kind"][] = ["base_sentry", "souls_dealer", "urn_return", "teleporter", "buff_spawner"];
         expect(mapObjects(input({ rows: kinds.map((kind) => row({ kind })) }))).toEqual([]);
     });
 
@@ -350,6 +344,203 @@ describe("spawn times", () => {
         const [mark] = mapObjects(input({ rows: [boss], midBoss, time: 905 }));
         expect(mark!.parts[0]!.tint).toBe("#FFEFD7");
         expect(mapObjects(input({ rows: [boss], midBoss: [{ destroyedS: 900 }], time: 905 }))).toEqual([]);
+    });
+});
+
+describe("shops", () => {
+    const spots: [number | null, number, number][] = [
+        [null, -3920, 1120],
+        [null, 3920, -1120],
+        [0, -8832, -1944],
+        [0, 1024, -1248],
+        [0, 6432, -1760],
+        [1, 8832, 1944],
+        [1, -910, 1248],
+        [1, -6432, 1760],
+    ];
+    const shops = spots.map(([team, x, y]) => row({ kind: "shop", team, laneSlot: null, objectiveId: null, x, y }));
+
+    it("loads the game's shop icon with the other object icons", () => {
+        expect(MAP_OBJECT_STEMS).toContain("minimap_shop");
+    });
+
+    it("draws every shop at its table position with the game's art as it is", () => {
+        const out = mapObjects(input({ rows: shops }));
+        expect(out).toHaveLength(8);
+        out.forEach((o, i) => {
+            const p = mapPercent(spots[i]![1], spots[i]![2], WORLD_RADIUS);
+            expect(o.kind).toBe("shop");
+            expect([o.left, o.top]).toEqual([p.left, p.top]);
+            expect(o.parts).toEqual([{ src: "minimap_shop.png", tint: null }]);
+            expect(o.size).toBe(MAP_OBJECT_SIZE.shop);
+            expect(o.flipY).toBe(false);
+        });
+        expect(MAP_OBJECT_SIZE.shop).toBe(0.035);
+    });
+
+    it("looks the same for either viewer, whichever team's side the shop is on", () => {
+        const look = (viewerTeam: MapObjectsInput["viewerTeam"]) =>
+            mapObjects(input({ rows: shops, viewerTeam })).map((o) => o.parts);
+        expect(look("archmother")).toEqual(look("hidden-king"));
+        expect(look(null)).toEqual(look("hidden-king"));
+    });
+
+    it("stays for the whole match, from the first second on", () => {
+        for (const time of [0, 1, 119, 600, 3000]) {
+            const out = mapObjects(input({ rows: shops, time }));
+            expect(out).toHaveLength(8);
+            for (const o of out) {
+                expect(o.opacity).toBeUndefined();
+                expect(o.highlight).toBeUndefined();
+                expect(o.estimated).toBeUndefined();
+            }
+        }
+    });
+
+    it("stays when the camps layer is off", () => {
+        const rows = [...shops, row({ kind: "camp_weak", team: null, laneSlot: null, objectiveId: null })];
+        expect(mapObjects(input({ rows, showCamps: false })).map((o) => o.kind)).toEqual(Array(8).fill("shop"));
+    });
+
+    it("sits at the camp level, under the mid boss, objectives and every dot", () => {
+        const [shop] = mapObjects(input({ rows: shops }));
+        expect(shop!.z).toBe(MAP_OBJECT_Z.neutral);
+        expect(shop!.z).toBeLessThan(MAP_OBJECT_Z.midBoss);
+        expect(shop!.z).toBeLessThan(MAP_OBJECT_Z.enemyDot);
+        expect(shop!.z).toBeLessThan(MAP_OBJECT_Z.objective);
+    });
+
+    it("carries a name-only tooltip", () => {
+        expect(mapObjects(input({ rows: shops })).map((o) => o.info)).toEqual(Array(8).fill({ type: "shop" }));
+    });
+
+    it("draws nothing when the shop icon is not loaded", () => {
+        const { minimap_shop: _shop, ...icons } = ICONS;
+        expect(mapObjects(input({ rows: shops, icons }))).toEqual([]);
+    });
+});
+
+describe("lane shops and their guardians", () => {
+    const guardianSpots: [number, number, number, number][] = [
+        [0, 1, -8192, -1856],
+        [0, 3, 0, -1792],
+        [0, 4, 7040, -1984],
+        [1, 1, -7040, 1984],
+        [1, 3, 0, 1792],
+        [1, 4, 8128, 1856],
+    ];
+    const shopSpots: [number | null, number | null, number, number][] = [
+        [null, null, -3920, 1120],
+        [null, null, 3920, -1120],
+        [0, 1, -8832, -1944],
+        [0, 3, 1024, -1248],
+        [0, 4, 6432, -1760],
+        [1, 1, 8832, 1944],
+        [1, 3, -910, 1248],
+        [1, 4, -6432, 1760],
+    ];
+    const rows = [
+        ...guardianSpots.map(([team, laneSlot, x, y]) => row({ team, laneSlot, objectiveId: laneSlot, x, y })),
+        ...shopSpots.map(([team, laneSlot, x, y]) => row({ kind: "shop", team, laneSlot, objectiveId: null, x, y })),
+    ];
+    const SHOP = (n: number) => guardianSpots.length + n;
+    const shopKeys = (objectives: MatchObjective[], time: number) =>
+        mapObjects(input({ rows, objectives, time }))
+            .filter((o) => o.kind === "shop")
+            .map((o) => o.key);
+    const allShops = shopSpots.map((_, n) => `${SHOP(n)}`);
+
+    it("gives each team shop the nearest guardian of its own team, six different guardians", () => {
+        const owners = shopGuardians(rows);
+        expect([...owners.entries()]).toEqual([
+            [SHOP(2), 0],
+            [SHOP(3), 1],
+            [SHOP(4), 2],
+            [SHOP(5), 5],
+            [SHOP(6), 4],
+            [SHOP(7), 3],
+        ]);
+        expect(new Set(owners.values()).size).toBe(6);
+        for (const [shop, guardian] of owners) expect(rows[shop]!.team).toBe(rows[guardian]!.team);
+    });
+
+    it("pairs within 1200 world units, with every other guardian of the team at least 4900 further", () => {
+        const distance = (a: MapItem, b: MapItem) => Math.hypot(a.x - b.x, a.y - b.y);
+        const near: number[] = [];
+        for (const [shop, guardian] of shopGuardians(rows)) {
+            const own = distance(rows[shop]!, rows[guardian]!);
+            near.push(Math.round(own));
+            rows.forEach((other, i) => {
+                if (other.kind !== "guardian" || other.team !== rows[shop]!.team || i === guardian) return;
+                expect(distance(rows[shop]!, other) - own).toBeGreaterThan(4900);
+            });
+        }
+        expect(near).toEqual([646, 1160, 648, 709, 1060, 648]);
+    });
+
+    it("leaves the two teamless shops without a guardian, over 3000 world units from any", () => {
+        const owners = shopGuardians(rows);
+        for (const n of [0, 1]) {
+            expect(owners.has(SHOP(n))).toBe(false);
+            const nearest = Math.min(
+                ...rows
+                    .filter((r) => r.kind === "guardian")
+                    .map((g) => Math.hypot(g.x - rows[SHOP(n)]!.x, g.y - rows[SHOP(n)]!.y)),
+            );
+            expect(Math.round(nearest)).toBe(3237);
+        }
+    });
+
+    it("ignores guardians of the other team and rows that are not guardians", () => {
+        const shop = row({ kind: "shop", team: 0, objectiveId: null, x: 0, y: 0 });
+        const others = [row({ team: 1, x: 10, y: 0 }), row({ kind: "walker", team: 0, x: 20, y: 0 })];
+        expect(shopGuardians([shop, ...others]).size).toBe(0);
+        expect(shopGuardians([shop, ...others, row({ team: 0, x: 900, y: 0 })]).get(0)).toBe(3);
+    });
+
+    it("removes a lane shop at its guardian's destroy time, with no highlight window", () => {
+        const objectives = [objective({ objectiveId: 4, team: "archmother", destroyedS: 400 })];
+        const without = allShops.filter((k) => k !== `${SHOP(5)}`);
+        expect(shopKeys(objectives, 399)).toEqual(allShops);
+        expect(shopKeys(objectives, 400)).toEqual(without);
+        expect(shopKeys(objectives, 3000)).toEqual(without);
+        const guardian = mapObjects(input({ rows, objectives, time: 400 })).find((o) => o.key === "5");
+        expect(guardian!.highlight).toBeDefined();
+    });
+
+    it("shows the shop again when the replay is rewound to before the destroy time", () => {
+        const objectives = [objective({ objectiveId: 1, team: "hidden-king", destroyedS: 400 })];
+        expect(shopKeys(objectives, 900)).not.toContain(`${SHOP(2)}`);
+        expect(shopKeys(objectives, 399)).toEqual(allShops);
+    });
+
+    it("agrees with the guardian's own death rule at every time", () => {
+        const objectives = [
+            objective({ objectiveId: 1, team: "hidden-king", destroyedS: 300 }),
+            objective({ objectiveId: 3, team: "archmother", destroyedS: 1 }),
+            objective({ objectiveId: 4, team: "hidden-king" }),
+        ];
+        const owners = shopGuardians(rows);
+        for (const time of [0, 1, 299, 300, 301, 2000]) {
+            const drawn = shopKeys(objectives, time);
+            for (const [shop, guardian] of owners) {
+                expect(drawn.includes(`${shop}`)).toBe(!isObjectiveDead(rows[guardian]!, objectives, time));
+            }
+        }
+    });
+
+    it("keeps the shop of a guardian the match has no entry for, and the teamless shops", () => {
+        const objectives = guardianSpots
+            .filter(([team, lane]) => !(team === 0 && lane === 3))
+            .map(([team, lane]) =>
+                objective({ objectiveId: lane, team: team === 0 ? "hidden-king" : "archmother", destroyedS: 200 }),
+            );
+        expect(shopKeys(objectives, 3000)).toEqual([`${SHOP(0)}`, `${SHOP(1)}`, `${SHOP(3)}`]);
+    });
+
+    it("keeps the shop when only the other team's guardian in that lane died", () => {
+        const objectives = [objective({ objectiveId: 3, team: "archmother", destroyedS: 200 })];
+        expect(shopKeys(objectives, 900)).toEqual(allShops.filter((k) => k !== `${SHOP(6)}`));
     });
 });
 

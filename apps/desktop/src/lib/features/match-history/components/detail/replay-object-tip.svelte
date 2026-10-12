@@ -55,7 +55,7 @@
     {/if}
 {:else if info.type === "camp"}
     <div class="text-muted-foreground">{t("match_history.detail.replay.camps_hint")}</div>
-{:else}
+{:else if info.type === "mid-boss"}
     {#if info.lastKill}
         {@const kill = info.lastKill}
         <div class="text-muted-foreground tabular-nums">

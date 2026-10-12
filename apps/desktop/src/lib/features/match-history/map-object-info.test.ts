@@ -10,6 +10,7 @@ import {
     midBossInfo,
     objectiveInfo,
     rowEntries,
+    takesTab,
 } from "./map-object-info";
 import { buildTimeline } from "./timeline";
 import paths from "./fixtures/api-paths.json";
@@ -173,6 +174,18 @@ describe("campInfo", () => {
         expect(campInfo("camp_weak")).toEqual({ type: "camp", tier: "weak" });
         expect(campInfo("camp_vault")).toEqual({ type: "camp", tier: "vault" });
         expect(campInfo("guardian")).toBeNull();
+    });
+});
+
+describe("takesTab", () => {
+    it("keeps objectives and the mid boss in the Tab order", () => {
+        expect(takesTab(objectiveInfo(row({}), [], 0))).toBe(true);
+        expect(takesTab(midBossInfo([], 0))).toBe(true);
+    });
+
+    it("skips camps and shops, which only carry a name", () => {
+        expect(takesTab({ type: "camp", tier: "weak" })).toBe(false);
+        expect(takesTab({ type: "shop" })).toBe(false);
     });
 });
 

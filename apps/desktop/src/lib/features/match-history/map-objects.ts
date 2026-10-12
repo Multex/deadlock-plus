@@ -28,6 +28,7 @@ export const MAP_OBJECT_STEMS: readonly MinimapIcon[] = [
     "neutral_medium",
     "neutral_large",
     "neutral_vault",
+    "minimap_shop",
 ];
 
 /** The game's minimap stacking order; the dot values match `player-dot.ts`. */
@@ -60,6 +61,7 @@ export const MAP_OBJECT_SIZE = {
     midBoss: 0.15,
     midBossClaim: 0.075,
     camp: 30 / 560,
+    shop: 0.035,
 } as const;
 
 interface Look {
@@ -81,6 +83,7 @@ const LOOKS: Partial<Record<MapItem["kind"], Look>> = {
     camp_medium: { fill: "neutral_medium", size: MAP_OBJECT_SIZE.camp, tinted: false },
     camp_strong: { fill: "neutral_large", size: MAP_OBJECT_SIZE.camp, tinted: false },
     camp_vault: { fill: "neutral_vault", size: MAP_OBJECT_SIZE.camp, tinted: false },
+    shop: { fill: "minimap_shop", size: MAP_OBJECT_SIZE.shop, tinted: false },
 };
 
 const LANE_KINDS = new Set<MapItem["kind"]>(["guardian", "walker", "base_guardian"]);
@@ -175,6 +178,27 @@ export function pairBaseGuardians(rows: readonly MapItem[]): [number, number][] 
     return pairs.sort((p, q) => p[0] - q[0]);
 }
 
+/**
+ * A lane shop belongs to the nearest guardian of its own team and goes away with it; shops without a
+ * team belong to none. Position decides, not the lane slot: the shop rows of the Archmother side carry
+ * the mirrored slot. The result maps a shop's row index to its guardian's row index.
+ */
+export function shopGuardians(rows: readonly MapItem[]): Map<number, number> {
+    const owners = new Map<number, number>();
+    rows.forEach((shop, i) => {
+        if (shop.kind !== "shop" || shop.team === null) return;
+        let nearest = Infinity;
+        rows.forEach((guardian, j) => {
+            if (guardian.kind !== "guardian" || guardian.team !== shop.team) return;
+            const d = Math.hypot(shop.x - guardian.x, shop.y - guardian.y);
+            if (d >= nearest) return;
+            nearest = d;
+            owners.set(i, j);
+        });
+    });
+    return owners;
+}
+
 const HALF_CLIP = { left: "inset(0 50% 0 0)", right: "inset(0 0 0 50%)" } as const;
 
 /** Both guardians of a pair share one objective id, so the n-th destroy time belongs to the n-th half. */
@@ -192,6 +216,7 @@ export function mapObjects(input: MapObjectsInput): MapObject[] {
         mates.set(a, b);
         mates.set(b, a);
     }
+    const owners = shopGuardians(input.rows);
     input.rows.forEach((row, index) => {
         const look = LOOKS[row.kind];
         if (!look) return;
@@ -269,11 +294,13 @@ export function mapObjects(input: MapObjectsInput): MapObject[] {
 
         if (!look.tinted) {
             if (!campSpawned(row.kind, input.time)) return;
+            const owner = owners.get(index);
+            if (owner !== undefined && isObjectiveDead(input.rows[owner]!, input.objectives, input.time)) return;
             out.push({
                 ...base,
                 parts: [{ src: fill, tint: null }],
                 z: MAP_OBJECT_Z.neutral,
-                info: campInfo(row.kind) ?? undefined,
+                info: row.kind === "shop" ? { type: "shop" } : (campInfo(row.kind) ?? undefined),
             });
             return;
         }

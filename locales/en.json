@@ -2379,6 +2379,7 @@
                 "dead": "Dead",
                 "dot_dead": "{label} (dead)",
                 "camps": "Camps",
+                "shop": "Shop",
                 "camps_hint": "Camp times are estimated from the game's spawn rules.",
                 "mid_boss_hint": "Mid boss times are estimated from the game's spawn rules.",
                 "mid_boss_last_kill": "Last defeated at {time}",

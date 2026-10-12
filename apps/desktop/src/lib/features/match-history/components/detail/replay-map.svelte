@@ -5,7 +5,7 @@
     import { activeDeath, deathEmphasis, type DeathStep, type SceneDot, type StepScene } from "../../death-steps";
     import type { LaneStroke } from "../../lane-lines";
     import { objectiveNameKey } from "../../deep-dive/objective-rows";
-    import type { MapObjectInfo } from "../../map-object-info";
+    import { takesTab, type MapObjectInfo } from "../../map-object-info";
     import { MAP_OBJECT_HIT_SCALE, hitZ, layerKey, type MapObject } from "../../map-objects";
     import { playerDotStyle, skullDataUri, type PlayerDotStyle } from "../../player-dot";
     import type { DeathEvent, MapDot } from "../../replay";
@@ -100,6 +100,7 @@
     function objectTitle(info: MapObjectInfo): string {
         if (info.type === "objective") return t(objectiveNameKey(info.kind));
         if (info.type === "camp") return t(`match_history.detail.replay.camp_${info.tier}`);
+        if (info.type === "shop") return t("match_history.detail.replay.shop");
         return t("match_history.detail.replay.kind_mid_boss");
     }
 
@@ -397,7 +398,7 @@
                 style:width="{o.size * MAP_OBJECT_HIT_SCALE * 100}%"
                 style:height="{o.size * MAP_OBJECT_HIT_SCALE * 100}%"
                 style:z-index={hitZ(o)}
-                tabindex={o.info?.type === "camp" ? -1 : undefined}
+                tabindex={o.info && !takesTab(o.info) ? -1 : undefined}
                 aria-label={o.info ? objectLabel(o.info) : undefined}
                 onpointerenter={() => (focusObject = o.key)}
                 onpointerleave={() => (focusObject = null)}
