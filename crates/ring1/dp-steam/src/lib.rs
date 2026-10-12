@@ -137,6 +137,16 @@ pub fn game_install_dir() -> Option<PathBuf> {
     discovered_roots().iter().find_map(|root| discover::find_game_dir(root, DEADLOCK_APP_ID))
 }
 
+/// The `buildid` Steam records for the installed game, or `None` when it is not installed.
+pub fn game_build_id() -> Option<u64> {
+    build_id_of(&game_install_dir()?)
+}
+
+/// Build id for a game folder inside a Steam library (`<library>/steamapps/common/<game>`).
+pub fn build_id_of(game_dir: &Path) -> Option<u64> {
+    discover::installed_build_id(game_dir, DEADLOCK_APP_ID)
+}
+
 pub fn httpcache_dir() -> Option<PathBuf> {
     let dir = steam_root()?.join("appcache").join("httpcache");
     dir.is_dir().then_some(dir)

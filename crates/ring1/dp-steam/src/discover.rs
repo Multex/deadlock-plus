@@ -232,6 +232,23 @@ pub fn find_game_dir(root: &SteamRoot, app_id: u32) -> Option<PathBuf> {
     })
 }
 
+pub fn parse_build_id(acf: &str) -> Option<u64> {
+    acf.lines().find_map(|line| match quoted(line).as_slice() {
+        ["buildid", value] => value.parse().ok(),
+        _ => None,
+    })
+}
+
+/// Reads `buildid` from the manifest in the `steamapps` folder that holds `common/<game_dir>`.
+pub fn installed_build_id(game_dir: &Path, app_id: u32) -> Option<u64> {
+    let common = game_dir.parent()?;
+    if !common.file_name()?.eq_ignore_ascii_case("common") {
+        return None;
+    }
+    let manifest = common.parent()?.join(format!("appmanifest_{app_id}.acf"));
+    parse_build_id(&std::fs::read_to_string(manifest).ok()?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -356,6 +373,37 @@ mod tests {
         assert_eq!(find_game_dir(&root, 1422450), None);
         fs::write(steam.join("appmanifest_1422450.acf"), MANIFEST).unwrap();
         assert_eq!(find_game_dir(&root, 1422450), None);
+    }
+
+    const BUILD_MANIFEST: &str = "\"AppState\"
+{
+	\"installdir\"		\"Deadlock\"
+	\"buildid\"		\"25841406\"
+	\"TargetBuildID\"		\"25841999\"
+}";
+
+    #[test]
+    fn the_build_id_is_read_from_the_manifest() {
+        assert_eq!(parse_build_id(BUILD_MANIFEST), Some(25841406));
+        assert_eq!(parse_build_id(MANIFEST), None);
+        assert_eq!(parse_build_id("\"buildid\"	\"abc\""), None);
+    }
+
+    #[test]
+    fn the_installed_build_id_comes_from_the_manifest_beside_common() {
+        let home = Home::new("build-id");
+        home.write("lib/steamapps/appmanifest_1422450.acf", BUILD_MANIFEST);
+        let game = home.dir("lib/steamapps/common/Deadlock");
+        assert_eq!(installed_build_id(&game, 1422450), Some(25841406));
+        assert_eq!(installed_build_id(&game, 99), None);
+    }
+
+    #[test]
+    fn an_install_outside_a_steam_library_has_no_build_id() {
+        let home = Home::new("build-id-loose");
+        home.write("steamapps/appmanifest_1422450.acf", BUILD_MANIFEST);
+        let loose = home.dir("elsewhere/Deadlock");
+        assert_eq!(installed_build_id(&loose, 1422450), None);
     }
 
     fn env(home: &str) -> Env {
