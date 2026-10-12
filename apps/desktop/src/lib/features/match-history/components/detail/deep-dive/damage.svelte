@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Snippet } from "svelte";
     import { Ellipsis, Swords, Target } from "@lucide/svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
@@ -7,8 +8,12 @@
     import HeroChip from "./hero-chip.svelte";
     import SectionCard from "./section-card.svelte";
 
-    let { detail, selectedSlot, heroes }: { detail: MatchDetail; selectedSlot: number; heroes: Record<number, Hero> } =
-        $props();
+    let {
+        detail,
+        selectedSlot,
+        heroes,
+        actions,
+    }: { detail: MatchDetail; selectedSlot: number; heroes: Record<number, Hero>; actions?: Snippet } = $props();
 
     const players = $derived(allPlayers(detail));
     const table = $derived(reduceDamageMatrix(detail));
@@ -17,7 +22,7 @@
     const shade = (v: number) => (table.max > 0 ? Math.round((v / table.max) * 60) : 0);
 </script>
 
-<SectionCard title={t("match_history.deep_dive.damage.heading")} icon={Swords} {available}>
+<SectionCard title={t("match_history.deep_dive.damage.heading")} icon={Swords} {available} {actions}>
     <div class="overflow-x-auto">
         <table class="w-full border-separate border-spacing-0.5 text-xs tabular-nums">
             <caption class="sr-only">{t("match_history.deep_dive.damage.hint")}</caption>

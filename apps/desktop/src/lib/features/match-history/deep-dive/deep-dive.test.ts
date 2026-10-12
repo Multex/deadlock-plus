@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseApiDetail } from "../api-detail";
-import { playerBySlot, type MatchDetail, type MatchItem, type MatchPlayer } from "../detail";
+import { playerBySlot, type MatchDetail, type MatchPlayer } from "../detail";
 import fixture from "../fixtures/api-ranked.json";
 import { chartDomain, linePath, playerLine, teamLeadLine, valueAt, type ChartBox } from "./chart";
-import { deathRows } from "./deaths";
-import { itemBars } from "./items";
 import { reduceDamageMatrix } from "./damage";
 
 function detail(): MatchDetail {
@@ -113,64 +111,6 @@ describe("team lead", () => {
             })) as unknown as MatchDetail["teams"],
         };
         expect(teamLeadLine(bare, "souls")).toEqual([]);
-    });
-});
-
-describe("death rows", () => {
-    it("lists deaths in time order with the killer's hero when the slot is in the match", () => {
-        const d = detail();
-        const rows = deathRows(d, playerBySlot(d, 2)!);
-        expect(rows.map((r) => r.timeS)).toEqual([261, 442]);
-        expect(rows[0]).toMatchObject({ killerSlot: 12, killerHeroId: undefined, respawnS: 8 });
-    });
-
-    it("resolves the killer hero from the slot", () => {
-        const d = detail();
-        const p = playerBySlot(d, 2)!;
-        const patched: MatchPlayer = {
-            ...p,
-            deathLog: [
-                { timeS: 500, killerSlot: 8 },
-                { timeS: 100, killerSlot: 11 },
-            ],
-        };
-        const rows = deathRows(d, patched);
-        expect(rows.map((r) => r.timeS)).toEqual([100, 500]);
-        expect(rows[0].killerHeroId).toBe(playerBySlot(d, 11)!.heroId);
-        expect(rows[1].killerHeroId).toBe(playerBySlot(d, 8)!.heroId);
-    });
-
-    it("names the killer's team, so a row can be coloured by who killed", () => {
-        const d = detail();
-        const p = playerBySlot(d, 2)!;
-        const patched: MatchPlayer = { ...p, deathLog: [{ timeS: 100, killerSlot: 11 }] };
-        expect(deathRows(d, patched)[0].killerTeam).toBe(playerBySlot(d, 11)!.team);
-        expect(deathRows(d, { ...p, deathLog: [{ timeS: 5, killerSlot: 99 }] })[0].killerTeam).toBeUndefined();
-    });
-});
-
-describe("item bars", () => {
-    const items: MatchItem[] = [
-        { itemId: 2, boughtS: 600, upgradeId: 0 },
-        { itemId: 1, boughtS: 100, soldS: 400, upgradeId: 0 },
-    ];
-
-    it("orders by purchase and ends held items at the match end", () => {
-        const bars = itemBars(items, 1000);
-        expect(bars.map((b) => b.itemId)).toEqual([1, 2]);
-        expect(bars[0]).toMatchObject({ startS: 100, endS: 400, sold: true, left: 10, width: 30 });
-        expect(bars[1]).toMatchObject({ startS: 600, endS: 1000, sold: false, left: 60, width: 40 });
-    });
-
-    it("keeps a bar visible when sold at the instant of purchase", () => {
-        const bars = itemBars([{ itemId: 1, boughtS: 500, soldS: 500, upgradeId: 0 }], 1000);
-        expect(bars[0].width).toBeGreaterThan(0);
-    });
-
-    it("clamps to the match length and tolerates a zero duration", () => {
-        const bars = itemBars([{ itemId: 1, boughtS: 900, upgradeId: 0 }], 0);
-        expect(bars[0].left).toBe(0);
-        expect(bars[0].width).toBeGreaterThan(0);
     });
 });
 

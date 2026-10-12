@@ -145,6 +145,24 @@ describe("items", () => {
         expect(held.soldS).toBeUndefined();
     });
 
+    it("keeps the upgrade bits of each row", () => {
+        const rows = playerBySlot(parsed(), 2)!.items.filter((i) => i.itemId === 1426567660);
+        expect(rows.map((i) => i.upgradeBits)).toEqual([1, 3]);
+    });
+
+    it("leaves the upgrade bits unset when the row has none", () => {
+        const d = parsed((i) => {
+            delete i.players[0].items[0].upgrade_info;
+            i.players[0].items[1].upgrade_info = 0;
+        });
+        const slot = fixture.match_info.players[0].player_slot;
+        const ids = fixture.match_info.players[0].items.slice(0, 2).map((r) => r.item_id);
+        const items = playerBySlot(d, slot)!.items;
+        for (const id of ids) {
+            expect(items.find((i) => i.itemId === id)!.upgradeBits).toBeUndefined();
+        }
+    });
+
     it("orders items by purchase time", () => {
         for (const p of allPlayers(parsed((i) => i.players[0].items.reverse()))) {
             const times = p.items.map((i) => i.boughtS);

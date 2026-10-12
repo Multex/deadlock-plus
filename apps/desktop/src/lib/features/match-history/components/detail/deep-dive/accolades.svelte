@@ -1,17 +1,18 @@
 <script lang="ts">
-    import type { Component } from "svelte";
+    import type { Component, Snippet } from "svelte";
     import { Coins, Crosshair, HeartPulse, Medal, Package, Shield, Skull, Swords, Target, Users } from "@lucide/svelte";
     import { formatNumber, i18n, t } from "$lib/core/i18n.svelte";
     import { resolveAccoladeInfo, type AccoladeInfo } from "../../../deep-dive/accolade-catalog";
     import {
         accoladeCategory,
+        accoladeTier,
         renderAccoladeDescription,
         type AccoladeCategory,
     } from "../../../deep-dive/accolade-text";
     import type { MatchAccolade, MatchPlayer } from "../../../detail";
     import SectionCard from "./section-card.svelte";
 
-    let { selected }: { selected: MatchPlayer } = $props();
+    let { selected, actions }: { selected: MatchPlayer; actions?: Snippet } = $props();
 
     type Icon = Component<{ size?: number; class?: string; "aria-hidden"?: boolean | "true" | "false" }>;
 
@@ -53,7 +54,7 @@
                 name: known?.name ?? t("match_history.deep_dive.names.accolade"),
                 description,
                 value: num(a.value),
-                tier: a.tier,
+                tier: accoladeTier(a.tier),
                 Glyph: ICONS[accoladeCategory(known?.trackedStat)],
             };
         }),
@@ -64,6 +65,7 @@
     title={t("match_history.deep_dive.accolades.heading")}
     icon={Medal}
     available={selected.accolades.length > 0}
+    {actions}
 >
     <ul class="grid gap-2 sm:grid-cols-2">
         {#each entries as e (e.key)}
@@ -76,11 +78,13 @@
                 <span class="flex min-w-0 flex-1 flex-col">
                     <span class="flex items-baseline justify-between gap-2">
                         <span class="truncate text-sm font-medium">{e.name}</span>
-                        <span
-                            class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
-                        >
-                            {t("match_history.deep_dive.accolades.tier", { tier: e.tier })}
-                        </span>
+                        {#if e.tier !== null}
+                            <span
+                                class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+                            >
+                                {t("match_history.deep_dive.accolades.tier", { tier: e.tier })}
+                            </span>
+                        {/if}
                     </span>
                     <span class="text-xs tabular-nums text-muted-foreground">{e.description ?? e.value}</span>
                 </span>

@@ -17,6 +17,8 @@ export interface MatchItem {
     soldS?: number;
     upgradeId: number;
     imbuedAbilityId?: number;
+    /** Bit 0 is set once the row's item or ability is owned, one more bit per upgrade. Absent when not recorded. */
+    upgradeBits?: number;
 }
 
 export interface MatchDeath {

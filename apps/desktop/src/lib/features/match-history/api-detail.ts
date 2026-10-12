@@ -50,12 +50,14 @@ function item(r: Obj): MatchItem | null {
     if (itemId === undefined) return null;
     const sold = num(r.sold_time_s);
     const imbued = num(r.imbued_ability_id);
+    const upgradeBits = (num(r.upgrade_info) ?? 0) >>> 16;
     return {
         itemId,
         boughtS: numOr0(r.game_time_s),
         soldS: sold !== undefined && sold > 0 ? sold : undefined,
         upgradeId: numOr0(r.upgrade_id),
         imbuedAbilityId: imbued !== undefined && imbued > 0 ? imbued : undefined,
+        upgradeBits: upgradeBits > 0 ? upgradeBits : undefined,
     };
 }
 
