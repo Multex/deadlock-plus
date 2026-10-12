@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
-import { loadAbilityArt, loadItemArt, loadMinimapArt } from "./gamedata";
+import { loadAbilityArt, loadItemArt, loadMapItems, loadMinimapArt } from "./gamedata";
 
 vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(),
@@ -79,5 +79,24 @@ describe("loadMinimapArt", () => {
     it("is null when the command fails", async () => {
         invoke.mockRejectedValue(new Error("boom"));
         expect(await loadMinimapArt()).toBeNull();
+    });
+});
+
+describe("loadMapItems", () => {
+    const payload = {
+        source: "game",
+        installedBuild: null,
+        table: { schema: 1, buildId: 25841406, ventsCrc: 1, rows: [] },
+    };
+
+    it("returns the table the command resolved", async () => {
+        invoke.mockResolvedValue(payload);
+        expect(await loadMapItems()).toEqual(payload);
+        expect(invoke).toHaveBeenCalledWith("game_map_items");
+    });
+
+    it("gives null when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("boom"));
+        expect(await loadMapItems()).toBeNull();
     });
 });

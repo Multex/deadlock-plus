@@ -1,7 +1,12 @@
 pub mod minimap;
 
 pub mod commands {
-    use dp_gamedata::{AccoladeEntry, ArtCache, ClassArt, GameData, HeroArt, HeroEntry, ItemEntry, ItemImage, RankArt};
+    use std::sync::Arc;
+
+    use dp_gamedata::{
+        AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroArt, HeroEntry, ItemEntry, ItemImage,
+        MapItemsPayload, RankArt,
+    };
     use tauri::State;
 
     use super::minimap::MinimapArtResult;
@@ -59,6 +64,14 @@ pub mod commands {
         http: State<'_, crate::http::Http>,
     ) -> Result<MinimapArtResult, AppError> {
         Ok(super::minimap::minimap_art(art.inner().clone(), &http.0).await)
+    }
+
+    #[tauri::command]
+    pub async fn game_map_items(items: State<'_, Arc<GameMapItems>>) -> Result<MapItemsPayload, AppError> {
+        let items = Arc::clone(items.inner());
+        tauri::async_runtime::spawn_blocking(move || MapItemsPayload::from(&*items.resolve()))
+            .await
+            .map_err(AppError::internal)
     }
 
     #[tauri::command]

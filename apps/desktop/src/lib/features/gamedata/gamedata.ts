@@ -1,6 +1,7 @@
 import { command, fileSrc } from "$lib/core/tauri";
 import type { ClassArt } from "$lib/generated/types/ClassArt";
 import type { ItemImage } from "$lib/generated/types/ItemImage";
+import type { MapItemsPayload } from "$lib/generated/types/MapItemsPayload";
 import type { MinimapArtResult } from "$lib/generated/types/MinimapArtResult";
 import type { MinimapSource } from "$lib/generated/types/MinimapSource";
 
@@ -42,6 +43,15 @@ export async function loadMinimapArt(): Promise<MinimapArt | null> {
         const result = await command<MinimapArtResult>("game_minimap_art");
         if (result.status !== "ready") return null;
         return { src: fileSrc(result.path), radius: result.radius, source: result.source };
+    } catch {
+        return null;
+    }
+}
+
+/** Map objectives and neutrals: read from the installed game, else the cache, else the table baked into the app. Null on failure. */
+export async function loadMapItems(): Promise<MapItemsPayload | null> {
+    try {
+        return await command<MapItemsPayload>("game_map_items");
     } catch {
         return null;
     }
