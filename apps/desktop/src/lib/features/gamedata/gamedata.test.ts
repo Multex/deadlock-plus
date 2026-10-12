@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
+import type { MapItemsPayload } from "$lib/generated/types/MapItemsPayload";
 import {
     loadAbilityArt,
     loadHeroMinimapArt,
@@ -90,15 +91,35 @@ describe("loadMinimapArt", () => {
 });
 
 describe("loadMapItems", () => {
-    const payload = {
+    const payload: MapItemsPayload = {
         source: "game",
         installedBuild: null,
-        table: { schema: 1, buildId: 25841406, ventsCrc: 1, rows: [] },
+        table: {
+            schema: 2,
+            buildId: 25841406,
+            ventsCrc: 1,
+            rows: [],
+            lanes: [
+                {
+                    laneNum: 4,
+                    laneSlot: 3,
+                    markerSlot: 0,
+                    startTeam: 0,
+                    midIndex: 1,
+                    nodes: [
+                        [-2128, -7432, 778],
+                        [-1928, -6840, 768],
+                    ],
+                },
+            ],
+        },
     };
 
-    it("returns the table the command resolved", async () => {
+    it("returns the table the command resolved, lane lines included", async () => {
         invoke.mockResolvedValue(payload);
-        expect(await loadMapItems()).toEqual(payload);
+        const out = await loadMapItems();
+        expect(out).toEqual(payload);
+        expect(out?.table.lanes[0]?.nodes[1]).toEqual([-1928, -6840, 768]);
         expect(invoke).toHaveBeenCalledWith("game_map_items");
     });
 

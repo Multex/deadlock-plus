@@ -7,7 +7,7 @@ use ts_rs::TS;
 
 use crate::catalog::{Install, SteamInstall};
 
-pub const MAP_ITEMS_SCHEMA: u32 = 1;
+pub const MAP_ITEMS_SCHEMA: u32 = 2;
 
 const CACHE_FILE: &str = "map-items.tsv";
 const BAKED_TABLE: &str = include_str!("../data/map_items.tsv");
@@ -62,6 +62,29 @@ pub struct MapItemTable {
     pub build_id: Option<u64>,
     pub vents_crc: u32,
     pub rows: Vec<MapItem>,
+    pub lanes: Vec<LaneLine>,
+}
+
+/// One `lane_marker_path` spline, base to base. Four of them (marker slots 0 to 3) lie side by side
+/// in each lane.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneLine {
+    /// Player lane id: 1 Yellow, 4 Blue, 6 Green.
+    pub lane_num: u8,
+    /// Objective lane slot as the match API numbers it: 1, 3 or 4.
+    pub lane_slot: u8,
+    /// The map's `LaneSlot` of the marker, 0 to 3.
+    pub marker_slot: u8,
+    /// The team whose base the first node is in (0 Hidden King, 1 Archmother); the last node is in
+    /// the other team's base. `None` when the table holds no patron to compare against.
+    pub start_team: Option<u8>,
+    /// Node index at half the path's length in the ground plane. Nodes up to and including it belong
+    /// to `start_team`'s half, the rest to the other team's.
+    pub mid_index: u32,
+    /// World positions, base to base.
+    pub nodes: Vec<[f32; 3]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -270,6 +293,74 @@ fn map_entity(raw: &RawEntity) -> Option<MapItem> {
     })
 }
 
+const NODE_FLOATS: usize = 9;
+
+fn lane_slot_of(lane_num: u8) -> Option<u8> {
+    match lane_num {
+        1 => Some(1),
+        4 => Some(3),
+        6 => Some(4),
+        _ => None,
+    }
+}
+
+/// The lane splines of the map. `rows` supplies the patrons that tell which base a path starts in.
+pub fn map_lane_lines<'a>(entities: impl IntoIterator<Item = &'a RawEntity>, rows: &[MapItem]) -> Vec<LaneLine> {
+    let patrons: Vec<&MapItem> = rows.iter().filter(|r| r.kind == MapItemKind::Patron && r.team.is_some()).collect();
+    let mut lines: Vec<LaneLine> = entities.into_iter().filter_map(|raw| lane_line(raw, &patrons)).collect();
+    lines.sort_by_key(|l| (l.lane_num, l.marker_slot));
+    lines
+}
+
+fn lane_line(raw: &RawEntity, patrons: &[&MapItem]) -> Option<LaneLine> {
+    if raw.get("classname")? != "lane_marker_path" {
+        return None;
+    }
+    let lane_num: u8 = raw.get("lanenum")?.parse().ok()?;
+    let lane_slot = lane_slot_of(lane_num)?;
+    let marker_slot: u8 = raw.get("laneslot")?.parse().ok()?;
+    let [ox, oy, oz] = parse_vec3(raw.get("origin")?)?;
+
+    // The archive hands nested arrays over as text; brackets, commas and whitespace all separate floats.
+    let floats = raw
+        .get("pathnodes")?
+        .split(|c: char| matches!(c, '[' | ']' | ',') || c.is_whitespace())
+        .filter(|t| !t.is_empty())
+        .map(str::parse::<f32>)
+        .collect::<Result<Vec<f32>, _>>()
+        .ok()?;
+    if floats.len() % NODE_FLOATS != 0 || floats.len() < 2 * NODE_FLOATS {
+        return None;
+    }
+    let round = |v: f32| (v * 10.0).round() / 10.0;
+    let nodes: Vec<[f32; 3]> =
+        floats.chunks(NODE_FLOATS).map(|n| [round(ox + n[0]), round(oy + n[1]), round(oz + n[2])]).collect();
+
+    let start = nodes[0];
+    let start_team = patrons
+        .iter()
+        .min_by(|a, b| planar_distance(start, a).total_cmp(&planar_distance(start, b)))
+        .and_then(|p| p.team);
+    Some(LaneLine { lane_num, lane_slot, marker_slot, start_team, mid_index: mid_index(&nodes), nodes })
+}
+
+fn planar_distance(from: [f32; 3], to: &MapItem) -> f32 {
+    (from[0] - to.x).hypot(from[1] - to.y)
+}
+
+fn mid_index(nodes: &[[f32; 3]]) -> u32 {
+    let step = |w: &[[f32; 3]]| (w[1][0] - w[0][0]).hypot(w[1][1] - w[0][1]);
+    let total: f32 = nodes.windows(2).map(step).sum();
+    let mut walked = 0.0;
+    for (i, w) in nodes.windows(2).enumerate() {
+        walked += step(w);
+        if walked >= total / 2.0 {
+            return i as u32 + 1;
+        }
+    }
+    nodes.len() as u32 - 1
+}
+
 fn parse_vec3(raw: &str) -> Option<[f32; 3]> {
     let cleaned: String = raw.chars().map(|c| if matches!(c, '[' | ']' | ',') { ' ' } else { c }).collect();
     let mut parts = cleaned.split_whitespace().map(str::parse::<f32>);
@@ -337,6 +428,7 @@ impl MapItemKind {
 }
 
 const TSV_MAGIC: &str = "# dp-map-items ";
+const LANE_KEY: &str = "lane";
 
 impl MapItemTable {
     /// Plain tab-separated text, `-` for an absent value. Keeps the cache and the baked file free of a
@@ -362,6 +454,17 @@ impl MapItemTable {
             out.push_str(&fields.join("\t"));
             out.push('\n');
         }
+        for l in &self.lanes {
+            let nodes: Vec<String> = l.nodes.iter().map(|[x, y, z]| format!("{x},{y},{z}")).collect();
+            out.push_str(&format!(
+                "{LANE_KEY}\t{}\t{}\t{}\t{}\t{}\n",
+                l.lane_num,
+                l.marker_slot,
+                or_dash(l.start_team.map(|v| v.to_string())),
+                l.mid_index,
+                nodes.join(";")
+            ));
+        }
         out
     }
 
@@ -372,8 +475,13 @@ impl MapItemTable {
         let build_id = skip_dash(build).map(str::parse).transpose().ok()?;
         let vents_crc = u32::from_str_radix(lines.next()?.strip_prefix("vents_crc\t")?, 16).ok()?;
         let mut rows = Vec::new();
+        let mut lanes = Vec::new();
         for line in lines.filter(|l| !l.is_empty()) {
             let f: Vec<&str> = line.split('\t').collect();
+            if f[0] == LANE_KEY {
+                lanes.push(lane_from_fields(&f)?);
+                continue;
+            }
             let [kind, team, slot, id, x, y, z, class, sub, name, icon] = f[..] else { return None };
             rows.push(MapItem {
                 kind: MapItemKind::from_key(kind)?,
@@ -389,8 +497,29 @@ impl MapItemTable {
                 has_icon: icon == "1",
             });
         }
-        Some(Self { schema, build_id, vents_crc, rows })
+        Some(Self { schema, build_id, vents_crc, rows, lanes })
     }
+}
+
+fn lane_from_fields(f: &[&str]) -> Option<LaneLine> {
+    let [_, lane_num, marker_slot, start_team, mid_index, nodes] = f[..] else { return None };
+    let lane_num: u8 = lane_num.parse().ok()?;
+    let nodes = nodes
+        .split(';')
+        .map(|n| {
+            let mut p = n.split(',').map(str::parse::<f32>);
+            let node = [p.next()?.ok()?, p.next()?.ok()?, p.next()?.ok()?];
+            p.next().is_none().then_some(node)
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(LaneLine {
+        lane_num,
+        lane_slot: lane_slot_of(lane_num)?,
+        marker_slot: marker_slot.parse().ok()?,
+        start_team: skip_dash(start_team).map(str::parse).transpose().ok()?,
+        mid_index: mid_index.parse().ok()?,
+        nodes,
+    })
 }
 
 pub fn baked_table() -> MapItemTable {
@@ -399,7 +528,13 @@ pub fn baked_table() -> MapItemTable {
         .get_or_init(|| {
             MapItemTable::from_tsv(BAKED_TABLE).unwrap_or_else(|| {
                 log::error!("the baked map item table is unreadable");
-                MapItemTable { schema: MAP_ITEMS_SCHEMA, build_id: None, vents_crc: 0, rows: Vec::new() }
+                MapItemTable {
+                    schema: MAP_ITEMS_SCHEMA,
+                    build_id: None,
+                    vents_crc: 0,
+                    rows: Vec::new(),
+                    lanes: Vec::new(),
+                }
             })
         })
         .clone()
@@ -475,7 +610,8 @@ impl<I: Install, E: VentsSource> MapItems<I, E> {
             if rows.is_empty() {
                 return Err("the map file holds no recognised objectives".to_owned());
             }
-            Ok(MapItemTable { schema: MAP_ITEMS_SCHEMA, build_id: build, vents_crc: v.crc, rows })
+            let lanes = map_lane_lines(&v.entities, &rows);
+            Ok(MapItemTable { schema: MAP_ITEMS_SCHEMA, build_id: build, vents_crc: v.crc, rows, lanes })
         });
         match extracted {
             Ok(table) => {
@@ -780,6 +916,154 @@ mod tests {
         assert_eq!((rows[0].x, rows[0].y, rows[0].z), (-3936.0, 136.0, 24.5));
     }
 
+    fn lane_entity(lane: &str, slot: &str, origin: &str, nodes: &str) -> RawEntity {
+        ent(&[
+            ("classname", "lane_marker_path"),
+            ("lanenum", lane),
+            ("laneslot", slot),
+            ("origin", origin),
+            ("pathnodes", nodes),
+        ])
+    }
+
+    fn patron(team: &str, origin: &str) -> RawEntity {
+        ent(&[("classname", "npc_boss_tier3"), ("teamnumber", team), ("origin", origin)])
+    }
+
+    // x y z plus six floats the table does not keep, per node.
+    const NODES: &str = "[\n\t[\n\t\t0.0, 0.0, 0.0, -0.0,\n\t\t0.0, 0.0, 79.5, 203.2,\n\t\t-2.6,\n\t],\n\t[\n\t\t100.0, 0.0, 8.0, 0.3,\n\t\t-218.2, 1.8, -0.2, 137.6,\n\t\t-1.1,\n\t],\n\t[\n\t\t300.04, 0.0, -4.0, 0.3,\n\t\t-218.2, 1.8, -0.2, 137.6,\n\t\t-1.1,\n\t],\n]";
+
+    fn lane_lines(entities: &[RawEntity]) -> Vec<LaneLine> {
+        map_lane_lines(entities, &map_entities(entities))
+    }
+
+    #[test]
+    fn a_lane_marker_path_yields_absolute_nodes_with_lane_and_slot() {
+        let lanes = lane_lines(&[lane_entity("4", "2", "-1000.0 -7000.0 776.0", NODES)]);
+        assert_eq!(lanes.len(), 1);
+        let line = &lanes[0];
+        assert_eq!((line.lane_num, line.lane_slot, line.marker_slot), (4, 3, 2));
+        assert_eq!(line.nodes, vec![[-1000.0, -7000.0, 776.0], [-900.0, -7000.0, 784.0], [-700.0, -7000.0, 772.0]]);
+    }
+
+    #[test]
+    fn lane_ids_map_to_objective_slots() {
+        let slot = |lane: &str| lane_lines(&[lane_entity(lane, "0", "0 0 0", NODES)]).first().map(|l| l.lane_slot);
+        assert_eq!((slot("1"), slot("4"), slot("6")), (Some(1), Some(3), Some(4)));
+        assert_eq!(slot("2"), None);
+    }
+
+    #[test]
+    fn path_nodes_read_from_bracketed_text_or_space_separated_numbers() {
+        let flat = "0 0 0 0 0 0 0 0 0 5 6 7 0 0 0 0 0 0";
+        let lanes = lane_lines(&[lane_entity("1", "0", "10 20 30", flat)]);
+        assert_eq!(lanes[0].nodes, vec![[10.0, 20.0, 30.0], [15.0, 26.0, 37.0]]);
+    }
+
+    #[test]
+    fn malformed_or_single_node_paths_are_dropped() {
+        let ragged = "[ [ 0, 0, 0, 0, 0, 0, 0, 0 ] ]";
+        let single = "[ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ] ]";
+        let junk = "[ [ a, b ] ]";
+        for nodes in [ragged, single, junk, ""] {
+            assert!(lane_lines(&[lane_entity("1", "0", "0 0 0", nodes)]).is_empty(), "{nodes:?}");
+        }
+        let no_slot = ent(&[("classname", "lane_marker_path"), ("origin", "0 0 0"), ("pathnodes", NODES)]);
+        assert!(lane_lines(&[no_slot]).is_empty());
+    }
+
+    #[test]
+    fn a_path_starts_for_the_team_whose_patron_is_nearest_and_splits_at_half_its_length() {
+        let entities =
+            [patron("2", "-50.0 0.0 0.0"), patron("3", "5000.0 0.0 0.0"), lane_entity("1", "0", "0 0 0", NODES)];
+        let line = &lane_lines(&entities)[0];
+        assert_eq!(line.start_team, Some(0));
+        // Segments are about 100 and 200 units: half of 300 falls inside the second one, nearer its end.
+        assert_eq!(line.mid_index, 2);
+
+        let flipped =
+            [patron("3", "-50.0 0.0 0.0"), patron("2", "5000.0 0.0 0.0"), lane_entity("1", "0", "0 0 0", NODES)];
+        assert_eq!(lane_lines(&flipped)[0].start_team, Some(1));
+        assert_eq!(lane_lines(&[lane_entity("1", "0", "0 0 0", NODES)])[0].start_team, None);
+    }
+
+    #[test]
+    fn lane_lines_come_out_in_a_stable_order() {
+        let a = lane_entity("6", "1", "0 0 0", NODES);
+        let b = lane_entity("1", "3", "0 0 0", NODES);
+        let c = lane_entity("1", "0", "0 0 0", NODES);
+        let order = |lanes: Vec<LaneLine>| lanes.into_iter().map(|l| (l.lane_num, l.marker_slot)).collect::<Vec<_>>();
+        assert_eq!(order(lane_lines(&[a.clone(), b.clone(), c.clone()])), [(1, 0), (1, 3), (6, 1)]);
+        assert_eq!(order(lane_lines(&[c, b, a])), [(1, 0), (1, 3), (6, 1)]);
+    }
+
+    #[test]
+    fn lane_lines_survive_the_text_round_trip() {
+        let entities = [patron("2", "0 0 0"), lane_entity("4", "1", "0 0 0", NODES)];
+        let table = MapItemTable {
+            schema: MAP_ITEMS_SCHEMA,
+            build_id: Some(5),
+            vents_crc: 0xbeef,
+            rows: map_entities(&entities),
+            lanes: lane_lines(&entities),
+        };
+        assert_eq!(table.lanes.len(), 1);
+        let text = table.to_tsv();
+        assert_eq!(MapItemTable::from_tsv(&text), Some(table));
+    }
+
+    #[test]
+    fn a_corrupt_lane_line_makes_the_whole_text_unreadable() {
+        let table = MapItemTable {
+            schema: MAP_ITEMS_SCHEMA,
+            build_id: None,
+            vents_crc: 1,
+            rows: Vec::new(),
+            lanes: lane_lines(&[lane_entity("4", "1", "0 0 0", NODES)]),
+        };
+        let broken = table.to_tsv().replace("lane\t", "lane\tx");
+        assert_eq!(MapItemTable::from_tsv(&broken), None);
+    }
+
+    #[test]
+    fn extraction_keeps_the_lane_lines_and_the_cache_returns_them() {
+        let tmp = Tmp::new("lanes");
+        let citadel = tmp.steam_layout(Some(&manifest_with_build(900)));
+        let cache = tmp.0.join("cache");
+        let mut entities = one_shop();
+        entities.push(lane_entity("6", "3", "0 0 0", NODES));
+        let (map, _) = items(Some(citadel.clone()), &cache, Ok((1, entities)));
+        let resolved = map.resolve();
+        assert_eq!(resolved.table.lanes.len(), 1);
+
+        let (second, calls) = items(Some(citadel), &cache, Err("must not run".into()));
+        let again = second.resolve();
+        assert_eq!(again.source, TableSource::Cache);
+        assert_eq!(again.table.lanes, resolved.table.lanes);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn the_baked_table_has_all_twelve_lane_lines_running_base_to_base() {
+        let table = baked_table();
+        assert_eq!(table.lanes.len(), 12);
+        for lane in [1u8, 4, 6] {
+            for slot in 0u8..4 {
+                let line = table
+                    .lanes
+                    .iter()
+                    .find(|l| l.lane_num == lane && l.marker_slot == slot)
+                    .unwrap_or_else(|| panic!("lane {lane} slot {slot}"));
+                assert!(line.nodes.len() > 10, "{} nodes", line.nodes.len());
+                assert_eq!(line.start_team, Some(0));
+                let mid = line.mid_index as usize;
+                assert!(mid > 0 && mid < line.nodes.len() - 1, "mid {mid}");
+            }
+        }
+        let slots: std::collections::BTreeSet<u8> = table.lanes.iter().map(|l| l.lane_slot).collect();
+        assert_eq!(slots, [1, 3, 4].into());
+    }
+
     #[test]
     #[ignore = "needs the installed game; set DEADLOCK_CITADEL_DIR to its game/citadel folder"]
     fn the_installed_game_yields_the_baked_rows() {
@@ -790,6 +1074,7 @@ mod tests {
         assert_eq!(extracted.crc, baked.vents_crc);
         assert_eq!(rows.len(), baked.rows.len());
         assert_eq!(rows, baked.rows);
+        assert_eq!(map_lane_lines(&extracted.entities, &rows), baked.lanes);
     }
 
     #[test]
@@ -1103,14 +1388,18 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "writes data/map_items.tsv from a decoded dump; set DP_VENTS_TEXT, DP_BUILD_ID, DP_VENTS_CRC"]
+    #[ignore = "writes data/map_items.tsv from the installed game; set DEADLOCK_CITADEL_DIR"]
     fn regenerate_the_baked_table() {
-        let text = fs::read_to_string(std::env::var("DP_VENTS_TEXT").unwrap()).unwrap();
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("set DEADLOCK_CITADEL_DIR"));
+        let extracted = VpkVentsSource.extract(&dir).unwrap();
+        let rows = map_entities(&extracted.entities);
+        let lanes = map_lane_lines(&extracted.entities, &rows);
         let table = MapItemTable {
             schema: MAP_ITEMS_SCHEMA,
-            build_id: Some(std::env::var("DP_BUILD_ID").unwrap().parse().unwrap()),
-            vents_crc: u32::from_str_radix(&std::env::var("DP_VENTS_CRC").unwrap(), 16).unwrap(),
-            rows: map_entities(&parse_vents_text(&text)),
+            build_id: Some(installed_build_id(&dir).expect("build id")),
+            vents_crc: extracted.crc,
+            rows,
+            lanes,
         };
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("data/map_items.tsv");
         fs::write(path, table.to_tsv()).unwrap();
