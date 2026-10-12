@@ -37,8 +37,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Click a marker on the timeline to jump the replay to that moment.
 - The replay map draws the lanes, Guardians, Walkers, Shrines, Base Guardians and Patrons, and removes each one when it falls.
 - Players on the replay map use the game's own minimap icons, with allies in cream and enemies in red-orange.
+- A Patron stays on the replay map through its second phase, as its centre diamond, until its Core falls.
 - Neutral camps and the Mid Boss appear on the replay map at their estimated spawn times.
+- A camp disappears from the replay map when it is cleared and returns when it respawns.
+- Camp clears on the replay map are estimated from player movement, so some will be off.
 - The Camps button hides or shows neutral camps on the replay map.
+- The replay map shows shops, and a lane's shop goes away with its Guardian.
+- The replay map shows the four teleporters.
 - Hover an objective on the replay map to see how much Gun, Spirit and Trooper damage it took.
 - A destroyed objective stays highlighted on the replay map for a few seconds.
 - Death map mode shows every death and who got the kill, filtered by player and time.
