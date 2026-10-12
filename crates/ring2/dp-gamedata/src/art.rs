@@ -13,15 +13,17 @@ use crate::catalog::{archive_stamp, HeroEntry, Install, SteamInstall};
 pub enum HeroImage {
     Sm,
     Card,
+    Mm,
 }
 
 impl HeroImage {
-    const ALL: [HeroImage; 2] = [HeroImage::Sm, HeroImage::Card];
+    const ALL: [HeroImage; 3] = [HeroImage::Sm, HeroImage::Card, HeroImage::Mm];
 
     fn suffix(self) -> &'static str {
         match self {
             HeroImage::Sm => "sm",
             HeroImage::Card => "card",
+            HeroImage::Mm => "mm",
         }
     }
 }
@@ -63,6 +65,100 @@ impl ItemImage {
 /// World-space radius of the playable map; the minimap image spans `2 * MINIMAP_RADIUS` units.
 pub const MINIMAP_RADIUS: f32 = 10752.0;
 
+/// A minimap marker icon. The set is closed on purpose: the frontend names icons by variant, so no
+/// free-form stem reaches the file system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum MinimapIcon {
+    BossHealth,
+    BossHealthFill,
+    BossHealthT2,
+    BossHealthFillT2,
+    BossHealthFinal,
+    BossHealthFinalFill,
+    BossHealthFinalStage2,
+    BossHealthFinalStage2Fill,
+    BossHealthDead,
+    SuperNeutralMarker,
+    NeutralSmall,
+    NeutralMedium,
+    NeutralLarge,
+    NeutralVault,
+    MinimapShop,
+    SoulJarMarker,
+    SoulJarMarkerReturn,
+    SoulJarMarkerReturnEnemy,
+    SoulJarMarkerReturnPulse,
+    PlayerMarkerSelf,
+    PlayerMarkerSelfSpecHighlight,
+    PlayerCone,
+}
+
+impl MinimapIcon {
+    pub const ALL: [MinimapIcon; 22] = [
+        MinimapIcon::BossHealth,
+        MinimapIcon::BossHealthFill,
+        MinimapIcon::BossHealthT2,
+        MinimapIcon::BossHealthFillT2,
+        MinimapIcon::BossHealthFinal,
+        MinimapIcon::BossHealthFinalFill,
+        MinimapIcon::BossHealthFinalStage2,
+        MinimapIcon::BossHealthFinalStage2Fill,
+        MinimapIcon::BossHealthDead,
+        MinimapIcon::SuperNeutralMarker,
+        MinimapIcon::NeutralSmall,
+        MinimapIcon::NeutralMedium,
+        MinimapIcon::NeutralLarge,
+        MinimapIcon::NeutralVault,
+        MinimapIcon::MinimapShop,
+        MinimapIcon::SoulJarMarker,
+        MinimapIcon::SoulJarMarkerReturn,
+        MinimapIcon::SoulJarMarkerReturnEnemy,
+        MinimapIcon::SoulJarMarkerReturnPulse,
+        MinimapIcon::PlayerMarkerSelf,
+        MinimapIcon::PlayerMarkerSelfSpecHighlight,
+        MinimapIcon::PlayerCone,
+    ];
+
+    /// The game's file-name stem, without the `_psd` suffix.
+    pub fn stem(self) -> &'static str {
+        match self {
+            MinimapIcon::BossHealth => "boss_health",
+            MinimapIcon::BossHealthFill => "boss_health_fill",
+            MinimapIcon::BossHealthT2 => "boss_health_t2",
+            MinimapIcon::BossHealthFillT2 => "boss_health_fill_t2",
+            MinimapIcon::BossHealthFinal => "boss_health_final",
+            MinimapIcon::BossHealthFinalFill => "boss_health_final_fill",
+            MinimapIcon::BossHealthFinalStage2 => "boss_health_final_stage2",
+            MinimapIcon::BossHealthFinalStage2Fill => "boss_health_final_stage2_fill",
+            MinimapIcon::BossHealthDead => "boss_health_dead",
+            MinimapIcon::SuperNeutralMarker => "super_neutral_marker",
+            MinimapIcon::NeutralSmall => "neutral_small",
+            MinimapIcon::NeutralMedium => "neutral_medium",
+            MinimapIcon::NeutralLarge => "neutral_large",
+            MinimapIcon::NeutralVault => "neutral_vault",
+            MinimapIcon::MinimapShop => "minimap_shop",
+            MinimapIcon::SoulJarMarker => "soul_jar_marker",
+            MinimapIcon::SoulJarMarkerReturn => "soul_jar_marker_return",
+            MinimapIcon::SoulJarMarkerReturnEnemy => "soul_jar_marker_return_enemy",
+            MinimapIcon::SoulJarMarkerReturnPulse => "soul_jar_marker_return_pulse",
+            MinimapIcon::PlayerMarkerSelf => "player_marker_self",
+            MinimapIcon::PlayerMarkerSelfSpecHighlight => "player_marker_self_spec_highlight",
+            MinimapIcon::PlayerCone => "player_cone",
+        }
+    }
+}
+
+/// A local image for a minimap icon.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct MinimapIconArt {
+    pub icon: MinimapIcon,
+    pub path: String,
+}
+
 /// Why the local minimap is unavailable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
@@ -85,6 +181,7 @@ pub trait ArtSource: Send + Sync + 'static {
     fn write_ability(&self, class_name: &str, dest: &Path) -> bool;
     fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool;
     fn write_minimap(&self, dest: &Path) -> bool;
+    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool;
 }
 
 struct ArchiveSource(ArtArchive);
@@ -109,6 +206,7 @@ impl ArtSource for ArchiveSource {
         let kind = match image {
             HeroImage::Sm => HeroArtKind::Sm,
             HeroImage::Card => HeroArtKind::Card,
+            HeroImage::Mm => HeroArtKind::Mm,
         };
         self.write(&Art::hero(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
     }
@@ -136,6 +234,11 @@ impl ArtSource for ArchiveSource {
     fn write_minimap(&self, dest: &Path) -> bool {
         self.write(&Art::minimap(MinimapArtKind::Mid), dest, "minimap")
     }
+
+    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+        let Ok(kind) = MinimapArtKind::icon(icon.stem()) else { return false };
+        self.write(&Art::minimap(kind), dest, icon.stem())
+    }
 }
 
 type Opener = Box<dyn Fn(&Path) -> Option<Arc<dyn ArtSource>> + Send + Sync>;
@@ -147,6 +250,8 @@ pub struct HeroArt {
     pub id: u32,
     pub sm: Option<String>,
     pub card: Option<String>,
+    /// The minimap head: a transparent cutout.
+    pub mm: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -222,7 +327,7 @@ impl<I: Install> ArtCache<I> {
         Self { shared: Arc::new(Shared { install, root, opener, state: Mutex::new(None) }) }
     }
 
-    /// Local `sm` and `card` files per hero, decoding what the cache lacks. Heroes with no local
+    /// Local `sm`, `card` and `mm` files per hero, decoding what the cache lacks. Heroes with no local
     /// image are left out; this never fails.
     pub fn hero_art(&self, heroes: &[HeroEntry]) -> Vec<HeroArt> {
         self.with_build(|build, build_dir| {
@@ -231,16 +336,17 @@ impl<I: Install> ArtCache<I> {
                 if !file_safe(&hero.class_name) {
                     continue;
                 }
-                let mut entry = HeroArt { id: hero.id, sm: None, card: None };
+                let mut entry = HeroArt { id: hero.id, sm: None, card: None, mm: None };
                 for image in HeroImage::ALL {
                     let name = format!("{}_{}.png", hero.class_name, image.suffix());
                     let found = self.ensure(build, build_dir, name, |s, p| s.write_hero(&hero.class_name, image, p));
                     match image {
                         HeroImage::Sm => entry.sm = found,
                         HeroImage::Card => entry.card = found,
+                        HeroImage::Mm => entry.mm = found,
                     }
                 }
-                if entry.sm.is_some() || entry.card.is_some() {
+                if entry.sm.is_some() || entry.card.is_some() || entry.mm.is_some() {
                     out.push(entry);
                 }
             }
@@ -295,6 +401,26 @@ impl<I: Install> ArtCache<I> {
                 .ok_or(MinimapError::ExtractFailed)
         })
         .unwrap_or(Err(MinimapError::NoInstall))
+    }
+
+    /// Local files for the requested minimap icons, decoding what the cache lacks. Icons the game does
+    /// not have or that will not decode are left out; this never fails.
+    pub fn minimap_icons(&self, icons: &[MinimapIcon]) -> Vec<MinimapIconArt> {
+        self.with_build(|build, build_dir| {
+            let mut seen = HashSet::new();
+            let mut out = Vec::new();
+            for &icon in icons.iter().take(MinimapIcon::ALL.len()) {
+                if !seen.insert(icon) {
+                    continue;
+                }
+                let name = format!("minimap_icon_{}.png", icon.stem());
+                if let Some(path) = self.ensure(build, build_dir, name, |s, p| s.write_minimap_icon(icon, p)) {
+                    out.push(MinimapIconArt { icon, path });
+                }
+            }
+            out
+        })
+        .unwrap_or_default()
     }
 
     /// Where a minimap downloaded because the local one is unavailable is kept. It sits in the store
@@ -436,6 +562,10 @@ mod tests {
         fn write_minimap(&self, dest: &Path) -> bool {
             self.write_class("minimap", dest)
         }
+
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+            self.write_class(icon.stem(), dest)
+        }
     }
 
     impl FakeSource {
@@ -522,6 +652,10 @@ mod tests {
         assert_eq!(sm.file_name().unwrap(), "hero_inferno_sm.png");
         assert_eq!(card.file_name().unwrap(), "hero_inferno_card.png");
         assert_eq!(sm.parent(), card.parent());
+        let mm = PathBuf::from(art[0].mm.as_ref().unwrap());
+        assert_eq!(mm.file_name().unwrap(), "hero_inferno_mm.png");
+        assert!(mm.is_file());
+        assert_eq!(mm.parent(), sm.parent());
         assert_ne!(sm.parent().unwrap(), rig.root);
     }
 
@@ -532,7 +666,7 @@ mod tests {
         let heroes = [hero(1, "hero_inferno")];
         let first = cache.hero_art(&heroes);
         let writes = rig.source.writes.load(Ordering::Relaxed);
-        assert_eq!(writes, 2);
+        assert_eq!(writes, 3);
         assert_eq!(cache.hero_art(&heroes), first);
         assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
         assert_eq!(rig.opens.load(Ordering::Relaxed), 1);
@@ -546,7 +680,7 @@ mod tests {
         let opens = rig.opens.load(Ordering::Relaxed);
         assert_eq!(rig.cache().hero_art(&heroes), first);
         assert_eq!(rig.opens.load(Ordering::Relaxed), opens);
-        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 3);
     }
 
     #[test]
@@ -577,6 +711,49 @@ mod tests {
         assert!(art[0].card.is_some());
     }
 
+    struct MmOnly(Arc<FakeSource>);
+
+    impl ArtSource for MmOnly {
+        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool {
+            image == HeroImage::Mm && self.0.write_hero(class_name, image, dest)
+        }
+
+        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool {
+            self.0.write_rank(tier, image, dest)
+        }
+
+        fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+            self.0.write_ability(class_name, dest)
+        }
+
+        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool {
+            self.0.write_item(class_name, image, dest)
+        }
+
+        fn write_minimap(&self, dest: &Path) -> bool {
+            self.0.write_minimap(dest)
+        }
+
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+            self.0.write_minimap_icon(icon, dest)
+        }
+    }
+
+    #[test]
+    fn a_hero_with_only_a_minimap_head_still_has_art() {
+        let rig = Rig::new("mm-only", &[]);
+        let source = Arc::new(FakeSource::default());
+        let cache = ArtCache::with_opener(
+            FakeInstall(Mutex::new(Some(rig.citadel.clone()))),
+            rig.root.clone(),
+            Box::new(move |_| Some(Arc::new(MmOnly(Arc::clone(&source))) as Arc<dyn ArtSource>)),
+        );
+        let art = cache.hero_art(&[hero(1, "hero_inferno")]);
+        assert_eq!(art.len(), 1);
+        assert!(art[0].sm.is_none() && art[0].card.is_none());
+        assert!(art[0].mm.is_some());
+    }
+
     struct CardOnly(Arc<FakeSource>);
 
     impl ArtSource for CardOnly {
@@ -598,6 +775,10 @@ mod tests {
 
         fn write_minimap(&self, dest: &Path) -> bool {
             self.0.write_minimap(dest)
+        }
+
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+            self.0.write_minimap_icon(icon, dest)
         }
     }
 
@@ -622,6 +803,10 @@ mod tests {
 
         fn write_minimap(&self, dest: &Path) -> bool {
             self.0.write_minimap(dest)
+        }
+
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+            self.0.write_minimap_icon(icon, dest)
         }
     }
 
@@ -886,5 +1071,114 @@ mod tests {
         fs::write(&remote, b"png").unwrap();
         cache.minimap_art().unwrap();
         assert!(!remote.exists());
+    }
+
+    fn from_wire(value: &str) -> Option<MinimapIcon> {
+        use serde::de::value::{Error, StrDeserializer};
+        MinimapIcon::deserialize(StrDeserializer::<Error>::new(value)).ok()
+    }
+
+    fn icon_names(art: &[MinimapIconArt]) -> Vec<MinimapIcon> {
+        art.iter().map(|a| a.icon).collect()
+    }
+
+    #[test]
+    fn the_icon_allow_list_names_only_stems_the_game_reader_accepts() {
+        assert_eq!(MinimapIcon::ALL.len(), 22);
+        let stems: HashSet<&str> = MinimapIcon::ALL.iter().map(|i| i.stem()).collect();
+        assert_eq!(stems.len(), MinimapIcon::ALL.len(), "stems are unique");
+        for icon in MinimapIcon::ALL {
+            assert!(MinimapArtKind::icon(icon.stem()).is_ok(), "{}", icon.stem());
+            assert_eq!(from_wire(icon.stem()), Some(icon));
+        }
+    }
+
+    #[test]
+    fn a_stem_outside_the_allow_list_does_not_deserialize() {
+        for stem in ["../evil", "boss_health_psd", "BOSS_HEALTH", "", "powerup_weapon"] {
+            assert_eq!(from_wire(stem), None, "{stem}");
+        }
+    }
+
+    #[test]
+    fn minimap_icons_are_files_in_the_build_directory_named_by_stem() {
+        let rig = Rig::new("icon-paths", &[]);
+        let cache = rig.cache();
+        let hero = cache.hero_art(&[hero(1, "hero_inferno")]);
+        let out = cache.minimap_icons(&[MinimapIcon::BossHealth, MinimapIcon::NeutralVault]);
+        assert_eq!(icon_names(&out), vec![MinimapIcon::BossHealth, MinimapIcon::NeutralVault]);
+        let first = PathBuf::from(&out[0].path);
+        assert_eq!(first.file_name().unwrap(), "minimap_icon_boss_health.png");
+        assert_eq!(PathBuf::from(&out[1].path).file_name().unwrap(), "minimap_icon_neutral_vault.png");
+        assert!(first.is_file());
+        assert_eq!(first.parent(), PathBuf::from(hero[0].sm.as_ref().unwrap()).parent());
+    }
+
+    #[test]
+    fn minimap_icons_are_decoded_once_per_build_and_only_when_asked_for() {
+        let rig = Rig::new("icon-once", &[]);
+        let cache = rig.cache();
+        let first = cache.minimap_icons(&[MinimapIcon::PlayerCone, MinimapIcon::PlayerCone]);
+        assert_eq!(first.len(), 1);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+        assert_eq!(cache.minimap_icons(&[MinimapIcon::PlayerCone]), first);
+        assert_eq!(rig.cache().minimap_icons(&[MinimapIcon::PlayerCone]), first);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn an_icon_that_will_not_decode_is_left_out_and_not_retried() {
+        let rig = Rig::new("icon-missing", &["boss_health_dead"]);
+        let cache = rig.cache();
+        let out = cache.minimap_icons(&[MinimapIcon::BossHealthDead, MinimapIcon::MinimapShop]);
+        assert_eq!(icon_names(&out), vec![MinimapIcon::MinimapShop]);
+        let writes = rig.source.writes.load(Ordering::Relaxed);
+        cache.minimap_icons(&[MinimapIcon::BossHealthDead]);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn the_whole_allow_list_decodes_in_one_call() {
+        let rig = Rig::new("icon-all", &[]);
+        let out = rig.cache().minimap_icons(&MinimapIcon::ALL);
+        assert_eq!(out.len(), MinimapIcon::ALL.len());
+    }
+
+    #[test]
+    fn without_an_install_there_are_no_minimap_icons() {
+        let rig = Rig::new("icon-noinstall", &[]);
+        let cache =
+            ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
+        assert!(cache.minimap_icons(&[MinimapIcon::BossHealth]).is_empty());
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_every_allow_listed_minimap_icon() {
+        let dir = std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR");
+        let archive = ArtArchive::open(&dir).unwrap();
+        let mut failed = Vec::new();
+        for icon in MinimapIcon::ALL {
+            let art = Art::minimap(MinimapArtKind::icon(icon.stem()).unwrap());
+            let ok = archive.contains(&art) && archive.image(&art).is_ok_and(|i| i.width > 0 && i.height > 0);
+            if !ok {
+                failed.push(icon.stem());
+            }
+        }
+        assert!(failed.is_empty(), "icons that did not decode: {failed:?}");
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_a_hero_minimap_head() {
+        let dir = std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR");
+        let archive = ArtArchive::open(&dir).unwrap();
+        let art = Art::hero("hero_inferno", HeroArtKind::Mm);
+        assert!(archive.contains(&art), "{}", archive.path(&art));
+        let image = archive.image(&art).unwrap();
+        assert!(image.width > 0 && image.height > 0);
+        let alpha: Vec<u8> = image.rgba.iter().skip(3).step_by(4).copied().collect();
+        assert!(alpha.contains(&0), "a cutout has transparent pixels");
+        assert!(alpha.iter().any(|&a| a > 0));
     }
 }

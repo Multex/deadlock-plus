@@ -1,7 +1,10 @@
 import { command, fileSrc } from "$lib/core/tauri";
 import type { ClassArt } from "$lib/generated/types/ClassArt";
+import type { HeroArt } from "$lib/generated/types/HeroArt";
 import type { ItemImage } from "$lib/generated/types/ItemImage";
 import type { MapItemsPayload } from "$lib/generated/types/MapItemsPayload";
+import type { MinimapIcon } from "$lib/generated/types/MinimapIcon";
+import type { MinimapIconArt } from "$lib/generated/types/MinimapIconArt";
 import type { MinimapArtResult } from "$lib/generated/types/MinimapArtResult";
 import type { MinimapSource } from "$lib/generated/types/MinimapSource";
 
@@ -28,6 +31,34 @@ export function loadItemArt(names: string[], kind: ItemImage): Promise<Record<st
 /** Asset urls of ability icons from the installed game. Vector-only icons have no local file and are absent. */
 export function loadAbilityArt(names: string[]): Promise<Record<string, string>> {
     return load("game_ability_art", names, {});
+}
+
+/** Asset urls of the game's minimap hero heads (transparent cutouts), keyed by hero id. Heroes without one are absent. */
+export async function loadHeroMinimapArt(): Promise<Record<number, string>> {
+    const out: Record<number, string> = {};
+    try {
+        for (const hero of await command<HeroArt[]>("game_hero_art")) {
+            if (hero.mm) out[hero.id] = fileSrc(hero.mm);
+        }
+    } catch {
+        // No local art: callers draw a plain disc.
+    }
+    return out;
+}
+
+/** Asset urls of the game's minimap marker icons, keyed by stem. Icons the game does not have are absent. */
+export async function loadMinimapIcons(icons: MinimapIcon[]): Promise<Partial<Record<MinimapIcon, string>>> {
+    const out: Partial<Record<MinimapIcon, string>> = {};
+    const wanted = [...new Set(icons)];
+    if (wanted.length === 0) return out;
+    try {
+        for (const art of await command<MinimapIconArt[]>("game_minimap_icons", { icons: wanted })) {
+            out[art.icon] = fileSrc(art.path);
+        }
+    } catch {
+        // No local art: callers fall back to the baked icons.
+    }
+    return out;
 }
 
 export interface MinimapArt {

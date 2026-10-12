@@ -5,7 +5,7 @@ pub mod commands {
 
     use dp_gamedata::{
         AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroArt, HeroEntry, ItemEntry, ItemImage,
-        MapItemsPayload, RankArt,
+        MapItemsPayload, MinimapIcon, MinimapIconArt, RankArt,
     };
     use tauri::State;
 
@@ -64,6 +64,15 @@ pub mod commands {
         http: State<'_, crate::http::Http>,
     ) -> Result<MinimapArtResult, AppError> {
         Ok(super::minimap::minimap_art(art.inner().clone(), &http.0).await)
+    }
+
+    #[tauri::command]
+    pub async fn game_minimap_icons(
+        art: State<'_, ArtCache>,
+        icons: Vec<MinimapIcon>,
+    ) -> Result<Vec<MinimapIconArt>, AppError> {
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || art.minimap_icons(&icons)).await.map_err(AppError::internal)
     }
 
     #[tauri::command]

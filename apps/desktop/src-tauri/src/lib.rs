@@ -136,6 +136,7 @@ pub fn run() {
             features::gamedata::commands::game_ability_art,
             features::gamedata::commands::game_item_art,
             features::gamedata::commands::game_minimap_art,
+            features::gamedata::commands::game_minimap_icons,
             features::gamedata::commands::game_map_items,
             features::steam_account::commands::current_steam_account,
             features::steam_account::commands::local_steam_account_ids,

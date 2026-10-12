@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
-import { loadAbilityArt, loadItemArt, loadMapItems, loadMinimapArt } from "./gamedata";
+import {
+    loadAbilityArt,
+    loadHeroMinimapArt,
+    loadItemArt,
+    loadMapItems,
+    loadMinimapArt,
+    loadMinimapIcons,
+} from "./gamedata";
 
 vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(),
@@ -98,5 +105,44 @@ describe("loadMapItems", () => {
     it("gives null when the command fails", async () => {
         invoke.mockRejectedValue(new Error("boom"));
         expect(await loadMapItems()).toBeNull();
+    });
+});
+
+describe("loadHeroMinimapArt", () => {
+    it("maps hero ids to the minimap head files and skips heroes without one", async () => {
+        invoke.mockResolvedValue([
+            { id: 1, sm: "p/1_sm.png", card: null, mm: "p/hero_a_mm.png" },
+            { id: 2, sm: "p/2_sm.png", card: null, mm: null },
+        ]);
+        const out = await loadHeroMinimapArt();
+        expect(invoke).toHaveBeenCalledWith("game_hero_art");
+        expect(out).toEqual({ 1: "asset://p/hero_a_mm.png" });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("boom"));
+        expect(await loadHeroMinimapArt()).toEqual({});
+    });
+});
+
+describe("loadMinimapIcons", () => {
+    it("maps icon stems to asset urls and omits icons the game lacks", async () => {
+        invoke.mockResolvedValue([{ icon: "boss_health", path: "p/minimap_icon_boss_health.png" }]);
+        const out = await loadMinimapIcons(["boss_health", "neutral_vault"]);
+        expect(invoke).toHaveBeenCalledWith("game_minimap_icons", { icons: ["boss_health", "neutral_vault"] });
+        expect(out).toEqual({ boss_health: "asset://p/minimap_icon_boss_health.png" });
+    });
+
+    it("does not ask for nothing and drops duplicates", async () => {
+        invoke.mockResolvedValue([]);
+        expect(await loadMinimapIcons([])).toEqual({});
+        expect(invoke).not.toHaveBeenCalled();
+        await loadMinimapIcons(["player_cone", "player_cone"]);
+        expect(invoke).toHaveBeenCalledWith("game_minimap_icons", { icons: ["player_cone"] });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("boom"));
+        expect(await loadMinimapIcons(["boss_health"])).toEqual({});
     });
 });

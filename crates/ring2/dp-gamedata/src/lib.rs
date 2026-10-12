@@ -4,7 +4,8 @@ mod locale;
 mod map_items;
 
 pub use art::{
-    ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, RankArt, RankImage, MINIMAP_RADIUS,
+    ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,
+    RankImage, MINIMAP_RADIUS,
 };
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};
 pub use locale::game_language;

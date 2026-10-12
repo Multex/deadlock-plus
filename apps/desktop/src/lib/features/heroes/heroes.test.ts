@@ -29,7 +29,7 @@ function apiHero(over: Partial<Hero> & { id: number }): Hero {
 }
 
 describe("mergeHeroes local art", () => {
-    const art = (over: Partial<HeroArt> & { id: number }): HeroArt => ({ sm: null, card: null, ...over });
+    const art = (over: Partial<HeroArt> & { id: number }): HeroArt => ({ sm: null, card: null, mm: null, ...over });
 
     it("prefers local files over the API URLs", () => {
         const out = mergeHeroes(

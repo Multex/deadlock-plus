@@ -66,6 +66,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Hero portraits and icons now load from your Deadlock install, with the online copy as a fallback.
 - Rank badges now load from your Deadlock install, with the online copy as a fallback.
 - A newly released hero shows up in the app without waiting for an app update.
+- Objective, camp and shop positions are now read from your Deadlock install.
+- Those positions refresh on their own after a game update.
+- Map marker icons and hero map heads now load from your Deadlock install.
 
 #### Performance
 
