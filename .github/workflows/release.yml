@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
@@ -46,8 +46,7 @@ jobs:
         with:
           workspaces: .
 
-      - run: pnpm install --frozen-lockfile
-        working-directory: apps/desktop
+      - run: pnpm install --frozen-lockfile --filter deadlock-plus
       - run: pnpm version:check
         working-directory: apps/desktop
 
@@ -136,7 +135,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
@@ -145,8 +144,7 @@ jobs:
           workspaces: .
           key: linux-x64
 
-      - run: pnpm install --frozen-lockfile
-        working-directory: apps/desktop
+      - run: pnpm install --frozen-lockfile --filter deadlock-plus
       - run: pnpm version:check
         working-directory: apps/desktop
 

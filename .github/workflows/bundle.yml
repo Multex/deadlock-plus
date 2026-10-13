@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
         with:
@@ -57,8 +57,7 @@ jobs:
           workspaces: .
           key: ${{ matrix.name }}
 
-      - run: pnpm install --frozen-lockfile
-        working-directory: apps/desktop
+      - run: pnpm install --frozen-lockfile --filter deadlock-plus
 
       # Built against glibc 2.31 so it loads inside Steam's Debian 11 based runtime container. The runner's own
       # glibc is too new for that, so the layer cannot be built with plain cargo here.
