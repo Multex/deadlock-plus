@@ -81,8 +81,9 @@ export function gameTile(running: boolean | null): { label: string; launchable: 
 
 export const glanceValue = (n: number | null) => (n === null ? "–" : String(n));
 
-/** What an empty stats card says, by how far loading got. */
-export function statsNote(status: string, emptyText: string): string {
+/** What an empty stats card says, by how far loading got. Without a Steam account there is nothing to load. */
+export function statsNote(status: string, emptyText: string, noAccount = false): string {
+    if (noAccount) return t("account.none_found");
     if (status === "ready") return emptyText;
     return status === "error" ? t("home.stats_error") : t("home.stats_loading");
 }

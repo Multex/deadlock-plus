@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchMetadata, resolveDetail, type DetailSource } from "./api";
-import fixture from "./fixtures/api-ranked.json";
+import fixture from "@deadlock-plus/match/fixtures/api-ranked.json";
 
 const body = JSON.stringify(fixture);
 const matchId = fixture.match_info.match_id;
@@ -92,6 +92,15 @@ describe("fetchMetadata", () => {
     it("throws on a non-ok status", async () => {
         const f = vi.fn(async () => new Response("", { status: 429 }));
         await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toThrow();
+    });
+
+    it("reports a dropped connection in the app's words, not the browser's", async () => {
+        const f = vi.fn(async () => {
+            throw new TypeError("Failed to fetch");
+        });
+        await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toThrow(
+            "A network request failed. Check your connection and try again.",
+        );
     });
 });
 

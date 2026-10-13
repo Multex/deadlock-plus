@@ -1,5 +1,5 @@
 import { toast } from "svelte-sonner";
-import { errorText } from "$lib/core/errors";
+import { errorCode, errorText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { saveTextFile } from "$lib/core/files";
 import { openUrl } from "$lib/core/opener";
@@ -19,6 +19,8 @@ import {
 export class Mutes {
     file = $state<VoiceBanFile | null>(null);
     error = $state<string | null>(null);
+    /** Steam has no signed-in account on this PC, so there is no mute file to read or change. */
+    noAccount = $state(false);
     loading = $state(true);
     busy = $state(false);
     filter = $state("");
@@ -32,6 +34,8 @@ export class Mutes {
     unmuteIds = $state<string[]>([]);
     importOpen = $state(false);
     importIds = $state<string[]>([]);
+    /** The ids of `importIds` not muted when the file was chosen: muting them must not reword the open question. */
+    newImportIds = $state<string[]>([]);
 
     private requested = new Set<string>();
 
@@ -41,7 +45,6 @@ export class Mutes {
     pageCount = $derived(countPages(this.filtered.length));
     visible = $derived(pageSlice(this.filtered, this.page));
     allVisibleSelected = $derived(this.visible.length > 0 && this.visible.every((id) => this.selected.has(id)));
-    newImportIds = $derived(this.importIds.filter((id) => !this.mutedSet.has(id)));
     locked = $derived(this.file?.gameRunning === true);
 
     /** Registers effects, so it must run during component initialisation. */
@@ -70,10 +73,17 @@ export class Mutes {
         try {
             this.file = await readVoiceBan();
             this.error = null;
+            this.noAccount = false;
             const known = this.file.exists ? parseVoiceBan(this.file.text).users.map((u) => u.steamid64) : [];
             this.selected = pruneSelection(this.selected, known);
         } catch (e) {
-            this.error = errorText(e);
+            this.noAccount = errorCode(e) === "voice_bans.no_account";
+            if (this.noAccount) {
+                this.file = null;
+                this.error = null;
+            } else {
+                this.error = errorText(e);
+            }
         } finally {
             this.loading = false;
         }
@@ -178,7 +188,9 @@ export class Mutes {
 
     async importFile(chosen: File) {
         try {
-            this.importIds = parseImport(await chosen.text());
+            const ids = parseImport(await chosen.text());
+            this.importIds = ids;
+            this.newImportIds = ids.filter((id) => !this.mutedSet.has(id));
             this.importOpen = true;
         } catch (e) {
             toast.error(t("voice_bans.toast.import_failed", { error: errorText(e) }));

@@ -1,14 +1,15 @@
+import { untrack } from "svelte";
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { t } from "$lib/core/i18n.svelte";
 import { kvGet, kvSet } from "$lib/core/kv";
-import { parseStatsCache, toStatsCache, type StatsSnapshot } from "./cache";
+import { parseStatsCache, toStatsCache, type StatsSnapshot } from "@deadlock-plus/stats/cache";
 import { apiForm, loadApiRanks, withLocalArt } from "$lib/features/ranks/ranks";
-import { parseRankInfo, type RankInfo, type RankTier } from "./rank";
+import { parseRankInfo, type RankInfo, type RankTier } from "@deadlock-plus/stats/rank";
 import { getPostgameMatches, onPostgameMatch, reconcilePostgameMatches, type ProvisionalMatch } from "./postgame-api";
-import { forAccount, mergeProvisional } from "./provisional";
-import { createReconcileSchedule } from "./reconcile-schedule";
-import { parseHistory, type Match } from "./stats";
+import { forAccount, mergeProvisional } from "@deadlock-plus/stats/provisional";
+import { createReconcileSchedule } from "@deadlock-plus/stats/reconcile-schedule";
+import { parseHistory, type Match } from "@deadlock-plus/stats/stats";
 
-const API = "https://api.deadlock-api.com/v1";
 const CACHE_STORE = "stats-cache";
 const STALE_MS = 5 * 60 * 1000;
 
@@ -25,6 +26,7 @@ class StatsStore {
     /** Set while the data shown is a saved copy from this time (ms) because the API could not be reached. */
     cachedAt = $state<number | null>(null);
     private account: number | null = null;
+    private wanted: number | null = null;
     private loadedFor: number | null = null;
     private loadedAt = 0;
     private listening = false;
@@ -33,8 +35,23 @@ class StatsStore {
         pending: () => this.provisional.length > 0,
     });
 
-    async load(accountId: number, force = false) {
+    /**
+     * Pages call this from an effect. Nothing read here may become that effect's dependency: the status
+     * changes when a load ends, and an effect that depended on it would start the next load at once.
+     */
+    load(accountId: number, force = false): Promise<void> {
+        return untrack(() => this.request(accountId, force));
+    }
+
+    /** One load at a time. An account asked for while another is loading gets its turn when that load ends. */
+    private async request(accountId: number, force: boolean) {
+        this.wanted = accountId;
         if (this.status === "loading") return;
+        await this.fetch(accountId, force);
+        if (this.wanted !== accountId) await this.request(this.wanted, false);
+    }
+
+    private async fetch(accountId: number, force: boolean) {
         this.switchAccount(accountId);
         const fresh = this.loadedFor === accountId && Date.now() - this.loadedAt < STALE_MS;
         if (fresh && !force) return;
@@ -44,15 +61,15 @@ class StatsStore {
         void this.listenForCaptures();
         try {
             const [history, ranks, rank] = await Promise.all([
-                fetch(`${API}/players/${accountId}/match-history`),
+                // It rejects only when the request never got an answer; a bad status comes back as a value.
+                deadlockApi.playerMatchHistory(accountId).catch(() => {
+                    throw new Error(t("errors.common.network"));
+                }),
                 loadApiRanks().then(withLocalArt),
-                fetch(`${API}/players/${accountId}/rank`)
-                    .then((r) => (r.ok ? r.json() : null))
-                    .catch(() => null),
+                deadlockApi.playerRank(accountId).catch(() => null),
             ]);
             // A rate-limited response still carries the stored history in its body.
-            const body: unknown = await history.json().catch(() => null);
-            const matches = parseHistory(body);
+            const matches = parseHistory(history.body);
             if (!history.ok && matches.length === 0) throw new Error(t("stats.api_error", { status: history.status }));
 
             this.apply({ matches, ranks, rankInfo: parseRankInfo(rank) });
@@ -111,8 +128,8 @@ class StatsStore {
     private async quietRefresh() {
         if (this.loadedFor === null || this.status === "loading") return;
         const accountId = this.loadedFor;
-        const history = await fetch(`${API}/players/${accountId}/match-history`);
-        const matches = parseHistory(await history.json().catch(() => null));
+        const history = await deadlockApi.playerMatchHistory(accountId);
+        const matches = parseHistory(history.body);
         if (matches.length === 0 || this.loadedFor !== accountId) return;
         this.apiMatches = matches;
         this.cachedAt = null;

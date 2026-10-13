@@ -6,6 +6,11 @@ function isAppError(value: unknown): value is { code: string; params?: Record<st
     return typeof value === "object" && value !== null && typeof (value as { code?: unknown }).code === "string";
 }
 
+/** The code a failed command answered with, for the callers that treat one failure as a state of its own. */
+export function errorCode(error: unknown): string | null {
+    return isAppError(error) ? error.code : null;
+}
+
 export function errorText(error: unknown, catalog?: Catalog): string {
     if (typeof error === "string") return error;
     if (error instanceof Error) return error.message;

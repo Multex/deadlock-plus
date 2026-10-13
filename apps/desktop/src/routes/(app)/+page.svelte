@@ -17,11 +17,11 @@
     import { stats } from "$lib/features/stats/stats.svelte";
     import SyncingBadge from "$lib/features/stats/components/shared/syncing-badge.svelte";
     import { formatPlaytime } from "$lib/features/stats/stats";
-    import { standing, subrankAt, windowStats } from "$lib/features/stats/rank";
-    import { projectRank } from "$lib/features/stats/rank-live";
-    import { groupSessions, sessionVerdict, summarizeSession, type Verdict } from "$lib/features/stats/sessions";
+    import { standing, subrankAt, windowStats } from "@deadlock-plus/stats/rank";
+    import { projectRank } from "@deadlock-plus/stats/rank-live";
+    import { groupSessions, sessionVerdict, summarizeSession, type Verdict } from "@deadlock-plus/stats/sessions";
     import { firewallCapability, getGameDefinitions, listBlockedGroupIds } from "$lib/features/server-picker/api";
-    import { readCachedServerData } from "$lib/features/server-picker/cache";
+    import { savedOrFetchedServerData } from "$lib/features/server-picker/cache";
     import { readVoiceBan } from "$lib/features/voice-bans/api";
     import { parseVoiceBan } from "$lib/features/voice-bans/voice-ban";
     import { listDemos } from "$lib/features/demos/api";
@@ -59,9 +59,8 @@
         if (!capability.supported) return null;
         const game = (await getGameDefinitions())[0];
         if (!game) return null;
-        const cached = await readCachedServerData(game.id);
-        if (!cached) return null;
-        const ids = [...new Set([...cached.clustered, ...cached.unclustered].map((g) => g.id))];
+        const data = await savedOrFetchedServerData(game.id);
+        const ids = [...new Set([...data.clustered, ...data.unclustered].map((g) => g.id))];
         return (await listBlockedGroupIds(ids)).length;
     }
 
@@ -104,6 +103,7 @@
 
     const accountId = $derived(account?.steamId32 ?? null);
     const statsReady = $derived(stats.status === "ready");
+    const noAccount = $derived(steamAccount.loaded && accountId === null);
     const projection = $derived(
         projectRank(stats.matches, stats.rankInfo, Math.max(0, ...stats.ranks.map((r) => r.tier)) || undefined),
     );
@@ -174,7 +174,9 @@
                             </p>
                         {/if}
                     {:else}
-                        <p class="text-sm text-muted-foreground">{statsNote(stats.status, t("home.rank.empty"))}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {statsNote(stats.status, t("home.rank.empty"), noAccount)}
+                        </p>
                     {/if}
                 </OverviewCard>
 
@@ -193,7 +195,9 @@
                             })}
                         </p>
                     {:else}
-                        <p class="text-sm text-muted-foreground">{statsNote(stats.status, t("home.form.empty"))}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {statsNote(stats.status, t("home.form.empty"), noAccount)}
+                        </p>
                     {/if}
                 </OverviewCard>
 
@@ -234,7 +238,9 @@
                                   })}
                         </p>
                     {:else}
-                        <p class="text-sm text-muted-foreground">{statsNote(stats.status, t("home.session.empty"))}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {statsNote(stats.status, t("home.session.empty"), noAccount)}
+                        </p>
                     {/if}
                 </OverviewCard>
             </ul>

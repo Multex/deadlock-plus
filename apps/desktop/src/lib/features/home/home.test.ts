@@ -107,6 +107,10 @@ describe("statsNote", () => {
         expect(statsNote("loading", "No matches yet.")).toBe("Loading...");
         expect(statsNote("idle", "No matches yet.")).toBe("Loading...");
     });
+
+    it("names the missing Steam account, whose stats never load", () => {
+        expect(statsNote("idle", "No matches yet.", true)).toBe("No Steam account found");
+    });
 });
 
 describe("gameTile", () => {

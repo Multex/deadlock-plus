@@ -2,10 +2,10 @@
     import { onMount } from "svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
     import { createPoller } from "$lib/core/poller";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
-    import ConfirmDialog from "$lib/ui/confirm-dialog.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
 
     import AddMuteCard from "$lib/features/voice-bans/components/add-mute-card.svelte";
     import FilterBar from "$lib/features/voice-bans/components/filter-bar.svelte";
@@ -53,7 +53,11 @@
         <GameRunningBanner />
     {/if}
 
-    {#if m.error}
+    {#if m.noAccount}
+        <EmptyState as="div" layout="fill">
+            {t("errors.voice_bans.no_account")}
+        </EmptyState>
+    {:else if m.error}
         <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{m.error}</div>
     {:else if m.loading && !m.file}
         <div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -106,6 +110,7 @@
     title={tn("voice_bans.unmute.title", m.unmuteIds.length)}
     description={t("voice_bans.unmute.description")}
     confirmLabel={t("voice_bans.unmute.confirm")}
+    disabled={m.locked}
     onconfirm={() => m.confirmUnmute()}
 />
 

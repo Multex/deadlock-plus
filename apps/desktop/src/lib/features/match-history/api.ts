@@ -1,18 +1,20 @@
 import { t } from "$lib/core/i18n.svelte";
 import { command } from "$lib/core/tauri";
-import { parseApiDetail } from "./api-detail";
-import type { MatchDetail } from "./detail";
-
-export const API_BASE = "https://api.deadlock-api.com/v1";
+import { createDeadlockApi, DeadlockApiError } from "@deadlock-plus/deadlock-api";
+import { parseApiDetail } from "@deadlock-plus/match/api-detail";
+import type { MatchDetail } from "@deadlock-plus/match/detail";
 
 export const readDetailCache = (matchId: number) => command<string | null>("match_detail_cache_read", { matchId });
 export const writeDetailCache = (matchId: number, json: string) =>
     command("match_detail_cache_write", { matchId, json });
 
 export async function fetchMetadata(matchId: number, fetchFn: typeof fetch = fetch): Promise<string> {
-    const res = await fetchFn(`${API_BASE}/matches/${matchId}/metadata`);
-    if (!res.ok) throw new Error(t("match_history.api_error", { status: res.status }));
-    return res.text();
+    try {
+        return await createDeadlockApi({ fetch: fetchFn }).matchMetadata(matchId);
+    } catch (e) {
+        if (e instanceof DeadlockApiError) throw new Error(t("match_history.api_error", { status: e.status }));
+        throw new Error(t("errors.common.network"));
+    }
 }
 
 export const readProvisionalDetail = (matchId: number) => command<unknown | null>("get_postgame_detail", { matchId });

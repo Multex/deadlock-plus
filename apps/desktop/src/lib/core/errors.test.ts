@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import catalog from "../../../../../locales/en.json";
-import { errorText } from "./errors";
+import { errorCode, errorText } from "./errors";
 
 describe("errorText", () => {
     it("looks a code up in the catalog", () => {
@@ -38,5 +38,14 @@ describe("errorText", () => {
 
     it("uses an Error's message", () => {
         expect(errorText(new Error("boom"))).toBe("boom");
+    });
+});
+
+describe("errorCode", () => {
+    it("gives the code of a command error, and nothing for any other failure", () => {
+        expect(errorCode({ code: "voice_bans.no_account", params: {} })).toBe("voice_bans.no_account");
+        expect(errorCode(new Error("boom"))).toBeNull();
+        expect(errorCode("Invalid match id.")).toBeNull();
+        expect(errorCode(undefined)).toBeNull();
     });
 });
