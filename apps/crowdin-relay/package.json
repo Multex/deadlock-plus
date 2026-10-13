@@ -13,6 +13,9 @@
         "format": "prettier --write .",
         "format:check": "prettier --check ."
     },
+    "dependencies": {
+        "@deadlock-plus/discord-messages": "workspace:*"
+    },
     "devDependencies": {
         "@cloudflare/workers-types": "^5.20261003.1",
         "prettier": "^3.9.9",

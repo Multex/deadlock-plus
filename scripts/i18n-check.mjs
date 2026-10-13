@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,6 +81,14 @@ function walk(dir) {
     });
 }
 
+// `ipc-types` is generated from Rust and holds no translation key.
+export function sourceDirs(packageNames) {
+    return [
+        "apps/desktop/src",
+        ...packageNames.filter((name) => name !== "ipc-types").map((name) => `packages/${name}/src`),
+    ];
+}
+
 function main() {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const localesDir = path.join(root, "locales");
@@ -89,11 +97,15 @@ function main() {
             .filter((f) => f.endsWith(".json"))
             .map((f) => [path.basename(f, ".json"), JSON.parse(readFileSync(path.join(localesDir, f), "utf8"))]),
     );
-    const srcDir = path.join(root, "apps/desktop/src");
-    const sources = walk(srcDir).map((full) => ({
-        file: path.relative(root, full).replaceAll("\\", "/"),
-        text: readFileSync(full, "utf8"),
-    }));
+    const packageNames = readdirSync(path.join(root, "packages"), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "src")))
+        .map((entry) => entry.name);
+    const sources = sourceDirs(packageNames)
+        .flatMap((dir) => walk(path.join(root, dir)))
+        .map((full) => ({
+            file: path.relative(root, full).replaceAll("\\", "/"),
+            text: readFileSync(full, "utf8"),
+        }));
     const used = sources.flatMap(({ file, text }) => extractKeys(text).map((k) => ({ ...k, file })));
     const known = new Set(Object.keys(flatten(catalogs.en)).flatMap((key) => [key, key.replace(PLURAL_SUFFIX, "")]));
     const referenced = {

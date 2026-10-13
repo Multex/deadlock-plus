@@ -1,0 +1,19 @@
+{
+    "name": "@deadlock-plus/match",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Deadlock match data: metadata parsing, scoreboard and timelines",
+    "type": "module",
+    "license": "GPL-3.0-or-later",
+    "exports": {
+        "./fixtures/*.json": "./src/fixtures/*.json",
+        "./*": {
+            "types": "./src/*.ts",
+            "default": "./src/*.ts"
+        }
+    },
+    "dependencies": {
+        "@deadlock-plus/ipc-types": "workspace:*",
+        "@deadlock-plus/stats": "workspace:*"
+    }
+}

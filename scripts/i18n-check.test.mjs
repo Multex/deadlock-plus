@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checkCatalogs, extractKeyLiterals, extractKeys, extractTemplatePrefixes, flatten } from "./i18n-check.mjs";
+import {
+    checkCatalogs,
+    extractKeyLiterals,
+    extractKeys,
+    extractTemplatePrefixes,
+    flatten,
+    sourceDirs,
+} from "./i18n-check.mjs";
 
 describe("flatten", () => {
     it("joins nested keys with dots", () => {
@@ -94,5 +101,15 @@ describe("checkCatalogs", () => {
         const catalog = { en: { a: { x: "1", y: "2", z: "3" }, b: { w: "4" } } };
         const result = checkCatalogs(catalog, [], { literals: new Set(["a.x"]), prefixes: ["a.y"] });
         expect(result.warnings).toEqual(["unused en key a.z", "unused en key b.w"]);
+    });
+});
+
+describe("sourceDirs", () => {
+    it("scans the app and every workspace package that can hold a key", () => {
+        expect(sourceDirs(["demo", "ipc-types", "match"])).toEqual([
+            "apps/desktop/src",
+            "packages/demo/src",
+            "packages/match/src",
+        ]);
     });
 });

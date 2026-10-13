@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkLayers, extractImports } from "./frontend-layers.mjs";
+import {
+    checkLayers,
+    checkPackageLayers,
+    checkUiPackageLayers,
+    extractImports,
+    plainPackages,
+} from "./frontend-layers.mjs";
 
 const f = (file, ...imports) => ({ file, imports });
 
@@ -9,7 +15,11 @@ describe("frontend layers", () => {
             f("lib/core/ipc.ts", "@tauri-apps/api/core"),
             f("lib/features/demos/api.ts", "@tauri-apps/api/core", "$lib/core/ipc"),
             f("lib/features/demos/demos.ts", "./api"),
-            f("lib/ui/button.svelte", "$lib/core/utils"),
+            f(
+                "lib/components/confirm-dialog.svelte",
+                "@deadlock-plus/ui/confirm-dialog.svelte",
+                "$lib/core/i18n.svelte",
+            ),
             f("lib/shell/sidebar.svelte", "$lib/features/registry"),
         ];
         expect(checkLayers(files, [])).toEqual([]);
@@ -30,14 +40,14 @@ describe("frontend layers", () => {
         expect(checkLayers([f("lib/features/demos/demos.test.ts", "@tauri-apps/api/core")], [])).toEqual([]);
     });
 
-    it("rejects core and ui importing features, absolute or relative", () => {
+    it("rejects core importing features, absolute or relative", () => {
         const files = [
             f("lib/core/a.ts", "$lib/features/demos/demos"),
-            f("lib/ui/b.svelte", "../features/demos/demos"),
+            f("lib/core/b.svelte.ts", "../features/demos/demos"),
         ];
         expect(checkLayers(files, [])).toEqual([
-            expect.stringContaining("lib/core/a.ts imports $lib/features/demos/demos"),
-            expect.stringContaining("lib/ui/b.svelte imports ../features/demos/demos"),
+            expect.stringContaining("lib/core/a.ts imports $lib/features/demos/demos: lib/core must not import"),
+            expect.stringContaining("lib/core/b.svelte.ts imports ../features/demos/demos"),
         ]);
     });
 
@@ -81,5 +91,131 @@ describe("frontend layers", () => {
             const s = "not from an import";
         `;
         expect(extractImports(src)).toEqual(["./a", "$lib/b", "./side", "./c", "./d"]);
+    });
+});
+
+describe("demo package layers", () => {
+    it("accepts the package's own files, the IPC types and other plain packages", () => {
+        const files = [
+            f("packages/demo/src/index.ts", "./scenario", "./scenarios"),
+            f("packages/demo/src/scenarios/default/shell.ts", "@deadlock-plus/ipc-types/AppInfo", "../../backend"),
+            f("packages/demo/src/scenario.test.ts", "vitest", "svelte-sonner"),
+        ];
+        expect(checkPackageLayers(files)).toEqual([]);
+    });
+
+    it("rejects the frontend framework, Tauri and the app's aliases", () => {
+        const specifiers = [
+            "svelte",
+            "svelte/store",
+            "@sveltejs/kit",
+            "@tauri-apps/api/mocks",
+            "$lib/features/stats/rank",
+            "$app/environment",
+        ];
+        const violations = checkPackageLayers([f("packages/demo/src/scenario.ts", ...specifiers)]);
+        expect(violations).toEqual(
+            specifiers.map((specifier) =>
+                expect.stringContaining(`packages/demo/src/scenario.ts imports ${specifier}:`),
+            ),
+        );
+    });
+
+    it("rejects a relative path into an app, in test files too", () => {
+        const files = [
+            f("packages/demo/src/scenarios/default/shell.ts", "../../../../../apps/desktop/package.json"),
+            f("packages/demo/src/a.test.ts", "../../../apps/desktop/src/lib/core/kv"),
+            f("packages/demo/src/b.ts", "../../../CHANGELOG.md?raw"),
+        ];
+        expect(checkPackageLayers(files)).toEqual([
+            expect.stringContaining("shell.ts imports ../../../../../apps/desktop/package.json"),
+            expect.stringContaining("a.test.ts imports ../../../apps/desktop/src/lib/core/kv"),
+        ]);
+    });
+});
+
+describe("plain package layers", () => {
+    it("covers every package folder except the Svelte one and the generated one", () => {
+        expect(plainPackages(["analytics", "demo", "ipc-types", "links", "match", "ui"])).toEqual([
+            "analytics",
+            "demo",
+            "links",
+            "match",
+        ]);
+    });
+
+    it("accepts a package's own files and the plain packages it builds on", () => {
+        const files = [
+            f("packages/match/src/list.ts", "@deadlock-plus/stats/stats", "@deadlock-plus/ipc-types/ProvisionalMatch"),
+            f("packages/match/src/deep-dive/chart.ts", "../detail"),
+            f("packages/match/src/api-detail.test.ts", "vitest", "./fixtures/api-ranked.json"),
+            f("packages/discord-messages/test/index.test.js", "node:test", "../src/index.js"),
+        ];
+        expect(checkPackageLayers(files)).toEqual([]);
+    });
+
+    it("rejects Svelte, the Svelte component package, Tauri and the app's aliases", () => {
+        const specifiers = [
+            "svelte",
+            "@deadlock-plus/ui/select-menu",
+            "@tauri-apps/api/core",
+            "$lib/core/i18n.svelte",
+            "$lib/core/kv",
+            "$lib/locales/en.json",
+        ];
+        const violations = checkPackageLayers([f("packages/stats/src/sessions.ts", ...specifiers)]);
+        expect(violations).toEqual(
+            specifiers.map((specifier) =>
+                expect.stringContaining(`packages/stats/src/sessions.ts imports ${specifier}:`),
+            ),
+        );
+    });
+
+    it("rejects a relative path into an app", () => {
+        const files = [f("packages/links/src/urls.ts", "../../../apps/web/src/lib/content/links")];
+        expect(checkPackageLayers(files)).toEqual([
+            expect.stringContaining("urls.ts imports ../../../apps/web/src/lib/content/links"),
+        ]);
+    });
+});
+
+describe("ui package layers", () => {
+    it("accepts Svelte, the component libraries and the package's own files", () => {
+        const files = [
+            f("packages/ui/src/dialog/content.svelte", "bits-ui", "svelte", "../utils", "../overlay-host"),
+            f("packages/ui/src/button.svelte", "svelte/elements", "tailwind-variants", "./utils"),
+            f("packages/ui/src/brand-mark.svelte", "./brand-mark.png"),
+            f("packages/ui/src/slider.test.ts", "vitest", "./slider"),
+        ];
+        expect(checkUiPackageLayers(files)).toEqual([]);
+    });
+
+    it("rejects the app's aliases, Tauri and SvelteKit, so the translation catalog stays out of reach", () => {
+        const specifiers = [
+            "$lib/core/i18n.svelte",
+            "$lib/locales/en.json",
+            "$lib/shell/overlay-host.svelte",
+            "@tauri-apps/api/window",
+            "$app/state",
+            "@sveltejs/kit",
+        ];
+        const violations = checkUiPackageLayers([f("packages/ui/src/confirm-dialog.svelte", ...specifiers)]);
+        expect(violations).toEqual(
+            specifiers.map((specifier) =>
+                expect.stringContaining(`packages/ui/src/confirm-dialog.svelte imports ${specifier}:`),
+            ),
+        );
+    });
+
+    it("rejects a relative path into an app, in test files too", () => {
+        const files = [
+            f("packages/ui/src/confirm-dialog.svelte", "../../../apps/desktop/src/lib/locales/en.json"),
+            f("packages/ui/src/a.test.ts", "../../../apps/web/src/lib/content/links"),
+            f("packages/ui/src/peers.test.ts", "../package.json"),
+        ];
+        expect(checkUiPackageLayers(files)).toEqual([
+            expect.stringContaining("confirm-dialog.svelte imports ../../../apps/desktop/src/lib/locales/en.json"),
+            expect.stringContaining("a.test.ts imports ../../../apps/web/src/lib/content/links"),
+        ]);
     });
 });

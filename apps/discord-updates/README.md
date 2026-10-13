@@ -11,6 +11,10 @@ Drafts and prereleases are not announced. Publish the draft to announce it.
 1. In Discord, create a webhook on the `#updates` channel. Set its name and avatar there.
 2. In the GitHub repo, add the webhook URL as the Actions secret `DISCORD_UPDATES_WEBHOOK`. Without it the workflow skips.
 
+## No install
+
+The workflow runs `announce.mjs` straight from a checkout of this folder and `packages/discord-messages`, with no `pnpm install`. So the shared message builders are imported by relative path, and Node 24 runs their TypeScript source as it is. Keep both folders in the workflow's `sparse-checkout` list.
+
 ## Local use
 
 ```sh

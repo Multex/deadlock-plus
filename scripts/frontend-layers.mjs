@@ -34,8 +34,8 @@ function rulesBroken(file, specifier) {
         broken.push(["tauri", "only lib/core and lib/features/*/api.ts may use @tauri-apps"]);
     }
     const intoFeatures = target.startsWith("lib/features/") || target === "lib/features";
-    if (intoFeatures && (file.startsWith("lib/core/") || file.startsWith("lib/ui/"))) {
-        broken.push(["no-features", "lib/core and lib/ui must not import lib/features"]);
+    if (intoFeatures && file.startsWith("lib/core/")) {
+        broken.push(["no-features", "lib/core must not import lib/features"]);
     }
     if (intoFeatures && file.startsWith("lib/shell/") && target !== "lib/features/registry") {
         broken.push(["shell-registry", "lib/shell may only reach features through lib/features/registry"]);
@@ -70,16 +70,60 @@ export function checkLayers(files, allowlist = LAYER_ALLOWLIST) {
     return violations;
 }
 
-function* walk(dir) {
+const APP_ONLY = /^(@sveltejs\/|@tauri-apps\/|\$lib\/|\$app\/)/;
+const SVELTE = /^svelte(\/|$)/;
+const UI_PACKAGE = /^@deadlock-plus\/ui(\/|$)/;
+const NOT_PLAIN = new Set(["ui", "ipc-types"]);
+
+// `files` are named from the repository root.
+function packageViolations(files, banned, why) {
+    const violations = [];
+    for (const { file, imports } of files) {
+        for (const specifier of imports) {
+            const intoApp =
+                specifier.startsWith(".") && path.posix.join(path.posix.dirname(file), specifier).startsWith("apps/");
+            if (banned.some((pattern) => pattern.test(specifier))) {
+                violations.push(`${file} imports ${specifier}: ${why}`);
+            } else if (intoApp) {
+                violations.push(`${file} imports ${specifier}: a package may not import from apps/`);
+            }
+        }
+    }
+    return violations;
+}
+
+// Every folder in packages/ holds plain code, except the Svelte components and the generated IPC types.
+export function plainPackages(names) {
+    return names.filter((name) => !NOT_PLAIN.has(name));
+}
+
+// A plain package must load in plain Node, and must not reach back into the app that uses it. An app alias is
+// also the only way to an app's key-value store and translation catalog.
+export function checkPackageLayers(files) {
+    return packageViolations(
+        files,
+        [SVELTE, UI_PACKAGE, APP_ONLY],
+        "a package may not use Svelte, SvelteKit, Tauri or app aliases",
+    );
+}
+
+// The UI package is Svelte components shared by several apps. An app alias would tie it to one of them, and is
+// also the only way to the desktop app's translation catalog.
+export function checkUiPackageLayers(files) {
+    return packageViolations(files, [APP_ONLY], "the UI package may not use SvelteKit, Tauri or app aliases");
+}
+
+function* walk(dir, sources) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) yield* walk(full);
-        else if (/\.(ts|svelte)$/.test(entry.name)) yield full;
+        if (entry.isDirectory()) {
+            if (entry.name !== "node_modules") yield* walk(full, sources);
+        } else if (sources.test(entry.name)) yield full;
     }
 }
 
-export function scan(srcDir) {
-    return [...walk(srcDir)]
+export function scan(srcDir, sources = /\.(ts|svelte)$/) {
+    return [...walk(srcDir, sources)]
         .map((full) => path.relative(srcDir, full).replaceAll("\\", "/"))
         .filter((file) => !file.startsWith("lib/generated/"))
         .map((file) => ({ file, imports: extractImports(readFileSync(path.join(srcDir, file), "utf8")) }));
@@ -87,7 +131,23 @@ export function scan(srcDir) {
 
 function main() {
     const srcDir = fileURLToPath(new URL("../apps/desktop/src", import.meta.url));
-    const violations = checkLayers(scan(srcDir));
+    const packagesDir = fileURLToPath(new URL("../packages", import.meta.url));
+    const uiDir = path.join(packagesDir, "ui/src");
+    const folders = readdirSync(packagesDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    const plainFiles = plainPackages(folders).flatMap((name) =>
+        scan(path.join(packagesDir, name), /\.(ts|js|mjs)$/).map(({ file, imports }) => ({
+            file: `packages/${name}/${file}`,
+            imports,
+        })),
+    );
+    const uiFiles = scan(uiDir).map(({ file, imports }) => ({ file: `packages/ui/src/${file}`, imports }));
+    const violations = [
+        ...checkLayers(scan(srcDir)),
+        ...checkPackageLayers(plainFiles),
+        ...checkUiPackageLayers(uiFiles),
+    ];
     if (violations.length) {
         for (const line of violations) console.error(line);
         process.exit(1);

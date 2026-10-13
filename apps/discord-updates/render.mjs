@@ -1,16 +1,18 @@
-const COMPONENTS_V2 = 1 << 15;
-const ACCENT = 0x5865f2;
-// Discord caps the text of one message at 4000 characters across all text displays.
-const TEXT_BUDGET = 3600;
-const MAX_LINE = 300;
+// Imported by path, not by package name: the release workflow runs this from a sparse checkout with no install.
+import {
+    MAX_MESSAGE_TEXT,
+    clip,
+    container,
+    linkButton,
+    message,
+    section,
+    separator,
+    text,
+} from "../../packages/discord-messages/src/index.ts";
 
-function clip(text, max) {
-    if (text.length <= max) return text;
-    let cut = text.slice(0, max - 1);
-    const last = cut.charCodeAt(cut.length - 1);
-    if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
-    return `${cut}…`;
-}
+// Leaves room for the header and the footer.
+const TEXT_BUDGET = MAX_MESSAGE_TEXT - 400;
+const MAX_LINE = 300;
 
 /** Splits changelog notes into `###` sections of display lines. `####` groups become bold lines. */
 export function sections(notes) {
@@ -52,31 +54,16 @@ function fit(list) {
 
 export function render({ tag, url, notes }) {
     const version = tag.replace(/^v/, "");
-    const header = {
-        type: 9,
-        components: [{ type: 10, content: `## Deadlock+ ${version}\nA new version is out.` }],
-        accessory: { type: 2, style: 5, label: "Release notes", url },
-    };
+    const header = section(text(`## Deadlock+ ${version}\nA new version is out.`), linkButton("Release notes", url));
 
-    const blocks = fit(sections(notes)).map(({ title, lines }) => ({
-        type: 10,
-        content: [`### ${title}`, ...lines].join("\n"),
-    }));
+    const blocks = fit(sections(notes)).map(({ title, lines }) => text([`### ${title}`, ...lines].join("\n")));
 
     const components = [header];
-    if (blocks.length > 0) components.push({ type: 14, divider: true, spacing: 1 }, ...blocks);
+    if (blocks.length > 0) components.push(separator(), ...blocks);
     components.push(
-        { type: 14, divider: true, spacing: 1 },
-        {
-            type: 10,
-            content: "-# Deadlock+ checks for updates on its own. You can also download it from the release page.",
-        },
+        separator(),
+        text("-# Deadlock+ checks for updates on its own. You can also download it from the release page."),
     );
 
-    return {
-        username: "Deadlock+",
-        flags: COMPONENTS_V2,
-        allowed_mentions: { parse: [] },
-        components: [{ type: 17, accent_color: ACCENT, components }],
-    };
+    return message("Deadlock+", [container(components)]);
 }

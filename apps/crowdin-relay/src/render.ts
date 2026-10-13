@@ -1,39 +1,19 @@
-export interface DiscordMessage {
-    username: string;
-    flags: number;
-    allowed_mentions: { parse: never[] };
-    components: ContainerComponent[];
-}
-
-interface ContainerComponent {
-    type: 17;
-    accent_color: number;
-    components: Component[];
-}
-
-type Component = TextDisplay | Divider | Section;
-
-interface TextDisplay {
-    type: 10;
-    content: string;
-}
-
-interface Divider {
-    type: 14;
-    divider: true;
-    spacing: 1;
-}
-
-interface Section {
-    type: 9;
-    components: TextDisplay[];
-    accessory: { type: 2; style: 5; label: string; url: string };
-}
+import {
+    type ContainerChild,
+    type Message,
+    type TextDisplay,
+    clip as clipTo,
+    container,
+    inlineCode,
+    linkButton,
+    message,
+    section,
+    separator,
+    text,
+} from "@deadlock-plus/discord-messages";
 
 type Json = Record<string, unknown>;
 
-const COMPONENTS_V2 = 1 << 15;
-const ACCENT = 0x5865f2;
 const MAX_TEXT = 1000;
 
 function obj(value: unknown): Json | undefined {
@@ -54,16 +34,12 @@ function first(...values: unknown[]): string | undefined {
     return undefined;
 }
 
-function clip(text: string, max = MAX_TEXT): string {
-    if (text.length <= max) return text;
-    let cut = text.slice(0, max - 1);
-    const last = cut.charCodeAt(cut.length - 1);
-    if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
-    return `${cut}…`;
+function clip(value: string, max = MAX_TEXT): string {
+    return clipTo(value, max);
 }
 
-function code(text: string): string {
-    return `\`${clip(text.replaceAll("`", "'"), MAX_TEXT - 2)}\``;
+function code(value: string): string {
+    return inlineCode(value, MAX_TEXT);
 }
 
 function humanise(event: string): string {
@@ -76,7 +52,7 @@ function humanise(event: string): string {
 }
 
 function field(label: string, value: string | undefined): TextDisplay | undefined {
-    return value === undefined ? undefined : { type: 10, content: `**${label}**\n${value}` };
+    return value === undefined ? undefined : text(`**${label}**\n${value}`);
 }
 
 function plain(value: string | undefined): string | undefined {
@@ -170,31 +146,17 @@ function bodyFor(event: Json): Body {
     return fallbackBody(event);
 }
 
-export function render(payload: unknown): DiscordMessage {
+export function render(payload: unknown): Message {
     const event = obj(payload) ?? {};
     const name = first(event.event);
-    const header: TextDisplay = { type: 10, content: `### ${clip(name ? humanise(name) : "Crowdin event", 200)}` };
+    const header = text(`### ${clip(name ? humanise(name) : "Crowdin event", 200)}`);
     const body = bodyFor(event);
     const fields = body.fields.filter((f): f is TextDisplay => f !== undefined);
 
-    const components: Component[] = [];
-    if (body.link) {
-        components.push({
-            type: 9,
-            components: [header],
-            accessory: { type: 2, style: 5, label: "Open in editor", url: body.link },
-        });
-    } else {
-        components.push(header);
-    }
-    if (fields.length > 0) {
-        components.push({ type: 14, divider: true, spacing: 1 }, ...fields);
-    }
+    const components: ContainerChild[] = [
+        body.link ? section(header, linkButton("Open in editor", body.link)) : header,
+    ];
+    if (fields.length > 0) components.push(separator(), ...fields);
 
-    return {
-        username: "Crowdin",
-        flags: COMPONENTS_V2,
-        allowed_mentions: { parse: [] },
-        components: [{ type: 17, accent_color: ACCENT, components }],
-    };
+    return message("Crowdin", [container(components)]);
 }

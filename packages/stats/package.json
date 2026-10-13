@@ -1,0 +1,17 @@
+{
+    "name": "@deadlock-plus/stats",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Deadlock player statistics: sessions, form and rank maths",
+    "type": "module",
+    "license": "GPL-3.0-or-later",
+    "exports": {
+        "./*": {
+            "types": "./src/*.ts",
+            "default": "./src/*.ts"
+        }
+    },
+    "dependencies": {
+        "@deadlock-plus/ipc-types": "workspace:*"
+    }
+}

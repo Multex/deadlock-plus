@@ -1,0 +1,508 @@
+{
+    "file translated": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### File translated"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/editor/deadlock-plus/all/en-es"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**File**\n`/locales/en.json`"
+                    }
+                ]
+            }
+        ]
+    },
+    "string added": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### String added"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://example.crowdin.com/translate/umbrella/1/en-uk/78#1"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nProject Name"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**File**\n`/directory1/directory2/filename.extension`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Key**\n`name`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Source**\nNot all videos are shown to users. See more"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Context**\nshown on main page"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**By**\nJohn Smith"
+                    }
+                ]
+            }
+        ]
+    },
+    "suggestion added": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### Suggestion added"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/translate/deadlock-plus/44/en-es#2814"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Key**\n`home.greeting`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Source**\nNot all videos are shown to users."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Translation**\nLos videos no se muestran a todos los usuarios."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Author**\nJohn Smith"
+                    }
+                ]
+            }
+        ]
+    },
+    "suggestion approved": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### Suggestion approved"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/translate/deadlock-plus/44/en-es#2814"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Key**\n`home.greeting`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Source**\nNot all videos are shown to users."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Translation**\nLos videos no se muestran a todos los usuarios."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Author**\nJohn Smith"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Reviewer**\nRae Viewer"
+                    }
+                ]
+            }
+        ]
+    },
+    "unknown event with a project": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 10,
+                        "content": "### Project built"
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    }
+                ]
+            }
+        ]
+    },
+    "unknown event without a project": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 10,
+                        "content": "### Task added"
+                    }
+                ]
+            }
+        ]
+    },
+    "non-object payload": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 10,
+                        "content": "### Crowdin event"
+                    }
+                ]
+            }
+        ]
+    },
+    "file path over the limit": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### File translated"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/editor/deadlock-plus/all/en-es"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**File**\n`/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…`"
+                    }
+                ]
+            }
+        ]
+    },
+    "file path with a backtick": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### File translated"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/editor/deadlock-plus/all/en-es"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**File**\n`/locales/a'b.json`"
+                    }
+                ]
+            }
+        ]
+    },
+    "translation of emoji over the limit": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### Suggestion added"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/translate/deadlock-plus/44/en-es#2814"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Key**\n`home.greeting`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Source**\nNot all videos are shown to users."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Translation**\n😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀…"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Author**\nJohn Smith"
+                    }
+                ]
+            }
+        ]
+    },
+    "suggestion without a string url": {
+        "username": "Crowdin",
+        "flags": 32768,
+        "allowed_mentions": {
+            "parse": []
+        },
+        "components": [
+            {
+                "type": 17,
+                "accent_color": 5793266,
+                "components": [
+                    {
+                        "type": 9,
+                        "components": [
+                            {
+                                "type": 10,
+                                "content": "### Suggestion added"
+                            }
+                        ],
+                        "accessory": {
+                            "type": 2,
+                            "style": 5,
+                            "label": "Open in editor",
+                            "url": "https://crowdin.com/editor/deadlock-plus/all/en-es"
+                        }
+                    },
+                    {
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Project**\nDeadlock+"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Language**\nSpanish (`es-ES`)"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Key**\n`home.greeting`"
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Source**\nNot all videos are shown to users."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Translation**\nLos videos no se muestran a todos los usuarios."
+                    },
+                    {
+                        "type": 10,
+                        "content": "**Author**\nJohn Smith"
+                    }
+                ]
+            }
+        ]
+    }
+}

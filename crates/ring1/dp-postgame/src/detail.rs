@@ -40,8 +40,7 @@ mod tests {
     use super::*;
     use valveprotos::deadlock::c_msg_match_meta_data_contents::{Items, MatchInfo, Players};
 
-    const FIXTURE: &str =
-        include_str!("../../../../apps/desktop/src/lib/features/match-history/fixtures/api-ranked.json");
+    const FIXTURE: &str = include_str!("../../../../packages/match/src/fixtures/api-ranked.json");
 
     /// The keys `parseApiDetail` reads, per object level. Arrays are walked element by element.
     struct Read {

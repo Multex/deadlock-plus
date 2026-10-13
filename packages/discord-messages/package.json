@@ -1,0 +1,21 @@
+{
+    "name": "@deadlock-plus/discord-messages",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Builders for Discord Components V2 messages",
+    "type": "module",
+    "license": "GPL-3.0-or-later",
+    "scripts": {
+        "test": "node --test"
+    },
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./src/index.ts"
+        },
+        "./*": {
+            "types": "./src/*.ts",
+            "default": "./src/*.ts"
+        }
+    }
+}
