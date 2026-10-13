@@ -1,0 +1,10 @@
+# Read by the SvelteKit adapter only. The adapter writes its Worker to `main`, and wrangler.toml
+# points `main` at the hand-written wrapper around that output, so the adapter needs its own target.
+name = "deadlock-plus-web"
+main = ".svelte-kit/cloudflare/_worker.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_als"]
+
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"

@@ -1,0 +1,15 @@
+name = "deadlock-plus-web"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_als"]
+workers_dev = true
+
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[observability]
+enabled = true

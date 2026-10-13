@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <style>
+            /* Must match --background in app.css; paints before the stylesheet loads. */
+            html {
+                background: #14100c;
+                color-scheme: dark;
+            }
+        </style>
+        %sveltekit.head%
+    </head>
+    <body data-sveltekit-reload>
+        <div style="display: contents">%sveltekit.body%</div>
+    </body>
+</html>
