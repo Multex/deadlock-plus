@@ -1,0 +1,21 @@
+{
+    "name": "@deadlock-plus/demo",
+    "version": "0.0.0",
+    "private": true,
+    "description": "In-memory stand-in for the Deadlock+ backend: scenarios of invented data for demos, screenshots and tests",
+    "type": "module",
+    "license": "GPL-3.0-or-later",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./src/index.ts"
+        },
+        "./*": {
+            "types": "./src/*.ts",
+            "default": "./src/*.ts"
+        }
+    },
+    "dependencies": {
+        "@deadlock-plus/ipc-types": "workspace:*"
+    }
+}

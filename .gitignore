@@ -1,6 +1,10 @@
 .DS_Store
 node_modules
 /apps/desktop/build
+/apps/desktop/build-demo*
+/apps/desktop/e2e/.cache
+/apps/desktop/test-results
+/apps/desktop/playwright-report
 /apps/desktop/.svelte-kit
 /apps/desktop/package
 /release-out
@@ -13,7 +17,7 @@ vite.config.ts.timestamp-*
 # local agent scratchpad
 /.agents
 
-# ts-rs default #[ts(export)] output; the real bindings live in apps/desktop/src/lib/generated/types
+# ts-rs default #[ts(export)] output; the real bindings live in packages/ipc-types/src
 /apps/desktop/src-tauri/bindings
 
 
