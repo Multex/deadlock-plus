@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- The Discord link opens the invite in the Discord app when it is installed.
+- Anonymous usage data now counts clicks on the Discord link.
+- Screen readers now announce which player, replay, region or preset a button acts on.
+- The player menus on a match page are named after their card for screen readers.
+
+### Fixed
+
+- Home, Stats, Rank, Sessions and Match History no longer request your history in a loop when the Deadlock API is down.
+- Confirmation dialogs in Mutes, Server Picker and the Discord activity editor now close after you confirm.
+- Home no longer shows "Loading..." forever when no Steam account is found.
+- Home shows your blocked region count before you open Server Picker.
+- A match that fails to load offline now shows a clear connection message.
+- Mutes shows "No Steam account found" as a plain state, with Import and Export turned off.
+- The import question in Mutes no longer changes its wording as it closes.
+- The unmute question can no longer be confirmed once Deadlock starts.
+
 ## [0.11.0] - 2026-10-12
 
 ### Added
