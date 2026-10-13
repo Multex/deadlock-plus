@@ -72,6 +72,10 @@ impl TelemetryService {
         self.telemetry.feature_used(name);
     }
 
+    pub fn discord_invite_click(&self) {
+        self.telemetry.discord_invite_click();
+    }
+
     pub fn reset_install_id(&self, dir: &Path) {
         let id = self.telemetry.reset_install_id(dir);
         dp_telemetry::errors::set_install_id(&id);
@@ -136,6 +140,11 @@ pub mod commands {
     #[tauri::command]
     pub fn track_feature(name: String, telemetry: State<'_, TelemetryService>) {
         telemetry.feature_used(&name);
+    }
+
+    #[tauri::command]
+    pub fn track_discord_invite(telemetry: State<'_, TelemetryService>) {
+        telemetry.discord_invite_click();
     }
 
     #[tauri::command]

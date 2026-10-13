@@ -23,11 +23,14 @@ pub struct Context {
     pub locale: String,
 }
 
+/// Matches the website's `discord_invite_click` event, so in-app and web clicks chart as one series split by channel.
+pub const INVITE_CLICK: &[(&str, &str)] = &[("ref", "app"), ("channel", "app")];
+
 pub fn is_feature(name: &str) -> bool {
     FEATURES.contains(&name)
 }
 
-pub fn build(ctx: &Context, distinct_id: &str, event: &str, feature: Option<&str>, timestamp: &str) -> Value {
+pub fn build(ctx: &Context, distinct_id: &str, event: &str, extra: &[(&str, &str)], timestamp: &str) -> Value {
     let mut properties = serde_json::json!({
         "app_version": ctx.app_version,
         "os": ctx.os,
@@ -35,8 +38,8 @@ pub fn build(ctx: &Context, distinct_id: &str, event: &str, feature: Option<&str
         "locale": ctx.locale,
         "$process_person_profile": false,
     });
-    if let Some(feature) = feature {
-        properties["feature"] = feature.into();
+    for (key, value) in extra {
+        properties[*key] = (*value).into();
     }
     serde_json::json!({
         "event": event,
@@ -56,7 +59,7 @@ mod tests {
 
     #[test]
     fn a_plain_event_carries_exactly_the_allow_listed_properties() {
-        let event = build(&ctx(), "id-1", "app_started", None, "2026-10-05T00:00:00Z");
+        let event = build(&ctx(), "id-1", "app_started", &[], "2026-10-05T00:00:00Z");
         assert_eq!(event["event"], "app_started");
         assert_eq!(event["distinct_id"], "id-1");
         assert_eq!(event["timestamp"], "2026-10-05T00:00:00Z");
@@ -68,9 +71,17 @@ mod tests {
 
     #[test]
     fn a_feature_event_adds_only_the_feature_name() {
-        let event = build(&ctx(), "id-1", "feature_used", Some("stats"), "t");
+        let event = build(&ctx(), "id-1", "feature_used", &[("feature", "stats")], "t");
         assert_eq!(event["properties"]["feature"], "stats");
         assert_eq!(event["properties"].as_object().unwrap().len(), 6);
+    }
+
+    #[test]
+    fn an_invite_click_names_the_app_as_its_ref_and_channel() {
+        let event = build(&ctx(), "id-1", "discord_invite_click", INVITE_CLICK, "t");
+        assert_eq!(event["properties"]["ref"], "app");
+        assert_eq!(event["properties"]["channel"], "app");
+        assert_eq!(event["properties"].as_object().unwrap().len(), 7);
     }
 
     #[test]

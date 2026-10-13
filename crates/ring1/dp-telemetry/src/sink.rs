@@ -88,29 +88,33 @@ impl Telemetry {
     }
 
     pub fn app_started(&self) -> bool {
-        self.record("app_started", None)
+        self.record("app_started", &[])
     }
 
     pub fn app_exited(&self) -> bool {
-        self.record("app_exited", None)
+        self.record("app_exited", &[])
     }
 
     pub fn heartbeat(&self) -> bool {
-        sampled_in(&self.install_id(), self.heartbeat_sample) && self.record("heartbeat", None)
+        sampled_in(&self.install_id(), self.heartbeat_sample) && self.record("heartbeat", &[])
     }
 
     pub fn feature_used(&self, feature: &str) -> bool {
         if !event::is_feature(feature) || self.features_sent.load(Ordering::SeqCst) >= MAX_FEATURES_PER_SESSION {
             return false;
         }
-        let recorded = self.record("feature_used", Some(feature));
+        let recorded = self.record("feature_used", &[("feature", feature)]);
         if recorded {
             self.features_sent.fetch_add(1, Ordering::SeqCst);
         }
         recorded
     }
 
-    fn record(&self, name: &str, feature: Option<&str>) -> bool {
+    pub fn discord_invite_click(&self) -> bool {
+        self.record("discord_invite_click", event::INVITE_CLICK)
+    }
+
+    fn record(&self, name: &str, extra: &[(&str, &str)]) -> bool {
         if self.config.posthog.is_none() {
             return false;
         }
@@ -118,7 +122,7 @@ impl Telemetry {
         if !self.gate.is_open() || queue.len() >= MAX_QUEUE {
             return false;
         }
-        let event = event::build(&lock(&self.context), &self.install_id(), name, feature, &now());
+        let event = event::build(&lock(&self.context), &self.install_id(), name, extra, &now());
         queue.push_back(event);
         true
     }
@@ -211,6 +215,17 @@ mod tests {
     }
 
     #[test]
+    fn an_invite_click_is_queued_only_while_the_gate_is_open() {
+        let t = telemetry();
+        assert!(!t.discord_invite_click());
+        t.set_enabled(true);
+        assert!(t.discord_invite_click());
+        let batch = t.take_batch().unwrap();
+        assert_eq!(batch["batch"][0]["event"], "discord_invite_click");
+        assert_eq!(batch["batch"][0]["properties"]["channel"], "app");
+    }
+
+    #[test]
     fn unknown_features_are_rejected() {
         let t = telemetry();
         t.set_enabled(true);
@@ -231,7 +246,7 @@ mod tests {
         let t = telemetry();
         t.set_enabled(true);
         for _ in 0..MAX_QUEUE + 20 {
-            t.record("app_started", None);
+            t.record("app_started", &[]);
         }
         assert_eq!(t.pending(), MAX_QUEUE);
     }

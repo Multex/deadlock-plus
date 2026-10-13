@@ -8,6 +8,10 @@ export function trackFeature(name: string) {
     return command("track_feature", { name });
 }
 
+export function trackDiscordInvite() {
+    return command("track_discord_invite");
+}
+
 export function resetTelemetryId() {
     return command("reset_telemetry_id");
 }
