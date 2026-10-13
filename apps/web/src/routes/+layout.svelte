@@ -6,7 +6,6 @@
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import KofiIcon from "@deadlock-plus/ui/icons/kofi.svelte";
     import { LINKS } from "$lib/content/links";
-    import { SITE_URL } from "@deadlock-plus/links/urls";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
 
@@ -49,10 +48,6 @@
         },
     ];
 </script>
-
-<svelte:head>
-    <link rel="canonical" href="{SITE_URL}{page.url.pathname}" />
-</svelte:head>
 
 <div class="flex min-h-dvh flex-col">
     <header class="sticky top-0 z-(--z-local) border-b border-border bg-chrome/95 backdrop-blur">

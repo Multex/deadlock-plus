@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Seo from "$lib/components/seo.svelte";
     import { ChevronDown, Download } from "@lucide/svelte";
     import { LINKS } from "$lib/content/links";
     import Badge from "@deadlock-plus/ui/badge.svelte";
@@ -80,10 +81,7 @@
     </DropdownMenu.Root>
 {/snippet}
 
-<svelte:head>
-    <title>Download | Deadlock+</title>
-    <meta name="description" content="Download Deadlock+ for Windows 10 and 11, or for Linux. It is free." />
-</svelte:head>
+<Seo title="Download | Deadlock+" description="Download Deadlock+ for Windows 10 and 11, or for Linux. It is free." />
 
 <Page>
     <PageHeader title="Download" subtitle="Deadlock+ is free. Download it, open the file, and you are ready to go." />

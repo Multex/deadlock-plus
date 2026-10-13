@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Seo from "$lib/components/seo.svelte";
     import { onMount, tick } from "svelte";
     import { Download } from "@lucide/svelte";
     import Shot from "$lib/components/shot.svelte";
@@ -22,13 +23,10 @@
     });
 </script>
 
-<svelte:head>
-    <title>Features | Deadlock+</title>
-    <meta
-        name="description"
-        content="Everything Deadlock+ does: show your match on Discord, pick your servers, follow your match live, and see your match history, stats, rank and how the game runs."
-    />
-</svelte:head>
+<Seo
+    title="Features | Deadlock+"
+    description="Everything Deadlock+ does: show your match on Discord, pick your servers, follow your match live, and see your match history, stats, rank and how the game runs."
+/>
 
 <Page>
     <PageHeader title="Features" subtitle="Each page of Deadlock+ does one job. Here is what each one is for.">

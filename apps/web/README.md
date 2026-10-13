@@ -88,6 +88,17 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
 - `pnpm build`, then `pnpm preview`, runs the built Worker in `wrangler dev`. Add `--test-scheduled` and open `/__scheduled` to run the hourly job.
 - Put secrets for local runs in a `.dev.vars` file (gitignored).
 
+## Link preview image
+
+`static/og.png` (1200 x 630) is the picture Discord and other apps show for a pasted link. `src/lib/components/seo.svelte` writes the tags that point at it. The picture is the `/og` page, captured with Edge. That page only exists on the dev server; the deployed site answers 404 for it. To make it again after a change to the theme, the brand mark or `src/routes/og/+page.svelte`:
+
+```sh
+pnpm dev --port 5218 --strictPort
+node scripts/og.mjs http://localhost:5218
+```
+
+Run the second command in another terminal. It uses the Playwright that `apps/desktop` installs. `pnpm test` fails if the file is not 1200 x 630 or is over 300 kB.
+
 ## Two wrangler files
 
 - `wrangler.toml` is the deployed config. Its `main` is `src/worker.ts`, which wraps the SvelteKit Worker and adds the hourly job.

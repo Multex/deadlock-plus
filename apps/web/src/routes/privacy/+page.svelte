@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Seo from "$lib/components/seo.svelte";
     import { LINKS } from "$lib/content/links";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
@@ -6,10 +7,10 @@
     import Section from "@deadlock-plus/ui/section.svelte";
 </script>
 
-<svelte:head>
-    <title>Privacy | Deadlock+</title>
-    <meta name="description" content="What this website records, and where to read what the Deadlock+ app sends." />
-</svelte:head>
+<Seo
+    title="Privacy | Deadlock+"
+    description="What this website records, and where to read what the Deadlock+ app sends."
+/>
 
 <Page>
     <PageHeader title="Privacy" subtitle="What is recorded, and by what." />
