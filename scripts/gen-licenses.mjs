@@ -74,6 +74,8 @@ function npmPackages() {
     }
     const entries = [];
     for (const [dir, pkg] of seen) {
+        // Workspace packages are this project's own code, not third-party.
+        if (pkg.name?.startsWith("@deadlock-plus/")) continue;
         const license = typeof pkg.license === "string" ? pkg.license : (pkg.license?.type ?? "unknown");
         const url = typeof pkg.repository === "string" ? pkg.repository : (pkg.repository?.url ?? pkg.homepage);
         const base = {

@@ -195,7 +195,7 @@ impl Canvas<'_> {
 fn badge_font() -> &'static FontRef<'static> {
     static FONT: OnceLock<FontRef<'static>> = OnceLock::new();
     FONT.get_or_init(|| {
-        const BYTES: &[u8] = include_bytes!("../../../../static/fonts/valveoracle-semibold.ttf");
+        const BYTES: &[u8] = include_bytes!("../../../../../../packages/ui/src/fonts/valveoracle-semibold.ttf");
         FontRef::try_from_slice(BYTES).expect("bundled badge font must parse")
     })
 }

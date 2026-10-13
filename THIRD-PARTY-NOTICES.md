@@ -3,7 +3,7 @@
 Deadlock+ is an unofficial fan tool. It is not made by, affiliated with or endorsed by Valve
 Corporation. "Deadlock" and "Steam" are trademarks of Valve Corporation.
 
-## Fonts bundled from Deadlock (`static/fonts/`)
+## Fonts bundled from Deadlock (`packages/ui/src/fonts/`)
 
 These fonts are the property of their owners. They are not covered by this project's licence and
 no licence to them is granted here. They are included so the app matches the game's look. If an
