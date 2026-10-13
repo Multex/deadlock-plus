@@ -1,12 +1,12 @@
 <script lang="ts">
-    import Button from "$lib/ui/button.svelte";
-    import Input from "$lib/ui/input.svelte";
-    import IconButton from "$lib/ui/icon-button.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import { radioTarget } from "$lib/core/radio-group";
+    import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import Flag from "$lib/components/flag.svelte";
-    import * as Dialog from "$lib/ui/dialog";
+    import * as Dialog from "@deadlock-plus/ui/dialog";
     import { Pencil, Plus, Trash2 } from "@lucide/svelte";
     import type { ServerGroup } from "../types";
     import { resolveBlockedIds, type Preset, type PresetMode } from "../presets";
@@ -181,7 +181,10 @@
                                 <div class="truncate text-sm font-medium">{preset.name}</div>
                                 <div class="text-xs text-muted-foreground">{summary(preset)}</div>
                             </div>
-                            <Button size="sm" onclick={() => onApply(preset)}>{t("server_picker.presets.apply")}</Button
+                            <Button
+                                size="sm"
+                                aria-label={t("server_picker.presets.apply_label", { name: preset.name })}
+                                onclick={() => onApply(preset)}>{t("server_picker.presets.apply")}</Button
                             >
                             <IconButton
                                 label={t("server_picker.presets.edit_label", { name: preset.name })}

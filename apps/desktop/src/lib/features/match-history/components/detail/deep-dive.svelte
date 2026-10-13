@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { t } from "$lib/core/i18n.svelte";
     import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
-    import { allPlayers, findPlayer, type MatchDetail } from "../../detail";
+    import { allPlayers, findPlayer, type MatchDetail } from "@deadlock-plus/match/detail";
     import Accolades from "./deep-dive/accolades.svelte";
     import Damage from "./deep-dive/damage.svelte";
     import Objectives from "./deep-dive/objectives.svelte";
@@ -28,20 +29,54 @@
 
 <div class="flex flex-col gap-4" data-match-id={detail.matchId}>
     {#if selected}
-        {#snippet picker()}
+        {#snippet progressPicker()}
             <PlayerPicker
                 {detail}
                 {heroes}
                 selectedSlot={selected.slot}
                 ownSlot={own?.slot ?? null}
+                label={t("match_history.deep_dive.progress.picker_aria")}
                 onpick={(slot) => (pickedSlot = slot)}
             />
         {/snippet}
 
-        <ProgressCharts {detail} {selected} {heroes} actions={picker} />
-        <Purchases {selected} actions={picker} />
-        <Damage {detail} selectedSlot={selected.slot} {heroes} actions={picker} />
+        {#snippet purchasesPicker()}
+            <PlayerPicker
+                {detail}
+                {heroes}
+                selectedSlot={selected.slot}
+                ownSlot={own?.slot ?? null}
+                label={t("match_history.deep_dive.purchases.picker_aria")}
+                onpick={(slot) => (pickedSlot = slot)}
+            />
+        {/snippet}
+
+        {#snippet damagePicker()}
+            <PlayerPicker
+                {detail}
+                {heroes}
+                selectedSlot={selected.slot}
+                ownSlot={own?.slot ?? null}
+                label={t("match_history.deep_dive.damage.picker_aria")}
+                onpick={(slot) => (pickedSlot = slot)}
+            />
+        {/snippet}
+
+        {#snippet accoladesPicker()}
+            <PlayerPicker
+                {detail}
+                {heroes}
+                selectedSlot={selected.slot}
+                ownSlot={own?.slot ?? null}
+                label={t("match_history.deep_dive.accolades.picker_aria")}
+                onpick={(slot) => (pickedSlot = slot)}
+            />
+        {/snippet}
+
+        <ProgressCharts {detail} {selected} {heroes} actions={progressPicker} />
+        <Purchases {selected} actions={purchasesPicker} />
+        <Damage {detail} selectedSlot={selected.slot} {heroes} actions={damagePicker} />
         <Objectives {detail} />
-        <Accolades {selected} actions={picker} />
+        <Accolades {selected} actions={accoladesPicker} />
     {/if}
 </div>

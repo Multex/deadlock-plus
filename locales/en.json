@@ -1100,7 +1100,8 @@
             "delete_label": "Delete {name}",
             "empty": "No presets yet.",
             "save_current": "Save current blocks",
-            "new": "New preset"
+            "new": "New preset",
+            "apply_label": "Apply preset {name}"
         },
         "row": {
             "collapse": "Collapse relays",
@@ -1120,7 +1121,10 @@
             "blocked": "Blocked",
             "open": "Open",
             "block_aria": "Block {name}",
-            "locked": "Blocked because all of {region} is blocked. Unblock the region to change this."
+            "locked": "Blocked because all of {region} is blocked. Unblock the region to change this.",
+            "expand_aria": "Expand relays for {name}",
+            "collapse_aria": "Collapse relays for {name}",
+            "ping_aria": "{name}: {ping}"
         },
         "toast": {
             "refresh_failed": "Couldn't refresh the server list, showing cached data.",
@@ -1207,7 +1211,9 @@
             "open_statlocker": "Open on Statlocker",
             "show_in_folder": "Show in folder",
             "delete": "Delete",
-            "delete_unpin_first": "Delete (unpin first)"
+            "delete_unpin_first": "Delete (unpin first)",
+            "pin_match": "Pin replay of match {id}",
+            "more_actions_match": "More actions for match {id}"
         },
         "delete": {
             "title_one": "Delete {count} replay?",
@@ -1529,7 +1535,8 @@
             "mute": "Mute",
             "search": "Search",
             "none_found": "No players found for that name.",
-            "muted": "Muted"
+            "muted": "Muted",
+            "mute_named": "Mute {name}"
         },
         "filter": {
             "placeholder": "Filter by name or ID...",
@@ -1546,7 +1553,9 @@
             "select": "Select {name}",
             "open_aria": "Open Statlocker profile",
             "open_title": "Statlocker profile",
-            "unmute": "Unmute"
+            "unmute": "Unmute",
+            "unmute_named": "Unmute {name}",
+            "open_named_aria": "Open Statlocker profile of {name}"
         },
         "pager": {
             "previous": "Previous page",
@@ -2239,7 +2248,8 @@
                 "others_range": "Other players, lowest to highest",
                 "player_heading": "Selected player over time",
                 "player_aria": "Chart of the selected player and everyone else over time",
-                "player_hint": "The thick line is the selected player."
+                "player_hint": "The thick line is the selected player.",
+                "picker_aria": "Player for souls and damage"
             },
             "purchases": {
                 "heading": "Purchases",
@@ -2257,7 +2267,8 @@
                 "abilities": "Abilities",
                 "no_abilities": "No abilities unlocked",
                 "ability_level_aria": "{count} of {total} upgrades",
-                "list_aria": "All actions"
+                "list_aria": "All actions",
+                "picker_aria": "Player for purchases"
             },
             "damage": {
                 "heading": "Damage between heroes",
@@ -2265,7 +2276,8 @@
                 "dealer": "Dealer",
                 "other": "Other damage",
                 "target": "Target",
-                "other_hint": "Damage recorded against the dealer's own slot, not another player."
+                "other_hint": "Damage recorded against the dealer's own slot, not another player.",
+                "picker_aria": "Player for damage"
             },
             "objectives": {
                 "heading": "Objectives",
@@ -2291,7 +2303,8 @@
             "accolades": {
                 "heading": "Accolades",
                 "tier": "Tier {tier}",
-                "hint": "Each accolade counts one stat over the match. The game's files do not list the tier cut-offs."
+                "hint": "Each accolade counts one stat over the match. The game's files do not list the tier cut-offs.",
+                "picker_aria": "Player for accolades"
             },
             "names": {
                 "item": "Item",
@@ -2439,7 +2452,8 @@
                 "death_count_one": "{count} death",
                 "death_count_other": "{count} deaths",
                 "step_start": "Step through",
-                "no_deaths": "No deaths"
+                "no_deaths": "No deaths",
+                "death_map_player": "Player for death map"
             }
         },
         "ping": {

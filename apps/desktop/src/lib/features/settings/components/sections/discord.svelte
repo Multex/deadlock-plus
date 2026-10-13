@@ -1,8 +1,8 @@
 <script lang="ts">
-    import Card from "$lib/ui/card.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Switch from "$lib/ui/switch.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { presenceStatus } from "$lib/features/presence/status.svelte";
     import {
@@ -16,7 +16,7 @@
     import PresenceEditor from "./presence-editor/presence-editor.svelte";
     import SyntaxCard from "./presence-editor/syntax-card.svelte";
     import { Check } from "@lucide/svelte";
-    import { radioTarget } from "$lib/core/radio-group";
+    import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { t } from "$lib/core/i18n.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
@@ -80,6 +80,7 @@
             {#if settings.presence.level !== "off"}
                 <SettingRow
                     label={t("settings.discord.support_label")}
+                    for="discord-support-button"
                     description={t("settings.discord.support_description")}
                 >
                     <Switch

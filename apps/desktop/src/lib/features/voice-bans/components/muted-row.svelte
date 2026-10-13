@@ -1,9 +1,9 @@
 <script lang="ts">
     import { ExternalLink } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import IconButton from "$lib/ui/icon-button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import type { Profile } from "../profiles";
 
     let {
@@ -41,8 +41,19 @@
         <p class="truncate text-sm font-medium">{profile?.name ?? t("voice_bans.unknown_player")}</p>
         <p class="text-xs text-muted-foreground">{id}</p>
     </div>
-    <IconButton size="sm" label={t("voice_bans.row.open_aria")} title={t("voice_bans.row.open_title")} onclick={onopen}>
+    <IconButton
+        size="sm"
+        label={t("voice_bans.row.open_named_aria", { name: profile?.name ?? id })}
+        title={t("voice_bans.row.open_title")}
+        onclick={onopen}
+    >
         <ExternalLink />
     </IconButton>
-    <Button size="sm" variant="outline" {disabled} onclick={onunmute}>{t("voice_bans.row.unmute")}</Button>
+    <Button
+        size="sm"
+        variant="outline"
+        {disabled}
+        aria-label={t("voice_bans.row.unmute_named", { name: profile?.name ?? id })}
+        onclick={onunmute}>{t("voice_bans.row.unmute")}</Button
+    >
 </Card>

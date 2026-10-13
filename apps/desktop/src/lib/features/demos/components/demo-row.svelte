@@ -2,10 +2,10 @@
     import { CircleHelp, Ellipsis, ExternalLink, FolderOpen, Pin, Trash2 } from "@lucide/svelte";
 
     import { formatDate, t } from "$lib/core/i18n.svelte";
-    import Badge, { type BadgeVariant } from "$lib/ui/badge.svelte";
-    import Button, { buttonVariants } from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import * as DropdownMenu from "$lib/ui/dropdown-menu";
+    import Badge, { type BadgeVariant } from "@deadlock-plus/ui/badge.svelte";
+    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import {
         formatBytes,
         formatDuration,
@@ -110,7 +110,7 @@
     <Button
         size="sm"
         variant="ghost"
-        aria-label={t("demos.row.pin")}
+        aria-label={t("demos.row.pin_match", { id: d.matchId })}
         aria-pressed={isPinned}
         title={isPinned ? t("demos.row.pinned_hint") : t("demos.row.unpinned_hint")}
         class={isPinned ? "text-primary" : ""}
@@ -121,7 +121,7 @@
     <DropdownMenu.Root>
         <DropdownMenu.Trigger
             class={buttonVariants({ variant: "ghost", size: "sm" })}
-            aria-label={t("demos.row.more_actions")}
+            aria-label={t("demos.row.more_actions_match", { id: d.matchId })}
             title={t("demos.row.more_actions")}
         >
             <Ellipsis />

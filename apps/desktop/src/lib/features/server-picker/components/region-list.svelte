@@ -1,13 +1,13 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import type { ServerPicker } from "../picker.svelte";
     import ServerRow from "./server-row.svelte";
 
     let { picker }: { picker: ServerPicker } = $props();
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2" role={picker.visibleRegions.length > 0 ? "list" : undefined}>
     {#each picker.visibleRegions as group (group.id)}
         {@const members = picker.members(group)}
         {@const expanded = group.isCluster && picker.isExpanded(group)}
@@ -31,7 +31,7 @@
         />
 
         {#if expanded}
-            <div class="ml-6 flex flex-col gap-1.5 border-l border-border pl-3">
+            <div class="ml-6 flex flex-col gap-1.5 border-l border-border pl-3" role="none">
                 {#each picker.visibleMembers(group) as member (member.id)}
                     <ServerRow
                         group={member}

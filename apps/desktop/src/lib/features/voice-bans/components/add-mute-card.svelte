@@ -1,11 +1,11 @@
 <script lang="ts">
     import { ExternalLink, Plus } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import IconButton from "$lib/ui/icon-button.svelte";
-    import Input from "$lib/ui/input.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
     import { parseSteamId } from "../voice-ban";
     import type { Profile } from "../profiles";
 
@@ -72,6 +72,7 @@
                                 size="sm"
                                 variant="outline"
                                 disabled={busy || locked}
+                                aria-label={t("voice_bans.add.mute_named", { name: p.name })}
                                 onclick={() => onmute(p.steamid64)}>{t("voice_bans.add.mute")}</Button
                             >
                         {/if}

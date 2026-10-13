@@ -1,10 +1,10 @@
 <script lang="ts">
     import { t, tn } from "$lib/core/i18n.svelte";
-    import * as Tooltip from "$lib/ui/tooltip";
-    import Badge from "$lib/ui/badge.svelte";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
     import Flag from "$lib/components/flag.svelte";
-    import Switch from "$lib/ui/switch.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { ChevronRight, Info, Loader2 } from "@lucide/svelte";
     import type { ServerGroup } from "../types";
     import { pingLabel, pingVariant } from "../ping";
@@ -55,12 +55,19 @@
     const partial = $derived(!isBlocked && blockedMembers > 0);
 </script>
 
-<Card padding="row" class="flex items-center gap-3 {nested ? 'border-border/60 bg-card/50 py-2.5' : ''}">
+<Card
+    padding="row"
+    role="listitem"
+    aria-label={group.description}
+    class="flex items-center gap-3 {nested ? 'border-border/60 bg-card/50 py-2.5' : ''}"
+>
     {#if expandable}
         <button
             type="button"
             onclick={onExpand}
-            aria-label={expanded ? t("server_picker.row.collapse") : t("server_picker.row.expand")}
+            aria-label={expanded
+                ? t("server_picker.row.collapse_aria", { name: group.description })
+                : t("server_picker.row.expand_aria", { name: group.description })}
             aria-expanded={expanded}
             class="-ml-1 flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground"
         >
@@ -123,7 +130,12 @@
     <div class="flex w-20 justify-center">
         <Tooltip.Provider>
             <Tooltip.Root delayDuration={150}>
-                <Tooltip.Trigger>
+                <Tooltip.Trigger
+                    aria-label={t("server_picker.row.ping_aria", {
+                        name: group.description,
+                        ping: pingLabel(ping, pending),
+                    })}
+                >
                     <Badge variant={pingVariant(ping)} class="min-w-16 justify-center">{pingLabel(ping, pending)}</Badge
                     >
                 </Tooltip.Trigger>

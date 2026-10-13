@@ -2,8 +2,8 @@
     import { t } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import type { MatchDetail } from "../../../detail";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import type { MatchDetail } from "@deadlock-plus/match/detail";
     import { groupTeam, playerMenuItems } from "../../../player-menu";
     import TeamMark from "./team-mark.svelte";
 
@@ -12,12 +12,14 @@
         heroes,
         selectedSlot,
         ownSlot,
+        label,
         onpick,
     }: {
         detail: MatchDetail;
         heroes: Record<number, Hero>;
         selectedSlot: number;
         ownSlot: number | null;
+        label: string;
         onpick: (slot: number) => void;
     } = $props();
 
@@ -37,11 +39,11 @@
     size="sm"
     align="end"
     class="w-48"
-    aria-label={t("match_history.deep_dive.player")}
+    aria-label={label}
     bind:value={() => String(selectedSlot), (v) => onpick(Number(v))}
 >
     {#snippet leading(item)}
-        <HeroIcon heroId={item.heroId} {heroes} size={20} />
+        <span class="flex" aria-hidden="true"><HeroIcon heroId={item.heroId} {heroes} size={20} /></span>
     {/snippet}
     {#snippet groupHeading(group)}
         {@const team = groupTeam(items, group)}

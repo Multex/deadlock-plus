@@ -1,12 +1,12 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount, type Component } from "svelte";
     import { Gauge, Pause, Play } from "@lucide/svelte";
     import { errorText } from "$lib/core/errors";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { jobDescription, jobTitle, POLICY_OPTIONS, type Policy } from "$lib/features/jobs/jobs";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
@@ -129,28 +129,33 @@
                 {#each jobs.catalog as job (job.id)}
                     <li class="flex flex-col gap-2">
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-sm font-medium">{jobTitle(job)}</span>
+                            <span id="job-{job.id}-title" class="text-sm font-medium">{jobTitle(job)}</span>
                             <p class="text-xs text-muted-foreground">{jobDescription(job)}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
                             <div class="flex items-center gap-2">
                                 <Switch
                                     id="job-{job.id}"
+                                    aria-labelledby="job-{job.id}-title job-{job.id}-run"
                                     checked={job.enabled}
                                     disabled={!jobs.allEnabled}
                                     onCheckedChange={(v) => void jobs.setEnabled(job.id, v)}
                                 />
-                                <label for="job-{job.id}" class="text-xs text-muted-foreground"
+                                <label id="job-{job.id}-run" for="job-{job.id}" class="text-xs text-muted-foreground"
                                     >{t("settings.startup.run_by_itself")}</label
                                 >
                             </div>
                             {#if job.policyConfigurable}
                                 <div class="flex items-center gap-2">
-                                    <label for="job-{job.id}-policy" class="text-xs text-muted-foreground"
+                                    <label
+                                        id="job-{job.id}-policy-label"
+                                        for="job-{job.id}-policy"
+                                        class="text-xs text-muted-foreground"
                                         >{t("settings.startup.while_running")}</label
                                     >
                                     <SelectMenu
                                         id="job-{job.id}-policy"
+                                        aria-labelledby="job-{job.id}-title job-{job.id}-policy-label"
                                         items={policyItems}
                                         value={job.policy}
                                         disabled={!jobs.allEnabled || !job.enabled}

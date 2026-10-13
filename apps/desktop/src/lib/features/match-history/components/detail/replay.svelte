@@ -12,10 +12,10 @@
     import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
     import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import Button from "$lib/ui/button.svelte";
-    import Section from "$lib/ui/section.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Slider from "$lib/ui/slider.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Section from "@deadlock-plus/ui/section.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Slider from "@deadlock-plus/ui/slider.svelte";
     import {
         deathFacts,
         deathSteps,
@@ -27,14 +27,22 @@
         type DeathRole,
         type DeathScope,
         type DeathStep,
-    } from "../../death-steps";
-    import { resolveItemListVisuals, type IdVisual } from "../../deep-dive/catalog";
-    import { campClears } from "../../camp-clears";
-    import { objectiveNameKey, objectiveRows } from "../../deep-dive/objective-rows";
-    import { allPlayers, findPlayer, playerBySlot, type MatchDetail, type MatchTeam } from "../../detail";
-    import { laneStrokes, type LaneTable } from "../../lane-lines";
-    import { MAP_OBJECT_STEMS, mapObjects, type MapObjectIcons } from "../../map-objects";
-    import { decodePaths, WORLD_RADIUS } from "../../paths";
+    } from "@deadlock-plus/match/death-steps";
+    import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
+    import { resolveItemListVisuals } from "../../deep-dive/catalog";
+    import { campClears } from "@deadlock-plus/match/camp-clears";
+    import { objectiveRows } from "@deadlock-plus/match/deep-dive/objective-rows";
+    import { objectiveNameKey } from "../../deep-dive/objective-rows";
+    import {
+        allPlayers,
+        findPlayer,
+        playerBySlot,
+        type MatchDetail,
+        type MatchTeam,
+    } from "@deadlock-plus/match/detail";
+    import { laneStrokes, type LaneTable } from "@deadlock-plus/match/lane-lines";
+    import { MAP_OBJECT_STEMS, mapObjects, type MapObjectIcons } from "@deadlock-plus/match/map-objects";
+    import { decodePaths, WORLD_RADIUS } from "@deadlock-plus/match/paths";
     import { deathScopeItems, groupTeam, parseDeathScope, roleItems, speedOptions } from "../../player-menu";
     import {
         DEFAULT_KINDS,
@@ -45,8 +53,8 @@
         replayDuration,
         type DeathEvent,
         type ReplaySpeed,
-    } from "../../replay";
-    import { buildTimeline, type TimelineEvent, type TimelineKind } from "../../timeline";
+    } from "@deadlock-plus/match/replay";
+    import { buildTimeline, type TimelineEvent, type TimelineKind } from "@deadlock-plus/match/timeline";
     import Segmented from "../list/segmented.svelte";
     import DeathStepper from "./death-stepper.svelte";
     import TeamMark from "./deep-dive/team-mark.svelte";
@@ -388,9 +396,9 @@
     ></span>
 {/snippet}
 
-<Section class="replay flex flex-col gap-4">
+<Section class="replay flex flex-col gap-4" aria-labelledby="{uid}-heading">
     <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="flex items-center gap-2 text-sm font-medium">
+        <h2 id="{uid}-heading" class="flex items-center gap-2 text-sm font-medium">
             <MapIcon size={16} class="shrink-0 text-muted-foreground" aria-hidden="true" />
             {t("match_history.detail.replay.heading")}
         </h2>
@@ -432,6 +440,7 @@
                     <SelectMenu
                         items={scopeItems}
                         class="w-52"
+                        aria-label={t("match_history.detail.replay.death_map_player")}
                         bind:value={
                             () => String(scope),
                             (value) => {
@@ -442,7 +451,9 @@
                     >
                         {#snippet leading(item)}
                             {#if item.kind === "player"}
-                                <HeroIcon heroId={item.heroId} {heroes} size={24} />
+                                <span class="flex" aria-hidden="true">
+                                    <HeroIcon heroId={item.heroId} {heroes} size={24} />
+                                </span>
                             {:else if item.kind === "mine"}
                                 <UserRound aria-hidden="true" />
                             {:else}
