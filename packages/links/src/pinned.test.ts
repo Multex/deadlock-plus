@@ -4,6 +4,7 @@ import {
     FALLBACK_CODE,
     INVITES,
     REPO_URL,
+    SITE_URL,
     SUPPORT_URL,
     inviteAppUrl,
     inviteUrl,
@@ -48,5 +49,6 @@ describe("published links", () => {
     it("keeps the support and repository URLs", () => {
         expect(SUPPORT_URL).toBe("https://ko-fi.com/flintsnow");
         expect(REPO_URL).toBe("https://github.com/deadlock-plus/deadlock-plus");
+        expect(SITE_URL).toBe("https://deadlockplus.app");
     });
 });

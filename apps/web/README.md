@@ -75,7 +75,7 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
     pnpm wrangler secret put DISCORD_GUILD_ID
     ```
     Without these two the hourly job does nothing.
-4. Add the domain under `routes` in `wrangler.toml` once there is one.
+4. The site is served at `deadlockplus.app` (`routes` in `wrangler.toml`, a Cloudflare custom domain). The domain must be a zone in the same Cloudflare account as the Worker, or the deploy fails. `www.deadlockplus.app` is routed too and redirects to the bare domain (`src/lib/server/host.ts`). The `workers.dev` address is turned off.
 
 ## Deploy workflow
 

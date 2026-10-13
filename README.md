@@ -48,6 +48,8 @@
 > - The developers do not endorse AI for artistic purposes. It is only a tool for assisting with writing and code.
 > - The code is open. If you have a real problem with it, open an issue or a PR.
 
+Website: [deadlockplus.app](https://deadlockplus.app)
+
 A companion app for [Deadlock](https://store.steampowered.com/app/1422450/), built with Tauri v2, SvelteKit and Rust. Windows is the main platform. Linux support is best-effort (see [Requirements](#requirements)). macOS is not supported.
 
 Unofficial fan tool. Not made by, affiliated with or endorsed by Valve Corporation.
