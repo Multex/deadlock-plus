@@ -4,7 +4,7 @@ Deadlock+ is a Tauri v2 app: a Rust backend and a SvelteKit (Svelte 5) frontend.
 
 ## Setup
 
-Needs Node with pnpm, Rust, and `protoc` (the Protocol Buffers compiler; `valveprotos` runs it in its build script). The desktop app lives in `apps/desktop/` (frontend at its root, Rust crate in `apps/desktop/src-tauri/`). Cargo runs from the repo root (a workspace); pnpm runs from `apps/desktop/`.
+Needs Node with pnpm, Rust, and `protoc` (the Protocol Buffers compiler; `valveprotos` runs it in its build script). The desktop app lives in `apps/desktop/` (frontend at its root, Rust crate in `apps/desktop/src-tauri/`). Cargo runs from the repo root (a workspace). pnpm is one workspace as well (`pnpm-workspace.yaml` and a single `pnpm-lock.yaml` at the root): `pnpm install` from any folder installs every app under `apps/`, and scripts run from the app's own folder. The commands below run from `apps/desktop/`.
 
 Telemetry is compiled in only when `DP_POSTHOG_KEY`, `DP_POSTHOG_HOST` and `DP_SENTRY_DSN` are set at build time, and never in a debug build. Local builds and forks send nothing.
 
@@ -14,14 +14,14 @@ pnpm tauri dev            # prompts for UAC
 pnpm check                # svelte-check
 pnpm format               # Prettier (4 spaces, width 120); CI runs pnpm format:check
 pnpm test                 # Vitest
-cargo test --workspace --lib                            # from the repo root; also regenerates apps/desktop/src/lib/generated/types
+cargo test --workspace --lib                            # from the repo root; also regenerates packages/ipc-types/src
 cargo fmt --all -- --config max_width=120,use_small_heuristics=Max
 pnpm tauri build          # NSIS installer on Windows (per-machine, branded images); needs the update signing key, see Releasing
 bash scripts/build-frames-layer.sh   # Linux only, before `pnpm tauri build`: builds the Vulkan frame layer (needs cargo-zigbuild, zig, objdump)
 pnpm tauri build          # Linux: AppImage and deb
 ```
 
-CI also runs `pnpm audit --prod` and `cargo audit`, and fails if `src/lib/generated/types` is out of date. Commit the regenerated files with any Rust type change. `.editorconfig` sets a 4-space indent (2 for `package.json` and YAML).
+CI also runs `pnpm audit --prod` and `cargo audit`, and fails if `packages/ipc-types/src` is out of date. Commit the regenerated files with any Rust type change. `.editorconfig` sets a 4-space indent (2 for `package.json` and YAML).
 
 ## Crate tiers
 
