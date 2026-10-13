@@ -5,10 +5,14 @@
     import Shot from "$lib/components/shot.svelte";
     import { HERO_DETAIL_SHOT, HERO_SHOT, highlights } from "$lib/content/features";
     import { LINKS } from "$lib/content/links";
+    import { currentRef, withRef } from "$lib/content/ref";
+    import { page } from "$app/state";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
+
+    const ref = $derived(currentRef(page.url));
 
     const trust = [
         {
@@ -41,7 +45,7 @@
             happens, look back at your matches and rank, and tidy up mutes, replays and disk space. One app, no account.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
-            <a href="/download" class={buttonVariants({ size: "lg" })}>
+            <a href={withRef("/download", ref)} class={buttonVariants({ size: "lg" })}>
                 <Download />
                 Download for Windows
             </a>
@@ -51,8 +55,9 @@
             </a>
         </div>
         <p class="mt-3 text-sm text-muted-foreground">
-            Windows 10 and 11. <a href="/download#linux" class="underline hover:text-foreground">Linux</a> may not work on
-            every setup.
+            Windows 10 and 11. <a href={withRef("/download#linux", ref)} class="underline hover:text-foreground"
+                >Linux</a
+            > may not work on every setup.
         </p>
     </header>
 
@@ -67,7 +72,7 @@
     <section>
         <div class="mb-3 flex items-end justify-between gap-3">
             <h2 class="text-2xl">What it does</h2>
-            <a href="/features" class={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <a href={withRef("/features", ref)} class={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Every feature
                 <ArrowRight />
             </a>
@@ -87,7 +92,10 @@
                                 framed={false}
                             />
                         {/if}
-                        <a href="/features#{feature.id}" class="block flex-1 border-t border-border p-4">
+                        <a
+                            href={withRef(`/features#${feature.id}`, ref)}
+                            class="block flex-1 border-t border-border p-4"
+                        >
                             <h3 class="text-base font-semibold text-brass">{feature.name}</h3>
                             <p class="mt-1 text-sm text-muted-foreground">{feature.summary}</p>
                         </a>
@@ -108,7 +116,7 @@
         </ul>
         <div class="mt-5 flex flex-wrap gap-2">
             <a href={LINKS.repo} class={buttonVariants({ variant: "outline", size: "sm" })}>Read the code</a>
-            <a href="/privacy" class={buttonVariants({ variant: "outline", size: "sm" })}>Privacy</a>
+            <a href={withRef("/privacy", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>Privacy</a>
         </div>
     </Section>
 
@@ -119,7 +127,7 @@
                 Deadlock+ is free. Updates install only when you click, and each one is checked before it runs.
             </p>
         </div>
-        <a href="/download" class={buttonVariants()}>
+        <a href={withRef("/download", ref)} class={buttonVariants()}>
             <Download />
             Download
         </a>

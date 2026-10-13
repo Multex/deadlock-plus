@@ -3,12 +3,16 @@
     import { onMount, tick } from "svelte";
     import { Download } from "@lucide/svelte";
     import Shot from "$lib/components/shot.svelte";
+    import { page } from "$app/state";
+    import { currentRef, withRef } from "$lib/content/ref";
     import { FEATURES, GROUPS, featuresIn, type GroupId } from "$lib/content/features";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import * as Tabs from "@deadlock-plus/ui/tabs";
+
+    const ref = $derived(currentRef(page.url));
 
     let group = $state<GroupId>("match");
 
@@ -31,7 +35,7 @@
 <Page>
     <PageHeader title="Features" subtitle="Each page of Deadlock+ does one job. Here is what each one is for.">
         {#snippet actions()}
-            <a href="/download" class={buttonVariants()}>
+            <a href={withRef("/download", ref)} class={buttonVariants()}>
                 <Download />
                 Download
             </a>

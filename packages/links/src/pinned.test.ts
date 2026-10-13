@@ -3,6 +3,7 @@ import {
     APP_INVITE_CODE,
     FALLBACK_CODE,
     INVITES,
+    LANDING_REFS,
     REPO_URL,
     SITE_URL,
     SUPPORT_URL,
@@ -44,6 +45,10 @@ describe("published links", () => {
             expect(resolveWebRef(ref)).toEqual({ ref, code: "652zsGZZgD", known: false });
         }
         expect(resolveWebRef(undefined)).toEqual({ ref: "none", code: "652zsGZZgD", known: false });
+    });
+
+    it("keeps every typed landing path", () => {
+        expect(LANDING_REFS).toEqual(["tt", "tt-b", "tt-p", "yt", "yt-b", "yt-p"]);
     });
 
     it("keeps the support and repository URLs", () => {

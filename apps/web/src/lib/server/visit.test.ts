@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { discordClick, isBot, pageview, source } from "./visit";
+import type { Release } from "./releases";
+import { discordClick, downloadClick, isBot, isDownloadPlatform, pageview, source } from "./visit";
 
 const NOW = new Date("2026-10-13T12:00:00.000Z");
 const BROWSER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36";
@@ -107,5 +108,90 @@ describe("discordClick", () => {
         const click = discordClick(request("https://deadlockplus.example/discord"), undefined, undefined, NOW);
         expect(click.location).toMatch(/^https:\/\/discord\.gg\//);
         expect(click.event?.properties).toMatchObject({ ref: "none", known: false });
+    });
+});
+
+describe("downloadClick", () => {
+    const BASE = "https://github.com/deadlock-plus/deadlock-plus/releases";
+    const RELEASES: Release[] = [
+        { version: "0.11.0", date: "2026-10-12T18:30:00Z", windows: `${BASE}/download/v0.11.0/setup.exe` },
+        {
+            version: "0.10.0",
+            date: "2026-10-01T10:00:00Z",
+            windows: `${BASE}/download/v0.10.0/setup.exe`,
+            appImage: `${BASE}/download/v0.10.0/app.AppImage`,
+            deb: `${BASE}/download/v0.10.0/app.deb`,
+        },
+    ];
+
+    it("serves the newest file and records the click", () => {
+        const req = request("https://deadlockplus.example/get/windows?ref=YT", {
+            referer: "https://www.youtube.com/x",
+        });
+        const click = downloadClick(req, "windows", RELEASES, "DE", NOW);
+        expect(click.location).toBe(`${BASE}/download/v0.11.0/setup.exe`);
+        expect(click.event?.event).toBe("download_click");
+        expect(click.event?.properties).toMatchObject({
+            platform: "windows",
+            version: "0.11.0",
+            latest: true,
+            ref: "yt",
+            fallback: false,
+            country: "DE",
+            $referrer: "https://www.youtube.com",
+            $referring_domain: "youtube.com",
+        });
+    });
+
+    it("serves the version that was asked for", () => {
+        const click = downloadClick(request("https://deadlockplus.example/get/windows?v=0.10.0"), "windows", RELEASES);
+        expect(click.location).toBe(`${BASE}/download/v0.10.0/setup.exe`);
+        expect(click.event?.properties).toMatchObject({ version: "0.10.0", latest: false, ref: null, fallback: false });
+    });
+
+    it("serves the newest release that has the file when the version is unknown or lacks it", () => {
+        for (const v of ["9.9.9", "0.11.0", "", "https://evil.example/app.deb"]) {
+            const url = `https://deadlockplus.example/get/deb?v=${encodeURIComponent(v)}`;
+            const click = downloadClick(request(url), "deb", RELEASES);
+            expect(click.location).toBe(`${BASE}/download/v0.10.0/app.deb`);
+            expect(click.event?.properties).toMatchObject({ platform: "deb", version: "0.10.0", latest: false });
+        }
+        const click = downloadClick(request("https://deadlockplus.example/get/appimage"), "appimage", RELEASES);
+        expect(click.location).toBe(`${BASE}/download/v0.10.0/app.AppImage`);
+    });
+
+    it("falls back to the latest release page when no release has the file", () => {
+        const windowsOnly = RELEASES.slice(0, 1);
+        for (const [platform, releases] of [
+            ["windows", []],
+            ["deb", windowsOnly],
+            ["appimage", windowsOnly],
+        ] as const) {
+            const click = downloadClick(request(`https://deadlockplus.example/get/${platform}`), platform, releases);
+            expect(click.location).toBe(`${BASE}/latest`);
+            expect(click.event?.properties).toMatchObject({ platform, version: null, latest: false, fallback: true });
+        }
+    });
+
+    it("never serves a URL from outside the project's release files", () => {
+        const poisoned = [{ version: "0.12.0", date: "", windows: "https://evil.example/setup.exe" }, ...RELEASES];
+        const click = downloadClick(request("https://deadlockplus.example/get/windows"), "windows", poisoned);
+        expect(click.location).toBe(`${BASE}/download/v0.11.0/setup.exe`);
+    });
+
+    it("still redirects a bot, without recording it", () => {
+        const req = request("https://deadlockplus.example/get/windows", { "user-agent": "Twitterbot/1.0" });
+        const click = downloadClick(req, "windows", RELEASES);
+        expect(click.location).toBe(`${BASE}/download/v0.11.0/setup.exe`);
+        expect(click.event).toBeNull();
+    });
+});
+
+describe("isDownloadPlatform", () => {
+    it("accepts the three platforms and nothing else", () => {
+        for (const name of ["windows", "deb", "appimage"]) expect(isDownloadPlatform(name)).toBe(true);
+        for (const name of ["", "Windows", "appImage", "macos", "date", "version", "toString"]) {
+            expect(isDownloadPlatform(name)).toBe(false);
+        }
     });
 });

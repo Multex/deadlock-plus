@@ -23,6 +23,8 @@ A ref names where a link was posted: `github`, `deadlock-api`, `reddit`.
 
 Give a partner site a `?ref=` link. A browser may withhold the `Referer` header, and then the visit counts as direct.
 
+Two more routes only redirect. `/<ref>` is for a video that shows the address as text: it answers `302` to `/?ref=<ref>` for each ref in `LANDING_REFS` (`packages/links/src/landing.ts`) and is a 404 for any other. Those refs are `tt` (TikTok) or `yt` (YouTube), alone for the address shown in the video, with `-b` for the bio or channel description, or with `-p` for a pinned comment. `/get/<platform>?v=<version>&ref=<ref>` (`windows`, `deb`, `appimage`) records the download and answers `302` to that file in the release list, or to the newest release that has it when `v` is missing or unknown.
+
 ## Invites
 
 `packages/links/src/invites.ts` (`@deadlock-plus/links`) lists every invite: its ref, its channel and its code.
@@ -44,15 +46,17 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
 
 ## Events
 
-| Event                  | Sent when                     | Properties                                                                     |
-| ---------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
-| `$pageview`            | A page is served              | `$pathname`, `$referrer`, `$referring_domain`, `ref`, `country`                |
-| `discord_invite_click` | `/discord/<ref>` is requested | `ref`, `channel`, `known`, `code`, `$referrer`, `$referring_domain`, `country` |
-| `discord_invite_uses`  | Hourly, one per invite        | `code`, `ref`, `channel`, `uses`                                               |
+| Event                  | Sent when                      | Properties                                                                                      |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `$pageview`            | A page is served               | `$pathname`, `$referrer`, `$referring_domain`, `ref`, `country`                                 |
+| `discord_invite_click` | `/discord/<ref>` is requested  | `ref`, `channel`, `known`, `code`, `$referrer`, `$referring_domain`, `country`                  |
+| `download_click`       | `/get/<platform>` is requested | `platform`, `version`, `latest`, `ref`, `fallback`, `$referrer`, `$referring_domain`, `country` |
+| `discord_invite_uses`  | Hourly, one per invite         | `code`, `ref`, `channel`, `uses`                                                                |
 
 - Clicks and joins are different numbers. A click is a request to the redirect. A join is a use of the invite.
 - `uses` is Discord's running total. Joins over a period are the difference between two snapshots.
 - Link previewers and crawlers are redirected but not counted.
+- `fallback: true` means the release list had no file for the platform. The visitor was sent to the latest release page and `version` is `null`.
 
 ## Privacy
 

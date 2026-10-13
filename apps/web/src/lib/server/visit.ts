@@ -1,5 +1,8 @@
 import { buildEvent, type AnalyticsEvent } from "@deadlock-plus/analytics";
 import { inviteUrl, resolveWebRef, slug } from "@deadlock-plus/links";
+import { REPO_URL } from "@deadlock-plus/links/urls";
+import { LINKS } from "../content/links";
+import type { Release } from "./releases";
 
 const DIRECT = "$direct";
 
@@ -85,6 +88,62 @@ export function discordClick(
             channel: "web",
             known,
             code,
+            $referrer: from.referrer,
+            $referring_domain: from.referringDomain,
+            country,
+        },
+        now,
+    );
+    return { location, event };
+}
+
+const RELEASE_FILE = {
+    windows: "windows",
+    deb: "deb",
+    appimage: "appImage",
+} as const satisfies Record<string, keyof Release>;
+
+export type DownloadPlatform = keyof typeof RELEASE_FILE;
+
+export function isDownloadPlatform(value: string | undefined): value is DownloadPlatform {
+    return value !== undefined && Object.hasOwn(RELEASE_FILE, value);
+}
+
+const RELEASE_FILES = `${REPO_URL}/releases/download/`;
+
+export interface DownloadClick {
+    location: string;
+    event: AnalyticsEvent | null;
+}
+
+/**
+ * The redirect target is a file URL from `releases` or the latest release page, never a value from the request.
+ * `releases` is newest first. A cached list is not re-validated when it is read, so the file URL is checked here.
+ */
+export function downloadClick(
+    request: Request,
+    platform: DownloadPlatform,
+    releases: readonly Release[],
+    country?: string,
+    now = new Date(),
+): DownloadClick {
+    const url = new URL(request.url);
+    const key = RELEASE_FILE[platform];
+    const withFile = releases.filter((release) => release[key]?.startsWith(RELEASE_FILES));
+    const wanted = url.searchParams.get("v");
+    const served = withFile.find((release) => release.version === wanted) ?? withFile[0];
+    const location = served?.[key] ?? LINKS.download;
+    if (isBot(request.headers.get("user-agent"))) return { location, event: null };
+
+    const from = source(url, request.headers.get("referer"));
+    const event = buildEvent(
+        "download_click",
+        {
+            platform,
+            version: served?.version ?? null,
+            latest: served !== undefined && served.version === releases[0]?.version,
+            ref: from.ref,
+            fallback: served === undefined,
             $referrer: from.referrer,
             $referring_domain: from.referringDomain,
             country,

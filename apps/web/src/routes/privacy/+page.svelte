@@ -23,6 +23,11 @@
                 site's address is kept, never the exact page you came from.
             </li>
             <li>A click on a Discord link here is counted the same way, with the name of the link.</li>
+            <li>A click on a download is counted too, with the file type, the version and your country.</li>
+            <li>
+                If you arrive through a link with a source tag, for example from a video, that tag stays in the address
+                while you browse. This lets the site tell which link brought a download. It does not identify you.
+            </li>
             <li>Your IP address is not stored or passed on.</li>
             <li>Every count has a fresh random ID, so two visits cannot be tied to one person.</li>
             <li>

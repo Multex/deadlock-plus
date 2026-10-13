@@ -6,10 +6,13 @@
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import KofiIcon from "@deadlock-plus/ui/icons/kofi.svelte";
     import { LINKS } from "$lib/content/links";
+    import { currentRef, withRef } from "$lib/content/ref";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
 
     let { children } = $props();
+
+    const ref = $derived(currentRef(page.url));
 
     const NAV = [
         { href: "/features", label: "Features" },
@@ -52,7 +55,11 @@
 <div class="flex min-h-dvh flex-col">
     <header class="sticky top-0 z-(--z-local) border-b border-border bg-chrome/95 backdrop-blur">
         <div class="mx-auto flex h-14 max-w-5xl items-center gap-x-2 px-4 sm:px-8">
-            <a href="/" aria-label="Deadlock+ home" class="mr-auto flex h-10 items-center rounded-md sm:h-auto">
+            <a
+                href={withRef("/", ref)}
+                aria-label="Deadlock+ home"
+                class="mr-auto flex h-10 items-center rounded-md sm:h-auto"
+            >
                 <BrandMark wordmark={false} class="sm:hidden" />
                 <BrandMark class="hidden sm:inline-flex" />
             </a>
@@ -60,7 +67,7 @@
                 {#each NAV as item (item.href)}
                     {@const active = page.url.pathname.startsWith(item.href)}
                     <a
-                        href={item.href}
+                        href={withRef(item.href, ref)}
                         aria-current={active ? "page" : undefined}
                         class="flex h-10 items-center rounded-md px-3 font-heading sm:h-9 text-sm font-semibold tracking-wide transition-colors {active
                             ? 'bg-accent text-foreground'
@@ -103,7 +110,7 @@
         <div class="mx-auto max-w-5xl px-4 py-10 text-base sm:px-8">
             <div class="flex flex-col gap-10 md:flex-row md:justify-between">
                 <div class="space-y-3">
-                    <a href="/" aria-label="Deadlock+ home" class="inline-flex items-center rounded-md">
+                    <a href={withRef("/", ref)} aria-label="Deadlock+ home" class="inline-flex items-center rounded-md">
                         <BrandMark />
                     </a>
                     <p class="leading-relaxed text-foreground">A free companion app for Deadlock. No account needed.</p>
@@ -117,7 +124,7 @@
                                     {@const Icon = link.icon}
                                     <li>
                                         <a
-                                            href={link.href}
+                                            href={link.href === LINKS.discord ? link.href : withRef(link.href, ref)}
                                             class="-mx-2 inline-flex h-9 items-center gap-2 rounded-md px-2 whitespace-nowrap text-foreground transition-colors hover:bg-accent/50 hover:text-brass focus-visible:bg-accent/50 focus-visible:text-brass"
                                         >
                                             {#if Icon}

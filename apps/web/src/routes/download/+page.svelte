@@ -2,6 +2,8 @@
     import Seo from "$lib/components/seo.svelte";
     import { ChevronDown, Download } from "@lucide/svelte";
     import { LINKS } from "$lib/content/links";
+    import { currentRef, downloadHref } from "$lib/content/ref";
+    import { page } from "$app/state";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
@@ -18,6 +20,8 @@
 
     let { data } = $props();
 
+    const ref = $derived(currentRef(page.url));
+
     // UTC, so the server and the browser print the same day.
     const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" });
     const formatDate = (iso: string) => dateFormat.format(new Date(iso));
@@ -26,7 +30,7 @@
     const latestWindows = $derived(windows[0]);
     const olderWindows = $derived<Choice[]>(
         windows.slice(1).map((release) => ({
-            href: release.windows ?? "",
+            href: downloadHref("windows", release.version, ref),
             label: `Version ${release.version}`,
             note: formatDate(release.date),
         })),
@@ -39,14 +43,14 @@
 
     function linuxChoices(release: (typeof data.releases)[number], withVersion: boolean): Choice[] {
         const files = [
-            { href: release.deb, name: ".deb", note: "Ubuntu, Debian, Mint" },
-            { href: release.appImage, name: "AppImage", note: "Any other system" },
+            { file: release.deb, platform: "deb" as const, name: ".deb", note: "Ubuntu, Debian, Mint" },
+            { file: release.appImage, platform: "appimage" as const, name: "AppImage", note: "Any other system" },
         ];
-        return files.flatMap(({ href, name, note }) =>
-            href
+        return files.flatMap(({ file, platform, name, note }) =>
+            file
                 ? [
                       {
-                          href,
+                          href: downloadHref(platform, release.version, ref),
                           label: withVersion ? `Version ${release.version}, ${name}` : name,
                           note: withVersion ? formatDate(release.date) : note,
                       },
@@ -95,7 +99,10 @@
             <p class="mt-1 text-sm text-muted-foreground">For Windows 10 and Windows 11.</p>
 
             <div class="mt-4 flex flex-wrap items-center gap-2">
-                <a href={latestWindows?.windows ?? LINKS.download} class={buttonVariants({ size: "lg" })}>
+                <a
+                    href={latestWindows ? downloadHref("windows", latestWindows.version, ref) : LINKS.download}
+                    class={buttonVariants({ size: "lg" })}
+                >
                     <Download />
                     Download for Windows
                 </a>
