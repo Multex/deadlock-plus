@@ -44,8 +44,8 @@ for (const category of categories) {
 
 test("/settings opens the first settings category", async ({ page }) => {
     await page.goto("/settings");
+    await expect(page).toHaveURL(new RegExp(`/settings/${categories[0]}$`));
     await settle(page);
-    expect(new URL(page.url()).pathname).toBe(`/settings/${categories[0]}`);
     await expect(page.getByRole("main")).toBeVisible();
 });
 

@@ -138,7 +138,7 @@ describe("game data cache", () => {
     it("says the cache is cold and the network is needed when the fetch fails, and tries again next time", async () => {
         const dir = tempDir();
         const down = server(new Error("getaddrinfo ENOTFOUND api.deadlock-api.com"));
-        const cache = createGameDataCache({ dir, offline: false });
+        const cache = createGameDataCache({ dir, offline: false, retryDelayMs: 0 });
 
         await assert.rejects(cache.get(HEROES, down.fetcher(HEROES)), (error) => {
             assert.match(error.message, /cache is cold/);
@@ -150,6 +150,23 @@ describe("game data cache", () => {
 
         const up = server();
         assert.equal((await cache.get(HEROES, up.fetcher(HEROES))).status, 200);
+    });
+
+    it("asks again when a fetch drops, and gives up after three tries", async () => {
+        let calls = 0;
+        const flaky = async () => {
+            calls++;
+            if (calls < 3) throw new Error("route.fetch: read ECONNRESET");
+            return { status: 200, headers: { "content-type": "image/webp" }, body: Buffer.from("art") };
+        };
+        const cache = createGameDataCache({ dir: tempDir(), offline: false, retryDelayMs: 0 });
+        assert.equal((await cache.get(ICON, flaky)).status, 200);
+        assert.equal(calls, 3);
+
+        const down = server(new Error("route.fetch: read ECONNRESET"));
+        const cold = createGameDataCache({ dir: tempDir(), offline: false, retryDelayMs: 0 });
+        await assert.rejects(cold.get(ICON, down.fetcher(ICON)), /cache is cold/);
+        assert.equal(down.calls.length, 3);
     });
 
     it("fails a miss at once when offline, naming the URL, without asking the network", async () => {

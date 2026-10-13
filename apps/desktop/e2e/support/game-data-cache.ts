@@ -74,7 +74,29 @@ function store(dir: string, entry: Entry): void {
     appendFileSync(path.join(dir, NETWORK_LOG), `${entry.url}\n`);
 }
 
-export function createGameDataCache({ dir, offline }: { dir: string; offline: boolean }): GameDataCache {
+const FETCH_ATTEMPTS = 3;
+
+// The asset host drops connections when a cold run asks for many files at once.
+async function fetchWithRetries(fetch: () => Promise<Fetched>, delayMs: number): Promise<Fetched> {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await fetch();
+        } catch (cause) {
+            if (attempt === FETCH_ATTEMPTS) throw cause;
+            await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+        }
+    }
+}
+
+export function createGameDataCache({
+    dir,
+    offline,
+    retryDelayMs = 500,
+}: {
+    dir: string;
+    offline: boolean;
+    retryDelayMs?: number;
+}): GameDataCache {
     const loading = new Map<string, Promise<Entry>>();
 
     async function load(url: string, fetch: () => Promise<Fetched>): Promise<Entry> {
@@ -87,7 +109,7 @@ export function createGameDataCache({ dir, offline }: { dir: string; offline: bo
 
         let fetched: Fetched;
         try {
-            fetched = await fetch();
+            fetched = await fetchWithRetries(fetch, retryDelayMs);
         } catch (cause) {
             const reason = cause instanceof Error ? cause.message : String(cause);
             throw new Error(
