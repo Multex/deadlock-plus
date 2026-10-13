@@ -57,7 +57,7 @@ jobs:
           workspaces: .
           key: ${{ matrix.name }}
 
-      - run: pnpm install --frozen-lockfile --filter deadlock-plus
+      - run: pnpm install --frozen-lockfile --filter "deadlock-plus..."
 
       # Built against glibc 2.31 so it loads inside Steam's Debian 11 based runtime container. The runner's own
       # glibc is too new for that, so the layer cannot be built with plain cargo here.

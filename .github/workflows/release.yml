@@ -46,7 +46,7 @@ jobs:
         with:
           workspaces: .
 
-      - run: pnpm install --frozen-lockfile --filter deadlock-plus
+      - run: pnpm install --frozen-lockfile --filter "deadlock-plus..."
       - run: pnpm version:check
         working-directory: apps/desktop
 
@@ -144,7 +144,7 @@ jobs:
           workspaces: .
           key: linux-x64
 
-      - run: pnpm install --frozen-lockfile --filter deadlock-plus
+      - run: pnpm install --frozen-lockfile --filter "deadlock-plus..."
       - run: pnpm version:check
         working-directory: apps/desktop
 

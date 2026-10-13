@@ -47,7 +47,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile --filter crowdin-relay
+      - run: pnpm install --frozen-lockfile --filter "crowdin-relay..."
         if: steps.gate.outputs.enabled == 'true'
 
       - run: pnpm test
