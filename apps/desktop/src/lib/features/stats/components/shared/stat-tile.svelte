@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
 
     let { label, value, children }: { label: string; value: string; children?: Snippet } = $props();
 </script>

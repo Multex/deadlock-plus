@@ -1,10 +1,10 @@
 <script lang="ts">
     import { formatDate, t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { formatPlaytime } from "../../stats";
     import { signed } from "../../format";
     import SyncingBadge from "../shared/syncing-badge.svelte";
-    import { sessionVerdict, summarizeSession, type Session, type Verdict } from "../../sessions";
+    import { sessionVerdict, summarizeSession, type Session, type Verdict } from "@deadlock-plus/stats/sessions";
 
     let { session }: { session: Session } = $props();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import { tipPlacement, type Size } from "../../../deep-dive/chart";
+    import { tipPlacement, type Size } from "@deadlock-plus/match/deep-dive/chart";
 
     let { anchor, area, children }: { anchor: { x: number; y: number }; area: Size; children: Snippet } = $props();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t, tn } from "$lib/core/i18n.svelte";
-    import type { LossOutcome, WindowStats } from "../../rank";
-    import { gainForWin } from "../../rank";
+    import type { LossOutcome, WindowStats } from "@deadlock-plus/stats/rank";
+    import { gainForWin } from "@deadlock-plus/stats/rank";
     import { pct, signed } from "../../format";
     import StatTile from "../shared/stat-tile.svelte";
 

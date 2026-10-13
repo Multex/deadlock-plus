@@ -1,11 +1,11 @@
 <script lang="ts">
     import { Braces, CircleHelp } from "@lucide/svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import * as DropdownMenu from "$lib/ui/dropdown-menu";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import { t } from "$lib/core/i18n.svelte";
     import { PLACEHOLDER_HELP } from "./labels";
-    import type { PresencePlaceholder } from "$lib/generated/types/PresencePlaceholder";
+    import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
 
     let {
         placeholders,

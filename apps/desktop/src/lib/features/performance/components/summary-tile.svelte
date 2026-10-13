@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
 
     type Props = {
         label: string;

@@ -1,5 +1,5 @@
 import { t } from "$lib/core/i18n.svelte";
-import type { MaintenanceSchedule } from "$lib/generated/types/MaintenanceSchedule";
+import type { MaintenanceSchedule } from "@deadlock-plus/ipc-types/MaintenanceSchedule";
 
 export type { MaintenanceSchedule };
 

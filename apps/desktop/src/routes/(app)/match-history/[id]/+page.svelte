@@ -3,18 +3,18 @@
     import { ArrowLeft, LoaderCircle } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
-    import Page from "$lib/ui/page.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
     import ExportControl from "$lib/features/match-history/components/detail/export-control.svelte";
     import DeepDive from "$lib/features/match-history/components/detail/deep-dive.svelte";
     import Ping from "$lib/features/match-history/components/detail/ping.svelte";
     import Replay from "$lib/features/match-history/components/detail/replay.svelte";
     import Scoreboard from "$lib/features/match-history/components/detail/scoreboard.svelte";
-    import { headerSummary } from "$lib/features/match-history/components/detail/scoreboard";
+    import { headerSummary } from "@deadlock-plus/match/scoreboard";
     import Summary from "$lib/features/match-history/components/detail/summary.svelte";
-    import { findPlayer } from "$lib/features/match-history/detail";
-    import { versusFor } from "$lib/features/match-history/versus";
+    import { findPlayer } from "@deadlock-plus/match/detail";
+    import { versusFor } from "@deadlock-plus/match/versus";
     import { matchHistory } from "$lib/features/match-history/history.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
 

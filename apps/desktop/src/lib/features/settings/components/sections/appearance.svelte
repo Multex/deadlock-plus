@@ -1,14 +1,14 @@
 <script lang="ts">
-    import Card from "$lib/ui/card.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import type { Component } from "svelte";
     import { Monitor, Sparkles, Turtle } from "@lucide/svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { THEMES, resolveMotionPreference } from "$lib/features/settings/themes";
-    import { radioTarget } from "$lib/core/radio-group";
+    import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { t } from "$lib/core/i18n.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();

@@ -1,8 +1,8 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import type { PatchSearchResult } from "$lib/generated/types/PatchSearchResult";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import type { PatchSearchResult } from "@deadlock-plus/ipc-types/PatchSearchResult";
     import { formatPublished, searchResultKeys, sourceLabel } from "../alerts";
 
     type Props = {

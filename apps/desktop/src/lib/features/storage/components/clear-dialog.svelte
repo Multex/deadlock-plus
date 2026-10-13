@@ -1,6 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import * as AlertDialog from "$lib/ui/alert-dialog";
+    import * as AlertDialog from "@deadlock-plus/ui/alert-dialog";
 
     type Props = {
         open: boolean;

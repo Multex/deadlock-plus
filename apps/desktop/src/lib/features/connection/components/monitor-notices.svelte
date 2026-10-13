@@ -1,7 +1,7 @@
 <script lang="ts">
     import { TriangleAlert } from "@lucide/svelte";
 
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { NetworkSnapshot } from "../types";
 

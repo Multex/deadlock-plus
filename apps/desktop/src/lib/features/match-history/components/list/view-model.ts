@@ -1,8 +1,8 @@
-import type { Outcome } from "$lib/features/stats/stats";
+import type { Outcome } from "@deadlock-plus/stats/stats";
 import { signed } from "$lib/features/stats/format";
-import type { SelectMenuItem } from "$lib/ui/select-menu";
-import { DEFAULT_FILTERS, type ModeFilter, type RowFilters } from "../../filters";
-import type { MatchRow, RowMode } from "../../list";
+import type { SelectMenuItem } from "@deadlock-plus/ui/select-menu";
+import { DEFAULT_FILTERS, type ModeFilter, type RowFilters } from "@deadlock-plus/match/filters";
+import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
 
 export type DeltaTone = "up" | "down" | "flat" | "none";
 

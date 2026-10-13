@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Maximize2, Minimize2 } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import LogView from "$lib/features/logging/components/log-view.svelte";
     import { settingsUi } from "$lib/features/settings/ui.svelte";
 

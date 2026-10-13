@@ -1,9 +1,9 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
-    import type { HeroStat } from "../../stats";
-    import { BEST_HERO_MIN_GAMES } from "../../hero-rows";
+    import type { HeroStat } from "@deadlock-plus/stats/stats";
+    import { BEST_HERO_MIN_GAMES } from "@deadlock-plus/stats/hero-rows";
     import { pct } from "../../format";
     import HeroIcon from "./hero-icon.svelte";
 

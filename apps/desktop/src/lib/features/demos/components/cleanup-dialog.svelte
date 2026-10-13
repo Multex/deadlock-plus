@@ -3,10 +3,10 @@
 
     import { errorText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Input from "$lib/ui/input.svelte";
-    import Switch from "$lib/ui/switch.svelte";
-    import * as Dialog from "$lib/ui/dialog";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
+    import * as Dialog from "@deadlock-plus/ui/dialog";
     import { cleanupMatches, listCleanupRules, saveCleanupRules } from "$lib/features/demos/api";
     import {
         formatBytes,

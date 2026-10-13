@@ -1,6 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import type { Lane } from "../../../deep-dive/lanes";
+    import type { Lane } from "@deadlock-plus/match/deep-dive/lanes";
 
     let { lane, ordinal }: { lane?: Lane; ordinal?: number } = $props();
 

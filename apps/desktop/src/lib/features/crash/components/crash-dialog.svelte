@@ -2,8 +2,8 @@
     import { onMount } from "svelte";
     import { afterNavigate, beforeNavigate } from "$app/navigation";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import * as Dialog from "$lib/ui/dialog";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import * as Dialog from "@deadlock-plus/ui/dialog";
     import { attachNote, crashDetail, crashHeading, crashTimeLabel, shouldShowCrash } from "../crash-dialog";
     import { crashPrompt } from "../crash-prompt.svelte";
 

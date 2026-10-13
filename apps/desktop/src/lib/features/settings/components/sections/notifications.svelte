@@ -1,11 +1,11 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
-    import Input from "$lib/ui/input.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
     import { BellRing, CalendarDays } from "@lucide/svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { formatTime, LEAD_OPTIONS, parseTime, weekdays } from "$lib/features/settings/maintenance";
     import { leadItems, weekdayItems } from "./select-items";

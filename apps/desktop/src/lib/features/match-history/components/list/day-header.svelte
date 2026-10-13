@@ -1,6 +1,6 @@
 <script lang="ts">
     import { formatDate, t } from "$lib/core/i18n.svelte";
-    import { dayKey, type DayGroup } from "../../list-summary";
+    import { dayKey, type DayGroup } from "@deadlock-plus/match/list-summary";
 
     let { group, nowS }: { group: DayGroup; nowS: number } = $props();
 

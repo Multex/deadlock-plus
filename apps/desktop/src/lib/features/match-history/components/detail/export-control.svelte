@@ -5,9 +5,9 @@
     import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { loadHeroes } from "$lib/features/heroes/heroes";
-    import Button from "$lib/ui/button.svelte";
-    import { findPlayer, type MatchDetail } from "../../detail";
-    import { exportFileName, runExport, type ExportKind } from "../../export";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import { findPlayer, type MatchDetail } from "@deadlock-plus/match/detail";
+    import { exportFileName, runExport, type ExportKind } from "@deadlock-plus/match/export";
     import { copyImage, documentHasFocus, renderNodeToPng, saveImage, waitForWindowFocus } from "../../export-dom";
 
     let { node, detail, ownAccountId }: { node: HTMLElement | null; detail: MatchDetail; ownAccountId: number | null } =

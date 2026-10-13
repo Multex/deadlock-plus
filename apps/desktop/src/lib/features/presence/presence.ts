@@ -1,11 +1,11 @@
 import type { Hero } from "$lib/features/heroes/heroes";
 import { t } from "$lib/core/i18n.svelte";
-import type { DiscordClientKind } from "$lib/generated/types/DiscordClientKind";
-import type { PresenceHeroArt } from "$lib/generated/types/PresenceHeroArt";
-import type { PresenceClient } from "$lib/generated/types/PresenceClient";
-import type { PresenceLevelSetting } from "$lib/generated/types/PresenceLevelSetting";
-import type { PresenceSettings } from "$lib/generated/types/PresenceSettings";
-import type { PresenceStatus } from "$lib/generated/types/PresenceStatus";
+import type { DiscordClientKind } from "@deadlock-plus/ipc-types/DiscordClientKind";
+import type { PresenceHeroArt } from "@deadlock-plus/ipc-types/PresenceHeroArt";
+import type { PresenceClient } from "@deadlock-plus/ipc-types/PresenceClient";
+import type { PresenceLevelSetting } from "@deadlock-plus/ipc-types/PresenceLevelSetting";
+import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
+import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
 
 export const ALL_CLIENT_KINDS: DiscordClientKind[] = ["stable", "ptb", "canary", "other"];
 export const PRESENCE_LEVELS: PresenceLevelSetting[] = ["off", "basic", "detailed"];

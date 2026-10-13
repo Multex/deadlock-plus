@@ -1,4 +1,4 @@
-import type { LogEntry as GeneratedLogEntry } from "$lib/generated/types/LogEntry";
+import type { LogEntry as GeneratedLogEntry } from "@deadlock-plus/ipc-types/LogEntry";
 
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 

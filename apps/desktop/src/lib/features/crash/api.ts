@@ -1,5 +1,5 @@
 import { command } from "$lib/core/tauri";
-import type { CrashReport } from "$lib/generated/types/CrashReport";
+import type { CrashReport } from "@deadlock-plus/ipc-types/CrashReport";
 
 /** The newest unhandled crash from the last run, or null. Call once at launch. */
 export const pendingCrash = () => command<CrashReport | null>("pending_crash");

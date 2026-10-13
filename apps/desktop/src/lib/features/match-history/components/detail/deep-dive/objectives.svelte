@@ -17,9 +17,10 @@
     } from "@lucide/svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import { objectiveNameKey, objectiveRows } from "../../../deep-dive/objective-rows";
-    import type { ObjectiveKind } from "../../../deep-dive/names";
-    import type { MatchDetail, MatchTeam } from "../../../detail";
+    import { objectiveRows } from "@deadlock-plus/match/deep-dive/objective-rows";
+    import { objectiveNameKey } from "../../../deep-dive/objective-rows";
+    import type { ObjectiveKind } from "@deadlock-plus/match/deep-dive/names";
+    import type { MatchDetail, MatchTeam } from "@deadlock-plus/match/detail";
     import LaneChip from "./lane-chip.svelte";
     import SectionCard from "./section-card.svelte";
     import TeamMark from "./team-mark.svelte";

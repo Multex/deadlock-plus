@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
 
     let { lossStreak, suggest }: { lossStreak: number; suggest: boolean } = $props();

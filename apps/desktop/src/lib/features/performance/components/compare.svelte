@@ -7,10 +7,10 @@
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import { saveTextFile } from "$lib/core/files";
 
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
 
     import { formatDuration } from "$lib/features/performance/performance";
     import {

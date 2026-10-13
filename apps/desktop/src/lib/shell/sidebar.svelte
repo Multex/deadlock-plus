@@ -3,7 +3,7 @@
     import AccountChip from "$lib/components/account-chip.svelte";
     import DiscordLink from "$lib/components/discord-link.svelte";
     import SupportLink from "$lib/components/support-link.svelte";
-    import * as Tooltip from "$lib/ui/tooltip";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { Settings } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { navLabel } from "./nav-labels";

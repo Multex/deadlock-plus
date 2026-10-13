@@ -2,10 +2,10 @@
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
     import { Copy } from "@lucide/svelte";
-    import Badge from "$lib/ui/badge.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { presencePreview } from "$lib/features/presence/api";
-    import type { PresencePlaceholder } from "$lib/generated/types/PresencePlaceholder";
+    import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
     import { SYNTAX_EXAMPLES, groupPlaceholders, renderTemplate } from "./editor";
     import { PLACEHOLDER_GROUP_LABELS, PLACEHOLDER_HELP, SYNTAX_LABELS } from "./labels";
 

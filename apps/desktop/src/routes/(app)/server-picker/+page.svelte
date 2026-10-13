@@ -2,11 +2,11 @@
     import { onMount } from "svelte";
     import { Layers, RefreshCw, Search, ShieldOff } from "@lucide/svelte";
 
-    import Button from "$lib/ui/button.svelte";
-    import Input from "$lib/ui/input.svelte";
-    import ConfirmDialog from "$lib/ui/confirm-dialog.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
+    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
     import { createPoller } from "$lib/core/poller";
 

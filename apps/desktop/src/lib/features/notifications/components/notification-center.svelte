@@ -2,8 +2,8 @@
     import { goto } from "$app/navigation";
     import { Bell, CalendarClock, Check, Megaphone, Server } from "@lucide/svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
-    import * as DropdownMenu from "$lib/ui/dropdown-menu";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { notifications } from "$lib/features/notifications/notifications.svelte";
     import { formatRelative, notificationText, type AppNotification } from "$lib/features/notifications/notifications";
 

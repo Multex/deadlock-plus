@@ -2,9 +2,9 @@
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
     import { CircleHelp, Copy, RotateCcw, Upload, Users } from "@lucide/svelte";
-    import Button from "$lib/ui/button.svelte";
-    import ConfirmDialog from "$lib/ui/confirm-dialog.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { errorText } from "$lib/core/errors";
@@ -13,9 +13,9 @@
     import { loadRankTiers, rankNames as namesOf } from "$lib/features/ranks/ranks";
     import { isCustomised, resetScope, type Scope } from "$lib/features/presence/config";
     import { presenceConfigStore as store } from "$lib/features/presence/config.svelte";
-    import type { PresenceCard } from "$lib/generated/types/PresenceCard";
-    import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-    import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+    import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
+    import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+    import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
     import CardPreview from "./card-preview.svelte";
     import SlotFields from "./slot-fields.svelte";
     import StateList from "./state-list.svelte";

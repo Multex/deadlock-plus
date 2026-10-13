@@ -1,4 +1,4 @@
-import type { PresenceStateInfo } from "$lib/generated/types/PresenceStateInfo";
+import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
 import { describe, expect, it, vi } from "vitest";
 import {
     SOURCE_KINDS,

@@ -1,5 +1,5 @@
 import { command } from "$lib/core/tauri";
-import type { MatchPingSeries } from "$lib/generated/types/MatchPingSeries";
+import type { MatchPingSeries } from "@deadlock-plus/ipc-types/MatchPingSeries";
 import type { EnginePingView, HistoryPoint, NetworkPoll, NetworkSnapshot, PingSummary } from "./types";
 
 /** `allowPrompt` says the user asked for it, so the system may ask for a password. */

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { IngestChoice } from "../../onboarding";

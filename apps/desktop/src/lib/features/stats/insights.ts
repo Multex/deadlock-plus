@@ -1,7 +1,7 @@
 import { t } from "$lib/core/i18n.svelte";
 import { pct } from "./format";
-import { bucket, MIN_SAMPLE, scored, type Bucket, type Session } from "./sessions";
-import type { Match } from "./stats";
+import { bucket, MIN_SAMPLE, scored, type Bucket, type Session } from "@deadlock-plus/stats/sessions";
+import type { Match } from "@deadlock-plus/stats/stats";
 
 export type Tone = "better" | "worse" | "same" | "unknown";
 

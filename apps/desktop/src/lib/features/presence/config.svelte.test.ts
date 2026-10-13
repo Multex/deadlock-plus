@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PresenceConfigStore, type PresenceConfigApi } from "./config.svelte";
 
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
 
 const empty = (): PresenceConfig => ({ states: {}, variants: {}, heroes: {} });
 const withDetails = (details: string): PresenceConfig => ({

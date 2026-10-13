@@ -4,7 +4,7 @@
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import { formatClock } from "$lib/features/live/live";
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import {
         chartDomain,
         edgeLabelTop,
@@ -24,9 +24,9 @@
         type LinePoint,
         type Metric,
         type TimeTick,
-    } from "../../../deep-dive/chart";
-    import { teamRoster } from "../../../deep-dive/roster";
-    import { allPlayers, type MatchDetail, type MatchPlayer, type MatchTeam } from "../../../detail";
+    } from "@deadlock-plus/match/deep-dive/chart";
+    import { teamRoster } from "@deadlock-plus/match/deep-dive/roster";
+    import { allPlayers, type MatchDetail, type MatchPlayer, type MatchTeam } from "@deadlock-plus/match/detail";
     import ChartTip from "./chart-tip.svelte";
     import HeroChip from "./hero-chip.svelte";
     import SectionCard from "./section-card.svelte";

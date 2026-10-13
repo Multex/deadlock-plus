@@ -1,11 +1,11 @@
 <script lang="ts">
-    import Switch from "$lib/ui/switch.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { effectiveSlot, isCustomised, isEnabled, setField, type Scope } from "$lib/features/presence/config";
-    import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
-    import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-    import type { PresenceStateInfo } from "$lib/generated/types/PresenceStateInfo";
-    import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+    import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
+    import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+    import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
+    import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
     import { scopeFor } from "./editor";
     import { STATE_ICONS, STATE_LABELS, VARIANT_LABELS } from "./labels";
 

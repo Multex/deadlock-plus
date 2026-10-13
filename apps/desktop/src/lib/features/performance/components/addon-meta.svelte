@@ -1,6 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
     import type { AddonInfo, AddonScan } from "../api";
     import { addonTitle } from "../performance";
 

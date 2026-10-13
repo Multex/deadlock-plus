@@ -1,8 +1,8 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { ArrowLeft, Search } from "@lucide/svelte";
-    import * as Tooltip from "$lib/ui/tooltip";
-    import Input from "$lib/ui/input.svelte";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import Input from "@deadlock-plus/ui/input.svelte";
     import SupportLink from "$lib/components/support-link.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { CATEGORIES, matchingCategories, matchingItems } from "../catalog";

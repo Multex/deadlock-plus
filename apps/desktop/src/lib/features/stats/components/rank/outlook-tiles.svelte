@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import type { Forecast } from "../../climb";
-    import type { WindowStats } from "../../rank";
+    import type { Forecast } from "@deadlock-plus/stats/climb";
+    import type { WindowStats } from "@deadlock-plus/stats/rank";
     import { etaText, pct, signed } from "../../format";
     import StatTile from "../shared/stat-tile.svelte";
 

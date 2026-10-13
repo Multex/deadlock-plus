@@ -3,9 +3,9 @@
     import { Play, Square } from "@lucide/svelte";
 
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import Input from "$lib/ui/input.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
 
     import FrameLayerSetup from "$lib/features/performance/components/frame-layer-setup.svelte";
     import { frameCapture } from "$lib/features/performance/frames.svelte";

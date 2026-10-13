@@ -1,8 +1,8 @@
 <script lang="ts">
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import type { MatchTeam } from "../../detail";
-    import type { DamageSplit, MapObjectInfo } from "../../map-object-info";
+    import type { MatchTeam } from "@deadlock-plus/match/detail";
+    import type { DamageSplit, MapObjectInfo } from "@deadlock-plus/match/map-object-info";
     import LaneChip from "./deep-dive/lane-chip.svelte";
 
     let { title, info }: { title: string; info: MapObjectInfo } = $props();

@@ -2,7 +2,7 @@ import { createPoller } from "$lib/core/poller";
 import { ingestStatus as fetchIngestStatus } from "./api";
 
 import { ingestStatusView, type IngestStatusView } from "./status";
-import type { IngestStatus } from "$lib/generated/types/IngestStatus";
+import type { IngestStatus } from "@deadlock-plus/ipc-types/IngestStatus";
 
 export type { IngestStatusView };
 

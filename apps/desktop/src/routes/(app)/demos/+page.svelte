@@ -3,10 +3,10 @@
     import { Eraser, FolderOpen, RefreshCw, Trash2 } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import CleanupDialog from "$lib/features/demos/components/cleanup-dialog.svelte";
     import DeleteDialog from "$lib/features/demos/components/delete-dialog.svelte";

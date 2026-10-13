@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { Component } from "svelte";
     import { Gamepad2, Image, Link, Medal, SquareUser } from "@lucide/svelte";
-    import Input from "$lib/ui/input.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import type { PresencePartialImage } from "$lib/generated/types/PresencePartialImage";
+    import type { PresencePartialImage } from "@deadlock-plus/ipc-types/PresencePartialImage";
     import FieldFrame from "./field-frame.svelte";
     import { sourceFromKind, sourceKind, sourceUrl, type SourceKind } from "./editor";
     import { SOURCE_LABELS } from "./labels";

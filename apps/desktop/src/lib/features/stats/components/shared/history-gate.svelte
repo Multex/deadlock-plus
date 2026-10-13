@@ -3,7 +3,7 @@
     import { LoaderCircle } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import { stats } from "../../stats.svelte";
 

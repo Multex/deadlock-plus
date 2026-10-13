@@ -2,7 +2,7 @@
     import { ChevronLeft, ChevronRight } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
 
     let { page = $bindable(0), count }: { page?: number; count: number } = $props();
 </script>

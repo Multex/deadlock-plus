@@ -1,9 +1,9 @@
-import type { PingStats } from "$lib/generated/types/PingStats";
-import type { RelayInfo } from "$lib/generated/types/RelayInfo";
-import type { NetworkSnapshot } from "$lib/generated/types/NetworkSnapshot";
-import type { HistoryPoint } from "$lib/generated/types/HistoryPoint";
-import type { EnginePingView } from "$lib/generated/types/EnginePingView";
-import type { PingSummary } from "$lib/generated/types/PingSummary";
+import type { PingStats } from "@deadlock-plus/ipc-types/PingStats";
+import type { RelayInfo } from "@deadlock-plus/ipc-types/RelayInfo";
+import type { NetworkSnapshot } from "@deadlock-plus/ipc-types/NetworkSnapshot";
+import type { HistoryPoint } from "@deadlock-plus/ipc-types/HistoryPoint";
+import type { EnginePingView } from "@deadlock-plus/ipc-types/EnginePingView";
+import type { PingSummary } from "@deadlock-plus/ipc-types/PingSummary";
 
 export type { EnginePingView, PingStats, RelayInfo, NetworkSnapshot, HistoryPoint, PingSummary };
 

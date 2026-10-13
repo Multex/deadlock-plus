@@ -3,9 +3,9 @@
 
     import { t } from "$lib/core/i18n.svelte";
     import { createPoller } from "$lib/core/poller";
-    import Badge from "$lib/ui/badge.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
 
     import CurrentServer from "$lib/features/connection/components/current-server.svelte";
     import HistoryCard from "$lib/features/connection/components/history-card.svelte";

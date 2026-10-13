@@ -12,7 +12,7 @@ import {
     toggleClient,
 } from "./presence";
 
-import type { PresenceStatus } from "$lib/generated/types/PresenceStatus";
+import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
 
 describe("resolvePresence", () => {
     it("defaults to off with every client", () => {

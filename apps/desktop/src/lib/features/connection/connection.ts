@@ -1,5 +1,5 @@
 import { t } from "$lib/core/i18n.svelte";
-import type { BadgeVariant } from "$lib/ui/badge.svelte";
+import type { BadgeVariant } from "@deadlock-plus/ui/badge.svelte";
 import type { HistoryPoint } from "./types";
 
 export const HISTORY_SHOWN = 300;

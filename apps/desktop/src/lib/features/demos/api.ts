@@ -1,13 +1,13 @@
 import { command } from "$lib/core/tauri";
 
-import type { CleanupMatch } from "$lib/generated/types/CleanupMatch";
-import type { CleanupRule } from "$lib/generated/types/CleanupRule";
-import type { DeleteMode } from "$lib/generated/types/DeleteMode";
-import type { DeletePreview } from "$lib/generated/types/DeletePreview";
-import type { DeleteReport } from "$lib/generated/types/DeleteReport";
-import type { Demo } from "$lib/generated/types/Demo";
-import type { DemoListing } from "$lib/generated/types/DemoListing";
-import type { MetaResult } from "$lib/generated/types/MetaResult";
+import type { CleanupMatch } from "@deadlock-plus/ipc-types/CleanupMatch";
+import type { CleanupRule } from "@deadlock-plus/ipc-types/CleanupRule";
+import type { DeleteMode } from "@deadlock-plus/ipc-types/DeleteMode";
+import type { DeletePreview } from "@deadlock-plus/ipc-types/DeletePreview";
+import type { DeleteReport } from "@deadlock-plus/ipc-types/DeleteReport";
+import type { Demo } from "@deadlock-plus/ipc-types/Demo";
+import type { DemoListing } from "@deadlock-plus/ipc-types/DemoListing";
+import type { MetaResult } from "@deadlock-plus/ipc-types/MetaResult";
 
 export function fetchDemoMetadata(matchId: number) {
     return command<MetaResult>("demo_metadata", { matchId });

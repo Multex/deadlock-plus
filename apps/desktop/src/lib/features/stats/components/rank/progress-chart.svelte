@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { CHART_H, CHART_PAD, CHART_W, type RankChart } from "../../rank-view";
 
     let { chart, shown = $bindable() }: { chart: RankChart | null; shown: number } = $props();

@@ -1,4 +1,4 @@
-import type { AutostartStatus } from "$lib/generated/types/AutostartStatus";
+import type { AutostartStatus } from "@deadlock-plus/ipc-types/AutostartStatus";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 

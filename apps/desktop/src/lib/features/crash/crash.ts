@@ -1,5 +1,5 @@
-import type { CrashKind } from "$lib/generated/types/CrashKind";
-import type { CrashReport } from "$lib/generated/types/CrashReport";
+import type { CrashKind } from "@deadlock-plus/ipc-types/CrashKind";
+import type { CrashReport } from "@deadlock-plus/ipc-types/CrashReport";
 
 export type { CrashKind, CrashReport };
 

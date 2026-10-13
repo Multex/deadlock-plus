@@ -1,5 +1,5 @@
 import { errorText } from "$lib/core/errors";
-import type { IngestStatus } from "$lib/generated/types/IngestStatus";
+import type { IngestStatus } from "@deadlock-plus/ipc-types/IngestStatus";
 
 export type IngestStatusView = Omit<IngestStatus, "lastError"> & { lastError: string | null };
 

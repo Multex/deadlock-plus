@@ -2,6 +2,8 @@
     import "../app.css";
     import { afterNavigate } from "$app/navigation";
     import { Toaster } from "svelte-sonner";
+    import { setOverlayHost } from "@deadlock-plus/ui/overlay-host";
+    import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import Titlebar from "$lib/shell/titlebar.svelte";
     import { useAppShell } from "$lib/shell/startup.svelte";
     import CommandPalette from "$lib/features/keyboard/components/command-palette.svelte";
@@ -13,6 +15,7 @@
     let { children } = $props();
 
     useAppShell();
+    setOverlayHost(overlayHost);
 
     afterNavigate(({ to }) => {
         if (to) trackRoute(to.url.pathname, trackFeature);

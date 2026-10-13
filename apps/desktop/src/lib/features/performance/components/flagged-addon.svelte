@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Badge, { type BadgeVariant } from "$lib/ui/badge.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Badge, { type BadgeVariant } from "@deadlock-plus/ui/badge.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import type { AddonInfo, AddonScan, Severity } from "../api";
     import { flattenFindings, ruleTitle, severityLabel, worstSeverity } from "../performance";
     import AddonMeta from "./addon-meta.svelte";

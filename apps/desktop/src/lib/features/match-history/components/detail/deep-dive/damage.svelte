@@ -3,8 +3,8 @@
     import { Ellipsis, Swords, Target } from "@lucide/svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
-    import { reduceDamageMatrix } from "../../../deep-dive/damage";
-    import { allPlayers, type MatchDetail } from "../../../detail";
+    import { reduceDamageMatrix } from "@deadlock-plus/match/deep-dive/damage";
+    import { allPlayers, type MatchDetail } from "@deadlock-plus/match/detail";
     import HeroChip from "./hero-chip.svelte";
     import SectionCard from "./section-card.svelte";
 

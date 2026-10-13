@@ -1,5 +1,5 @@
 <script lang="ts">
-    import BrandMark from "$lib/ui/brand-mark.svelte";
+    import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
 
     let { label }: { label: string } = $props();
 </script>

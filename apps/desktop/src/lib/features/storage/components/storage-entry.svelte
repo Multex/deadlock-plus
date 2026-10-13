@@ -2,9 +2,9 @@
     import { ArrowRight, Eraser, FolderOpen, LoaderCircle } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { formatBytes } from "$lib/features/demos/demos";
     import {
         describeUnits,

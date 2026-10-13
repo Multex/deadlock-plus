@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Input from "$lib/ui/input.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
     import FieldFrame from "./field-frame.svelte";
 
     let {

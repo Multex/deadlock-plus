@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { RankTier } from "$lib/features/stats/rank";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
     import { partsName } from "$lib/features/stats/rank-view";
     import { rankView } from "../live";
 

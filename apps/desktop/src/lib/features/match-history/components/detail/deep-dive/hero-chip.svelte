@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Hero } from "$lib/features/heroes/heroes";
     import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
-    import type { MatchTeam } from "../../../detail";
+    import type { MatchTeam } from "@deadlock-plus/match/detail";
 
     let {
         heroId,

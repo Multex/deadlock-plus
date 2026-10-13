@@ -2,7 +2,7 @@ import { toBlob } from "html-to-image";
 import { mount, unmount } from "svelte";
 import { saveBinaryFile } from "$lib/core/files";
 import ExportFooter from "./components/detail/export-footer.svelte";
-import { EXPORT_WIDTH, exportPixelRatio, stripExportIgnored } from "./export";
+import { EXPORT_WIDTH, exportPixelRatio, stripExportIgnored } from "@deadlock-plus/match/export";
 
 /** `asset:` art is not reachable by `fetch` under the app's CSP, but `<img>` loads it with CORS headers. */
 async function loadAsDataUrl(src: string): Promise<string | null> {

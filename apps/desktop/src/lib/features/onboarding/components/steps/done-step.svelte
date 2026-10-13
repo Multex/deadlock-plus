@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { t } from "$lib/core/i18n.svelte";
 
     let { busy, onGo }: { busy: boolean; onGo: (target: string) => void } = $props();

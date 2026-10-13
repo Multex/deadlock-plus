@@ -6,9 +6,9 @@
     import { t } from "$lib/core/i18n.svelte";
     import { Eye, EyeOff, RefreshCw } from "@lucide/svelte";
 
-    import Button from "$lib/ui/button.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { formatBytes } from "$lib/features/demos/demos";
     import {
         clearAllCopy,

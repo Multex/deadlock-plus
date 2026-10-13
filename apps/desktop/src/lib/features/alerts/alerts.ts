@@ -1,5 +1,5 @@
 import { formatDate, t } from "$lib/core/i18n.svelte";
-import type { Alert } from "$lib/generated/types/Alert";
+import type { Alert } from "@deadlock-plus/ipc-types/Alert";
 
 export type { Alert };
 export const unreadCount = (alerts: Alert[]): number => alerts.filter((a) => !a.read).length;

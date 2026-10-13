@@ -23,10 +23,10 @@
     import { openUrl } from "$lib/core/opener";
     import { statlockerProfileUrl } from "$lib/features/voice-bans/voice-ban";
     import type { Hero } from "$lib/features/heroes/heroes";
-    import type { RankTier } from "$lib/features/stats/rank";
-    import * as Tooltip from "$lib/ui/tooltip";
-    import type { LivePlayer } from "$lib/generated/types/LivePlayer";
-    import type { LiveTeam } from "$lib/generated/types/LiveTeam";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import type { LivePlayer } from "@deadlock-plus/ipc-types/LivePlayer";
+    import type { LiveTeam } from "@deadlock-plus/ipc-types/LiveTeam";
     import {
         formatCompact,
         formatPercent,

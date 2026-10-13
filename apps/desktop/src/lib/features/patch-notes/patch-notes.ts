@@ -1,7 +1,7 @@
-import type { PatchDetail } from "$lib/generated/types/PatchDetail";
-import type { PatchLine } from "$lib/generated/types/PatchLine";
-import type { PatchOrigin } from "$lib/generated/types/PatchOrigin";
-import type { PatchSearchResult } from "$lib/generated/types/PatchSearchResult";
+import type { PatchDetail } from "@deadlock-plus/ipc-types/PatchDetail";
+import type { PatchLine } from "@deadlock-plus/ipc-types/PatchLine";
+import type { PatchOrigin } from "@deadlock-plus/ipc-types/PatchOrigin";
+import type { PatchSearchResult } from "@deadlock-plus/ipc-types/PatchSearchResult";
 
 export type { PatchDetail, PatchLine, PatchSearchResult };
 

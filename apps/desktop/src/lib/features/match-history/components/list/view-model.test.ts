@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_FILTERS } from "../../filters";
-import type { MatchRow } from "../../list";
+import { DEFAULT_FILTERS } from "@deadlock-plus/match/filters";
+import type { MatchRow } from "@deadlock-plus/match/list";
 import {
     DAY_OPTIONS,
     MODE_OPTIONS,

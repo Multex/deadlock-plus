@@ -3,7 +3,7 @@
     import { toast } from "svelte-sonner";
     import { Bug, Copy, RotateCcw, TriangleAlert } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { errorReport, errorSummary } from "../report";
 
     let { error, route, status, onretry }: { error: unknown; route: string; status?: number; onretry: () => void } =

@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount, type Component } from "svelte";
     import { toast } from "svelte-sonner";
-    import Button from "$lib/ui/button.svelte";
-    import Page from "$lib/ui/page.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
     import { autostartTitle, getAutostart, setAutostart } from "$lib/features/settings/autostart";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { platform } from "$lib/core/platform";

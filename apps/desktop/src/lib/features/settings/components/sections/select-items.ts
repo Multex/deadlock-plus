@@ -1,4 +1,4 @@
-import type { SelectMenuItem } from "$lib/ui/select-menu";
+import type { SelectMenuItem } from "@deadlock-plus/ui/select-menu";
 
 export function weekdayItems(days: string[]): SelectMenuItem[] {
     return days.map((label, i) => ({ value: String(i), label }));

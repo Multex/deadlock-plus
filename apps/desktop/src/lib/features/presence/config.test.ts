@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { effectiveSlot, getSlot, isCustomised, isEnabled, resetField, resetScope, setField } from "./config";
 
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
 
 const empty = (): PresenceConfig => ({ states: {}, variants: {}, heroes: {} });
 

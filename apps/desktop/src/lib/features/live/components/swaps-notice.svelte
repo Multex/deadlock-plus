@@ -3,7 +3,7 @@
 
     import { t } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
-    import type { LiveTeam } from "$lib/generated/types/LiveTeam";
+    import type { LiveTeam } from "@deadlock-plus/ipc-types/LiveTeam";
     import type { HeroSwap } from "../live";
 
     let {

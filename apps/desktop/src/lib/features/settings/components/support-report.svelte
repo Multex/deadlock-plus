@@ -4,8 +4,8 @@
     import { errorText } from "$lib/core/errors";
     import { saveTextFile } from "$lib/core/files";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { buildSupportReport } from "$lib/features/support-report/api";
     import { reportFileName } from "$lib/features/support-report/report";
 

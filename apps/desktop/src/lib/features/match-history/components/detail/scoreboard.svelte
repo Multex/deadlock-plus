@@ -4,11 +4,12 @@
     import { i18n } from "$lib/core/i18n.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { loadRankTiers } from "$lib/features/ranks/ranks";
-    import type { RankTier } from "$lib/features/stats/rank";
-    import { resolveItemListVisuals, type IdVisual } from "../../deep-dive/catalog";
-    import { allPlayers, type MatchDetail } from "../../detail";
-    import { boardTeams, headerSummary } from "./scoreboard";
-    import type { Versus } from "../../versus";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
+    import { resolveItemListVisuals } from "../../deep-dive/catalog";
+    import { allPlayers, type MatchDetail } from "@deadlock-plus/match/detail";
+    import { boardTeams, headerSummary } from "@deadlock-plus/match/scoreboard";
+    import type { Versus } from "@deadlock-plus/match/versus";
     import TeamBoard from "./team-board.svelte";
 
     let {

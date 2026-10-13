@@ -1,13 +1,13 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { toast } from "svelte-sonner";
     import { Copy, Download, RefreshCw } from "@lucide/svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { updater } from "$lib/features/updates/updater.svelte";

@@ -15,9 +15,9 @@ import {
     CircleCheck,
 } from "@lucide/svelte";
 import { t } from "$lib/core/i18n.svelte";
-import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-import type { PresenceTimer } from "$lib/generated/types/PresenceTimer";
-import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+import type { PresenceTimer } from "@deadlock-plus/ipc-types/PresenceTimer";
+import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
 import type { PlaceholderGroupId, SourceKind } from "./editor";
 
 export const STATE_LABELS: Record<PresenceStateId, () => string> = {

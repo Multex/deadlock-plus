@@ -1,11 +1,11 @@
 import { t, tn } from "$lib/core/i18n.svelte";
 import { formatBytes } from "$lib/features/demos/demos";
-import type { BadgeVariant } from "$lib/ui/badge.svelte";
+import type { BadgeVariant } from "@deadlock-plus/ui/badge.svelte";
 
-import type { EntryId } from "$lib/generated/types/EntryId";
-import type { EntryInfo } from "$lib/generated/types/EntryInfo";
-import type { EntryStats } from "$lib/generated/types/EntryStats";
-import type { ClearReport } from "$lib/generated/types/ClearReport";
+import type { EntryId } from "@deadlock-plus/ipc-types/EntryId";
+import type { EntryInfo } from "@deadlock-plus/ipc-types/EntryInfo";
+import type { EntryStats } from "@deadlock-plus/ipc-types/EntryStats";
+import type { ClearReport } from "@deadlock-plus/ipc-types/ClearReport";
 
 export type { EntryId, EntryInfo, EntryStats, ClearReport };
 

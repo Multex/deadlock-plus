@@ -1,6 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import type { MatchTeam } from "../../../detail";
+    import type { MatchTeam } from "@deadlock-plus/match/detail";
 
     let { team, size = 10 }: { team: MatchTeam; size?: number } = $props();
 

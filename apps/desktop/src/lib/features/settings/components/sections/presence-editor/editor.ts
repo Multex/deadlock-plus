@@ -1,14 +1,14 @@
 import type { Hero } from "$lib/features/heroes/heroes";
 import type { Scope } from "$lib/features/presence/config";
-import type { PresencePlaceholder } from "$lib/generated/types/PresencePlaceholder";
-import type { PresenceCard } from "$lib/generated/types/PresenceCard";
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
-import type { PresenceImageSource } from "$lib/generated/types/PresenceImageSource";
-import type { PresenceSample } from "$lib/generated/types/PresenceSample";
-import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-import type { PresenceStateInfo } from "$lib/generated/types/PresenceStateInfo";
-import type { PresenceTimer } from "$lib/generated/types/PresenceTimer";
-import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
+import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
+import type { PresenceImageSource } from "@deadlock-plus/ipc-types/PresenceImageSource";
+import type { PresenceSample } from "@deadlock-plus/ipc-types/PresenceSample";
+import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
+import type { PresenceTimer } from "@deadlock-plus/ipc-types/PresenceTimer";
+import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
 
 export const TIMERS: PresenceTimer[] = ["none", "elapsedInState", "matchTime", "queueTime"];
 

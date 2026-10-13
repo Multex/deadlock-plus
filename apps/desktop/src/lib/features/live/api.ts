@@ -1,6 +1,6 @@
 import { command, listen, type Unlisten } from "$lib/core/tauri";
-import type { LiveMatch } from "$lib/generated/types/LiveMatch";
-import type { LiveState } from "$lib/generated/types/LiveState";
+import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
+import type { LiveState } from "@deadlock-plus/ipc-types/LiveState";
 
 const SNAPSHOT_EVENT = "live-snapshot";
 const MATCH_EVENT = "live-match";

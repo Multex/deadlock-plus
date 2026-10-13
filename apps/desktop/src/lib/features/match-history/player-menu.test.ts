@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseApiDetail } from "./api-detail";
-import { allPlayers, type MatchDetail, type MatchTeam } from "./detail";
-import fixture from "./fixtures/api-ranked.json";
+import { parseApiDetail } from "@deadlock-plus/match/api-detail";
+import { allPlayers, type MatchDetail, type MatchTeam } from "@deadlock-plus/match/detail";
+import fixture from "@deadlock-plus/match/fixtures/api-ranked.json";
 import {
     deathScopeItems,
     groupTeam,

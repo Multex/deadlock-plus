@@ -2,10 +2,10 @@
     import { ChevronRight, RefreshCw } from "@lucide/svelte";
 
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { scanPercent } from "../performance";
     import { performanceScan } from "../scan.svelte";
     import AddonMeta from "./addon-meta.svelte";

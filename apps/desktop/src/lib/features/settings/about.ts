@@ -1,5 +1,5 @@
-import type { GameBuild } from "$lib/generated/types/GameBuild";
-import type { AppInfo } from "$lib/generated/types/AppInfo";
+import type { GameBuild } from "@deadlock-plus/ipc-types/GameBuild";
+import type { AppInfo } from "@deadlock-plus/ipc-types/AppInfo";
 import { platform as currentPlatform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 

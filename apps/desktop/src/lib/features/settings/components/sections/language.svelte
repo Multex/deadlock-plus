@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { Globe } from "@lucide/svelte";
-    import Card from "$lib/ui/card.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import Flag from "$lib/components/flag.svelte";
-    import { radioTarget } from "$lib/core/radio-group";
+    import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { SUPPORTED_LOCALES, formatNumber, i18n, t } from "$lib/core/i18n.svelte";
     import { prefs } from "$lib/core/prefs";
     import { languageOptions } from "../../languages";

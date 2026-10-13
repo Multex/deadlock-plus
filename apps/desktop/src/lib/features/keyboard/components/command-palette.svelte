@@ -4,7 +4,7 @@
     import { Command } from "bits-ui";
     import { t } from "$lib/core/i18n.svelte";
     import { platform } from "$lib/core/platform";
-    import * as Dialog from "$lib/ui/dialog";
+    import * as Dialog from "@deadlock-plus/ui/dialog";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { NAV_ENTRIES, updater } from "$lib/features/registry";
     import { CATEGORIES } from "$lib/features/settings/catalog";

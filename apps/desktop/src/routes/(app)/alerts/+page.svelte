@@ -3,7 +3,7 @@
     import { toast } from "svelte-sonner";
 
     import { errorText } from "$lib/core/errors";
-    import Page from "$lib/ui/page.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
     import { alerts } from "$lib/features/alerts/alerts.svelte";
     import type { Alert } from "$lib/features/alerts/alerts";
     import { PatchSearch } from "$lib/features/alerts/patch-search.svelte";

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { tn } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import type { Finding, Tone } from "../../insights";
 
     let { findings, baseline }: { findings: Finding[]; baseline: number | null } = $props();

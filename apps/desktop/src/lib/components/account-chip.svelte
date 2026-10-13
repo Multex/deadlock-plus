@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
     import { User } from "@lucide/svelte";
-    import * as Tooltip from "$lib/ui/tooltip";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
 
     let { collapsed }: { collapsed: boolean } = $props();

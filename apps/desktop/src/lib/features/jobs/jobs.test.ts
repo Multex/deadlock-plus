@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { JobInfo } from "$lib/generated/types/JobInfo";
-import type { JobsSnapshot } from "$lib/generated/types/JobsSnapshot";
+import type { JobInfo } from "@deadlock-plus/ipc-types/JobInfo";
+import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import { activeJobs, isJobEnabled, jobDescription, jobPercent, jobStatusText, jobTitle, POLICY_OPTIONS } from "./jobs";
 
 function job(over: Partial<JobInfo> = {}): JobInfo {

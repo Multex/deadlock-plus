@@ -2,7 +2,7 @@
     import { RefreshCw } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import { stats } from "../../stats.svelte";
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Badge from "$lib/ui/badge.svelte";
-    import Section from "$lib/ui/section.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Section from "@deadlock-plus/ui/section.svelte";
     import Flag from "$lib/components/flag.svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { gapVariant } from "../connection";

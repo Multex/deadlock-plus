@@ -2,10 +2,19 @@
     import { Activity } from "@lucide/svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import Section from "$lib/ui/section.svelte";
-    import { chartDomain, linePath, valueAt, xOf, yOf, type ChartBox, type LinePoint } from "../../deep-dive/chart";
-    import type { MatchDetail } from "../../detail";
-    import { loadMatchPing, sourceLabelKey, type MatchPing } from "../../ping";
+    import Section from "@deadlock-plus/ui/section.svelte";
+    import {
+        chartDomain,
+        linePath,
+        valueAt,
+        xOf,
+        yOf,
+        type ChartBox,
+        type LinePoint,
+    } from "@deadlock-plus/match/deep-dive/chart";
+    import type { MatchDetail } from "@deadlock-plus/match/detail";
+    import { loadMatchPing, type MatchPing } from "@deadlock-plus/match/ping";
+    import { livePingSource, sourceLabelKey } from "../../ping";
 
     let { detail }: { detail: MatchDetail } = $props();
 
@@ -20,7 +29,7 @@
         let live = true;
         loaded = false;
         ping = null;
-        void loadMatchPing({ matchId, startTime, durationS })
+        void loadMatchPing({ matchId, startTime, durationS }, livePingSource)
             .catch(() => null)
             .then((result) => {
                 if (!live) return;

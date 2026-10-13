@@ -1,7 +1,7 @@
 import { formatNumber, t } from "$lib/core/i18n.svelte";
-import type { JobInfo } from "$lib/generated/types/JobInfo";
-import type { JobsSnapshot } from "$lib/generated/types/JobsSnapshot";
-import type { Policy } from "$lib/generated/types/Policy";
+import type { JobInfo } from "@deadlock-plus/ipc-types/JobInfo";
+import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
+import type { Policy } from "@deadlock-plus/ipc-types/Policy";
 
 export type { JobInfo, JobsSnapshot, Policy };
 

@@ -2,8 +2,8 @@
     import { toast } from "svelte-sonner";
     import { openUrl } from "$lib/core/opener";
     import { ExternalLink, Info, Scale } from "@lucide/svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { APP_LICENSE, disclaimer, LICENSES } from "$lib/features/settings/licenses";
     import DependencyLicenses from "$lib/features/settings/components/dependency-licenses.svelte";

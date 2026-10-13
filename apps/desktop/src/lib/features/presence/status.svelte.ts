@@ -1,7 +1,7 @@
 import { createPoller } from "$lib/core/poller";
 import { presenceStatus as fetchPresenceStatus } from "./api";
 
-import type { PresenceStatus } from "$lib/generated/types/PresenceStatus";
+import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
 
 const POLL_MS = 3000;
 

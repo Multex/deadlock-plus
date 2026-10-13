@@ -1,15 +1,15 @@
-import type { DemoStatus } from "$lib/generated/types/DemoStatus";
-import type { Demo } from "$lib/generated/types/Demo";
-import type { DemoListing } from "$lib/generated/types/DemoListing";
-import type { PlayerSummary } from "$lib/generated/types/PlayerSummary";
-import type { MatchSummary } from "$lib/generated/types/MatchSummary";
-import type { MetaResult } from "$lib/generated/types/MetaResult";
-import type { RecycleAvailability } from "$lib/generated/types/RecycleAvailability";
-import type { DeleteMode } from "$lib/generated/types/DeleteMode";
-import type { DeletePreview } from "$lib/generated/types/DeletePreview";
-import type { DeleteReport } from "$lib/generated/types/DeleteReport";
-import type { CleanupRule } from "$lib/generated/types/CleanupRule";
-import type { CleanupMatch } from "$lib/generated/types/CleanupMatch";
+import type { DemoStatus } from "@deadlock-plus/ipc-types/DemoStatus";
+import type { Demo } from "@deadlock-plus/ipc-types/Demo";
+import type { DemoListing } from "@deadlock-plus/ipc-types/DemoListing";
+import type { PlayerSummary } from "@deadlock-plus/ipc-types/PlayerSummary";
+import type { MatchSummary } from "@deadlock-plus/ipc-types/MatchSummary";
+import type { MetaResult } from "@deadlock-plus/ipc-types/MetaResult";
+import type { RecycleAvailability } from "@deadlock-plus/ipc-types/RecycleAvailability";
+import type { DeleteMode } from "@deadlock-plus/ipc-types/DeleteMode";
+import type { DeletePreview } from "@deadlock-plus/ipc-types/DeletePreview";
+import type { DeleteReport } from "@deadlock-plus/ipc-types/DeleteReport";
+import type { CleanupRule } from "@deadlock-plus/ipc-types/CleanupRule";
+import type { CleanupMatch } from "@deadlock-plus/ipc-types/CleanupMatch";
 import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
 import { platform, trashName, type Platform } from "$lib/core/platform";
 

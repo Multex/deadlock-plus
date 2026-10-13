@@ -1,7 +1,8 @@
 <script lang="ts">
     import { t, tn } from "$lib/core/i18n.svelte";
-    import type { Match, Streaks, WinLoss } from "../../stats";
-    import { formatPlaytime, totalPlaytime } from "../../stats";
+    import type { Match, Streaks, WinLoss } from "@deadlock-plus/stats/stats";
+    import { totalPlaytime } from "@deadlock-plus/stats/stats";
+    import { formatPlaytime } from "../../stats";
     import { pct } from "../../format";
     import StatTile from "../shared/stat-tile.svelte";
     import SyncingBadge from "../shared/syncing-badge.svelte";

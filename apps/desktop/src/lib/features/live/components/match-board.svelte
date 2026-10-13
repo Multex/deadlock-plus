@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { Hero } from "$lib/features/heroes/heroes";
-    import type { RankTier } from "$lib/features/stats/rank";
-    import type { LiveMatch } from "$lib/generated/types/LiveMatch";
-    import type { LivePhase } from "$lib/generated/types/LivePhase";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
+    import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
     import { live } from "../live.svelte";
     import { orderTeams } from "../live";
     import MatchHeader from "./match-header.svelte";

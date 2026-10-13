@@ -2,7 +2,7 @@
     import { Flag, Gamepad2, LoaderCircle, Power, Search, Swords, Trophy, Users } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import type { LiveQueue } from "$lib/generated/types/LiveQueue";
+    import type { LiveQueue } from "@deadlock-plus/ipc-types/LiveQueue";
     import { formatClock, type StateIcon, type StateLine } from "../live";
 
     let { line, queue = null }: { line: StateLine; queue?: LiveQueue | null } = $props();

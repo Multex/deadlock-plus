@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import Sparkline from "./sparkline.svelte";
     import type { HistoryPoint } from "../types";

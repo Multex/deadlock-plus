@@ -1,5 +1,5 @@
 import { currentSteamAccount } from "./api";
-import type { SteamAccount } from "$lib/generated/types/SteamAccount";
+import type { SteamAccount } from "@deadlock-plus/ipc-types/SteamAccount";
 
 export type { SteamAccount };
 

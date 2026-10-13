@@ -1,12 +1,13 @@
 import { errorText } from "$lib/core/errors";
 import { stats, type StatsStatus } from "$lib/features/stats/stats.svelte";
-import type { Match } from "$lib/features/stats/stats";
+import type { Match } from "@deadlock-plus/stats/stats";
 import { resolveDetail } from "./api";
-import { allPlayers, type MatchDetail } from "./detail";
-import { DEFAULT_FILTERS, filterRows, type RowFilters } from "./filters";
-import { buildRows, type MatchRow } from "./list";
-import { playerNames, withNames } from "./names";
-import { paginate, type Page } from "./pagination";
+import { allPlayers, type MatchDetail } from "@deadlock-plus/match/detail";
+import { DEFAULT_FILTERS, filterRows, type RowFilters } from "@deadlock-plus/match/filters";
+import { buildRows, type MatchRow } from "@deadlock-plus/match/list";
+import { withNames } from "@deadlock-plus/match/names";
+import { playerNames } from "./names";
+import { paginate, type Page } from "@deadlock-plus/match/pagination";
 
 export type DetailStatus = "idle" | "loading" | "ready" | "unavailable" | "error";
 

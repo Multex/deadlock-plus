@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Component, Snippet } from "svelte";
 
-    import Badge from "$lib/ui/badge.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
 
     type Props = {
         href: string;

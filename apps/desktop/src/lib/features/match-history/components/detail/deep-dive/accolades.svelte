@@ -8,8 +8,8 @@
         accoladeTier,
         renderAccoladeDescription,
         type AccoladeCategory,
-    } from "../../../deep-dive/accolade-text";
-    import type { MatchAccolade, MatchPlayer } from "../../../detail";
+    } from "@deadlock-plus/match/deep-dive/accolade-text";
+    import type { MatchAccolade, MatchPlayer } from "@deadlock-plus/match/detail";
     import SectionCard from "./section-card.svelte";
 
     let { selected, actions }: { selected: MatchPlayer; actions?: Snippet } = $props();

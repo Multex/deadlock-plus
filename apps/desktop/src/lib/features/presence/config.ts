@@ -1,8 +1,8 @@
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
-import type { PresencePartialImage } from "$lib/generated/types/PresencePartialImage";
-import type { PresencePartialSlot } from "$lib/generated/types/PresencePartialSlot";
-import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
+import type { PresencePartialImage } from "@deadlock-plus/ipc-types/PresencePartialImage";
+import type { PresencePartialSlot } from "@deadlock-plus/ipc-types/PresencePartialSlot";
+import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
 
 export type Scope = { state: PresenceStateId; variant?: PresenceVariantId; heroId?: number };
 

@@ -2,9 +2,9 @@
     import { TriangleAlert } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import ConfirmDialog from "$lib/ui/confirm-dialog.svelte";
-    import { radioTarget } from "$lib/core/radio-group";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
+    import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { formatBytes, type DeleteMode, type DeletePreview } from "$lib/features/demos/demos";
     import { platform, trashName } from "$lib/core/platform";
 

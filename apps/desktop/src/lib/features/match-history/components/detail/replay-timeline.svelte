@@ -3,10 +3,10 @@
     import { Castle, Ghost, PackageMinus, PackagePlus, Skull, TrendingUp } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import { TIMELINE_LANES, eventTeam, markerPercent, toggleKind, type LaneId } from "../../replay";
-    import type { TimelineEvent, TimelineKind } from "../../timeline";
-    import Button from "$lib/ui/button.svelte";
-    import Slider from "$lib/ui/slider.svelte";
+    import { TIMELINE_LANES, eventTeam, markerPercent, toggleKind, type LaneId } from "@deadlock-plus/match/replay";
+    import type { TimelineEvent, TimelineKind } from "@deadlock-plus/match/timeline";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Slider from "@deadlock-plus/ui/slider.svelte";
 
     interface Props {
         events: TimelineEvent[];

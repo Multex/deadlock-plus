@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
-import type { MapItemsPayload } from "$lib/generated/types/MapItemsPayload";
+import type { MapItemsPayload } from "@deadlock-plus/ipc-types/MapItemsPayload";
 import {
     loadAbilityArt,
     loadHeroMinimapArt,

@@ -1,5 +1,5 @@
 import { command } from "$lib/core/tauri";
-import type { AccoladeEntry } from "$lib/generated/types/AccoladeEntry";
+import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
 
 export interface AccoladeInfo {
     name: string;

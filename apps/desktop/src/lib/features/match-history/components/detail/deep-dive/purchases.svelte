@@ -11,9 +11,10 @@
     } from "@lucide/svelte";
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import Button from "$lib/ui/button.svelte";
-    import Slider from "$lib/ui/slider.svelte";
-    import { resolveItemListVisuals, type IdVisual } from "../../../deep-dive/catalog";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Slider from "@deadlock-plus/ui/slider.svelte";
+    import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
+    import { resolveItemListVisuals } from "../../../deep-dive/catalog";
     import {
         ABILITY_UPGRADES,
         clampStep,
@@ -21,8 +22,8 @@
         purchaseStateAt,
         type PurchaseAction,
         type PurchaseKind,
-    } from "../../../deep-dive/purchases";
-    import type { MatchPlayer } from "../../../detail";
+    } from "@deadlock-plus/match/deep-dive/purchases";
+    import type { MatchPlayer } from "@deadlock-plus/match/detail";
     import ItemTile from "../item-tile.svelte";
     import IdTile from "./id-tile.svelte";
     import SectionCard from "./section-card.svelte";

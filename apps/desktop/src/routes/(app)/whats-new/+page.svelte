@@ -3,10 +3,10 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import ReleaseNotes from "$lib/features/updates/components/release-notes.svelte";
     import { isForcedExit, visibleReleases } from "$lib/features/updates/whats-new";

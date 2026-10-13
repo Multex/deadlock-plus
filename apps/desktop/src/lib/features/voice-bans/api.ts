@@ -1,6 +1,6 @@
 import { command } from "$lib/core/tauri";
 
-import type { VoiceBanFile } from "$lib/generated/types/VoiceBanFile";
+import type { VoiceBanFile } from "@deadlock-plus/ipc-types/VoiceBanFile";
 
 export type { VoiceBanFile };
 

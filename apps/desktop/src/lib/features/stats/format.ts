@@ -1,5 +1,5 @@
 import { formatDate, formatNumber, t, tn } from "$lib/core/i18n.svelte";
-import type { Eta } from "./climb";
+import type { Eta } from "@deadlock-plus/stats/climb";
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 

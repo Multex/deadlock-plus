@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import type { Scope } from "../../stats";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import type { Scope } from "@deadlock-plus/stats/stats";
     import ScopeButtons from "../shared/scope-buttons.svelte";
 
     let { scope = $bindable(), days = $bindable() }: { scope: Scope; days: number | null } = $props();

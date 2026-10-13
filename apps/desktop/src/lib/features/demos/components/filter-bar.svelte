@@ -2,7 +2,7 @@
     import { Pin } from "@lucide/svelte";
 
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { formatBytes, statusInfo, totalSize, type Demo, type DemoStatus } from "$lib/features/demos/demos";
     import type { DemoFilter } from "$lib/features/demos/list";
 

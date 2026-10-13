@@ -1,7 +1,7 @@
-import type { SelectMenuItem } from "$lib/ui/select-menu";
-import type { DeathRole, DeathScope } from "./death-steps";
-import { allPlayers, type MatchDetail, type MatchTeam } from "./detail";
-import { SPEEDS, type ReplaySpeed } from "./replay";
+import type { SelectMenuItem } from "@deadlock-plus/ui/select-menu";
+import type { DeathRole, DeathScope } from "@deadlock-plus/match/death-steps";
+import { allPlayers, type MatchDetail, type MatchTeam } from "@deadlock-plus/match/detail";
+import { SPEEDS, type ReplaySpeed } from "@deadlock-plus/match/replay";
 
 export interface PlayerMenuText {
     teamName: (team: MatchTeam) => string;

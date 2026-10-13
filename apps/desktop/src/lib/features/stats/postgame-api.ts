@@ -1,5 +1,5 @@
 import { command, listen, type Unlisten } from "$lib/core/tauri";
-import type { ProvisionalMatch } from "$lib/generated/types/ProvisionalMatch";
+import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
 
 const MATCH_EVENT = "postgame-match";
 

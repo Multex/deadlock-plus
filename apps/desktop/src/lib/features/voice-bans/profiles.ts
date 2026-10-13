@@ -1,7 +1,8 @@
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { t } from "$lib/core/i18n.svelte";
+import { DeadlockApiError, type SteamProfile } from "@deadlock-plus/deadlock-api";
 import { steam32ToSteam64, steam64ToSteam32 } from "./voice-ban";
 
-const API = "https://api.deadlock-api.com/v1/players";
 const BATCH = 50;
 const CONCURRENCY = 4;
 
@@ -12,14 +13,7 @@ export interface Profile {
     profileUrl: string | null;
 }
 
-interface ApiPlayer {
-    account_id: number;
-    personaname?: string | null;
-    avatarmedium?: string | null;
-    profileurl?: string | null;
-}
-
-export function toProfile(p: ApiPlayer): Profile | null {
+export function toProfile(p: SteamProfile): Profile | null {
     const steamid64 = steam32ToSteam64(String(p.account_id));
     if (!steamid64) return null;
     return {
@@ -36,10 +30,13 @@ export function chunk<T>(items: T[], size: number): T[][] {
     return out;
 }
 
-async function getJson(url: string): Promise<ApiPlayer[]> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(t("voice_bans.api_error", { status: res.status }));
-    return (await res.json()) as ApiPlayer[];
+async function orApiError(request: Promise<SteamProfile[]>): Promise<SteamProfile[]> {
+    try {
+        return await request;
+    } catch (e) {
+        if (e instanceof DeadlockApiError) throw new Error(t("voice_bans.api_error", { status: e.status }));
+        throw e;
+    }
 }
 
 /** Players the API has never seen are simply absent from the result. */
@@ -50,7 +47,7 @@ export async function lookupProfiles(steamids64: string[], onBatch: (profiles: P
         while (next < batches.length) {
             const ids = batches[next++];
             try {
-                const players = await getJson(`${API}/steam?account_ids=${ids.join(",")}`);
+                const players = await orApiError(deadlockApi.steamProfiles(ids));
                 onBatch(players.map(toProfile).filter((p): p is Profile => p !== null));
             } catch {
                 // A failed batch leaves those rows showing their id.
@@ -61,6 +58,6 @@ export async function lookupProfiles(steamids64: string[], onBatch: (profiles: P
 }
 
 export async function searchPlayers(query: string, limit = 8): Promise<Profile[]> {
-    const url = `${API}/steam-search?search_query=${encodeURIComponent(query)}&limit=${limit}`;
-    return (await getJson(url)).map(toProfile).filter((p): p is Profile => p !== null);
+    const players = await orApiError(deadlockApi.searchSteamProfiles(query, limit));
+    return players.map(toProfile).filter((p): p is Profile => p !== null);
 }

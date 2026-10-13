@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Match } from "$lib/features/stats/stats";
-import { parseApiDetail } from "./api-detail";
-import { allPlayers } from "./detail";
-import fixture from "./fixtures/api-ranked.json";
+import type { Match } from "@deadlock-plus/stats/stats";
+import { parseApiDetail } from "@deadlock-plus/match/api-detail";
+import { allPlayers } from "@deadlock-plus/match/detail";
+import fixture from "@deadlock-plus/match/fixtures/api-ranked.json";
 import { MatchHistoryStore, type HistoryDeps } from "./history.svelte";
 
 const detail = parseApiDetail(fixture)!;

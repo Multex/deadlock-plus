@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { HeroArt } from "$lib/generated/types/HeroArt";
-import type { HeroEntry } from "$lib/generated/types/HeroEntry";
+import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
+import type { HeroEntry } from "@deadlock-plus/ipc-types/HeroEntry";
 import { mergeHeroes, needsRefresh, parseHeroCache, slimHeroes, type Hero } from "./heroes";
 
 const command = vi.fn();

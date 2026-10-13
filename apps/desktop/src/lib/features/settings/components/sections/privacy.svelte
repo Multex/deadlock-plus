@@ -1,10 +1,10 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
     import { toast } from "svelte-sonner";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import SettingRow from "$lib/ui/setting-row.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { gcStatus } from "$lib/features/gc/status.svelte";
     import { gcStatusLine } from "$lib/features/gc/status-line";
     import { ingestStatus } from "$lib/features/ingest/status.svelte";

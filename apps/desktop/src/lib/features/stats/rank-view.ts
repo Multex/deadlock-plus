@@ -1,6 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import { shortDay } from "./format";
-import { subrankAt, badgeParts, type BadgeParts, type ProgressPoint, type RankTier } from "./rank";
+import { subrankAt, badgeParts, type BadgeParts, type ProgressPoint, type RankTier } from "@deadlock-plus/stats/rank";
 
 export const CHART_W = 760;
 export const CHART_H = 280;

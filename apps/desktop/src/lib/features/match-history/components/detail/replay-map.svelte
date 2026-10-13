@@ -2,13 +2,19 @@
     import { t } from "$lib/core/i18n.svelte";
     import type { MinimapArt } from "$lib/features/gamedata/gamedata";
     import { formatClock } from "$lib/features/live/live";
-    import { activeDeath, deathEmphasis, type DeathStep, type SceneDot, type StepScene } from "../../death-steps";
-    import type { LaneStroke } from "../../lane-lines";
+    import {
+        activeDeath,
+        deathEmphasis,
+        type DeathStep,
+        type SceneDot,
+        type StepScene,
+    } from "@deadlock-plus/match/death-steps";
+    import type { LaneStroke } from "@deadlock-plus/match/lane-lines";
     import { objectiveNameKey } from "../../deep-dive/objective-rows";
-    import { takesTab, type MapObjectInfo } from "../../map-object-info";
-    import { MAP_OBJECT_HIT_SCALE, hitZ, layerKey, layerScale, type MapObject } from "../../map-objects";
-    import { playerDotStyle, skullDataUri, type PlayerDotStyle } from "../../player-dot";
-    import type { DeathEvent, MapDot } from "../../replay";
+    import { takesTab, type MapObjectInfo } from "@deadlock-plus/match/map-object-info";
+    import { MAP_OBJECT_HIT_SCALE, hitZ, layerKey, layerScale, type MapObject } from "@deadlock-plus/match/map-objects";
+    import { playerDotStyle, skullDataUri, type PlayerDotStyle } from "@deadlock-plus/match/player-dot";
+    import type { DeathEvent, MapDot } from "@deadlock-plus/match/replay";
     import ReplayObjectTip from "./replay-object-tip.svelte";
 
     interface Props {

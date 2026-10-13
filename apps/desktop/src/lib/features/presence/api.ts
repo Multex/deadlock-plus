@@ -1,15 +1,15 @@
 import { command } from "$lib/core/tauri";
 
-import type { PresenceCard } from "$lib/generated/types/PresenceCard";
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
-import type { PresenceHeroArt } from "$lib/generated/types/PresenceHeroArt";
-import type { PresencePlaceholder } from "$lib/generated/types/PresencePlaceholder";
-import type { PresenceSample } from "$lib/generated/types/PresenceSample";
-import type { PresenceSettings } from "$lib/generated/types/PresenceSettings";
-import type { PresenceStatus } from "$lib/generated/types/PresenceStatus";
-import type { PresenceStateId } from "$lib/generated/types/PresenceStateId";
-import type { PresenceStateInfo } from "$lib/generated/types/PresenceStateInfo";
-import type { PresenceVariantId } from "$lib/generated/types/PresenceVariantId";
+import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
+import type { PresenceHeroArt } from "@deadlock-plus/ipc-types/PresenceHeroArt";
+import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
+import type { PresenceSample } from "@deadlock-plus/ipc-types/PresenceSample";
+import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
+import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
+import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
+import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
+import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
 
 export const setPresenceSettings = (settings: PresenceSettings) => command("set_presence_settings", { settings });
 

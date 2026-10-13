@@ -2,8 +2,8 @@
     import { ArrowDown, ArrowUp } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import type { RankChange, RankTier } from "../../rank";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import type { RankChange, RankTier } from "@deadlock-plus/stats/rank";
     import { shortDay } from "../../format";
     import { badgeName } from "../../rank-view";
 

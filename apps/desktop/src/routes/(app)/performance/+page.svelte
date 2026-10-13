@@ -2,8 +2,8 @@
     import { onMount } from "svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
 
     import Compare from "$lib/features/performance/components/compare.svelte";
     import Frametimes from "$lib/features/performance/components/frametimes.svelte";

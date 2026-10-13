@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Component } from "svelte";
     import { Search } from "@lucide/svelte";
-    import Input from "$lib/ui/input.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { CATEGORIES, matchingCategories, matchingItems, type CategoryId } from "../catalog";
     import { settingsUi } from "../ui.svelte";

@@ -1,12 +1,12 @@
 import { command, fileSrc } from "$lib/core/tauri";
-import type { ClassArt } from "$lib/generated/types/ClassArt";
-import type { HeroArt } from "$lib/generated/types/HeroArt";
-import type { ItemImage } from "$lib/generated/types/ItemImage";
-import type { MapItemsPayload } from "$lib/generated/types/MapItemsPayload";
-import type { MinimapIcon } from "$lib/generated/types/MinimapIcon";
-import type { MinimapIconArt } from "$lib/generated/types/MinimapIconArt";
-import type { MinimapArtResult } from "$lib/generated/types/MinimapArtResult";
-import type { MinimapSource } from "$lib/generated/types/MinimapSource";
+import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
+import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
+import type { ItemImage } from "@deadlock-plus/ipc-types/ItemImage";
+import type { MapItemsPayload } from "@deadlock-plus/ipc-types/MapItemsPayload";
+import type { MinimapIcon } from "@deadlock-plus/ipc-types/MinimapIcon";
+import type { MinimapIconArt } from "@deadlock-plus/ipc-types/MinimapIconArt";
+import type { MinimapArtResult } from "@deadlock-plus/ipc-types/MinimapArtResult";
+import type { MinimapSource } from "@deadlock-plus/ipc-types/MinimapSource";
 
 const BATCH = 200;
 

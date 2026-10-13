@@ -4,7 +4,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import { currentWindow, type AppWindow } from "$lib/core/tauri";
     import { Copy, Download, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from "@lucide/svelte";
-    import BrandMark from "$lib/ui/brand-mark.svelte";
+    import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import { sidebarState } from "./sidebar-state.svelte";
     import { NotificationCenter, updater } from "$lib/features/registry";
 

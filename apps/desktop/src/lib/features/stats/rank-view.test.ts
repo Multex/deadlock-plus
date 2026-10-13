@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { badgeName, buildRankChart, partsName, tierName } from "./rank-view";
-import type { ProgressPoint, RankTier } from "./rank";
+import type { ProgressPoint, RankTier } from "@deadlock-plus/stats/rank";
 
 const ranks: RankTier[] = [
     { tier: 1, name: "Initiate", color: "#111", image: null },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gcStatusLine } from "./status-line";
 
-import type { GcStatus } from "$lib/generated/types/GcStatus";
+import type { GcStatus } from "@deadlock-plus/ipc-types/GcStatus";
 
 const status = (over: Partial<GcStatus> = {}): GcStatus => ({
     running: true,

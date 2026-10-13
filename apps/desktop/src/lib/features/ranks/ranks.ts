@@ -1,8 +1,7 @@
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { command, fileSrc } from "$lib/core/tauri";
-import { parseRanks, type RankTier } from "$lib/features/stats/rank";
-import type { RankArt } from "$lib/generated/types/RankArt";
-
-const RANKS_URL = "https://api.deadlock-api.com/v1/assets/ranks";
+import { parseRanks, type RankTier } from "@deadlock-plus/stats/rank";
+import type { RankArt } from "@deadlock-plus/ipc-types/RankArt";
 
 /**
  * The API names the tiers. A badge from the installed game replaces its image when there is one; the API
@@ -34,8 +33,7 @@ export function loadApiRanks(): Promise<RankTier[]> {
     if (apiTiers) return apiTiers;
     const p = (async () => {
         try {
-            const res = await fetch(RANKS_URL);
-            return res.ok ? parseRanks(await res.json()) : [];
+            return parseRanks(await deadlockApi.ranks());
         } catch {
             return [];
         }

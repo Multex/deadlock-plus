@@ -1,5 +1,5 @@
 import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
-import type { RankTier } from "$lib/features/stats/rank";
+import type { RankTier } from "@deadlock-plus/stats/rank";
 import { getLiveMatch, getLiveState, onLiveMatch, onLiveSnapshot, type LiveMatch, type LiveState } from "./api";
 import { BOARD_LINGER_MS, NO_SWAPS, boardVisible, postMatchStart, trackSwaps, type SwapTracker } from "./live";
 import { loadRankTiers } from "$lib/features/ranks/ranks";

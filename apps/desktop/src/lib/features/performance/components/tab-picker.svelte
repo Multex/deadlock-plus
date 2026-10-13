@@ -2,7 +2,7 @@
     import { Activity, FileSearch, GitCompare } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import * as Tabs from "$lib/ui/tabs";
+    import * as Tabs from "@deadlock-plus/ui/tabs";
 
     const tabs = $derived([
         {

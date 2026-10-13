@@ -2,12 +2,12 @@
     import { onMount } from "svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
-    import { breakEvenWinrate, climbForecast } from "$lib/features/stats/climb";
+    import { breakEvenWinrate, climbForecast } from "@deadlock-plus/stats/climb";
     import { stats } from "$lib/features/stats/stats.svelte";
     import {
         progressSeries,
@@ -18,8 +18,8 @@
         windowStats,
         winsToNext,
         winStreak,
-    } from "$lib/features/stats/rank";
-    import { projectRank } from "$lib/features/stats/rank-live";
+    } from "@deadlock-plus/stats/rank";
+    import { projectRank } from "@deadlock-plus/stats/rank-live";
     import { buildRankChart, partsName } from "$lib/features/stats/rank-view";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
     import HistoryGate from "$lib/features/stats/components/shared/history-gate.svelte";

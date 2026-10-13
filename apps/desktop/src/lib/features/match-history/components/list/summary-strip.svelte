@@ -5,7 +5,7 @@
     import type { Hero } from "$lib/features/heroes/heroes";
     import { pct, signed } from "$lib/features/stats/format";
     import HeroIcon from "$lib/features/stats/components/stats/hero-icon.svelte";
-    import type { FormPip, RowSummary } from "../../list-summary";
+    import type { FormPip, RowSummary } from "@deadlock-plus/match/list-summary";
 
     let { summary, form, heroes }: { summary: RowSummary; form: FormPip[]; heroes: Record<number, Hero> } = $props();
 

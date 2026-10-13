@@ -1,9 +1,9 @@
 import { errorText } from "$lib/core/errors";
 import * as api from "./api";
 
-import type { PresenceConfig } from "$lib/generated/types/PresenceConfig";
-import type { PresencePlaceholder } from "$lib/generated/types/PresencePlaceholder";
-import type { PresenceStateInfo } from "$lib/generated/types/PresenceStateInfo";
+import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
+import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
+import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
 
 const SAVE_DEBOUNCE_MS = 400;
 

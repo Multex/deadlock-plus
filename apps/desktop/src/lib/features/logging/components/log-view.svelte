@@ -5,10 +5,10 @@
     import { t } from "$lib/core/i18n.svelte";
     import { saveTextFile } from "$lib/core/files";
     import { Copy, FolderOpen, RefreshCw, Save } from "@lucide/svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Input from "$lib/ui/input.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
-    import Switch from "$lib/ui/switch.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import {
         exportLogs,
         filterEntries,

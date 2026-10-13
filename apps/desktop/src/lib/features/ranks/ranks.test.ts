@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RankArt } from "$lib/generated/types/RankArt";
-import type { RankTier } from "$lib/features/stats/rank";
+import type { RankArt } from "@deadlock-plus/ipc-types/RankArt";
+import type { RankTier } from "@deadlock-plus/stats/rank";
 import { apiForm, mergeRankTiers, rankNames } from "./ranks";
 
 vi.mock("$lib/core/tauri", () => ({

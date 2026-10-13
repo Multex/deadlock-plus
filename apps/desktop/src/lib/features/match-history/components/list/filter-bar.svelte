@@ -2,10 +2,10 @@
     import { CalendarDays, Settings2, Swords, Trophy, Users, X } from "@lucide/svelte";
 
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import SelectMenu from "$lib/ui/select-menu.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
-    import type { RowFilters } from "../../filters";
+    import type { RowFilters } from "@deadlock-plus/match/filters";
     import Segmented from "./segmented.svelte";
     import {
         DAY_OPTIONS,

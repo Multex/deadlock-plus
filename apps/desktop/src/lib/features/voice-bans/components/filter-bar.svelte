@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Search, Volume2 } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Input from "$lib/ui/input.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Input from "@deadlock-plus/ui/input.svelte";
 
     let {
         value = $bindable(),

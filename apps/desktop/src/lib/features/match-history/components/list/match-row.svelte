@@ -2,13 +2,13 @@
     import { ChevronRight, CircleHelp, Clock, Coins, Flame, Gamepad2, Swords, Trophy, Users } from "@lucide/svelte";
 
     import { formatDate, formatNumber, t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import RankBadge from "$lib/features/live/components/rank-badge.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import type { RankTier } from "$lib/features/stats/rank";
-    import type { MatchRow, RowMode } from "../../list";
-    import { kdaRatio } from "../../list-summary";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
+    import { kdaRatio } from "@deadlock-plus/match/list-summary";
     import { deltaView, matchHref, modeLabelKey, outcomeLabelKey } from "./view-model";
 
     let { row, hero, tiers }: { row: MatchRow; hero: Hero | undefined; tiers: RankTier[] } = $props();

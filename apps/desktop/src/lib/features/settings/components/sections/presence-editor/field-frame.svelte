@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { RotateCcw } from "@lucide/svelte";
-    import IconButton from "$lib/ui/icon-button.svelte";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import { t } from "$lib/core/i18n.svelte";
 
     let {

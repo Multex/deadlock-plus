@@ -1,5 +1,5 @@
 import { t } from "$lib/core/i18n.svelte";
-import type { AppNotification } from "$lib/generated/types/AppNotification";
+import type { AppNotification } from "@deadlock-plus/ipc-types/AppNotification";
 
 export type { AppNotification };
 export function notificationText(item: AppNotification): { title: string; body: string } {

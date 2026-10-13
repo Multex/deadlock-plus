@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import { LEADERBOARD_RULES, type LeaderboardProgress } from "../../leaderboard";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import { LEADERBOARD_RULES, type LeaderboardProgress } from "@deadlock-plus/stats/leaderboard";
     import NeedBar from "./need-bar.svelte";
 
     let { board }: { board: LeaderboardProgress } = $props();

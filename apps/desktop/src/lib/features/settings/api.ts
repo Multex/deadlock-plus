@@ -1,6 +1,6 @@
 import { command } from "$lib/core/tauri";
-import type { AppInfo } from "$lib/generated/types/AppInfo";
-import type { AutostartStatus } from "$lib/generated/types/AutostartStatus";
+import type { AppInfo } from "@deadlock-plus/ipc-types/AppInfo";
+import type { AutostartStatus } from "@deadlock-plus/ipc-types/AutostartStatus";
 import type { MaintenanceSchedule } from "./maintenance";
 
 export function getAppInfo() {

@@ -2,8 +2,8 @@
     import { Eraser } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { formatBytes } from "$lib/features/demos/demos";
 
     type Props = {

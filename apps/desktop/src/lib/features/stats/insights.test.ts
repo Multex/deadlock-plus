@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFindings, judge } from "./insights";
-import { bucket, groupSessions } from "./sessions";
-import type { Match, Outcome } from "./stats";
+import { bucket, groupSessions } from "@deadlock-plus/stats/sessions";
+import type { Match, Outcome } from "@deadlock-plus/stats/stats";
 
 const MIN = 60;
 const DAY = 86_400;

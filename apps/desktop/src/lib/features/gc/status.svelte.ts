@@ -1,7 +1,7 @@
 import { createPoller } from "$lib/core/poller";
 import { gcStatus as fetchGcStatus } from "./api";
 
-import type { GcStatus } from "$lib/generated/types/GcStatus";
+import type { GcStatus } from "@deadlock-plus/ipc-types/GcStatus";
 
 const POLL_MS = 3000;
 

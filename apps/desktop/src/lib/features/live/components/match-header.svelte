@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import type { LiveMatch } from "$lib/generated/types/LiveMatch";
-    import type { LivePhase } from "$lib/generated/types/LivePhase";
+    import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
+    import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
     import MatchClock from "./match-clock.svelte";
 
     let { match, phase }: { match: LiveMatch; phase: LivePhase } = $props();

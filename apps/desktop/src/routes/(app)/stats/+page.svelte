@@ -2,16 +2,16 @@
     import { onMount } from "svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
-    import { bestHero, heroRows } from "$lib/features/stats/hero-rows";
-    import { leaderboardProgress } from "$lib/features/stats/leaderboard";
+    import { bestHero, heroRows } from "@deadlock-plus/stats/hero-rows";
+    import { leaderboardProgress } from "@deadlock-plus/stats/leaderboard";
     import { stats } from "$lib/features/stats/stats.svelte";
-    import { filterScope, heroBreakdown, inWindow, record, streaks, type Scope } from "$lib/features/stats/stats";
+    import { filterScope, heroBreakdown, inWindow, record, streaks, type Scope } from "@deadlock-plus/stats/stats";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
     import HistoryGate from "$lib/features/stats/components/shared/history-gate.svelte";
     import RefreshButton from "$lib/features/stats/components/shared/refresh-button.svelte";

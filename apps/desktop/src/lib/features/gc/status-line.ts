@@ -1,6 +1,6 @@
 import { errorText } from "$lib/core/errors";
 import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
-import type { GcStatus } from "$lib/generated/types/GcStatus";
+import type { GcStatus } from "@deadlock-plus/ipc-types/GcStatus";
 
 export function gcStatusLine(enabled: boolean, status: GcStatus | null): string {
     if (!enabled) return t("gc.status.off");

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
-    import type { RankInfo, RankTier, Standing } from "../../rank";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import type { RankInfo, RankTier, Standing } from "@deadlock-plus/stats/rank";
     import SyncingBadge from "../shared/syncing-badge.svelte";
     import ShieldPanel from "./shield-panel.svelte";
 

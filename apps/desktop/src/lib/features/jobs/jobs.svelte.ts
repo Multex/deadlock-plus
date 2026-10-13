@@ -1,4 +1,4 @@
-import type { JobsSnapshot } from "$lib/generated/types/JobsSnapshot";
+import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import {
     forceRunJob,
     jobsSnapshot,

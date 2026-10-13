@@ -2,16 +2,17 @@
     import { Trophy } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import { pct } from "$lib/features/stats/format";
     import { buildFindings } from "$lib/features/stats/insights";
-    import { groupSessions, highlightTitle, sessionHighlight, shouldSuggestBreak } from "$lib/features/stats/sessions";
+    import { groupSessions, sessionHighlight, shouldSuggestBreak } from "@deadlock-plus/stats/sessions";
+    import { highlightTitle } from "$lib/features/stats/sessions";
     import { stats } from "$lib/features/stats/stats.svelte";
-    import { filterScope, type Scope } from "$lib/features/stats/stats";
+    import { filterScope, type Scope } from "@deadlock-plus/stats/stats";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
     import HistoryGate from "$lib/features/stats/components/shared/history-gate.svelte";
     import RefreshButton from "$lib/features/stats/components/shared/refresh-button.svelte";

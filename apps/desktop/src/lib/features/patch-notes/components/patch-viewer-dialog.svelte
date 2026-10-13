@@ -5,10 +5,10 @@
     import { t } from "$lib/core/i18n.svelte";
     import { ExternalLink } from "@lucide/svelte";
 
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import * as Dialog from "$lib/ui/dialog";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import * as Dialog from "@deadlock-plus/ui/dialog";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import { formatPublished, safeExternalUrl, sourceLabel } from "$lib/features/alerts/alerts";
     import { getPatchNotes } from "$lib/features/patch-notes/api";

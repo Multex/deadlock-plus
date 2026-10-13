@@ -2,9 +2,9 @@
     import { tick } from "svelte";
     import { ChevronLeft, ChevronRight, Eye, StepForward } from "@lucide/svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
-    import { cn } from "$lib/core/utils";
-    import Button from "$lib/ui/button.svelte";
-    import { stepperAction, stepperView, type StepperAction } from "../../death-steps";
+    import { cn } from "@deadlock-plus/ui/utils";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import { stepperAction, stepperView, type StepperAction } from "@deadlock-plus/match/death-steps";
 
     interface Props {
         /** Zero-based; -1 when no death is selected. */

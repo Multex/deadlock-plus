@@ -2,8 +2,8 @@
     import { ExternalLink, Newspaper } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Badge from "$lib/ui/badge.svelte";
-    import Button from "$lib/ui/button.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import { formatPublished, kindTone, sourceLabel, type Alert } from "../alerts";
 
     type Props = {

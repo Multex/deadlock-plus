@@ -1,5 +1,5 @@
 import { command, listen, type Unlisten } from "$lib/core/tauri";
-import type { JobsSnapshot } from "$lib/generated/types/JobsSnapshot";
+import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import type { Policy } from "./jobs";
 
 export const jobsSnapshot = () => command<JobsSnapshot>("jobs_snapshot");

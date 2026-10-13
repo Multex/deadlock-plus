@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Badge from "$lib/ui/badge.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import { lossVariant } from "../connection";
     import type { EnginePingView, PingStats } from "../types";

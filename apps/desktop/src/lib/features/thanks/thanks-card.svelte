@@ -3,7 +3,7 @@
     import { Heart } from "@lucide/svelte";
     import { openUrl } from "$lib/core/opener";
     import { i18n, t, tn } from "$lib/core/i18n.svelte";
-    import Card from "$lib/ui/card.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import { THANKS, isEmpty, translatorLanguages, type Person } from "./thanks";
 

@@ -18,9 +18,9 @@
     import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
     import RankBadge from "$lib/features/live/components/rank-badge.svelte";
     import { formatCompact, rankView } from "$lib/features/live/live";
-    import type { RankTier } from "$lib/features/stats/rank";
-    import type { IdVisual } from "../../deep-dive/catalog";
-    import { higherIsBetter, type Versus, type VersusKey, type VersusStat } from "../../versus";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
+    import { higherIsBetter, type Versus, type VersusKey, type VersusStat } from "@deadlock-plus/match/versus";
     import ItemTile from "./item-tile.svelte";
     import {
         BOARD_COLUMN_MIN_REM,
@@ -40,7 +40,7 @@
         type BoardRowKey,
         type BoardTeam,
         type StatKey,
-    } from "./scoreboard";
+    } from "@deadlock-plus/match/scoreboard";
 
     let {
         boards,

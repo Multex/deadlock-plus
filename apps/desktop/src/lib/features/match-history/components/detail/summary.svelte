@@ -3,9 +3,9 @@
 
     import { formatDate, t } from "$lib/core/i18n.svelte";
     import { formatClock } from "$lib/features/live/live";
-    import type { MatchTeam } from "../../detail";
-    import { summarizeVersus, type Versus } from "../../versus";
-    import type { HeaderSummary } from "./scoreboard";
+    import type { MatchTeam } from "@deadlock-plus/match/detail";
+    import { summarizeVersus, type Versus } from "@deadlock-plus/match/versus";
+    import type { HeaderSummary } from "@deadlock-plus/match/scoreboard";
 
     let {
         summary,

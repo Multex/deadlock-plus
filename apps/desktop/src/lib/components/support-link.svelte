@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import * as Tooltip from "$lib/ui/tooltip";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { openSupport } from "$lib/features/support/support";
-    import KofiIcon from "./kofi-icon.svelte";
+    import KofiIcon from "@deadlock-plus/ui/icons/kofi.svelte";
 
     let { collapsed }: { collapsed: boolean } = $props();
 

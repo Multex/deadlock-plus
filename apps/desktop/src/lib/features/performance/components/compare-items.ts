@@ -1,4 +1,4 @@
-import type { SelectMenuItem } from "$lib/ui/select-menu";
+import type { SelectMenuItem } from "@deadlock-plus/ui/select-menu";
 
 export function runItems(
     runs: readonly { id: string; label: string; savedAt: number }[],

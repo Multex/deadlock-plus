@@ -19,9 +19,9 @@ import {
     trackSwaps,
     NO_SWAPS,
 } from "./live";
-import type { LiveTeam } from "$lib/generated/types/LiveTeam";
-import type { LivePlayer } from "$lib/generated/types/LivePlayer";
-import type { LivePhase } from "$lib/generated/types/LivePhase";
+import type { LiveTeam } from "@deadlock-plus/ipc-types/LiveTeam";
+import type { LivePlayer } from "@deadlock-plus/ipc-types/LivePlayer";
+import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
 
 describe("stateLine", () => {
     it("gives every phase a distinct line", () => {

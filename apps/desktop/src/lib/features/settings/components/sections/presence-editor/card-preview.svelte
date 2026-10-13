@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Clock, Gamepad2 } from "@lucide/svelte";
-    import Badge from "$lib/ui/badge.svelte";
+    import Badge from "@deadlock-plus/ui/badge.svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import type { PresenceCard } from "$lib/generated/types/PresenceCard";
+    import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
     import { formatElapsed } from "./editor";
 
     let { card, failed, supportButton }: { card: PresenceCard | null; failed: boolean; supportButton: boolean } =

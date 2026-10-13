@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ingestStatusView } from "./status";
 
-import type { IngestStatus } from "$lib/generated/types/IngestStatus";
+import type { IngestStatus } from "@deadlock-plus/ipc-types/IngestStatus";
 
 const raw = (over: Partial<IngestStatus> = {}): IngestStatus => ({
     running: true,

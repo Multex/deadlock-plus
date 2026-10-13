@@ -1,8 +1,10 @@
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { command, fileSrc } from "$lib/core/tauri";
 import { i18n } from "$lib/core/i18n.svelte";
 import { prefs } from "$lib/core/prefs";
-import type { HeroArt } from "$lib/generated/types/HeroArt";
-import type { HeroEntry } from "$lib/generated/types/HeroEntry";
+import type { AssetHero } from "@deadlock-plus/deadlock-api";
+import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
+import type { HeroEntry } from "@deadlock-plus/ipc-types/HeroEntry";
 
 export interface Hero {
     id: number;
@@ -22,19 +24,7 @@ export interface Hero {
     selectable?: boolean;
 }
 
-const URL = "https://api.deadlock-api.com/v1/assets/heroes";
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-interface AssetHero {
-    id: number;
-    name: string;
-    hideout_rich_presence?: string | null;
-    images?: {
-        icon_image_small_webp?: string | null;
-        icon_hero_card?: string | null;
-        icon_image_small?: string | null;
-    };
-}
 
 export function slimHeroes(raw: AssetHero[]): Record<number, Hero> {
     const out: Record<number, Hero> = {};
@@ -160,9 +150,7 @@ function fetchApi(): Promise<Record<number, Hero> | null> {
     if (apiFetch) return apiFetch;
     const p: Promise<Record<number, Hero> | null> = (async () => {
         try {
-            const res = await fetch(URL);
-            if (!res.ok) return null;
-            const heroes = slimHeroes((await res.json()) as AssetHero[]);
+            const heroes = slimHeroes(await deadlockApi.heroes());
             writeCache(heroes);
             return heroes;
         } catch {

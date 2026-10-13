@@ -1,8 +1,8 @@
-import type { LivePhase } from "$lib/generated/types/LivePhase";
-import type { LiveSide } from "$lib/generated/types/LiveSide";
-import type { LiveTeam } from "$lib/generated/types/LiveTeam";
-import type { LivePlayer } from "$lib/generated/types/LivePlayer";
-import { badgeParts, type BadgeParts } from "$lib/features/stats/rank";
+import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
+import type { LiveSide } from "@deadlock-plus/ipc-types/LiveSide";
+import type { LiveTeam } from "@deadlock-plus/ipc-types/LiveTeam";
+import type { LivePlayer } from "@deadlock-plus/ipc-types/LivePlayer";
+import { badgeParts, type BadgeParts } from "@deadlock-plus/stats/rank";
 
 export type StateIcon = "power" | "menu" | "search" | "flag" | "swords" | "trophy" | "loader";
 

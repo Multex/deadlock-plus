@@ -3,11 +3,11 @@
     import { Inbox, SearchX } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
-    import Button from "$lib/ui/button.svelte";
-    import EmptyState from "$lib/ui/empty-state.svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
-    import Page from "$lib/ui/page.svelte";
-    import PageHeader from "$lib/ui/page-header.svelte";
+    import Page from "@deadlock-plus/ui/page.svelte";
+    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import FilterBar from "$lib/features/match-history/components/list/filter-bar.svelte";
     import MatchRow from "$lib/features/match-history/components/list/match-row.svelte";
@@ -16,7 +16,7 @@
     import Pager from "$lib/features/match-history/components/list/pager.svelte";
     import SummaryStrip from "$lib/features/match-history/components/list/summary-strip.svelte";
     import { heroOptions } from "$lib/features/match-history/components/list/view-model";
-    import { formStrip, groupByDay, summarizeRows } from "$lib/features/match-history/list-summary";
+    import { formStrip, groupByDay, summarizeRows } from "@deadlock-plus/match/list-summary";
     import { matchHistory } from "$lib/features/match-history/history.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";

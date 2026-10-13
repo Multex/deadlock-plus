@@ -1,6 +1,6 @@
 import type { Hero } from "$lib/features/heroes/heroes";
-import type { PresenceTimer } from "$lib/generated/types/PresenceTimer";
-import type { SelectMenuItem } from "$lib/ui/select-menu";
+import type { PresenceTimer } from "@deadlock-plus/ipc-types/PresenceTimer";
+import type { SelectMenuItem } from "@deadlock-plus/ui/select-menu";
 import { SOURCE_KINDS, TIMERS, type SourceKind } from "./editor";
 
 export type HeroItem = SelectMenuItem & { icon: string | null; all: boolean };

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
     import { heroInitials } from "$lib/features/live/live";
-    import type { ItemSlot } from "./scoreboard";
+    import type { ItemSlot } from "@deadlock-plus/match/scoreboard";
 
     let { slot }: { slot: ItemSlot | null } = $props();
 
