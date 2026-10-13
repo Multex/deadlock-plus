@@ -4,7 +4,7 @@ Finds the Steam install, the signed-in account and the Deadlock folders. It is r
 
 ## Public API
 
-- `SteamAccount` holds `steam_id64`, `steam_id32`, `persona_name`, `avatar_data_url` and `userdata_dir`. It serialises as camelCase and exports to `apps/desktop/src/lib/generated/types/SteamAccount.ts`.
+- `SteamAccount` holds `steam_id64`, `steam_id32`, `persona_name`, `avatar_data_url` and `userdata_dir`. It serialises as camelCase and exports to `packages/ipc-types/src/SteamAccount.ts`.
 - `current_account()` returns the most recent Steam login as a `SteamAccount`.
 - `current_steam_id32()` returns only the 32-bit id of that account.
 - `local_account_ids()` lists every 32-bit id found in `loginusers.vdf` and in `userdata/`, current account first, without duplicates.

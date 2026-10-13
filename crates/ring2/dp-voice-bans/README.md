@@ -9,7 +9,7 @@ Finds and safely rewrites the game's mute list, `voice_ban.dt`. It is ring 2 bec
 - `looks_like_voice_ban(bytes)` is true for valid UTF-8 text that contains `users`.
 - `backup_then_write(path, bytes, timestamp)` copies the file to `<path>.backup-<timestamp>[-n]`, then overwrites it. It returns the backup path.
 - `game_running_recent()` reports whether Deadlock runs, with a cached answer up to 5 seconds old.
-- `VoiceBanFile` holds `path`, `exists`, `text` and `game_running`. It exports to `apps/desktop/src/lib/generated/types/VoiceBanFile.ts`.
+- `VoiceBanFile` holds `path`, `exists`, `text` and `game_running`. It exports to `packages/ipc-types/src/VoiceBanFile.ts`.
 
 ## Dependencies
 

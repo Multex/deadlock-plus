@@ -1,0 +1,14 @@
+{
+  "name": "@deadlock-plus/ipc-types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TypeScript types of the Tauri command results, generated from Rust by ts-rs",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "exports": {
+    "./*": {
+      "types": "./src/*.ts",
+      "default": "./src/*.ts"
+    }
+  }
+}

@@ -4,7 +4,7 @@ Turns the Deadlock update feed into a stored list of alerts and decides which on
 
 ## Public API
 
-- `Alert` is one update, with `id`, `title`, `link`, `source`, `published`, `kind`, `summary`, `image` and `read`. It exports to `apps/desktop/src/lib/generated/types/Alert.ts`.
+- `Alert` is one update, with `id`, `title`, `link`, `source`, `published`, `kind`, `summary`, `image` and `read`. It exports to `packages/ipc-types/src/Alert.ts`.
 - `Stored` is the saved state. Its `alerts` field is public and the rest is private.
 - `merge(stored, items)` folds a fetched feed into `Stored` and returns the alerts that are new, newest first.
 - `load(path)` reads `Stored` and `save(path, stored)` writes it. `STORE_FILE` is `"alerts.json"`.

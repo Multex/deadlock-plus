@@ -12,7 +12,7 @@ Live connection monitor. It finds the game's UDP flow to a Steam relay, pings th
 - `RelaySource` is an async function that returns a `RelayMap`, a map from relay IPv4 address to `PopInfo`.
 - `PopInfo` holds `code`, `description` and `country_code`.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `NetworkSnapshot` (the Rust `Snapshot`), `PingStats`, `RelayInfo` and `HistoryPoint`.
+TypeScript types exported to `packages/ipc-types/src`: `NetworkSnapshot` (the Rust `Snapshot`), `PingStats`, `RelayInfo` and `HistoryPoint`.
 
 ## Dependencies
 

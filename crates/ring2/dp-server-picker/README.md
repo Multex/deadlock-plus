@@ -31,7 +31,7 @@ Fetches Valve's Steam Datagram Relay (SDR) server groups, pings them, validates 
 - `scan(data, def)` looks for block rules made by ServerPickerX and CS2ServerPicker and returns a `ScanResult`.
 - `import(data, scan)` recreates the covered groups as Deadlock+ rules and returns their group ids.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `KeywordFilterMode`, `RoutingNoteDefinition`, `GameDefinition`, `RoutingNoteInfo`, `ServerGroup`, `ServerData` and `SyncOutcome`.
+TypeScript types exported to `packages/ipc-types/src`: `KeywordFilterMode`, `RoutingNoteDefinition`, `GameDefinition`, `RoutingNoteInfo`, `ServerGroup`, `ServerData` and `SyncOutcome`.
 
 ## Dependencies
 

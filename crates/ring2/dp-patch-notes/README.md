@@ -15,7 +15,7 @@ Offline search over Deadlock patch notes. It parses patch bodies into lines, emb
 - `steam_news::URL` and `steam_news::parse_news_with_text(json)` handle the Steam News response. The URL asks for `maxlength=0`, which returns full bodies.
 - `embed::embedder()` returns the shared `Embedder`, loaded on first use. `Embedder::embed(text)` returns a 384-value normalised vector. `embed::cosine` compares two vectors and `embed::EMBEDDING_DIM` is 384.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `PatchLine`, `PatchOrigin`, `PatchDetail` and `PatchSearchResult`.
+TypeScript types exported to `packages/ipc-types/src`: `PatchLine`, `PatchOrigin`, `PatchDetail` and `PatchSearchResult`.
 
 ## Dependencies
 

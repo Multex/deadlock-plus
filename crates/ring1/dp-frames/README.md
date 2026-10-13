@@ -15,7 +15,7 @@ Frame time capture for the game. On Windows it records the DXGI present events o
 - `layer_capture::LayerCapture` tails the layer's files. `FrameCapture` on Linux wraps it. `layer_capture::FrameLog` parses the bytes and groups presents by swapchain.
 - `layer_install` renders the layer manifest and installs, removes and inspects it: `manifest_json`, `install`, `uninstall`, `status`, `find_library`. `LAUNCH_OPTION` is the Steam launch option string. `LayerStatus` is exported to TypeScript.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `FrameStats`, `FrameSpike`, `CaptureStatus`, `CaptureState` and `LayerStatus`.
+TypeScript types exported to `packages/ipc-types/src`: `FrameStats`, `FrameSpike`, `CaptureStatus`, `CaptureState` and `LayerStatus`.
 
 ## Dependencies
 

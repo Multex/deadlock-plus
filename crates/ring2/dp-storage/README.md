@@ -16,7 +16,7 @@ Measures and clears the files Deadlock and Deadlock+ keep on disk, grouped into 
 - `dir_size(path, skip_top_level)` sums file sizes under a path.
 - `EntryInfo` carries an entry id, its path and whether it is clearable.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `EntryId`, `EntryStats`, `ClearReport` and `EntryInfo`.
+TypeScript types exported to `packages/ipc-types/src`: `EntryId`, `EntryStats`, `ClearReport` and `EntryInfo`.
 
 ## Dependencies
 

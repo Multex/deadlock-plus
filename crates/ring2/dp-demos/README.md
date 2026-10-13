@@ -35,7 +35,7 @@ Root module:
 
 - `lookup(cache, dir, match_id)` fetches `https://api.deadlock-api.com/v1/matches/<id>/metadata`, keeps a `MatchSummary` and returns a `MetaResult`. `DemoMetaCache` holds the cache. `summarize(body)` is the parser.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `DemoStatus`, `Demo`, `DemoListing`, `CleanupRule`, `CleanupRuleKind`, `CleanupMatch`, `RecycleAvailability`, `DeleteFailure`, `DeleteReport`, `PlayerSummary`, `MatchSummary` and `MetaResult`.
+TypeScript types exported to `packages/ipc-types/src`: `DemoStatus`, `Demo`, `DemoListing`, `CleanupRule`, `CleanupRuleKind`, `CleanupMatch`, `RecycleAvailability`, `DeleteFailure`, `DeleteReport`, `PlayerSummary`, `MatchSummary` and `MetaResult`.
 
 ## Dependencies
 

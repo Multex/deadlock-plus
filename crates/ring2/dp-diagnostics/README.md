@@ -16,7 +16,7 @@ Static scan of installed addon VPK files for Panorama scripts that can leave tim
 - `js` holds the helpers the rules use: `strip`, `functions`, `matching`, `line_of` and `line_text`.
 - `vpk` is a VPK v2 reader and writer. It has `Vpk::prefix_len`, `Vpk::parse`, `Vpk::embedded_range`, `Vpk::read`, `write`, `crc32` and `VpkError`.
 
-TypeScript types exported to `apps/desktop/src/lib/generated/types`: `AddonInfo`, `AddonListing`, `ScriptReport`, `AddonScan`, `AddonFailure`, `AddonScanReport`, `Finding`, `Rule` and `Severity`.
+TypeScript types exported to `packages/ipc-types/src`: `AddonInfo`, `AddonListing`, `ScriptReport`, `AddonScan`, `AddonFailure`, `AddonScanReport`, `Finding`, `Rule` and `Severity`.
 
 ## Dependencies
 
