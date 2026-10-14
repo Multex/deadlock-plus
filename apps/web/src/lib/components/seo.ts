@@ -5,9 +5,6 @@ export const SITE_NAME = "Deadlock+";
 /** Shown in a link preview for a page that has no description of its own. */
 export const SITE_DESCRIPTION = "A free companion app for Deadlock. No account needed.";
 
-// `--chrome` of the default theme as sRGB hex: link scrapers and mobile browsers do not read `oklch()`.
-export const THEME_COLOR = "#080605";
-
 export const OG_IMAGE = {
     path: "/og.png",
     width: 1200,

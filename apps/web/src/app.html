@@ -4,13 +4,51 @@
         <meta charset="utf-8" />
         <link rel="icon" href="%sveltekit.assets%/favicon.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <!-- Link previews (Discord and others) use this as their accent colour and run no scripts, so they keep the brass. -->
+        <meta name="theme-color" content="#e6b557" />
         <style>
-            /* Must match --background in app.css; paints before the stylesheet loads. */
+            /* Must match --background of each theme in theme.css; paints before the stylesheet loads. */
             html {
-                background: #14100c;
+                background: #120f0c;
                 color-scheme: dark;
             }
+            html[data-theme="midnight"] {
+                background: oklch(0.17 0.02 260);
+            }
+            html[data-theme="daylight"] {
+                background: oklch(0.97 0.012 85);
+                color-scheme: light;
+            }
+            html[data-theme="contrast"] {
+                background: oklch(0 0 0);
+            }
+            html[data-theme="nightshift"] {
+                background: oklch(0.13 0.008 220);
+            }
+            html[data-theme="deadlock-api"] {
+                background: oklch(0.09 0.004 250);
+            }
         </style>
+        <script>
+            // Runs before the first paint. A browser also tints its address bar with theme-color, so it gets the theme's chrome colour instead of the brass.
+            (function () {
+                var chrome = {
+                    deadlock: "#080605",
+                    midnight: "#04060d",
+                    daylight: "#ece7de",
+                    contrast: "#000000",
+                    nightshift: "#010303",
+                    "deadlock-api": "#000000",
+                };
+                var theme = null;
+                try {
+                    theme = localStorage.getItem("theme");
+                } catch (e) {}
+                if (!theme || !chrome[theme]) theme = "deadlock";
+                document.documentElement.dataset.theme = theme;
+                document.querySelector('meta[name="theme-color"]').content = chrome[theme];
+            })();
+        </script>
         %sveltekit.head%
     </head>
     <body data-sveltekit-reload>

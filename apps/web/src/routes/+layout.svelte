@@ -9,6 +9,7 @@
     import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import ThemePicker from "$lib/components/theme-picker.svelte";
 
     let { children } = $props();
 
@@ -139,8 +140,11 @@
                     {/each}
                 </nav>
             </div>
+            <div class="mt-10">
+                <ThemePicker />
+            </div>
             <div
-                class="mt-10 flex flex-col gap-x-10 gap-y-2 border-t border-border pt-6 leading-relaxed text-muted-foreground md:flex-row md:justify-between"
+                class="mt-6 flex flex-col gap-x-10 gap-y-2 border-t border-border pt-6 leading-relaxed text-muted-foreground md:flex-row md:justify-between"
             >
                 <p>Licensed under GPL-3.0-or-later.</p>
                 <p class="md:text-right">

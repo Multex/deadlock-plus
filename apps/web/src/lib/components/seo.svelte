@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, THEME_COLOR, socialMeta } from "./seo";
+    import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, socialMeta } from "./seo";
 
     let { title, description }: { title: string; description?: string } = $props();
 
@@ -15,7 +15,6 @@
         <meta name="description" content={description} />
     {/if}
     <link rel="canonical" href={meta.url} />
-    <meta name="theme-color" content={THEME_COLOR} />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={SITE_NAME} />
