@@ -42,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Desktop notifications now appear in your chosen language.
 - Counts such as "2,093 matches" now use your language's number format.
 - Notices no longer run out while the Deadlock+ window is hidden.
+- Live match reading no longer drops out and reconnects after a bad memory read on some PCs.
 
 ## [0.11.0] - 2026-10-12
 
