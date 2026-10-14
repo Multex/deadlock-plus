@@ -6,6 +6,7 @@ on:
     paths:
       - apps/crowdin-relay/**
       - packages/discord-messages/**
+      - pnpm-lock.yaml
   workflow_dispatch:
 
 concurrency:
