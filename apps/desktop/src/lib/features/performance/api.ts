@@ -1,9 +1,11 @@
 import { command } from "$lib/core/tauri";
 
+import type { AddonError } from "@deadlock-plus/ipc-types/AddonError";
 import type { AddonInfo } from "@deadlock-plus/ipc-types/AddonInfo";
 import type { AddonListing } from "@deadlock-plus/ipc-types/AddonListing";
 import type { AddonScan } from "@deadlock-plus/ipc-types/AddonScan";
 import type { AddonScanReport } from "@deadlock-plus/ipc-types/AddonScanReport";
+import type { CaptureError } from "@deadlock-plus/ipc-types/CaptureError";
 import type { CaptureState } from "@deadlock-plus/ipc-types/CaptureState";
 import type { CaptureStatus } from "@deadlock-plus/ipc-types/CaptureStatus";
 import type { Finding } from "@deadlock-plus/ipc-types/Finding";
@@ -15,10 +17,12 @@ import type { ScriptReport } from "@deadlock-plus/ipc-types/ScriptReport";
 import type { Severity } from "@deadlock-plus/ipc-types/Severity";
 
 export type {
+    AddonError,
     AddonInfo,
     AddonListing,
     AddonScan,
     AddonScanReport,
+    CaptureError,
     CaptureState,
     CaptureStatus,
     Finding,

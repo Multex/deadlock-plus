@@ -4,6 +4,15 @@ use std::path::Path;
 use dp_presence::Config;
 use dp_versioned::{self, Migration};
 
+use crate::features::error::{error_codes, AppError};
+
+error_codes! {
+    pub enum PresenceError in "presence" {
+        ImportInvalid = "import_invalid",
+        SaveFailed = "save_failed",
+    }
+}
+
 pub const STORE_FILE: &str = "presence-config.json";
 const MIGRATIONS: &[Migration] = &[];
 
@@ -26,12 +35,13 @@ pub fn export(config: &Config) -> String {
     serde_json::to_string_pretty(config).unwrap_or_else(|_| "{}".to_owned())
 }
 
-pub fn import(text: &str) -> Result<Config, String> {
-    let value: serde_json::Value = serde_json::from_str(text).map_err(|e| e.to_string())?;
+pub fn import(text: &str) -> Result<Config, AppError> {
+    let invalid = |detail: &dyn std::fmt::Display| AppError::new(PresenceError::ImportInvalid).detail(detail);
+    let value: serde_json::Value = serde_json::from_str(text).map_err(|e| invalid(&e))?;
     if !value.is_object() {
-        return Err("expected a JSON object".to_owned());
+        return Err(invalid(&"expected a JSON object"));
     }
-    serde_json::from_value(value).map_err(|e| e.to_string())
+    serde_json::from_value(value).map_err(|e| invalid(&e))
 }
 
 #[cfg(test)]
@@ -92,8 +102,13 @@ mod tests {
 
     #[test]
     fn import_rejects_text_that_is_not_a_config_object() {
-        for bad in ["", "not json", "[]", "5", "null", "\"x\""] {
-            assert!(import(bad).is_err(), "{bad:?}");
+        for bad in ["", "not json", "[]", "5", "null", "\"x\"", r#"{"states":5}"#] {
+            assert_eq!(import(bad).unwrap_err().code(), "presence.import_invalid", "{bad:?}");
         }
+    }
+
+    #[test]
+    fn every_presence_code_is_in_the_english_catalog() {
+        crate::features::error::assert_catalogued::<PresenceError>();
     }
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { saveTextFile } from "$lib/core/files";
     import { Copy, FolderOpen, RefreshCw, Save } from "@lucide/svelte";
@@ -52,7 +52,7 @@
             entries = await readLogs();
             failed = null;
         } catch (e) {
-            failed = errorText(e);
+            failed = failureText(e, t("logging.read_failed"));
         }
     }
 
@@ -75,7 +75,7 @@
             );
             if (saved) toast.success(t("logging.saved"));
         } catch (e) {
-            toast.error(t("logging.save_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("logging.save_failed")));
         }
     }
 
@@ -83,7 +83,7 @@
         try {
             await openLogDir();
         } catch (e) {
-            toast.error(t("logging.open_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("logging.open_failed")));
         }
     }
 </script>
@@ -118,7 +118,7 @@
     </div>
 
     {#if failed}
-        <p class="text-xs text-destructive">{t("logging.read_failed", { error: failed })}</p>
+        <p class="text-xs text-destructive">{failed}</p>
     {:else if !entries}
         <p class="text-xs text-muted-foreground">{t("logging.loading")}</p>
     {:else if shown.length === 0}

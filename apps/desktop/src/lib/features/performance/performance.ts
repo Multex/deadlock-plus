@@ -1,6 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import type { Platform } from "$lib/core/platform";
-import type { AddonInfo, AddonScan, AddonScanReport, Finding, Rule, Severity } from "./api";
+import type { AddonError, AddonInfo, AddonScan, AddonScanReport, Finding, Rule, Severity } from "./api";
 
 export type ScanStatus = "noScripts" | "clean" | "flagged";
 
@@ -14,6 +14,16 @@ export function ruleTitle(rule: Rule): string {
             return t("performance.rules.nulled_not_cancelled");
         case "unguardedRearm":
             return t("performance.rules.unguarded_rearm");
+    }
+}
+
+export function findingText(finding: Finding): string {
+    const params = { fn: finding.function };
+    switch (finding.rule) {
+        case "nulledNotCancelled":
+            return t("performance.findings.nulled_not_cancelled", params);
+        case "unguardedRearm":
+            return t("performance.findings.unguarded_rearm", params);
     }
 }
 
@@ -93,7 +103,7 @@ export interface AddonGroups {
 export function groupAddons(
     addons: AddonInfo[],
     scans: Record<string, AddonScan>,
-    failures: Record<string, string>,
+    failures: Record<string, AddonError>,
 ): AddonGroups {
     const groups: AddonGroups = { flagged: [], clean: [], noScripts: [], failed: [], pending: [] };
     for (const addon of addons) {
@@ -115,11 +125,11 @@ export function groupAddons(
 
 export function indexReport(report: AddonScanReport): {
     scans: Record<string, AddonScan>;
-    failures: Record<string, string>;
+    failures: Record<string, AddonError>;
 } {
     return {
         scans: Object.fromEntries(report.scans.map((s) => [s.fileName, s])),
-        failures: Object.fromEntries(report.failures.map((f) => [f.fileName, f.message])),
+        failures: Object.fromEntries(report.failures.map((f) => [f.fileName, f.error])),
     };
 }
 

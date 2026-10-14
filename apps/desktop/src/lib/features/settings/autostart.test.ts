@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import catalog from "../../../../../../locales/en.json";
+import { t } from "$lib/core/i18n.svelte";
 import { autostartDescription, autostartLine, autostartTitle } from "./autostart";
 
 describe("autostartLine", () => {
@@ -17,10 +19,16 @@ describe("autostartLine", () => {
         );
     });
 
-    it("shows the error over any status", () => {
-        expect(autostartLine({ supported: true, enabled: true, stale: false }, "Access is denied.")).toBe(
-            "Couldn't change it: Access is denied.",
+    it("shows one failure sentence over any status", () => {
+        const failure = { code: "autostart.task_create_failed", params: {} };
+        expect(autostartLine({ supported: true, enabled: true, stale: true }, failure)).toBe(
+            t("settings.autostart.failed"),
         );
+    });
+
+    it("shows a failure that names its cause on its own", () => {
+        const failure = { code: "autostart.user_name_unavailable", params: {} };
+        expect(autostartLine(null, failure)).toBe(catalog.errors.autostart.user_name_unavailable);
     });
 });
 

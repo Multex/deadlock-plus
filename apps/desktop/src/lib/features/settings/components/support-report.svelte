@@ -1,7 +1,7 @@
 <script lang="ts">
     import { toast } from "svelte-sonner";
     import { Copy, FileText, Save } from "@lucide/svelte";
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { saveTextFile } from "$lib/core/files";
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -17,7 +17,7 @@
         try {
             report = await buildSupportReport();
         } catch (e) {
-            toast.error(t("support_report.build_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("support_report.build_failed")));
         } finally {
             busy = false;
         }
@@ -46,7 +46,7 @@
             );
             if (saved) toast.success(t("support_report.saved"));
         } catch (e) {
-            toast.error(t("support_report.save_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("support_report.save_failed")));
         }
     }
 </script>

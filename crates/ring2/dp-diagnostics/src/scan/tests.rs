@@ -44,11 +44,15 @@ fn scan_names_the_addon_and_reports_findings() {
     std::fs::remove_dir_all(dir).unwrap();
 }
 
+fn error_code(result: Result<AddonScan, impl serde::Serialize>) -> serde_json::Value {
+    serde_json::to_value(result.expect_err("scan should fail")).unwrap()
+}
+
 #[test]
 fn scan_rejects_names_outside_the_addons_dir() {
     let dir = scratch("reject");
-    assert!(scan_addon_in(&dir, "../pak01_dir.vpk").is_err());
-    assert!(scan_addon_in(&dir, "missing_dir.vpk").is_err());
+    assert_eq!(error_code(scan_addon_in(&dir, "../pak01_dir.vpk")), "diagnostics.mod_unreadable");
+    assert_eq!(error_code(scan_addon_in(&dir, "missing_dir.vpk")), "diagnostics.mod_unreadable");
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -56,7 +60,7 @@ fn scan_rejects_names_outside_the_addons_dir() {
 fn scan_reports_a_corrupt_vpk_as_an_error() {
     let dir = scratch("corrupt");
     std::fs::write(dir.join("pak01_dir.vpk"), b"not a vpk at all").unwrap();
-    assert!(scan_addon_in(&dir, "pak01_dir.vpk").is_err());
+    assert_eq!(error_code(scan_addon_in(&dir, "pak01_dir.vpk")), "diagnostics.mod_unreadable");
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -68,6 +72,7 @@ struct Recorder {
     cancel_at: Option<usize>,
     scans: Vec<String>,
     failures: Vec<String>,
+    failure_json: Vec<serde_json::Value>,
 }
 
 impl ScanObserver for Recorder {
@@ -93,6 +98,7 @@ impl ScanObserver for Recorder {
     }
 
     fn failed(&mut self, failure: AddonFailure) {
+        self.failure_json.push(serde_json::to_value(&failure).unwrap());
         self.failures.push(failure.file_name);
     }
 }
@@ -114,6 +120,10 @@ fn scan_all_reports_progress_and_results_per_addon() {
     assert_eq!(rec.checkpoints, 2);
     assert_eq!(rec.scans, ["pak01_dir.vpk"]);
     assert_eq!(rec.failures, ["pak02_dir.vpk"]);
+    assert_eq!(
+        rec.failure_json,
+        [serde_json::json!({ "fileName": "pak02_dir.vpk", "error": "diagnostics.mod_unreadable" })]
+    );
     let name = |n: &str| Some(n.to_string());
     assert_eq!(
         rec.progress,

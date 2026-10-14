@@ -44,7 +44,10 @@
             "home_folder_not_found": "Could not find your home folder.",
             "frame_layer_missing": "This build of Deadlock+ does not include the frame layer.",
             "frame_layer_install_failed": "Could not install the frame layer. Check the log for details.",
-            "frame_layer_remove_failed": "Could not remove the frame layer. Check the log for details."
+            "frame_layer_remove_failed": "Could not remove the frame layer. Check the log for details.",
+            "frame_trace_needs_admin": "Frame recording needs administrator rights. Restart Deadlock+ as administrator.",
+            "frames_read_failed": "Couldn't read frames from the game. Restart Deadlock and try again.",
+            "mod_unreadable": "Couldn't read this mod. The file may be damaged or in use."
         },
         "export": {
             "invalid_name": "That file name isn't allowed.",
@@ -109,6 +112,10 @@
         "match_history": {
             "too_large": "That match's details are too large to cache.",
             "not_json": "That match's details could not be read, so they were not cached."
+        },
+        "presence": {
+            "import_invalid": "That isn't a Deadlock+ presence preset. Copy the whole export text and try again.",
+            "save_failed": "Couldn't save your Discord presence settings. Check the log for details."
         }
     },
     "settings": {
@@ -201,7 +208,7 @@
             "description_windows": "Launches Deadlock+ when you sign in to Windows.",
             "description_macos": "Launches Deadlock+ when you log in to macOS.",
             "description_linux": "Launches Deadlock+ when you log in to your desktop.",
-            "failed": "Couldn't change it: {error}",
+            "failed": "Couldn't change this setting. Check the log for details.",
             "stale": "Startup is set up for a different copy of Deadlock+. Turn it off and on to use this one."
         },
         "startup": {
@@ -433,7 +440,7 @@
             "ingest_waiting": "Waiting for your answer.",
             "ingest_off": "Off",
             "ingest_no_cache": "Steam's HTTP cache wasn't found.",
-            "ingest_failed": "Last upload failed: {error}",
+            "ingest_failed": "The last upload failed. Check the log for details.",
             "ingest_watching": "Watching Steam's cache. {count} submitted this session.",
             "ingest_description": "Reads Deadlock replay links from Steam's local HTTP cache and uploads the match IDs, replay salts and your Steam account ID to api.deadlock-api.com so the community database can fetch those matches. Nothing else is read or sent. Same behaviour as the open-source deadlock-api-ingest tool.",
             "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay salts of matches the community database is missing. Your login never leaves this PC. Only the match IDs, salts and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool.",
@@ -463,7 +470,6 @@
             "terms_link": "Licence terms",
             "copyright": "Copyright notice",
             "fonts_heading": "Fonts and artwork",
-            "open_failed": "Could not open the link: {error}",
             "app_summary": "Deadlock+ is free software. You can use, share and change it under the GNU General Public License, version 3 or any later version.",
             "app_warranty": "It comes with no warranty.",
             "disclaimer": "Deadlock+ is an unofficial fan tool, not made by, affiliated with or endorsed by Valve Corporation. \"Deadlock\" and \"Steam\" are trademarks of Valve Corporation. The Deadlock fonts remain their owners' property and can be removed on request.",
@@ -492,8 +498,7 @@
             "donators_description": "Keep the app free.",
             "others_one": "and {count} other",
             "others_other": "and {count} others",
-            "nobody_yet": "Nobody listed yet.",
-            "open_failed": "Couldn't open the link: {error}"
+            "nobody_yet": "Nobody listed yet."
         }
     },
     "tray": {
@@ -526,7 +531,8 @@
     "common": {
         "confirm": "Confirm",
         "cancel": "Cancel",
-        "open_link_failed": "Could not open the link: {error}"
+        "open_link_failed": "Could not open the link: {error}",
+        "link_open_failed": "Couldn't open the link."
     },
     "platform": {
         "windows": "Windows",
@@ -572,7 +578,7 @@
                 "off": "Deadlock API ingest off",
                 "starting": "Deadlock API ingest starting...",
                 "no_steam_cache": "Deadlock API ingest: Steam cache not found",
-                "error": "Deadlock API ingest: {error}",
+                "error": "Match sharing failed",
                 "active": "Deadlock API ingest active · {count} sent"
             },
             "api": {
@@ -961,7 +967,7 @@
             "copied": "Copied the comparison",
             "copy_failed": "Couldn't copy the comparison",
             "saved": "Saved the comparison",
-            "save_failed": "Couldn't save the comparison: {error}",
+            "save_failed": "Couldn't save the comparison. Check the log for details.",
             "file_filter": "Text",
             "pick_run": "Pick a run",
             "intro": "Compare two saved runs side by side. Play the same map for a similar length of time in both, once with a mod on and once with it off. Frame pacing varies between matches, so a difference is consistent with the mod being the cause, not proof of it.",
@@ -1031,6 +1037,10 @@
             "pending_other": "Waiting to scan {count} more addons...",
             "addons_without_scripts_one": "{count} addon has no scripts",
             "addons_without_scripts_other": "{count} addons have no scripts"
+        },
+        "findings": {
+            "nulled_not_cancelled": "This mod forgets a timer without stopping it. Each time {fn} runs again, another timer can start and keep running.",
+            "unguarded_rearm": "{fn} restarts its own timer and also runs on an event, without stopping the old timer first. Each event can add a timer that never stops."
         }
     },
     "server_picker": {
@@ -1137,24 +1147,24 @@
             "firewall_read_failed": "Couldn't read current firewall rules. Try running as administrator.",
             "relays_moved": "Valve moved its relays. Updated blocks for {names}.",
             "blocks_update_failed": "Couldn't update blocks for {names}. Re-apply them.",
-            "sync_failed": "Couldn't check your blocks against Valve's relays: {error}",
+            "sync_failed": "Couldn't check your blocks against Valve's latest servers. Check the log for details.",
             "unsupported": "Blocking servers isn't supported on this platform yet.",
             "blocked": "Blocked {name}",
             "unblocked": "Unblocked {name}",
-            "block_failed": "Failed to block {name}: {error}",
-            "unblock_failed": "Failed to unblock {name}: {error}",
-            "siblings_failed": "Failed to block related relays: {error}",
+            "block_failed": "Couldn't block {name}. Check the log for details.",
+            "unblock_failed": "Couldn't unblock {name}. Check the log for details.",
+            "siblings_failed": "Couldn't block the related servers. Check the log for details.",
             "unblocked_rules_one": "Unblocked {count} rule",
             "unblocked_rules_other": "Unblocked {count} rules",
-            "unblock_all_failed": "Failed to unblock everything: {error}",
+            "unblock_all_failed": "Couldn't unblock everything. Check the log for details.",
             "preset_applied": "Applied \"{name}\": {blocked} of {total} regions blocked",
-            "preset_apply_failed": "Couldn't apply \"{name}\": {error}",
+            "preset_apply_failed": "Couldn't apply \"{name}\". Check the log for details.",
             "preset_saved": "Saved \"{name}\"",
-            "preset_save_failed": "Couldn't save the preset: {error}",
-            "preset_delete_failed": "Couldn't delete the preset: {error}",
+            "preset_save_failed": "Couldn't save the preset. Check the log for details.",
+            "preset_delete_failed": "Couldn't delete the preset. Check the log for details.",
             "imported_one": "Imported {count} block from {source}",
             "imported_other": "Imported {count} blocks from {source}",
-            "import_failed": "Import failed: {error}"
+            "import_failed": "Couldn't import the existing firewall blocks. Check the log for details."
         }
     },
     "demos": {
@@ -1262,7 +1272,8 @@
         "toast": {
             "deleted_one": "Deleted {count} replay",
             "deleted_other": "Deleted {count} replays",
-            "delete_failed": "Couldn't delete {count}: {message}"
+            "delete_failed_one": "Couldn't delete {count} replay. Check the log for details.",
+            "delete_failed_other": "Couldn't delete {count} replays. Check the log for details."
         }
     },
     "storage": {
@@ -1589,11 +1600,11 @@
             "backup": "Backup: {path}",
             "already_muted": "Already muted.",
             "not_recognised": "Not recognised. Use a SteamID64, account ID or /profiles/ link.",
-            "search_failed": "Search failed: {error}",
-            "statlocker_failed": "Could not open Statlocker: {error}",
+            "search_failed": "Couldn't search for players. Check your connection and try again.",
+            "statlocker_failed": "Couldn't open Statlocker in your browser.",
             "exported": "Exported {count} mutes",
-            "export_failed": "Export failed: {error}",
-            "import_failed": "Import failed: {error}"
+            "export_failed": "Couldn't export your mutes. Check the log for details.",
+            "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
         }
     },
     "alerts": {
@@ -1622,7 +1633,7 @@
         "back": "Back",
         "next": "Next",
         "finish": "Finish",
-        "autostart_error": "Couldn't turn on {name}: {error}",
+        "autostart_error": "Couldn't turn on {name}. Check the log for details.",
         "welcome": {
             "step_title": "Welcome to Deadlock+",
             "returning_title": "Deadlock+ has a revamped setup process, let's get you going.",
@@ -1719,7 +1730,6 @@
     },
     "patch_notes": {
         "no_link": "This update has no valid link.",
-        "open_link_error": "Could not open the link: {error}",
         "loading": "Loading full notes...",
         "load_error": "Could not load these notes: {error}",
         "not_indexed": "Full notes for this update have not been indexed yet.",
@@ -1740,7 +1750,8 @@
             "available": "Version {version} is available.",
             "downloading": "Downloading {version}. Deadlock+ restarts when it finishes.",
             "downloading_percent": "Downloading {version} ({percent}%). Deadlock+ restarts when it finishes.",
-            "error": "Update failed: {error}"
+            "check_failed": "Couldn't check for updates. Check your connection and try again.",
+            "download_failed": "Couldn't download the update. Try again later."
         }
     },
     "live": {
@@ -1859,8 +1870,8 @@
         "copy_failed": "Couldn't copy the log",
         "save_filter": "Text",
         "saved": "Saved the log",
-        "save_failed": "Couldn't save the log: {error}",
-        "open_failed": "Couldn't open the log folder: {error}",
+        "save_failed": "Couldn't save the log.",
+        "open_failed": "Couldn't open the log folder.",
         "min_level": "Minimum level",
         "search": "Search",
         "search_label": "Search the log",
@@ -1869,7 +1880,7 @@
         "copy": "Copy",
         "save": "Save",
         "open_folder": "Open folder",
-        "read_failed": "Couldn't read the log: {error}",
+        "read_failed": "Couldn't read the log.",
         "loading": "Loading...",
         "no_match": "Nothing matches.",
         "showing_latest": "Showing the latest {shown} of {total}."
@@ -2034,7 +2045,6 @@
         "support": "Support Deadlock+",
         "open_palette": "Open command palette",
         "jump": "Jump to a page",
-        "open_link_error": "Could not open the link: {error}",
         "palette_title": "Command palette",
         "palette_description": "Search pages, settings and actions.",
         "palette_placeholder": "Search pages, settings and actions",
@@ -2099,8 +2109,7 @@
     },
     "support": {
         "nudge": "Enjoying Deadlock+? It is free and made by a small team.",
-        "action": "Support Deadlock+",
-        "open_link_error": "Could not open the link: {error}"
+        "action": "Support Deadlock+"
     },
     "connectivity": {
         "offline": "You are offline. Deadlock needs a connection, so live data is paused and saved copies are shown where they exist."
@@ -2200,8 +2209,8 @@
         "save": "Save",
         "save_filter": "Text",
         "saved": "Saved the report",
-        "save_failed": "Couldn't save the report: {error}",
-        "build_failed": "Couldn't build the report: {error}"
+        "save_failed": "Couldn't save the report. Check the log for details.",
+        "build_failed": "Couldn't build the report. Check the log for details."
     },
     "match_history": {
         "api_error": "The Deadlock API returned an error ({status}).",
@@ -2396,7 +2405,8 @@
                 "copied": "Scoreboard image copied to the clipboard.",
                 "save_failed": "Could not save the image: {error}",
                 "copy_failed": "Could not copy the image: {error}",
-                "made_with": "Made with"
+                "made_with": "Made with",
+                "render_failed": "Couldn't make the scoreboard image. Try again."
             },
             "replay": {
                 "heading": "Replay",

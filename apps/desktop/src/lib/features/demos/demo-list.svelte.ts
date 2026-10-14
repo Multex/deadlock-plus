@@ -31,8 +31,8 @@ import {
     runPool,
     type DemoFilter,
 } from "./list";
-import { errorText } from "$lib/core/errors";
-import { t, tn } from "$lib/core/i18n.svelte";
+import { errorText, failureText } from "$lib/core/errors";
+import { tn } from "$lib/core/i18n.svelte";
 import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 
 export class DemoList {
@@ -165,12 +165,7 @@ export class DemoList {
             const done = report.deleted.length;
             if (done > 0) toast.success(tn("demos.toast.deleted", done));
             if (report.failed.length > 0)
-                toast.error(
-                    t("demos.toast.delete_failed", {
-                        count: report.failed.length,
-                        message: errorText(report.failed[0].error),
-                    }),
-                );
+                toast.error(failureText(report.failed[0].error, tn("demos.toast.delete_failed", report.failed.length)));
             const gone = new Set(report.deleted);
             this.selected = new Set([...this.selected].filter((n) => !gone.has(n)));
         } catch (e) {

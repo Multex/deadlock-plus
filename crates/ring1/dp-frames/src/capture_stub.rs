@@ -1,4 +1,4 @@
-pub use crate::status::{CaptureState, CaptureStatus};
+pub use crate::status::{CaptureError, CaptureState, CaptureStatus};
 use crate::FrameStats;
 
 #[derive(Default)]

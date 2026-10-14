@@ -75,7 +75,7 @@
                 icon: CircleAlert,
                 ok: false,
                 tone: "text-destructive",
-                text: t("shell.statusbar.ingest.error", { error: s.lastError }),
+                text: t("shell.statusbar.ingest.error"),
             };
         return {
             icon: CloudUpload,

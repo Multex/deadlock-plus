@@ -1,6 +1,7 @@
 <script lang="ts">
     import { ChevronRight, RefreshCw } from "@lucide/svelte";
 
+    import { errorText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -116,7 +117,9 @@
                             <AddonMeta {addon} />
                             <Badge variant="destructive">{t("performance.scripts.error_badge")}</Badge>
                         </div>
-                        <p class="mt-2 text-sm text-destructive">{failures[addon.fileName]}</p>
+                        <p class="mt-2 text-sm text-destructive">
+                            {errorText({ code: failures[addon.fileName], params: {} })}
+                        </p>
                     </Card>
                 {/each}
             </ul>

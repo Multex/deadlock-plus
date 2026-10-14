@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import catalog from "../../../../../locales/en.json";
-import { errorCode, errorText } from "./errors";
+import { errorCode, errorText, failureText } from "./errors";
 
 describe("errorText", () => {
     it("looks a code up in the catalog", () => {
@@ -38,6 +38,42 @@ describe("errorText", () => {
 
     it("uses an Error's message", () => {
         expect(errorText(new Error("boom"))).toBe("boom");
+    });
+});
+
+describe("failureText", () => {
+    const fallback = "Couldn't block Frankfurt. Check the log for details.";
+
+    it("uses the fallback over a generic coded sentence", () => {
+        expect(failureText({ code: "server_picker.block_failed", params: {} }, fallback)).toBe(fallback);
+        expect(failureText({ code: "common.io", params: {} }, fallback)).toBe(fallback);
+        expect(failureText({ code: "common.internal", params: {} }, fallback)).toBe(fallback);
+    });
+
+    it("shows a sentence that tells the player something on its own", () => {
+        expect(failureText({ code: "voice_bans.game_running", params: {} }, fallback)).toBe(
+            catalog.errors.voice_bans.game_running,
+        );
+        expect(failureText({ code: "common.network", params: {} }, fallback)).toBe(catalog.errors.common.network);
+        expect(failureText({ code: "voice_bans.write_failed", params: {} }, fallback)).toBe(
+            catalog.errors.voice_bans.write_failed,
+        );
+    });
+
+    it("keeps a failure that carries details", () => {
+        expect(failureText({ code: "ingest.request_failed", params: { status: "503" } }, fallback)).toBe(
+            catalog.errors.ingest.request_failed.replace("{status}", "503"),
+        );
+    });
+
+    it("uses the fallback for an unknown code", () => {
+        expect(failureText({ code: "demos.nope", params: {} }, fallback)).toBe(fallback);
+    });
+
+    it("never shows a raw string or JavaScript error", () => {
+        expect(failureText("os error 5", fallback)).toBe(fallback);
+        expect(failureText(new TypeError("Failed to fetch"), fallback)).toBe(fallback);
+        expect(failureText(undefined, fallback)).toBe(fallback);
     });
 });
 

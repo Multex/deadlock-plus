@@ -1,6 +1,6 @@
 use crate::layer_capture::LayerCapture;
 use crate::layer_install::system_data_home;
-pub use crate::status::{CaptureState, CaptureStatus};
+pub use crate::status::{CaptureError, CaptureState, CaptureStatus};
 use crate::FrameStats;
 
 /// Reads present timestamps from the Vulkan layer's files. The layer is loaded into the game only, so

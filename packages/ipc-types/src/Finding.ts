@@ -2,4 +2,4 @@
 import type { Rule } from "./Rule";
 import type { Severity } from "./Severity";
 
-export type Finding = { rule: Rule, severity: Severity, function: string, line: number, snippet: string, message: string, };
+export type Finding = { rule: Rule, severity: Severity, function: string, line: number, snippet: string, };

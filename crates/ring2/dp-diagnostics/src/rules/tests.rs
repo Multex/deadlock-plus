@@ -262,3 +262,12 @@ fn findings_carry_the_trimmed_source_line() {
         assert_eq!(f.snippet, expected);
     }
 }
+
+#[test]
+fn findings_carry_the_rule_and_function_but_no_english_text() {
+    let finding = &scan(LEAKY)[0];
+    let json = serde_json::to_value(finding).unwrap();
+    assert_eq!(json["rule"], "nulledNotCancelled");
+    assert_eq!(json["function"], "refresh");
+    assert!(json.get("message").is_none(), "finding still carries text: {json}");
+}

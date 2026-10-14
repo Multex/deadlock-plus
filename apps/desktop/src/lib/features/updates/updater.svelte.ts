@@ -1,12 +1,13 @@
 import { check, type Update } from "$lib/core/updater";
 
 export type UpdatePhase = "idle" | "checking" | "upToDate" | "available" | "downloading" | "error";
+export type UpdateFailure = "check" | "download";
 
 class Updater {
     phase = $state<UpdatePhase>("idle");
     version = $state<string | null>(null);
     progress = $state<number | null>(null);
-    error = $state<string | null>(null);
+    error = $state<UpdateFailure | null>(null);
 
     private update: Update | null = null;
 
@@ -18,8 +19,9 @@ class Updater {
         try {
             this.update = await check();
         } catch (e) {
+            console.warn("update check failed:", e);
             this.phase = "error";
-            this.error = String(e);
+            this.error = "check";
             return false;
         }
         this.version = this.update?.version ?? null;
@@ -45,8 +47,9 @@ class Updater {
                 }
             });
         } catch (e) {
+            console.warn("update download failed:", e);
             this.phase = "error";
-            this.error = String(e);
+            this.error = "download";
         }
     }
 }

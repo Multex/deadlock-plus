@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { t } from "$lib/core/i18n.svelte";
 import { updateLine } from "./status";
 
 describe("updateLine", () => {
@@ -20,9 +21,12 @@ describe("updateLine", () => {
         );
     });
 
-    it("reports the failure", () => {
-        expect(updateLine({ phase: "error", version: null, progress: null, error: "offline" })).toBe(
-            "Update failed: offline",
+    it("names the step that failed without raw error text", () => {
+        expect(updateLine({ phase: "error", version: null, progress: null, error: "check" })).toBe(
+            t("updates.status.check_failed"),
+        );
+        expect(updateLine({ phase: "error", version: "0.2.0", progress: null, error: "download" })).toBe(
+            t("updates.status.download_failed"),
         );
     });
 

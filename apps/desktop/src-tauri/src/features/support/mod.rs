@@ -176,7 +176,7 @@ fn features_fields(app: &tauri::AppHandle) -> Fields {
     let capture = app.state::<dp_frames::capture::FrameCapture>().status();
     let mut capture_text = name_of(&capture.state);
     if let Some(error) = &capture.error {
-        capture_text.push_str(&format!(", error: {error}"));
+        capture_text.push_str(&format!(", error: {error:?}"));
     }
     fields.push(field("frame capture", capture_text));
 

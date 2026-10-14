@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { Play, Square } from "@lucide/svelte";
 
+    import { errorText } from "$lib/core/errors";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
@@ -84,8 +85,8 @@
     {#if frameCapture.error}
         <p class="text-sm text-destructive">{frameCapture.error}</p>
     {/if}
-    {#if status?.state === "failed"}
-        <p class="text-sm text-destructive">{status.error}</p>
+    {#if status?.state === "failed" && status.error}
+        <p class="text-sm text-destructive">{errorText({ code: status.error, params: {} })}</p>
     {/if}
 
     {#if frameCapture.active && status}

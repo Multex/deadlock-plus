@@ -3,7 +3,7 @@
     import Badge, { type BadgeVariant } from "@deadlock-plus/ui/badge.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import type { AddonInfo, AddonScan, Severity } from "../api";
-    import { flattenFindings, ruleTitle, severityLabel, worstSeverity } from "../performance";
+    import { findingText, flattenFindings, ruleTitle, severityLabel, worstSeverity } from "../performance";
     import AddonMeta from "./addon-meta.svelte";
 
     const SEVERITY_BADGE: Record<Severity, BadgeVariant> = {
@@ -36,7 +36,7 @@
                     <Badge variant={SEVERITY_BADGE[f.severity]}>{severityLabel(f.severity)}</Badge>
                     <span class="text-sm font-medium">{ruleTitle(f.rule)}</span>
                 </div>
-                <p class="text-sm text-muted-foreground">{f.message}</p>
+                <p class="text-sm text-muted-foreground">{findingText(f)}</p>
                 <pre class="overflow-x-auto rounded-sm bg-muted px-3 py-2 font-mono text-xs"><code>{f.snippet}</code
                     ></pre>
                 <p class="break-all font-mono text-xs text-muted-foreground">

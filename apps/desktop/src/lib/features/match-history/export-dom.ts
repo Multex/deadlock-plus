@@ -2,7 +2,23 @@ import { toBlob } from "html-to-image";
 import { mount, unmount } from "svelte";
 import { saveBinaryFile } from "$lib/core/files";
 import ExportFooter from "./components/detail/export-footer.svelte";
-import { EXPORT_WIDTH, exportPixelRatio, stripExportIgnored } from "@deadlock-plus/match/export";
+import { errorText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
+import { EXPORT_WIDTH, exportPixelRatio, stripExportIgnored, type ExportKind } from "@deadlock-plus/match/export";
+
+export class ExportRenderError extends Error {
+    constructor(cause: unknown) {
+        super("the scoreboard image could not be rendered", { cause });
+    }
+}
+
+export function exportFailureText(kind: ExportKind, error: unknown): string {
+    if (error instanceof ExportRenderError) return t("match_history.detail.export.render_failed");
+    const text = errorText(error);
+    return kind === "copy"
+        ? t("match_history.detail.export.copy_failed", { error: text })
+        : t("match_history.detail.export.save_failed", { error: text });
+}
 
 /** `asset:` art is not reachable by `fetch` under the app's CSP, but `<img>` loads it with CORS headers. */
 async function loadAsDataUrl(src: string): Promise<string | null> {
@@ -73,8 +89,11 @@ export async function renderNodeToPng(node: HTMLElement, footerLabel: string): P
             backgroundColor: pageBackground(),
             style: { width: `${EXPORT_WIDTH}px`, maxWidth: "none" },
         });
-        if (!blob) throw new Error("the image could not be created");
+        if (!blob) throw new Error("html-to-image returned no blob");
         return blob;
+    } catch (e) {
+        console.warn("scoreboard render failed:", e);
+        throw new ExportRenderError(e);
     } finally {
         void unmount(footer);
         host.remove();

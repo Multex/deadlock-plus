@@ -4,7 +4,6 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount, type Component } from "svelte";
     import { Gauge, Pause, Play } from "@lucide/svelte";
-    import { errorText } from "$lib/core/errors";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { jobDescription, jobTitle, POLICY_OPTIONS, type Policy } from "$lib/features/jobs/jobs";
@@ -25,7 +24,7 @@
     const policyItems = $derived(POLICY_OPTIONS.map((o) => ({ value: o.value, label: o.label, policy: o.value })));
 
     let autostart = $state<AutostartStatus | null>(null);
-    let autostartError = $state<string | null>(null);
+    let autostartError = $state<unknown>(null);
     let autostartBusy = $state(false);
 
     onMount(() => {
@@ -40,7 +39,7 @@
         try {
             autostart = await setAutostart(enabled);
         } catch (e) {
-            autostartError = errorText(e);
+            autostartError = e;
         } finally {
             autostartBusy = false;
         }

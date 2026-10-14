@@ -1,11 +1,11 @@
 import { t } from "$lib/core/i18n.svelte";
-import type { UpdatePhase } from "./updater.svelte";
+import type { UpdateFailure, UpdatePhase } from "./updater.svelte";
 
 export interface UpdateView {
     phase: UpdatePhase;
     version: string | null;
     progress: number | null;
-    error: string | null;
+    error: UpdateFailure | null;
 }
 
 export function updateLine(u: UpdateView): string {
@@ -25,6 +25,6 @@ export function updateLine(u: UpdateView): string {
                 : t("updates.status.downloading_percent", { version, percent: Math.round(u.progress * 100) });
         }
         case "error":
-            return t("updates.status.error", { error: u.error ?? "" });
+            return u.error === "download" ? t("updates.status.download_failed") : t("updates.status.check_failed");
     }
 }

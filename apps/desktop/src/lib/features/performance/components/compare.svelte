@@ -3,7 +3,7 @@
     import { toast } from "svelte-sonner";
     import { Copy, Gauge, Save, Trash2 } from "@lucide/svelte";
 
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import { saveTextFile } from "$lib/core/files";
 
@@ -64,7 +64,7 @@
             );
             if (saved) toast.success(t("performance.compare.saved"));
         } catch (e) {
-            toast.error(t("performance.compare.save_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("performance.compare.save_failed")));
         }
     }
 

@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The player menus on a match page are named after their card for screen readers.
 - Salt recovery now checks your Steam friends' newest matches first.
 - Salt recovery stops asking for a match after three tries when the community database still cannot use it.
+- Error messages are one plain sentence and no longer show technical details.
 
 ### Fixed
 

@@ -2,13 +2,19 @@
     import { toast } from "svelte-sonner";
     import { Copy, ImageDown } from "@lucide/svelte";
 
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { loadHeroes } from "$lib/features/heroes/heroes";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { findPlayer, type MatchDetail } from "@deadlock-plus/match/detail";
     import { exportFileName, runExport, type ExportKind } from "@deadlock-plus/match/export";
-    import { copyImage, documentHasFocus, renderNodeToPng, saveImage, waitForWindowFocus } from "../../export-dom";
+    import {
+        copyImage,
+        documentHasFocus,
+        exportFailureText,
+        renderNodeToPng,
+        saveImage,
+        waitForWindowFocus,
+    } from "../../export-dom";
 
     let { node, detail, ownAccountId }: { node: HTMLElement | null; detail: MatchDetail; ownAccountId: number | null } =
         $props();
@@ -37,14 +43,7 @@
             });
             if (result.status === "saved") toast.success(t("match_history.detail.export.saved"));
             else if (result.status === "copied") toast.success(t("match_history.detail.export.copied"));
-            else if (result.status === "failed") {
-                const error = errorText(result.error);
-                toast.error(
-                    kind === "copy"
-                        ? t("match_history.detail.export.copy_failed", { error })
-                        : t("match_history.detail.export.save_failed", { error }),
-                );
-            }
+            else if (result.status === "failed") toast.error(exportFailureText(kind, result.error));
         } finally {
             busy = null;
         }

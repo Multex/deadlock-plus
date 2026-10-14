@@ -16,6 +16,7 @@ use dp_sync::LockExt;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use super::error::AppError;
 use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use hub::Hub;
@@ -265,11 +266,12 @@ impl PresenceService {
         self.config.lock_or_recover().clone()
     }
 
-    pub fn set_config(&self, config: Config) -> Result<(), String> {
+    pub fn set_config(&self, config: Config) -> Result<(), AppError> {
         *self.config.lock_or_recover() = config.clone();
         let path = self.config_path.lock_or_recover().clone();
         match path {
-            Some(path) => config_store::save(&path, &config).map_err(|e| e.to_string()),
+            Some(path) => config_store::save(&path, &config)
+                .map_err(|e| AppError::new(config_store::PresenceError::SaveFailed).detail(e)),
             None => Ok(()),
         }
     }
@@ -370,7 +372,7 @@ pub mod commands {
     use tauri::State;
 
     use super::{
-        config_store, placeholders, state_layout, HeroArt, PresenceCard, PresencePlaceholder, PresenceSample,
+        config_store, placeholders, state_layout, AppError, HeroArt, PresenceCard, PresencePlaceholder, PresenceSample,
         PresenceService, PresenceSettings, PresenceStateInfo, PresenceStatus,
     };
 
@@ -380,7 +382,7 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub fn set_presence_config(config: Config, presence: State<'_, PresenceService>) -> Result<(), String> {
+    pub fn set_presence_config(config: Config, presence: State<'_, PresenceService>) -> Result<(), AppError> {
         presence.set_config(config)
     }
 
@@ -405,7 +407,7 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub fn import_presence_config(text: String, presence: State<'_, PresenceService>) -> Result<Config, String> {
+    pub fn import_presence_config(text: String, presence: State<'_, PresenceService>) -> Result<Config, AppError> {
         let config = config_store::import(&text)?;
         presence.set_config(config.clone())?;
         Ok(config)
@@ -513,6 +515,18 @@ mod tests {
         assert!(s.level == PresenceLevelSetting::Detailed);
         assert_eq!(serde_json::to_string(&s.level).unwrap(), r#""detailed""#);
         assert_eq!(PresenceLevel::from(s.level), PresenceLevel::Detailed);
+    }
+
+    #[test]
+    fn a_failed_config_save_answers_with_a_coded_error() {
+        let dir = std::env::temp_dir().join(format!("dp-presence-save-fail-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(config_store::STORE_FILE);
+        std::fs::write(&path, r#"{"schema_version":99,"data":{}}"#).unwrap();
+        let svc = PresenceService::default();
+        svc.init(path);
+        let err = svc.set_config(Config::default()).unwrap_err();
+        assert_eq!(err.code(), "presence.save_failed");
     }
 
     #[test]

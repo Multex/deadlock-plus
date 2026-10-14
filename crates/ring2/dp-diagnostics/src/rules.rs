@@ -34,7 +34,6 @@ pub struct Finding {
     pub function: String,
     pub line: usize,
     pub snippet: String,
-    pub message: String,
 }
 
 static SCHEDULE_ASSIGN: LazyLock<Regex> =
@@ -92,11 +91,6 @@ fn nulled_not_cancelled(source: &str, stripped: &str, functions: &[Function]) ->
             function: function.name.clone(),
             line: js::line_of(source, at),
             snippet: js::line_text(source, at),
-            message: format!(
-                "`{handle}` is set to null without cancelling its timer, so a pending `$.Schedule` \
-                 can no longer be stopped and re-entering `{}` may start duplicate timer chains.",
-                function.name
-            ),
         });
     }
     findings
@@ -190,10 +184,6 @@ fn unguarded_rearm(source: &str, stripped: &str, functions: &[Function]) -> Vec<
             function: function.name.clone(),
             line: js::line_of(source, function.start),
             snippet: js::line_text(source, function.start),
-            message: format!(
-                "`{0}` re-arms itself with `$.Schedule` and is also entered from an event, with no                  cancel first, so each event can start another timer chain that never stops.",
-                function.name
-            ),
         });
     }
     findings

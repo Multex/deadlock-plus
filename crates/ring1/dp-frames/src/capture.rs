@@ -18,7 +18,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WINEVENT_SKIPOWNPROCESS, WM_QUIT, WM_TIMER, WM_USER,
 };
 
-pub use crate::status::{CaptureState, CaptureStatus};
+pub use crate::status::{CaptureError, CaptureState, CaptureStatus};
 use crate::{recent_frametimes_ms, split_focused, FrameStats};
 use dp_sync::LockExt;
 
@@ -45,7 +45,7 @@ struct Shared {
     focus_thread: AtomicU32,
     unfocused: Mutex<Vec<(u64, u64)>>,
     stop: AtomicBool,
-    error: Mutex<Option<String>>,
+    error: Mutex<Option<CaptureError>>,
     started: Instant,
 }
 
@@ -90,7 +90,7 @@ impl FrameCapture {
             return CaptureStatus::default();
         };
         let s = &r.shared;
-        let error = s.error.lock_or_recover().clone();
+        let error = *s.error.lock_or_recover();
         let (frames, recent) = {
             let ts = s.timestamps.lock_or_recover();
             (ts.len(), recent_frametimes_ms(&ts, LIVE_WINDOW, TICKS_PER_SECOND))
@@ -204,9 +204,8 @@ fn spawn_trace(shared: Arc<Shared>) -> Sender<()> {
                     drop(trace);
                 }
                 Err(e) => {
-                    log::error!("couldn't start the frame trace: {e:?}");
-                    *shared.error.lock_or_recover() =
-                        Some(format!("couldn't start the frame trace (needs administrator): {e:?}"));
+                    log::error!("couldn't start the frame trace (needs administrator): {e:?}");
+                    *shared.error.lock_or_recover() = Some(CaptureError::NeedsAdmin);
                 }
             }
         })

@@ -47,7 +47,15 @@ pub struct AddonScan {
 #[serde(rename_all = "camelCase")]
 pub struct AddonFailure {
     pub file_name: String,
-    pub message: String,
+    pub error: AddonError,
+}
+
+/// Serializes as the app's error code; the UI shows `errors.<code>` from the catalog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub enum AddonError {
+    #[serde(rename = "diagnostics.mod_unreadable")]
+    Unreadable,
 }
 
 #[derive(Debug, Clone, Default, Serialize, TS)]
@@ -86,9 +94,15 @@ pub fn list_addons_from(dir: Option<&Path>) -> AddonListing {
     AddonListing { dir: Some(dir.to_string_lossy().into_owned()), addons }
 }
 
-pub fn scan_addon_in(dir: &Path, file_name: &str) -> Result<AddonScan, String> {
-    let path = resolve_addon(dir, file_name).ok_or_else(|| format!("no addon named {file_name}"))?;
-    let scan = scan_vpk(&path).map_err(|e| format!("could not read {file_name}: {e}"))?;
+pub fn scan_addon_in(dir: &Path, file_name: &str) -> Result<AddonScan, AddonError> {
+    let Some(path) = resolve_addon(dir, file_name) else {
+        log::warn!("addon scan: no addon named {file_name}");
+        return Err(AddonError::Unreadable);
+    };
+    let scan = scan_vpk(&path).map_err(|e| {
+        log::warn!("addon scan: could not read {file_name}: {e}");
+        AddonError::Unreadable
+    })?;
     let mod_id = list_addons_in(dir).into_iter().find(|a| a.file_name == file_name).and_then(|a| a.mod_id);
     Ok(AddonScan {
         file_name: file_name.to_string(),
@@ -105,20 +119,18 @@ pub fn scan_all(dir: Option<&Path>, observer: &mut impl ScanObserver) -> Flow {
     observer.listed(&listing);
     let total = names.len();
     observer.progress(0, total, None);
+    let Some(dir) = dir else {
+        return Flow::Continue;
+    };
 
     for (i, name) in names.iter().enumerate() {
         if observer.checkpoint() == Flow::Cancelled {
             return Flow::Cancelled;
         }
         observer.progress(i, total, Some(name));
-        let result =
-            dir.ok_or_else(|| "Deadlock addons folder not found".to_string()).and_then(|d| scan_addon_in(d, name));
-        match result {
+        match scan_addon_in(dir, name) {
             Ok(scan) => observer.scanned(scan),
-            Err(message) => {
-                log::warn!("addon scan failed for {name}: {message}");
-                observer.failed(AddonFailure { file_name: name.clone(), message });
-            }
+            Err(error) => observer.failed(AddonFailure { file_name: name.clone(), error }),
         }
         observer.progress(i + 1, total, Some(name));
     }

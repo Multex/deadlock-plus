@@ -463,7 +463,6 @@
             "terms_link": "",
             "copyright": "",
             "fonts_heading": "",
-            "open_failed": "",
             "app_summary": "",
             "app_warranty": "",
             "disclaimer": "",
@@ -491,7 +490,6 @@
             "donators": "",
             "donators_description": "",
             "nobody_yet": "",
-            "open_failed": "",
             "others_one": "",
             "others_few": "",
             "others_many": "",
@@ -1324,7 +1322,6 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
-            "delete_failed": "",
             "deleted_one": "",
             "deleted_few": "",
             "deleted_many": "",
@@ -1719,7 +1716,7 @@
         "back": "Назад",
         "next": "Следующий",
         "finish": "Закончить",
-        "autostart_error": "Не удалось включить {name}: {error}",
+        "autostart_error": "",
         "welcome": {
             "step_title": "Добро пожаловать в Deadlock+",
             "returning_title": "У Deadlock+ есть обновленный процесс установки, давайте приступим.",
@@ -1816,7 +1813,6 @@
     },
     "patch_notes": {
         "no_link": "Это обновление не имеет действительной ссылки.",
-        "open_link_error": "Не удалось открыть ссылку: {error}",
         "loading": "Загрузка полных заметок...",
         "load_error": "",
         "not_indexed": "",
@@ -1836,8 +1832,7 @@
             "up_to_date": "У вас последняя версия.",
             "available": "Доступна новая версия {version}.",
             "downloading": "Загрузка {version}. Deadlock+ перезапускается после завершения.",
-            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения.",
-            "error": "Ошибка обновления: % {error}"
+            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения."
         }
     },
     "live": {
@@ -1968,7 +1963,7 @@
         "copy": "Копировать",
         "save": "Сохранить",
         "open_folder": "Открыть папку",
-        "read_failed": "Не удалось построить отчет: {error}",
+        "read_failed": "",
         "loading": "Пожалуйста, подождите...",
         "no_match": "Нет совпадений.",
         "showing_latest": ""
@@ -2135,7 +2130,6 @@
         "support": "Поддержать Deadlock+",
         "open_palette": "",
         "jump": "",
-        "open_link_error": "Не удалось открыть ссылку: {error}",
         "palette_title": "Палитра Команд",
         "palette_description": "Поиск страниц, настроек и действий.",
         "palette_placeholder": "Поиск страниц, настроек и действий",
@@ -2202,8 +2196,7 @@
     },
     "support": {
         "nudge": "Нравится Deadlock+? Это бесплатно и сделано небольшой командой.",
-        "action": "Поддержать Deadlock+",
-        "open_link_error": "Не удалось открыть ссылку: {error}"
+        "action": "Поддержать Deadlock+"
     },
     "connectivity": {
         "offline": "Вы не в сети. Для работы Deadlock требуется подключение, поэтому данные в режиме реального времени приостановлены и сохранены в папке с сохраненными копиями."
@@ -2293,8 +2286,8 @@
         "save": "Сохранить",
         "save_filter": "Текст",
         "saved": "Отчет сохранён",
-        "save_failed": "Не удалось сохранить отчет: {error}",
-        "build_failed": "Не удалось построить отчет: {error}"
+        "save_failed": "",
+        "build_failed": ""
     },
     "match_history": {
         "api_error": "API Deadlock вернул ошибку ({status}).",

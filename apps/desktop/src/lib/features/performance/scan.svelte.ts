@@ -1,6 +1,6 @@
 import { errorText } from "$lib/core/errors";
 import { jobs } from "$lib/features/jobs/jobs.svelte";
-import { addonScanReport, startAddonScan, type AddonListing, type AddonScan } from "./api";
+import { addonScanReport, startAddonScan, type AddonError, type AddonListing, type AddonScan } from "./api";
 import { groupAddons, indexReport, summarize } from "./performance";
 
 const JOB_ID = "addon-scan";
@@ -9,7 +9,7 @@ const AUTO_SCAN_DELAY_MS = 8000;
 class PerformanceScanStore {
     listing = $state<AddonListing | null>(null);
     scans = $state<Record<string, AddonScan>>({});
-    failures = $state<Record<string, string>>({});
+    failures = $state<Record<string, AddonError>>({});
     error = $state<string | null>(null);
     hasRun = $state(false);
 

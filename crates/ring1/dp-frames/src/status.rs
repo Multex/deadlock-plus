@@ -12,12 +12,24 @@ pub enum CaptureState {
     Failed,
 }
 
+/// Serializes as the app's error code; the UI shows `errors.<code>` from the catalog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub enum CaptureError {
+    #[serde(rename = "diagnostics.frame_trace_needs_admin")]
+    NeedsAdmin,
+    #[serde(rename = "diagnostics.home_folder_not_found")]
+    HomeFolderNotFound,
+    #[serde(rename = "diagnostics.frames_read_failed")]
+    ReadFailed,
+}
+
 #[derive(Debug, Clone, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct CaptureStatus {
     pub state: CaptureState,
-    pub error: Option<String>,
+    pub error: Option<CaptureError>,
     pub frames: u32,
     pub elapsed_ms: u32,
     /// Present events that are not counted as game frames: other processes on Windows, secondary
@@ -27,4 +39,15 @@ pub struct CaptureStatus {
     pub truncated: bool,
     pub game_focused: bool,
     pub recent_frametimes_ms: Vec<f32>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_admin_failure_serializes_as_an_error_code() {
+        let status = CaptureStatus { error: Some(CaptureError::NeedsAdmin), ..CaptureStatus::default() };
+        assert_eq!(serde_json::to_value(&status).unwrap()["error"], "diagnostics.frame_trace_needs_admin");
+    }
 }

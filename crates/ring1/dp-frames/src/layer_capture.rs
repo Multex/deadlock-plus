@@ -10,7 +10,7 @@ use std::time::{Duration, Instant, SystemTime};
 use dp_frames_wire::{Reader, Record, FRAME_FILE_EXTENSION, HEADER_LEN, RECORD_LEN};
 use dp_sync::LockExt;
 
-use crate::status::{CaptureState, CaptureStatus};
+use crate::status::{CaptureError, CaptureState, CaptureStatus};
 use crate::{recent_frametimes_ms, split_focused, FrameStats};
 
 /// The layer stamps presents with `CLOCK_MONOTONIC` nanoseconds.
@@ -81,7 +81,7 @@ impl FrameLog {
 
 struct Shared {
     log: Mutex<FrameLog>,
-    error: Mutex<Option<String>>,
+    error: Mutex<Option<CaptureError>>,
     stop: AtomicBool,
     started: Instant,
 }
@@ -124,7 +124,8 @@ impl LayerCapture {
                 Some(thread)
             }
             None => {
-                *shared.error.lock_or_recover() = Some("could not find your home folder".into());
+                log::warn!("frame capture: could not find the home folder");
+                *shared.error.lock_or_recover() = Some(CaptureError::HomeFolderNotFound);
                 None
             }
         };
@@ -136,7 +137,7 @@ impl LayerCapture {
         let Some(r) = guard.as_ref() else {
             return CaptureStatus::default();
         };
-        let error = r.shared.error.lock_or_recover().clone();
+        let error = *r.shared.error.lock_or_recover();
         let (frames, other, truncated, tail) = {
             let log = r.shared.log.lock_or_recover();
             (log.frames(), log.other_events(), log.truncated, log.recent_timestamps())
@@ -230,7 +231,8 @@ fn tail_loop(dir: &Path, existing: HashSet<PathBuf>, shared: &Shared) {
                     }
                     Err(e) if e == "header not written yet" => {}
                     Err(e) => {
-                        *shared.error.lock_or_recover() = Some(e);
+                        log::warn!("frame capture: couldn't read {}: {e}", path.display());
+                        *shared.error.lock_or_recover() = Some(CaptureError::ReadFailed);
                         rejected.insert(path);
                     }
                 }
@@ -240,7 +242,8 @@ fn tail_loop(dir: &Path, existing: HashSet<PathBuf>, shared: &Shared) {
             buffer.clear();
             if t.file.read_to_end(&mut buffer).is_ok() && !buffer.is_empty() {
                 if let Err(e) = shared.log.lock_or_recover().feed(&buffer) {
-                    *shared.error.lock_or_recover() = Some(e);
+                    log::warn!("frame capture: couldn't read {}: {e}", t.path.display());
+                    *shared.error.lock_or_recover() = Some(CaptureError::ReadFailed);
                     rejected.insert(t.path.clone());
                     tail = None;
                 }
@@ -401,14 +404,14 @@ mod tests {
     }
 
     #[test]
-    fn a_foreign_file_fails_the_capture_with_a_message() {
+    fn a_foreign_file_fails_the_capture_with_an_error_code() {
         let dir = temp_dir("foreign");
         let capture = LayerCapture::new(Some(dir.clone()));
         capture.start();
         std::fs::write(dir.join("3.dpf"), [b'z'; 64]).unwrap();
         let status = wait_for(&capture, |s| s.state == CaptureState::Failed);
         assert_eq!(status.state, CaptureState::Failed);
-        assert!(status.error.is_some());
+        assert_eq!(serde_json::to_value(&status).unwrap()["error"], "diagnostics.frames_read_failed");
         capture.stop();
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -417,7 +420,9 @@ mod tests {
     fn without_a_folder_start_fails_and_stop_returns_empty_stats() {
         let capture = LayerCapture::new(None);
         capture.start();
-        assert_eq!(capture.status().state, CaptureState::Failed);
+        let status = capture.status();
+        assert_eq!(status.state, CaptureState::Failed);
+        assert_eq!(serde_json::to_value(&status).unwrap()["error"], "diagnostics.home_folder_not_found");
         assert_eq!(capture.stop().frame_count, 0);
         assert_eq!(capture.status().state, CaptureState::Idle);
     }

@@ -20,7 +20,7 @@
         const ingest = ingestStatus.status;
         if (!ingest) return "";
         if (!ingest.steamFound) return t("settings.privacy.ingest_no_cache");
-        if (ingest.lastError) return t("settings.privacy.ingest_failed", { error: ingest.lastError });
+        if (ingest.lastError) return ingest.lastError;
         return t("settings.privacy.ingest_watching", { count: ingest.submitted });
     });
 

@@ -1,6 +1,6 @@
 import { toast } from "svelte-sonner";
 
-import { errorText } from "$lib/core/errors";
+import { errorText, failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { isGameRunning } from "$lib/features/voice-bans/api";
 import {
@@ -200,7 +200,7 @@ export class ServerPicker {
             if (failed.length > 0)
                 toast.error(t("server_picker.toast.blocks_update_failed", { names: failed.join(", ") }));
         } catch (e) {
-            toast.error(t("server_picker.toast.sync_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.sync_failed")));
         }
     }
 
@@ -256,10 +256,14 @@ export class ServerPicker {
                 toast.success(t("server_picker.toast.unblocked", { name: group.description }));
             }
         } catch (e) {
+            const name = group.description;
             toast.error(
-                checked
-                    ? t("server_picker.toast.block_failed", { name: group.description, error: errorText(e) })
-                    : t("server_picker.toast.unblock_failed", { name: group.description, error: errorText(e) }),
+                failureText(
+                    e,
+                    checked
+                        ? t("server_picker.toast.block_failed", { name })
+                        : t("server_picker.toast.unblock_failed", { name }),
+                ),
             );
         } finally {
             this.markBusy([group.id], false);
@@ -279,7 +283,7 @@ export class ServerPicker {
             this.blockedIds = new Set([...this.blockedIds, ...ids]);
             toast.success(t("server_picker.toast.blocked", { name: siblings.map((g) => g.description).join(", ") }));
         } catch (e) {
-            toast.error(t("server_picker.toast.siblings_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.siblings_failed")));
         } finally {
             this.markBusy(ids, false);
         }
@@ -294,7 +298,7 @@ export class ServerPicker {
             this.blockedIds = new Set();
             toast.success(tn("server_picker.toast.unblocked_rules", ids.length));
         } catch (e) {
-            toast.error(t("server_picker.toast.unblock_all_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.unblock_all_failed")));
         }
     }
 
@@ -328,7 +332,7 @@ export class ServerPicker {
                 }),
             );
         } catch (e) {
-            toast.error(t("server_picker.toast.preset_apply_failed", { name: preset.name, error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.preset_apply_failed", { name: preset.name })));
             try {
                 const ids = [...new Set([...this.regions, ...(this.serverData?.unclustered ?? [])].map((g) => g.id))];
                 this.blockedIds = new Set(await listBlockedGroupIds(ids));
@@ -349,7 +353,7 @@ export class ServerPicker {
             this.presets = next;
             toast.success(t("server_picker.toast.preset_saved", { name: preset.name }));
         } catch (e) {
-            toast.error(t("server_picker.toast.preset_save_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.preset_save_failed")));
         }
     }
 
@@ -359,7 +363,7 @@ export class ServerPicker {
             await writePresets(next);
             this.presets = next;
         } catch (e) {
-            toast.error(t("server_picker.toast.preset_delete_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.preset_delete_failed")));
         }
     }
 
@@ -372,7 +376,7 @@ export class ServerPicker {
             this.externalBlocks = await detectExternalBlocks(this.gameDef.id);
             toast.success(tn("server_picker.toast.imported", ids.length, { source: this.externalLabel }));
         } catch (e) {
-            toast.error(t("server_picker.toast.import_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("server_picker.toast.import_failed")));
         } finally {
             this.importing = false;
         }

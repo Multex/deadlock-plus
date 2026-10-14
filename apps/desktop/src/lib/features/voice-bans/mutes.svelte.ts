@@ -1,5 +1,5 @@
 import { toast } from "svelte-sonner";
-import { errorCode, errorText } from "$lib/core/errors";
+import { errorCode, errorText, failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { saveTextFile } from "$lib/core/files";
 import { openUrl } from "$lib/core/opener";
@@ -154,7 +154,7 @@ export class Mutes {
         try {
             this.searchResults = await searchPlayers(value);
         } catch (e) {
-            toast.error(t("voice_bans.toast.search_failed", { error: String(e) }));
+            toast.error(failureText(e, t("voice_bans.toast.search_failed")));
         } finally {
             this.searching = false;
         }
@@ -162,7 +162,7 @@ export class Mutes {
 
     openStatlocker(id: string) {
         openUrl(statlockerProfileUrl(id)).catch((e) =>
-            toast.error(t("voice_bans.toast.statlocker_failed", { error: String(e) })),
+            toast.error(failureText(e, t("voice_bans.toast.statlocker_failed"))),
         );
     }
 
@@ -182,7 +182,7 @@ export class Mutes {
             );
             if (saved) toast.success(t("voice_bans.toast.exported", { count: ids.length }));
         } catch (e) {
-            toast.error(t("voice_bans.toast.export_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("voice_bans.toast.export_failed")));
         }
     }
 
@@ -193,7 +193,7 @@ export class Mutes {
             this.newImportIds = ids.filter((id) => !this.mutedSet.has(id));
             this.importOpen = true;
         } catch (e) {
-            toast.error(t("voice_bans.toast.import_failed", { error: errorText(e) }));
+            toast.error(failureText(e, t("voice_bans.toast.import_failed")));
         }
     }
 }

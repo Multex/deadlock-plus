@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { toast } from "svelte-sonner";
-    import { openUrl } from "$lib/core/opener";
+    import { openLink } from "$lib/core/open-link";
     import { ExternalLink, Info, Scale } from "@lucide/svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
@@ -10,9 +9,7 @@
 
     let { show }: { show: (id: string) => boolean } = $props();
 
-    function open(url: string) {
-        openUrl(url).catch((e) => toast.error(t("settings.licenses.open_failed", { error: String(e) })));
-    }
+    const open = (url: string) => void openLink(url);
 </script>
 
 {#if show("licenses")}

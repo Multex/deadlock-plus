@@ -1,5 +1,6 @@
 import type { AutostartStatus } from "@deadlock-plus/ipc-types/AutostartStatus";
 import { platform, type Platform } from "$lib/core/platform";
+import { failureText } from "$lib/core/errors";
 import { t } from "$lib/core/i18n.svelte";
 
 export { getAutostart, setAutostart } from "./api";
@@ -17,8 +18,8 @@ export function autostartDescription(p: Platform = platform): string {
     return t("settings.autostart.description_linux");
 }
 
-export function autostartLine(status: AutostartStatus | null, error: string | null): string {
-    if (error) return t("settings.autostart.failed", { error });
+export function autostartLine(status: AutostartStatus | null, error: unknown): string {
+    if (error != null) return failureText(error, t("settings.autostart.failed"));
     if (!status) return "";
     return status.stale ? t("settings.autostart.stale") : "";
 }

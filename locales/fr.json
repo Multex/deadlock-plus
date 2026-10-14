@@ -199,7 +199,7 @@
             "description_windows": "",
             "description_macos": "",
             "description_linux": "",
-            "failed": "Impossible de modifier : {error}",
+            "failed": "",
             "stale": ""
         },
         "startup": {
@@ -459,7 +459,6 @@
             "terms_link": "",
             "copyright": "",
             "fonts_heading": "",
-            "open_failed": "",
             "app_summary": "",
             "app_warranty": "",
             "disclaimer": "",
@@ -487,7 +486,6 @@
             "donators": "Donateurs",
             "donators_description": "",
             "nobody_yet": "",
-            "open_failed": "",
             "others_one": "",
             "others_other": ""
         }
@@ -1252,7 +1250,6 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
-            "delete_failed": "",
             "deleted_one": "",
             "deleted_other": ""
         }
@@ -1708,7 +1705,6 @@
     },
     "patch_notes": {
         "no_link": "",
-        "open_link_error": "",
         "loading": "",
         "load_error": "",
         "not_indexed": "",
@@ -1728,8 +1724,7 @@
             "up_to_date": "",
             "available": "",
             "downloading": "",
-            "downloading_percent": "",
-            "error": ""
+            "downloading_percent": ""
         }
     },
     "live": {
@@ -2023,7 +2018,6 @@
         "support": "",
         "open_palette": "",
         "jump": "",
-        "open_link_error": "",
         "palette_title": "",
         "palette_description": "",
         "palette_placeholder": "",
@@ -2088,8 +2082,7 @@
     },
     "support": {
         "nudge": "",
-        "action": "",
-        "open_link_error": ""
+        "action": ""
     },
     "connectivity": {
         "offline": ""

@@ -1,15 +1,12 @@
 <script lang="ts">
-    import { toast } from "svelte-sonner";
     import { Heart } from "@lucide/svelte";
-    import { openUrl } from "$lib/core/opener";
+    import { openLink } from "$lib/core/open-link";
     import { i18n, t, tn } from "$lib/core/i18n.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import { THANKS, isEmpty, translatorLanguages, type Person } from "./thanks";
 
-    function open(url: string) {
-        openUrl(url).catch((e) => toast.error(t("settings.thanks.open_failed", { error: String(e) })));
-    }
+    const open = (url: string) => void openLink(url);
 </script>
 
 {#snippet name(p: Person)}

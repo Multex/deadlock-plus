@@ -6,7 +6,7 @@
     import { autostartTitle, getAutostart, setAutostart } from "$lib/features/settings/autostart";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { platform } from "$lib/core/platform";
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { nextStep, previousStep, stepsFor, type IngestChoice } from "../onboarding";
     import { onboarding } from "../onboarding.svelte";
@@ -67,7 +67,7 @@
             try {
                 await setAutostart(true);
             } catch (e) {
-                toast.error(t("onboarding.autostart_error", { name: autostartTitle(), error: errorText(e) }));
+                toast.error(failureText(e, t("onboarding.autostart_error", { name: autostartTitle() })));
             }
         }
         if (extras.closeToTray) await settings.setCloseToTray(true);

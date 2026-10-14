@@ -21,7 +21,6 @@ const finding = (over: Partial<Finding> = {}): Finding => ({
     function: "Update",
     line: 10,
     snippet: "handle = null;",
-    message: "msg",
     ...over,
 });
 
@@ -137,7 +136,7 @@ describe("groupAddons", () => {
                 clean: scan({ scripts: [{ path: "a.js", findings: [] }] }),
                 none: scan({ scriptsScanned: 0 }),
             },
-            { bad: "boom" },
+            { bad: "diagnostics.mod_unreadable" },
         );
         expect(groups.flagged.map((a) => a.fileName)).toEqual(["high", "medium", "low"]);
         expect(groups.clean.map((a) => a.fileName)).toEqual(["clean"]);
@@ -201,11 +200,11 @@ describe("indexReport", () => {
         const report: AddonScanReport = {
             listing: null,
             scans: [scan("a_dir.vpk"), scan("b_dir.vpk")],
-            failures: [{ fileName: "c_dir.vpk", message: "corrupt" }],
+            failures: [{ fileName: "c_dir.vpk", error: "diagnostics.mod_unreadable" }],
         };
         const { scans, failures } = indexReport(report);
         expect(Object.keys(scans)).toEqual(["a_dir.vpk", "b_dir.vpk"]);
-        expect(failures).toEqual({ "c_dir.vpk": "corrupt" });
+        expect(failures).toEqual({ "c_dir.vpk": "diagnostics.mod_unreadable" });
     });
 
     it("is empty for an empty report", () => {

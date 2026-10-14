@@ -276,8 +276,6 @@ const ADDONS: Addon[] = [
                         function: "RefreshFeed",
                         line: 42,
                         snippet: "function RefreshFeed() {",
-                        message:
-                            "`RefreshFeed` re-arms itself with `$.Schedule` and is also entered from an event, with no cancel first, so each event can start another timer chain that never stops.",
                     },
                     {
                         rule: "nulledNotCancelled",
@@ -285,8 +283,6 @@ const ADDONS: Addon[] = [
                         function: "HideFeed",
                         line: 118,
                         snippet: "    fadeTimer = null;",
-                        message:
-                            "`fadeTimer` is set to null without cancelling its timer, so a pending `$.Schedule` can no longer be stopped and re-entering `HideFeed` may start duplicate timer chains.",
                     },
                 ],
             },
@@ -307,8 +303,6 @@ const ADDONS: Addon[] = [
                         function: "OnRoundStart",
                         line: 67,
                         snippet: "    tickHandle = null;",
-                        message:
-                            "`tickHandle` is set to null without cancelling its timer, so a pending `$.Schedule` can no longer be stopped and re-entering `OnRoundStart` may start duplicate timer chains.",
                     },
                 ],
             },
