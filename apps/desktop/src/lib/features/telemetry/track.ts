@@ -3,6 +3,7 @@ const TRACKED = new Set([
     "server-picker",
     "live",
     "stats",
+    "match-history",
     "rank",
     "sessions",
     "alerts",
@@ -10,6 +11,7 @@ const TRACKED = new Set([
     "voice-bans",
     "demos",
     "storage",
+    "whats-new",
 ]);
 
 export function featureForPath(pathname: string): string | null {

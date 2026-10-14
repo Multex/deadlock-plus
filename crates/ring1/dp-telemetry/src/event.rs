@@ -5,6 +5,7 @@ pub const FEATURES: &[&str] = &[
     "server-picker",
     "live",
     "stats",
+    "match-history",
     "rank",
     "sessions",
     "alerts",
@@ -12,6 +13,7 @@ pub const FEATURES: &[&str] = &[
     "voice-bans",
     "demos",
     "storage",
+    "whats-new",
     "settings",
 ];
 
@@ -117,6 +119,11 @@ mod tests {
         assert!(!is_feature("Stats"));
     }
 
+    #[test]
+    fn match_history_and_whats_new_are_features() {
+        assert!(is_feature("match-history"));
+        assert!(is_feature("whats-new"));
+    }
 
     #[test]
     fn only_listed_install_sources_are_accepted() {

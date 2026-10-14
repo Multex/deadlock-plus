@@ -23,6 +23,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Error messages are one plain sentence and no longer show technical details.
 - The app says "replay keys" instead of "salts", "servers" instead of "relays" and "mods" instead of "addons".
 - Deadlock+ checks for updates when you open its window, not only once an hour.
+- Anonymous usage data now counts Match History and What's New visits.
 - Anonymous usage data now counts when an update is offered and when you start it.
 
 ### Fixed

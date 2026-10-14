@@ -16,13 +16,18 @@ describe("featureForPath", () => {
         expect(featureForPath("/live")).toBe("live");
     });
 
+    it("names the match history and what's new pages", () => {
+        expect(featureForPath("/match-history")).toBe("match-history");
+        expect(featureForPath("/match-history/123")).toBe("match-history");
+        expect(featureForPath("/whats-new")).toBe("whats-new");
+    });
+
     it("groups every settings page under one name", () => {
         expect(featureForPath("/settings/privacy")).toBe("settings");
     });
 
     it("ignores routes that are not features, so nothing free-form leaves the page", () => {
         expect(featureForPath("/onboarding")).toBeNull();
-        expect(featureForPath("/whats-new")).toBeNull();
         expect(featureForPath("/users/someone")).toBeNull();
     });
 });
