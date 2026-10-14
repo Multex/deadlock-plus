@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Salt recovery can fetch your whole match history at once from Privacy settings, past the daily limit.
+
 ### Changed
 
 - The Discord link opens the invite in the Discord app when it is installed.

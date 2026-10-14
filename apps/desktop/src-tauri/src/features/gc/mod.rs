@@ -1,5 +1,6 @@
 mod api;
 mod error;
+mod own;
 
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,6 +27,7 @@ use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
 use error::GcError;
+pub use own::OwnRecovery;
 
 const SALTS_URL: &str = "https://api.deadlock-api.com/v1/matches/salts";
 const STORE: &str = "gc-state";
@@ -45,16 +47,25 @@ pub struct GcStatus {
     pub accounts: u32,
     pub delivered: u64,
     pub last_error: Option<AppError>,
+    pub own_recovery: Option<OwnRecovery>,
 }
 
+/// State the background worker and an own-history run share.
 #[derive(Default)]
 struct Shared {
     status: Mutex<GcStatus>,
+    /// Held by whoever is talking to the GC, so a background pass and an own-history run never
+    /// sign in to the same account at once.
+    gc_lock: tokio::sync::Mutex<()>,
+    /// Set while an own-history run waits for or holds `gc_lock`. A background pass stops at its
+    /// next request.
+    own_active: AtomicBool,
 }
 
 #[derive(Default)]
 pub struct GcService {
     stop: Mutex<Option<Arc<StopSignal>>>,
+    own_stop: Mutex<Option<Arc<StopSignal>>>,
     shared: Arc<Shared>,
 }
 
@@ -67,6 +78,7 @@ impl GcService {
                 if let Some(stop) = slot.take() {
                     stop.stop();
                 }
+                self.cancel_own_recovery();
                 log::info!("gc salt recovery disabled");
                 self.shared.status.lock_or_recover().running = false;
                 return;
@@ -89,6 +101,37 @@ impl GcService {
             .expect("spawn thread");
     }
 
+    /// Starts recovering salts for every match in each account's own history. Keeps a run that is
+    /// already going.
+    pub fn recover_own_matches(&self, app: AppHandle, http: reqwest::Client) -> Result<(), AppError> {
+        if self.stop.lock_or_recover().is_none() {
+            return Err(GcError::Disabled.into());
+        }
+        if dp_game::is_running() {
+            return Err(GcError::GameRunning.into());
+        }
+        let mut slot = self.own_stop.lock_or_recover();
+        if self.shared.status.lock_or_recover().own_recovery.as_ref().is_some_and(|r| r.running) {
+            return Ok(());
+        }
+        let stop = Arc::new(StopSignal::default());
+        *slot = Some(stop.clone());
+        let shared = self.shared.clone();
+        shared.own_active.store(true, Ordering::Release);
+        shared.status.lock_or_recover().own_recovery = Some(OwnRecovery { running: true, ..Default::default() });
+        std::thread::Builder::new()
+            .name("gc-own-matches".into())
+            .spawn(move || own::run(&stop, &shared, &app, &http))
+            .expect("spawn thread");
+        Ok(())
+    }
+
+    pub fn cancel_own_recovery(&self) {
+        if let Some(stop) = self.own_stop.lock_or_recover().take() {
+            stop.stop();
+        }
+    }
+
     pub fn status(&self) -> GcStatus {
         self.shared.status.lock_or_recover().clone()
     }
@@ -97,6 +140,7 @@ impl GcService {
         if let Some(stop) = self.stop.lock_or_recover().take() {
             stop.stop();
         }
+        self.cancel_own_recovery();
     }
 }
 
@@ -331,10 +375,14 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
         log::debug!("gc: Deadlock is running, skipping this pass");
         return;
     }
-    let halted = || stop.load(Ordering::Relaxed);
+    let halted = || stop.load(Ordering::Relaxed) || shared.own_active.load(Ordering::Acquire);
     if halted() {
         return;
     }
+    let Ok(_gc) = shared.gc_lock.try_lock() else {
+        log::debug!("gc: own match history recovery is running, skipping this pass");
+        return;
+    };
     let contexts = match steam_accounts() {
         Ok(c) => c,
         Err(e) => {
@@ -399,6 +447,7 @@ pub mod commands {
     use tauri::{AppHandle, State};
 
     use super::{GcService, GcStatus};
+    use crate::features::error::AppError;
     use crate::http::Http;
 
     #[tauri::command]
@@ -409,6 +458,20 @@ pub mod commands {
     #[tauri::command]
     pub fn gc_status(gc: State<'_, GcService>) -> GcStatus {
         gc.status()
+    }
+
+    #[tauri::command]
+    pub fn recover_own_matches(
+        app: AppHandle,
+        gc: State<'_, GcService>,
+        http: State<'_, Http>,
+    ) -> Result<(), AppError> {
+        gc.recover_own_matches(app, http.0.clone())
+    }
+
+    #[tauri::command]
+    pub fn cancel_own_match_recovery(gc: State<'_, GcService>) {
+        gc.cancel_own_recovery();
     }
 }
 

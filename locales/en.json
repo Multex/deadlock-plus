@@ -60,7 +60,9 @@
         },
         "gc": {
             "steam_not_found": "Steam wasn't found on this PC.",
-            "no_login": "No saved Steam login could be used."
+            "no_login": "No saved Steam login could be used.",
+            "disabled": "Turn on salt recovery first.",
+            "game_running": "Close Deadlock first. Steam sends the game's requests to the game while it's open."
         },
         "ingest": {
             "rejected": "The Deadlock API rejected the match data.",
@@ -434,7 +436,11 @@
             "ingest_failed": "Last upload failed: {error}",
             "ingest_watching": "Watching Steam's cache. {count} submitted this session.",
             "ingest_description": "Reads Deadlock replay links from Steam's local HTTP cache and uploads the match IDs, replay salts and your Steam account ID to api.deadlock-api.com so the community database can fetch those matches. Nothing else is read or sent. Same behaviour as the open-source deadlock-api-ingest tool.",
-            "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay salts of matches the community database is missing. Your login never leaves this PC. Only the match IDs, salts and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool."
+            "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay salts of matches the community database is missing. Your login never leaves this PC. Only the match IDs, salts and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool.",
+            "gc_own_label": "Recover my match history",
+            "gc_own_description": "Fetches salts for every match in your own history that the community database is missing. It skips the 40-a-day limit, takes about 20 seconds per match and stops if Deadlock opens.",
+            "gc_own_start": "Start",
+            "gc_own_cancel": "Cancel"
         },
         "about_page": {
             "copy": "Copy",
@@ -2148,6 +2154,17 @@
             "accounts_one": "{count} Steam account",
             "accounts_other": "{count} Steam accounts",
             "using": "Using {accounts}. {delivered} submitted this session."
+        },
+        "own": {
+            "reading_history": "Reading your match history.",
+            "progress": "{delivered} of {missing} missing matches submitted. About 20 seconds each.",
+            "matches_one": "{count} match",
+            "matches_other": "{count} matches",
+            "nothing_missing": "Done. The community database already has all your matches.",
+            "done": "Done. {matches} submitted.",
+            "incomplete": "{matches} submitted, {failed} couldn't be recovered. Run it again to retry.",
+            "rate_limited": "{matches} submitted. Steam's limit was reached, run it again tomorrow for the rest.",
+            "stopped": "Stopped after {matches}. Run it again to continue."
         }
     },
     "api_health": {},

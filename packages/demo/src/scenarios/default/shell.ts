@@ -64,7 +64,7 @@ const appInfo = (appVersion: string, { persona }: Identity): AppInfo => ({
 });
 
 const INGEST: IngestStatus = { running: true, steamFound: true, submitted: 1284, lastError: null };
-const GC: GcStatus = { running: true, accounts: 1, delivered: 37, lastError: null };
+const GC: GcStatus = { running: true, accounts: 1, delivered: 37, lastError: null, ownRecovery: null };
 const AUTOSTART: AutostartStatus = { supported: true, enabled: true, stale: false };
 
 const PRESENCE: PresenceSettings = {
@@ -178,6 +178,8 @@ const SETTERS = [
     "set_telemetry_settings",
     "set_ingest_enabled",
     "set_gc_recovery_enabled",
+    "recover_own_matches",
+    "cancel_own_match_recovery",
     "set_close_to_tray",
     "set_maintenance_schedule",
     "set_alerts_enabled",

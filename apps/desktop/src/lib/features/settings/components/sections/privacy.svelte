@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { toast } from "svelte-sonner";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -6,7 +7,8 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { gcStatus } from "$lib/features/gc/status.svelte";
-    import { gcStatusLine } from "$lib/features/gc/status-line";
+    import { cancelOwnMatchRecovery, recoverOwnMatches } from "$lib/features/gc/api";
+    import { gcStatusLine, ownRecoveryLine } from "$lib/features/gc/status-line";
     import { ingestStatus } from "$lib/features/ingest/status.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
 
@@ -21,6 +23,20 @@
         if (ingest.lastError) return t("settings.privacy.ingest_failed", { error: ingest.lastError });
         return t("settings.privacy.ingest_watching", { count: ingest.submitted });
     });
+
+    const ownRecovery = $derived(gcStatus.status?.ownRecovery ?? null);
+
+    function startOwnRecovery() {
+        recoverOwnMatches()
+            .then(() => gcStatus.refresh())
+            .catch((e) => toast.error(errorText(e)));
+    }
+
+    function cancelOwnRecovery() {
+        cancelOwnMatchRecovery()
+            .then(() => gcStatus.refresh())
+            .catch(() => {});
+    }
 </script>
 
 {#if show("telemetry")}
@@ -75,5 +91,24 @@
         >
             <Switch id="gc-recovery" checked={settings.gcRecovery} onCheckedChange={(v) => settings.setGcRecovery(v)} />
         </SettingRow>
+        {#if settings.gcRecovery}
+            <SettingRow
+                class="mt-4"
+                size="sub"
+                label={t("settings.privacy.gc_own_label")}
+                description={t("settings.privacy.gc_own_description")}
+                hint={ownRecoveryLine(ownRecovery)}
+            >
+                {#if ownRecovery?.running}
+                    <Button variant="outline" size="sm" onclick={cancelOwnRecovery}>
+                        {t("settings.privacy.gc_own_cancel")}
+                    </Button>
+                {:else}
+                    <Button variant="outline" size="sm" onclick={startOwnRecovery}>
+                        {t("settings.privacy.gc_own_start")}
+                    </Button>
+                {/if}
+            </SettingRow>
+        {/if}
     </Card>
 {/if}

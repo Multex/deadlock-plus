@@ -125,6 +125,8 @@ pub fn run() {
             features::presence::commands::presence_preview,
             features::gc::commands::set_gc_recovery_enabled,
             features::gc::commands::gc_status,
+            features::gc::commands::recover_own_matches,
+            features::gc::commands::cancel_own_match_recovery,
             features::live::commands::get_live_state,
             features::live::commands::get_live_match,
             features::postgame::commands::get_postgame_matches,

@@ -16,7 +16,7 @@ import { supportModule } from "../default/support";
 import { upkeepModule } from "../default/upkeep";
 
 const INGEST: IngestStatus = { running: false, steamFound: true, submitted: 0, lastError: null };
-const GC: GcStatus = { running: false, accounts: 0, delivered: 0, lastError: null };
+const GC: GcStatus = { running: false, accounts: 0, delivered: 0, lastError: null, ownRecovery: null };
 const AUTOSTART: AutostartStatus = { supported: true, enabled: false, stale: false };
 const UNRANKED = { badge: 0, rank: 0, subrank: 0, last_match: null };
 
