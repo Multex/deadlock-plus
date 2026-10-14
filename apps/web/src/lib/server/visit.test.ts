@@ -51,6 +51,20 @@ describe("isBot", () => {
     });
 });
 
+describe("user agent", () => {
+    const page = { routeId: "/", status: 200, contentType: "text/html", country: "DE" };
+
+    it("is forwarded as $raw_user_agent on every visitor event", () => {
+        const url = "https://deadlockplus.example/";
+        const events = [
+            pageview(request(url), page, NOW),
+            discordClick(request(url + "discord/github"), "github", undefined, NOW).event,
+            downloadClick(request(url + "get/windows"), "windows", [], undefined, NOW).event,
+        ];
+        for (const event of events) expect(event?.properties.$raw_user_agent).toBe(BROWSER);
+    });
+});
+
 describe("pageview", () => {
     const page = { routeId: "/", status: 200, contentType: "text/html; charset=utf-8", country: "DE" };
 

@@ -35,6 +35,11 @@ export function isBot(userAgent: string | null): boolean {
     return !userAgent || BOT.test(userAgent);
 }
 
+/** PostHog reads `$raw_user_agent` for bot detection. Without it, server-sent events are all classed as bots. */
+function userAgent(request: Request): string | undefined {
+    return request.headers.get("user-agent") ?? undefined;
+}
+
 export interface PageResult {
     routeId: string | null;
     status: number;
@@ -60,6 +65,7 @@ export function pageview(request: Request, page: PageResult, now = new Date()): 
             $referring_domain: from.referringDomain,
             ref: from.ref,
             country: page.country,
+            $raw_user_agent: userAgent(request),
         },
         now,
     );
@@ -91,6 +97,7 @@ export function discordClick(
             $referrer: from.referrer,
             $referring_domain: from.referringDomain,
             country,
+            $raw_user_agent: userAgent(request),
         },
         now,
     );
@@ -147,6 +154,7 @@ export function downloadClick(
             $referrer: from.referrer,
             $referring_domain: from.referringDomain,
             country,
+            $raw_user_agent: userAgent(request),
         },
         now,
     );

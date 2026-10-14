@@ -29,6 +29,7 @@ describe("event names and properties the dashboards read", () => {
                 $referring_domain: "reddit.com",
                 ref: "reddit",
                 country: "DE",
+                $raw_user_agent: BROWSER,
                 ...ANONYMOUS,
             },
         });
@@ -53,6 +54,7 @@ describe("event names and properties the dashboards read", () => {
                 $referrer: "https://github.com",
                 $referring_domain: "github.com",
                 country: "US",
+                $raw_user_agent: BROWSER,
                 ...ANONYMOUS,
             },
         });
@@ -80,6 +82,7 @@ describe("event names and properties the dashboards read", () => {
                 $referrer: "https://deadlockplus.example",
                 $referring_domain: "deadlockplus.example",
                 country: "US",
+                $raw_user_agent: BROWSER,
                 ...ANONYMOUS,
             },
         });
