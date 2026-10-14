@@ -31,6 +31,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The unmute question can no longer be confirmed once Deadlock starts.
 - Salt recovery keeps working when the Deadlock API's list of missing matches fails to load.
 - Salt recovery retries a failed upload instead of losing the match.
+- The tray menu now switches to your chosen language.
+- Desktop notifications now appear in your chosen language.
 
 ## [0.11.0] - 2026-10-12
 

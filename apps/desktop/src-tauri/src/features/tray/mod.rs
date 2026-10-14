@@ -47,12 +47,22 @@ pub fn show_main(app: &AppHandle) {
     }
 }
 
-fn build_menu(app: &AppHandle, i18n: &I18nState) -> tauri::Result<Menu<tauri::Wry>> {
+struct MenuText {
+    show: String,
+    quit: String,
+    tooltip: String,
+}
+
+fn menu_text(i18n: &I18nState) -> MenuText {
+    MenuText { show: i18n.tr("tray.show", &[]), quit: i18n.tr("tray.quit", &[]), tooltip: i18n.tr("tray.tooltip", &[]) }
+}
+
+fn build_menu(app: &AppHandle, text: &MenuText) -> tauri::Result<Menu<tauri::Wry>> {
     Menu::with_items(
         app,
         &[
-            &MenuItem::with_id(app, SHOW_ID, i18n.tr("tray.show", &[]), true, None::<&str>)?,
-            &MenuItem::with_id(app, QUIT_ID, i18n.tr("tray.quit", &[]), true, None::<&str>)?,
+            &MenuItem::with_id(app, SHOW_ID, &text.show, true, None::<&str>)?,
+            &MenuItem::with_id(app, QUIT_ID, &text.quit, true, None::<&str>)?,
         ],
     )
 }
@@ -60,8 +70,8 @@ fn build_menu(app: &AppHandle, i18n: &I18nState) -> tauri::Result<Menu<tauri::Wr
 /// Rebuilds the menu and tooltip in the current language.
 pub fn apply_language(app: &AppHandle) {
     let Some(tray) = app.try_state::<TrayIcon>() else { return };
-    let i18n = app.state::<I18nState>();
-    match build_menu(app, &i18n) {
+    let text = menu_text(&app.state::<I18nState>());
+    match build_menu(app, &text) {
         Ok(menu) => {
             if let Err(e) = tray.set_menu(Some(menu)) {
                 log::warn!("could not update the tray menu: {e}");
@@ -69,7 +79,7 @@ pub fn apply_language(app: &AppHandle) {
         }
         Err(e) => log::warn!("could not build the tray menu: {e}"),
     }
-    if let Err(e) = tray.set_tooltip(Some(i18n.tr("tray.tooltip", &[]))) {
+    if let Err(e) = tray.set_tooltip(Some(text.tooltip)) {
         log::warn!("could not update the tray tooltip: {e}");
     }
 }
@@ -77,10 +87,10 @@ pub fn apply_language(app: &AppHandle) {
 /// The tray icon is always created, even with close-to-tray off: an autostart launch has no window,
 /// so it is the only way back in.
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
-    let i18n = app.state::<I18nState>();
-    let menu = build_menu(app, &i18n)?;
+    let text = menu_text(&app.state::<I18nState>());
+    let menu = build_menu(app, &text)?;
     let mut tray = TrayIconBuilder::new()
-        .tooltip(i18n.tr("tray.tooltip", &[]))
+        .tooltip(&text.tooltip)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -162,6 +172,20 @@ pub mod commands {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn menu_text_follows_the_language() {
+        let i18n = I18nState::default();
+        let english = menu_text(&i18n);
+        assert!(i18n.set("af"));
+        let afrikaans = menu_text(&i18n);
+        for (key, text) in
+            [("tray.show", &afrikaans.show), ("tray.quit", &afrikaans.quit), ("tray.tooltip", &afrikaans.tooltip)]
+        {
+            assert_eq!(*text, crate::features::i18n::translate_in("af", key, &[]), "{key}");
+        }
+        assert_ne!(afrikaans.quit, english.quit);
+    }
 
     #[test]
     fn autostart_arg_means_hidden_launch() {

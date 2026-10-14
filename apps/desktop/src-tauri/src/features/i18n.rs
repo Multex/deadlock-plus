@@ -1,15 +1,26 @@
 use serde_json::Value;
-use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-const EN: &str = include_str!("../../../../../locales/en.json");
 const DEFAULT_LOCALE: &str = "en";
 
-fn catalogs() -> &'static HashMap<&'static str, Value> {
-    static CATALOGS: OnceLock<HashMap<&'static str, Value>> = OnceLock::new();
-    CATALOGS.get_or_init(|| {
-        HashMap::from([(DEFAULT_LOCALE, serde_json::from_str(EN).expect("locales/en.json is valid JSON"))])
-    })
+macro_rules! embed_locales {
+    ($($code:literal),* $(,)?) => {
+        [$(($code, include_str!(concat!("../../../../../locales/", $code, ".json")))),*]
+    };
+}
+
+const SOURCES: [(&str, &str); 20] = embed_locales![
+    "en", "af", "cs", "de", "es", "fr", "hu", "id", "it", "ja", "ko", "pl", "pt", "pt-BR", "ru", "th", "tr", "uk",
+    "zh-CN", "zh-TW",
+];
+
+/// Parsed on first use so a session only pays for the languages it actually shows.
+fn catalog(code: &str) -> Option<&'static Value> {
+    static PARSED: [OnceLock<Value>; SOURCES.len()] = [const { OnceLock::new() }; SOURCES.len()];
+    let index = SOURCES.iter().position(|(c, _)| *c == code)?;
+    Some(PARSED[index].get_or_init(|| {
+        serde_json::from_str(SOURCES[index].1).unwrap_or_else(|e| panic!("locales/{code}.json is invalid: {e}"))
+    }))
 }
 
 fn lookup<'a>(catalog: &'a Value, key: &str) -> Option<&'a str> {
@@ -42,11 +53,11 @@ fn interpolate(template: &str, params: &[(&str, &str)]) -> String {
     out
 }
 
-fn chain<'a>(locale: &'a str, all: &'a HashMap<&'static str, Value>) -> Vec<(&'a str, &'a Value)> {
+fn chain<'l, 'a>(locale: &'l str, all: impl Fn(&str) -> Option<&'a Value>) -> Vec<(&'l str, &'a Value)> {
     let base = locale.split('-').next().unwrap_or(locale);
     let mut out: Vec<(&str, &Value)> = Vec::new();
     for code in [locale, base, DEFAULT_LOCALE] {
-        if let Some(catalog) = all.get(code) {
+        if let Some(catalog) = all(code) {
             if !out.iter().any(|(_, c)| std::ptr::eq(*c, catalog)) {
                 out.push((code, catalog));
             }
@@ -55,7 +66,12 @@ fn chain<'a>(locale: &'a str, all: &'a HashMap<&'static str, Value>) -> Vec<(&'a
     out
 }
 
-fn translate_with(all: &HashMap<&'static str, Value>, locale: &str, key: &str, params: &[(&str, &str)]) -> String {
+fn translate_with<'a>(
+    all: impl Fn(&str) -> Option<&'a Value>,
+    locale: &str,
+    key: &str,
+    params: &[(&str, &str)],
+) -> String {
     for (_, catalog) in chain(locale, all) {
         if let Some(template) = lookup(catalog, key) {
             return interpolate(template, params);
@@ -110,8 +126,8 @@ fn plural_category(locale: &str, n: u64) -> &'static str {
     }
 }
 
-fn translate_plural_with(
-    all: &HashMap<&'static str, Value>,
+fn translate_plural_with<'a>(
+    all: impl Fn(&str) -> Option<&'a Value>,
     locale: &str,
     key: &str,
     count: u64,
@@ -133,12 +149,12 @@ fn translate_plural_with(
 }
 
 pub fn translate_in(locale: &str, key: &str, params: &[(&str, &str)]) -> String {
-    translate_with(catalogs(), locale, key, params)
+    translate_with(catalog, locale, key, params)
 }
 
 #[allow(dead_code)]
 pub fn translate_plural_in(locale: &str, key: &str, count: u64, params: &[(&str, &str)]) -> String {
-    translate_plural_with(catalogs(), locale, key, count, params)
+    translate_plural_with(catalog, locale, key, count, params)
 }
 
 pub struct I18nState {
@@ -192,6 +208,7 @@ pub mod commands {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn translates_a_dotted_key() {
@@ -207,6 +224,28 @@ mod tests {
     #[test]
     fn unknown_locale_falls_back_to_en() {
         assert_eq!(translate_in("de-DE", "tray.quit", &[]), "Quit");
+    }
+
+    #[test]
+    fn every_locale_file_is_embedded() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../locales");
+        for entry in std::fs::read_dir(&dir).expect("locales dir exists") {
+            let path = entry.expect("readable entry").path();
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                continue;
+            }
+            let code = path.file_stem().and_then(|s| s.to_str()).expect("utf-8 file name");
+            let on_disk: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("readable file"))
+                .expect("locale file is valid JSON");
+            assert_eq!(catalog(code), Some(&on_disk), "{code} is not embedded");
+        }
+    }
+
+    #[test]
+    fn translates_into_a_non_english_catalog() {
+        let translated = lookup(catalog("af").expect("af is embedded"), "tray.quit").expect("af has tray.quit");
+        assert_eq!(translate_in("af", "tray.quit", &[]), translated);
+        assert_ne!(translated, "Quit");
     }
 
     #[test]
@@ -239,14 +278,14 @@ mod tests {
             ("en", serde_json::json!({ "a": { "b": "English" } })),
             ("de", serde_json::json!({ "a": { "b": "" } })),
         ]);
-        assert_eq!(translate_with(&all, "de", "a.b", &[]), "English");
+        assert_eq!(translate_with(|c| all.get(c), "de", "a.b", &[]), "English");
     }
 
     #[test]
     fn whitespace_only_string_counts_as_blank() {
         let all =
             catalogs_of(&[("en", serde_json::json!({ "k": "English" })), ("de", serde_json::json!({ "k": "  " }))]);
-        assert_eq!(translate_with(&all, "de", "k", &[]), "English");
+        assert_eq!(translate_with(|c| all.get(c), "de", "k", &[]), "English");
     }
 
     #[test]
@@ -303,10 +342,10 @@ mod tests {
                 serde_json::json!({ "n_one": "{count} файл", "n_few": "{count} файла", "n_many": "{count} файлов", "n_other": "{count} файла" }),
             ),
         ]);
-        assert_eq!(translate_plural_with(&all, "ru", "n", 3, &[]), "3 файла");
-        assert_eq!(translate_plural_with(&all, "ru", "n", 5, &[]), "5 файлов");
-        assert_eq!(translate_plural_with(&all, "en", "n", 1, &[]), "1 file");
-        assert_eq!(translate_plural_with(&all, "en", "n", 4, &[]), "4 files");
+        assert_eq!(translate_plural_with(|c| all.get(c), "ru", "n", 3, &[]), "3 файла");
+        assert_eq!(translate_plural_with(|c| all.get(c), "ru", "n", 5, &[]), "5 файлов");
+        assert_eq!(translate_plural_with(|c| all.get(c), "en", "n", 1, &[]), "1 file");
+        assert_eq!(translate_plural_with(|c| all.get(c), "en", "n", 4, &[]), "4 files");
     }
 
     #[test]
@@ -316,13 +355,13 @@ mod tests {
             ("pl", serde_json::json!({ "n_one": "", "n_few": "", "n_many": "", "n_other": "{count} plików" })),
             ("cs", serde_json::json!({ "n_one": "", "n_few": "", "n_other": "" })),
         ]);
-        assert_eq!(translate_plural_with(&all, "pl", "n", 3, &[]), "3 plików");
-        assert_eq!(translate_plural_with(&all, "cs", "n", 1, &[]), "1 file");
-        assert_eq!(translate_plural_with(&all, "cs", "n", 3, &[]), "3 files");
+        assert_eq!(translate_plural_with(|c| all.get(c), "pl", "n", 3, &[]), "3 plików");
+        assert_eq!(translate_plural_with(|c| all.get(c), "cs", "n", 1, &[]), "1 file");
+        assert_eq!(translate_plural_with(|c| all.get(c), "cs", "n", 3, &[]), "3 files");
     }
 
     #[test]
     fn plural_lookup_missing_key_returns_the_key() {
-        assert_eq!(translate_plural_with(&HashMap::new(), "en", "n", 2, &[]), "n");
+        assert_eq!(translate_plural_with(|_| None, "en", "n", 2, &[]), "n");
     }
 }
