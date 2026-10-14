@@ -38,6 +38,7 @@ const MIN_REQUEST_INTERVAL: Duration = Duration::from_secs(20);
 const PASS_INTERVAL: Duration = Duration::from_secs(30 * 60);
 const MAX_POST_ATTEMPTS: u32 = 10;
 const POST_RETRY_DELAY: Duration = Duration::from_secs(3);
+const HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Serialize, Clone, Default, TS)]
 #[ts(export)]
@@ -210,7 +211,7 @@ async fn post_salts(http: &reqwest::Client, salts: RecoveredSalts, halted: &impl
     let body = [to_ingest_salts(salts)];
     let mut last = String::new();
     for attempt in 1..=MAX_POST_ATTEMPTS {
-        match http.post(SALTS_URL).json(&body).send().await {
+        match http.post(SALTS_URL).timeout(HTTP_TIMEOUT).json(&body).send().await {
             Ok(r) if r.status().is_success() => {
                 log::debug!("gc: submitted match {}", salts.match_id);
                 return true;
@@ -420,23 +421,16 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
     }
 }
 
-fn runtime() -> Result<tokio::runtime::Runtime, AppError> {
-    tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| {
-        log::warn!("gc: cannot build the async runtime: {e}");
-        AppError::internal(e)
-    })
+/// Runs GC work on the app's shared runtime. The HTTP client pools connections as tasks on the
+/// runtime that opened them, so a runtime of its own that idles between passes would strand
+/// those connections and hang the next request that picks one up.
+fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+    tauri::async_runtime::block_on(fut)
 }
 
 fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
-    let runtime = match runtime() {
-        Ok(rt) => rt,
-        Err(e) => {
-            shared.status.lock_or_recover().last_error = Some(e);
-            return;
-        }
-    };
     while !stop.is_stopped() {
-        runtime.block_on(pass(stop.flag(), shared, app, http));
+        block_on(pass(stop.flag(), shared, app, http));
         if stop.wait(PASS_INTERVAL) {
             break;
         }
@@ -478,6 +472,56 @@ pub mod commands {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
+
+    /// An HTTP server that keeps every connection open, so the client pools it.
+    fn keep_alive_server() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/", listener.local_addr().unwrap());
+        std::thread::spawn(move || {
+            for mut conn in listener.incoming().flatten() {
+                std::thread::spawn(move || {
+                    let mut buf = [0u8; 4096];
+                    while matches!(conn.read(&mut buf), Ok(n) if n > 0) {
+                        let _ = conn.write_all(
+                            b"HTTP/1.1 200 OK
+Content-Length: 2
+
+[]",
+                        );
+                    }
+                });
+            }
+        });
+        url
+    }
+
+    #[test]
+    fn a_request_works_after_another_worker_used_the_client_and_went_idle() {
+        let url = keep_alive_server();
+        let http = reqwest::Client::new();
+        let (done_tx, done_rx) = mpsc::channel();
+        let (exit_tx, exit_rx) = mpsc::channel::<()>();
+        let first = {
+            let (http, url) = (http.clone(), url.clone());
+            std::thread::spawn(move || {
+                block_on(async { http.get(&url).send().await.unwrap().bytes().await.unwrap() });
+                done_tx.send(()).unwrap();
+                // Idle like a worker waiting for its next pass.
+                let _ = exit_rx.recv();
+            })
+        };
+        done_rx.recv().unwrap();
+        let second = std::thread::spawn(move || {
+            block_on(async { tokio::time::timeout(Duration::from_secs(5), http.get(&url).send()).await })
+        });
+        let result = second.join().unwrap();
+        exit_tx.send(()).unwrap();
+        first.join().unwrap();
+        assert!(matches!(result, Ok(Ok(ref r)) if r.status().is_success()), "request hung: {result:?}");
+    }
 
     #[test]
     fn recovered_salts_are_tagged_with_the_account() {

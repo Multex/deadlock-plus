@@ -14,7 +14,7 @@ const PLAYERS_CHUNK: usize = 1000;
 
 /// deadlock-api answers 404 for a query that matches nothing, which reads as an empty `T`.
 async fn get_json<T: DeserializeOwned + Default>(req: reqwest::RequestBuilder) -> Result<T, AppError> {
-    let resp = req.send().await.map_err(AppError::network)?;
+    let resp = req.timeout(super::HTTP_TIMEOUT).send().await.map_err(AppError::network)?;
     if resp.status() == StatusCode::NOT_FOUND {
         return Ok(T::default());
     }

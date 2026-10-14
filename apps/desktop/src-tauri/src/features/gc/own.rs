@@ -11,7 +11,7 @@ use dp_gc::ledger::SaltAttempts;
 use dp_gc::pass::{fetch_all, FullOutcome, Host};
 use dp_sync::LockExt;
 
-use super::{api, load, runtime, save, steam_accounts, GcHost, Shared, ATTEMPTS_KEY};
+use super::{api, block_on, load, save, steam_accounts, GcHost, Shared, ATTEMPTS_KEY};
 use crate::features::error::AppError;
 use crate::features::stop::StopSignal;
 
@@ -82,6 +82,7 @@ async fn own_account(
         Err(SteamGcError::GcRateLimited) => return Ok(FullOutcome { rate_limited: true, ..Default::default() }),
         Err(e) => return Err(e.to_string()),
     };
+    log::debug!("gc: read {} match(es) from the history of account {account_id}", history.len());
     let known = api::known_match_ids(http, &history).await.map_err(|e| e.to_string())?;
     attempts.forget(&known);
     let missing = missing_matches(&history, &known, done, attempts);
@@ -151,7 +152,7 @@ async fn recover(
 pub(super) fn run(cancel: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
     // A background pass sees `own_active` and stops at its next request.
     let _gc = shared.gc_lock.blocking_lock();
-    let result = runtime().and_then(|rt| rt.block_on(recover(cancel.flag(), shared, app, http)));
+    let result = block_on(recover(cancel.flag(), shared, app, http));
     let (outcome, error) = match result {
         Ok(outcome) => (outcome, None),
         Err(e) => (OwnRecoveryOutcome::Failed, Some(e)),
