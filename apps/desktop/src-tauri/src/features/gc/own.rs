@@ -36,6 +36,8 @@ pub enum OwnRecoveryOutcome {
 #[serde(rename_all = "camelCase")]
 pub struct OwnRecovery {
     pub running: bool,
+    /// Matches read from the accounts' histories so far.
+    pub read: u32,
     /// Matches found without salts so far.
     pub missing: u32,
     pub delivered: u32,
@@ -77,7 +79,10 @@ async fn own_account(
     done: &mut HashSet<u64>,
     shared: &Shared,
 ) -> Result<FullOutcome, String> {
-    let (history, complete) = match session.fetch_match_history(account_id).await {
+    let (history, complete) = match session
+        .fetch_match_history(account_id, |n| update(shared, |own| own.read += u32::try_from(n).unwrap_or(u32::MAX)))
+        .await
+    {
         Ok(h) => h,
         Err(SteamGcError::GcRateLimited) => return Ok(FullOutcome { rate_limited: true, ..Default::default() }),
         Err(e) => return Err(e.to_string()),

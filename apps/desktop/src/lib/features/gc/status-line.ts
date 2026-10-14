@@ -19,7 +19,10 @@ export function gcStatusLine(enabled: boolean, status: GcStatus | null): string 
 export function ownRecoveryLine(own: OwnRecovery | null): string {
     if (!own) return "";
     if (own.running) {
-        if (own.missing === 0) return t("gc.own.reading_history");
+        if (own.missing === 0) {
+            if (own.read === 0) return t("gc.own.reading_history");
+            return t("gc.own.reading_history_count", { read: formatNumber(own.read) });
+        }
         return t("gc.own.progress", { delivered: formatNumber(own.delivered), missing: formatNumber(own.missing) });
     }
     const matches = tn("gc.own.matches", own.delivered);

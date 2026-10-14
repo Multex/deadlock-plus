@@ -8,6 +8,10 @@ import type { OwnRecoveryOutcome } from "./OwnRecoveryOutcome";
  */
 export type OwnRecovery = { running: boolean, 
 /**
+ * Matches read from the accounts' histories so far.
+ */
+read: number, 
+/**
  * Matches found without salts so far.
  */
 missing: number, delivered: number, failed: number, outcome: OwnRecoveryOutcome | null, error: AppError | null, };

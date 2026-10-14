@@ -50,6 +50,7 @@ describe("gcStatusLine", () => {
 
 const own = (over: Partial<OwnRecovery> = {}): OwnRecovery => ({
     running: false,
+    read: 0,
     missing: 0,
     delivered: 0,
     failed: 0,
@@ -65,6 +66,12 @@ describe("ownRecoveryLine", () => {
 
     it("reads the history before anything is missing", () => {
         expect(ownRecoveryLine(own({ running: true }))).toBe("Reading your match history.");
+    });
+
+    it("counts the matches read so far", () => {
+        expect(ownRecoveryLine(own({ running: true, read: 1200 }))).toBe(
+            "Reading your match history (1,200 matches so far).",
+        );
     });
 
     it("shows progress while running", () => {

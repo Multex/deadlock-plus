@@ -2157,6 +2157,7 @@
         },
         "own": {
             "reading_history": "Reading your match history.",
+            "reading_history_count": "Reading your match history ({read} matches so far).",
             "progress": "{delivered} of {missing} missing matches submitted. About 20 seconds each.",
             "matches_one": "{count} match",
             "matches_other": "{count} matches",

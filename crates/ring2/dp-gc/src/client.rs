@@ -228,8 +228,13 @@ impl GcSession {
     }
 
     /// Every match id in `account_id`'s history and whether it is complete. When Steam
-    /// rate-limits part way, the pages fetched so far come back with `false`.
-    pub async fn fetch_match_history(&self, account_id: u32) -> Result<(Vec<u64>, bool), GcError> {
+    /// rate-limits part way, the pages fetched so far come back with `false`. `on_page` gets the
+    /// number of matches on each page as it arrives.
+    pub async fn fetch_match_history(
+        &self,
+        account_id: u32,
+        mut on_page: impl FnMut(usize),
+    ) -> Result<(Vec<u64>, bool), GcError> {
         let mut match_ids = Vec::new();
         let mut cursor = None;
         loop {
@@ -241,7 +246,9 @@ impl GcSession {
             if resp.matches.is_empty() {
                 break;
             }
+            let before = match_ids.len();
             match_ids.extend(resp.matches.iter().filter_map(|m| m.match_id));
+            on_page(match_ids.len() - before);
             match next_history_cursor(cursor, resp.continue_cursor) {
                 Some(next) => cursor = Some(next),
                 None => break,
