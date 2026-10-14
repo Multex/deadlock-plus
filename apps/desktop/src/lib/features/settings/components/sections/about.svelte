@@ -11,6 +11,7 @@
     import SupportButton from "$lib/components/support-button.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { updater } from "$lib/features/updates/updater.svelte";
+    import { installUpdate } from "$lib/features/updates/banner.svelte";
     import { updateLine } from "$lib/features/updates/status";
     import ReleaseNotes from "$lib/features/updates/components/release-notes.svelte";
     import { whatsNew } from "$lib/features/updates/whats-new.svelte";
@@ -74,7 +75,7 @@
                 <p class="text-sm text-muted-foreground" aria-live="polite">{updateLine(updater)}</p>
             </div>
             {#if updater.phase === "available"}
-                <Button size="sm" onclick={() => updater.install()}>
+                <Button size="sm" onclick={() => installUpdate("about")}>
                     <Download />
                     {t("settings.about_page.install", { version: updater.version ?? "" })}
                 </Button>

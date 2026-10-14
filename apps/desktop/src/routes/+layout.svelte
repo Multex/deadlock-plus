@@ -29,4 +29,9 @@
 
 <CommandPalette />
 
-<Toaster richColors position="bottom-right" theme={isLightTheme(settings.theme) ? "light" : "dark"} />
+<Toaster
+    richColors
+    pauseWhenPageIsHidden
+    position="bottom-right"
+    theme={isLightTheme(settings.theme) ? "light" : "dark"}
+/>

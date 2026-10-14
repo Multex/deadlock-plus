@@ -428,7 +428,7 @@
             "preview_party": "({size} of {max})"
         },
         "privacy": {
-            "telemetry_description": "Sends which version and system you use, which pages you open, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
+            "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
             "telemetry_reset": "Reset usage data ID",
             "telemetry_reset_done": "Usage data ID reset.",
             "ingest_waiting": "Waiting for your answer.",
@@ -1691,7 +1691,7 @@
             "consent": "If you agree, Deadlock+ sends only the match IDs and replay keys Steam already stores on your PC, plus your Steam account ID. Nothing else leaves your computer.",
             "optional": "Optional. You can change this any time in Settings.",
             "telemetry_title": "Anonymous usage data",
-            "telemetry_body": "Deadlock+ also sends anonymous usage counts and error reports, so we know how many people use it and what breaks. It sends the app version, your system, which pages you open and error details. It uses a random ID and never sends paths, names, Steam IDs, IP addresses or match data.",
+            "telemetry_body": "Deadlock+ also sends anonymous usage counts and error reports, so we know how many people use it and what breaks. It sends the app version, your system, which pages you open, when you open the Discord invite, when an update is offered or started, and error details. It uses a random ID and never sends paths, names, Steam IDs, IP addresses or match data.",
             "telemetry_toggle": "Share anonymous usage data and error reports",
             "share": "Share my matches",
             "decline": "No thanks",
@@ -1736,7 +1736,6 @@
     },
     "updates": {
         "toast_available": "Deadlock+ {version} is available",
-        "toast_details": "Details",
         "status": {
             "idle": "Not checked yet.",
             "checking": "Checking...",
@@ -1746,6 +1745,12 @@
             "downloading_percent": "Downloading {version} ({percent}%). Deadlock+ restarts when it finishes.",
             "check_failed": "Couldn't check for updates. Check your connection and try again.",
             "download_failed": "Couldn't download the update. Try again later."
+        },
+        "banner": {
+            "title": "Deadlock+ {version} is ready to install",
+            "body": "You're on an older version. The update takes a minute and Deadlock+ restarts on its own.",
+            "install": "Install now",
+            "dismiss": "Not now"
         }
     },
     "live": {

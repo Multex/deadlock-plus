@@ -174,6 +174,8 @@ const SETTERS = [
     "set_language",
     "track_feature",
     "track_discord_invite",
+    "track_update_shown",
+    "track_update_install_clicked",
     "reset_telemetry_id",
     "set_telemetry_settings",
     "set_ingest_enabled",

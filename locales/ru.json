@@ -1819,7 +1819,6 @@
     },
     "updates": {
         "toast_available": "Deadlock+ {version} доступен",
-        "toast_details": "Подробности",
         "status": {
             "idle": "",
             "checking": "",

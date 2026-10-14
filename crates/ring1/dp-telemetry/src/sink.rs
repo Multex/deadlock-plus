@@ -114,6 +114,16 @@ impl Telemetry {
         self.record("discord_invite_click", event::INVITE_CLICK)
     }
 
+    pub fn update_shown(&self, to_version: &str) -> bool {
+        event::is_version(to_version) && self.record("update_shown", &[("to_version", to_version)])
+    }
+
+    pub fn update_install_clicked(&self, to_version: &str, source: &str) -> bool {
+        event::is_version(to_version)
+            && event::is_install_source(source)
+            && self.record("update_install_clicked", &[("to_version", to_version), ("source", source)])
+    }
+
     fn record(&self, name: &str, extra: &[(&str, &str)]) -> bool {
         if self.config.posthog.is_none() {
             return false;
@@ -223,6 +233,48 @@ mod tests {
         let batch = t.take_batch().unwrap();
         assert_eq!(batch["batch"][0]["event"], "discord_invite_click");
         assert_eq!(batch["batch"][0]["properties"]["channel"], "app");
+    }
+
+    #[test]
+    fn an_update_shown_carries_only_the_version_and_follows_the_gate() {
+        let t = telemetry();
+        assert!(!t.update_shown("0.12.0"));
+        t.set_enabled(true);
+        assert!(t.update_shown("0.12.0"));
+        let event = &t.take_batch().unwrap()["batch"][0];
+        assert_eq!(event["event"], "update_shown");
+        assert_eq!(event["properties"]["to_version"], "0.12.0");
+        assert_eq!(event["properties"].as_object().unwrap().len(), 6);
+    }
+
+    #[test]
+    fn an_update_shown_with_a_made_up_version_is_dropped() {
+        let t = telemetry();
+        t.set_enabled(true);
+        assert!(!t.update_shown("not a version"));
+        assert_eq!(t.pending(), 0);
+    }
+
+    #[test]
+    fn an_install_click_carries_the_version_and_source_and_follows_the_gate() {
+        let t = telemetry();
+        assert!(!t.update_install_clicked("0.12.0", "banner"));
+        t.set_enabled(true);
+        assert!(t.update_install_clicked("0.12.0", "banner"));
+        let event = &t.take_batch().unwrap()["batch"][0];
+        assert_eq!(event["event"], "update_install_clicked");
+        assert_eq!(event["properties"]["to_version"], "0.12.0");
+        assert_eq!(event["properties"]["source"], "banner");
+        assert_eq!(event["properties"].as_object().unwrap().len(), 7);
+    }
+
+    #[test]
+    fn an_install_click_with_an_unknown_source_or_version_is_dropped() {
+        let t = telemetry();
+        t.set_enabled(true);
+        assert!(!t.update_install_clicked("0.12.0", "somewhere"));
+        assert!(!t.update_install_clicked("0.12", "about"));
+        assert_eq!(t.pending(), 0);
     }
 
     #[test]

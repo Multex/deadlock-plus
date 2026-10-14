@@ -1711,7 +1711,6 @@
     },
     "updates": {
         "toast_available": "",
-        "toast_details": "Details",
         "status": {
             "idle": "",
             "checking": "",

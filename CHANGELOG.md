@@ -9,6 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 
 - Replay key recovery can fetch your whole match history at once from Privacy settings, past the daily limit.
+- A banner offers a waiting update once it is a day old, and comes back each time you open the window until you install it.
+- The update notice has an Install button.
 
 ### Changed
 
@@ -20,6 +22,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Replay key recovery stops asking for a match after three tries when the community database still cannot use it.
 - Error messages are one plain sentence and no longer show technical details.
 - The app says "replay keys" instead of "salts", "servers" instead of "relays" and "mods" instead of "addons".
+- Deadlock+ checks for updates when you open its window, not only once an hour.
+- Anonymous usage data now counts when an update is offered and when you start it.
 
 ### Fixed
 
@@ -36,6 +40,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The tray menu now switches to your chosen language.
 - Desktop notifications now appear in your chosen language.
 - Counts such as "2,093 matches" now use your language's number format.
+- Notices no longer run out while the Deadlock+ window is hidden.
 
 ## [0.11.0] - 2026-10-12
 

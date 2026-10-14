@@ -178,6 +178,8 @@ pub fn run() {
             features::telemetry::commands::set_telemetry_settings,
             features::telemetry::commands::track_feature,
             features::telemetry::commands::track_discord_invite,
+            features::telemetry::commands::track_update_shown,
+            features::telemetry::commands::track_update_install_clicked,
             features::telemetry::commands::reset_telemetry_id,
             features::autostart::commands::autostart_status,
             features::autostart::commands::set_autostart,

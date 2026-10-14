@@ -26,8 +26,33 @@ pub struct Context {
 /// Matches the website's `discord_invite_click` event, so in-app and web clicks chart as one series split by channel.
 pub const INVITE_CLICK: &[(&str, &str)] = &[("ref", "app"), ("channel", "app")];
 
+pub const INSTALL_SOURCES: &[&str] = &["banner", "toast", "about"];
+
 pub fn is_feature(name: &str) -> bool {
     FEATURES.contains(&name)
+}
+
+pub fn is_install_source(source: &str) -> bool {
+    INSTALL_SOURCES.contains(&source)
+}
+
+/// The page passes the version through, so only a plain `MAJOR.MINOR.PATCH[-pre]` string is ever sent.
+pub fn is_version(version: &str) -> bool {
+    const MAX_LEN: usize = 32;
+    if version.len() > MAX_LEN {
+        return false;
+    }
+    let (core, pre) = match version.split_once('-') {
+        Some((core, pre)) => (core, Some(pre)),
+        None => (version, None),
+    };
+    let numbers_ok = core.split('.').count() == 3
+        && core.split('.').all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()));
+    let pre_ok = match pre {
+        Some(pre) => !pre.is_empty() && pre.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.'),
+        None => true,
+    };
+    numbers_ok && pre_ok
 }
 
 pub fn build(ctx: &Context, distinct_id: &str, event: &str, extra: &[(&str, &str)], timestamp: &str) -> Value {
@@ -90,5 +115,39 @@ mod tests {
         assert!(!is_feature("some free text"));
         assert!(!is_feature(""));
         assert!(!is_feature("Stats"));
+    }
+
+
+    #[test]
+    fn only_listed_install_sources_are_accepted() {
+        for source in ["banner", "toast", "about"] {
+            assert!(is_install_source(source), "{source}");
+        }
+        for source in ["", "Banner", "titlebar", "banner "] {
+            assert!(!is_install_source(source), "{source:?}");
+        }
+    }
+
+    #[test]
+    fn a_version_must_look_like_semver() {
+        for version in ["0.11.0", "1.2.3", "10.20.30", "0.12.0-beta.1", "1.0.0-rc1"] {
+            assert!(is_version(version), "{version}");
+        }
+        let long = format!("1.2.3-{}", "a".repeat(40));
+        for version in [
+            "",
+            "v0.11.0",
+            "0.11",
+            "0.11.0.1",
+            "0.11.0 ",
+            "a.b.c",
+            "0..1",
+            "0.11.0-",
+            "1.2.3-<b>",
+            "1.2.3+build",
+            &long,
+        ] {
+            assert!(!is_version(version), "{version:?}");
+        }
     }
 }

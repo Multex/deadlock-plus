@@ -12,6 +12,14 @@ export function trackDiscordInvite() {
     return command("track_discord_invite");
 }
 
+export function trackUpdateShown(toVersion: string) {
+    return command("track_update_shown", { toVersion });
+}
+
+export function trackUpdateInstallClicked(toVersion: string, source: "banner" | "toast" | "about") {
+    return command("track_update_install_clicked", { toVersion, source });
+}
+
 export function resetTelemetryId() {
     return command("reset_telemetry_id");
 }

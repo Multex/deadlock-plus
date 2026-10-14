@@ -3,6 +3,7 @@ export const PREF_KEYS = {
     heroCache: "deadlock-plus:heroes",
     launchCount: "deadlock-plus:launch-count",
     language: "deadlock-plus:language",
+    updateFirstSeen: "deadlock-plus:update-first-seen",
 } as const;
 
 export type PrefKey = keyof typeof PREF_KEYS;
