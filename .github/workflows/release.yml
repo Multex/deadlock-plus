@@ -15,6 +15,7 @@ jobs:
     env:
       # Code signing runs only once the SignPath project exists and this variable is set.
       SIGNPATH_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+      SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -63,6 +64,9 @@ jobs:
 
       - name: Build installer
         env:
+          # `strip = true` makes the MSVC linker run with /DEBUG:NONE, so no PDB would exist to upload.
+          CARGO_PROFILE_RELEASE_STRIP: none
+          CARGO_PROFILE_RELEASE_DEBUG: line-tables-only
           DP_POSTHOG_KEY: ${{ secrets.DP_POSTHOG_KEY }}
           DP_POSTHOG_HOST: ${{ secrets.DP_POSTHOG_HOST }}
           DP_SENTRY_DSN: ${{ secrets.DP_SENTRY_DSN }}
@@ -70,6 +74,18 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build
         working-directory: apps/desktop
+
+      - name: Upload debug files to Sentry
+        if: env.SENTRY_UPLOAD == 'true'
+        shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: deadlock-plus
+          SENTRY_PROJECT: deadlock-plus
+        run: |
+          npx --yes @sentry/cli@3.8.0 debug-files check target/release/deadlock-plus.exe
+          npx --yes @sentry/cli@3.8.0 debug-files upload --wait \
+            target/release/deadlock-plus.exe target/release/deadlock_plus.pdb
 
       - name: Upload unsigned installer
         if: env.SIGNPATH_ENABLED == 'true'
@@ -117,6 +133,8 @@ jobs:
   # Linux bundles are unsigned for the OS. Only the updater signature is made, with the same key as Windows.
   build-linux:
     runs-on: ubuntu-latest
+    env:
+      SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -161,15 +179,40 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           bash scripts/build-frames-layer.sh
 
-      - name: Build bundles
+      - name: Build binary
         env:
+          CARGO_PROFILE_RELEASE_STRIP: none
+          CARGO_PROFILE_RELEASE_DEBUG: line-tables-only
+          RUSTFLAGS: -C link-arg=-Wl,--build-id
           DP_POSTHOG_KEY: ${{ secrets.DP_POSTHOG_KEY }}
           DP_POSTHOG_HOST: ${{ secrets.DP_POSTHOG_HOST }}
           DP_SENTRY_DSN: ${{ secrets.DP_SENTRY_DSN }}
+        run: pnpm tauri build --no-bundle
+        working-directory: apps/desktop
+
+      # Ships a stripped binary and keeps the debug info in a side file for Sentry.
+      - name: Split debug info
+        run: |
+          bin=target/release/deadlock-plus
+          objcopy --only-keep-debug "$bin" "$bin.debug"
+          objcopy --strip-unneeded --add-gnu-debuglink="$bin.debug" "$bin"
+
+      - name: Build bundles
+        env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build
+        run: pnpm tauri bundle
         working-directory: apps/desktop
+
+      - name: Upload debug files to Sentry
+        if: env.SENTRY_UPLOAD == 'true'
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: deadlock-plus
+          SENTRY_PROJECT: deadlock-plus
+        run: |
+          npx --yes @sentry/cli@3.8.0 debug-files upload --wait \
+            target/release/deadlock-plus target/release/deadlock-plus.debug
 
       - name: Prepare release files
         run: node scripts/release.mjs prepare linux
