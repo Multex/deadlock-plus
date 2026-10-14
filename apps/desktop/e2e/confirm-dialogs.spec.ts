@@ -34,7 +34,7 @@ async function fail(page: Page, command: string, message: string) {
 test("Server Picker: the unblock-all question closes once it is confirmed", async ({ page }) => {
     await open(page, "/server-picker");
     await page.getByRole("button", { name: `Unblock all (${BLOCKED_AT_START})` }).click();
-    await question(page, "Unblock all relays?").getByRole("button", { name: "Unblock all", exact: true }).click();
+    await question(page, "Unblock all servers?").getByRole("button", { name: "Unblock all", exact: true }).click();
 
     await expect(toast(page, `Unblocked ${BLOCKED_AT_START} rules`)).toBeVisible();
     await noQuestion(page);
@@ -45,9 +45,10 @@ test("Server Picker: a failed unblock-all says so and puts the question away", a
     await open(page, "/server-picker");
     await fail(page, "unblock_server_groups", "the firewall refused");
     await page.getByRole("button", { name: `Unblock all (${BLOCKED_AT_START})` }).click();
-    await question(page, "Unblock all relays?").getByRole("button", { name: "Unblock all", exact: true }).click();
+    await question(page, "Unblock all servers?").getByRole("button", { name: "Unblock all", exact: true }).click();
 
-    await expect(toast(page, /Failed to unblock everything: .*the firewall refused/)).toBeVisible();
+    await expect(toast(page, "Couldn't unblock everything. Check the log for details.")).toBeVisible();
+    await expect(page.getByText("the firewall refused")).toHaveCount(0);
     await noQuestion(page);
     await expect(page.getByRole("switch", { checked: true })).toHaveCount(BLOCKED_AT_START);
 });

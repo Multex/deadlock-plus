@@ -24,7 +24,7 @@ describe("gcStatusLine", () => {
 
     it("explains a missing Steam login", () => {
         expect(gcStatusLine(true, status({ accounts: 0, lastError: { code: "gc.no_login", params: {} } }))).toBe(
-            "No saved Steam login could be used.",
+            "Couldn't use your saved Steam login. Sign in to Steam on this PC with Remember me ticked, then try again.",
         );
     });
 
@@ -34,7 +34,7 @@ describe("gcStatusLine", () => {
 
     it("reports a failed pass", () => {
         expect(gcStatusLine(true, status({ lastError: { code: "common.network", params: {} } }))).toBe(
-            "Last pass failed: A network request failed. Check your connection and try again.",
+            "Last check failed: A network request failed. Check your connection and try again.",
         );
     });
 
@@ -92,7 +92,7 @@ describe("ownRecoveryLine", () => {
             "2 matches submitted, 1 couldn't be recovered. Run it again to retry.",
         );
         expect(ownRecoveryLine(own({ outcome: "rate_limited", missing: 90, delivered: 40 }))).toBe(
-            "40 matches submitted. Steam's limit was reached, run it again tomorrow for the rest.",
+            "40 matches submitted. Steam's daily limit was reached. Run it again tomorrow for the rest.",
         );
         expect(ownRecoveryLine(own({ outcome: "stopped", missing: 9, delivered: 1 }))).toBe(
             "Stopped after 1 match. Run it again to continue.",
@@ -101,7 +101,7 @@ describe("ownRecoveryLine", () => {
 
     it("explains a failed start", () => {
         expect(ownRecoveryLine(own({ outcome: "failed", error: { code: "gc.no_login", params: {} } }))).toBe(
-            "No saved Steam login could be used.",
+            "Couldn't use your saved Steam login. Sign in to Steam on this PC with Remember me ticked, then try again.",
         );
     });
 });

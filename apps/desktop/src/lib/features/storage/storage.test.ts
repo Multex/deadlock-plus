@@ -261,7 +261,7 @@ describe("clearAllCopy", () => {
             "shader-cache": stat(3 * 1024 * 1024),
             "console-log": stat(1024 * 1024),
         });
-        expect(copy.title).toBe("Clear all regenerable files?");
+        expect(copy.title).toBe("Clear all files that rebuild themselves?");
         expect(copy.body).toContain("4.0 MB");
         expect(copy.body).toContain("Shader cache");
         expect(copy.body).toContain("Console log");

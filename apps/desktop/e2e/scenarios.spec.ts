@@ -279,7 +279,7 @@ async function recordRequests(page: Page): Promise<() => Promise<string[]>> {
 
 for (const [scenario, historyError, matchError] of [
     ["offline", NO_CONNECTION, NO_CONNECTION],
-    ["api-down", "The API answered 503.", "The Deadlock API returned an error (503)."],
+    ["api-down", "The Deadlock API returned an error (503).", "The Deadlock API returned an error (503)."],
 ] as const) {
     test.describe(scenario, () => {
         test.use({ scenario });
@@ -313,7 +313,8 @@ for (const [scenario, historyError, matchError] of [
             await page.goto("/");
             await settle(page);
             await expect(page.getByRole("main").getByText("Loading...")).toHaveCount(0);
-            for (const card of STATS_CARDS) await expect(statsCard(page, card)).toContainText("Could not load.");
+            for (const card of STATS_CARDS)
+                await expect(statsCard(page, card)).toContainText("Couldn't load. Try again later.");
         });
 
         test("the status bar reports the API as unreachable", async ({ page }) => {
@@ -392,14 +393,14 @@ test.describe("default, for contrast", () => {
         await page.goto("/stats");
         await settle(page);
         const main = page.getByRole("main");
-        await expect(main.getByText(/Could not reach the API/)).toHaveCount(0);
+        await expect(main.getByText(/Couldn't reach the Deadlock API/)).toHaveCount(0);
 
         await page.evaluate(() => {
             window.fetch = () => Promise.reject(new TypeError("Failed to fetch"));
         });
         await main.getByRole("button", { name: "Refresh" }).click();
 
-        await expect(main.getByText(/^Could not reach the API\. Showing the copy saved /)).toBeVisible();
+        await expect(main.getByText(/^Couldn't reach the Deadlock API. Showing the copy saved /)).toBeVisible();
         expect((await demoState(page)).unhandled).toEqual([]);
     });
 });

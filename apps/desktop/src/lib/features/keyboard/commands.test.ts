@@ -68,7 +68,7 @@ describe("buildCommands", () => {
         const labels = buildCommands(deps())
             .filter((c) => c.group === "shortcuts")
             .map((c) => `${c.label} ${c.shortcut}`);
-        expect(labels).toEqual(["Open command palette Ctrl+K", "Jump to a page Ctrl+1-9"]);
+        expect(labels).toEqual(["Quick search Ctrl+K", "Jump to a page Ctrl+1-9"]);
     });
 
     it("has unique ids", () => {

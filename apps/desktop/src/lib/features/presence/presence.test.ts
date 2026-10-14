@@ -87,7 +87,7 @@ describe("clientLabel", () => {
     });
 
     it("shows the pipe for other clients", () => {
-        expect(clientLabel({ kind: "other", pipeIndex: 4, connected: true })).toBe("Discord (pipe 4)");
+        expect(clientLabel({ kind: "other", pipeIndex: 4, connected: true })).toBe("Discord app 4");
     });
 });
 
@@ -117,7 +117,7 @@ describe("runningLine", () => {
                 ],
             }),
         );
-        expect(line).toBe("Showing on: Discord, Discord (pipe 3).");
+        expect(line).toBe("Showing on: Discord, Discord app 3.");
     });
 
     it("reports found but not connected", () => {

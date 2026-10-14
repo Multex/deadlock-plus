@@ -218,7 +218,7 @@ test("importing a file asks first, skips ids already muted and adds the rest", a
     await importFile(page, "deadlock-mutes.json", JSON.stringify({ version: 1, users }));
 
     const dialog = confirmation(page, "Import 2 new mutes?");
-    await expect(dialog.getByText("3 ids in the file, 1 already muted.", { exact: false })).toBeVisible();
+    await expect(dialog.getByText("3 players in the file, 1 already muted.", { exact: false })).toBeVisible();
     await dialog.getByRole("button", { name: "Import", exact: true }).click();
 
     await expect(toast(page, "Muted 2 players")).toBeVisible();
@@ -274,7 +274,7 @@ test("an exported file imports back into an emptied list", async ({ page }) => {
 test("a file that is not a mute list is refused with a message", async ({ page }) => {
     await importFile(page, "notes.json", JSON.stringify(["not", "a", "mute", "list"]));
 
-    await expect(toast(page, /Import failed/)).toBeVisible();
+    await expect(toast(page, /Couldn't read that file/)).toBeVisible();
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await expect(mutedCount(page, MUTED_AT_START)).toBeVisible();
 });

@@ -89,7 +89,11 @@ test("controls of the same kind have different names", async ({ page }) => {
             .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? ""));
         return all;
     };
-    for (const pattern of [/^Expand relays for /, /^Collapse relays for /, /^.+: (\d[\d,.]*|…|\.\.\.|—|No reply).*$/]) {
+    for (const pattern of [
+        /^Expand servers for /,
+        /^Collapse servers for /,
+        /^.+: (\d[\d,.]*|…|\.\.\.|—|No reply).*$/,
+    ]) {
         const found = await names("button", pattern);
         expect(new Set(found).size).toBe(found.length);
     }

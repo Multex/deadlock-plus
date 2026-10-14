@@ -199,8 +199,8 @@ export const SHOTS: Shot[] = [
                 const extras = [
                     page.getByText("In a match: Ranked", { exact: true }),
                     page.getByRole("button", { name: "Reset this state" }),
-                    page.getByText("Click a line, then insert a variable into it."),
-                    page.getByRole("button", { name: "Insert variable" }),
+                    page.getByText("Click a line, then insert a value into it."),
+                    page.getByRole("button", { name: "Insert value" }),
                 ];
                 for (const extra of extras) {
                     await extra.first().evaluate((el) => {

@@ -90,7 +90,7 @@ describe("a load that fails with no saved copy", () => {
         const stats = await freshStore();
         await stats.load(ACCOUNT);
         expect(stats.status).toBe("error");
-        expect(stats.error).toBe("The API answered 503.");
+        expect(stats.error).toBe("The Deadlock API returned an error (503).");
     });
 
     it("asks once per call, and again on a forced reload", async () => {

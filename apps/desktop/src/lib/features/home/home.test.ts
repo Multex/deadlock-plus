@@ -103,7 +103,7 @@ describe("glanceValue", () => {
 describe("statsNote", () => {
     it("explains an empty card by load state", () => {
         expect(statsNote("ready", "No matches yet.")).toBe("No matches yet.");
-        expect(statsNote("error", "No matches yet.")).toBe("Could not load.");
+        expect(statsNote("error", "No matches yet.")).toBe("Couldn't load. Try again later.");
         expect(statsNote("loading", "No matches yet.")).toBe("Loading...");
         expect(statsNote("idle", "No matches yet.")).toBe("Loading...");
     });

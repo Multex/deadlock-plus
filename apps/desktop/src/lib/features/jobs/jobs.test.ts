@@ -31,29 +31,29 @@ describe("jobPercent", () => {
 
 describe("jobStatusText", () => {
     it("shows the title alone before a total is known", () => {
-        expect(jobStatusText(job())).toBe("Indexing patch notes...");
+        expect(jobStatusText(job())).toBe("Preparing patch note search...");
     });
 
     it("shows progress and the label", () => {
         expect(jobStatusText(job({ done: 2, total: 8, label: "2026-09-12" }))).toBe(
-            "Indexing patch notes... 2/8 · 2026-09-12",
+            "Preparing patch note search... 2/8 · 2026-09-12",
         );
     });
 
     it("omits the label when there is none", () => {
-        expect(jobStatusText(job({ done: 2, total: 8 }))).toBe("Indexing patch notes... 2/8");
+        expect(jobStatusText(job({ done: 2, total: 8 }))).toBe("Preparing patch note search... 2/8");
     });
 
     it("says why a paused job is waiting", () => {
         expect(jobStatusText(job({ state: "paused", done: 2, total: 8 }))).toBe(
-            "Indexing patch notes paused while Deadlock runs",
+            "Preparing patch note search paused while Deadlock runs",
         );
     });
 });
 
 describe("jobTitle and jobDescription", () => {
     it("render known jobs from the catalog by id", () => {
-        expect(jobTitle({ id: "addon-scan" })).toBe("Scanning addons");
+        expect(jobTitle({ id: "addon-scan" })).toBe("Scanning mods");
         expect(jobTitle({ id: "server-block-sync" })).toBe("Updating server blocks");
         expect(jobDescription({ id: "patch-notes-index" })).toContain("patch notes");
     });

@@ -120,7 +120,7 @@ describe("comparisonReport", () => {
         expect(comparisonReport(off, on)).toContain("not proof");
     });
 
-    it("says so when both runs had the same addons on", () => {
-        expect(comparisonReport(off, { ...on, addons: off.addons })).toContain("same addons");
+    it("says so when both runs had the same mods on", () => {
+        expect(comparisonReport(off, { ...on, addons: off.addons })).toContain("same mods");
     });
 });

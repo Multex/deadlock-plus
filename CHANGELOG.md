@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
-- Salt recovery can fetch your whole match history at once from Privacy settings, past the daily limit.
+- Replay key recovery can fetch your whole match history at once from Privacy settings, past the daily limit.
 
 ### Changed
 
@@ -16,9 +16,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Anonymous usage data now counts clicks on the Discord link.
 - Screen readers now announce which player, replay, region or preset a button acts on.
 - The player menus on a match page are named after their card for screen readers.
-- Salt recovery now checks your Steam friends' newest matches first.
-- Salt recovery stops asking for a match after three tries when the community database still cannot use it.
+- Replay key recovery now checks your Steam friends' newest matches first.
+- Replay key recovery stops asking for a match after three tries when the community database still cannot use it.
 - Error messages are one plain sentence and no longer show technical details.
+- The app says "replay keys" instead of "salts", "servers" instead of "relays" and "mods" instead of "addons".
 
 ### Fixed
 
@@ -30,8 +31,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Mutes shows "No Steam account found" as a plain state, with Import and Export turned off.
 - The import question in Mutes no longer changes its wording as it closes.
 - The unmute question can no longer be confirmed once Deadlock starts.
-- Salt recovery keeps working when the Deadlock API's list of missing matches fails to load.
-- Salt recovery retries a failed upload instead of losing the match.
+- Replay key recovery keeps working when the Deadlock API's list of missing matches fails to load.
+- Replay key recovery retries a failed upload instead of losing the match.
 - The tray menu now switches to your chosen language.
 - Desktop notifications now appear in your chosen language.
 - Counts such as "2,093 matches" now use your language's number format.

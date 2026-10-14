@@ -13,7 +13,7 @@
             "reveal_failed": "Couldn't open the file manager. Check the log for details.",
             "pin_save_failed": "Couldn't save the pinned replays. Check the log for details.",
             "rules_save_failed": "Couldn't save the cleanup rules. Check the log for details.",
-            "rules_duplicate_id": "Two cleanup rules share an ID.",
+            "rules_duplicate_id": "Two cleanup rules clash. Remove one and try again.",
             "rules_zero_days": "The age limit must be at least 1 day.",
             "rules_zero_size": "The size limit must be more than 0.",
             "not_a_replay": "That file isn't a replay.",
@@ -25,7 +25,7 @@
         },
         "autostart": {
             "user_name_unavailable": "Couldn't read the current user name.",
-            "program_data_missing": "Couldn't find the ProgramData folder.",
+            "program_data_missing": "Couldn't find a Windows system folder. Check the log for details.",
             "task_create_failed": "Couldn't create the startup task. Check the log for details.",
             "task_delete_failed": "Couldn't remove the startup task. Check the log for details.",
             "entry_write_failed": "Couldn't write the startup entry. Check the log for details.",
@@ -63,13 +63,13 @@
         },
         "gc": {
             "steam_not_found": "Steam wasn't found on this PC.",
-            "no_login": "No saved Steam login could be used.",
-            "disabled": "Turn on salt recovery first.",
-            "game_running": "Close Deadlock first. Steam sends the game's requests to the game while it's open."
+            "no_login": "Couldn't use your saved Steam login. Sign in to Steam on this PC with Remember me ticked, then try again.",
+            "disabled": "Turn on replay key recovery first.",
+            "game_running": "Close Deadlock first. Match recovery can't run while the game is open."
         },
         "ingest": {
             "rejected": "The Deadlock API rejected the match data.",
-            "request_failed": "The Deadlock API request failed (HTTP {status})."
+            "request_failed": "Couldn't reach the Deadlock API (error {status}). Try again later."
         },
         "logging": {
             "log_folder_unavailable": "Couldn't find the log folder.",
@@ -80,9 +80,9 @@
             "search_failed": "Patch search failed. Check the log for details."
         },
         "server_picker": {
-            "unknown_game": "Unknown game. Check the log for details.",
-            "invalid_request": "The server request was not valid. Check the log for details.",
-            "no_relay_data": "Valve returned no relay data. Try again later.",
+            "unknown_game": "Couldn't load Deadlock's servers. Restart Deadlock+ and try again.",
+            "invalid_request": "That server change didn't work. Refresh the list and try again.",
+            "no_relay_data": "Valve sent an empty server list. Try again later.",
             "block_failed": "Couldn't block the servers. Check the log for details.",
             "unblock_failed": "Couldn't unblock the servers. Check the log for details.",
             "list_blocked_failed": "Couldn't read your blocked servers. Check the log for details.",
@@ -99,19 +99,19 @@
         },
         "voice_bans": {
             "no_account": "No Steam account found.",
-            "no_userdata": "This account has no Steam userdata folder.",
-            "not_utf8": "voice_ban.dt is not valid UTF-8.",
-            "read_failed": "Failed to read {path}. Check the log for details.",
+            "no_userdata": "Couldn't find this account's Steam data. Launch Deadlock with it once, then try again.",
+            "not_utf8": "Your mute list file is damaged, so Deadlock+ can't read it.",
+            "read_failed": "Couldn't read your mute list. Check the log for details.",
             "game_running": "Deadlock is running. Close the game before changing mutes.",
-            "not_a_mute_list": "Refusing to write: the content is not a mute list.",
-            "file_missing": "No file exists at {path}. Not creating one.",
+            "not_a_mute_list": "That isn't a mute list, so nothing was saved.",
+            "file_missing": "Your mute list file is gone, so nothing was changed. Mute someone in game to make a new one.",
             "no_backup_name": "Could not find a free backup name. The file was not changed.",
-            "backup_failed": "Backup failed, the file was not changed. Check the log for details.",
-            "write_failed": "Backup saved to {backup}, but writing the file failed. The original is unchanged. Check the log for details."
+            "backup_failed": "Couldn't back up your mute list, so nothing was changed. Check the log for details.",
+            "write_failed": "Couldn't save your mute list. Nothing was changed. A backup is on the Storage page."
         },
         "match_history": {
-            "too_large": "That match's details are too large to cache.",
-            "not_json": "That match's details could not be read, so they were not cached."
+            "too_large": "That match is too large to save on this PC.",
+            "not_json": "Couldn't read that match's details. Try again later."
         },
         "presence": {
             "import_invalid": "That isn't a Deadlock+ presence preset. Copy the whole export text and try again.",
@@ -153,7 +153,7 @@
             "discord_editor": "Presence editor",
             "match_ingest": "Share match data with Deadlock API",
             "telemetry": "Share anonymous usage data and error reports",
-            "gc_recovery": "Recover missing match salts through Steam",
+            "gc_recovery": "Recover missing replay keys through Steam",
             "version": "Version",
             "whats_new": "What's new",
             "updates": "App updates",
@@ -213,7 +213,7 @@
         },
         "startup": {
             "tray_description": "Closing the window hides Deadlock+ instead of quitting, so monitoring keeps going. Quit from the tray icon.",
-            "jobs_description": "Deadlock+ scans your addons and indexes patch notes in the background. These settings decide whether that work runs, and what it does while Deadlock is open.",
+            "jobs_description": "Deadlock+ scans your mods and gets patch notes ready to search in the background. These settings decide whether that work runs, and what it does while Deadlock is open.",
             "all_jobs_label": "Allow background work",
             "all_jobs_description": "Turn this off and no task starts by itself. You can still run a scan from the Performance page.",
             "pause_label": "Pause background work while Deadlock runs",
@@ -269,7 +269,7 @@
             "client_stable_name": "Discord",
             "client_ptb_name": "Discord PTB",
             "client_canary_name": "Discord Canary",
-            "client_other_name": "Discord (pipe {pipe})",
+            "client_other_name": "Discord app {pipe}",
             "status_off": "Off",
             "status_none": "No running Discord found.",
             "status_showing": "Showing on: {clients}."
@@ -308,7 +308,7 @@
             "preview": "Activity preview",
             "preview_header": "Playing",
             "preview_disabled": "This state sends no activity.",
-            "preview_failed": "The preview could not be built.",
+            "preview_failed": "Couldn't show the preview. Check this state's lines for a typo.",
             "preview_large_text": "Large image: {text}",
             "preview_small_text": "Small image: {text}",
             "share": "Share a preset",
@@ -316,7 +316,7 @@
             "import_label": "Preset text",
             "import": "Import",
             "import_file": "Import from file",
-            "export": "Copy export",
+            "export": "Copy settings",
             "exported": "Copied presence settings",
             "export_failed": "Couldn't copy to the clipboard",
             "imported": "Imported presence settings",
@@ -353,14 +353,14 @@
             "editing": "Editing",
             "editing_default_hint": "Changes here apply to every hero. Pick a hero to override only that hero's lines.",
             "editing_hero_hint": "Changes here apply only while you play {hero}. Fields you leave alone follow Default.",
-            "no_hero_layer": "This state has no hero layer. Changes apply to every hero.",
+            "no_hero_layer": "This state can't be set per hero. Changes apply to every hero.",
             "row_enabled": "Show {name} on Discord",
             "no_top_line": "No top line",
-            "insert_variable": "Insert variable",
+            "insert_variable": "Insert value",
             "insert_into": "Into: {field}",
             "sensitive": "Reveals the match",
             "syntax_help": "Syntax help",
-            "variables_hint": "Click a line, then insert a variable into it.",
+            "variables_hint": "Click a line, then insert a value into it.",
             "placeholder": {
                 "hero": "Your hero",
                 "mode": "Match mode, such as Ranked",
@@ -390,24 +390,18 @@
             "preview_discord_sample": "Streak, Trending and playtime show here when Discord has them.",
             "preview_support_button": "Download Deadlock+",
             "syntax": {
-                "title": "Template syntax",
+                "title": "How lines work",
                 "copied": "Copied example",
                 "copy_example": "Copy {text}",
                 "nothing": "(nothing)",
                 "no_sample": "no value in this preview",
-                "values_title": "Values",
-                "values_body": "{name} inserts a value. If a value is missing, it renders empty and the separator around it goes too.",
-                "groups_title": "Optional groups",
-                "groups_body": "[[text {hero}]] shows only when every value inside has a value. Otherwise the whole group disappears.",
-                "fallback_title": "Fallbacks",
-                "fallback_body": "[[A {hero}||B]] uses the first choice whose values all exist. A plain-text last choice always matches. Chain as many as you like. If none match, nothing renders.",
                 "rules_title": "Good to know",
                 "rule_length": "Each line must be 2 to 128 characters. Short lines are padded. Long lines are cut with an ellipsis.",
                 "rule_empty": "A line you leave empty is hidden.",
                 "rule_unclosed": "Forgot to close a [[ ? It shows as plain text.",
                 "rule_unknown": "A misspelled variable shows as plain text.",
                 "privacy": "Only you and your team are available. The match ID is hidden in private lobbies and on Basic. While you spectate, it only shows if you type it.",
-                "intro": "Each line on your Discord card is short text. Mix plain words with variables that fill themselves in.",
+                "intro": "Each line on your Discord card is short text. Mix plain words with values that fill themselves in.",
                 "you_see": "You see:",
                 "step1_title": "Fill in a value",
                 "step1_body": "Put a word in curly brackets. Deadlock+ swaps it for the real thing while you play. Click an example to copy it.",
@@ -417,9 +411,9 @@
                 "step3_body": "Put double square brackets around a part. If any value inside is missing, the whole part vanishes.",
                 "step4_title": "Add a backup",
                 "step4_body": "Put two bars between choices. Deadlock+ shows the first choice that has all its values. End with plain words so there is always something to show.",
-                "list_title": "All variables",
-                "list_body": "Copy any of these into a line, or use the Insert variable button. The example column shows how it looks right now.",
-                "col_variable": "Variable",
+                "list_title": "All values",
+                "list_body": "Copy any of these into a line, or use the Insert value button. The example column shows how it looks right now.",
+                "col_variable": "Value",
                 "col_shows": "What it shows",
                 "col_example": "Example",
                 "group_you": "You",
@@ -435,17 +429,17 @@
         },
         "privacy": {
             "telemetry_description": "Sends which version and system you use, which pages you open, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
-            "telemetry_reset": "Reset analytics ID",
-            "telemetry_reset_done": "Analytics ID reset.",
+            "telemetry_reset": "Reset usage data ID",
+            "telemetry_reset_done": "Usage data ID reset.",
             "ingest_waiting": "Waiting for your answer.",
             "ingest_off": "Off",
-            "ingest_no_cache": "Steam's HTTP cache wasn't found.",
+            "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",
             "ingest_failed": "The last upload failed. Check the log for details.",
-            "ingest_watching": "Watching Steam's cache. {count} submitted this session.",
-            "ingest_description": "Reads Deadlock replay links from Steam's local HTTP cache and uploads the match IDs, replay salts and your Steam account ID to api.deadlock-api.com so the community database can fetch those matches. Nothing else is read or sent. Same behaviour as the open-source deadlock-api-ingest tool.",
-            "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay salts of matches the community database is missing. Your login never leaves this PC. Only the match IDs, salts and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool.",
+            "ingest_watching": "Watching for new matches. {count} shared this session.",
+            "ingest_description": "Reads Deadlock replay links that Steam saves on this PC and uploads the match IDs, replay keys and your Steam account ID to api.deadlock-api.com so the community database can fetch those matches. Nothing else is read or sent. Same behaviour as the open-source deadlock-api-ingest tool.",
+            "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay keys of matches the community database is missing. Your login never leaves this PC. Only the match IDs, replay keys and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool.",
             "gc_own_label": "Recover my match history",
-            "gc_own_description": "Fetches salts for every match in your own history that the community database is missing. It skips the 40-a-day limit, takes about 20 seconds per match and stops if Deadlock opens.",
+            "gc_own_description": "Finds replay keys for every match in your history that the community database is missing. It skips the 40-a-day limit, takes about 20 seconds per match and stops if Deadlock opens.",
             "gc_own_start": "Start",
             "gc_own_cancel": "Cancel"
         },
@@ -521,11 +515,11 @@
         },
         "server_blocks_updated": {
             "title": "Server blocks updated",
-            "body": "Valve moved relay addresses for {servers}. Your blocks were updated to match."
+            "body": "Valve changed the server addresses for {servers}. Your blocks were updated to match."
         },
         "server_blocks_stale": {
             "title": "Some server blocks are out of date",
-            "body": "Deadlock+ couldn't update the blocks for {servers}. Open the server picker and re-apply them."
+            "body": "Deadlock+ couldn't update the blocks for {servers}. Open Server Picker and apply them again."
         }
     },
     "common": {
@@ -575,18 +569,18 @@
         },
         "statusbar": {
             "ingest": {
-                "off": "Deadlock API ingest off",
-                "starting": "Deadlock API ingest starting...",
-                "no_steam_cache": "Deadlock API ingest: Steam cache not found",
+                "off": "Match sharing off",
+                "starting": "Match sharing starting...",
+                "no_steam_cache": "Match sharing: Steam data not found",
                 "error": "Match sharing failed",
-                "active": "Deadlock API ingest active · {count} sent"
+                "active": "Match sharing on · {count} sent"
             },
             "api": {
                 "checking": "Deadlock API checking...",
                 "checking_title": "Checking Deadlock API",
                 "online": "Deadlock API online",
                 "online_title": "All Deadlock API services are up",
-                "degraded": "Deadlock API degraded",
+                "degraded": "Deadlock API partly down",
                 "degraded_title": "Deadlock API services down: {services}",
                 "offline": "Deadlock API offline",
                 "offline_title": "Deadlock API is unreachable"
@@ -617,17 +611,17 @@
         },
         "nav_description": {
             "home": "Overview",
-            "server_picker": "Block or unblock Deadlock's Steam Datagram Relay regions",
+            "server_picker": "Block or unblock Deadlock server regions",
             "live": "Both teams in your match, plus server and ping",
             "stats": "Winrate, streaks and per-hero numbers from your match history",
             "rank": "Your ranked badge over time, calibration and demotion protection",
             "sessions": "Your play sessions, and how your results change as they get longer",
             "alerts": "Recent Deadlock patch notes and Steam announcements",
-            "performance": "Scan installed addons' scripts for patterns that can hurt frametimes",
+            "performance": "Record your FPS and check mods for scripts that cause stutter",
             "voice_bans": "View, add, unmute, export and import your muted players",
             "demos": "Browse your saved match replays and see which are outdated",
             "storage": "See what Deadlock and Deadlock+ use on disk and clear what is safe to",
-            "match_history": "Every match the API knows, with a full scoreboard for each."
+            "match_history": "Every match the Deadlock API has, with a full scoreboard for each"
         }
     },
     "ui": {},
@@ -637,8 +631,8 @@
         "refresh": "Refresh",
         "hero_fallback": "Hero {id}",
         "unknown_hero": "Unknown hero",
-        "api_error": "The API answered {status}.",
-        "cached_note": "Could not reach the API. Showing the copy saved {time}.",
+        "api_error": "The Deadlock API returned an error ({status}).",
+        "cached_note": "Couldn't reach the Deadlock API. Showing the copy saved {time}.",
         "gate": {
             "no_account": "No Steam account found, so there is no history to load.",
             "error": "Could not load your match history. {error}",
@@ -703,7 +697,7 @@
             "heading": "Region leaderboard",
             "eligible": "Eligible",
             "not_eligible": "Not yet eligible",
-            "note": "Approximate. Counts your ranked and unranked games known to the API. Valve does not publish which queues count.",
+            "note": "Approximate. Counts your ranked and unranked games known to the Deadlock API. Valve does not publish which queues count.",
             "recent_games": "Games in the last {days} days",
             "total_games": "Total games on your account"
         },
@@ -715,7 +709,7 @@
     "rank": {
         "title": "Rank",
         "subtitle": "Where you stand in ranked, and how you got there. From the Deadlock API.",
-        "empty": "No rank to show yet. It appears once the API has a ranked match of yours past placement games.",
+        "empty": "No rank to show yet. It appears once the Deadlock API has a ranked match of yours past placement games.",
         "tier_fallback": "Tier {tier}",
         "eta": {
             "not_climbing": "Not climbing at your recent pace",
@@ -759,7 +753,7 @@
         },
         "changes": {
             "heading": "Rank changes",
-            "none": "No badge changes in the history the API holds.",
+            "none": "No badge changes in the history the Deadlock API holds.",
             "promoted": "Promoted",
             "demoted": "Demoted",
             "promoted_from": "Promoted from {name}",
@@ -767,13 +761,13 @@
         },
         "summary": {
             "current": "Current rank",
-            "estimated_one": "Estimated from the rank rules until the API confirms your last match.",
-            "estimated_other": "Estimated from the rank rules until the API confirms your last matches.",
-            "top_tier": "Top tier. Subranks here are percentile cuts, so there is no progress bar.",
+            "estimated_one": "Estimated from the rank rules until the Deadlock API confirms your last match.",
+            "estimated_other": "Estimated from the rank rules until the Deadlock API confirms your last matches.",
+            "top_tier": "Top tier. Subranks here depend on how you compare to other top players, so there is no progress bar.",
             "progress": "{within} / {span} to {next}.",
             "progress_streak_one": "{within} / {span} to {next}. {count} win in a row from here.",
             "progress_streak_other": "{within} / {span} to {next}. {count} wins in a row from here.",
-            "boundary": "Your progress just crossed a boundary and the API still shows the old badge, so there is no bar until the next match.",
+            "boundary": "Your progress just crossed a boundary and the Deadlock API still shows the old badge, so there is no bar until the next match.",
             "placement_left": "{count} placement games left."
         },
         "recent": {
@@ -890,8 +884,8 @@
     "performance": {
         "title": "Performance",
         "rules": {
-            "nulled_not_cancelled": "Timer handle cleared without cancelling",
-            "unguarded_rearm": "Timer re-arms itself with no cancel"
+            "nulled_not_cancelled": "Timer dropped but still running",
+            "unguarded_rearm": "Timer can pile up copies of itself"
         },
         "severity": {
             "low": "Low",
@@ -926,7 +920,7 @@
             "ms": "{value} ms"
         },
         "only_on_in": "Only on in {run}: {addons}",
-        "same_addons": "Both runs had the same addons on, so any difference comes from something else.",
+        "same_addons": "Both runs had the same mods on, so any difference comes from something else.",
         "report": {
             "title": "Deadlock+ frametime comparison",
             "tie": "tie",
@@ -955,8 +949,8 @@
                 "blurb": "Record a play session and see your real frame pacing, 1% lows and stutter spikes."
             },
             "scripts": {
-                "title": "Addon scripts",
-                "blurb": "Check installed addons for script patterns that can hurt performance."
+                "title": "Mod scripts",
+                "blurb": "Check installed mods for script patterns that can hurt performance."
             },
             "compare": {
                 "title": "Compare",
@@ -984,27 +978,27 @@
             "mixed": "Mixed result: {a} measures favour A, {b} favour B.",
             "favours_a": "Every measure that differs favours A.",
             "favours_b": "Every measure that differs favours B.",
-            "addons_differ": "Addons that differ between the runs",
+            "addons_differ": "Mods that differ between the runs",
             "only_on_in": "Only on in {run}:",
-            "addons_on_one": "{count} addon on",
-            "addons_on_other": "{count} addons on",
+            "addons_on_one": "{count} mod on",
+            "addons_on_other": "{count} mods on",
             "delete_run": "Delete run {label}"
         },
         "frametimes": {
-            "intro": "Records how evenly Deadlock presents frames. Start it, play, then stop to see the numbers. Run it with a mod on and again with it off to compare.",
+            "intro": "Records how smoothly Deadlock draws frames. Start it, play, then stop to see the numbers. Run it with a mod on and again with it off to compare.",
             "start": "Start",
             "stop": "Stop",
             "waiting": "Waiting for Deadlock to start...",
             "recording": "Recording · {time} · {frames} frames",
             "background": "Deadlock is in the background, not counting frames",
-            "limit": "Frame limit reached",
+            "limit": "Recording is full. Stop to see the results.",
             "graph_caption": "Last {frames} frames · top of graph {ms} ms",
-            "no_frames": "Deadlock is running but no frames are arriving. Its renderer may not report frames this way.",
+            "no_frames": "Deadlock is running, but Deadlock+ can't see its frames. Restart the game and try again.",
             "none_recorded": "No frames were recorded.",
             "summary": "{frames} frames over {time}. A spike is a frame at least 33 ms long and 2.5 times the median.",
             "left_out": "Left out {time} spent tabbed out.",
-            "save_hint_one": "Save this run to compare later. It records the {count} addon that is on now.",
-            "save_hint_other": "Save this run to compare later. It records the {count} addons that are on now.",
+            "save_hint_one": "Save this run to compare later. It records the {count} mod that is on now.",
+            "save_hint_other": "Save this run to compare later. It records the {count} mods that are on now.",
             "label_aria": "Run label",
             "label_placeholder": "Label, e.g. Mod off",
             "save": "Save run",
@@ -1012,17 +1006,17 @@
             "spike_at": "at {time}"
         },
         "scripts": {
-            "intro": "Scans the scripts inside your installed Deadlock addons for patterns that can hurt frametimes, like timers that pile up. Nothing is changed or run.",
+            "intro": "Scans the scripts inside your installed Deadlock mods for patterns that can hurt frametimes, like timers that pile up. Nothing is changed or run.",
             "run_now": "Run now",
             "scanning_button": "Scanning...",
             "scan_again": "Scan again",
             "disclaimer": "This is a best-effort check on the script text. A finding is a hint to look closer, not proof that a mod slows your game. A clean result does not clear a mod either. Only comparing frametimes with the mod on and off shows the cause.",
-            "no_install": "Could not find your Deadlock install, so there are no addons to scan.",
-            "none_installed": "No addons are installed.",
-            "finding": "Finding addons...",
-            "progress": "Scanning addons... {done} of {total}",
-            "progress_paused": "Scan paused while Deadlock runs {done} of {total}",
-            "progress_aria": "Addon scan progress",
+            "no_install": "Couldn't find your Deadlock install, so there are no mods to scan.",
+            "none_installed": "No mods are installed.",
+            "finding": "Finding mods...",
+            "progress": "Scanning mods... {done} of {total}",
+            "progress_paused": "Scan paused while Deadlock runs · {done} of {total}",
+            "progress_aria": "Mod scan progress",
             "with_findings_one": "With findings ({count} finding)",
             "with_findings_other": "With findings ({count} findings)",
             "scripts_clean": "Scripts, no findings",
@@ -1033,10 +1027,10 @@
             "error_badge": "Error",
             "scripts_count_one": "{count} script",
             "scripts_count_other": "{count} scripts",
-            "pending_one": "Waiting to scan {count} more addon...",
-            "pending_other": "Waiting to scan {count} more addons...",
-            "addons_without_scripts_one": "{count} addon has no scripts",
-            "addons_without_scripts_other": "{count} addons have no scripts"
+            "pending_one": "Waiting to scan {count} more mod...",
+            "pending_other": "Waiting to scan {count} more mods...",
+            "addons_without_scripts_one": "{count} mod has no scripts",
+            "addons_without_scripts_other": "{count} mods have no scripts"
         },
         "findings": {
             "nulled_not_cancelled": "This mod forgets a timer without stopping it. Each time {fn} runs again, another timer can start and keep running.",
@@ -1051,13 +1045,13 @@
         "unblock_all_button": "Unblock all ({count})",
         "filter_placeholder": "Filter by region...",
         "filter_aria": "Filter by region",
-        "loading": "Loading relay data...",
-        "no_games": "No games are configured yet.",
+        "loading": "Loading servers...",
+        "no_games": "Couldn't load the server list. Restart Deadlock+ and try again.",
         "no_match": "No regions match \"{search}\".",
         "external_fallback": "Other tool",
         "unsupported": "Blocking servers isn't available on {platform} yet.",
         "unblock_all": {
-            "title": "Unblock all relays?",
+            "title": "Unblock all servers?",
             "description_one": "This removes all {count} firewall rule Deadlock+ created. Matchmaking will be able to route you to every region again.",
             "description_other": "This removes all {count} firewall rules Deadlock+ created. Matchmaking will be able to route you to every region again.",
             "confirm": "Unblock all"
@@ -1096,7 +1090,7 @@
             "description": "Save a set of regions to block or keep open, then apply it in one click. Useful for region-locking, like an EU-only preset.",
             "edit_title": "Edit preset",
             "new_title": "New preset",
-            "edit_description": "Applying a preset sets every region at once. Relay-level blocks inside a region are cleared.",
+            "edit_description": "Applying a preset sets every region at once. Single-server blocks inside a region are cleared.",
             "name_placeholder": "Preset name, e.g. EU only",
             "name_aria": "Preset name",
             "mode_aria": "Preset mode",
@@ -1120,32 +1114,32 @@
             "apply_label": "Apply preset {name}"
         },
         "row": {
-            "collapse": "Collapse relays",
-            "expand": "Expand relays",
-            "relay_groups_one": "{count} relay group",
-            "relay_groups_other": "{count} relay groups",
-            "relays_one": "{count} relay",
-            "relays_other": "{count} relays",
+            "collapse": "Collapse servers",
+            "expand": "Expand servers",
+            "relay_groups_one": "{count} server group",
+            "relay_groups_other": "{count} server groups",
+            "relays_one": "{count} server",
+            "relays_other": "{count} servers",
             "partial": "{blocked}/{total} blocked",
             "routing_aria": "About routing for {name}",
-            "unblockable": "{names} has no blockable relays in Valve's data, so it can't be blocked here.",
+            "unblockable": "Valve lists no servers for {names}, so it can't be blocked here.",
             "block_siblings": "Also block {names} to cover more of this route",
             "no_reply_hint": "No reply after several attempts. The region may be unreachable from your network or drop ping traffic.",
-            "ping_region": "Direct ping to this region's closest relay.",
-            "ping_relay": "Direct ping to this relay.",
+            "ping_region": "Direct ping to this region's closest server.",
+            "ping_relay": "Direct ping to this server.",
             "applying": "Applying",
             "blocked": "Blocked",
             "open": "Open",
             "block_aria": "Block {name}",
             "locked": "Blocked because all of {region} is blocked. Unblock the region to change this.",
-            "expand_aria": "Expand relays for {name}",
-            "collapse_aria": "Collapse relays for {name}",
+            "expand_aria": "Expand servers for {name}",
+            "collapse_aria": "Collapse servers for {name}",
             "ping_aria": "{name}: {ping}"
         },
         "toast": {
-            "refresh_failed": "Couldn't refresh the server list, showing cached data.",
+            "refresh_failed": "Couldn't refresh the server list. Showing the last saved one.",
             "firewall_read_failed": "Couldn't read current firewall rules. Try running as administrator.",
-            "relays_moved": "Valve moved its relays. Updated blocks for {names}.",
+            "relays_moved": "Valve changed its servers. Updated blocks for {names}.",
             "blocks_update_failed": "Couldn't update blocks for {names}. Re-apply them.",
             "sync_failed": "Couldn't check your blocks against Valve's latest servers. Check the log for details.",
             "unsupported": "Blocking servers isn't supported on this platform yet.",
@@ -1197,7 +1191,7 @@
             },
             "unknown": {
                 "label": "Unknown",
-                "hint": "The replay header could not be read."
+                "hint": "This replay couldn't be read. The file may be damaged."
             }
         },
         "filter": {
@@ -1287,7 +1281,7 @@
         "summary": {
             "total": "Total found",
             "can_clear": "Can be cleared here",
-            "clear_regenerable": "Clear regenerable"
+            "clear_regenerable": "Clear rebuildable files"
         },
         "entry": {
             "path_missing": "Not found on this PC",
@@ -1309,7 +1303,7 @@
         "clear": {
             "title": "Clear {name}?",
             "body": "Frees {size}. {consequence} This can't be undone.",
-            "all_title": "Clear all regenerable files?",
+            "all_title": "Clear all files that rebuild themselves?",
             "all_body": "Frees {size} from: {names}. The game rebuilds these on its own. This can't be undone."
         },
         "toast": {
@@ -1343,7 +1337,7 @@
         },
         "kinds": {
             "regenerates": {
-                "label": "Regenerates",
+                "label": "Rebuilds itself",
                 "hint": "Rebuilt automatically when needed."
             },
             "history": {
@@ -1375,7 +1369,7 @@
             "hero_presence_cache": {
                 "label": "Hero presence cache",
                 "clear_name": "hero presence cache",
-                "description": "A small cache file kept by the game.",
+                "description": "A small file the game rebuilds by itself.",
                 "consequence": "Rebuilt on the next launch. Too small to be worth clearing."
             },
             "shader_cache": {
@@ -1425,7 +1419,7 @@
             "connection_history": {
                 "label": "Connection history",
                 "clear_name": "connection history",
-                "description": "Ping and route samples recorded on the Connection page.",
+                "description": "Ping and route samples recorded on the Live page.",
                 "consequence": "Past samples can't be recorded again. New ones start piling up from scratch."
             },
             "notifications": {
@@ -1435,32 +1429,32 @@
                 "consequence": "Past entries are gone. Nothing else depends on them."
             },
             "patch_notes_index": {
-                "label": "Patch notes index",
-                "clear_name": "patch notes index",
+                "label": "Patch notes search",
+                "clear_name": "patch notes search",
                 "description": "Patch notes and the search index built from them.",
-                "consequence": "Fetched and indexed again on its own, which takes a while and uses CPU."
+                "consequence": "Downloaded and made searchable again on its own, which takes a while and uses CPU."
             },
             "stats_cache": {
-                "label": "Stats cache",
-                "clear_name": "stats cache",
+                "label": "Saved stats",
+                "clear_name": "saved stats",
                 "description": "Stats and match data fetched from the web.",
                 "consequence": "Fetched again the next time you open Stats."
             },
             "server_list_cache": {
-                "label": "Server list cache",
-                "clear_name": "server list cache",
+                "label": "Saved server list",
+                "clear_name": "saved server list",
                 "description": "The last server list Server Picker loaded.",
                 "consequence": "Fetched again the next time you open Server Picker."
             },
             "replay_info_cache": {
-                "label": "Replay info cache",
-                "clear_name": "replay info cache",
+                "label": "Saved replay details",
+                "clear_name": "saved replay details",
                 "description": "Match details looked up for your replays.",
                 "consequence": "Looked up again when you open a replay."
             },
             "match_cache": {
-                "label": "Match detail cache",
-                "clear_name": "match detail cache",
+                "label": "Saved match details",
+                "clear_name": "saved match details",
                 "description": "Full match scoreboards you opened in Match History.",
                 "consequence": "Fetched again the next time you open the match.",
                 "units_one": "{count} match",
@@ -1469,7 +1463,7 @@
             "other_app_files": {
                 "label": "Other app files",
                 "clear_name": "other app files",
-                "description": "Small state files that don't belong to anything above.",
+                "description": "Small files that don't fit anything above.",
                 "consequence": "Reminders and leftovers. Not worth touching."
             },
             "logs": {
@@ -1514,7 +1508,7 @@
                 "label": "Post-game match data",
                 "clear_name": "post-game match data",
                 "description": "Full scoreboards of matches Deadlock+ captured from the game, kept until the Deadlock API has them.",
-                "consequence": "Matches the API does not have yet lose their detail view. Their summary row stays.",
+                "consequence": "Matches the Deadlock API does not have yet lose their detail view. Their summary row stays.",
                 "units_one": "{count} match",
                 "units_other": "{count} matches"
             },
@@ -1535,19 +1529,19 @@
         "export_all": "Export all",
         "export_selected": "Export selected ({count})",
         "import": "Import",
-        "reading": "Reading voice_ban.dt...",
-        "no_file": "No voice_ban.dt exists for this account yet. Deadlock creates it the first time you mute someone in game.",
+        "reading": "Reading your mute list...",
+        "no_file": "No mute list for this account yet. Deadlock makes one the first time you mute someone in game.",
         "unknown_player": "Unknown player",
         "profile_unknown": "Unknown",
-        "not_a_voice_ban": "Not a voice_ban.dt file (no `users` list found).",
-        "unrecognised_import": "Unrecognised import file.",
-        "api_error": "Deadlock API returned {status}",
+        "not_a_voice_ban": "This isn't a Deadlock mute list.",
+        "unrecognised_import": "Deadlock+ can't read this file. Pick a mute list exported from Deadlock+.",
+        "api_error": "Couldn't reach the Deadlock API (error {status}).",
         "game_running": {
             "title": "Deadlock is running",
             "body": "Mutes can't be changed while the game is open. It rewrites the file when it closes and would erase your changes. Close Deadlock to edit this list."
         },
         "add": {
-            "placeholder": "Mute by SteamID64, account ID, /profiles/ link or player name",
+            "placeholder": "Mute by player name, Steam profile link or Steam ID",
             "aria": "Player to mute",
             "mute": "Mute",
             "search": "Search",
@@ -1582,14 +1576,14 @@
         "unmute": {
             "title_one": "Unmute {count} player?",
             "title_other": "Unmute {count} players?",
-            "description": "They are removed from voice_ban.dt. A backup copy of the file is saved beside it first.",
+            "description": "They are removed from your mute list. A backup is saved first.",
             "confirm": "Unmute"
         },
         "import_dialog": {
             "title_one": "Import {count} new mute?",
             "title_other": "Import {count} new mutes?",
-            "description_one": "{count} id in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
-            "description_other": "{count} ids in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
+            "description_one": "{count} player in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
+            "description_other": "{count} players in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
             "confirm": "Import"
         },
         "toast": {
@@ -1597,9 +1591,9 @@
             "unmuted_other": "Unmuted {count} players",
             "muted_one": "Muted {count} player",
             "muted_other": "Muted {count} players",
-            "backup": "Backup: {path}",
+            "backup": "Backup saved. Find it on the Storage page.",
             "already_muted": "Already muted.",
-            "not_recognised": "Not recognised. Use a SteamID64, account ID or /profiles/ link.",
+            "not_recognised": "Not recognised. Use a Steam profile link or Steam ID.",
             "search_failed": "Couldn't search for players. Check your connection and try again.",
             "statlocker_failed": "Couldn't open Statlocker in your browser.",
             "exported": "Exported {count} mutes",
@@ -1618,7 +1612,7 @@
         "empty_hint_disabled": "Check your connection, or turn on alerts in Settings to be notified of new ones.",
         "new": "New",
         "read_full": "Read full notes",
-        "indexing": "Still indexing, please wait...",
+        "indexing": "Getting patch notes ready to search...",
         "searching": "Searching...",
         "no_matches": "No matches for \"{query}\".",
         "no_matches_hint": "Try a hero or item name, or describe the change differently.",
@@ -1636,7 +1630,7 @@
         "autostart_error": "Couldn't turn on {name}. Check the log for details.",
         "welcome": {
             "step_title": "Welcome to Deadlock+",
-            "returning_title": "Deadlock+ has a revamped setup process, let's get you going.",
+            "returning_title": "Deadlock+ has a new setup. Let's get you going.",
             "returning_body": "You'll only see this once. Your settings stay as they are.",
             "new_title": "Welcome to your new favourite Deadlock companion",
             "new_body": "Deadlock+ is ready to pick your servers, watch your connection and track every match.",
@@ -1663,7 +1657,7 @@
             "voice_bans": "See, add and unmute your muted players.",
             "demos": "Browse your saved replays and spot outdated ones.",
             "storage": "See what Deadlock uses on disk and clear what is safe.",
-            "performance": "Scan addons for scripts that can hurt frametimes."
+            "performance": "Scan mods for scripts that can hurt frametimes."
         },
         "permissions": {
             "other_title": "Running on {platform}",
@@ -1671,17 +1665,17 @@
             "unavailable_label": "Not available yet:",
             "unavailable": "Frametimes.",
             "untested_label": "Untested:",
-            "untested": "the Server Picker and the Connection page. Both ask for your password.",
+            "untested": "the Server Picker and the Live page. Both ask for your password.",
             "broken_label": "Something broken?",
             "broken": "Please report it on GitHub. A fix is a big plus.",
             "windows_title": "Why Windows asks for permission",
-            "windows_body": "Deadlock+ runs as administrator, so Windows shows a UAC prompt on every launch.",
+            "windows_body": "Deadlock+ runs as administrator, so Windows asks for permission each time it starts.",
             "firewall_label": "Firewall rules:",
             "firewall": "the Server Picker blocks the regions you pick by adding Windows Firewall rules named {rule}. Only administrators can do that.",
             "monitor_label": "Connection monitor:",
-            "monitor": "live ping and loss for your match come from Windows network tracing, which is also admin-only.",
-            "nothing_else": "Nothing else needs elevated rights.",
-            "not_elevated": "This copy runs without administrator rights, so the Server Picker and Connection page won't work until you relaunch it elevated."
+            "monitor": "live ping and loss for your match come from watching your network traffic, which is also admin-only.",
+            "nothing_else": "Nothing else needs administrator rights.",
+            "not_elevated": "This copy runs without administrator rights, so the Server Picker and Live page won't work until you relaunch it as administrator."
         },
         "steam": {
             "title": "Your Steam account",
@@ -1715,8 +1709,8 @@
             "alerts_note": "A notification when a new patch note or announcement is posted.",
             "maintenance": "Steam maintenance reminder",
             "maintenance_note": "A notification before the usual weekly maintenance.",
-            "gc_recovery": "Recover missing match salts through Steam",
-            "gc_recovery_note": "Uses your saved Steam login to fetch replay salts the community database is missing.",
+            "gc_recovery": "Recover missing replay keys through Steam",
+            "gc_recovery_note": "Uses your saved Steam login to fetch replay keys the community database is missing.",
             "footer": "Alerts and reminders only fire while the app runs, so they pair well with the tray option."
         },
         "done": {
@@ -1732,7 +1726,7 @@
         "no_link": "This update has no valid link.",
         "loading": "Loading full notes...",
         "load_error": "Could not load these notes: {error}",
-        "not_indexed": "Full notes for this update have not been indexed yet.",
+        "not_indexed": "Full notes for this update aren't downloaded yet. Try again in a minute.",
         "shallow_notice": "This is the forum's short preview, not the full post.",
         "read_full": "Read the full post on {source}",
         "expand_image": "Expand image",
@@ -1821,7 +1815,7 @@
         "subtitle": "Both teams in your match, plus your server, ping and packet loss.",
         "unit_ms": "ms",
         "ms": "{value} ms",
-        "pkt_per_second": "{value} pkt/s",
+        "pkt_per_second": "{value} packets/s",
         "series": {
             "ping": "Ping"
         },
@@ -1829,7 +1823,7 @@
             "title": "Live",
             "deadlock_running": "Deadlock running",
             "deadlock_not_running": "Deadlock not running",
-            "direct_note": "Direct ICMP ping to the relay you're connected to, over your normal route.",
+            "direct_note": "Ping from your PC straight to the Valve server you're on.",
             "engine_note": "What Deadlock itself measures between you and the match server.",
             "waiting_server": "Waiting for a match server."
         },
@@ -1837,10 +1831,10 @@
             "title": "Current server",
             "not_running": "Deadlock isn't running.",
             "not_connected": "Not connected to a match server yet. Start or join a match.",
-            "unknown_relay": "Unknown relay",
+            "unknown_relay": "Unknown server",
             "in": "in",
             "out": "out",
-            "gap": "longest inbound gap (1 s)"
+            "gap": "longest pause in incoming data (1 s)"
         },
         "history": {
             "title": "Last {minutes} min",
@@ -1890,7 +1884,7 @@
         "yesterday": "Yesterday",
         "days_ago_one": "{count} day ago",
         "days_ago_other": "{count} days ago",
-        "stats_error": "Could not load.",
+        "stats_error": "Couldn't load. Try again later.",
         "stats_loading": "Loading...",
         "tier": "Tier {tier}",
         "glance_label": "At a glance",
@@ -1915,7 +1909,7 @@
         "rank": {
             "title": "Rank",
             "progress": "{percent}% of the way to {rank}",
-            "empty": "No ranked rank yet."
+            "empty": "No rank yet."
         },
         "form": {
             "title": "Recent form",
@@ -2043,9 +2037,9 @@
         "open_settings": "Open settings",
         "check_updates": "Check for updates",
         "support": "Support Deadlock+",
-        "open_palette": "Open command palette",
+        "open_palette": "Quick search",
         "jump": "Jump to a page",
-        "palette_title": "Command palette",
+        "palette_title": "Quick search",
         "palette_description": "Search pages, settings and actions.",
         "palette_placeholder": "Search pages, settings and actions",
         "palette_input_label": "Search commands",
@@ -2070,7 +2064,7 @@
         "heading_error": "Deadlock+ hit an error last time",
         "detail_unclean": "It did not shut down cleanly. That can follow a crash, a forced close or a power loss.",
         "detail_error": "A report was saved on this computer.",
-        "attach_note": "Attach {file} to the issue. It is saved at {path}.",
+        "attach_note": "Attach {file} to your bug report. It is saved at {path}.",
         "meta": "{time} · Deadlock+ {version} · {os}",
         "privacy": "The report stays on this computer until you share it. Anonymous error reports are sent only while that is on in Settings.",
         "dismiss": "Dismiss",
@@ -2131,16 +2125,16 @@
     "jobs": {
         "catalog": {
             "addon_scan": {
-                "title": "Scanning addons",
-                "description": "Checks your installed addons for scripts that can hurt frametimes. Runs shortly after Deadlock+ opens."
+                "title": "Scanning mods",
+                "description": "Checks your installed mods for scripts that can hurt frametimes. Runs shortly after Deadlock+ opens."
             },
             "patch_notes_index": {
-                "title": "Indexing patch notes",
+                "title": "Preparing patch note search",
                 "description": "Downloads new patch notes and prepares them for search. Uses your CPU while it runs."
             },
             "server_block_sync": {
                 "title": "Updating server blocks",
-                "description": "Keeps the regions you block pointed at Valve's current relay addresses. Only edits Windows Firewall rules Deadlock+ already created, and tells you when it changes one."
+                "description": "Keeps your blocked regions up to date when Valve changes its server addresses. Only edits Windows Firewall rules Deadlock+ already created, and tells you when it changes one."
             }
         },
         "policy": {
@@ -2159,7 +2153,7 @@
         "status": {
             "off": "Off",
             "looking_for_login": "Looking for a saved Steam login.",
-            "last_pass_failed": "Last pass failed: {error}",
+            "last_pass_failed": "Last check failed: {error}",
             "accounts_one": "{count} Steam account",
             "accounts_other": "{count} Steam accounts",
             "using": "Using {accounts}. {delivered} submitted this session."
@@ -2173,7 +2167,7 @@
             "nothing_missing": "Done. The community database already has all your matches.",
             "done": "Done. {matches} submitted.",
             "incomplete": "{matches} submitted, {failed} couldn't be recovered. Run it again to retry.",
-            "rate_limited": "{matches} submitted. Steam's limit was reached, run it again tomorrow for the rest.",
+            "rate_limited": "{matches} submitted. Steam's daily limit was reached. Run it again tomorrow for the rest.",
             "stopped": "Stopped after {matches}. Run it again to continue."
         }
     },
@@ -2227,7 +2221,7 @@
             "count_one": "{count} match",
             "count_other": "{count} matches",
             "provisional": "Unconfirmed",
-            "provisional_hint": "Not yet confirmed by the API",
+            "provisional_hint": "Not yet confirmed by the Deadlock API",
             "mode": {
                 "custom": "Custom",
                 "other": "Other"
@@ -2299,11 +2293,11 @@
             },
             "damage": {
                 "heading": "Damage between heroes",
-                "hint": "Each row is the player dealing damage, each column the player taking it. Damage recorded against a player's own slot is shown as Other damage.",
+                "hint": "Each row is the player dealing damage, each column the player taking it. Damage the game credits to the dealer themselves shows as Other damage.",
                 "dealer": "Dealer",
                 "other": "Other damage",
                 "target": "Target",
-                "other_hint": "Damage recorded against the dealer's own slot, not another player.",
+                "other_hint": "Damage the game credits to the dealer themselves, not another player.",
                 "picker_aria": "Player for damage"
             },
             "objectives": {
@@ -2355,7 +2349,7 @@
             "loading": "Loading the match...",
             "unavailable": "The Deadlock API does not have this match yet. The scoreboard appears here once it does.",
             "error": "Could not load this match. {error}",
-            "invalid": "That is not a valid match id.",
+            "invalid": "That isn't a valid match ID.",
             "summary": "Match summary",
             "bans": "Bans",
             "you": "You",
@@ -2400,7 +2394,7 @@
                 "group": "Export scoreboard",
                 "save": "Save image",
                 "copy": "Copy image",
-                "working": "Rendering...",
+                "working": "Making image...",
                 "saved": "Scoreboard image saved.",
                 "copied": "Scoreboard image copied to the clipboard.",
                 "save_failed": "Could not save the image: {error}",
@@ -2465,7 +2459,7 @@
                 "step_next": "Next death",
                 "step_show_all": "Show all",
                 "stepper_aria": "Step through deaths",
-                "killer_slot": "Slot {slot}",
+                "killer_slot": "Player {slot}",
                 "death_respawn": "Respawn {seconds} s",
                 "death_position": "Position {x}, {y}",
                 "death_marker": "Death of {victim} at {time}",
@@ -2486,9 +2480,9 @@
         },
         "ping": {
             "heading": "Ping",
-            "source": "relay (ICMP)",
+            "source": "server (ICMP)",
             "source_engine": "In-game connection",
-            "source_icmp": "Relay ping",
+            "source_icmp": "Server ping",
             "partial": "Recorded from mid-match",
             "avg": "Average",
             "worst": "Worst",
@@ -2496,7 +2490,7 @@
             "loading": "Loading ping data...",
             "empty": "No ping data for this match.",
             "chart_aria": "Ping over the match",
-            "hint": "Raw ping, sampled once per second while Deadlock+ was running."
+            "hint": "Ping, measured once per second while Deadlock+ was running."
         }
     }
 }

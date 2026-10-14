@@ -4,7 +4,7 @@ import { expect, settle, test } from "./support/test";
 
 const MAX_PAGE_JUMPS = 9;
 
-const palette = (page: Page) => page.getByRole("dialog", { name: "Command palette" });
+const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });
 const search = (page: Page) => palette(page).getByRole("combobox", { name: "Search commands" });
 const command = (page: Page, name: string | RegExp) =>
     palette(page).getByRole("option", { name, exact: typeof name === "string" });
@@ -37,7 +37,7 @@ test.describe("the command palette", () => {
         for (const group of ["Pages", "Settings", "Actions", "Keyboard shortcuts"]) {
             await expect(palette(page).getByRole("group", { name: group, exact: true })).toBeVisible();
         }
-        await expect(command(page, "Open command palette Ctrl+K")).toBeVisible();
+        await expect(command(page, "Quick search Ctrl+K")).toBeVisible();
         await expect(command(page, `Jump to a page Ctrl+1-${MAX_PAGE_JUMPS}`)).toBeVisible();
 
         await page.keyboard.press("Control+k");
