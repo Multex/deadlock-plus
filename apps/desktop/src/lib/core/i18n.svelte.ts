@@ -129,7 +129,7 @@ class I18n {
 
     translatePlural(key: string, count: number, params?: Params): string {
         const form = new Intl.PluralRules(this.locale).select(count);
-        const withCount = { ...params, count };
+        const withCount = { count: new Intl.NumberFormat(this.locale).format(count), ...params };
         for (const catalog of chainFor(this.locale, this.catalogs)) {
             const template = lookup(catalog, `${key}_${form}`) ?? lookup(catalog, `${key}_other`);
             if (template !== undefined) return interpolate(template, withCount);

@@ -33,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Salt recovery retries a failed upload instead of losing the match.
 - The tray menu now switches to your chosen language.
 - Desktop notifications now appear in your chosen language.
+- Counts such as "2,093 matches" now use your language's number format.
 
 ## [0.11.0] - 2026-10-12
 

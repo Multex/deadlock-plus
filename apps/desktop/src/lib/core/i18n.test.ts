@@ -110,7 +110,17 @@ describe("t and tn", () => {
 
     it("uses the active locale's plural rules", () => {
         i18n.reset({ en, fr }, "fr");
-        expect(tn("replays_count", 1_000_000)).toBe("1000000 replays (fr many)");
+        expect(tn("replays_count", 1_000_000)).toBe(`${formatNumber(1_000_000)} replays (fr many)`);
+    });
+
+    it("groups the count for the active locale", () => {
+        expect(tn("replays_count", 2093)).toBe("2,093 replays");
+        i18n.reset({ en, de: { replays_count_other: "{count} Replays" } }, "de");
+        expect(tn("replays_count", 2093)).toBe("2.093 Replays");
+    });
+
+    it("lets a caller-supplied count win", () => {
+        expect(tn("replays_count", 2093, { count: "about 2k" })).toBe("about 2k replays");
     });
 
     it("is reactive to the locale", () => {
