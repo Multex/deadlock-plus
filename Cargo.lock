@@ -1599,6 +1599,7 @@ dependencies = [
  "base64 0.23.1",
  "cbc",
  "crc32fast",
+ "futures-util",
  "hex",
  "keyvalues-parser",
  "log",

@@ -9,6 +9,8 @@ pub enum GcError {
     GcUnavailable(String),
     /// Steam's GC is throttling this account.
     GcRateLimited,
+    /// The GC refused a friend's match history because their profile is private.
+    HistoryPrivate,
     /// A deadlock-api request failed.
     Api(String),
 }
@@ -21,6 +23,7 @@ impl fmt::Display for GcError {
             Self::AuthUnavailable(s) => write!(f, "Steam session unavailable: {s}"),
             Self::GcUnavailable(s) => write!(f, "Steam GC unavailable: {s}"),
             Self::GcRateLimited => write!(f, "Steam GC rate-limited the request"),
+            Self::HistoryPrivate => write!(f, "match history is private"),
             Self::Api(s) => write!(f, "deadlock-api request failed: {s}"),
         }
     }

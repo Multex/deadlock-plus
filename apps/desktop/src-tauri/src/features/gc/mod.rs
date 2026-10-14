@@ -1,10 +1,12 @@
+mod api;
 mod error;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tokio::time::Instant;
@@ -12,7 +14,9 @@ use ts_rs::TS;
 
 use dp_gc::auth::{self, AuthContext};
 use dp_gc::client::{GcSession, RecoveredSalts};
-use dp_gc::pass::{fetch_loop, AccountState, Host, GC_BACKOFF_SECS};
+use dp_gc::friends;
+use dp_gc::ledger::{FriendCooldowns, SaltAttempts};
+use dp_gc::pass::{fetch_loop, history_loop, AccountState, Host, GC_BACKOFF_SECS};
 use dp_gc::picks::fresh_newest_first;
 use dp_ingest::salts::Salts;
 use dp_kv::KvStore;
@@ -23,12 +27,15 @@ use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
 use error::GcError;
 
-const TO_FETCH_URL: &str = "https://api.deadlock-api.com/v1/matches/to-fetch";
 const SALTS_URL: &str = "https://api.deadlock-api.com/v1/matches/salts";
 const STORE: &str = "gc-state";
 const ACCOUNTS_KEY: &str = "accounts";
+const ATTEMPTS_KEY: &str = "salt_attempts";
+const COOLDOWNS_KEY: &str = "friend_cooldowns";
 const MIN_REQUEST_INTERVAL: Duration = Duration::from_secs(20);
 const PASS_INTERVAL: Duration = Duration::from_secs(30 * 60);
+const MAX_POST_ATTEMPTS: u32 = 10;
+const POST_RETRY_DELAY: Duration = Duration::from_secs(3);
 
 #[derive(Serialize, Clone, Default, TS)]
 #[ts(export)]
@@ -41,9 +48,14 @@ pub struct GcStatus {
 }
 
 #[derive(Default)]
+struct Shared {
+    status: Mutex<GcStatus>,
+}
+
+#[derive(Default)]
 pub struct GcService {
     stop: Mutex<Option<Arc<StopSignal>>>,
-    status: Arc<Mutex<GcStatus>>,
+    shared: Arc<Shared>,
 }
 
 impl GcService {
@@ -56,7 +68,7 @@ impl GcService {
                     stop.stop();
                 }
                 log::info!("gc salt recovery disabled");
-                self.status.lock_or_recover().running = false;
+                self.shared.status.lock_or_recover().running = false;
                 return;
             }
             Toggle::Start => log::info!("gc salt recovery enabled"),
@@ -64,21 +76,21 @@ impl GcService {
 
         let stop = Arc::new(StopSignal::default());
         *slot = Some(stop.clone());
-        let status = self.status.clone();
-        status.lock_or_recover().running = true;
+        let shared = self.shared.clone();
+        shared.status.lock_or_recover().running = true;
         std::thread::Builder::new()
             .name("gc-salt-recovery".into())
             .spawn(move || {
-                run(&stop, &status, &app, &http);
+                run(&stop, &shared, &app, &http);
                 if !stop.is_stopped() {
-                    status.lock_or_recover().running = false;
+                    shared.status.lock_or_recover().running = false;
                 }
             })
             .expect("spawn thread");
     }
 
     pub fn status(&self) -> GcStatus {
-        self.status.lock_or_recover().clone()
+        self.shared.status.lock_or_recover().clone()
     }
 
     pub fn stop(&self) {
@@ -104,56 +116,101 @@ fn now_secs() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
-type States = HashMap<String, AccountState>;
+fn steam_accounts() -> Result<Vec<AuthContext>, AppError> {
+    let steam_dir = dp_steam::steam_root().ok_or(GcError::SteamNotFound)?;
+    auth::recover_all(&steam_dir).map_err(|e| AppError::new(GcError::NoLogin).detail(e))
+}
 
-fn load_states(app: &AppHandle) -> States {
-    let Ok(dir) = app.path().app_data_dir() else { return States::new() };
-    let value = app.state::<KvStore>().get(&dir, STORE, ACCOUNTS_KEY).ok().flatten();
+fn load<T: DeserializeOwned + Default>(app: &AppHandle, key: &str) -> T {
+    let Ok(dir) = app.path().app_data_dir() else { return T::default() };
+    let value = app.state::<KvStore>().get(&dir, STORE, key).ok().flatten();
     value.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()
 }
 
-fn save_states(app: &AppHandle, states: &States) {
+fn save(app: &AppHandle, key: &str, value: &impl Serialize) {
     let Ok(dir) = app.path().app_data_dir() else { return };
-    let Ok(value) = serde_json::to_value(states) else { return };
-    if let Err(e) = app.state::<KvStore>().set(&dir, STORE, ACCOUNTS_KEY, value) {
+    let Ok(value) = serde_json::to_value(value) else { return };
+    if let Err(e) = app.state::<KvStore>().set(&dir, STORE, key, value) {
         log::warn!("could not save gc state: {e}");
     }
 }
 
-struct PassHost<'a> {
-    stop: &'a AtomicBool,
-    http: &'a reqwest::Client,
-    last_request: &'a mut Option<Instant>,
-    delivered: u64,
+type States = std::collections::HashMap<String, AccountState>;
+
+/// Everything a background pass keeps across restarts.
+#[derive(Default)]
+struct Ledger {
+    accounts: States,
+    attempts: SaltAttempts,
+    cooldowns: FriendCooldowns,
 }
 
-impl Host for PassHost<'_> {
+impl Ledger {
+    fn load(app: &AppHandle) -> Self {
+        Self {
+            accounts: load(app, ACCOUNTS_KEY),
+            attempts: load(app, ATTEMPTS_KEY),
+            cooldowns: load(app, COOLDOWNS_KEY),
+        }
+    }
+
+    fn save(&self, app: &AppHandle) {
+        save(app, ACCOUNTS_KEY, &self.accounts);
+        save(app, ATTEMPTS_KEY, &self.attempts);
+        save(app, COOLDOWNS_KEY, &self.cooldowns);
+    }
+}
+
+/// Posts one match's salts, retrying network failures. A 400 is final.
+async fn post_salts(http: &reqwest::Client, salts: RecoveredSalts, halted: &impl Fn() -> bool) -> bool {
+    let body = [to_ingest_salts(salts)];
+    let mut last = String::new();
+    for attempt in 1..=MAX_POST_ATTEMPTS {
+        match http.post(SALTS_URL).json(&body).send().await {
+            Ok(r) if r.status().is_success() => {
+                log::debug!("gc: submitted match {}", salts.match_id);
+                return true;
+            }
+            Ok(r) if r.status() == reqwest::StatusCode::BAD_REQUEST => {
+                log::warn!("gc salt post for {} rejected by the API (400)", salts.match_id);
+                return false;
+            }
+            Ok(r) => last = format!("HTTP {}", r.status()),
+            Err(e) => last = e.to_string(),
+        }
+        if attempt == MAX_POST_ATTEMPTS || halted() {
+            break;
+        }
+        tokio::time::sleep(POST_RETRY_DELAY).await;
+    }
+    log::warn!("gc salt post for {} failed: {last}", salts.match_id);
+    false
+}
+
+/// Paces GC requests, stops when told to or when Deadlock starts, and posts what comes back.
+struct GcHost<'a, H: Fn() -> bool, D: FnMut()> {
+    http: &'a reqwest::Client,
+    last_request: &'a mut Option<Instant>,
+    halted: H,
+    on_delivered: D,
+}
+
+impl<H: Fn() -> bool, D: FnMut()> Host for GcHost<'_, H, D> {
     async fn before_request(&mut self) -> bool {
         if let Some(prev) = *self.last_request {
             tokio::time::sleep_until(prev + MIN_REQUEST_INTERVAL).await;
         }
         *self.last_request = Some(Instant::now());
         // Steam routes GC traffic to the game's own pipe while it runs.
-        !self.stop.load(Ordering::Relaxed) && !dp_game::is_running()
+        !(self.halted)() && !dp_game::is_running()
     }
 
     async fn deliver(&mut self, salts: RecoveredSalts) -> bool {
-        let body = [to_ingest_salts(salts)];
-        match self.http.post(SALTS_URL).json(&body).send().await {
-            Ok(r) if r.status().is_success() => {
-                log::debug!("gc: submitted match {}", salts.match_id);
-                self.delivered += 1;
-                true
-            }
-            Ok(r) => {
-                log::warn!("gc salt post for {} failed: HTTP {}", salts.match_id, r.status());
-                false
-            }
-            Err(e) => {
-                log::warn!("gc salt post for {} failed: {e}", salts.match_id);
-                false
-            }
+        let ok = post_salts(self.http, salts, &self.halted).await;
+        if ok {
+            (self.on_delivered)();
         }
+        ok
     }
 
     fn now(&self) -> i64 {
@@ -161,35 +218,89 @@ impl Host for PassHost<'_> {
     }
 }
 
-async fn to_fetch(http: &reqwest::Client) -> Result<Vec<u64>, AppError> {
-    let resp = http.get(TO_FETCH_URL).send().await.map_err(AppError::network)?;
-    resp.error_for_status().map_err(AppError::network)?.json().await.map_err(AppError::network)
+/// Matches deadlock-api is missing salts for, newest first, from the histories of friends who
+/// most likely played since the API last saw them. Any failure just yields fewer matches.
+async fn friend_matches(
+    session: &GcSession,
+    state: &mut AccountState,
+    ledger_attempts: &mut SaltAttempts,
+    cooldowns: &mut FriendCooldowns,
+    http: &reqwest::Client,
+    host: &mut impl Host,
+    processed: &HashSet<u64>,
+) -> Vec<u64> {
+    let now = now_secs();
+    let budget = state.history_budget(now);
+    let due: Vec<u32> = session.friends.iter().copied().filter(|&id| cooldowns.is_due(id, now)).collect();
+    if budget == 0 || due.is_empty() {
+        return Vec::new();
+    }
+    let (candidates, personas) = futures::join!(api::active_friends(http, &due), session.request_personas(&due));
+    let candidates = match candidates {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("gc: friend lookup failed: {e}");
+            return Vec::new();
+        }
+    };
+    let picks = friends::pick(now, &candidates, &personas, budget);
+    log::debug!(
+        "gc: {} friend(s), {} recently active, {} likely with new matches",
+        session.friends.len(),
+        candidates.len(),
+        picks.len()
+    );
+    if picks.is_empty() {
+        return Vec::new();
+    }
+
+    let found = history_loop(session, host, picks, state, cooldowns).await;
+    let mut ids = fresh_newest_first(found, processed, usize::MAX);
+    if ids.is_empty() {
+        return ids;
+    }
+    match api::known_match_ids(http, &ids).await {
+        Ok(known) => {
+            ids.retain(|id| !known.contains(id));
+            ledger_attempts.forget(&known);
+        }
+        Err(e) => log::warn!("gc: could not check which friend matches are known: {e}"),
+    }
+    log::debug!("gc: found {} new friend match(es)", ids.len());
+    ids
 }
 
 async fn run_account(
     ctx: &AuthContext,
-    state: &mut AccountState,
+    ledger: &mut Ledger,
     http: &reqwest::Client,
-    stop: &AtomicBool,
+    host: &mut impl Host,
     processed: &mut HashSet<u64>,
-    last_request: &mut Option<Instant>,
-) -> Result<u64, AppError> {
+) -> Result<(), AppError> {
     let now = now_secs();
+    let Ledger { accounts, attempts, cooldowns } = ledger;
+    let state = accounts.entry(ctx.steam_id64.to_string()).or_default();
     if state.backed_off(now) {
         log::debug!("gc: account {} is backed off, skipping", ctx.account_id());
-        return Ok(0);
+        return Ok(());
     }
-    let remaining = state.quota.remaining(now);
-    if remaining == 0 {
+    if state.quota.remaining(now) == 0 {
         log::debug!("gc: account {} has used its 24h quota", ctx.account_id());
-        return Ok(0);
+        return Ok(());
     }
-    let picks = fresh_newest_first(to_fetch(http).await?, processed, remaining);
-    if picks.is_empty() {
+
+    // A failed to-fetch read only empties that phase; friends' matches can still be fetched.
+    let (to_fetch, to_fetch_error) = match api::to_fetch(http).await {
+        Ok(ids) => (ids, None),
+        Err(e) => {
+            log::warn!("gc: could not read the to-fetch list: {e}");
+            (Vec::new(), Some(e))
+        }
+    };
+    if to_fetch.iter().all(|id| processed.contains(id)) && state.history_budget(now) == 0 {
         log::debug!("gc: nothing to fetch for account {}", ctx.account_id());
-        return Ok(0);
+        return to_fetch_error.map_or(Ok(()), Err);
     }
-    log::debug!("gc: account {} fetching up to {} match(es)", ctx.account_id(), picks.len());
 
     // A failed handshake repeats identically on every pass, for example when the account does
     // not own the game, so the account is left alone for a day.
@@ -201,75 +312,83 @@ async fn run_account(
         Err(e) => {
             log::warn!("gc: account {} cannot reach the GC: {e}", ctx.account_id());
             state.backoff_until = Some(now + GC_BACKOFF_SECS);
-            return Ok(0);
+            return Ok(());
         }
     };
-    let mut host = PassHost { stop, http, last_request, delivered: 0 };
-    let outcome = fetch_loop(&session, &mut host, picks, state, processed).await;
+
+    let mut ids = friend_matches(&session, state, attempts, cooldowns, http, host, processed).await;
+    ids.extend(fresh_newest_first(to_fetch, processed, usize::MAX));
+    let outcome = fetch_loop(&session, host, ids, state, processed, attempts).await;
     if outcome.rate_limited {
         log::warn!("gc: account {} was rate-limited by Steam", ctx.account_id());
     }
-    log::debug!("gc: account {} delivered {} match(es)", ctx.account_id(), host.delivered);
-    Ok(host.delivered)
+    log::debug!("gc: account {} delivered {} match(es)", ctx.account_id(), outcome.delivered);
+    to_fetch_error.map_or(Ok(()), Err)
 }
 
-async fn pass(stop: &AtomicBool, status: &Mutex<GcStatus>, app: &AppHandle, http: &reqwest::Client) {
+async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
     if dp_game::is_running() {
         log::debug!("gc: Deadlock is running, skipping this pass");
         return;
     }
-    let Some(steam_dir) = dp_steam::steam_root() else {
-        log::debug!("gc: Steam was not found, skipping this pass");
-        status.lock_or_recover().last_error = Some(GcError::SteamNotFound.into());
+    let halted = || stop.load(Ordering::Relaxed);
+    if halted() {
         return;
-    };
-    let contexts = match auth::recover_all(&steam_dir) {
+    }
+    let contexts = match steam_accounts() {
         Ok(c) => c,
         Err(e) => {
             log::debug!("gc: no usable Steam session, skipping this pass: {e}");
-            let mut st = status.lock_or_recover();
+            let mut st = shared.status.lock_or_recover();
             st.accounts = 0;
-            st.last_error = Some(AppError::new(GcError::NoLogin).detail(e));
+            st.last_error = Some(e);
             return;
         }
     };
     log::debug!("gc: {} Steam account(s) available", contexts.len());
-    status.lock_or_recover().accounts = u32::try_from(contexts.len()).unwrap_or(u32::MAX);
+    shared.status.lock_or_recover().accounts = u32::try_from(contexts.len()).unwrap_or(u32::MAX);
 
-    let mut states = load_states(app);
+    let mut ledger = Ledger::load(app);
     let mut processed = HashSet::new();
     let mut last_request = None;
     for ctx in &contexts {
-        if stop.load(Ordering::Relaxed) || dp_game::is_running() {
+        if halted() || dp_game::is_running() {
             break;
         }
-        let state = states.entry(ctx.steam_id64.to_string()).or_default();
-        match run_account(ctx, state, http, stop, &mut processed, &mut last_request).await {
-            Ok(n) => {
-                let mut st = status.lock_or_recover();
-                st.delivered += n;
-                st.last_error = None;
-            }
+        let mut host = GcHost {
+            http,
+            last_request: &mut last_request,
+            halted,
+            on_delivered: || shared.status.lock_or_recover().delivered += 1,
+        };
+        match run_account(ctx, &mut ledger, http, &mut host, &mut processed).await {
+            Ok(()) => shared.status.lock_or_recover().last_error = None,
             Err(e) => {
                 log::warn!("gc: account {} pass failed: {e}", ctx.account_id());
-                status.lock_or_recover().last_error = Some(e);
+                shared.status.lock_or_recover().last_error = Some(e);
             }
         }
-        save_states(app, &states);
+        ledger.save(app);
     }
 }
 
-fn run(stop: &StopSignal, status: &Mutex<GcStatus>, app: &AppHandle, http: &reqwest::Client) {
-    let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+fn runtime() -> Result<tokio::runtime::Runtime, AppError> {
+    tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| {
+        log::warn!("gc: cannot build the async runtime: {e}");
+        AppError::internal(e)
+    })
+}
+
+fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
+    let runtime = match runtime() {
         Ok(rt) => rt,
         Err(e) => {
-            log::warn!("gc: cannot build the async runtime: {e}");
-            status.lock_or_recover().last_error = Some(AppError::internal(e));
+            shared.status.lock_or_recover().last_error = Some(e);
             return;
         }
     };
     while !stop.is_stopped() {
-        runtime.block_on(pass(stop.flag(), status, app, http));
+        runtime.block_on(pass(stop.flag(), shared, app, http));
         if stop.wait(PASS_INTERVAL) {
             break;
         }
