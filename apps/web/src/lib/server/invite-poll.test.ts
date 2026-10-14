@@ -16,6 +16,11 @@ describe("snapshot", () => {
         expect(event?.properties).toMatchObject({ code: "VM9utA3enT", ref: "app", channel: "app", uses: 42 });
     });
 
+    it("labels the general invite as a direct link", () => {
+        const [event] = snapshot([{ code: "w8x6HGUefT", uses: 9 }], NOW);
+        expect(event?.properties).toMatchObject({ code: "w8x6HGUefT", ref: "general", channel: "direct", uses: 9 });
+    });
+
     it("keeps an invite nobody listed, as a direct link", () => {
         const [event] = snapshot([{ code: "handmade", uses: 3 }], NOW);
         expect(event?.properties).toMatchObject({ code: "handmade", ref: "unlisted", channel: "direct", uses: 3 });

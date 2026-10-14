@@ -8,6 +8,5 @@ export const LINKS = {
     actions: `${REPO_URL}/actions`,
     appPrivacy: `${REPO_URL}#privacy-and-network-use`,
     linux: `${REPO_URL}#linux`,
-    discord: "/discord/website",
     support: SUPPORT_URL,
 } as const;

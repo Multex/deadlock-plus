@@ -22,29 +22,39 @@ describe("published links", () => {
     it("keeps every invite, its channel and its code", () => {
         expect(INVITES).toEqual([
             { ref: "app", channel: "app", code: "VM9utA3enT" },
-            { ref: "github-readme", channel: "direct", code: "652zsGZZgD" },
-            { ref: "github-contributing", channel: "direct", code: "w8x6HGUefT" },
-            { ref: "website", channel: "web", code: null },
-            { ref: "github", channel: "web", code: null },
-            { ref: "deadlock-api", channel: "web", code: null },
-            { ref: "reddit", channel: "web", code: null },
-            { ref: "youtube", channel: "web", code: null },
-            { ref: "twitter", channel: "web", code: null },
+            { ref: "general", channel: "direct", code: "w8x6HGUefT" },
+            { ref: "github", channel: "web", code: "652zsGZZgD" },
+            { ref: "deadlock-api", channel: "web", code: "YCbXPdbekW" },
+            { ref: "website", channel: "web", code: "KzWBUrQW3D" },
+            { ref: "tiktok", channel: "web", code: "VR375cZwRJ" },
+            { ref: "youtube", channel: "web", code: "Sa8PdZrVEa" },
+            { ref: "reddit", channel: "web", code: "aTmYARWhdV" },
+            { ref: "twitter", channel: "web", code: "tH5ZYTRGF5" },
             { ref: "bluesky", channel: "web", code: null },
             { ref: "steam", channel: "web", code: null },
         ]);
-        expect(FALLBACK_CODE).toBe("652zsGZZgD");
+        expect(FALLBACK_CODE).toBe("w8x6HGUefT");
     });
 
     it("keeps the invite each website ref redirects to", () => {
-        const refs = ["website", "github", "deadlock-api", "reddit", "youtube", "twitter", "bluesky", "steam"];
-        for (const ref of refs) {
-            expect(resolveWebRef(ref)).toEqual({ ref, code: "652zsGZZgD", known: true });
+        const codes = {
+            website: "KzWBUrQW3D",
+            github: "652zsGZZgD",
+            "deadlock-api": "YCbXPdbekW",
+            tiktok: "VR375cZwRJ",
+            youtube: "Sa8PdZrVEa",
+            reddit: "aTmYARWhdV",
+            twitter: "tH5ZYTRGF5",
+            bluesky: "w8x6HGUefT",
+            steam: "w8x6HGUefT",
+        };
+        for (const [ref, code] of Object.entries(codes)) {
+            expect(resolveWebRef(ref)).toEqual({ ref, code, known: true });
         }
-        for (const ref of ["app", "github-readme", "github-contributing", "somewhere-else"]) {
-            expect(resolveWebRef(ref)).toEqual({ ref, code: "652zsGZZgD", known: false });
+        for (const ref of ["app", "general", "github-readme", "github-contributing", "somewhere-else"]) {
+            expect(resolveWebRef(ref)).toEqual({ ref, code: "w8x6HGUefT", known: false });
         }
-        expect(resolveWebRef(undefined)).toEqual({ ref: "none", code: "652zsGZZgD", known: false });
+        expect(resolveWebRef(undefined)).toEqual({ ref: "none", code: "w8x6HGUefT", known: false });
     });
 
     it("keeps every typed landing path", () => {

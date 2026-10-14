@@ -1,4 +1,4 @@
-import { slug } from "@deadlock-plus/links";
+import { inviteRefFor, slug } from "@deadlock-plus/links";
 
 export type DownloadPlatform = "windows" | "deb" | "appimage";
 
@@ -14,6 +14,10 @@ export function withRef(href: string, ref: string | null): string {
     const query = path.indexOf("?");
     if (query !== -1 && new URLSearchParams(path.slice(query + 1)).has("ref")) return href;
     return `${path}${query === -1 ? "?" : "&"}ref=${ref}${fragment}`;
+}
+
+export function discordHref(ref: string | null): string {
+    return `/discord/${inviteRefFor(ref)}`;
 }
 
 export function downloadHref(platform: DownloadPlatform, version: string | null, ref: string | null): string {

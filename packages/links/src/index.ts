@@ -11,5 +11,5 @@ export {
     type Invite,
     type ResolvedRef,
 } from "./invites";
-export { LANDING_REFS, landingRef, type LandingRef } from "./landing";
+export { LANDING_REFS, inviteRefFor, landingRef, type LandingRef } from "./landing";
 export { REPO_URL, SITE_URL, SUPPORT_URL } from "./urls";

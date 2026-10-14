@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentRef, downloadHref, withRef } from "./ref";
+import { currentRef, discordHref, downloadHref, withRef } from "./ref";
 
 describe("currentRef", () => {
     it("reads a valid ref", () => {
@@ -42,5 +42,21 @@ describe("downloadHref", () => {
         expect(downloadHref("deb", "0.11.0", null)).toBe("/get/deb?v=0.11.0");
         expect(downloadHref("appimage", null, "tiktok")).toBe("/get/appimage?ref=tiktok");
         expect(downloadHref("windows", null, null)).toBe("/get/windows");
+    });
+});
+describe("discordHref", () => {
+    it("follows the platform of the landing ref", () => {
+        expect(discordHref("tt-b")).toBe("/discord/tiktok");
+        expect(discordHref("yt")).toBe("/discord/youtube");
+    });
+
+    it("keeps a ref that has an invite of its own", () => {
+        expect(discordHref("reddit")).toBe("/discord/reddit");
+    });
+
+    it("falls back to the website invite", () => {
+        expect(discordHref(null)).toBe("/discord/website");
+        expect(discordHref("bluesky")).toBe("/discord/website");
+        expect(discordHref("ttx")).toBe("/discord/website");
     });
 });

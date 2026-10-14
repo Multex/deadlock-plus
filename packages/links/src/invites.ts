@@ -10,7 +10,7 @@ export interface Invite {
 /** Shipped app builds open this invite, so it must never change or be revoked. */
 export const APP_INVITE_CODE = "VM9utA3enT";
 
-export const FALLBACK_CODE = "652zsGZZgD";
+export const FALLBACK_CODE = "w8x6HGUefT";
 
 /**
  * Discord counts joins per invite code and nothing else, so each ref needs its own code to be countable.
@@ -18,14 +18,15 @@ export const FALLBACK_CODE = "652zsGZZgD";
  */
 export const INVITES: readonly Invite[] = [
     { ref: "app", channel: "app", code: APP_INVITE_CODE },
-    { ref: "github-readme", channel: "direct", code: FALLBACK_CODE },
-    { ref: "github-contributing", channel: "direct", code: "w8x6HGUefT" },
-    { ref: "website", channel: "web", code: null },
-    { ref: "github", channel: "web", code: null },
-    { ref: "deadlock-api", channel: "web", code: null },
-    { ref: "reddit", channel: "web", code: null },
-    { ref: "youtube", channel: "web", code: null },
-    { ref: "twitter", channel: "web", code: null },
+    { ref: "general", channel: "direct", code: FALLBACK_CODE },
+    // The GitHub README and CONTRIBUTING.md link this code directly as plain discord.gg links.
+    { ref: "github", channel: "web", code: "652zsGZZgD" },
+    { ref: "deadlock-api", channel: "web", code: "YCbXPdbekW" },
+    { ref: "website", channel: "web", code: "KzWBUrQW3D" },
+    { ref: "tiktok", channel: "web", code: "VR375cZwRJ" },
+    { ref: "youtube", channel: "web", code: "Sa8PdZrVEa" },
+    { ref: "reddit", channel: "web", code: "aTmYARWhdV" },
+    { ref: "twitter", channel: "web", code: "tH5ZYTRGF5" },
     { ref: "bluesky", channel: "web", code: null },
     { ref: "steam", channel: "web", code: null },
 ];

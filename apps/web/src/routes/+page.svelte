@@ -5,7 +5,7 @@
     import Shot from "$lib/components/shot.svelte";
     import { HERO_DETAIL_SHOT, HERO_SHOT, highlights } from "$lib/content/features";
     import { LINKS } from "$lib/content/links";
-    import { currentRef, withRef } from "$lib/content/ref";
+    import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import { page } from "$app/state";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
@@ -49,7 +49,7 @@
                 <Download />
                 Download for Windows
             </a>
-            <a href={LINKS.discord} class={buttonVariants({ variant: "outline", size: "lg" })}>
+            <a href={discordHref(ref)} class={buttonVariants({ variant: "outline", size: "lg" })}>
                 <DiscordIcon class="size-4" />
                 Join our Discord
             </a>

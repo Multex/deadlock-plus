@@ -86,12 +86,12 @@ describe("event names and properties the dashboards read", () => {
     });
 
     it("discord_invite_uses", () => {
-        const [event] = snapshot([{ code: "w8x6HGUefT", uses: 7 }], NOW);
+        const [event] = snapshot([{ code: "652zsGZZgD", uses: 7 }], NOW);
         expect(event).toEqual({
             event: "discord_invite_uses",
             distinct_id: event?.distinct_id,
             timestamp: "2026-10-13T12:00:00.000Z",
-            properties: { code: "w8x6HGUefT", ref: "github-contributing", channel: "direct", uses: 7, ...ANONYMOUS },
+            properties: { code: "652zsGZZgD", ref: "github", channel: "web", uses: 7, ...ANONYMOUS },
         });
     });
 });

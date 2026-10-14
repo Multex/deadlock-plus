@@ -106,7 +106,7 @@ All user-facing text lives in `locales/en.json`. Never hardcode it in `.svelte` 
 
 ## Community
 
-Questions and ideas are welcome on the [Discord server](https://discord.gg/w8x6HGUefT).
+Questions and ideas are welcome on the [Discord server](https://discord.gg/652zsGZZgD).
 
 ### Thanks page
 

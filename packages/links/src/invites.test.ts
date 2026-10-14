@@ -54,6 +54,10 @@ describe("INVITES", () => {
         expect(new Set(refs).size).toBe(refs.length);
     });
 
+    it("makes the general invite the fallback", () => {
+        expect(inviteByCode(FALLBACK_CODE)).toMatchObject({ ref: "general", channel: "direct" });
+    });
+
     it("keeps the invite that shipped app builds point at", () => {
         expect(inviteByCode("VM9utA3enT")).toMatchObject({ ref: "app", channel: "app" });
     });

@@ -6,7 +6,7 @@
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import KofiIcon from "@deadlock-plus/ui/icons/kofi.svelte";
     import { LINKS } from "$lib/content/links";
-    import { currentRef, withRef } from "$lib/content/ref";
+    import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
 
@@ -20,16 +20,16 @@
         { href: "/privacy", label: "Privacy" },
     ];
 
-    const ICON_LINKS: { href: string; label: string; icon: Component<{ class?: string }>; tone: string }[] = [
-        { href: LINKS.discord, label: "Join our Discord", icon: DiscordIcon, tone: "" },
+    const ICON_LINKS: { href: string; label: string; icon: Component<{ class?: string }>; tone: string }[] = $derived([
+        { href: discordHref(ref), label: "Join our Discord", icon: DiscordIcon, tone: "" },
         { href: LINKS.support, label: "Support the project", icon: KofiIcon, tone: "text-kofi" },
         { href: LINKS.repo, label: "Source code on GitHub", icon: Code, tone: "" },
-    ];
+    ]);
 
     const FOOTER_GROUPS: {
         heading: string;
-        links: { href: string; label: string; icon?: Component<{ class?: string }>; tone?: string }[];
-    }[] = [
+        links: { href: string; label: string; icon?: Component<{ class?: string }>; tone?: string; plain?: boolean }[];
+    }[] = $derived([
         {
             heading: "Product",
             links: [
@@ -40,7 +40,7 @@
         {
             heading: "Community",
             links: [
-                { href: LINKS.discord, label: "Discord", icon: DiscordIcon },
+                { href: discordHref(ref), label: "Discord", icon: DiscordIcon, plain: true },
                 { href: LINKS.repo, label: "Source code", icon: Code },
                 { href: LINKS.support, label: "Support the project", icon: KofiIcon, tone: "text-kofi" },
             ],
@@ -49,7 +49,7 @@
             heading: "Legal",
             links: [{ href: "/privacy", label: "Privacy" }],
         },
-    ];
+    ]);
 </script>
 
 <div class="flex min-h-dvh flex-col">
@@ -124,7 +124,7 @@
                                     {@const Icon = link.icon}
                                     <li>
                                         <a
-                                            href={link.href === LINKS.discord ? link.href : withRef(link.href, ref)}
+                                            href={link.plain ? link.href : withRef(link.href, ref)}
                                             class="-mx-2 inline-flex h-9 items-center gap-2 rounded-md px-2 whitespace-nowrap text-foreground transition-colors hover:bg-accent/50 hover:text-brass focus-visible:bg-accent/50 focus-visible:text-brass"
                                         >
                                             {#if Icon}

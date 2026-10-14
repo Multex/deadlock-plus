@@ -13,28 +13,45 @@ async function get(ref: string | undefined, platform?: unknown): Promise<Respons
 }
 
 describe("GET /discord/<ref>", () => {
-    const refs = [
-        undefined,
-        "website",
-        "github",
-        "deadlock-api",
-        "reddit",
-        "youtube",
-        "twitter",
-        "bluesky",
-        "steam",
-        "app",
-        "github-readme",
-        "github-contributing",
-        "never-listed",
-        "NOT A REF",
+    const GENERAL = "w8x6HGUefT";
+    const cases: [string | undefined, string][] = [
+        [undefined, GENERAL],
+        ["unknown-thing", GENERAL],
+        ["NOT A REF", GENERAL],
+        ["website", "KzWBUrQW3D"],
+        ["tiktok", "VR375cZwRJ"],
+        ["youtube", "Sa8PdZrVEa"],
+        ["reddit", "aTmYARWhdV"],
+        ["twitter", "tH5ZYTRGF5"],
+        ["github", "652zsGZZgD"],
+        ["deadlock-api", "YCbXPdbekW"],
+        ["bluesky", GENERAL],
+        ["steam", GENERAL],
+        ["app", GENERAL],
+        ["general", GENERAL],
     ];
 
-    it.each(refs)("answers 302 to the invite for %s", async (ref) => {
+    it.each(cases)("answers 302 for %s to its own invite", async (ref, code) => {
         const response = await get(ref);
         expect(response.status).toBe(302);
-        expect(response.headers.get("location")).toBe("https://discord.gg/652zsGZZgD");
+        expect(response.headers.get("location")).toBe(`https://discord.gg/${code}`);
         expect(response.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it.each(["app", "general"])("does not count %s as a known web ref", async (ref) => {
+        const fetcher = vi.fn(async () => new Response(null, { status: 200 }));
+        vi.stubGlobal("fetch", fetcher);
+        const pending: Promise<unknown>[] = [];
+        const platform = { env: ENV, ctx: { waitUntil: (p: Promise<unknown>) => pending.push(p) } };
+        try {
+            await get(ref, platform);
+            await Promise.all(pending);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        const [, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+        const body = JSON.parse(init.body as string) as { batch: { properties: { known: boolean } }[] };
+        expect(body.batch[0]?.properties.known).toBe(false);
     });
 
     it("records the click with the Worker's PostHog key and host", async () => {

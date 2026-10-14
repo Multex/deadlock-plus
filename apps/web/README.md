@@ -35,6 +35,24 @@ Two more routes only redirect. `/<ref>` is for a video that shows the address as
 | `app`    | Opened from inside Deadlock+               |
 | `direct` | A `discord.gg` link posted somewhere as is |
 
+Each `web` ref has an invite of its own, except `bluesky` and `steam`, which share the general code until they get one.
+
+| Ref            | Channel  | For                                                       | Code         |
+| -------------- | -------- | --------------------------------------------------------- | ------------ |
+| `app`          | `app`    | Opened from inside Deadlock+                              | `VM9utA3enT` |
+| `general`      | `direct` | General use and the fallback for refs without a code      | `w8x6HGUefT` |
+| `github`       | `web`    | GitHub; the README and `CONTRIBUTING.md` link it directly | `652zsGZZgD` |
+| `deadlock-api` | `web`    | The Deadlock API                                          | `YCbXPdbekW` |
+| `website`      | `web`    | The website, for visitors who did not come from a video   | `KzWBUrQW3D` |
+| `tiktok`       | `web`    | The website, for visitors from TikTok                     | `VR375cZwRJ` |
+| `youtube`      | `web`    | The website, for visitors from YouTube                    | `Sa8PdZrVEa` |
+| `reddit`       | `web`    | Reddit                                                    | `aTmYARWhdV` |
+| `twitter`      | `web`    | Twitter                                                   | `tH5ZYTRGF5` |
+| `bluesky`      | `web`    | Bluesky (no code yet)                                     | none         |
+| `steam`        | `web`    | Steam (no code yet)                                       | none         |
+
+The website's Discord buttons pick the ref from the visitor's landing ref: `tt`, `tt-b` and `tt-p` use `tiktok`, `yt`, `yt-b` and `yt-p` use `youtube`, a visitor whose ref has an invite code of its own (for example `?ref=reddit`) uses that ref, and every other visitor uses `website` (`inviteRefFor` in `landing.ts`).
+
 Discord counts joins per invite code and nothing else. So a ref is only countable by joins when it has a code of its own. A `web` ref with `code: null` shares the fallback code: its clicks are counted, its joins are not separable.
 
 To add a ref:
