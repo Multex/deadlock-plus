@@ -20,6 +20,8 @@ export interface DiscordApi {
     listInvites(): Promise<LiveInvite[]>;
     createInvite(channelId: string): Promise<string>;
     revokeInvite(code: string): Promise<void>;
+    /** Gives back the new message's id. */
+    postMessage(channelId: string, body: object): Promise<string>;
 }
 
 function isLive(row: unknown): row is LiveInvite {
@@ -58,6 +60,12 @@ export function discordApi(token: string, guildId: string, fetcher: Fetcher = fe
         },
         async revokeInvite(code) {
             await call("DELETE", `/invites/${encodeURIComponent(code)}`);
+        },
+        async postMessage(channelId, body) {
+            const response = await call("POST", `/channels/${channelId}/messages`, body);
+            const { id } = (await response.json()) as { id?: unknown };
+            if (typeof id !== "string") throw new DiscordError(response.status);
+            return id;
         },
     };
 }

@@ -30,6 +30,7 @@ function deps(store = memory(), live = LIVE) {
         listInvites: vi.fn(async () => live),
         createInvite: vi.fn(async () => "newCODE1"),
         revokeInvite: vi.fn(async () => {}),
+        postMessage: vi.fn(async () => "1"),
     };
     const joins = vi.fn(
         async (codes: ReadonlyMap<string, number>) =>

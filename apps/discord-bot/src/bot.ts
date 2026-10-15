@@ -1,9 +1,12 @@
 import { DEFAULT_LINKS, LINKS_KEY, parseLinks } from "@deadlock-plus/links";
+import { text } from "@deadlock-plus/discord-messages";
+import { MessageFlags } from "discord-api-types/v10";
 import { DiscordHono } from "discord-hono";
+import { ANNOUNCE_MODAL, draftFrom, modalFor, parseTarget, runAnnounce } from "./announce";
 import { costChoices, runCost } from "./cost";
 import { discordApi } from "./discord";
 import { discordEnv, type BotEnv, type Env, type Verify } from "./env";
-import { staffOnly, staffSuggestions } from "./guard";
+import { staffModal, staffOnly, staffSuggestions } from "./guard";
 import { inviteChoices, landingChoices, runInvite, runLanding, type InviteDeps } from "./invite";
 import { joinsByCode } from "./joins";
 import { pollInvites } from "./poll";
@@ -60,6 +63,27 @@ export function createBot(options: BotOptions = {}) {
             }),
             staffOnly(async (c) =>
                 c.flags("EPHEMERAL").res(await runLanding(c.sub.command, c.var, c.env.TRANSPARENCY)),
+            ),
+        )
+        .command(
+            "announce",
+            staffOnly((c) => c.resModal(modalFor(c.var))),
+        )
+        .modal(
+            ANNOUNCE_MODAL,
+            staffModal((c) =>
+                c.flags("EPHEMERAL").resDefer(async (c) => {
+                    const reply = await runAnnounce(draftFrom(c.var), parseTarget(c.ref.custom_value ?? ""), {
+                        guildId: c.env.DISCORD_GUILD_ID,
+                        post: (channel, body) =>
+                            discordApi(c.env.DISCORD_BOT_TOKEN, c.env.DISCORD_GUILD_ID).postMessage(channel, body),
+                    });
+                    // The handed-back text can pass the 2000 characters plain content allows; a text display takes 4000.
+                    return c.followup({
+                        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+                        components: [text(reply)],
+                    });
+                }),
             ),
         )
         .cron(POLL_CRON, async (c) => {

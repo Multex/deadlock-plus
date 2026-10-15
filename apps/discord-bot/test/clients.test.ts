@@ -47,6 +47,15 @@ describe("discordApi", () => {
         expect(init.method).toBe("DELETE");
     });
 
+    it("posts a message to a channel and gives back its id", async () => {
+        const f = fetcher(Response.json({ id: "999" }));
+        expect(await discordApi("token", "guild", f).postMessage("123", { flags: 1 })).toBe("999");
+        const [url, init] = f.mock.calls[0] as Call;
+        expect(url).toBe("https://discord.com/api/v10/channels/123/messages");
+        expect(init.method).toBe("POST");
+        expect(JSON.parse(init.body as string)).toEqual({ flags: 1 });
+    });
+
     it("throws Discord's status when it refuses", async () => {
         const api = discordApi("token", "guild", fetcher(new Response(null, { status: 403 })));
         await expect(api.createInvite("123")).rejects.toEqual(new DiscordError(403));

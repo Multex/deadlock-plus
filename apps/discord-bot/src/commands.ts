@@ -5,6 +5,7 @@ import {
     makeBooleanOption,
     makeChannelOption,
     makeNumberOption,
+    makeRoleOption,
     makeSlashCommand,
     makeStringOption,
     makeSubCommand,
@@ -94,4 +95,11 @@ export const landing = staffCommand("landing", "Short paths typed after the site
     ]),
 ]);
 
-export const commands = [cost, invite, landing];
+export const announce = staffCommand("announce", "Post an announcement as the bot; the text is asked next").options([
+    makeChannelOption("channel", "The channel to post in")
+        .required(true)
+        .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
+    makeRoleOption("role", "The only role the post mentions; nobody if empty"),
+]);
+
+export const commands = [cost, invite, landing, announce];

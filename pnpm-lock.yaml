@@ -151,6 +151,9 @@ importers:
       '@deadlock-plus/costs':
         specifier: workspace:*
         version: link:../../packages/costs
+      '@deadlock-plus/discord-messages':
+        specifier: workspace:*
+        version: link:../../packages/discord-messages
       '@deadlock-plus/links':
         specifier: workspace:*
         version: link:../../packages/links

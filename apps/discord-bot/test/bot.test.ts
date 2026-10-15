@@ -299,3 +299,85 @@ describe("hourly invite poll", () => {
         expect(String(batch?.init?.body)).toContain('"ref":"instagram"');
     });
 });
+
+describe("/announce", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    const CHANNEL = "1400000000000000001";
+    const ROLE = "1400000000000000002";
+
+    it("opens the modal for the picked channel and role", async () => {
+        const res = await createBot({ verify: async () => true }).fetch(
+            post({
+                ...command("announce", GUILD),
+                data: {
+                    id: "c",
+                    name: "announce",
+                    type: 1,
+                    options: [
+                        { type: 7, name: "channel", value: CHANNEL },
+                        { type: 8, name: "role", value: ROLE },
+                    ],
+                },
+            }),
+            ENV,
+        );
+        const body = (await res.json()) as { type: number; data: { custom_id: string } };
+        expect(body.type).toBe(9);
+        expect(body.data.custom_id).toBe(`announce;${CHANNEL} ${ROLE}`);
+    });
+
+    it("posts the submitted modal and follows up privately with the link", async () => {
+        const calls = stubFetch({
+            [`https://discord.com/api/v10/channels/${CHANNEL}/messages`]: () => Response.json({ id: "999" }),
+        });
+        const pending: Promise<unknown>[] = [];
+        const ctx = { waitUntil: (p: Promise<unknown>) => void pending.push(p), passThroughOnException: () => {} };
+        const field = (custom_id: string, value: string) => ({ type: 18, component: { type: 4, custom_id, value } });
+        const res = await createBot({ verify: async () => true }).fetch(
+            post({
+                type: 5,
+                id: "1",
+                token: "itoken",
+                version: 1,
+                application_id: "app",
+                guild_id: GUILD,
+                data: {
+                    custom_id: `announce;${CHANNEL} `,
+                    components: [field("title", "Hello"), field("body", "World"), field("link", "")],
+                },
+            }),
+            ENV,
+            ctx,
+        );
+        const body = (await res.json()) as { type: number; data: { flags: number } };
+        expect(body.type).toBe(5);
+        expect(body.data.flags & 64).toBe(64);
+        await Promise.all(pending);
+        const posted = calls.find((call) => call.url.endsWith(`/channels/${CHANNEL}/messages`));
+        expect(posted?.init?.method).toBe("POST");
+        expect(String(posted?.init?.body)).toContain('"content":"## Hello"');
+        const followup = calls.find((call) => call.url.includes("/webhooks/app/itoken/messages/@original"));
+        expect(String(followup?.init?.body)).toContain(`/channels/${GUILD}/${CHANNEL}/999`);
+    });
+
+    it("refuses a modal submitted from another server", async () => {
+        const calls = stubFetch({});
+        const res = await createBot({ verify: async () => true }).fetch(
+            post({
+                type: 5,
+                id: "1",
+                token: "itoken",
+                version: 1,
+                application_id: "app",
+                guild_id: "999",
+                data: { custom_id: `announce;${CHANNEL} `, components: [] },
+            }),
+            ENV,
+        );
+        const body = (await res.json()) as { type: number; data: { flags: number } };
+        expect(body.type).toBe(4);
+        expect(body.data.flags & 64).toBe(64);
+        expect(calls).toEqual([]);
+    });
+});
