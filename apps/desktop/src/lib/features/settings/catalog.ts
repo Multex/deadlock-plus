@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { Bell, Bug, Info, Languages, Heart, Palette, Power, Scale, Shield } from "@lucide/svelte";
+import { Bell, Bug, HardDrive, Info, Languages, Heart, Palette, Power, Scale, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartTitle } from "./autostart";
@@ -11,6 +11,7 @@ export type CategoryId =
     | "notifications"
     | "privacy"
     | "about"
+    | "storage"
     | "diagnostics"
     | "thanks"
     | "licenses";
@@ -70,6 +71,13 @@ export const CATEGORIES: Category[] = [
             return t("settings.categories.about");
         },
         icon: Info,
+    },
+    {
+        id: "storage",
+        get label() {
+            return t("settings.categories.storage");
+        },
+        icon: HardDrive,
     },
     {
         id: "diagnostics",
@@ -223,6 +231,14 @@ const BASE_ITEMS: SettingItem[] = [
             return t("settings.items.thanks");
         },
         keywords: "thanks credits contributors translators donators supporters donate ko-fi",
+    },
+    {
+        id: "storage",
+        category: "storage",
+        get title() {
+            return t("settings.items.storage");
+        },
+        keywords: "disk space size cache shader clear delete free folder files",
     },
     {
         id: "diagnostics",

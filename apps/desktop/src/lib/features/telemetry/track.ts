@@ -18,7 +18,10 @@ const TRACKED = new Set([
 export function featureForPath(pathname: string): string | null {
     const segment = pathname.split("/").find((part) => part !== "") ?? "";
     if (segment === "") return "home";
-    if (segment === "settings") return "settings";
+    if (segment === "settings") {
+        const parts = pathname.split("/").filter((part) => part !== "");
+        return parts[1] === "storage" ? "storage" : "settings";
+    }
     return TRACKED.has(segment) ? segment : null;
 }
 

@@ -7,8 +7,6 @@
     import { Eye, EyeOff, RefreshCw } from "@lucide/svelte";
 
     import Button from "@deadlock-plus/ui/button.svelte";
-    import Page from "@deadlock-plus/ui/page.svelte";
-    import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import { formatBytes } from "$lib/features/demos/demos";
     import {
         clearAllCopy,
@@ -25,9 +23,9 @@
         type EntryInfo,
         type StatsById,
     } from "$lib/features/storage/storage";
-    import ClearDialog from "$lib/features/storage/components/clear-dialog.svelte";
-    import StorageGroup from "$lib/features/storage/components/storage-group.svelte";
-    import StorageSummary from "$lib/features/storage/components/storage-summary.svelte";
+    import ClearDialog from "./clear-dialog.svelte";
+    import StorageGroup from "./storage-group.svelte";
+    import StorageSummary from "./storage-summary.svelte";
 
     let entries = $state<EntryInfo[]>([]);
     let stats = $state<StatsById>({});
@@ -118,19 +116,20 @@
     onMount(() => void load());
 </script>
 
-<Page>
-    <PageHeader title={t("storage.title")} subtitle={t("storage.subtitle")}>
-        {#snippet actions()}
-            <Button variant="outline" size="sm" onclick={() => (showPaths = !showPaths)}>
-                {#if showPaths}<EyeOff />{t("storage.hide_paths")}{:else}<Eye />{t("storage.show_paths")}{/if}
-            </Button>
-            <Button variant="outline" size="sm" onclick={load} disabled={loading}>
-                <RefreshCw class={loading ? "animate-spin" : ""} />
-                {t("storage.refresh")}
-            </Button>
-        {/snippet}
-    </PageHeader>
+<div class="flex flex-wrap items-center justify-between gap-3">
+    <p class="text-sm text-muted-foreground">{t("storage.subtitle")}</p>
+    <div class="flex items-center gap-2">
+        <Button variant="outline" size="sm" onclick={() => (showPaths = !showPaths)}>
+            {#if showPaths}<EyeOff />{t("storage.hide_paths")}{:else}<Eye />{t("storage.show_paths")}{/if}
+        </Button>
+        <Button variant="outline" size="sm" onclick={load} disabled={loading}>
+            <RefreshCw class={loading ? "animate-spin" : ""} />
+            {t("storage.refresh")}
+        </Button>
+    </div>
+</div>
 
+<div class="flex flex-col gap-4">
     {#if error}
         <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{error}</div>
     {:else if loading}
@@ -163,7 +162,7 @@
             {t("storage.footnote")}
         </p>
     {/if}
-</Page>
+</div>
 
 <ClearDialog
     open={pendingClear !== null || pendingAll}

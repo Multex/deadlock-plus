@@ -30,6 +30,12 @@ describe("featureForPath", () => {
         expect(featureForPath("/settings/privacy")).toBe("settings");
     });
 
+    it("keeps counting the storage settings page as storage", () => {
+        expect(featureForPath("/settings/storage")).toBe("storage");
+        expect(featureForPath("/settings/storage/")).toBe("storage");
+        expect(featureForPath("/settings")).toBe("settings");
+    });
+
     it("ignores routes that are not features, so nothing free-form leaves the page", () => {
         expect(featureForPath("/onboarding")).toBeNull();
         expect(featureForPath("/users/someone")).toBeNull();

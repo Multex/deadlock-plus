@@ -37,7 +37,7 @@ test.beforeEach(async ({ page }) => {
 
 // The list is read from the backend again on every visit.
 async function leaveAndReturn(page: Page) {
-    await sidebarTo(page, "Storage", /\/storage$/);
+    await sidebarTo(page, "Mutes", /\/voice-bans$/);
     await sidebarTo(page, "Replays", /\/demos$/);
 }
 

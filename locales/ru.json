@@ -535,7 +535,6 @@
             "performance": "",
             "voice_bans": "Муты",
             "demos": "Повторы",
-            "storage": "Хранилище",
             "match_history": ""
         },
         "sidebar": {
@@ -608,7 +607,6 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "storage": "",
             "match_history": ""
         }
     },
@@ -1317,7 +1315,6 @@
         }
     },
     "storage": {
-        "title": "",
         "subtitle": "",
         "show_paths": "",
         "hide_paths": "",
@@ -1733,7 +1730,6 @@
             "alerts": "",
             "voice_bans": "",
             "demos": "",
-            "storage": "",
             "performance": ""
         },
         "permissions": {

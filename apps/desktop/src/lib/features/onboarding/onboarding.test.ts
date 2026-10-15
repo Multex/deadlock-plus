@@ -96,7 +96,6 @@ describe("featureGroups", () => {
             "alerts",
             "voice-bans",
             "demos",
-            "storage",
             "performance",
         ]);
         expect(new Set(ids).size).toBe(ids.length);

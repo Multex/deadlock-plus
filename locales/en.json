@@ -137,7 +137,8 @@
             "about": "Version",
             "diagnostics": "Diagnostics",
             "thanks": "Thanks",
-            "licenses": "Licenses"
+            "licenses": "Licenses",
+            "storage": "Storage"
         },
         "items": {
             "theme": "Theme",
@@ -158,7 +159,8 @@
             "updates": "App updates",
             "thanks": "Thanks",
             "diagnostics": "Diagnostics",
-            "licenses": "Licenses"
+            "licenses": "Licenses",
+            "storage": "Disk usage"
         },
         "nav": {
             "label": "Settings categories",
@@ -545,7 +547,6 @@
             "performance": "Performance",
             "voice_bans": "Mutes",
             "demos": "Replays",
-            "storage": "Storage",
             "match_history": "Match History",
             "presence": "Presence"
         },
@@ -622,7 +623,6 @@
             "performance": "Record your FPS and check mods for scripts that cause stutter",
             "voice_bans": "View, add, unmute, export and import your muted players",
             "demos": "Browse your saved match replays and see which are outdated",
-            "storage": "See what Deadlock and Deadlock+ use on disk and clear what is safe to",
             "match_history": "Every match the Deadlock API has, with a full scoreboard for each",
             "presence": "Show your hero, mode and match timer on your Discord profile"
         }
@@ -1274,7 +1274,6 @@
         }
     },
     "storage": {
-        "title": "Storage",
         "subtitle": "What Deadlock and Deadlock+ keep on this PC.",
         "show_paths": "Show paths",
         "hide_paths": "Hide paths",
@@ -1416,7 +1415,7 @@
             "replay_rules": {
                 "label": "Replay pins and cleanup rules",
                 "clear_name": "replay pins and cleanup rules",
-                "description": "Replays you pinned and your automatic cleanup rules.",
+                "description": "Replays you pinned and your cleanup rules.",
                 "consequence": "Without it, pinned replays lose their protection and cleanup rules reset."
             },
             "connection_history": {
@@ -1659,7 +1658,6 @@
             "alerts": "Patch notes and announcements, searchable.",
             "voice_bans": "See, add and unmute your muted players.",
             "demos": "Browse your saved replays and spot outdated ones.",
-            "storage": "See what Deadlock uses on disk and clear what is safe.",
             "performance": "Scan mods for scripts that can hurt frametimes.",
             "presence": "Show your hero and match on your Discord profile."
         },

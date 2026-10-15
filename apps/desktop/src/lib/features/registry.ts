@@ -4,7 +4,6 @@ import {
     Film,
     Globe,
     Gauge,
-    HardDrive,
     History,
     House,
     MessageCircle,
@@ -187,17 +186,6 @@ export const FEATURES: FeatureNavEntry[] = [
         },
         icon: Film,
         group: "tools",
-    },
-    {
-        id: "storage",
-        get label() {
-            return t("shell.nav.storage");
-        },
-        href: "/storage",
-        get description() {
-            return t("shell.nav_description.storage");
-        },
-        icon: HardDrive,
     },
 ];
 

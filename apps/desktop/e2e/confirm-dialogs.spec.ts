@@ -107,7 +107,7 @@ test("Mutes: a failed unmute says so, keeps the player and puts the question awa
 });
 
 test("Storage: the clear question closes once it is confirmed", async ({ page }) => {
-    await open(page, "/storage");
+    await open(page, "/settings/storage");
     await page.getByRole("button", { name: "Clear Shader cache", exact: true }).click();
     await question(page, "Clear the shader cache?").getByRole("button", { name: "Clear", exact: true }).click();
 
@@ -116,7 +116,7 @@ test("Storage: the clear question closes once it is confirmed", async ({ page })
 });
 
 test("Storage: a failed clear says so and puts the question away", async ({ page }) => {
-    await open(page, "/storage");
+    await open(page, "/settings/storage");
     await fail(page, "storage_clear", "access denied");
     await page.getByRole("button", { name: "Clear Shader cache", exact: true }).click();
     await question(page, "Clear the shader cache?").getByRole("button", { name: "Clear", exact: true }).click();

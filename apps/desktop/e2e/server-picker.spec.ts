@@ -18,8 +18,8 @@ test.beforeEach(async ({ page }) => {
 // The page shows a change at once, before the backend has taken it. Coming back to the page reads the
 // blocks from the backend again, so only this proves the change was sent.
 async function leaveAndReturn(page: Page) {
-    await page.getByRole("link", { name: "Storage", exact: true }).click();
-    await expect(page).toHaveURL(/\/storage$/);
+    await page.getByRole("link", { name: "Mutes", exact: true }).click();
+    await expect(page).toHaveURL(/\/voice-bans$/);
     await page.getByRole("link", { name: "Server Picker", exact: true }).click();
     await expect(page.getByRole("switch")).toHaveCount(REGIONS);
 }

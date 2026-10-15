@@ -134,7 +134,7 @@ export const SHOTS: Shot[] = [
     {
         name: "storage",
         scenario: "default",
-        route: "/storage",
+        route: "/settings/storage",
         detail: { target: { text: "Total found" }, anchor: "start", width: 480, padding: 24 },
     },
     {

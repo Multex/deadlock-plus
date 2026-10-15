@@ -16,7 +16,6 @@ describe("navLabel", () => {
             performance: "Performance",
             "voice-bans": "Mutes",
             demos: "Replays",
-            storage: "Storage",
         };
         for (const [id, label] of Object.entries(ids)) expect(navLabel(id, "fallback")).toBe(label);
     });

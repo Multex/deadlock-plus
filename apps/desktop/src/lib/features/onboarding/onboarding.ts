@@ -85,7 +85,6 @@ export function featureGroups(): FeatureGroup[] {
             items: [
                 { id: "voice-bans", blurb: t("onboarding.blurbs.voice_bans") },
                 { id: "demos", blurb: t("onboarding.blurbs.demos") },
-                { id: "storage", blurb: t("onboarding.blurbs.storage") },
                 { id: "performance", blurb: t("onboarding.blurbs.performance") },
             ],
         },
