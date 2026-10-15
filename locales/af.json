@@ -519,7 +519,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "rank": "",
             "sessions": "Sessies",
             "alerts": "",
             "performance": "",
@@ -591,7 +590,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "rank": "",
             "sessions": "",
             "alerts": "",
             "performance": "",
@@ -684,7 +682,6 @@
     },
     "rank": {
         "title": "",
-        "subtitle": "",
         "empty": "",
         "tier_fallback": "",
         "eta": {
@@ -695,9 +692,6 @@
             "about_other": ""
         },
         "form": {
-            "last_ranked": "",
-            "progress": "",
-            "subrank_note": "",
             "next_win": "Volgende wen",
             "no_streak": "",
             "next_loss": "Volgende verloor",
@@ -713,10 +707,6 @@
             "no_data": "",
             "climbing": "",
             "sliding": "",
-            "forecast": "",
-            "per_day": "{amount} 'n dag",
-            "forecast_subrank": "{name}: {eta}.",
-            "forecast_with_tier": "",
             "forecast_none": ""
         },
         "chart": {
@@ -728,15 +718,10 @@
             "empty": ""
         },
         "changes": {
-            "heading": "",
-            "none": "",
-            "promoted": "",
-            "demoted": "",
             "promoted_from": "",
             "demoted_from": ""
         },
         "summary": {
-            "current": "",
             "top_tier": "",
             "progress": "{within} / {span} na {next}.",
             "boundary": "",
@@ -746,18 +731,11 @@
             "progress_streak_one": "",
             "progress_streak_other": ""
         },
-        "recent": {
-            "heading": "",
-            "shield_aria": ""
-        },
         "shields": {
             "heading": "",
             "not_reported": "",
-            "none_left": "Geen oor",
             "none_hint": "",
-            "left_hint": "",
-            "left_one": "",
-            "left_other": ""
+            "left_hint": ""
         }
     },
     "sessions": {
@@ -1613,7 +1591,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "rank": "",
             "sessions": "",
             "alerts": "",
             "voice_bans": "",

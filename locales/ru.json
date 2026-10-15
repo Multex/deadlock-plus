@@ -525,7 +525,6 @@
             "server_picker": "Выбор сервера",
             "live": "Прямой эфир",
             "stats": "Статистика",
-            "rank": "Ранг",
             "sessions": "Сессии",
             "alerts": "Обновления",
             "performance": "",
@@ -597,7 +596,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "rank": "",
             "sessions": "",
             "alerts": "",
             "performance": "",
@@ -700,7 +698,6 @@
     },
     "rank": {
         "title": "Ранг",
-        "subtitle": "",
         "empty": "",
         "tier_fallback": "",
         "eta": {
@@ -713,9 +710,6 @@
             "about_other": ""
         },
         "form": {
-            "last_ranked": "",
-            "progress": "",
-            "subrank_note": "",
             "next_win": "",
             "no_streak": "",
             "next_loss": "",
@@ -733,10 +727,6 @@
             "no_data": "",
             "climbing": "",
             "sliding": "",
-            "forecast": "",
-            "per_day": "",
-            "forecast_subrank": "",
-            "forecast_with_tier": "",
             "forecast_none": ""
         },
         "chart": {
@@ -748,15 +738,10 @@
             "empty": ""
         },
         "changes": {
-            "heading": "",
-            "none": "",
-            "promoted": "",
-            "demoted": "",
             "promoted_from": "",
             "demoted_from": ""
         },
         "summary": {
-            "current": "",
             "top_tier": "",
             "progress": "",
             "boundary": "",
@@ -770,20 +755,13 @@
             "progress_streak_many": "",
             "progress_streak_other": ""
         },
-        "recent": {
-            "heading": "",
-            "shield_aria": ""
-        },
         "shields": {
             "heading": "",
             "not_reported": "",
-            "none_left": "",
             "none_hint": "",
             "left_hint": "",
-            "left_one": "",
             "left_few": "",
-            "left_many": "",
-            "left_other": ""
+            "left_many": ""
         }
     },
     "sessions": {
@@ -1721,7 +1699,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "rank": "",
             "sessions": "",
             "alerts": "",
             "voice_bans": "",

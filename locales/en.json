@@ -540,7 +540,6 @@
             "server_picker": "Server Picker",
             "live": "Live",
             "stats": "Stats",
-            "rank": "Rank",
             "sessions": "Sessions",
             "alerts": "News",
             "performance": "Performance",
@@ -616,7 +615,6 @@
             "server_picker": "Block or unblock Deadlock server regions",
             "live": "Both teams in your match, plus server and ping",
             "stats": "Winrate, streaks and per-hero numbers from your match history",
-            "rank": "Your ranked badge over time, calibration and demotion protection",
             "sessions": "Your play sessions, and how your results change as they get longer",
             "alerts": "Recent Deadlock patch notes and Steam announcements",
             "performance": "Record your FPS and check mods for scripts that cause stutter",
@@ -706,11 +704,13 @@
         "page": {
             "matches_known": "{count} matches known for this account. Anything not seen yet is not counted.",
             "empty": "No matches in this selection."
+        },
+        "section": {
+            "games": "Your games"
         }
     },
     "rank": {
         "title": "Rank",
-        "subtitle": "Where you stand in ranked, and how you got there. From the Deadlock API.",
         "empty": "No rank to show yet. It appears once the Deadlock API has a ranked match of yours past placement games.",
         "tier_fallback": "Tier {tier}",
         "eta": {
@@ -721,9 +721,6 @@
             "range": "{low} to {high} days"
         },
         "form": {
-            "last_ranked": "Last {count} ranked",
-            "progress": "Progress, same games",
-            "subrank_note": "1000 points is a subrank",
             "next_win": "Next win",
             "no_streak": "No win streak",
             "streak_one": "{count} win in a row",
@@ -739,11 +736,13 @@
             "no_data": "Win streaks pay more than losses cost, so you don't need 50%.",
             "climbing": "You are at {winrate} over your last {count}: climbing.",
             "sliding": "You are at {winrate} over your last {count}: sliding.",
-            "forecast": "Climb forecast",
-            "per_day": "{amount} a day",
-            "forecast_subrank": "{name}: {eta}.",
-            "forecast_with_tier": "{name}: {eta}. Next tier: {tier}.",
-            "forecast_none": "Needs about 8 ranked games in the last two weeks."
+            "forecast_none": "Needs about 8 ranked games in the last two weeks.",
+            "hold": "{winrate} holds your rank.",
+            "heading": "Outlook",
+            "your_last": "Your last {count}",
+            "climbing_short": "Climbing",
+            "sliding_short": "Sliding",
+            "next_tier": "Next tier: {eta}"
         },
         "chart": {
             "heading": "Progress",
@@ -751,18 +750,14 @@
             "aria": "Rank progress over your recent ranked matches",
             "range": "{from} to {to}",
             "legend": "Filled dots: green win, red loss. Ringed dot: a shield absorbed the loss.",
-            "empty": "Needs at least two ranked matches to draw a line."
+            "empty": "Needs at least two ranked matches to draw a line.",
+            "legend_changes": "Triangles mark a promotion or demotion."
         },
         "changes": {
-            "heading": "Rank changes",
-            "none": "No badge changes in the history the Deadlock API holds.",
-            "promoted": "Promoted",
-            "demoted": "Demoted",
             "promoted_from": "Promoted from {name}",
             "demoted_from": "Demoted from {name}"
         },
         "summary": {
-            "current": "Current rank",
             "estimated_one": "Estimated from the rank rules until the Deadlock API confirms your last match.",
             "estimated_other": "Estimated from the rank rules until the Deadlock API confirms your last matches.",
             "top_tier": "Top tier. Subranks here depend on how you compare to other top players, so there is no progress bar.",
@@ -772,17 +767,10 @@
             "boundary": "Your progress just crossed a boundary and the Deadlock API still shows the old badge, so there is no bar until the next match.",
             "placement_left": "{count} placement games left."
         },
-        "recent": {
-            "heading": "Recent ranked matches",
-            "shield_aria": "A shield absorbed this loss"
-        },
         "shields": {
             "heading": "Demotion shields",
             "not_reported": "Not reported",
-            "none_left": "None left",
             "none_hint": "A loss can take you down a rank.",
-            "left_one": "{count} shield left",
-            "left_other": "{count} shields left",
             "left_hint": "Each one absorbs a loss that would demote you."
         }
     },
@@ -1652,7 +1640,6 @@
             "server_picker": "Block the server regions you don't want.",
             "live": "Live ping and packet loss for your match.",
             "stats": "Winrate and hero numbers from your match history.",
-            "rank": "Your rank over time, from your match history.",
             "sessions": "How your results change as sessions get longer.",
             "alerts": "Patch notes and announcements, searchable.",
             "voice_bans": "See, add and unmute your muted players.",

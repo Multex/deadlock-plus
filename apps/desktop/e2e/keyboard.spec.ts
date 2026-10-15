@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { focusIsVisible, open } from "./support/flows";
 import { expect, settle, test } from "./support/test";
 
-const MAX_PAGE_JUMPS = 9;
+const MAIN_PAGES = 8;
 
 const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });
 const search = (page: Page) => palette(page).getByRole("combobox", { name: "Search commands" });
@@ -40,14 +40,14 @@ test.describe("the command palette", () => {
             await expect(palette(page).getByRole("group", { name: group, exact: true })).toBeVisible();
         }
         await expect(command(page, "Quick search Ctrl+K")).toBeVisible();
-        await expect(command(page, `Jump to a page Ctrl+1-${MAX_PAGE_JUMPS}`)).toBeVisible();
+        await expect(command(page, `Jump to a page Ctrl+1-${MAIN_PAGES}`)).toBeVisible();
 
         await page.keyboard.press("Control+k");
 
         await expect(palette(page)).toBeHidden();
     });
 
-    test("it lists every sidebar page in order, the main nine with their shortcut and the tools without", async ({
+    test("it lists every sidebar page in order, the main ones with their shortcut and the tools without", async ({
         page,
     }) => {
         const trimmed = (texts: string[]) => texts.map((text) => text.trim());
@@ -55,7 +55,7 @@ test.describe("the command palette", () => {
         const mainNames = trimmed(await sidebar(page).getByRole("link").allInnerTexts()).filter(
             (name) => !toolNames.includes(name),
         );
-        expect(mainNames).toHaveLength(MAX_PAGE_JUMPS);
+        expect(mainNames).toHaveLength(MAIN_PAGES);
         expect(toolNames.length).toBeGreaterThan(0);
         await openPalette(page);
 
@@ -104,7 +104,7 @@ test.describe("the command palette", () => {
         await expect(highlighted(page)).toHaveAccessibleName("Server Picker Ctrl+2");
         await page.keyboard.press("ArrowUp");
         await page.keyboard.press("ArrowUp");
-        await expect(highlighted(page)).toHaveAccessibleName(`Jump to a page Ctrl+1-${MAX_PAGE_JUMPS}`);
+        await expect(highlighted(page)).toHaveAccessibleName(`Jump to a page Ctrl+1-${MAIN_PAGES}`);
         await page.keyboard.press("ArrowDown");
         await page.keyboard.press("ArrowDown");
         await expect(highlighted(page)).toHaveAccessibleName("Server Picker Ctrl+2");
@@ -177,19 +177,17 @@ test.describe("the command palette", () => {
 });
 
 test.describe("page shortcuts", () => {
-    test("Ctrl+1 to Ctrl+9 jump to the nine main sidebar pages, in sidebar order, never to a tool", async ({
-        page,
-    }) => {
+    test("Ctrl+digit jumps to the main sidebar pages, in sidebar order, never to a tool", async ({ page }) => {
         await open(page, "/demos");
         const hrefs = async (links: Locator) =>
             Promise.all((await links.all()).map((link) => link.getAttribute("href")));
         const toolHrefs = await hrefs(tools(page).getByRole("link"));
         const targets = (await hrefs(sidebar(page).getByRole("link"))).filter((href) => !toolHrefs.includes(href));
-        expect(targets).toHaveLength(MAX_PAGE_JUMPS);
+        expect(targets).toHaveLength(MAIN_PAGES);
         expect(toolHrefs).toContain("/demos");
 
         // Backwards, so the first jump leaves the page the test opened and every jump changes the URL.
-        for (let digit = MAX_PAGE_JUMPS; digit >= 1; digit--) {
+        for (let digit = MAIN_PAGES; digit >= 1; digit--) {
             await page.keyboard.press(`Control+${digit}`);
             await expect.poll(() => pathOf(page), `Ctrl+${digit}`).toBe(targets[digit - 1]);
         }
@@ -363,7 +361,7 @@ test.describe("Tab order on Home", () => {
     test("Tab reaches every sidebar link in order, then Settings, then the main actions", async ({ page }) => {
         const home = page.getByRole("main");
         const links = await sidebar(page).getByRole("link").all();
-        expect(links.length).toBeGreaterThanOrEqual(12);
+        expect(links.length).toBeGreaterThanOrEqual(11);
 
         for (const link of links) await tabTo(page, link);
         await tabTo(page, page.getByRole("complementary").getByRole("link", { name: "Settings", exact: true }));

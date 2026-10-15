@@ -14,7 +14,7 @@
 
 <Card as="section">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-xl">{t("rank.chart.heading")}</h2>
+        <h3 class="text-lg">{t("rank.chart.heading")}</h3>
         <div class="flex gap-2">
             {#each WINDOWS as n (n)}
                 <Button
@@ -27,7 +27,12 @@
         </div>
     </div>
     {#if chart}
-        <svg viewBox="0 0 {W} {H}" class="h-auto w-full" role="img" aria-label={t("rank.chart.aria")}>
+        <svg
+            viewBox="0 0 {W} {H}"
+            class="h-auto w-full overflow-visible"
+            role="group"
+            aria-label={t("rank.chart.aria")}
+        >
             {#each chart.lines as l (l.y)}
                 <line x1={PAD.l} x2={W - PAD.r} y1={l.y} y2={l.y} stroke="var(--color-border)" stroke-width="1" />
                 <text x={PAD.l - 8} y={l.y + 4} text-anchor="end" font-size="12" fill="var(--color-muted-foreground)"
@@ -50,10 +55,21 @@
                           : "var(--color-muted-foreground)"}
                 />
             {/each}
+            {#each chart.marks as m (m.matchId)}
+                <path
+                    d={m.promoted ? `M${m.cx} ${m.cy - 17} l6 10 h-12 z` : `M${m.cx} ${m.cy + 17} l6 -10 h-12 z`}
+                    fill={m.promoted ? "var(--color-primary)" : "var(--color-destructive)"}
+                    role="img"
+                    aria-label={m.label}
+                >
+                    <title>{m.label}</title>
+                </path>
+            {/each}
         </svg>
         <p class="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground">
             <span>{t("rank.chart.range", { from: chart.from, to: chart.to })}</span>
             <span>{t("rank.chart.legend")}</span>
+            <span>{t("rank.chart.legend_changes")}</span>
         </p>
     {:else}
         <p class="text-sm text-muted-foreground">{t("rank.chart.empty")}</p>

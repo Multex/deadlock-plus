@@ -101,7 +101,7 @@ export const SHOTS: Shot[] = [
     {
         name: "rank",
         scenario: "default",
-        route: "/rank",
+        route: "/stats",
         detail: {
             target: { role: "heading", name: "Rank" },
             anchor: "start",

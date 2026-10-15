@@ -11,7 +11,7 @@
 
 <Card as="section">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-xl">{t("stats.region.heading")}</h2>
+        <h3 class="text-lg">{t("stats.region.heading")}</h3>
         <span class="text-sm {board.regionReady ? 'text-primary' : 'text-muted-foreground'}">
             {board.regionReady ? t("stats.region.eligible") : t("stats.region.not_eligible")}
         </span>

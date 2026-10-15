@@ -159,7 +159,7 @@
                 {t("home.your_deadlock")}
             </h2>
             <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <OverviewCard href="/rank" icon={Trophy} title={t("home.rank.title")}>
+                <OverviewCard href="/stats" icon={Trophy} title={t("home.rank.title")}>
                     {#if rankLabel}
                         <p class="flex items-center gap-2 font-heading text-2xl font-semibold text-brass">
                             {rankLabel}
@@ -180,7 +180,7 @@
                     {/if}
                 </OverviewCard>
 
-                <OverviewCard href="/rank" icon={ChartLine} title={t("home.form.title")}>
+                <OverviewCard href="/stats" icon={ChartLine} title={t("home.form.title")}>
                     {#if form.games > 0}
                         <p class="flex items-center gap-2 font-heading text-2xl font-semibold tabular-nums">
                             {pct(form.winrate)}

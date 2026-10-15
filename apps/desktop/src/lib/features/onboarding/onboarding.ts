@@ -70,7 +70,6 @@ export function featureGroups(): FeatureGroup[] {
             title: t("onboarding.groups.progress"),
             items: [
                 { id: "stats", blurb: t("onboarding.blurbs.stats") },
-                { id: "rank", blurb: t("onboarding.blurbs.rank") },
                 { id: "sessions", blurb: t("onboarding.blurbs.sessions") },
             ],
         },

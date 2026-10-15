@@ -35,7 +35,7 @@ async function follow(page: Page, href: string) {
         link.click();
         link.remove();
     }, href);
-    await page.waitForURL((url) => url.pathname === href);
+    await page.waitForURL((url) => url.pathname + url.search === href);
 }
 
 async function expectLoaded(page: Page, scenario: string, path: string) {
@@ -93,7 +93,6 @@ test.describe("new-user", () => {
     const EMPTY_STATES: Record<string, string> = {
         "/demos": "No replays saved yet.",
         "/match-history": NO_ACCOUNT,
-        "/rank": NO_ACCOUNT,
         "/sessions": NO_ACCOUNT,
         "/stats": NO_ACCOUNT,
         "/voice-bans": "No Steam account found.",
@@ -250,7 +249,7 @@ test.describe("live-match", () => {
     });
 });
 
-const HISTORY_PAGES = ["/", "/stats", "/rank", "/sessions", "/match-history"];
+const HISTORY_PAGES = ["/", "/stats", "/sessions", "/match-history"];
 const NO_CONNECTION = "A network request failed. Check your connection and try again.";
 
 /**

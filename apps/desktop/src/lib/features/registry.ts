@@ -9,7 +9,6 @@ import {
     MessageCircle,
     Swords,
     Timer,
-    TrendingUp,
     VolumeX,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
@@ -105,17 +104,6 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.match_history");
         },
         icon: History,
-    },
-    {
-        id: "rank",
-        get label() {
-            return t("shell.nav.rank");
-        },
-        href: "/rank",
-        get description() {
-            return t("shell.nav_description.rank");
-        },
-        icon: TrendingUp,
     },
     {
         id: "sessions",

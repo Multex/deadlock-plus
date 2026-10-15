@@ -1,6 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import type { Platform } from "$lib/core/platform";
-import { jumpTargets, MAX_PAGE_JUMPS, modifierLabel } from "./shortcuts";
+import { jumpTargets, modifierLabel } from "./shortcuts";
 
 export type CommandGroup = "pages" | "settings" | "actions" | "shortcuts";
 
@@ -84,7 +84,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
             label: t("keyboard.jump"),
             group: "shortcuts",
             keywords: t("keyboard.keywords.jump"),
-            shortcut: `${mod}+1-${MAX_PAGE_JUMPS}`,
+            shortcut: `${mod}+1-${jumps.length}`,
             run: () => {},
         },
     );

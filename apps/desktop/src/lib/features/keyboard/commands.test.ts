@@ -76,11 +76,11 @@ describe("buildCommands", () => {
         expect(d.ran).toEqual(["update", "support"]);
     });
 
-    it("lists every shortcut in the shortcuts group", () => {
+    it("lists every shortcut in the shortcuts group, with the jump range cut to the pages that exist", () => {
         const labels = buildCommands(deps())
             .filter((c) => c.group === "shortcuts")
             .map((c) => `${c.label} ${c.shortcut}`);
-        expect(labels).toEqual(["Quick search Ctrl+K", "Jump to a page Ctrl+1-9"]);
+        expect(labels).toEqual(["Quick search Ctrl+K", "Jump to a page Ctrl+1-3"]);
     });
 
     it("has unique ids", () => {

@@ -58,3 +58,35 @@ describe("buildRankChart", () => {
         expect(chart.lines.map((l) => l.label)).toEqual(["Initiate 1", "Initiate 2", "Initiate 3", "Initiate 4"]);
     });
 });
+
+describe("buildRankChart marks", () => {
+    const badges = (bs: number[]) => bs.map((badge, i) => point(i + 1, 1000 + i * 100, { badge }));
+
+    it("marks each badge change on the dot of the match it happened in", () => {
+        const chart = buildRankChart(badges([11, 11, 12, 12, 11]), 50, ranks)!;
+        expect(chart.marks.map((m) => [m.matchId, m.promoted])).toEqual([
+            [3, true],
+            [5, false],
+        ]);
+        expect(chart.marks[0].cx).toBe(chart.dots[2].cx);
+        expect(chart.marks[0].cy).toBe(chart.dots[2].cy);
+        expect(chart.marks[1].cx).toBe(chart.dots[4].cx);
+    });
+
+    it("names the change in its label", () => {
+        const chart = buildRankChart(badges([11, 12, 11]), 50, ranks)!;
+        expect(chart.marks[0].label).toContain("Initiate 2");
+        expect(chart.marks[0].label).toContain("Promoted from Initiate 1");
+        expect(chart.marks[1].label).toContain("Demoted from Initiate 2");
+    });
+
+    it("marks a change on the first shown match against the match before the window", () => {
+        const chart = buildRankChart(badges([11, 12, 12]), 2, ranks)!;
+        expect(chart.marks.map((m) => m.matchId)).toEqual([2]);
+        expect(chart.marks[0].cx).toBe(chart.dots[0].cx);
+    });
+
+    it("has no marks when the badge never changes", () => {
+        expect(buildRankChart(badges([11, 11, 11]), 50, ranks)!.marks).toEqual([]);
+    });
+});

@@ -30,7 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
 - Resetting the usage data ID moved under Advanced in Privacy settings.
-- Ctrl+1 to Ctrl+9 now open Home through Presence.
+- Ctrl+1 to Ctrl+8 now open Home through Presence.
 - Anonymous usage data now counts Presence visits.
 
 - The Discord link opens the invite in the Discord app when it is installed.
@@ -44,6 +44,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Deadlock+ checks for updates when you open its window, not only once an hour.
 - Anonymous usage data now counts Match History and What's New visits.
 - Anonymous usage data now counts when an update is offered and when you start it.
+
+#### Rank in Stats
+
+- Rank is now part of the Stats page and no longer has its own sidebar entry.
+- Your rank, next win and loss, and demotion shields sit at the top of Stats.
+- An Outlook card compares the winrate that holds your rank with your recent winrate.
+- The rank chart marks each promotion and demotion with a triangle.
+- The rank's recent matches and rank changes lists are gone; Match History and the chart show them.
+- The Stats filters now apply only to the "Your games" section.
 
 ### Fixed
 

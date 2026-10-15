@@ -15,7 +15,7 @@
 </script>
 
 <section>
-    <h2 class="text-xl">{t("stats.heroes.heading")}</h2>
+    <h3 class="text-lg">{t("stats.heroes.heading")}</h3>
     <p class="mb-3 mt-1 text-sm text-muted-foreground">
         {t("stats.heroes.intro", { days: rule.windowDays, games: rule.totalGames })}
     </p>

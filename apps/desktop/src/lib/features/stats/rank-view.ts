@@ -1,6 +1,13 @@
 import { t } from "$lib/core/i18n.svelte";
 import { shortDay } from "./format";
-import { subrankAt, badgeParts, type BadgeParts, type ProgressPoint, type RankTier } from "@deadlock-plus/stats/rank";
+import {
+    badgeParts,
+    rankChanges,
+    subrankAt,
+    type BadgeParts,
+    type ProgressPoint,
+    type RankTier,
+} from "@deadlock-plus/stats/rank";
 
 export const CHART_W = 760;
 export const CHART_H = 280;
@@ -16,10 +23,19 @@ export function badgeName(ranks: RankTier[], badge: number): string {
     return p ? partsName(ranks, p) : "-";
 }
 
+export interface RankMark {
+    matchId: number;
+    cx: number;
+    cy: number;
+    promoted: boolean;
+    label: string;
+}
+
 export interface RankChart {
     lines: { y: number; label: string }[];
     d: string;
     dots: { cx: number; cy: number; p: ProgressPoint }[];
+    marks: RankMark[];
     from: string;
     to: string;
 }
@@ -41,10 +57,23 @@ export function buildRankChart(series: ProgressPoint[], shown: number, ranks: Ra
     const lines = edges
         .map((v) => ({ y: y(v), label: partsName(ranks, subrankAt(v)) }))
         .filter((_, i) => i % every === 0);
+    const dots = pts.map((p, i) => ({ cx: x(i), cy: y(p.flat), p }));
+    const changes = new Map(rankChanges(series).map((c) => [c.matchId, c]));
+    const marks = dots.flatMap(({ cx, cy, p }) => {
+        const c = changes.get(p.matchId);
+        if (!c) return [];
+        const from = badgeName(ranks, c.from);
+        const how = c.promoted
+            ? t("rank.changes.promoted_from", { name: from })
+            : t("rank.changes.demoted_from", { name: from });
+        const label = `${badgeName(ranks, c.to)} · ${how} · ${shortDay(c.startTime)}`;
+        return [{ matchId: p.matchId, cx, cy, promoted: c.promoted, label }];
+    });
     return {
         lines,
         d: pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.flat).toFixed(1)}`).join(" "),
-        dots: pts.map((p, i) => ({ cx: x(i), cy: y(p.flat), p })),
+        dots,
+        marks,
         from: shortDay(pts[0].startTime),
         to: shortDay(pts.at(-1)!.startTime),
     };
