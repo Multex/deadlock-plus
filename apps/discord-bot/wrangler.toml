@@ -1,0 +1,12 @@
+name = "deadlock-plus-discord-bot"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# The website's namespace: the transparency page reads the cost list the bot writes.
+[[kv_namespaces]]
+binding = "TRANSPARENCY"
+id = "f91351f4f4dc4d2fa8c0d6236b26533f"
+
+[observability]
+enabled = true

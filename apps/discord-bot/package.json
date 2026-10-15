@@ -1,0 +1,29 @@
+{
+    "name": "discord-bot",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Internal Deadlock+ Discord bot: costs, invites and announcements for staff",
+    "license": "GPL-3.0-or-later",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy",
+        "register": "node --env-file-if-exists=.dev.vars scripts/register.mjs",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "dependencies": {
+        "@deadlock-plus/costs": "workspace:*",
+        "discord-api-types": "^0.38.56",
+        "discord-hono": "0.22.2"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^5.20261003.1",
+        "prettier": "^3.9.9",
+        "typescript": "^7.0.2",
+        "vitest": "^5.0.3",
+        "wrangler": "^4.147.0"
+    }
+}
