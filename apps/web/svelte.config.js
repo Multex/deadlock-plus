@@ -11,7 +11,11 @@ const config = {
             config: (tsconfig) => {
                 Object.assign(tsconfig.compilerOptions.paths, peerPaths(import.meta.dirname));
                 // Relative to `.svelte-kit`. Without these, only package files the site imports are checked.
-                tsconfig.include.push("../../../packages/links/src/**/*.ts", "../../../packages/analytics/src/**/*.ts");
+                tsconfig.include.push(
+                    "../../../packages/links/src/**/*.ts",
+                    "../../../packages/analytics/src/**/*.ts",
+                    "../../../packages/costs/src/**/*.ts",
+                );
                 // The packages' tests sit outside this app, where `vitest` is not installed.
                 tsconfig.compilerOptions.paths.vitest = ["../node_modules/vitest"];
             },

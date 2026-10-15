@@ -13,6 +13,7 @@ export default defineConfig({
             "src/**/*.test.ts",
             "../../packages/links/src/**/*.test.ts",
             "../../packages/analytics/src/**/*.test.ts",
+            "../../packages/costs/src/**/*.test.ts",
         ],
     },
 });

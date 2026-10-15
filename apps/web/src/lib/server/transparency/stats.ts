@@ -1,5 +1,5 @@
 import type { Fetcher } from "@deadlock-plus/analytics";
-import type { Store } from "./store";
+import type { Store } from "@deadlock-plus/costs";
 
 export interface StatsEnv {
     /** A personal API key limited to `query:read` on the Deadlock+ project. */

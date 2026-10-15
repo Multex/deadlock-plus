@@ -1,4 +1,4 @@
-import { costRows, loadCosts, monthlyTotal, totalSpent } from "$lib/server/transparency/costs";
+import { costRows, loadCosts, monthlyTotal, totalSpent } from "@deadlock-plus/costs";
 import { loadStats, type Stats } from "$lib/server/transparency/stats";
 import type { PageServerLoad } from "./$types";
 

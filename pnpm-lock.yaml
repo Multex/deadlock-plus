@@ -150,6 +150,9 @@ importers:
       '@deadlock-plus/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@deadlock-plus/costs':
+        specifier: workspace:*
+        version: link:../../packages/costs
       '@deadlock-plus/links':
         specifier: workspace:*
         version: link:../../packages/links
@@ -222,6 +225,8 @@ importers:
         version: 4.149.0(@cloudflare/workers-types@5.20261012.1)(@types/node@24.19.2)
 
   packages/analytics: {}
+
+  packages/costs: {}
 
   packages/deadlock-api: {}
 
