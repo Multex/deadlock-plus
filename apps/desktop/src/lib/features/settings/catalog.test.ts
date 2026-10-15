@@ -94,4 +94,51 @@ describe("catalog", () => {
     it("lists every category when there is no filter", () => {
         expect(matchingCategories(null)).toEqual(CATEGORIES.map((c) => c.id));
     });
+
+    it("finds diagnostics by support and crash words", () => {
+        expect(matchingItems("support report")?.has("diagnostics")).toBe(true);
+        expect(matchingItems("support report")?.has("version")).toBe(false);
+        expect(matchingItems("crash")?.has("diagnostics")).toBe(true);
+        expect(matchingItems("donate ko-fi")?.has("version")).toBe(true);
+    });
+
+    it("does not find match sharing by telemetry", () => {
+        expect(matchingItems("telemetry")?.has("match-ingest")).toBe(false);
+        expect(matchingItems("telemetry")?.has("telemetry")).toBe(true);
+        expect(matchingItems("salts")?.has("gc-recovery")).toBe(false);
+    });
+
+    it("finds match sharing by plain words", () => {
+        for (const id of ["match-ingest", "gc-recovery"]) {
+            expect(matchingItems("share matches community stats")?.has(id)).toBe(true);
+            expect(matchingItems("match details missing replay")?.has(id)).toBe(true);
+        }
+    });
+
+    it("finds items by their added keywords", () => {
+        expect(matchingItems("firewall server block region")?.has("background-jobs")).toBe(true);
+        expect(matchingItems("nightshift deadlock api oled black")?.has("theme")).toBe(true);
+        expect(matchingItems("gpl copyright trademark valve disclaimer")?.has("licenses")).toBe(true);
+        expect(matchingItems("space cache clear")?.has("storage")).toBe(true);
+    });
+
+    it("matches on the category label", () => {
+        expect(matchingItems("match sharing")?.has("match-ingest")).toBe(true);
+        expect(matchingItems("startup and background")?.has("close-to-tray")).toBe(true);
+    });
+
+    it("matches on the description text", () => {
+        expect(matchingItems("atkinson hyperlegible")?.has("accessible-font")).toBe(true);
+        expect(matchingItems("weekly maintenance")?.has("maintenance")).toBe(true);
+        expect(matchingItems("sign in to steam as you")?.has("gc-recovery")).toBe(true);
+    });
+
+    it("gives descriptions only where a description key exists", () => {
+        const d = (id: string) => ITEMS.find((i) => i.id === id)?.description;
+        expect(d("theme")).toBe("Pick the colours the app uses.");
+        expect(d("version")).toBeUndefined();
+        expect(d("thanks")).toBeUndefined();
+        expect(itemsFor("windows").find((i) => i.id === "autostart")?.description).toContain("Windows");
+        expect(itemsFor("linux").find((i) => i.id === "autostart")?.description).toContain("desktop");
+    });
 });

@@ -2,7 +2,7 @@ import type { Component } from "svelte";
 import { Bell, Bug, HardDrive, Info, Languages, Palette, Power, Share2, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
-import { autostartTitle } from "./autostart";
+import { autostartDescription, autostartTitle } from "./autostart";
 
 export type CategoryId =
     | "appearance"
@@ -25,6 +25,7 @@ export interface SettingItem {
     id: string;
     category: CategoryId;
     title: string;
+    description?: string;
     keywords: string;
 }
 
@@ -101,13 +102,20 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.theme");
         },
-        keywords: "colour color dark light midnight daylight contrast palette appearance",
+        get description() {
+            return t("settings.appearance.theme_description");
+        },
+        keywords:
+            "colour color dark light midnight daylight contrast palette appearance nightshift deadlock api oled black",
     },
     {
         id: "reduced-motion",
         category: "appearance",
         get title() {
             return t("settings.items.reduced_motion");
+        },
+        get description() {
+            return t("settings.appearance.motion_description");
         },
         keywords: "animation animations transitions motion accessibility vestibular system",
     },
@@ -117,6 +125,9 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.accessible_font");
         },
+        get description() {
+            return t("settings.appearance.font_description");
+        },
         keywords: "atkinson hyperlegible dyslexia low vision readable text typeface",
     },
     {
@@ -124,6 +135,9 @@ const BASE_ITEMS: SettingItem[] = [
         category: "language",
         get title() {
             return t("settings.language.label");
+        },
+        get description() {
+            return t("settings.language.description");
         },
         keywords: "locale translation translate english system display flag completion crowdin",
     },
@@ -133,6 +147,9 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return autostartTitle();
         },
+        get description() {
+            return autostartDescription();
+        },
         keywords: "autostart launch boot sign in login log in startup task scheduler launch agent xdg",
     },
     {
@@ -140,6 +157,9 @@ const BASE_ITEMS: SettingItem[] = [
         category: "startup",
         get title() {
             return t("settings.items.close_to_tray");
+        },
+        get description() {
+            return t("settings.startup.tray_description");
         },
         keywords: "background close hide quit minimize system tray",
     },
@@ -149,14 +169,20 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.background_jobs");
         },
+        get description() {
+            return t("settings.startup.jobs_description");
+        },
         keywords:
-            "pause slow throttle game running cpu performance fps jobs tasks disable off scan addons at launch mods scripts index patch notes automatically updates search embedding model",
+            "pause slow throttle game running cpu performance fps jobs tasks disable off scan addons at launch mods scripts index patch notes automatically updates search embedding model firewall server block region",
     },
     {
         id: "update-alerts",
         category: "notifications",
         get title() {
             return t("settings.items.update_alerts");
+        },
+        get description() {
+            return t("settings.notifications.alerts_description");
         },
         keywords: "updates patch notes steam announcements toast notify",
     },
@@ -166,6 +192,9 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.maintenance");
         },
+        get description() {
+            return t("settings.notifications.maintenance_description");
+        },
         keywords: "steam weekly maintenance downtime tuesday wednesday utc remind toast schedule",
     },
     {
@@ -173,6 +202,9 @@ const BASE_ITEMS: SettingItem[] = [
         category: "privacy",
         get title() {
             return t("settings.items.telemetry");
+        },
+        get description() {
+            return t("settings.privacy.telemetry_description");
         },
         keywords: "telemetry analytics usage statistics error crash report sentry posthog anonymous id reset opt out",
     },
@@ -182,7 +214,11 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.match_ingest");
         },
-        keywords: "ingest upload replay salts steam id http cache community database telemetry",
+        get description() {
+            return t("settings.privacy.ingest_description");
+        },
+        keywords:
+            "ingest upload replay steam id community database share matches community stats match details missing replay",
     },
     {
         id: "gc-recovery",
@@ -190,7 +226,11 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.gc_recovery");
         },
-        keywords: "gc game coordinator salts steam session token login refresh decrypt ingest matches",
+        get description() {
+            return t("settings.privacy.gc_description");
+        },
+        keywords:
+            "gc game coordinator steam session token login refresh decrypt ingest matches share community stats match details missing replay",
     },
     {
         id: "version",
@@ -198,7 +238,7 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.version");
         },
-        keywords: "about build app info copy bug report support donate ko-fi",
+        keywords: "about build app info copy donate ko-fi",
     },
     {
         id: "whats-new",
@@ -213,6 +253,9 @@ const BASE_ITEMS: SettingItem[] = [
         category: "about",
         get title() {
             return t("settings.items.updates");
+        },
+        get description() {
+            return t("settings.about_page.auto_check_description");
         },
         keywords: "update upgrade check new version release download install automatic",
     },
@@ -238,7 +281,10 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.diagnostics");
         },
-        keywords: "log logs debug session bug report viewer",
+        get description() {
+            return t("settings.diagnostics.description");
+        },
+        keywords: "log logs debug session bug report support report crash viewer",
     },
     {
         id: "licenses",
@@ -246,11 +292,14 @@ const BASE_ITEMS: SettingItem[] = [
         get title() {
             return t("settings.items.licenses");
         },
-        keywords: "third party notices fonts dependencies open source legal",
+        get description() {
+            return t("settings.licenses.dependencies_description");
+        },
+        keywords: "third party notices fonts dependencies open source legal gpl copyright trademark valve disclaimer",
     },
 ];
 
-/** Null means no filter is active. Every word of the query must appear in an item's title or keywords. */
+/** Null means no filter is active. Every word of the query must appear in an item's title, category label, description or keywords. */
 export function itemsFor(p: Platform): SettingItem[] {
     return BASE_ITEMS.map((item) =>
         item.id === "autostart"
@@ -260,6 +309,9 @@ export function itemsFor(p: Platform): SettingItem[] {
                   keywords: item.keywords,
                   get title() {
                       return autostartTitle(p);
+                  },
+                  get description() {
+                      return autostartDescription(p);
                   },
               }
             : item,
@@ -273,7 +325,8 @@ export function matchingItems(query: string): Set<string> | null {
     if (words.length === 0) return null;
     const hits = new Set<string>();
     for (const item of ITEMS) {
-        const haystack = `${item.title} ${item.keywords}`.toLowerCase();
+        const category = CATEGORIES.find((c) => c.id === item.category)?.label ?? "";
+        const haystack = `${item.title} ${category} ${item.description ?? ""} ${item.keywords}`.toLowerCase();
         if (words.every((w) => haystack.includes(w))) hits.add(item.id);
     }
     return hits;
