@@ -67,6 +67,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Home, Stats, Rank, Sessions and Match History no longer request your history in a loop when the Deadlock API is down.
 - Confirmation dialogs in Mutes, Server Picker and the Discord activity editor now close after you confirm.
+- A Discord activity change made just before leaving the page is no longer lost.
 - Home no longer shows "Loading..." forever when no Steam account is found.
 - Home shows your blocked region count before you open Server Picker.
 - A match that fails to load offline now shows a clear connection message.

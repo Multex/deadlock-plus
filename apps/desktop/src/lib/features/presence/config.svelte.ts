@@ -36,6 +36,8 @@ export class PresenceConfigStore {
 
     async load() {
         try {
+            // A pending edit is newer than what the backend holds; save it first or it is overwritten.
+            await this.flush();
             const [config, defaults, layout, placeholders] = await Promise.all([
                 this.backend.presenceConfig(),
                 this.backend.presenceDefaults(),

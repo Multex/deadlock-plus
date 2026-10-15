@@ -98,6 +98,21 @@ describe("PresenceConfigStore", () => {
         expect(api.setPresenceConfig).not.toHaveBeenCalled();
     });
 
+    it("loading again keeps an edit that was not saved yet", async () => {
+        let saved = withDetails("saved");
+        const api = fakeApi({
+            presenceConfig: vi.fn(async () => saved),
+            setPresenceConfig: vi.fn(async (config: PresenceConfig) => void (saved = config)),
+        });
+        const store = new PresenceConfigStore(api);
+        await store.load();
+        store.edit(withDetails("a"));
+        await store.load();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(store.config.states.inMatch?.details).toBe("a");
+        expect(saved).toEqual(withDetails("a"));
+    });
+
     it("records a save failure in error", async () => {
         const store = new PresenceConfigStore(
             fakeApi({
