@@ -15,7 +15,7 @@ export const LINKS_KEY = "links";
 export const LOCKED_REFS: readonly string[] = ["app", "general", "github"];
 
 /** Every web ref without an invite of its own falls back to this one. */
-const DEFAULT_REF = "website";
+export const DEFAULT_REF = "website";
 
 /** The website's top-level pages and folders: a landing path with one of these names would never be reached. */
 export const RESERVED_PATHS: readonly string[] = [
