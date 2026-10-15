@@ -87,3 +87,58 @@ describe("discordEnv", () => {
         expect(discordEnv(ENV).TOKEN).toBe("token");
     });
 });
+
+const COSTS = JSON.stringify({
+    currency: "USD",
+    items: [{ name: "Domain", purpose: "deadlockplus.app", amount: 15, period: "year", since: "2026-10-14" }],
+});
+
+function costEnv(): Env {
+    return {
+        ...ENV,
+        TRANSPARENCY: { get: async (key) => (key === "costs" ? COSTS : null), put: async () => undefined },
+    };
+}
+
+function costInteraction(type: 2 | 4, sub: string, options: object[], guild_id = GUILD): object {
+    return {
+        type,
+        id: "1",
+        token: "t",
+        version: 1,
+        application_id: "app",
+        guild_id,
+        data: { id: "c", name: "cost", type: 1, options: [{ type: 1, name: sub, options }] },
+    };
+}
+
+describe("/cost", () => {
+    it("answers privately with the list", async () => {
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(costInteraction(2, "list", [])),
+            costEnv(),
+        );
+        const body = (await res.json()) as { type: number; data: { content: string; flags: number } };
+        expect(body.type).toBe(4);
+        expect(body.data.flags & 64).toBe(64);
+        expect(body.data.content).toContain("Domain: $15.00 every year");
+    });
+
+    it("suggests costs while the name is typed", async () => {
+        const typed = [{ type: 3, name: "cost", value: "dom", focused: true }];
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(costInteraction(4, "edit", typed)),
+            costEnv(),
+        );
+        const body = (await res.json()) as { type: number; data: { choices: { value: string }[] } };
+        expect(body.type).toBe(8);
+        expect(body.data.choices.map((choice) => choice.value)).toEqual(["2026-10-14 Domain"]);
+    });
+
+    it("suggests nothing in another server", async () => {
+        const typed = [{ type: 3, name: "cost", value: "", focused: true }];
+        const interaction = costInteraction(4, "edit", typed, "999");
+        const res = await createBot({ verify: async () => true }).fetch(post(interaction), costEnv());
+        expect(((await res.json()) as { data: { choices: unknown[] } }).data.choices).toEqual([]);
+    });
+});
