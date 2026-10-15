@@ -276,12 +276,10 @@ fn snapshot_reports_jobs_game_state_and_the_global_switch() {
     let f = fixture(true);
     f.registry.register(spec("a", Policy::Always));
     f.registry.set_all_enabled(false);
-    f.registry.set_pause_in_game(false);
     let snap = f.registry.snapshot();
     assert_eq!(snap.jobs.len(), 1);
     assert!(snap.game_running);
     assert!(!snap.all_enabled);
-    assert!(!snap.pause_in_game);
 }
 
 fn counter() -> (Arc<std::sync::atomic::AtomicUsize>, Arc<std::sync::atomic::AtomicUsize>) {
@@ -606,42 +604,35 @@ fn turning_the_global_switch_on_when_it_was_already_on_stays_quiet() {
 }
 
 #[test]
-fn pause_in_game_defaults_on_and_follows_the_master_switch() {
+fn keep_running_instead_of_pausing_rewrites_every_pause_policy() {
     let f = fixture(false);
-    assert!(f.registry.pause_in_game());
-    f.registry.set_pause_in_game(false);
-    assert!(!f.registry.pause_in_game());
+    f.registry.declare(spec("default-pause", Policy::PauseInGame));
+    f.registry.declare(spec("slow", Policy::SlowInGame));
+    f.registry.declare(spec("chose-slow", Policy::PauseInGame));
+    f.registry.set_policy("chose-slow", Policy::SlowInGame);
+    f.registry.declare(spec("chose-pause", Policy::Always));
+    f.registry.set_policy("chose-pause", Policy::PauseInGame);
+    f.registry.set_policy("undeclared", Policy::PauseInGame);
+
+    f.registry.keep_running_instead_of_pausing();
+
+    let policy = |id: &str| f.registry.snapshot().catalog.into_iter().find(|c| c.id == id).unwrap().policy;
+    assert_eq!(policy("default-pause"), Policy::Always);
+    assert_eq!(policy("slow"), Policy::SlowInGame);
+    assert_eq!(policy("chose-slow"), Policy::SlowInGame);
+    assert_eq!(policy("chose-pause"), Policy::Always);
+    let overrides = f.registry.policy_overrides();
+    assert_eq!(overrides.get("undeclared"), Some(&Policy::Always));
+    assert_eq!(overrides.get("slow"), None, "a job left on its default keeps following it");
 }
 
 #[test]
-fn master_switch_off_lets_pause_in_game_jobs_run() {
+fn keep_running_instead_of_pausing_leaves_a_registered_job_running_in_game() {
     let f = fixture(true);
-    f.registry.set_pause_in_game(false);
+    f.registry.declare(spec("a", Policy::PauseInGame));
+    f.registry.keep_running_instead_of_pausing();
     let h = f.registry.register(spec("a", Policy::PauseInGame));
     h.start();
-    assert_eq!(h.checkpoint(), Flow::Continue);
+    assert_eq!(checkpoint_in_thread(h).recv_timeout(WAIT), Ok(Flow::Continue));
     assert_eq!(state(&f, "a"), JobState::Running);
-}
-
-#[test]
-fn turning_the_master_switch_off_wakes_a_paused_job() {
-    let f = fixture(true);
-    let h = f.registry.register(spec("a", Policy::PauseInGame));
-    h.start();
-    let rx = checkpoint_in_thread(h);
-    wait_until(|| state(&f, "a") == JobState::Paused);
-
-    f.registry.set_pause_in_game(false);
-    assert_eq!(rx.recv_timeout(WAIT).unwrap(), Flow::Continue);
-    assert_eq!(state(&f, "a"), JobState::Running);
-}
-
-#[test]
-fn master_switch_does_not_affect_slow_or_always_jobs() {
-    let f = fixture(true);
-    f.registry.set_pause_in_game(false);
-    let h = f.registry.register(spec("a", Policy::SlowInGame));
-    h.start();
-    assert_eq!(h.checkpoint(), Flow::Continue);
-    assert_eq!(*f.slept.lock_or_recover(), [SLOW_DELAY]);
 }

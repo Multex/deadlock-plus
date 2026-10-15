@@ -82,7 +82,6 @@ fn jobs_fields(snapshot: &JobsSnapshot) -> Fields {
     let mut fields = vec![
         field("game running", yes_no(snapshot.game_running)),
         field("all jobs enabled", yes_no(snapshot.all_enabled)),
-        field("pause in game", yes_no(snapshot.pause_in_game)),
         field("running", format!("{running} of {} listed", snapshot.jobs.len())),
     ];
     for entry in &snapshot.catalog {
@@ -356,13 +355,12 @@ mod tests {
             }],
             game_running: true,
             all_enabled: true,
-            pause_in_game: false,
         };
         let fields = jobs_fields(&snapshot);
         let get = |key: &str| fields.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
         assert_eq!(get("game running"), Some("yes"));
         assert_eq!(get("all jobs enabled"), Some("yes"));
-        assert_eq!(get("pause in game"), Some("no"));
+        assert_eq!(get("pause in game"), None);
         assert_eq!(get("running"), Some("1 of 1 listed"));
         assert_eq!(get("job scan"), Some("disabled, policy pauseInGame, not started"));
         assert_eq!(get("job sync"), Some("enabled, policy always, running 2/5"));

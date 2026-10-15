@@ -204,16 +204,11 @@
         },
         "startup": {
             "tray_description": "",
-            "jobs_description": "",
             "all_jobs_label": "",
             "all_jobs_description": "",
-            "pause_label": "",
-            "pause_description": "",
             "tasks_title": "",
-            "tasks_description": "",
             "run_by_itself": "",
-            "while_running": "Terwyl Deadlock loop",
-            "pause_ignored": ""
+            "while_running": "Terwyl Deadlock loop"
         },
         "notifications": {
             "alerts_description": "",

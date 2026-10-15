@@ -3,7 +3,7 @@
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount, type Component } from "svelte";
-    import { Gauge, Pause, Play } from "@lucide/svelte";
+    import { ChevronRight, Gauge, Pause, Play } from "@lucide/svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { jobDescription, jobTitle, POLICY_OPTIONS, type Policy } from "$lib/features/jobs/jobs";
@@ -99,84 +99,74 @@
             <Switch id="all-jobs" checked={jobs.allEnabled} onCheckedChange={(v) => void jobs.setAllEnabled(v)} />
         </SettingRow>
 
-        <SettingRow
-            size="sub"
-            class="mt-4"
-            label={t("settings.startup.pause_label")}
-            for="pause-in-game"
-            description={t("settings.startup.pause_description")}
-        >
-            <Switch
-                id="pause-in-game"
-                checked={jobs.pauseInGame}
-                disabled={!jobs.allEnabled}
-                onCheckedChange={(v) => void jobs.setPauseInGame(v)}
-            />
-        </SettingRow>
-
         {#if jobs.catalog.length > 0}
-            <div class="my-4 border-t" role="separator"></div>
+            <details class="group mt-3">
+                <summary
+                    class="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                    <ChevronRight class="size-4 shrink-0 transition-transform group-open:rotate-90" />
+                    {t("settings.startup.advanced")}
+                </summary>
 
-            <div class="flex flex-col gap-1">
-                <h4 class="text-sm font-medium">{t("settings.startup.tasks_title")}</h4>
-                <p class="text-xs text-muted-foreground">
-                    {t("settings.startup.tasks_description")}
-                </p>
-            </div>
+                <div class="mt-3 flex flex-col gap-1">
+                    <h4 class="text-sm font-medium">{t("settings.startup.tasks_title")}</h4>
+                    <p class="text-xs text-muted-foreground">
+                        {t("settings.startup.tasks_description")}
+                    </p>
+                </div>
 
-            <ul class="mt-4 flex flex-col gap-5">
-                {#each jobs.catalog as job (job.id)}
-                    <li class="flex flex-col gap-2">
-                        <div class="flex flex-col gap-0.5">
-                            <span id="job-{job.id}-title" class="text-sm font-medium">{jobTitle(job)}</span>
-                            <p class="text-xs text-muted-foreground">{jobDescription(job)}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-                            <div class="flex items-center gap-2">
-                                <Switch
-                                    id="job-{job.id}"
-                                    aria-labelledby="job-{job.id}-title job-{job.id}-run"
-                                    checked={job.enabled}
-                                    disabled={!jobs.allEnabled}
-                                    onCheckedChange={(v) => void jobs.setEnabled(job.id, v)}
-                                />
-                                <label id="job-{job.id}-run" for="job-{job.id}" class="text-xs text-muted-foreground"
-                                    >{t("settings.startup.run_by_itself")}</label
-                                >
+                <ul class="mt-4 flex flex-col gap-5">
+                    {#each jobs.catalog as job (job.id)}
+                        <li class="flex flex-col gap-2">
+                            <div class="flex flex-col gap-0.5">
+                                <span id="job-{job.id}-title" class="text-sm font-medium">{jobTitle(job)}</span>
+                                <p class="text-xs text-muted-foreground">{jobDescription(job)}</p>
                             </div>
-                            {#if job.policyConfigurable}
+                            <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
                                 <div class="flex items-center gap-2">
+                                    <Switch
+                                        id="job-{job.id}"
+                                        aria-labelledby="job-{job.id}-title job-{job.id}-run"
+                                        checked={job.enabled}
+                                        disabled={!jobs.allEnabled}
+                                        onCheckedChange={(v) => void jobs.setEnabled(job.id, v)}
+                                    />
                                     <label
-                                        id="job-{job.id}-policy-label"
-                                        for="job-{job.id}-policy"
+                                        id="job-{job.id}-run"
+                                        for="job-{job.id}"
                                         class="text-xs text-muted-foreground"
-                                        >{t("settings.startup.while_running")}</label
+                                        >{t("settings.startup.run_by_itself")}</label
                                     >
-                                    <SelectMenu
-                                        id="job-{job.id}-policy"
-                                        aria-labelledby="job-{job.id}-title job-{job.id}-policy-label"
-                                        items={policyItems}
-                                        value={job.policy}
-                                        disabled={!jobs.allEnabled || !job.enabled}
-                                        onValueChange={(v) => void jobs.setPolicy(job.id, v as Policy)}
-                                        class="w-44"
-                                    >
-                                        {#snippet leading(item)}
-                                            {@const Icon = POLICY_ICONS[item.policy]}
-                                            <Icon aria-hidden="true" />
-                                        {/snippet}
-                                    </SelectMenu>
                                 </div>
-                            {/if}
-                        </div>
-                        {#if job.policyConfigurable && !jobs.pauseInGame && job.policy === "pauseInGame"}
-                            <p class="text-xs text-muted-foreground/80">
-                                {t("settings.startup.pause_ignored")}
-                            </p>
-                        {/if}
-                    </li>
-                {/each}
-            </ul>
+                                {#if job.policyConfigurable}
+                                    <div class="flex items-center gap-2">
+                                        <label
+                                            id="job-{job.id}-policy-label"
+                                            for="job-{job.id}-policy"
+                                            class="text-xs text-muted-foreground"
+                                            >{t("settings.startup.while_running")}</label
+                                        >
+                                        <SelectMenu
+                                            id="job-{job.id}-policy"
+                                            aria-labelledby="job-{job.id}-title job-{job.id}-policy-label"
+                                            items={policyItems}
+                                            value={job.policy}
+                                            disabled={!jobs.allEnabled || !job.enabled}
+                                            onValueChange={(v) => void jobs.setPolicy(job.id, v as Policy)}
+                                            class="w-44"
+                                        >
+                                            {#snippet leading(item)}
+                                                {@const Icon = POLICY_ICONS[item.policy]}
+                                                <Icon aria-hidden="true" />
+                                            {/snippet}
+                                        </SelectMenu>
+                                    </div>
+                                {/if}
+                            </div>
+                        </li>
+                    {/each}
+                </ul>
+            </details>
         {/if}
     </Card>
 {/if}

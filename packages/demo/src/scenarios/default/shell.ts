@@ -105,7 +105,6 @@ const JOBS: JobsSnapshot = {
     jobs: [],
     gameRunning: false,
     allEnabled: true,
-    pauseInGame: true,
 };
 
 const LIVE_STATE: LiveState = { phase: "gameClosed", matchPresent: false };
@@ -236,10 +235,6 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                 set_job_policy: ({ id, policy }) => changeJob(id, { policy: policy as JobEntry["policy"] }),
                 set_all_jobs_enabled: ({ enabled }) => {
                     jobs = { ...jobs, allEnabled: enabled === true };
-                    return null;
-                },
-                set_pause_in_game: ({ enabled }) => {
-                    jobs = { ...jobs, pauseInGame: enabled === true };
                     return null;
                 },
                 is_game_running: () => false,

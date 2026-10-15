@@ -86,7 +86,6 @@ describe("isJobEnabled", () => {
         jobs: [],
         gameRunning: false,
         allEnabled: true,
-        pauseInGame: true,
         ...over,
     });
 

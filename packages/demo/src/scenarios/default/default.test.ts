@@ -123,7 +123,6 @@ describe("default scenario", () => {
         handle.invoke("set_job_enabled", { id: "addon-scan", enabled: false });
         handle.invoke("set_job_policy", { id: "patch-notes-index", policy: "always" });
         handle.invoke("set_all_jobs_enabled", { enabled: false });
-        handle.invoke("set_pause_in_game", { enabled: false });
         expect(handle.invoke("jobs_snapshot", {})).toMatchObject({
             catalog: [
                 { id: "addon-scan", enabled: false, policy: "pauseInGame" },
@@ -131,7 +130,6 @@ describe("default scenario", () => {
                 { id: "server-block-sync", enabled: true },
             ],
             allEnabled: false,
-            pauseInGame: false,
         });
 
         const before = handle.invoke("autostart_status", {}) as { enabled: boolean };
@@ -140,7 +138,13 @@ describe("default scenario", () => {
         });
         expect(handle.invoke("autostart_status", {})).toMatchObject({ enabled: !before.enabled });
 
-        expect(start().invoke("jobs_snapshot", {})).toMatchObject({ allEnabled: true, pauseInGame: true });
+        expect(start().invoke("jobs_snapshot", {})).toMatchObject({ allEnabled: true });
+    });
+
+    it("has no app-wide pause switch: each task's own setting decides", () => {
+        const handle = start();
+        expect(handle.invoke("jobs_snapshot", {})).not.toHaveProperty("pauseInGame");
+        expect(() => handle.invoke("set_pause_in_game", { enabled: false })).toThrow();
     });
 
     it("has log lines the Logs page can show, and exports the same lines as text", () => {

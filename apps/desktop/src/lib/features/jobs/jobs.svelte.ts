@@ -1,13 +1,5 @@
 import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
-import {
-    forceRunJob,
-    jobsSnapshot,
-    onJobsChanged,
-    setAllJobsEnabled,
-    setJobEnabled,
-    setJobPolicy,
-    setPauseInGame,
-} from "./api";
+import { forceRunJob, jobsSnapshot, onJobsChanged, setAllJobsEnabled, setJobEnabled, setJobPolicy } from "./api";
 import { activeJobs, isJobEnabled, type Policy } from "./jobs";
 
 type Listener = (snapshot: JobsSnapshot) => void;
@@ -19,7 +11,6 @@ class JobsStore {
     active = $derived(activeJobs(this.snapshot?.jobs ?? []));
     gameRunning = $derived(this.snapshot?.gameRunning ?? null);
     catalog = $derived(this.snapshot?.catalog ?? []);
-    pauseInGame = $derived(this.snapshot?.pauseInGame ?? true);
     allEnabled = $derived(this.snapshot?.allEnabled ?? true);
 
     isActive(id: string): boolean {
@@ -51,11 +42,6 @@ class JobsStore {
 
     async setPolicy(id: string, policy: Policy) {
         await setJobPolicy(id, policy);
-        await this.refresh();
-    }
-
-    async setPauseInGame(enabled: boolean) {
-        await setPauseInGame(enabled);
         await this.refresh();
     }
 

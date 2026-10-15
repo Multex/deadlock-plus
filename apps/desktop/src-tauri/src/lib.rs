@@ -200,7 +200,6 @@ pub fn run() {
             features::jobs::commands::jobs_snapshot,
             features::jobs::commands::cancel_job,
             features::jobs::commands::set_job_policy,
-            features::jobs::commands::set_pause_in_game,
             features::jobs::commands::set_job_enabled,
             features::jobs::commands::set_all_jobs_enabled,
             features::jobs::commands::force_run_job,

@@ -6,8 +6,4 @@ export type JobsSnapshot = { catalog: Array<JobCatalogEntry>, jobs: Array<JobInf
 /**
  * Off stops every job from starting on its own, whatever its own switch says.
  */
-allEnabled: boolean, 
-/**
- * Off lets `PauseInGame` jobs run unthrottled while the game runs.
- */
-pauseInGame: boolean, };
+allEnabled: boolean, };

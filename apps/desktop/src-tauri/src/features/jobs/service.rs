@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
@@ -15,6 +16,7 @@ pub const STORE: &str = "background-jobs";
 const POLICIES_KEY: &str = "policies";
 const DISABLED_KEY: &str = "disabled";
 const ALL_ENABLED_KEY: &str = "allEnabled";
+/// A retired app-wide switch. Off let every `PauseInGame` job keep running in game.
 const PAUSE_KEY: &str = "pauseInGame";
 
 pub struct JobsState {
@@ -43,26 +45,26 @@ impl JobsState {
 
     fn persist(&self, app: &AppHandle) {
         let Ok(dir) = app.path().app_data_dir() else { return };
-        let kv = app.state::<KvStore>();
-        let policies = serde_json::to_value(self.registry.policy_overrides()).unwrap_or_default();
-        let mut disabled: Vec<String> = self.registry.disabled_jobs().into_iter().collect();
-        disabled.sort();
-        let saved = kv
-            .set(&dir, STORE, POLICIES_KEY, policies)
-            .and_then(|()| kv.set(&dir, STORE, DISABLED_KEY, disabled.into()))
-            .and_then(|()| kv.set(&dir, STORE, ALL_ENABLED_KEY, self.registry.all_enabled().into()))
-            .and_then(|()| kv.set(&dir, STORE, PAUSE_KEY, self.registry.pause_in_game().into()));
-        if let Err(e) = saved {
-            log::warn!("could not save background job settings: {e}");
-        }
+        save(&app.state::<KvStore>(), &dir, &self.registry);
     }
 }
 
-fn load_saved(app: &AppHandle, registry: &Registry) {
-    let Ok(dir) = app.path().app_data_dir() else { return };
-    let kv = app.state::<KvStore>();
+fn save(kv: &KvStore, dir: &Path, registry: &Registry) {
+    let policies = serde_json::to_value(registry.policy_overrides()).unwrap_or_default();
+    let mut disabled: Vec<String> = registry.disabled_jobs().into_iter().collect();
+    disabled.sort();
+    let saved = kv
+        .set(dir, STORE, POLICIES_KEY, policies)
+        .and_then(|()| kv.set(dir, STORE, DISABLED_KEY, disabled.into()))
+        .and_then(|()| kv.set(dir, STORE, ALL_ENABLED_KEY, registry.all_enabled().into()));
+    if let Err(e) = saved {
+        log::warn!("could not save background job settings: {e}");
+    }
+}
+
+fn load_saved(kv: &KvStore, dir: &Path, registry: &Registry) {
     let policies = kv
-        .get(&dir, STORE, POLICIES_KEY)
+        .get(dir, STORE, POLICIES_KEY)
         .ok()
         .flatten()
         .and_then(|v| serde_json::from_value::<HashMap<String, Policy>>(v).ok())
@@ -71,7 +73,7 @@ fn load_saved(app: &AppHandle, registry: &Registry) {
         registry.set_policy(&id, policy);
     }
     let disabled = kv
-        .get(&dir, STORE, DISABLED_KEY)
+        .get(dir, STORE, DISABLED_KEY)
         .ok()
         .flatten()
         .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
@@ -79,11 +81,17 @@ fn load_saved(app: &AppHandle, registry: &Registry) {
     for id in disabled {
         registry.set_enabled(&id, false);
     }
-    if let Some(enabled) = kv.get(&dir, STORE, ALL_ENABLED_KEY).ok().flatten().and_then(|v| v.as_bool()) {
+    if let Some(enabled) = kv.get(dir, STORE, ALL_ENABLED_KEY).ok().flatten().and_then(|v| v.as_bool()) {
         registry.set_all_enabled(enabled);
     }
-    if let Some(enabled) = kv.get(&dir, STORE, PAUSE_KEY).ok().flatten().and_then(|v| v.as_bool()) {
-        registry.set_pause_in_game(enabled);
+    if let Some(pause) = kv.get(dir, STORE, PAUSE_KEY).ok().flatten() {
+        if pause.as_bool() == Some(false) {
+            registry.keep_running_instead_of_pausing();
+        }
+        save(kv, dir, registry);
+        if let Err(e) = kv.delete(dir, STORE, PAUSE_KEY) {
+            log::warn!("could not drop the old pause switch: {e}");
+        }
     }
 }
 
@@ -95,7 +103,9 @@ pub fn start(app: &AppHandle) {
     state.registry.declare(crate::features::diagnostics::scan_job::JOB);
     #[cfg(windows)]
     state.registry.declare(crate::features::server_picker::SYNC_JOB);
-    load_saved(app, &state.registry);
+    if let Ok(dir) = app.path().app_data_dir() {
+        load_saved(&app.state::<KvStore>(), &dir, &state.registry);
+    }
 
     let emit_app = app.clone();
     let events = Arc::new(Coalescer::spawn(EVENT_INTERVAL, move || {
@@ -152,18 +162,6 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub async fn set_pause_in_game(
-        app: AppHandle,
-        state: tauri::State<'_, JobsState>,
-        enabled: bool,
-    ) -> Result<(), AppError> {
-        state.registry.set_pause_in_game(enabled);
-        state.persist(&app);
-        state.notify();
-        Ok(())
-    }
-
-    #[tauri::command]
     pub async fn set_job_enabled(
         app: AppHandle,
         state: tauri::State<'_, JobsState>,
@@ -192,5 +190,84 @@ pub mod commands {
     pub async fn force_run_job(state: tauri::State<'_, JobsState>, id: String) -> Result<(), AppError> {
         state.registry.force_run(&id);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::features::jobs::JobSpec;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("deadlock-plus-jobs-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn registry() -> Arc<Registry> {
+        let registry = Registry::new(GameFlag::new(false), Arc::new(|_| {}));
+        registry.declare(JobSpec { id: "scan", default_policy: Policy::PauseInGame, policy_configurable: true });
+        registry.declare(JobSpec { id: "index", default_policy: Policy::PauseInGame, policy_configurable: true });
+        registry.declare(JobSpec { id: "sync", default_policy: Policy::Always, policy_configurable: false });
+        registry
+    }
+
+    fn policies(registry: &Registry) -> Vec<(String, Policy)> {
+        registry.snapshot().catalog.into_iter().map(|c| (c.id, c.policy)).collect()
+    }
+
+    #[test]
+    fn a_saved_pause_switch_that_was_off_turns_pause_tasks_into_keep_running() {
+        let dir = temp_dir("pause-off");
+        let kv = KvStore::default();
+        kv.set(&dir, STORE, POLICIES_KEY, json!({"index": "slowInGame"})).unwrap();
+        kv.set(&dir, STORE, PAUSE_KEY, json!(false)).unwrap();
+
+        let registry = registry();
+        load_saved(&kv, &dir, &registry);
+
+        let expected = [("scan", Policy::Always), ("index", Policy::SlowInGame), ("sync", Policy::Always)];
+        assert_eq!(policies(&registry), expected.map(|(id, p)| (id.to_string(), p)));
+        assert_eq!(kv.get(&dir, STORE, PAUSE_KEY).unwrap(), None);
+
+        let reread = KvStore::default();
+        assert_eq!(reread.get(&dir, STORE, PAUSE_KEY).unwrap(), None, "the flag is gone from disk");
+        let fresh = registry_from(&reread, &dir);
+        assert_eq!(policies(&fresh), policies(&registry), "the rewritten policies are saved");
+    }
+
+    #[test]
+    fn a_saved_pause_switch_that_was_on_keeps_pause_tasks_and_drops_the_flag() {
+        let dir = temp_dir("pause-on");
+        let kv = KvStore::default();
+        kv.set(&dir, STORE, PAUSE_KEY, json!(true)).unwrap();
+
+        let registry = registry();
+        load_saved(&kv, &dir, &registry);
+
+        assert_eq!(policies(&registry)[0], ("scan".to_string(), Policy::PauseInGame));
+        assert!(registry.policy_overrides().is_empty());
+        assert_eq!(kv.get(&dir, STORE, PAUSE_KEY).unwrap(), None);
+    }
+
+    #[test]
+    fn no_saved_pause_switch_changes_nothing() {
+        let dir = temp_dir("pause-none");
+        let kv = KvStore::default();
+
+        let registry = registry();
+        load_saved(&kv, &dir, &registry);
+
+        assert_eq!(policies(&registry)[1], ("index".to_string(), Policy::PauseInGame));
+        assert!(!dir.join(format!("{STORE}.json")).exists(), "loading alone writes nothing");
+    }
+
+    fn registry_from(kv: &KvStore, dir: &Path) -> Arc<Registry> {
+        let registry = registry();
+        load_saved(kv, dir, &registry);
+        registry
     }
 }

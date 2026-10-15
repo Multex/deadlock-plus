@@ -79,8 +79,6 @@ pub struct JobsSnapshot {
     pub game_running: bool,
     /// Off stops every job from starting on its own, whatever its own switch says.
     pub all_enabled: bool,
-    /// Off lets `PauseInGame` jobs run unthrottled while the game runs.
-    pub pause_in_game: bool,
 }
 
 /// Turns a burst of `notify` calls into at most one `emit` per `interval`. The first call after a
@@ -220,7 +218,6 @@ struct Job {
 struct Inner {
     jobs: Vec<Job>,
     catalog: Vec<JobSpec>,
-    pause_in_game: bool,
     next_generation: u64,
     all_enabled: bool,
     disabled: HashSet<String>,
@@ -255,7 +252,6 @@ impl Registry {
             inner: Mutex::new(Inner {
                 jobs: Vec::new(),
                 catalog: Vec::new(),
-                pause_in_game: true,
                 next_generation: 0,
                 all_enabled: true,
                 disabled: HashSet::new(),
@@ -324,10 +320,6 @@ impl Registry {
         self.inner.lock_or_recover().overrides.clone()
     }
 
-    pub fn pause_in_game(&self) -> bool {
-        self.inner.lock_or_recover().pause_in_game
-    }
-
     /// Whether the job may start on its own: its own switch and the global one are both on.
     pub fn is_enabled(&self, id: &str) -> bool {
         let inner = self.inner.lock_or_recover();
@@ -358,7 +350,6 @@ impl Registry {
             jobs: inner.jobs.iter().map(|j| j.info.clone()).collect(),
             game_running: self.game.get(),
             all_enabled: inner.all_enabled,
-            pause_in_game: inner.pause_in_game,
         }
     }
 
@@ -389,10 +380,23 @@ impl Registry {
         self.game.wake_all();
     }
 
-    /// Master switch. Off means `PauseInGame` jobs run unthrottled.
-    pub fn set_pause_in_game(&self, enabled: bool) {
-        self.inner.lock_or_recover().pause_in_game = enabled;
-        self.game.wake_all();
+    /// Moves every job that would pause in game, by its own choice or its default, to `Always`.
+    pub fn keep_running_instead_of_pausing(&self) {
+        let ids: Vec<String> = {
+            let inner = self.inner.lock_or_recover();
+            let declared = inner
+                .catalog
+                .iter()
+                .filter(|spec| {
+                    inner.overrides.get(spec.id).copied().unwrap_or(spec.default_policy) == Policy::PauseInGame
+                })
+                .map(|spec| spec.id.to_string());
+            let chosen = inner.overrides.iter().filter(|(_, p)| **p == Policy::PauseInGame).map(|(id, _)| id.clone());
+            declared.chain(chosen).collect()
+        };
+        for id in ids {
+            self.set_policy(&id, Policy::Always);
+        }
     }
 
     pub fn set_enabled(&self, id: &str, enabled: bool) {
@@ -488,7 +492,6 @@ impl Registry {
 
     fn decide(&self, id: &str, generation: u64) -> Decision {
         let mut inner = self.inner.lock_or_recover();
-        let pause_enabled = inner.pause_in_game;
         let Some(job) = inner.jobs.iter_mut().find(|j| j.info.id == id && j.generation == generation) else {
             return Decision::Cancelled;
         };
@@ -506,7 +509,7 @@ impl Registry {
             return Decision::Proceed(resumed(job));
         }
         match job.info.policy {
-            Policy::PauseInGame if game && pause_enabled => {
+            Policy::PauseInGame if game => {
                 let entered = (job.info.state != JobState::Paused).then(|| {
                     job.info.state = JobState::Paused;
                     job.info.clone()

@@ -213,16 +213,14 @@
         },
         "startup": {
             "tray_description": "Closing the window hides Deadlock+ instead of quitting, so monitoring keeps going. Quit from the tray icon.",
-            "jobs_description": "Deadlock+ scans your mods and gets patch notes ready to search in the background. These settings decide whether that work runs, and what it does while Deadlock is open.",
+            "jobs_description": "Deadlock+ scans your mods, gets patch notes ready to search and keeps your server blocks up to date in the background. These settings decide whether that work runs, and what it does while Deadlock is open.",
             "all_jobs_label": "Allow background work",
             "all_jobs_description": "Turn this off and no task starts by itself. You can still run a scan from the Performance page.",
-            "pause_label": "Pause background work while Deadlock runs",
-            "pause_description": "The app-wide switch for pausing. When it is on, every task set to Pause below stops while Deadlock is open and carries on when you close it. When it is off, no task pauses, whatever it is set to. Tasks set to Slow down still slow down.",
             "tasks_title": "Tasks",
-            "tasks_description": "Each task can run by itself or not, and can pause, slow down or keep running while Deadlock is open. Pause only works while the pause switch above is on.",
+            "tasks_description": "Each task can run by itself or not, and can pause, slow down or keep running while Deadlock is open.",
             "run_by_itself": "Run by itself",
             "while_running": "While Deadlock runs",
-            "pause_ignored": "Set to Pause, but the pause switch above is off, so this keeps running."
+            "advanced": "Advanced"
         },
         "notifications": {
             "alerts_description": "Notifies you when a new Deadlock patch note or Steam announcement is posted. Checks the public Deadlock API every 15 minutes and sends nothing about you. Needs the app running, so pair it with the tray option.",

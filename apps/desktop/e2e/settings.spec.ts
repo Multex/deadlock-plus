@@ -5,19 +5,20 @@ import { expect, settle, test } from "./support/test";
 
 const CATEGORIES = settingsCategories();
 
-// Controls the loop found on each page on 2026-10-13. A page that renders fewer has lost a control or
-// changed how it exposes one, and the loop would otherwise pass without having tried it.
+// Controls the loop found on each page on 2026-10-14, with every "Advanced" disclosure open. A page that
+// renders fewer has lost a control or changed how it exposes one, and the loop would otherwise pass without
+// having tried it.
 const FLOOR: Record<string, number> = {
     appearance: 3,
     language: 1,
-    startup: 9,
+    startup: 8,
     notifications: 4,
     discord: 24,
     privacy: 3,
     about: 1,
     diagnostics: 2,
 };
-const TOTAL_FLOOR = 47;
+const TOTAL_FLOOR = 46;
 
 type Kept = "backend" | "presence" | "browser" | "nowhere";
 
@@ -34,7 +35,6 @@ const OUTSIDE_KV: Record<string, Record<string, Kept>> = {
         "Start with Windows": "backend",
         "Start at login": "backend",
         "Allow background work": "backend",
-        "Pause background work while Deadlock runs": "backend",
     },
     discord: {
         Editing: "nowhere",
@@ -54,6 +54,11 @@ function keptOutsideKv(category: string, name: string): Kept | undefined {
     // Each activity state has its own switch, named after the state: "Show {state} on Discord".
     if (category === "discord" && /^Show .+ on Discord$/.test(name)) return "presence";
     return OUTSIDE_KV[category]?.[name];
+}
+
+// Reloading or leaving Settings closes every disclosure, so this runs again after each.
+async function openDisclosures(page: Page) {
+    for (const summary of await main(page).locator("details:not([open]) > summary").all()) await summary.click();
 }
 
 /** The Discord activity layout the demo backend holds, as text that can be compared. */
@@ -185,11 +190,13 @@ async function leaveSettingsAndReturn(page: Page, category: string) {
         .click();
     await expect(page).toHaveURL(new RegExp(`/settings/${category}$`));
     await settle(page);
+    await openDisclosures(page);
 }
 
 async function reload(page: Page) {
     await page.reload();
     await settle(page);
+    await openDisclosures(page);
 }
 
 for (const category of CATEGORIES) {
@@ -197,6 +204,7 @@ for (const category of CATEGORIES) {
         test.setTimeout(180_000);
         await keepKvAcrossReloads(page);
         await open(page, `/settings/${category}`);
+        await openDisclosures(page);
 
         const controls = await controlsOn(page);
         expect(controls.length, `controls found on /settings/${category}`).toBeGreaterThanOrEqual(FLOOR[category] ?? 0);
@@ -249,6 +257,7 @@ test("no two switches or selects on a settings page share a name", async ({ page
     test.setTimeout(120_000);
     for (const category of CATEGORIES) {
         await open(page, `/settings/${category}`);
+        await openDisclosures(page);
         const names = (await controlsOn(page))
             .filter((control) => control.kind === "switch" || control.kind === "select")
             .map((control) => `${control.kind}: ${control.name}`);
@@ -267,6 +276,7 @@ test("the settings pages still hold the controls that were counted", async ({ pa
     let total = 0;
     for (const category of CATEGORIES) {
         await open(page, `/settings/${category}`);
+        await openDisclosures(page);
         total += (await controlsOn(page)).length;
     }
     expect(total).toBeGreaterThanOrEqual(TOTAL_FLOOR);

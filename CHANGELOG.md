@@ -14,6 +14,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- Background tasks moved under Advanced in Startup settings.
+- The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
+
 - The Discord link opens the invite in the Discord app when it is installed.
 - Anonymous usage data now counts clicks on the Discord link.
 - Screen readers now announce which player, replay, region or preset a button acts on.
