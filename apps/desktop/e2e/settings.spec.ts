@@ -15,8 +15,8 @@ const FLOOR: Record<string, number> = {
     notifications: 4,
     privacy: 1,
     sharing: 2,
-    about: 1,
     diagnostics: 2,
+    about: 1,
 };
 const TOTAL_FLOOR = 22;
 

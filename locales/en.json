@@ -134,10 +134,8 @@
             "startup": "Startup and background",
             "notifications": "Notifications",
             "privacy": "Privacy",
-            "about": "Version",
+            "about": "About",
             "diagnostics": "Diagnostics",
-            "thanks": "Thanks",
-            "licenses": "Licenses",
             "sharing": "Match sharing",
             "storage": "Storage"
         },
@@ -453,8 +451,7 @@
             "check_now": "Check now",
             "auto_check_label": "Check automatically",
             "auto_check_description": "Asks GitHub for a newer release on launch and every hour after. Nothing installs without your click.",
-            "open_full": "Open full page",
-            "no_notes": "No release notes yet."
+            "whats_new_in": "What's new in {version}"
         },
         "diagnostics": {
             "description": "This session's log. Names in file paths are hidden when you copy or save it. Only needed when reporting a bug.",

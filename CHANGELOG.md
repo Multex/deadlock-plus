@@ -25,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Performance, Mutes and Replays sit in a Tools group in the sidebar that you can fold.
 - Storage moved into Settings.
 - Match sharing has its own Settings category.
+- Settings > About now holds Thanks, Licenses and a What's new link.
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
 - Resetting the usage data ID moved under Advanced in Privacy settings.

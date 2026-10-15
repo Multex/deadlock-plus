@@ -126,9 +126,7 @@
             "notifications": "Уведомления",
             "privacy": "Конфиденциальность",
             "about": "Версия",
-            "diagnostics": "Диагностика",
-            "thanks": "",
-            "licenses": "Лицензии"
+            "diagnostics": "Диагностика"
         },
         "items": {
             "theme": "Тема",
@@ -437,9 +435,7 @@
             "install": "",
             "check_now": "",
             "auto_check_label": "",
-            "auto_check_description": "",
-            "open_full": "",
-            "no_notes": ""
+            "auto_check_description": ""
         },
         "diagnostics": {
             "description": "",

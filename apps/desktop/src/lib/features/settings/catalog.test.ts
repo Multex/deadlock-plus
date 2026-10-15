@@ -20,11 +20,27 @@ describe("catalog", () => {
         expect(ids.indexOf("language")).toBe(ids.indexOf("appearance") + 1);
     });
 
-    it("gives thanks its own category, between diagnostics and licenses", () => {
-        const ids = CATEGORIES.map((c) => c.id);
-        expect(ITEMS.find((i) => i.id === "thanks")?.category).toBe("thanks");
-        expect(ids.indexOf("thanks")).toBe(ids.indexOf("diagnostics") + 1);
-        expect(ids.indexOf("licenses")).toBe(ids.indexOf("thanks") + 1);
+    it("orders the categories as laid out in the settings page", () => {
+        expect(CATEGORIES.map((c) => c.id)).toEqual([
+            "appearance",
+            "language",
+            "startup",
+            "notifications",
+            "privacy",
+            "sharing",
+            "storage",
+            "diagnostics",
+            "about",
+        ]);
+    });
+
+    it("files items under the merged categories", () => {
+        const cat = (id: string) => ITEMS.find((i) => i.id === id)?.category;
+        expect(cat("match-ingest")).toBe("sharing");
+        expect(cat("gc-recovery")).toBe("sharing");
+        expect(cat("storage")).toBe("storage");
+        expect(cat("thanks")).toBe("about");
+        expect(cat("licenses")).toBe("about");
     });
 
     it("has unique item ids", () => {

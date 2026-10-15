@@ -126,9 +126,7 @@
             "notifications": "",
             "privacy": "",
             "about": "",
-            "diagnostics": "",
-            "thanks": "",
-            "licenses": ""
+            "diagnostics": ""
         },
         "items": {
             "theme": "",
@@ -433,9 +431,7 @@
             "install": "",
             "check_now": "",
             "auto_check_label": "",
-            "auto_check_description": "",
-            "open_full": "",
-            "no_notes": ""
+            "auto_check_description": ""
         },
         "diagnostics": {
             "description": "",

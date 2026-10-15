@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { Bell, Bug, HardDrive, Info, Languages, Heart, Palette, Power, Scale, Share2, Shield } from "@lucide/svelte";
+import { Bell, Bug, HardDrive, Info, Languages, Palette, Power, Share2, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartTitle } from "./autostart";
@@ -11,11 +11,9 @@ export type CategoryId =
     | "notifications"
     | "privacy"
     | "sharing"
-    | "about"
     | "storage"
     | "diagnostics"
-    | "thanks"
-    | "licenses";
+    | "about";
 
 export interface Category {
     id: CategoryId;
@@ -74,13 +72,6 @@ export const CATEGORIES: Category[] = [
         icon: Share2,
     },
     {
-        id: "about",
-        get label() {
-            return t("settings.categories.about");
-        },
-        icon: Info,
-    },
-    {
         id: "storage",
         get label() {
             return t("settings.categories.storage");
@@ -95,18 +86,11 @@ export const CATEGORIES: Category[] = [
         icon: Bug,
     },
     {
-        id: "thanks",
+        id: "about",
         get label() {
-            return t("settings.categories.thanks");
+            return t("settings.categories.about");
         },
-        icon: Heart,
-    },
-    {
-        id: "licenses",
-        get label() {
-            return t("settings.categories.licenses");
-        },
-        icon: Scale,
+        icon: Info,
     },
 ];
 
@@ -234,7 +218,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "thanks",
-        category: "thanks",
+        category: "about",
         get title() {
             return t("settings.items.thanks");
         },
@@ -258,7 +242,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "licenses",
-        category: "licenses",
+        category: "about",
         get title() {
             return t("settings.items.licenses");
         },
