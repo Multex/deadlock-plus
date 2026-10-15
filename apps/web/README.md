@@ -4,11 +4,12 @@ The Deadlock+ website. SvelteKit on a Cloudflare Worker.
 
 ## What it does
 
-- **Pages**: `/`, `/features`, `/download` and `/privacy`. `<body data-sveltekit-reload>` makes every navigation a full request, so the server counts each page view. Feature copy lives in `src/lib/content/features.ts`.
+- **Pages**: `/`, `/features`, `/download`, `/transparency` and `/privacy`. `<body data-sveltekit-reload>` makes every navigation a full request, so the server counts each page view. Feature copy lives in `src/lib/content/features.ts`.
 - **Look**: the theme, fonts and UI primitives (bits-ui, tailwind-variants) come from `packages/ui` (`@deadlock-plus/ui`), the same package the desktop app uses. `src/app.css` imports them and adds only the website's own rules.
 - **Discord redirect** at `/discord/<ref>`. It records the click and answers `302` to the invite for that ref.
 - **Referrer counts.** Every page view records where the visitor came from.
 - **Join counts.** Once an hour a bot reads how many times each Discord invite was used.
+- **Transparency numbers.** The same hourly job stores four public totals for `/transparency`.
 
 All counts go to PostHog. Without `POSTHOG_KEY` and `POSTHOG_HOST` the site sends nothing.
 
@@ -76,6 +77,44 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
 - Link previewers and crawlers are redirected but not counted.
 - `fallback: true` means the release list had no file for the platform. The visitor was sent to the latest release page and `version` is `null`.
 
+## Transparency page
+
+`/transparency` reads two things from the `TRANSPARENCY` KV namespace. The page never calls another service.
+
+**Stats** (key `stats`), written by the hourly job:
+
+| Number               | Source                                                                         |
+| -------------------- | ------------------------------------------------------------------------------ |
+| Installs             | PostHog: distinct install IDs that sent `app_started` or `heartbeat`           |
+| Monthly active users | The same, over the last 30 days                                                |
+| Downloads            | GitHub: `download_count` of installer files (`latest.json` and `.sig` skipped) |
+| Discord members      | Discord: `approximate_member_count` of the server                              |
+
+A source that fails or has no secrets keeps its last stored number and time.
+
+**Costs** (key `costs`), edited by hand in the Cloudflare dashboard (Workers KV, the namespace, the `costs` key) or with `wrangler kv key put`. Changes show on the next page load.
+
+```json
+{
+    "currency": "USD",
+    "items": [
+        { "name": "Domain", "purpose": "deadlockplus.app", "amount": 15.18, "period": "year", "since": "2026-10-14" },
+        {
+            "name": "Old host",
+            "purpose": "Test server",
+            "amount": 4,
+            "period": "month",
+            "since": "2026-07-01",
+            "until": "2026-09-01"
+        }
+    ]
+}
+```
+
+- `period` is `month`, `year` or `once`. `since` is the first charge; `until` (optional) is the first day with no charge. Dates are `YYYY-MM-DD`.
+- The page works out the monthly total and the amount spent so far from these dates.
+- One bad row rejects the whole list. The page then shows `costs:last-good`, which the hourly job copies from `costs` whenever it is valid.
+
 ## Privacy
 
 - No cookies and no client-side tracking script.
@@ -97,7 +136,14 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
     pnpm wrangler secret put DISCORD_GUILD_ID
     ```
     Without these two the hourly job does nothing.
-4. The site is served at `deadlockplus.app` (`routes` in `wrangler.toml`, a Cloudflare custom domain). The domain must be a zone in the same Cloudflare account as the Worker, or the deploy fails. `www.deadlockplus.app` is routed too and redirects to the bare domain (`src/lib/server/host.ts`). The `workers.dev` address is turned off.
+4. For the transparency page, create the KV namespace and put its id in `wrangler.toml` (`TRANSPARENCY`), then add a PostHog personal API key limited to `query:read` on the project:
+    ```sh
+    pnpm wrangler kv namespace create TRANSPARENCY
+    pnpm wrangler secret put POSTHOG_PERSONAL_KEY
+    pnpm wrangler secret put GITHUB_TOKEN   # optional, avoids GitHub's shared anonymous limit
+    ```
+    `POSTHOG_PROJECT_ID` is a plain var in `wrangler.toml`.
+5. The site is served at `deadlockplus.app` (`routes` in `wrangler.toml`, a Cloudflare custom domain). The domain must be a zone in the same Cloudflare account as the Worker, or the deploy fails. `www.deadlockplus.app` is routed too and redirects to the bare domain (`src/lib/server/host.ts`). The `workers.dev` address is turned off.
 
 ## Deploy workflow
 

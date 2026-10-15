@@ -1,10 +1,14 @@
 <script lang="ts">
     import Seo from "$lib/components/seo.svelte";
+    import { page } from "$app/state";
     import { LINKS } from "$lib/content/links";
+    import { currentRef, withRef } from "$lib/content/ref";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
+
+    const ref = $derived(currentRef(page.url));
 </script>
 
 <Seo
@@ -39,6 +43,11 @@
                 names.
             </li>
             <li>The download page asks GitHub for the list of Deadlock+ versions. Nothing about you is sent.</li>
+            <li>
+                The <a href={withRef("/transparency", ref)} class="underline hover:text-foreground">Transparency page</a
+                > shows four totals: installs, monthly active users, downloads and Discord members. No number on it is about
+                one person.
+            </li>
         </ul>
         <p class="mt-3 text-sm text-muted-foreground">
             The counts are stored with <a href="https://posthog.com" class="underline hover:text-foreground">PostHog</a

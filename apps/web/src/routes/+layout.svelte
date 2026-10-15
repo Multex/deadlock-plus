@@ -1,7 +1,7 @@
 <script lang="ts">
     import "../app.css";
     import type { Component } from "svelte";
-    import { Code } from "@lucide/svelte";
+    import { Code, Eye } from "@lucide/svelte";
     import { page } from "$app/state";
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import KofiIcon from "@deadlock-plus/ui/icons/kofi.svelte";
@@ -43,6 +43,7 @@
             links: [
                 { href: discordHref(ref), label: "Discord", icon: DiscordIcon, plain: true },
                 { href: LINKS.repo, label: "Source code", icon: Code },
+                { href: "/transparency", label: "Transparency", icon: Eye },
                 { href: LINKS.support, label: "Support the project", icon: KofiIcon, tone: "text-kofi" },
             ],
         },

@@ -12,6 +12,13 @@ routes = [
 directory = ".svelte-kit/cloudflare"
 binding = "ASSETS"
 
+[[kv_namespaces]]
+binding = "TRANSPARENCY"
+id = "f91351f4f4dc4d2fa8c0d6236b26533f"
+
+[vars]
+POSTHOG_PROJECT_ID = "295233"
+
 [triggers]
 crons = ["0 * * * *"]
 

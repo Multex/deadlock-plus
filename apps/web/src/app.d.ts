@@ -1,10 +1,10 @@
 /// <reference types="@sveltejs/adapter-cloudflare" />
-import type { PollEnv } from "$lib/server/invite-poll";
+import type { WorkerEnv } from "$lib/server/env";
 
 declare global {
     namespace App {
         interface Platform {
-            env: PollEnv;
+            env: WorkerEnv;
         }
     }
 }

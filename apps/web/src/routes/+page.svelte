@@ -117,6 +117,9 @@
         <div class="mt-5 flex flex-wrap gap-2">
             <a href={LINKS.repo} class={buttonVariants({ variant: "outline", size: "sm" })}>Read the code</a>
             <a href={withRef("/privacy", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>Privacy</a>
+            <a href={withRef("/transparency", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}
+                >Transparency</a
+            >
         </div>
     </Section>
 
