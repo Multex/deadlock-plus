@@ -33,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Resetting the usage data ID moved under Advanced in Privacy settings.
 - Ctrl+1 to Ctrl+7 now open Home through Presence.
 - Anonymous usage data now counts Presence visits.
+- The "Download Deadlock+" button on your Discord activity now opens the Deadlock+ website.
 
 - The Discord link opens the invite in the Discord app when it is installed.
 - Anonymous usage data now counts clicks on the Discord link.

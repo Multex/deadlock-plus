@@ -152,11 +152,11 @@ pub struct Presence {
     pub party: Option<(u32, u32)>,
 }
 
-const SUPPORT_URL: &str = "https://github.com/deadlock-plus/deadlock-plus/releases/latest";
+const DOWNLOAD_URL: &str = "https://deadlockplus.app/?ref=discord-rpc";
 
 pub fn with_support_button(mut presence: Presence, on: bool) -> Presence {
     if on {
-        presence.buttons.push(Button { label: "Download Deadlock+".into(), url: SUPPORT_URL.into() });
+        presence.buttons.push(Button { label: "Download Deadlock+".into(), url: DOWNLOAD_URL.into() });
     }
     presence
 }
@@ -474,7 +474,7 @@ mod tests {
             with_support_button(base, true).buttons,
             vec![Button {
                 label: "Download Deadlock+".into(),
-                url: "https://github.com/deadlock-plus/deadlock-plus/releases/latest".into()
+                url: "https://deadlockplus.app/?ref=discord-rpc".into()
             }]
         );
     }
