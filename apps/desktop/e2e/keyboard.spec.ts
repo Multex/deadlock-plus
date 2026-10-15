@@ -10,6 +10,8 @@ const command = (page: Page, name: string | RegExp) =>
     palette(page).getByRole("option", { name, exact: typeof name === "string" });
 const highlighted = (page: Page) => palette(page).getByRole("option", { selected: true });
 const sidebar = (page: Page) => page.getByRole("complementary").getByRole("navigation");
+const tools = (page: Page) => sidebar(page).getByRole("group", { name: "Tools", exact: true });
+const toolsToggle = (page: Page) => tools(page).getByRole("button", { name: "Tools", exact: true });
 const pathOf = (page: Page) => new URL(page.url()).pathname;
 
 async function openPalette(page: Page) {
@@ -45,9 +47,16 @@ test.describe("the command palette", () => {
         await expect(palette(page)).toBeHidden();
     });
 
-    test("it lists every sidebar page in order, the first nine with their shortcut", async ({ page }) => {
-        const pages = await sidebar(page).getByRole("link").allInnerTexts();
-        expect(pages.length).toBeGreaterThan(MAX_PAGE_JUMPS);
+    test("it lists every sidebar page in order, the main nine with their shortcut and the tools without", async ({
+        page,
+    }) => {
+        const trimmed = (texts: string[]) => texts.map((text) => text.trim());
+        const toolNames = trimmed(await tools(page).getByRole("link").allInnerTexts());
+        const mainNames = trimmed(await sidebar(page).getByRole("link").allInnerTexts()).filter(
+            (name) => !toolNames.includes(name),
+        );
+        expect(mainNames).toHaveLength(MAX_PAGE_JUMPS);
+        expect(toolNames.length).toBeGreaterThan(0);
         await openPalette(page);
 
         const listed = await palette(page)
@@ -55,9 +64,10 @@ test.describe("the command palette", () => {
             .getByRole("option")
             .allInnerTexts();
 
-        expect(listed.map((text) => text.replace(/\s+/g, " ").trim())).toEqual(
-            pages.map((name, index) => (index < MAX_PAGE_JUMPS ? `${name.trim()} Ctrl+${index + 1}` : name.trim())),
-        );
+        expect(listed.map((text) => text.replace(/\s+/g, " ").trim())).toEqual([
+            ...mainNames.map((name, index) => `${name} Ctrl+${index + 1}`),
+            ...toolNames,
+        ]);
     });
 
     test("typing narrows the list and highlights the best match", async ({ page }) => {
@@ -109,7 +119,7 @@ test.describe("the command palette", () => {
 
     test("Enter on a typed match goes to that page, settings section or action", async ({ page }) => {
         for (const [text, url] of [
-            ["storage", /\/storage$/],
+            ["mutes", /\/voice-bans$/],
             ["settings: privacy", /\/settings\/privacy$/],
             ["open settings", /\/settings\/appearance$/],
             ["check for updates", /\/settings\/about$/],
@@ -133,7 +143,7 @@ test.describe("the command palette", () => {
         const mutes = sidebar(page).getByRole("link", { name: "Mutes", exact: true });
         await mutes.focus();
         await openPalette(page);
-        await page.keyboard.type("storage");
+        await page.keyboard.type("replays");
 
         await page.keyboard.press("Escape");
 
@@ -144,7 +154,7 @@ test.describe("the command palette", () => {
 
     test("it opens empty the next time", async ({ page }) => {
         await openPalette(page);
-        await page.keyboard.type("storage");
+        await page.keyboard.type("replays");
         await page.keyboard.press("Escape");
         await expect(palette(page)).toBeHidden();
 
@@ -167,13 +177,16 @@ test.describe("the command palette", () => {
 });
 
 test.describe("page shortcuts", () => {
-    test("Ctrl+1 to Ctrl+9 jump to the first nine sidebar pages, in sidebar order", async ({ page }) => {
-        await open(page, "/storage");
-        const links = sidebar(page).getByRole("link");
-        const targets = await Promise.all(
-            (await links.all()).slice(0, MAX_PAGE_JUMPS).map((link) => link.getAttribute("href")),
-        );
+    test("Ctrl+1 to Ctrl+9 jump to the nine main sidebar pages, in sidebar order, never to a tool", async ({
+        page,
+    }) => {
+        await open(page, "/demos");
+        const hrefs = async (links: Locator) =>
+            Promise.all((await links.all()).map((link) => link.getAttribute("href")));
+        const toolHrefs = await hrefs(tools(page).getByRole("link"));
+        const targets = (await hrefs(sidebar(page).getByRole("link"))).filter((href) => !toolHrefs.includes(href));
         expect(targets).toHaveLength(MAX_PAGE_JUMPS);
+        expect(toolHrefs).toContain("/demos");
 
         // Backwards, so the first jump leaves the page the test opened and every jump changes the URL.
         for (let digit = MAX_PAGE_JUMPS; digit >= 1; digit--) {
@@ -183,7 +196,7 @@ test.describe("page shortcuts", () => {
     });
 
     test("a digit needs Ctrl alone: no modifier, Shift or Alt goes nowhere", async ({ page }) => {
-        await open(page, "/storage");
+        await open(page, "/demos");
 
         for (const keys of ["2", "Control+Shift+2", "Control+Alt+2", "Alt+2"]) await page.keyboard.press(keys);
         await page.keyboard.press("Control+0");
@@ -192,7 +205,7 @@ test.describe("page shortcuts", () => {
         await page.keyboard.press("Control+5");
         await expect(page).toHaveURL(/\/match-history$/);
         await page.goBack();
-        await expect(page).toHaveURL(/\/storage$/);
+        await expect(page).toHaveURL(/\/demos$/);
     });
 
     test("Ctrl+digit is left alone while typing in a text box", async ({ page }) => {
@@ -227,6 +240,59 @@ test.describe("page shortcuts", () => {
         await page.keyboard.press("Control+2");
 
         await expect(page).toHaveURL(/\/server-picker$/);
+    });
+});
+
+test.describe("the sidebar Tools group", () => {
+    const mutesLink = (page: Page) => sidebar(page).getByRole("link", { name: "Mutes", exact: true });
+    const replaysLink = (page: Page) => sidebar(page).getByRole("link", { name: "Replays", exact: true });
+
+    test("Enter and Space on its header close and open it, and it stays that way after a restart", async ({ page }) => {
+        await open(page, "/");
+        await expect(toolsToggle(page)).toHaveAttribute("aria-expanded", "true");
+        await expect(mutesLink(page)).toBeVisible();
+
+        await toolsToggle(page).focus();
+        await page.keyboard.press("Enter");
+
+        await expect(toolsToggle(page)).toHaveAttribute("aria-expanded", "false");
+        await expect(mutesLink(page)).toHaveCount(0);
+        await expect(replaysLink(page)).toHaveCount(0);
+
+        await page.reload();
+        await settle(page);
+        await expect(toolsToggle(page)).toHaveAttribute("aria-expanded", "false");
+        await expect(mutesLink(page)).toHaveCount(0);
+
+        await toolsToggle(page).focus();
+        await page.keyboard.press("Space");
+
+        await expect(toolsToggle(page)).toHaveAttribute("aria-expanded", "true");
+        await expect(mutesLink(page)).toBeVisible();
+    });
+
+    test("while closed it still shows the tool page you are on", async ({ page }) => {
+        await open(page, "/");
+        await toolsToggle(page).click();
+        await expect(mutesLink(page)).toHaveCount(0);
+
+        await run(page, "mutes");
+
+        await expect(page).toHaveURL(/\/voice-bans$/);
+        await expect(mutesLink(page)).toHaveAttribute("aria-current", "page");
+        await expect(replaysLink(page)).toHaveCount(0);
+        await expect(toolsToggle(page)).toHaveAttribute("aria-expanded", "false");
+    });
+
+    test("the icon-only sidebar keeps the header and names it on hover", async ({ page }) => {
+        await open(page, "/");
+        await page.getByRole("button", { name: "Collapse sidebar" }).click();
+
+        await toolsToggle(page).hover();
+
+        await expect(page.locator("[data-tooltip-content]")).toHaveText("Tools");
+        await toolsToggle(page).click();
+        await expect(mutesLink(page)).toHaveCount(0);
     });
 });
 

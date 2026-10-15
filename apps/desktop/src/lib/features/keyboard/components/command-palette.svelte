@@ -11,9 +11,10 @@
     import { openSupport } from "$lib/features/support/support";
     import { buildCommands, type Command as PaletteCommand, type CommandGroup } from "../commands";
     import { palette } from "../palette.svelte";
-    import { isPaletteKey, isTypingTarget, pageJumpIndex } from "../shortcuts";
+    import { isPaletteKey, isTypingTarget, jumpTargets, pageJumpIndex } from "../shortcuts";
 
     const GROUPS: CommandGroup[] = ["pages", "settings", "actions", "shortcuts"];
+    const JUMP_TARGETS = jumpTargets(NAV_ENTRIES);
 
     function groupLabel(group: CommandGroup): string {
         switch (group) {
@@ -61,7 +62,7 @@
         if (index === null || e.defaultPrevented || overlayHost.count > 0 || isTypingTarget(e.target as HTMLElement)) {
             return;
         }
-        const entry = NAV_ENTRIES[index];
+        const entry = JUMP_TARGETS[index];
         if (!entry) return;
         e.preventDefault();
         void goto(entry.href);

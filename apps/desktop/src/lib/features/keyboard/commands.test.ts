@@ -41,6 +41,18 @@ describe("buildCommands", () => {
         expect(commands[9].shortcut).toBeUndefined();
     });
 
+    it("gives tools no shortcut and keeps numbering the main pages past them", () => {
+        const pages = [
+            { id: "home", label: "Home", href: "/" },
+            { id: "voice-bans", label: "Mutes", href: "/voice-bans", group: "tools" as const },
+            { id: "stats", label: "Stats", href: "/stats" },
+        ];
+        const commands = buildCommands(deps({ pages }));
+
+        expect(commands.find((c) => c.id === "page:voice-bans")?.shortcut).toBeUndefined();
+        expect(commands.find((c) => c.id === "page:stats")?.shortcut).toBe("Ctrl+2");
+    });
+
     it("uses Cmd for the shortcuts on macOS", () => {
         const commands = buildCommands(deps({ platform: "macos" }));
         expect(commands.find((c) => c.id === "page:home")?.shortcut).toBe("Cmd+1");

@@ -37,6 +37,11 @@ export function pageJumpIndex(e: KeyInput, platform: Platform): number | null {
     return Number(e.key) - 1;
 }
 
+/** Pages Ctrl/Cmd+1..9 jump to, in order: grouped entries (the sidebar's Tools) get no digit. */
+export function jumpTargets<T extends { group?: string }>(entries: T[]): T[] {
+    return entries.filter((e) => !e.group).slice(0, MAX_PAGE_JUMPS);
+}
+
 export function isTypingTarget(target: TargetInput | null | undefined): boolean {
     if (!target) return false;
     return target.isContentEditable === true || TYPING_TAGS.has(target.tagName ?? "");

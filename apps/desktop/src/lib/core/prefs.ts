@@ -1,5 +1,6 @@
 export const PREF_KEYS = {
     sidebarCollapsed: "deadlock-plus:sidebar-collapsed",
+    sidebarToolsOpen: "deadlock-plus:sidebar-tools-open",
     heroCache: "deadlock-plus:heroes",
     launchCount: "deadlock-plus:launch-count",
     language: "deadlock-plus:language",

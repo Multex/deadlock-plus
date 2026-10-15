@@ -553,7 +553,8 @@
             "unread": "{count} unread",
             "settings": "Settings",
             "support": "Support Deadlock+",
-            "discord": "Join our Discord"
+            "discord": "Join our Discord",
+            "tools": "Tools"
         },
         "titlebar": {
             "expand_sidebar": "Expand sidebar",

@@ -1,6 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import type { Platform } from "$lib/core/platform";
-import { MAX_PAGE_JUMPS, modifierLabel } from "./shortcuts";
+import { jumpTargets, MAX_PAGE_JUMPS, modifierLabel } from "./shortcuts";
 
 export type CommandGroup = "pages" | "settings" | "actions" | "shortcuts";
 
@@ -14,7 +14,7 @@ export interface Command {
 }
 
 export interface CommandDeps {
-    pages: { id: string; label: string; href: string }[];
+    pages: { id: string; label: string; href: string; group?: "tools" }[];
     settingsSections: { id: string; label: string }[];
     platform: Platform;
     go: (href: string) => void;
@@ -25,17 +25,19 @@ export interface CommandDeps {
 export function buildCommands(deps: CommandDeps): Command[] {
     const mod = modifierLabel(deps.platform);
     const commands: Command[] = [];
+    const jumps = jumpTargets(deps.pages);
 
-    deps.pages.forEach((page, i) => {
+    for (const page of deps.pages) {
+        const digit = jumps.indexOf(page) + 1;
         commands.push({
             id: `page:${page.id}`,
             label: page.label,
             group: "pages",
             keywords: `${t("keyboard.keywords.page")} ${page.id}`,
-            shortcut: i < MAX_PAGE_JUMPS ? `${mod}+${i + 1}` : undefined,
+            shortcut: digit > 0 ? `${mod}+${digit}` : undefined,
             run: () => deps.go(page.href),
         });
-    });
+    }
 
     for (const section of deps.settingsSections) {
         commands.push({

@@ -22,8 +22,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Changed
 
 - The Updates page is now called News.
+- Performance, Mutes and Replays sit in a Tools group in the sidebar that you can fold.
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
+- Ctrl+1 to Ctrl+9 now open Home through Presence.
 - Anonymous usage data now counts Presence visits.
 
 - The Discord link opens the invite in the Discord app when it is installed.

@@ -42,6 +42,8 @@ export interface FeatureNavEntry {
     icon: Component<{ class?: string }>;
     /** Count shown as a dot on the nav link while above zero. */
     badge?: () => number;
+    /** Occasional tools, listed after the main entries in a collapsible sidebar group. */
+    group?: "tools";
 }
 
 export const HOME_ENTRY: FeatureNavEntry = {
@@ -160,6 +162,7 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.performance");
         },
         icon: Gauge,
+        group: "tools",
     },
     {
         id: "voice-bans",
@@ -171,6 +174,7 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.voice_bans");
         },
         icon: VolumeX,
+        group: "tools",
     },
     {
         id: "demos",
@@ -182,6 +186,7 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.demos");
         },
         icon: Film,
+        group: "tools",
     },
     {
         id: "storage",
@@ -196,7 +201,7 @@ export const FEATURES: FeatureNavEntry[] = [
     },
 ];
 
-/** Sidebar order; Ctrl/Cmd+1..9 jump to the first nine. */
+/** Sidebar order, tools last; Ctrl/Cmd+1..9 jump to the first nine. */
 export const NAV_ENTRIES: FeatureNavEntry[] = [HOME_ENTRY, ...FEATURES];
 
 /** Started in order when the app mounts; a returned function stops the service. */

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { isPaletteKey, isTypingTarget, MAX_PAGE_JUMPS, modifierLabel, pageJumpIndex, type KeyInput } from "./shortcuts";
+import {
+    isPaletteKey,
+    isTypingTarget,
+    jumpTargets,
+    MAX_PAGE_JUMPS,
+    modifierLabel,
+    pageJumpIndex,
+    type KeyInput,
+} from "./shortcuts";
 
 function key(k: string, mods: Partial<KeyInput> = {}): KeyInput {
     return { key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...mods };
@@ -44,6 +52,26 @@ describe("pageJumpIndex", () => {
 
     it("caps at the number of jump keys", () => {
         expect(MAX_PAGE_JUMPS).toBe(9);
+    });
+});
+
+describe("jumpTargets", () => {
+    it("skips grouped entries so tools never take a digit", () => {
+        const entries = [
+            { id: "home" },
+            { id: "mutes", group: "tools" as const },
+            { id: "stats" },
+            { id: "replays", group: "tools" as const },
+        ];
+
+        expect(jumpTargets(entries).map((e) => e.id)).toEqual(["home", "stats"]);
+    });
+
+    it("stops at nine", () => {
+        const entries = Array.from({ length: 12 }, (_, i): { id: string; group?: "tools" } => ({ id: `p${i}` }));
+
+        expect(jumpTargets(entries)).toHaveLength(MAX_PAGE_JUMPS);
+        expect(jumpTargets(entries)[8]?.id).toBe("p8");
     });
 });
 
