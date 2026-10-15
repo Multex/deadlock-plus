@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { focusIsVisible, open } from "./support/flows";
 import { expect, settle, test } from "./support/test";
 
-const MAIN_PAGES = 8;
+const MAIN_PAGES = 7;
 
 const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });
 const search = (page: Page) => palette(page).getByRole("combobox", { name: "Search commands" });
@@ -361,7 +361,7 @@ test.describe("Tab order on Home", () => {
     test("Tab reaches every sidebar link in order, then Settings, then the main actions", async ({ page }) => {
         const home = page.getByRole("main");
         const links = await sidebar(page).getByRole("link").all();
-        expect(links.length).toBeGreaterThanOrEqual(11);
+        expect(links.length).toBeGreaterThanOrEqual(10);
 
         for (const link of links) await tabTo(page, link);
         await tabTo(page, page.getByRole("complementary").getByRole("link", { name: "Settings", exact: true }));

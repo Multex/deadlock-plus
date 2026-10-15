@@ -3,7 +3,7 @@ import type { Match } from "@deadlock-plus/stats/stats";
 import { parseApiDetail } from "@deadlock-plus/match/api-detail";
 import { allPlayers } from "@deadlock-plus/match/detail";
 import fixture from "@deadlock-plus/match/fixtures/api-ranked.json";
-import { MatchHistoryStore, type HistoryDeps } from "./history.svelte";
+import { LOSS_STREAK, MatchHistoryStore, type HistoryDeps } from "./history.svelte";
 
 const detail = parseApiDetail(fixture)!;
 const matchId = detail.matchId;
@@ -45,6 +45,7 @@ function store(over: Partial<HistoryDeps> = {}, matches: Match[] = []) {
         resolveDetail: vi.fn(async () => detail),
         resolveNames: vi.fn(async () => new Map<number, string>()),
         now: () => 1_000_000,
+        breakHint: () => true,
         ...over,
     };
     return { s: new MatchHistoryStore(deps), deps };
@@ -86,6 +87,81 @@ describe("list", () => {
         s.setFilters({ heroId: 9 });
         s.resetFilters();
         expect(s.filters.heroId).toBeNull();
+    });
+});
+
+describe("sessionView", () => {
+    // Session A: 30 back-to-back matches, alternating results. Session B: 10 wins a day later.
+    const sessionA = Array.from({ length: 30 }, (_, i) =>
+        match(i + 1, { startTime: i * 100, durationS: 60, outcome: i % 2 ? "win" : "loss" }),
+    );
+    const sessionB = Array.from({ length: 10 }, (_, i) =>
+        match(100 + i, { startTime: 86_400 + i * 100, durationS: 60, rankDelta: 10 }),
+    );
+
+    it("pages whole sessions, newest first", () => {
+        const { s } = store({}, [...sessionA, ...sessionB]);
+        const sizes = (n: number) => {
+            s.setPage(n);
+            return s.sessionView.items.map((g) => g.rows.length);
+        };
+        expect(s.sessionView).toMatchObject({ page: 1, pageCount: 2, total: 40 });
+        expect(sizes(1)).toEqual([10]);
+        expect(sizes(2)).toEqual([30]);
+        expect(s.sessionView.items[0].rows[0].matchId).toBe(30);
+    });
+
+    it("shows only matching rows but keeps whole-session headers", () => {
+        const { s } = store({}, [...sessionA, ...sessionB]);
+        s.setFilters({ outcome: "win" });
+        expect(s.sessionView.pageCount).toBe(1);
+        const [b, a] = s.sessionView.items;
+        expect(a.rows.every((r) => r.outcome === "win")).toBe(true);
+        expect(a).toMatchObject({ wins: 15, losses: 15 });
+        expect(a.rows).toHaveLength(15);
+        expect(b).toMatchObject({ wins: 10, netDelta: 100 });
+    });
+
+    it("returns to page one on a filter change", () => {
+        const { s } = store({}, [...sessionA, ...sessionB]);
+        s.setPage(2);
+        expect(s.sessionView.page).toBe(2);
+        s.setFilters({ heroId: 1 });
+        expect(s.sessionView.page).toBe(1);
+    });
+});
+
+describe("session insights", () => {
+    const NOW_S = 1_000_000;
+    const ranked = (id: number, outcome: Match["outcome"], over: Partial<Match> = {}) =>
+        match(id, { startTime: NOW_S - 4000 + id * 100, durationS: 60, outcome, ...over });
+    const unranked = (id: number, outcome: Match["outcome"]) => ranked(id, outcome, { matchMode: 1 });
+    const games = [ranked(1, "win"), unranked(2, "win"), ranked(3, "loss"), ranked(4, "loss"), ranked(5, "loss")];
+    const at = { now: () => NOW_S * 1000 };
+
+    it("reads every mode-matching game, whatever the other filters", () => {
+        const { s } = store(at, games);
+        s.setFilters({ outcome: "win", heroId: 9, days: 1 });
+        expect(s.insights.baseline.games).toBe(5);
+        s.setFilters({ mode: "ranked" });
+        expect(s.insights.baseline.games).toBe(4);
+        expect(s.insights.findings.length).toBeGreaterThan(0);
+    });
+
+    it("suggests a break after the loss streak while the session is live", () => {
+        const { s } = store(at, games);
+        expect(LOSS_STREAK).toBe(3);
+        expect(s.suggestBreak).toBe(true);
+        s.setFilters({ outcome: "win" });
+        expect(s.suggestBreak).toBe(true);
+    });
+
+    it("suggests no break for another mode or with the hint off", () => {
+        expect(store({ ...at, breakHint: () => false }, games).s.suggestBreak).toBe(false);
+        const { s } = store(at, [...games, unranked(6, "win")]);
+        expect(s.suggestBreak).toBe(false);
+        s.setFilters({ mode: "ranked" });
+        expect(s.suggestBreak).toBe(true);
     });
 });
 

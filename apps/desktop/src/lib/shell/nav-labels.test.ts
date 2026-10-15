@@ -8,7 +8,6 @@ describe("navLabel", () => {
             "server-picker": "Server Picker",
             live: "Live",
             stats: "Stats",
-            sessions: "Sessions",
             alerts: "News",
             presence: "Presence",
             "match-history": "Match History",

@@ -8,6 +8,13 @@ import { buildRows, type MatchRow } from "@deadlock-plus/match/list";
 import { withNames } from "@deadlock-plus/match/names";
 import { playerNames } from "./names";
 import { paginate, type Page } from "@deadlock-plus/match/pagination";
+import { groupBySession, paginateSessions, type SessionGroup } from "@deadlock-plus/match/sessions";
+import { shouldSuggestBreak, type Bucket, type Session } from "@deadlock-plus/stats/sessions";
+import { buildFindings, type Finding } from "$lib/features/stats/insights";
+import { settings } from "$lib/features/settings/settings.svelte";
+import { LOSS_STREAK, modeSessions } from "./break-reminder";
+
+export { LOSS_STREAK };
 
 export type DetailStatus = "idle" | "loading" | "ready" | "unavailable" | "error";
 
@@ -21,6 +28,7 @@ export interface HistoryDeps {
     resolveDetail(matchId: number): Promise<MatchDetail | null>;
     resolveNames(accountIds: number[]): Promise<ReadonlyMap<number, string>>;
     now(): number;
+    breakHint(): boolean;
 }
 
 export class MatchHistoryStore {
@@ -56,11 +64,33 @@ export class MatchHistoryStore {
     }
 
     get filtered(): MatchRow[] {
-        return filterRows(this.rows, this.filters, Math.floor(this.deps.now() / 1000));
+        return filterRows(this.rows, this.filters, this.nowS);
     }
 
     get view(): Page<MatchRow> {
         return paginate(this.filtered, this.page);
+    }
+
+    get sessionView(): Page<SessionGroup> {
+        return paginateSessions(groupBySession(this.filtered, this.rows, this.nowS), this.page);
+    }
+
+    get insights(): { baseline: Bucket; findings: Finding[] } {
+        return buildFindings(this.modeSessions, -new Date(this.deps.now()).getTimezoneOffset());
+    }
+
+    get suggestBreak(): boolean {
+        return this.deps.breakHint() && shouldSuggestBreak(this.modeSessions, LOSS_STREAK, this.nowS);
+    }
+
+    private get nowS(): number {
+        return Math.floor(this.deps.now() / 1000);
+    }
+
+    // Findings and the break hint follow only the mode filter: a hero or outcome filter would
+    // cut sessions apart and skew the streaks they read.
+    private get modeSessions(): Session[] {
+        return modeSessions(this.deps.source.matches, this.filters);
     }
 
     load(accountId: number, force = false): Promise<void> {
@@ -132,4 +162,5 @@ export const matchHistory = new MatchHistoryStore({
     resolveDetail,
     resolveNames: (ids) => playerNames.resolve(ids),
     now: () => Date.now(),
+    breakHint: () => settings.breakHint,
 });

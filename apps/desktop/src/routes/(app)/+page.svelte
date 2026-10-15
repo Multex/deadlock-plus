@@ -215,7 +215,7 @@
                     {/if}
                 </OverviewCard>
 
-                <OverviewCard href="/sessions" icon={Timer} title={t("home.session.title")}>
+                <OverviewCard href="/match-history" icon={Timer} title={t("home.session.title")}>
                     {#if lastSummary}
                         <p class="flex items-center gap-2 font-heading text-2xl font-semibold">
                             {relativeDay(lastSummary.startTime, Date.now() / 1000)}

@@ -1,36 +1,40 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { Inbox, SearchX } from "@lucide/svelte";
+    import { Inbox, SearchX, Trophy } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
-    import SupportButton from "$lib/components/support-button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
+    import SupportButton from "$lib/components/support-button.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import FilterBar from "$lib/features/match-history/components/list/filter-bar.svelte";
-    import MatchRow from "$lib/features/match-history/components/list/match-row.svelte";
-    import DayHeader from "$lib/features/match-history/components/list/day-header.svelte";
     import ListSkeleton from "$lib/features/match-history/components/list/list-skeleton.svelte";
+    import MatchRow from "$lib/features/match-history/components/list/match-row.svelte";
     import Pager from "$lib/features/match-history/components/list/pager.svelte";
+    import SessionHeader from "$lib/features/match-history/components/list/session-header.svelte";
     import SummaryStrip from "$lib/features/match-history/components/list/summary-strip.svelte";
     import { heroOptions } from "$lib/features/match-history/components/list/view-model";
-    import { formStrip, groupByDay, summarizeRows } from "@deadlock-plus/match/list-summary";
-    import { matchHistory } from "$lib/features/match-history/history.svelte";
+    import { LOSS_STREAK, matchHistory } from "$lib/features/match-history/history.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
+    import Results from "$lib/features/stats/components/sessions/results.svelte";
+    import SessionsBar from "$lib/features/stats/components/sessions/sessions-bar.svelte";
+    import { highlightTitle } from "$lib/features/stats/sessions";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
     import RefreshButton from "$lib/features/stats/components/shared/refresh-button.svelte";
     import { stats } from "$lib/features/stats/stats.svelte";
+    import { formStrip, summarizeRows } from "@deadlock-plus/match/list-summary";
 
     let heroes = $state<Record<number, Hero>>({});
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
-    const view = $derived(matchHistory.view);
+    const view = $derived(matchHistory.sessionView);
     const filtered = $derived(matchHistory.filtered);
     const summary = $derived(summarizeRows(filtered));
     const form = $derived(formStrip(filtered));
-    const groups = $derived(groupByDay(view.items));
+    const insights = $derived(matchHistory.insights);
+    const suggestBreak = $derived(matchHistory.suggestBreak);
     const nowS = $derived(Math.floor(Date.now() / 1000));
     const options = $derived(
         heroOptions(matchHistory.rows, (id) => heroes[id]?.name ?? t("stats.hero_fallback", { id })),
@@ -93,11 +97,20 @@
             </EmptyState>
         {:else}
             <SummaryStrip {summary} {form} {heroes} />
-            <div class="flex flex-col gap-1">
-                {#each groups as group (group.key)}
+
+            <SessionsBar lossStreak={LOSS_STREAK} suggest={suggestBreak} />
+
+            <div class="flex flex-col gap-5">
+                {#each view.items as group (group.key)}
                     <section class="flex flex-col gap-2">
-                        <DayHeader {group} {nowS} />
-                        <ul class="flex flex-col gap-2">
+                        {#if group.highlight}
+                            <h3 class="flex items-center gap-2 text-base font-medium">
+                                <Trophy class="size-5 text-brass" aria-hidden="true" />
+                                {highlightTitle({ kind: group.highlight, verdict: group.verdict })}
+                            </h3>
+                        {/if}
+                        <SessionHeader {group} {nowS} />
+                        <ul class="ml-3 flex flex-col gap-2 border-l-2 border-border/60 pl-3">
                             {#each group.rows as row (row.matchId)}
                                 <MatchRow {row} hero={heroes[row.heroId]} tiers={stats.ranks} />
                             {/each}
@@ -108,6 +121,8 @@
             {#if view.pageCount > 1}
                 <Pager page={view.page} pageCount={view.pageCount} onpage={(p) => matchHistory.setPage(p)} />
             {/if}
+
+            <Results findings={insights.findings} baseline={insights.baseline} />
         {/if}
     {/if}
 </Page>

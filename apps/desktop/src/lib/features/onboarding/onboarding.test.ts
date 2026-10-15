@@ -91,7 +91,6 @@ describe("featureGroups", () => {
             "live",
             "presence",
             "stats",
-            "sessions",
             "alerts",
             "voice-bans",
             "demos",

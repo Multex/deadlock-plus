@@ -4,21 +4,29 @@ import { expect, settle, test } from "./support/test";
 
 const MATCHES = 60;
 const PAGE_SIZE = 25;
+// Pages hold whole play sessions, so they close at the first session that reaches PAGE_SIZE matches.
+const PAGES = [28, 26, 6];
 const NEWEST = 990000060;
 
 const main = (page: Page) => page.getByRole("main");
 const filters = (page: Page) => page.getByRole("group", { name: "Match filters" });
 const option = (page: Page, group: string, name: string) =>
     filters(page).getByRole("group", { name: group, exact: true }).getByRole("button", { name, exact: true });
-const rows = (page: Page) => main(page).getByRole("listitem");
+// The findings below the list are lists too, so only items holding a match link count as rows.
+const rows = (page: Page) =>
+    main(page)
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("link") });
 // The summary strip is a list of terms, each followed by its values.
 const matchTotal = (page: Page) => main(page).getByRole("definition").first();
 const pager = (page: Page) => page.getByRole("navigation", { name: "Match history pages" });
 const noResults = (page: Page) => main(page).getByText("No matches fit these filters.");
 
-async function expectTotal(page: Page, total: number) {
+// A page closes only once it holds PAGE_SIZE matches, so a total just over PAGE_SIZE can still fit on one page.
+async function expectTotal(page: Page, total: number, singlePage = total <= PAGE_SIZE) {
     await expect(matchTotal(page)).toHaveText(String(total));
-    await expect(rows(page)).toHaveCount(Math.min(total, PAGE_SIZE));
+    if (singlePage) await expect(rows(page)).toHaveCount(total);
+    else await expect(pager(page)).toBeVisible();
 }
 
 async function expectEveryRow(page: Page, name: RegExp) {
@@ -64,7 +72,7 @@ test.describe("the list", () => {
         await expectEveryRow(page, / Win \d/);
 
         await option(page, "Outcome", "Loss").click();
-        await expectTotal(page, 27);
+        await expectTotal(page, 27, true);
         await expect(main(page).getByText("0W 27L", { exact: true })).toBeVisible();
         await expectEveryRow(page, / Loss \d/);
 
@@ -142,15 +150,17 @@ test.describe("the list", () => {
         await expect(previous).toBeDisabled();
         await expect(firstMatch()).toHaveAttribute("href", `/match-history/${NEWEST}`);
 
+        await expect(rows(page)).toHaveCount(PAGES[0]);
+
         await next.click();
         await expect(pager(page).getByText("Page 2 of 3")).toBeVisible();
-        await expect(rows(page)).toHaveCount(PAGE_SIZE);
-        await expect(firstMatch()).toHaveAttribute("href", `/match-history/${NEWEST - PAGE_SIZE}`);
+        await expect(rows(page)).toHaveCount(PAGES[1]);
+        await expect(firstMatch()).toHaveAttribute("href", `/match-history/${NEWEST - PAGES[0]}`);
         await expect(previous).toBeEnabled();
 
         await next.click();
         await expect(pager(page).getByText("Page 3 of 3")).toBeVisible();
-        await expect(rows(page)).toHaveCount(MATCHES - 2 * PAGE_SIZE);
+        await expect(rows(page)).toHaveCount(PAGES[2]);
         await expect(next).toBeDisabled();
 
         await previous.click();
@@ -165,7 +175,7 @@ test.describe("the list", () => {
         await option(page, "Outcome", "Win").click();
 
         await expect(pager(page).getByText("Page 1 of 2")).toBeVisible();
-        await expect(rows(page)).toHaveCount(PAGE_SIZE);
+        await expect(rows(page)).toHaveCount(27);
     });
 
     test("a match row opens that match, and Back returns to the list", async ({ page }) => {
@@ -351,5 +361,66 @@ test.describe("a match", () => {
 
             await expect(slider(page)).toHaveAttribute("aria-valuetext", "0:57 Unlocked Arctic Beam");
         });
+    });
+});
+
+test.describe("sessions", () => {
+    const sessionCards = (page: Page) => main(page).getByRole("heading", { level: 3, name: /, \d{1,2}:\d{2}/ });
+
+    test.beforeEach(async ({ page }) => {
+        await open(page, "/match-history");
+        await expectTotal(page, MATCHES);
+    });
+
+    test("the list is grouped under one card per play session", async ({ page }) => {
+        await expect(sessionCards(page).first()).toHaveText(/(Today|Yesterday), \d/);
+        await expect(
+            main(page)
+                .getByText(/^(Excellent|Good|Rough|Even) session$/)
+                .first(),
+        ).toBeVisible();
+        await expect(main(page).getByRole("term").filter({ hasText: "Rank change" }).first()).toBeVisible();
+    });
+
+    test("the highlighted session gets a trophy heading", async ({ page }) => {
+        await expect(
+            main(page).getByRole("heading", {
+                name: /^(Your best recent session|Nice work\. Your last session went well\.|Excellent last session\. Well played\.)$/,
+            }),
+        ).toHaveCount(1);
+    });
+
+    test("the findings are open by default and fold away", async ({ page }) => {
+        await expect(main(page).getByText("Patterns", { exact: true })).toHaveCount(0);
+        await expect(main(page).getByRole("heading", { level: 2, name: "What your results say" })).toBeVisible();
+        const stop = main(page).getByText("Where to stop", { exact: true });
+        await expect(stop).toBeVisible();
+
+        const hide = main(page).getByRole("button", { name: "Hide" });
+        await expect(hide).toHaveAttribute("aria-expanded", "true");
+        await hide.click();
+        await expect(stop).toBeHidden();
+        const show = main(page).getByRole("button", { name: "Show" });
+        await expect(show).toHaveAttribute("aria-expanded", "false");
+        await show.click();
+        await expect(stop).toBeVisible();
+    });
+
+    test("the break reminder switch sits right above the session list", async ({ page }) => {
+        const sw = main(page).getByRole("switch", { name: "Break reminder" });
+        await expect(sw).toBeVisible();
+        const switchBox = await sw.boundingBox();
+        const firstCard = await sessionCards(page).first().boundingBox();
+        const findings = await main(page)
+            .getByRole("heading", { level: 2, name: "What your results say" })
+            .boundingBox();
+        expect(switchBox!.y).toBeLessThan(firstCard!.y);
+        expect(firstCard!.y).toBeLessThan(findings!.y);
+    });
+
+    test("/sessions lands on match history", async ({ page }) => {
+        await open(page, "/sessions");
+        await expect(page).toHaveURL(/\/match-history$/);
+        await expect(sessionCards(page).first()).toBeVisible();
     });
 });

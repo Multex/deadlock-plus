@@ -525,7 +525,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "sessions": "",
             "alerts": "",
             "performance": "",
             "voice_bans": "",
@@ -596,7 +595,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "sessions": "",
             "alerts": "",
             "performance": "",
             "voice_bans": "",
@@ -767,8 +765,6 @@
     "sessions": {
         "title": "",
         "subtitle": "",
-        "empty": "",
-        "latest": "",
         "results": {
             "heading": "",
             "intro": "",
@@ -776,7 +772,6 @@
         },
         "break": {
             "label": "",
-            "description": "",
             "suggestion": ""
         },
         "highlight": {
@@ -1699,7 +1694,6 @@
             "server_picker": "",
             "live": "",
             "stats": "",
-            "sessions": "",
             "alerts": "",
             "voice_bans": "",
             "demos": "",

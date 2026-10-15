@@ -10,8 +10,6 @@ export function navLabel(id: string, fallback: string): string {
             return t("shell.nav.live");
         case "stats":
             return t("shell.nav.stats");
-        case "sessions":
-            return t("shell.nav.sessions");
         case "alerts":
             return t("shell.nav.alerts");
         case "performance":

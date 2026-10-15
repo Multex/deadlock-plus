@@ -540,7 +540,6 @@
             "server_picker": "Server Picker",
             "live": "Live",
             "stats": "Stats",
-            "sessions": "Sessions",
             "alerts": "News",
             "performance": "Performance",
             "voice_bans": "Mutes",
@@ -615,7 +614,6 @@
             "server_picker": "Block or unblock Deadlock server regions",
             "live": "Both teams in your match, plus server and ping",
             "stats": "Winrate, streaks and per-hero numbers from your match history",
-            "sessions": "Your play sessions, and how your results change as they get longer",
             "alerts": "Recent Deadlock patch notes and Steam announcements",
             "performance": "Record your FPS and check mods for scripts that cause stutter",
             "voice_bans": "View, add, unmute, export and import your muted players",
@@ -777,16 +775,15 @@
     "sessions": {
         "title": "Sessions",
         "subtitle": "Matches grouped into sessions. A new session starts after 90 minutes without playing.",
-        "empty": "No matches in this selection.",
-        "latest": "Latest sessions",
         "results": {
             "heading": "What your results say",
             "intro": "The line on each bar is your overall winrate. A difference only counts once enough games back it up.",
-            "intro_detail": "The line on each bar is your overall winrate, {winrate} over {games} games. A difference only counts once enough games back it up."
+            "intro_detail": "The line on each bar is your overall winrate, {winrate} over {games} games. A difference only counts once enough games back it up.",
+            "hide": "Hide",
+            "show": "Show"
         },
         "break": {
             "label": "Break reminder",
-            "description": "Shows a note here when your current session has {count} losses in a row. Off by default.",
             "suggestion": "{count} losses in a row this session. A short break might be worth it. Up to you."
         },
         "highlight": {
@@ -1640,7 +1637,6 @@
             "server_picker": "Block the server regions you don't want.",
             "live": "Live ping and packet loss for your match.",
             "stats": "Winrate and hero numbers from your match history.",
-            "sessions": "How your results change as sessions get longer.",
             "alerts": "Patch notes and announcements, searchable.",
             "voice_bans": "See, add and unmute your muted players.",
             "demos": "Browse your saved replays and spot outdated ones.",

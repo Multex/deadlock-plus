@@ -114,7 +114,7 @@ export const SHOTS: Shot[] = [
     {
         name: "sessions",
         scenario: "default",
-        route: "/sessions",
+        route: "/match-history",
         detail: {
             target: { text: /Nice work/ },
             anchor: "start",

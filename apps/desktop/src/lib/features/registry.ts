@@ -1,16 +1,4 @@
-import {
-    Bell,
-    ChartColumn,
-    Film,
-    Globe,
-    Gauge,
-    History,
-    House,
-    MessageCircle,
-    Swords,
-    Timer,
-    VolumeX,
-} from "@lucide/svelte";
+import { Bell, ChartColumn, Film, Globe, Gauge, History, House, MessageCircle, Swords, VolumeX } from "@lucide/svelte";
 import type { Component } from "svelte";
 import { installFrontendLogging } from "./logging/frontend";
 import { apiHealth } from "./api-health/health.svelte";
@@ -104,17 +92,6 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.match_history");
         },
         icon: History,
-    },
-    {
-        id: "sessions",
-        get label() {
-            return t("shell.nav.sessions");
-        },
-        href: "/sessions",
-        get description() {
-            return t("shell.nav_description.sessions");
-        },
-        icon: Timer,
     },
     {
         id: "alerts",
