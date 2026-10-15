@@ -13,7 +13,8 @@ const FLOOR: Record<string, number> = {
     language: 1,
     startup: 8,
     notifications: 4,
-    privacy: 3,
+    privacy: 1,
+    sharing: 2,
     about: 1,
     diagnostics: 2,
 };

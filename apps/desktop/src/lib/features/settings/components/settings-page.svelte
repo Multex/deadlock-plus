@@ -11,6 +11,7 @@
     import Notifications from "./sections/notifications.svelte";
     import Privacy from "./sections/privacy.svelte";
     import About from "./sections/about.svelte";
+    import Sharing from "./sections/sharing.svelte";
     import Storage from "./sections/storage.svelte";
     import Diagnostics from "./sections/diagnostics.svelte";
     import Thanks from "./sections/thanks.svelte";
@@ -27,6 +28,7 @@
         notifications: Notifications,
         privacy: Privacy,
         about: About,
+        sharing: Sharing,
         storage: Storage,
         diagnostics: Diagnostics,
         thanks: Thanks,

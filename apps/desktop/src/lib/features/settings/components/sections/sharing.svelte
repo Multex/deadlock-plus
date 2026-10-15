@@ -1,0 +1,89 @@
+<script lang="ts">
+    import { errorText } from "$lib/core/errors";
+    import { t } from "$lib/core/i18n.svelte";
+    import { toast } from "svelte-sonner";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import Card from "@deadlock-plus/ui/card.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
+    import { gcStatus } from "$lib/features/gc/status.svelte";
+    import { cancelOwnMatchRecovery, recoverOwnMatches } from "$lib/features/gc/api";
+    import { gcStatusLine, ownRecoveryLine } from "$lib/features/gc/status-line";
+    import { ingestStatus } from "$lib/features/ingest/status.svelte";
+    import { settings } from "$lib/features/settings/settings.svelte";
+
+    let { show }: { show: (id: string) => boolean } = $props();
+
+    const ingestLine = $derived.by(() => {
+        if (settings.ingestPromptPending) return t("settings.privacy.ingest_waiting");
+        if (!settings.matchIngest) return t("settings.privacy.ingest_off");
+        const ingest = ingestStatus.status;
+        if (!ingest) return "";
+        if (!ingest.steamFound) return t("settings.privacy.ingest_no_cache");
+        if (ingest.lastError) return ingest.lastError;
+        return t("settings.privacy.ingest_watching", { count: ingest.submitted });
+    });
+
+    const ownRecovery = $derived(gcStatus.status?.ownRecovery ?? null);
+
+    function startOwnRecovery() {
+        recoverOwnMatches()
+            .then(() => gcStatus.refresh())
+            .catch((e) => toast.error(errorText(e)));
+    }
+
+    function cancelOwnRecovery() {
+        cancelOwnMatchRecovery()
+            .then(() => gcStatus.refresh())
+            .catch(() => {});
+    }
+</script>
+
+{#if show("match-ingest")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.match_ingest")}
+            for="match-ingest"
+            description={t("settings.privacy.ingest_description")}
+            hint={ingestLine}
+        >
+            <Switch
+                id="match-ingest"
+                checked={settings.matchIngest}
+                onCheckedChange={(v) => settings.setMatchIngest(v)}
+            />
+        </SettingRow>
+    </Card>
+{/if}
+
+{#if show("gc-recovery")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.gc_recovery")}
+            for="gc-recovery"
+            description={t("settings.privacy.gc_description")}
+            hint={gcStatusLine(settings.gcRecovery, gcStatus.status)}
+        >
+            <Switch id="gc-recovery" checked={settings.gcRecovery} onCheckedChange={(v) => settings.setGcRecovery(v)} />
+        </SettingRow>
+        {#if settings.gcRecovery}
+            <SettingRow
+                class="mt-4"
+                size="sub"
+                label={t("settings.privacy.gc_own_label")}
+                description={t("settings.privacy.gc_own_description")}
+                hint={ownRecoveryLine(ownRecovery)}
+            >
+                {#if ownRecovery?.running}
+                    <Button variant="outline" size="sm" onclick={cancelOwnRecovery}>
+                        {t("settings.privacy.gc_own_cancel")}
+                    </Button>
+                {:else}
+                    <Button variant="outline" size="sm" onclick={startOwnRecovery}>
+                        {t("settings.privacy.gc_own_start")}
+                    </Button>
+                {/if}
+            </SettingRow>
+        {/if}
+    </Card>
+{/if}

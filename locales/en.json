@@ -138,6 +138,7 @@
             "diagnostics": "Diagnostics",
             "thanks": "Thanks",
             "licenses": "Licenses",
+            "sharing": "Match sharing",
             "storage": "Storage"
         },
         "items": {
@@ -151,9 +152,9 @@
             "discord_presence": "Discord presence",
             "discord_clients": "Discord apps",
             "discord_editor": "Presence editor",
-            "match_ingest": "Share match data with Deadlock API",
+            "match_ingest": "Share my matches",
             "telemetry": "Share anonymous usage data and error reports",
-            "gc_recovery": "Recover missing replay keys through Steam",
+            "gc_recovery": "Fill in missing match details",
             "version": "Version",
             "whats_new": "What's new",
             "updates": "App updates",
@@ -436,12 +437,13 @@
             "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",
             "ingest_failed": "The last upload failed. Check the log for details.",
             "ingest_watching": "Watching for new matches. {count} shared this session.",
-            "ingest_description": "Reads Deadlock replay links that Steam saves on this PC and uploads the match IDs, replay keys and your Steam account ID to api.deadlock-api.com so the community database can fetch those matches. Nothing else is read or sent. Same behaviour as the open-source deadlock-api-ingest tool.",
-            "gc_description": "Reads your saved Steam login on this PC, signs in to Steam as you and asks Deadlock's game servers for the replay keys of matches the community database is missing. Your login never leaves this PC. Only the match IDs, replay keys and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same behaviour as the open-source deadlock-api-ingest tool.",
+            "ingest_description": "Gets your matches full details on stat sites and in Match History. Deadlock+ reads the replay links Steam saves on this PC and sends the match IDs, replay keys and your Steam account ID to api.deadlock-api.com. Nothing else is read or sent. Same as the open-source deadlock-api-ingest tool.",
+            "gc_description": "Your login never leaves this PC. Deadlock+ uses your saved Steam login to sign in to Steam as you, and asks Deadlock's game servers for the replay keys of matches the community database is missing. Only the match IDs, replay keys and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same as the open-source deadlock-api-ingest tool.",
             "gc_own_label": "Recover my match history",
-            "gc_own_description": "Finds replay keys for every match in your history that the community database is missing. It skips the 40-a-day limit, takes about 20 seconds per match and stops if Deadlock opens.",
+            "gc_own_description": "Finds replay keys for every match in your history that the community database is missing. Not limited to 40 a day. Takes about 20 seconds per match and stops if Deadlock opens.",
             "gc_own_start": "Start",
-            "gc_own_cancel": "Cancel"
+            "gc_own_cancel": "Cancel",
+            "advanced": "Advanced"
         },
         "about_page": {
             "copy": "Copy",

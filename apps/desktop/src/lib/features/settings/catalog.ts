@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { Bell, Bug, HardDrive, Info, Languages, Heart, Palette, Power, Scale, Shield } from "@lucide/svelte";
+import { Bell, Bug, HardDrive, Info, Languages, Heart, Palette, Power, Scale, Share2, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartTitle } from "./autostart";
@@ -10,6 +10,7 @@ export type CategoryId =
     | "startup"
     | "notifications"
     | "privacy"
+    | "sharing"
     | "about"
     | "storage"
     | "diagnostics"
@@ -64,6 +65,13 @@ export const CATEGORIES: Category[] = [
             return t("settings.categories.privacy");
         },
         icon: Shield,
+    },
+    {
+        id: "sharing",
+        get label() {
+            return t("settings.categories.sharing");
+        },
+        icon: Share2,
     },
     {
         id: "about",
@@ -186,7 +194,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "match-ingest",
-        category: "privacy",
+        category: "sharing",
         get title() {
             return t("settings.items.match_ingest");
         },
@@ -194,7 +202,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "gc-recovery",
-        category: "privacy",
+        category: "sharing",
         get title() {
             return t("settings.items.gc_recovery");
         },

@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
-- Replay key recovery can fetch your whole match history at once from Privacy settings, past the daily limit.
+- Replay key recovery can fetch your whole match history at once from Match sharing settings, past the daily limit.
 - A banner offers a waiting update once it is a day old, and comes back each time you open the window until you install it.
 - The update notice has an Install button.
 
@@ -24,8 +24,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Updates page is now called News.
 - Performance, Mutes and Replays sit in a Tools group in the sidebar that you can fold.
 - Storage moved into Settings.
+- Match sharing has its own Settings category.
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
+- Resetting the usage data ID moved under Advanced in Privacy settings.
 - Ctrl+1 to Ctrl+9 now open Home through Presence.
 - Anonymous usage data now counts Presence visits.
 
