@@ -3,7 +3,7 @@
 
     import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, socialMeta } from "./seo";
 
-    let { title, description }: { title: string; description?: string } = $props();
+    let { title, description, noindex = false }: { title: string; description?: string; noindex?: boolean } = $props();
 
     const meta = $derived(socialMeta(page.url.pathname));
     const preview = $derived(description ?? SITE_DESCRIPTION);
@@ -13,6 +13,9 @@
     <title>{title}</title>
     {#if description}
         <meta name="description" content={description} />
+    {/if}
+    {#if noindex}
+        <meta name="robots" content="noindex" />
     {/if}
     <link rel="canonical" href={meta.url} />
 

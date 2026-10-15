@@ -120,8 +120,13 @@
                 <nav aria-label="Footer" class="flex flex-wrap gap-x-14 gap-y-8">
                     {#each FOOTER_GROUPS as group (group.heading)}
                         <div>
-                            <h2 class="text-sm font-semibold tracking-widest text-brass uppercase">{group.heading}</h2>
-                            <ul class="mt-3 space-y-1">
+                            <p
+                                id="footer-{group.heading.toLowerCase()}"
+                                class="font-heading text-sm font-semibold tracking-widest text-brass uppercase"
+                            >
+                                {group.heading}
+                            </p>
+                            <ul aria-labelledby="footer-{group.heading.toLowerCase()}" class="mt-3 space-y-1">
                                 {#each group.links as link (link.href)}
                                     {@const Icon = link.icon}
                                     <li>

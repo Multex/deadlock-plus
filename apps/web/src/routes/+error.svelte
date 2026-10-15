@@ -5,7 +5,7 @@
     import Page from "@deadlock-plus/ui/page.svelte";
 </script>
 
-<Seo title="{page.status === 404 ? 'Page not found' : 'Something went wrong'} | Deadlock+" />
+<Seo title="{page.status === 404 ? 'Page not found' : 'Something went wrong'} | Deadlock+" noindex />
 
 <Page class="items-center justify-center text-center">
     <p class="text-sm font-semibold tracking-widest text-brass">{page.status}</p>
