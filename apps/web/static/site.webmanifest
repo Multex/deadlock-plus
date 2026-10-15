@@ -1,0 +1,12 @@
+{
+    "name": "Deadlock+",
+    "short_name": "Deadlock+",
+    "start_url": "/",
+    "display": "browser",
+    "theme_color": "#e6b557",
+    "background_color": "#120f0c",
+    "icons": [
+        { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+}

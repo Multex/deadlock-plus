@@ -33,7 +33,11 @@ describe("every page", () => {
         const nodes = graph(render(Seo, { props: { title: "x" } }).head);
 
         const organization = ofType(nodes, "Organization");
-        expect(organization).toMatchObject({ name: "Deadlock+", url: "https://deadlockplus.app/" });
+        expect(organization).toMatchObject({
+            name: "Deadlock+",
+            url: "https://deadlockplus.app/",
+            logo: "https://deadlockplus.app/icon-512.png",
+        });
         expect(organization?.sameAs).toEqual(
             expect.arrayContaining([
                 "https://github.com/deadlock-plus/deadlock-plus",

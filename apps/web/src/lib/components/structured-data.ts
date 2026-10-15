@@ -13,6 +13,7 @@ export const SITE_NODES: SchemaNode[] = [
         "@id": ORGANIZATION_ID,
         name: SITE_NAME,
         url: `${SITE_URL}/`,
+        logo: `${SITE_URL}/icon-512.png`,
         sameAs: [REPO_URL, inviteUrl(FALLBACK_CODE)],
     },
     {
