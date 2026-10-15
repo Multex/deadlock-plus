@@ -1,3 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /discord
+Disallow: /get
+
+Sitemap: https://deadlockplus.app/sitemap.xml
