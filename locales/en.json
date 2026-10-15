@@ -541,7 +541,7 @@
             "stats": "Stats",
             "rank": "Rank",
             "sessions": "Sessions",
-            "alerts": "Updates",
+            "alerts": "News",
             "performance": "Performance",
             "voice_bans": "Mutes",
             "demos": "Replays",
@@ -1600,7 +1600,7 @@
         }
     },
     "alerts": {
-        "title": "Updates",
+        "title": "News",
         "subtitle": "Recent Deadlock patch notes and Steam announcements.",
         "search_aria": "Search patch notes",
         "search_placeholder": "Search patch notes... try a hero, an item, or describe the change",
@@ -1922,7 +1922,7 @@
         "update": {
             "title": "Latest update",
             "unread": "{count} new",
-            "empty": "Nothing yet. Open Updates to check."
+            "empty": "Nothing yet. Open News to check."
         },
         "session": {
             "title": "Last session",

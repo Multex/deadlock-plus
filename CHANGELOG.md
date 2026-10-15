@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- The Updates page is now called News.
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
 

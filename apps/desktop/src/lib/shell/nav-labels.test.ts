@@ -10,7 +10,7 @@ describe("navLabel", () => {
             stats: "Stats",
             rank: "Rank",
             sessions: "Sessions",
-            alerts: "Updates",
+            alerts: "News",
             performance: "Performance",
             "voice-bans": "Mutes",
             demos: "Replays",

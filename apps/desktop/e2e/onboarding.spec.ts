@@ -51,7 +51,7 @@ test("the setup runs from the welcome to Home and saves each answer", async ({ p
     await expectStep(page, 1);
     await expect(heading(page)).toHaveText("What Deadlock+ does");
     for (const group of ["Play", "Progress", "News", "Housekeeping"]) {
-        await expect(main.getByText(group, { exact: true })).toBeVisible();
+        await expect(main.getByRole("heading", { level: 2, name: group, exact: true })).toBeVisible();
     }
     await page.getByRole("button", { name: "Back" }).click();
     await expectStep(page, 0);
