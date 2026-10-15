@@ -16,7 +16,7 @@
 
     let group = $state<GroupId>("match");
 
-    // A link such as /features#rank names a feature that may sit in a tab that is not open.
+    // A link such as /features#stats names a feature that may sit in a tab that is not open.
     onMount(async () => {
         const id = location.hash.slice(1);
         const target = FEATURES.find((feature) => feature.id === id);
