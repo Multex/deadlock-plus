@@ -125,6 +125,7 @@
             <a href={withRef("/transparency", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}
                 >Transparency</a
             >
+            <a href={withRef("/faq", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>FAQ</a>
         </div>
     </Section>
 

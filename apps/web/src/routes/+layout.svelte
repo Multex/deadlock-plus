@@ -36,6 +36,7 @@
             links: [
                 { href: "/features", label: "Features" },
                 { href: "/download", label: "Download" },
+                { href: "/faq", label: "FAQ" },
             ],
         },
         {

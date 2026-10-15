@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("$app/state", () => ({ page: { url: new URL("https://deadlockplus.app/"), status: 200, state: {} } }));
 
 import Download from "./download/+page.svelte";
+import Faq from "./faq/+page.svelte";
 import Features from "./features/+page.svelte";
 import Home from "./+page.svelte";
 import Privacy from "./privacy/+page.svelte";
@@ -14,6 +15,7 @@ const PAGES: [string, Component<any>, Record<string, unknown>][] = [
     ["/", Home, {}],
     ["/features", Features, {}],
     ["/download", Download, { data: { releases: [] } }],
+    ["/faq", Faq, {}],
     ["/privacy", Privacy, {}],
     ["/transparency", Transparency, { data: { stats: {}, costs: null } }],
 ];
@@ -41,6 +43,7 @@ describe("page titles and headings", () => {
         ["/", "Deadlock+ | Discord Rich Presence and Stats for Deadlock"],
         ["/features", "Rich Presence, Server Picker, Match History | Deadlock+"],
         ["/download", "Download Deadlock+ for Windows and Linux (Free)"],
+        ["/faq", "Deadlock+ FAQ: Discord, Servers, Linux, Privacy"],
     ])("titles %s for the searches it should answer", (path, title) => {
         expect(all.find((page) => page.path === path)?.title).toBe(title);
     });

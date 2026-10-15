@@ -1,7 +1,7 @@
 import { SITE_URL } from "@deadlock-plus/links/urls";
 import type { RequestHandler } from "./$types";
 
-const PAGES = ["/", "/features", "/download", "/privacy", "/transparency"];
+const PAGES = ["/", "/features", "/download", "/faq", "/privacy", "/transparency"];
 
 // No <lastmod>: Google ignores it site-wide once it proves inaccurate, and no page has a real edit date.
 const BODY = `<?xml version="1.0" encoding="UTF-8"?>

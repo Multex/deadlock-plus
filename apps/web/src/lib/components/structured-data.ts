@@ -43,6 +43,17 @@ export function softwareApplication(description: string): SchemaNode {
     };
 }
 
+export function faqPage(items: readonly { question: string; answer: string }[]): SchemaNode {
+    return {
+        "@type": "FAQPage",
+        mainEntity: items.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+    };
+}
+
 /** Escapes `<` so no string in the data can close the script tag it is written into. */
 export function jsonLd(nodes: SchemaNode[]): string {
     return JSON.stringify({ "@context": "https://schema.org", "@graph": nodes }).replaceAll("<", "\\u003c");
