@@ -49,6 +49,7 @@ pub fn run() {
         .manage(features::i18n::I18nState::default())
         .manage(dp_gamedata::GameData::default())
         .manage(features::tray::CloseToTray::default())
+        .manage(features::tray::MainWindowVisibility::default())
         .manage(features::tray::badges::BadgeState::default())
         .manage(features::maintenance::MaintenanceState::default())
         .manage(features::alerts::AlertsState::default())
@@ -185,6 +186,7 @@ pub fn run() {
             features::autostart::commands::set_autostart,
             features::i18n::commands::set_language,
             features::tray::commands::set_close_to_tray,
+            features::tray::commands::main_window_visible,
             features::tray::commands::frontend_ready,
             features::tray::badges::commands::set_update_badge,
             features::maintenance::commands::set_maintenance_schedule,

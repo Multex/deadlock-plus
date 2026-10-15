@@ -239,6 +239,7 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                     return null;
                 },
                 is_game_running: () => false,
+                main_window_visible: () => true,
                 get_live_state: () => LIVE_STATE,
                 get_live_match: () => LIVE_MATCH,
                 presence_status: () => PRESENCE_STATUS,

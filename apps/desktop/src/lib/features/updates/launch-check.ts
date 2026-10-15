@@ -1,6 +1,7 @@
 import { toast } from "svelte-sonner";
 import { t } from "$lib/core/i18n.svelte";
 import { createPoller, type PollerEnv } from "$lib/core/poller";
+import { windowVisibility } from "$lib/core/window-visibility";
 import { getAppInfo } from "$lib/features/settings/about";
 import { settings } from "$lib/features/settings/settings.svelte";
 import { connectivity } from "$lib/features/connectivity/online.svelte";
@@ -19,14 +20,6 @@ export interface UpdateCheckDeps {
     reportShown(version: string): void;
     install(source: InstallSource): unknown;
 }
-
-const documentEnv: PollerEnv = {
-    isHidden: () => document.visibilityState === "hidden",
-    onVisibilityChange: (cb) => {
-        document.addEventListener("visibilitychange", cb);
-        return () => document.removeEventListener("visibilitychange", cb);
-    },
-};
 
 export function createUpdateChecks(deps: UpdateCheckDeps) {
     /** Avoids re-toasting the same version on every periodic recheck while the app stays open. */
@@ -60,7 +53,7 @@ export function createUpdateChecks(deps: UpdateCheckDeps) {
         checkOnLaunch: attemptCheck,
         /** The hourly timer pauses while the window is hidden, so a show also checks when the last one is stale. */
         start() {
-            const env = deps.env ?? documentEnv;
+            const env = deps.env ?? windowVisibility;
             const stopPoller = createPoller(attemptCheck, {
                 intervalMs: RECHECK_MS,
                 pauseWhenHidden: true,

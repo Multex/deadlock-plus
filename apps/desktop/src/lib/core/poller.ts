@@ -1,3 +1,5 @@
+import { windowVisibility } from "./window-visibility";
+
 export interface PollerEnv {
     isHidden(): boolean;
     onVisibilityChange(cb: () => void): () => void;
@@ -7,7 +9,7 @@ export interface PollerOptions {
     intervalMs: number;
     /** Run one tick synchronously inside `start()`. */
     immediate?: boolean;
-    /** Suspend the timer while the document is hidden; it restarts on show. */
+    /** Suspend the timer while the main window is hidden; it restarts on show. */
     pauseWhenHidden?: boolean;
     env?: PollerEnv;
 }
@@ -19,17 +21,9 @@ export interface Poller {
     readonly running: boolean;
 }
 
-const documentEnv: PollerEnv = {
-    isHidden: () => typeof document !== "undefined" && document.visibilityState === "hidden",
-    onVisibilityChange: (cb) => {
-        document.addEventListener("visibilitychange", cb);
-        return () => document.removeEventListener("visibilitychange", cb);
-    },
-};
-
 /** `tick` receives the poller so it can stop itself (e.g. after a successful retry). */
 export function createPoller(tick: (poller: Poller) => unknown, options: PollerOptions): Poller {
-    const { intervalMs, immediate = false, pauseWhenHidden = false, env = documentEnv } = options;
+    const { intervalMs, immediate = false, pauseWhenHidden = false, env = windowVisibility } = options;
 
     let running = false;
     let timer: ReturnType<typeof setInterval> | null = null;

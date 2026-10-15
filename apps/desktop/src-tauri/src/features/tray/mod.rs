@@ -9,6 +9,7 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 
 const MAIN_WINDOW: &str = "main";
 pub const WINDOW_HIDDEN_EVENT: &str = "window-hidden";
+pub const WINDOW_SHOWN_EVENT: &str = "window-shown";
 const AUTOSTART_ARG: &str = "--autostart";
 const SHOW_ID: &str = "show";
 const QUIT_ID: &str = "quit";
@@ -24,6 +25,29 @@ impl CloseToTray {
 
     pub fn get(&self) -> bool {
         self.0.load(Ordering::Relaxed)
+    }
+}
+
+fn visibility_event(was: bool, now: bool) -> Option<&'static str> {
+    match (was, now) {
+        (false, true) => Some(WINDOW_SHOWN_EVENT),
+        (true, false) => Some(WINDOW_HIDDEN_EVENT),
+        _ => None,
+    }
+}
+
+/// Whether the main window is shown and not minimized. WebView2 never fires `visibilitychange` on
+/// minimize or hide-to-tray, so the backend tracks it for the frontend.
+#[derive(Default)]
+pub struct MainWindowVisibility(AtomicBool);
+
+impl MainWindowVisibility {
+    pub fn get(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
+    }
+
+    fn update(&self, now: bool) -> Option<&'static str> {
+        visibility_event(self.0.swap(now, Ordering::Relaxed), now)
     }
 }
 
@@ -43,6 +67,23 @@ pub fn show_main(app: &AppHandle) {
             if let Err(e) = result {
                 log::warn!("main window {step} failed: {e}");
             }
+        }
+    }
+    sync_main_visibility(app);
+}
+
+fn sync_main_visibility(app: &AppHandle) {
+    let Some(w) = app.get_webview_window(MAIN_WINDOW) else { return };
+    let visible = match (w.is_visible(), w.is_minimized()) {
+        (Ok(shown), Ok(minimized)) => shown && !minimized,
+        (Err(e), _) | (_, Err(e)) => {
+            log::warn!("could not read the main window state: {e}");
+            return;
+        }
+    };
+    if let Some(event) = app.state::<MainWindowVisibility>().update(visible) {
+        if let Err(e) = app.emit(event, ()) {
+            log::warn!("could not emit {event}: {e}");
         }
     }
 }
@@ -124,19 +165,22 @@ fn should_hide_to_tray(label: &str, close_to_tray: bool) -> bool {
 }
 
 pub fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
-    if let WindowEvent::CloseRequested { api, .. } = event {
-        if should_hide_to_tray(window.label(), window.state::<CloseToTray>().get()) {
-            api.prevent_close();
-            log::debug!("close requested, hiding to the tray");
-            match window.hide() {
-                Ok(()) => {
-                    if let Err(e) = window.emit(WINDOW_HIDDEN_EVENT, ()) {
-                        log::warn!("could not emit {WINDOW_HIDDEN_EVENT}: {e}");
-                    }
+    match event {
+        WindowEvent::CloseRequested { api, .. } => {
+            if should_hide_to_tray(window.label(), window.state::<CloseToTray>().get()) {
+                api.prevent_close();
+                log::debug!("close requested, hiding to the tray");
+                if let Err(e) = window.hide() {
+                    log::warn!("could not hide the window: {e}");
                 }
-                Err(e) => log::warn!("could not hide the window: {e}"),
+                sync_main_visibility(window.app_handle());
             }
         }
+        // Minimize and restore from the taskbar arrive as `Resized`.
+        WindowEvent::Resized(_) | WindowEvent::Focused(_) if window.label() == MAIN_WINDOW => {
+            sync_main_visibility(window.app_handle());
+        }
+        _ => {}
     }
 }
 
@@ -154,6 +198,11 @@ pub mod commands {
     pub fn set_close_to_tray(enabled: bool, state: tauri::State<'_, CloseToTray>) {
         state.set(enabled);
         log::info!("close to tray {}", if enabled { "enabled" } else { "disabled" });
+    }
+
+    #[tauri::command]
+    pub fn main_window_visible(state: tauri::State<'_, MainWindowVisibility>) -> bool {
+        state.get()
     }
 
     /// Called once the frontend has actually rendered something, so the window is only ever
@@ -211,6 +260,27 @@ mod tests {
         assert!(should_hide_to_tray("main", true));
         assert!(!should_hide_to_tray("main", false));
         assert!(!should_hide_to_tray("other", true));
+    }
+
+    #[test]
+    fn visibility_event_only_on_a_change() {
+        assert_eq!(visibility_event(false, true), Some(WINDOW_SHOWN_EVENT));
+        assert_eq!(visibility_event(true, false), Some(WINDOW_HIDDEN_EVENT));
+        assert_eq!(visibility_event(true, true), None);
+        assert_eq!(visibility_event(false, false), None);
+    }
+
+    #[test]
+    fn main_window_visibility_starts_hidden_and_never_repeats() {
+        let s = MainWindowVisibility::default();
+        assert!(!s.get());
+        assert_eq!(s.update(false), None);
+        assert_eq!(s.update(true), Some(WINDOW_SHOWN_EVENT));
+        assert_eq!(s.update(true), None);
+        assert!(s.get());
+        assert_eq!(s.update(false), Some(WINDOW_HIDDEN_EVENT));
+        assert_eq!(s.update(false), None);
+        assert!(!s.get());
     }
 
     #[test]
