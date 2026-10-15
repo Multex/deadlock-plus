@@ -36,7 +36,7 @@ Every hour the cron sends each invite's use count to PostHog as `discord_invite_
     - `DISCORD_GUILD_ID`: the server's id. While it is empty, the bot refuses every command.
     - `POSTHOG_KEY`: the project key (`phc_…`), to send the hourly counts.
     - `POSTHOG_PERSONAL_KEY`: a personal key with `query:read`, for `/invite stats`.
-5. In the developer portal, open **General Information**. Set **Interactions Endpoint URL** to `https://deadlock-plus-discord-bot.<your-subdomain>.workers.dev/` and save. Discord checks the URL when you save, so steps 3 and 4 come first.
+5. In the developer portal, open **General Information**. Set **Interactions Endpoint URL** to `https://discord-bot.deadlockplus.app/` and save. Discord checks the URL when you save, so steps 3 and 4 come first. The first deploy creates the domain's DNS record and certificate, which can take a few minutes.
 6. Register the commands in the server. Put `DISCORD_APPLICATION_ID`, `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` in a `.dev.vars` file in this folder (gitignored), then run:
     ```sh
     pnpm register
