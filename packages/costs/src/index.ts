@@ -12,5 +12,14 @@ export {
     type Costs,
     type Period,
 } from "./costs";
-export { addCost, editCost, endCost, serializeCosts, type CostEdit, type CostRef, type EditResult } from "./edit";
+export {
+    addCost,
+    editCost,
+    endCost,
+    serializeCosts,
+    type CostEdit,
+    type CostRef,
+    type EditError,
+    type EditResult,
+} from "./edit";
 export type { Store } from "./store";

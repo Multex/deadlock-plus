@@ -48,7 +48,10 @@ export function editCost(costs: Costs, ref: CostRef, edit: CostEdit): EditResult
     const { until, ...rest } = edit;
     const current = costs.items[index] as Cost;
     const edited = row({ ...current, ...rest, until: until === null ? undefined : (until ?? current.until) });
-    return settle({ currency: costs.currency, items: costs.items.map((cost, i) => (i === index ? edited : cost)) }, edited);
+    return settle(
+        { currency: costs.currency, items: costs.items.map((cost, i) => (i === index ? edited : cost)) },
+        edited,
+    );
 }
 
 export function endCost(costs: Costs, ref: CostRef, until: string): EditResult {
