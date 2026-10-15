@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { createBot } from "../src/bot";
+import { INVITES } from "@deadlock-plus/links";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import wranglerToml from "../wrangler.toml?raw";
+import { POLL_CRON, createBot } from "../src/bot";
 import { discordEnv, type Env } from "../src/env";
 import { staffOnly } from "../src/guard";
 
@@ -140,5 +142,160 @@ describe("/cost", () => {
         const interaction = costInteraction(4, "edit", typed, "999");
         const res = await createBot({ verify: async () => true }).fetch(post(interaction), costEnv());
         expect(((await res.json()) as { data: { choices: unknown[] } }).data.choices).toEqual([]);
+    });
+});
+
+function interaction(type: 2 | 4, command: string, sub: string, options: object[]): object {
+    return {
+        type,
+        id: "1",
+        token: "itoken",
+        version: 1,
+        application_id: "app",
+        guild_id: GUILD,
+        data: { id: "c", name: command, type: 1, options: [{ type: 1, name: sub, options }] },
+    };
+}
+
+function kv() {
+    const data = new Map<string, string>();
+    return {
+        data,
+        get: async (key: string) => data.get(key) ?? null,
+        put: async (key: string, value: string) => void data.set(key, value),
+    };
+}
+
+function stubFetch(routes: Record<string, () => Response>) {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+            calls.push({ url, init });
+            const route = Object.keys(routes).find((prefix) => url.startsWith(prefix));
+            return route ? routes[route]!() : new Response(null, { status: 200 });
+        }),
+    );
+    return calls;
+}
+
+describe("/invite", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("answers privately at once and follows up with the list", async () => {
+        const calls = stubFetch({
+            [`https://discord.com/api/v10/guilds/${GUILD}/invites`]: () =>
+                Response.json([{ code: "VR375cZwRJ", uses: 2 }]),
+        });
+        const pending: Promise<unknown>[] = [];
+        const ctx = { waitUntil: (p: Promise<unknown>) => void pending.push(p), passThroughOnException: () => {} };
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(interaction(2, "invite", "list", [])),
+            { ...ENV, TRANSPARENCY: kv() },
+            ctx,
+        );
+        const body = (await res.json()) as { type: number; data: { flags: number } };
+        expect(body.type).toBe(5);
+        expect(body.data.flags & 64).toBe(64);
+        await Promise.all(pending);
+        const followup = calls.find((call) => call.url.includes("/webhooks/app/itoken/messages/@original"));
+        expect(followup?.init?.method).toBe("PATCH");
+        expect(String(followup?.init?.body)).toContain("**tiktok** (web): `VR375cZwRJ`, 2 uses");
+    });
+
+    it("suggests invites while the ref is typed", async () => {
+        const typed = [{ type: 3, name: "ref", value: "redd", focused: true }];
+        const res = await createBot({ verify: async () => true }).fetch(post(interaction(4, "invite", "edit", typed)), {
+            ...ENV,
+            TRANSPARENCY: kv(),
+        });
+        const body = (await res.json()) as { data: { choices: { value: string }[] } };
+        expect(body.data.choices.map((choice) => choice.value)).toEqual(["reddit"]);
+    });
+});
+
+describe("/invite delete suggestions", () => {
+    it("leave out the website invite, which cannot be deleted", async () => {
+        const typed = [{ type: 3, name: "ref", value: "web", focused: true }];
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(interaction(4, "invite", "delete", typed)),
+            {
+                ...ENV,
+                TRANSPARENCY: kv(),
+            },
+        );
+        expect(((await res.json()) as { data: { choices: unknown[] } }).data.choices).toEqual([]);
+    });
+});
+
+describe("/landing", () => {
+    it("adds a path and answers privately", async () => {
+        const store = kv();
+        const options = [
+            { type: 3, name: "path", value: "ig" },
+            { type: 3, name: "ref", value: "tiktok" },
+        ];
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(interaction(2, "landing", "add", options)),
+            {
+                ...ENV,
+                TRANSPARENCY: store,
+            },
+        );
+        const body = (await res.json()) as { type: number; data: { content: string; flags: number } };
+        expect(body.type).toBe(4);
+        expect(body.data.flags & 64).toBe(64);
+        expect(body.data.content).toContain("https://deadlockplus.app/ig");
+        expect(store.data.get("links")).toContain('"path": "ig"');
+    });
+
+    it("suggests paths for delete and invites for add", async () => {
+        const bot = createBot({ verify: async () => true });
+        const env = { ...ENV, TRANSPARENCY: kv() };
+        const paths = await bot.fetch(
+            post(interaction(4, "landing", "delete", [{ type: 3, name: "path", value: "tt-", focused: true }])),
+            env,
+        );
+        expect(
+            ((await paths.json()) as { data: { choices: { value: string }[] } }).data.choices.map((c) => c.value),
+        ).toEqual(["tt-b", "tt-p"]);
+        const refs = await bot.fetch(
+            post(
+                interaction(4, "landing", "add", [
+                    { type: 3, name: "path", value: "ig" },
+                    { type: 3, name: "ref", value: "you", focused: true },
+                ]),
+            ),
+            env,
+        );
+        expect(
+            ((await refs.json()) as { data: { choices: { value: string }[] } }).data.choices.map((c) => c.value),
+        ).toEqual(["youtube"]);
+    });
+});
+
+describe("hourly invite poll", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("runs on the schedule wrangler.toml sets", () => {
+        expect(wranglerToml).toContain(`crons = ["${POLL_CRON}"]`);
+    });
+
+    it("sends each invite's uses to PostHog, labelled from the stored table", async () => {
+        const calls = stubFetch({
+            [`https://discord.com/api/v10/guilds/${GUILD}/invites`]: () => Response.json([{ code: "ig1234", uses: 5 }]),
+        });
+        const store = kv();
+        store.data.set(
+            "links",
+            JSON.stringify({
+                invites: [...INVITES, { ref: "instagram", channel: "web", code: "ig1234" }],
+                landings: [],
+            }),
+        );
+        const env = { ...ENV, TRANSPARENCY: store, POSTHOG_KEY: "phc", POSTHOG_HOST: "https://eu.i.posthog.com" };
+        await createBot().scheduled({ cron: POLL_CRON, type: "scheduled", scheduledTime: 0 }, env);
+        const batch = calls.find((call) => call.url === "https://eu.i.posthog.com/batch/");
+        expect(String(batch?.init?.body)).toContain('"ref":"instagram"');
     });
 });

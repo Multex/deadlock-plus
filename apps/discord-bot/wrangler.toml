@@ -10,3 +10,10 @@ id = "f91351f4f4dc4d2fa8c0d6236b26533f"
 
 [observability]
 enabled = true
+
+[vars]
+POSTHOG_PROJECT_ID = "295233"
+POSTHOG_HOST = "https://eu.i.posthog.com"
+
+[triggers]
+crons = ["0 * * * *"]

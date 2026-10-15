@@ -15,7 +15,9 @@
         "format:check": "prettier --check ."
     },
     "dependencies": {
+        "@deadlock-plus/analytics": "workspace:*",
         "@deadlock-plus/costs": "workspace:*",
+        "@deadlock-plus/links": "workspace:*",
         "discord-api-types": "^0.38.56",
         "discord-hono": "0.22.2"
     },

@@ -41,6 +41,15 @@ describe("commands", () => {
         }
     });
 
+    it("give sibling options different names", () => {
+        for (const command of commands) {
+            walk((command.toJSON() as Option).options, (_, siblings) => {
+                const names = siblings.map((option) => option.name);
+                expect(new Set(names).size, names.join(",")).toBe(names.length);
+            });
+        }
+    });
+
     it("list required options before optional ones", () => {
         for (const command of commands) {
             walk((command.toJSON() as Option).options, (_, siblings) => {

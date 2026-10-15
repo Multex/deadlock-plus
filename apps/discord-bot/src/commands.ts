@@ -1,7 +1,14 @@
 // `scripts/register.mjs` loads this file with Node's type stripping, which cannot resolve extensionless relative
 // imports: import only packages here.
-import { InteractionContextType, PermissionFlagsBits } from "discord-api-types/v10";
-import { makeBooleanOption, makeNumberOption, makeSlashCommand, makeStringOption, makeSubCommand } from "discord-hono";
+import { ChannelType, InteractionContextType, PermissionFlagsBits } from "discord-api-types/v10";
+import {
+    makeBooleanOption,
+    makeChannelOption,
+    makeNumberOption,
+    makeSlashCommand,
+    makeStringOption,
+    makeSubCommand,
+} from "discord-hono";
 
 const MANAGE_SERVER = String(PermissionFlagsBits.ManageGuild);
 
@@ -50,4 +57,41 @@ export const cost = staffCommand("cost", "The running costs shown on the transpa
     ]),
 ]);
 
-export const commands = [cost];
+const ref = (description: string) => makeStringOption("ref", description).max_length(32);
+const pickRef = (description: string) => ref(description).required(true).autocomplete(true);
+
+export const invite = staffCommand("invite", "The invite codes the website and the app link to").options([
+    makeSubCommand("list", "Show every invite with its uses and landing paths"),
+    makeSubCommand("stats", "Show joins per invite over the last day, week and month"),
+    makeSubCommand("create", "Create a permanent invite and add it to the table").options([
+        ref("Short name it is counted under, e.g. instagram").required(true),
+        makeChannelOption("channel", "The channel the invite opens")
+            .required(true)
+            .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
+        makeStringOption("kind", "How it is shared; web if empty").choices([
+            { name: "Web: linked through the website", value: "web" },
+            { name: "Direct: a discord.gg link posted as is", value: "direct" },
+        ]),
+    ]),
+    makeSubCommand("edit", "Rename an invite or give it a code").options([
+        pickRef("The invite to change"),
+        makeStringOption("new_ref", "New name").max_length(32),
+        makeStringOption("code", "An existing invite code or discord.gg link from this server").max_length(64),
+    ]),
+    makeSubCommand("delete", "Remove an invite from the table").options([
+        pickRef("The invite to remove"),
+        makeBooleanOption("revoke", "Also revoke it on Discord, so the link stops working"),
+    ]),
+]);
+
+export const landing = staffCommand("landing", "Short paths typed after the site's address").options([
+    makeSubCommand("add", "Add a path, e.g. ig for deadlockplus.app/ig").options([
+        makeStringOption("path", "The path, without a slash").required(true).max_length(32),
+        pickRef("The invite visitors on this path are counted under"),
+    ]),
+    makeSubCommand("delete", "Remove a path; it then lands on the home page").options([
+        makeStringOption("path", "The path to remove").required(true).autocomplete(true),
+    ]),
+]);
+
+export const commands = [cost, invite, landing];
