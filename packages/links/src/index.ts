@@ -5,11 +5,20 @@ export {
     inviteAppUrl,
     inviteByCode,
     inviteUrl,
-    resolveWebRef,
     slug,
     type Channel,
     type Invite,
-    type ResolvedRef,
 } from "./invites";
-export { LANDING_REFS, inviteRefFor, landingRef, type LandingRef } from "./landing";
+export { LANDINGS, type Landing } from "./landing";
+export {
+    DEFAULT_LINKS,
+    LINKS_KEY,
+    LOCKED_REFS,
+    RESERVED_PATHS,
+    isLanding,
+    parseLinks,
+    resolveWebRef,
+    type Links,
+    type ResolvedRef,
+} from "./table";
 export { REPO_URL, SITE_URL, SUPPORT_URL } from "./urls";

@@ -45,18 +45,13 @@ describe("downloadHref", () => {
     });
 });
 describe("discordHref", () => {
-    it("follows the platform of the landing ref", () => {
-        expect(discordHref("tt-b")).toBe("/discord/tiktok");
-        expect(discordHref("yt")).toBe("/discord/youtube");
-    });
-
-    it("keeps a ref that has an invite of its own", () => {
+    it("passes the visitor's ref on, so the server picks the invite from the current table", () => {
+        expect(discordHref("tt-b")).toBe("/discord/tt-b");
         expect(discordHref("reddit")).toBe("/discord/reddit");
+        expect(discordHref("discord-rpc")).toBe("/discord/discord-rpc");
     });
 
-    it("falls back to the website invite", () => {
+    it("uses the website invite for a visitor without a ref", () => {
         expect(discordHref(null)).toBe("/discord/website");
-        expect(discordHref("bluesky")).toBe("/discord/website");
-        expect(discordHref("ttx")).toBe("/discord/website");
     });
 });

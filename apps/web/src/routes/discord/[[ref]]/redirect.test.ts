@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { INVITES } from "@deadlock-plus/links";
+import { resetLinks } from "$lib/server/links";
 import { GET } from "./+server";
 
 const BROWSER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36";
@@ -12,12 +14,18 @@ async function get(ref: string | undefined, platform?: unknown): Promise<Respons
     return GET({ request, params: { ref }, platform } as unknown as Event);
 }
 
+beforeEach(() => resetLinks());
+
 describe("GET /discord/<ref>", () => {
     const GENERAL = "w8x6HGUefT";
+    const WEBSITE = "KzWBUrQW3D";
     const cases: [string | undefined, string][] = [
         [undefined, GENERAL],
-        ["unknown-thing", GENERAL],
         ["NOT A REF", GENERAL],
+        ["unknown-thing", WEBSITE],
+        ["discord-rpc", WEBSITE],
+        ["tt-b", "VR375cZwRJ"],
+        ["yt", "Sa8PdZrVEa"],
         ["website", "KzWBUrQW3D"],
         ["tiktok", "VR375cZwRJ"],
         ["youtube", "Sa8PdZrVEa"],
@@ -25,10 +33,10 @@ describe("GET /discord/<ref>", () => {
         ["twitter", "tH5ZYTRGF5"],
         ["github", "652zsGZZgD"],
         ["deadlock-api", "YCbXPdbekW"],
-        ["bluesky", GENERAL],
-        ["steam", GENERAL],
-        ["app", GENERAL],
-        ["general", GENERAL],
+        ["bluesky", WEBSITE],
+        ["steam", WEBSITE],
+        ["app", WEBSITE],
+        ["general", WEBSITE],
     ];
 
     it.each(cases)("answers 302 for %s to its own invite", async (ref, code) => {
@@ -36,6 +44,16 @@ describe("GET /discord/<ref>", () => {
         expect(response.status).toBe(302);
         expect(response.headers.get("location")).toBe(`https://discord.gg/${code}`);
         expect(response.headers.get("cache-control")).toBe("no-store");
+    });
+
+    it("reads invites from the stored table", async () => {
+        const stored = JSON.stringify({
+            invites: [...INVITES, { ref: "instagram", channel: "web", code: "abcDEF12" }],
+            landings: [{ path: "ig", ref: "instagram" }],
+        });
+        const platform = { env: { TRANSPARENCY: { get: async () => stored } }, ctx: { waitUntil: () => {} } };
+        const response = await get("ig", platform);
+        expect(response.headers.get("location")).toBe("https://discord.gg/abcDEF12");
     });
 
     it.each(["app", "general"])("does not count %s as a known web ref", async (ref) => {

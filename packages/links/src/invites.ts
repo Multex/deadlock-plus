@@ -3,7 +3,7 @@ export type Channel = "web" | "app" | "direct";
 export interface Invite {
     ref: string;
     channel: Channel;
-    /** `null` on a web ref that has no invite of its own yet: it shares `FALLBACK_CODE`, so its joins cannot be told apart. */
+    /** `null` on a web ref that has no invite of its own yet: it shares the website's, so its joins cannot be told apart. */
     code: string | null;
 }
 
@@ -45,19 +45,6 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
 export function slug(value: string | null | undefined): string | null {
     const lowered = value?.toLowerCase();
     return lowered && SLUG.test(lowered) ? lowered : null;
-}
-
-export interface ResolvedRef {
-    ref: string;
-    code: string;
-    known: boolean;
-}
-
-export function resolveWebRef(raw: string | null | undefined, invites: readonly Invite[] = INVITES): ResolvedRef {
-    const ref = slug(raw);
-    if (!ref) return { ref: "none", code: FALLBACK_CODE, known: false };
-    const invite = invites.find((i) => i.channel === "web" && i.ref === ref);
-    return { ref, code: invite?.code ?? FALLBACK_CODE, known: invite !== undefined };
 }
 
 export function inviteByCode(code: string, invites: readonly Invite[] = INVITES): Invite | undefined {

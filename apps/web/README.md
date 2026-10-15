@@ -20,15 +20,17 @@ A ref names where a link was posted: `github`, `deadlock-api`, `reddit`.
 - Link to Discord with `/discord/<ref>`.
 - Link to the site with `/?ref=<ref>`. `utm_source` works too.
 - A ref is lowercase letters, digits and `-`, up to 32 characters.
-- An unlisted ref still works. It is recorded with `known: false` and uses the fallback invite.
+- An unlisted ref still works. It is recorded with `known: false` and uses the `website` invite. `/discord` with no ref uses the `general` invite.
 
 Give a partner site a `?ref=` link. A browser may withhold the `Referer` header, and then the visit counts as direct.
 
-Two more routes only redirect. `/<ref>` is for a video that shows the address as text: it answers `302` to `/?ref=<ref>` for each ref in `LANDING_REFS` (`packages/links/src/landing.ts`) and is a 404 for any other. Those refs are `tt` (TikTok) or `yt` (YouTube), alone for the address shown in the video, with `-b` for the bio or channel description, or with `-p` for a pinned comment. `/get/<platform>?v=<version>&ref=<ref>` (`windows`, `deb`, `appimage`) records the download and answers `302` to that file in the release list, or to the newest release that has it when `v` is missing or unknown.
+Two more routes only redirect. `/<path>` is for a video that shows the address as text: it answers `302` to `/?ref=<path>` for each landing path in the links table, and `302` to `/` for any other, so an old bio keeps landing home after its path is deleted. A path that is not a valid ref is a 404. The built-in paths are `tt` (TikTok) or `yt` (YouTube), alone for the address shown in the video, with `-b` for the bio or channel description, or with `-p` for a pinned comment. `/get/<platform>?v=<version>&ref=<ref>` (`windows`, `deb`, `appimage`) records the download and answers `302` to that file in the release list, or to the newest release that has it when `v` is missing or unknown.
 
 ## Invites
 
-`packages/links/src/invites.ts` (`@deadlock-plus/links`) lists every invite: its ref, its channel and its code.
+The links table lists every invite (its ref, its channel and its code) and every landing path (its path and the invite ref it counts under). It lives in the `TRANSPARENCY` KV namespace under the key `links`, and staff edit it from Discord. The site reads it at most once a minute. When the key is missing, broken or cannot be read, the site uses the built-in list in `packages/links` (`INVITES` in `invites.ts`, `LANDINGS` in `landing.ts`).
+
+A stored table is rejected as a whole when a row is malformed, a ref or code is listed twice, `app`, `general` or `github` is missing or changed, there is no `website` invite, or a landing path is a page name, an invite ref, or points at something other than a `web` invite.
 
 | Channel  | Meaning                                    |
 | -------- | ------------------------------------------ |
@@ -36,12 +38,12 @@ Two more routes only redirect. `/<ref>` is for a video that shows the address as
 | `app`    | Opened from inside Deadlock+               |
 | `direct` | A `discord.gg` link posted somewhere as is |
 
-Each `web` ref has an invite of its own, except `bluesky` and `steam`, which share the general code until they get one.
+Each `web` ref has an invite of its own, except `bluesky` and `steam`, which share the `website` code until they get one.
 
 | Ref            | Channel  | For                                                       | Code         |
 | -------------- | -------- | --------------------------------------------------------- | ------------ |
 | `app`          | `app`    | Opened from inside Deadlock+                              | `VM9utA3enT` |
-| `general`      | `direct` | General use and the fallback for refs without a code      | `w8x6HGUefT` |
+| `general`      | `direct` | General use, and `/discord` with no ref                   | `w8x6HGUefT` |
 | `github`       | `web`    | GitHub; the README and `CONTRIBUTING.md` link it directly | `652zsGZZgD` |
 | `deadlock-api` | `web`    | The Deadlock API                                          | `YCbXPdbekW` |
 | `website`      | `web`    | The website, for visitors who did not come from a video   | `KzWBUrQW3D` |
@@ -52,14 +54,14 @@ Each `web` ref has an invite of its own, except `bluesky` and `steam`, which sha
 | `bluesky`      | `web`    | Bluesky (no code yet)                                     | none         |
 | `steam`        | `web`    | Steam (no code yet)                                       | none         |
 
-The website's Discord buttons pick the ref from the visitor's landing ref: `tt`, `tt-b` and `tt-p` use `tiktok`, `yt`, `yt-b` and `yt-p` use `youtube`, a visitor whose ref has an invite code of its own (for example `?ref=reddit`) uses that ref, and every other visitor uses `website` (`inviteRefFor` in `landing.ts`).
+The website's Discord buttons link `/discord/<ref>` with the visitor's ref, or `/discord/website` without one. The server picks the invite from the table: a landing path uses the invite it names (`tt-b` uses `tiktok`), a ref with an invite code of its own (for example `reddit`) uses that, and every other ref uses `website` (`resolveWebRef` in `table.ts`).
 
-Discord counts joins per invite code and nothing else. So a ref is only countable by joins when it has a code of its own. A `web` ref with `code: null` shares the fallback code: its clicks are counted, its joins are not separable.
+Discord counts joins per invite code and nothing else. So a ref is only countable by joins when it has a code of its own. A `web` ref with `code: null` shares the `website` code: its clicks are counted, its joins are not separable.
 
 To add a ref:
 
 1. In Discord, create an invite that never expires and has no use limit.
-2. Add a line to `INVITES` with the ref, the channel and the code.
+2. Add a row to the links table with the ref, the channel and the code. Add it to `INVITES` too if the site must know it while the table cannot be read.
 
 Never revoke an `app` or `direct` invite. Shipped app builds and posted links point at it.
 

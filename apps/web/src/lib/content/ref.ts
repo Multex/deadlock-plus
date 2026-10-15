@@ -1,4 +1,4 @@
-import { inviteRefFor, slug } from "@deadlock-plus/links";
+import { slug } from "@deadlock-plus/links";
 
 export type DownloadPlatform = "windows" | "deb" | "appimage";
 
@@ -17,7 +17,7 @@ export function withRef(href: string, ref: string | null): string {
 }
 
 export function discordHref(ref: string | null): string {
-    return `/discord/${inviteRefFor(ref)}`;
+    return `/discord/${ref ?? "website"}`;
 }
 
 export function downloadHref(platform: DownloadPlatform, version: string | null, ref: string | null): string {

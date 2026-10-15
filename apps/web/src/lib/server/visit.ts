@@ -1,5 +1,5 @@
 import { buildEvent, type AnalyticsEvent } from "@deadlock-plus/analytics";
-import { inviteUrl, resolveWebRef, slug } from "@deadlock-plus/links";
+import { DEFAULT_LINKS, inviteUrl, resolveWebRef, slug, type Links } from "@deadlock-plus/links";
 import { REPO_URL } from "@deadlock-plus/links/urls";
 import { LINKS } from "../content/links";
 import type { Release } from "./releases";
@@ -81,8 +81,9 @@ export function discordClick(
     rawRef: string | undefined,
     country: string | undefined,
     now = new Date(),
+    links: Links = DEFAULT_LINKS,
 ): DiscordClick {
-    const { ref, code, known } = resolveWebRef(rawRef);
+    const { ref, code, known } = resolveWebRef(rawRef, links);
     const location = inviteUrl(code);
     if (isBot(request.headers.get("user-agent"))) return { location, event: null };
 
