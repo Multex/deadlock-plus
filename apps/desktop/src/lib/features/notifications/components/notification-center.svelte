@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { Bell, CalendarClock, Check, Megaphone, Server } from "@lucide/svelte";
+    import { Bell, CalendarClock, Check, Coffee, Megaphone, Server } from "@lucide/svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
@@ -56,6 +56,8 @@
                                 <CalendarClock class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                             {:else if item.kind === "servers"}
                                 <Server class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                            {:else if item.kind === "session"}
+                                <Coffee class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                             {:else}
                                 <Megaphone class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                             {/if}

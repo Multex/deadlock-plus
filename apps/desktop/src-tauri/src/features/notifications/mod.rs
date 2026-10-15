@@ -29,6 +29,7 @@ pub enum NotificationKind {
     Alert,
     Maintenance,
     Servers,
+    Session,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -181,6 +182,17 @@ pub mod commands {
     }
 
     #[tauri::command]
+    pub fn notify_break_reminder(app: AppHandle, loss_streak: u32) {
+        push(
+            &app,
+            NotificationKind::Session,
+            "notifications.break_reminder",
+            &[("count", loss_streak.to_string())],
+            Some("/match-history".into()),
+        );
+    }
+
+    #[tauri::command]
     pub fn mark_notifications_read(app: AppHandle, state: tauri::State<'_, NotificationsState>) {
         let changed = state.with_stored(&app, |s| {
             let unread = s.items.iter().any(|n| !n.read);
@@ -258,6 +270,22 @@ mod tests {
     }
 
     #[test]
+    fn break_reminder_carries_the_count_and_links_to_match_history() {
+        let n = build(
+            NotificationKind::Session,
+            "notifications.break_reminder",
+            &[("count", 3.to_string())],
+            Some("/match-history".into()),
+            7,
+            0,
+        );
+        assert_eq!(n.kind, NotificationKind::Session);
+        assert_eq!(n.params.get("count").map(String::as_str), Some("3"));
+        assert_eq!(n.link.as_deref(), Some("/match-history"));
+        assert_eq!(serde_json::to_string(&n.kind).unwrap(), "\"session\"");
+    }
+
+    #[test]
     fn toast_text_renders_the_key_in_the_given_locale() {
         let n = build(
             NotificationKind::Maintenance,
@@ -285,6 +313,7 @@ mod tests {
             "notifications.maintenance_soon",
             "notifications.server_blocks_updated",
             "notifications.server_blocks_stale",
+            "notifications.break_reminder",
         ] {
             for part in ["title", "body"] {
                 let full = format!("{key}.{part}");

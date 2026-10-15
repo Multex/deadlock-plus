@@ -196,6 +196,7 @@ pub fn run() {
             features::notifications::commands::list_notifications,
             features::notifications::commands::mark_notifications_read,
             features::notifications::commands::mark_notification_read,
+            features::notifications::commands::notify_break_reminder,
             features::patch_notes::commands::search_patch_notes,
             features::jobs::commands::jobs_snapshot,
             features::jobs::commands::cancel_job,

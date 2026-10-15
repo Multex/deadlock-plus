@@ -18,6 +18,7 @@ export async function fetchMetadata(matchId: number, fetchFn: typeof fetch = fet
 }
 
 export const readProvisionalDetail = (matchId: number) => command<unknown | null>("get_postgame_detail", { matchId });
+export const notifyBreakReminder = (lossStreak: number) => command("notify_break_reminder", { lossStreak });
 
 export interface DetailSource {
     read(matchId: number): Promise<string | null>;

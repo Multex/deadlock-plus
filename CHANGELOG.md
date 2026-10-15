@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Replay key recovery can fetch your whole match history at once from Match sharing settings, past the daily limit.
 - A banner offers a waiting update once it is a day old, and comes back each time you open the window until you install it.
 - The update notice has an Install button.
+- The break reminder now sends a desktop notification when your session reaches three losses in a row.
 
 #### Presence page
 

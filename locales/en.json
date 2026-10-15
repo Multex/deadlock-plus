@@ -519,6 +519,10 @@
         "server_blocks_stale": {
             "title": "Some server blocks are out of date",
             "body": "Deadlock+ couldn't update the blocks for {servers}. Open Server Picker and apply them again."
+        },
+        "break_reminder": {
+            "title": "Time for a break?",
+            "body": "{count} losses in a row this session. A short break might be worth it."
         }
     },
     "common": {

@@ -8,6 +8,7 @@ import { gcStatus } from "./gc/status.svelte";
 import { ingestStatus } from "./ingest/status.svelte";
 import { jobs } from "./jobs/jobs.svelte";
 import { live } from "./live/live.svelte";
+import { startBreakReminder } from "./match-history/break-reminder.svelte";
 import { presenceStatus } from "./presence/status.svelte";
 import { notifications } from "./notifications/notifications.svelte";
 import { onboarding } from "./onboarding/onboarding.svelte";
@@ -176,6 +177,7 @@ export const SERVICES: Service[] = [
     () => connectivity.start(),
     () => live.start(),
     () => presenceStatus.start(),
+    startBreakReminder,
     () => {
         void onboarding.init();
     },

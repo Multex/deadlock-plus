@@ -191,6 +191,7 @@ const SETTERS = [
     "mark_alerts_read",
     "mark_notifications_read",
     "mark_notification_read",
+    "notify_break_reminder",
     "dismiss_crash",
     "report_webview_crash",
 ];
