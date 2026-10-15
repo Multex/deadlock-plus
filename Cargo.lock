@@ -1137,7 +1137,7 @@ dependencies = [
 
 [[package]]
 name = "deadlock-plus"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "ab_glyph",
  "dp-alerts",
@@ -1444,7 +1444,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "dp-alerts"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-text",
  "dp-versioned",
@@ -1456,15 +1456,15 @@ dependencies = [
 
 [[package]]
 name = "dp-atomic"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "dp-autostart"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "dp-connection"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "ferrisetw",
  "libc",
@@ -1473,7 +1473,7 @@ dependencies = [
 
 [[package]]
 name = "dp-crash"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1482,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "dp-demos"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-versioned",
  "log",
@@ -1496,7 +1496,7 @@ dependencies = [
 
 [[package]]
 name = "dp-diagnostics"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-steam",
  "flate2",
@@ -1510,7 +1510,7 @@ dependencies = [
 
 [[package]]
 name = "dp-discord-ipc"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "libc",
  "serde",
@@ -1520,14 +1520,14 @@ dependencies = [
 
 [[package]]
 name = "dp-elevation"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "windows 0.58.0",
 ]
 
 [[package]]
 name = "dp-export"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "log",
@@ -1535,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "dp-firewall"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "dp-sync",
@@ -1547,7 +1547,7 @@ dependencies = [
 
 [[package]]
 name = "dp-frames"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "dp-frames-wire",
@@ -1563,7 +1563,7 @@ dependencies = [
 
 [[package]]
 name = "dp-frames-layer"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-frames-wire",
  "libc",
@@ -1571,18 +1571,18 @@ dependencies = [
 
 [[package]]
 name = "dp-frames-wire"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "dp-game"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "sysinfo",
 ]
 
 [[package]]
 name = "dp-gamedata"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "deadlock-data",
  "dp-steam",
@@ -1593,7 +1593,7 @@ dependencies = [
 
 [[package]]
 name = "dp-gc"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "aes",
  "base64 0.23.1",
@@ -1615,14 +1615,14 @@ dependencies = [
 
 [[package]]
 name = "dp-icmp"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "windows 0.58.0",
 ]
 
 [[package]]
 name = "dp-ingest"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1630,7 +1630,7 @@ dependencies = [
 
 [[package]]
 name = "dp-kv"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-versioned",
  "log",
@@ -1639,7 +1639,7 @@ dependencies = [
 
 [[package]]
 name = "dp-live"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "deadlock-reader",
  "deadlock-walker",
@@ -1648,7 +1648,7 @@ dependencies = [
 
 [[package]]
 name = "dp-network"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "dp-connection",
@@ -1664,7 +1664,7 @@ dependencies = [
 
 [[package]]
 name = "dp-patch-notes"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "base64 0.23.1",
  "dp-sync",
@@ -1683,7 +1683,7 @@ dependencies = [
 
 [[package]]
 name = "dp-postgame"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "deadlock-events",
  "deadlock-reader",
@@ -1696,7 +1696,7 @@ dependencies = [
 
 [[package]]
 name = "dp-presence"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1705,7 +1705,7 @@ dependencies = [
 
 [[package]]
 name = "dp-server-picker"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-firewall",
  "dp-icmp",
@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "dp-steam"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "base64 0.23.1",
  "log",
@@ -1731,7 +1731,7 @@ dependencies = [
 
 [[package]]
 name = "dp-storage"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "log",
@@ -1741,18 +1741,18 @@ dependencies = [
 
 [[package]]
 name = "dp-support"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-crash",
 ]
 
 [[package]]
 name = "dp-sync"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "dp-telemetry"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "dp-crash",
@@ -1766,11 +1766,11 @@ dependencies = [
 
 [[package]]
 name = "dp-text"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "dp-versioned"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "serde",
@@ -1779,7 +1779,7 @@ dependencies = [
 
 [[package]]
 name = "dp-voice-bans"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "dp-atomic",
  "dp-game",
