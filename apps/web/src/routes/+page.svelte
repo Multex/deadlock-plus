@@ -1,5 +1,6 @@
 <script lang="ts">
     import Seo from "$lib/components/seo.svelte";
+    import { softwareApplication } from "$lib/components/structured-data";
     import { ArrowRight, Download } from "@lucide/svelte";
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import Shot from "$lib/components/shot.svelte";
@@ -13,6 +14,9 @@
     import Section from "@deadlock-plus/ui/section.svelte";
 
     const ref = $derived(currentRef(page.url));
+
+    const description =
+        "Deadlock+ is a free companion app for Deadlock. Show your match on Discord, pick your servers, and see your match history, rank and stats. No account needed.";
 
     const trust = [
         {
@@ -30,10 +34,7 @@
     ];
 </script>
 
-<Seo
-    title="Deadlock+ | Companion app for Deadlock"
-    description="Deadlock+ is a free companion app for Deadlock. Show your match on Discord, pick your servers, and see your match history, rank and stats. No account needed."
-/>
+<Seo title="Deadlock+ | Companion app for Deadlock" {description} schema={[softwareApplication(description)]} />
 
 <Page>
     <header class="py-12 sm:py-20">

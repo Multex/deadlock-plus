@@ -2,11 +2,18 @@
     import { page } from "$app/state";
 
     import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, socialMeta } from "./seo";
+    import { SITE_NODES, jsonLd, type SchemaNode } from "./structured-data";
 
-    let { title, description, noindex = false }: { title: string; description?: string; noindex?: boolean } = $props();
+    let {
+        title,
+        description,
+        noindex = false,
+        schema = [],
+    }: { title: string; description?: string; noindex?: boolean; schema?: SchemaNode[] } = $props();
 
     const meta = $derived(socialMeta(page.url.pathname));
     const preview = $derived(description ?? SITE_DESCRIPTION);
+    const structuredData = $derived(jsonLd([...SITE_NODES, ...schema]));
 </script>
 
 <svelte:head>
@@ -33,4 +40,6 @@
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={preview} />
     <meta name="twitter:image" content={meta.image} />
+
+    {@html `<script type="application/ld+json">${structuredData}</script>`}
 </svelte:head>
