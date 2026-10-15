@@ -85,10 +85,16 @@
     </DropdownMenu.Root>
 {/snippet}
 
-<Seo title="Download | Deadlock+" description="Download Deadlock+ for Windows 10 and 11, or for Linux. It is free." />
+<Seo
+    title="Download Deadlock+ for Windows and Linux (Free)"
+    description="Download Deadlock+, the free companion app for Deadlock, for Windows 10 and 11 or Linux. No account needed."
+/>
 
 <Page>
-    <PageHeader title="Download" subtitle="Deadlock+ is free. Download it, open the file, and you are ready to go." />
+    <PageHeader
+        title="Download Deadlock+"
+        subtitle="Deadlock+ is free. Download it, open the file, and you are ready to go."
+    />
 
     <div class="grid gap-3 md:grid-cols-2">
         <Card as="article" padding="lg" class="border-brass/50">

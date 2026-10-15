@@ -28,12 +28,15 @@
 </script>
 
 <Seo
-    title="Features | Deadlock+"
-    description="Everything Deadlock+ does: show your match on Discord, pick your servers, follow your match live, and see your match history, stats, rank and how the game runs."
+    title="Rich Presence, Server Picker, Match History | Deadlock+"
+    description="Everything Deadlock+ does for Deadlock: Discord Rich Presence, a server picker, live match info, match history, stats, rank, replays and game performance."
 />
 
 <Page>
-    <PageHeader title="Features" subtitle="Each page of Deadlock+ does one job. Here is what each one is for.">
+    <PageHeader
+        title="Deadlock+ features"
+        subtitle="Each page of Deadlock+ does one job. Here is what each one is for."
+    >
         {#snippet actions()}
             <a href={withRef("/download", ref)} class={buttonVariants()}>
                 <Download />

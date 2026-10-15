@@ -16,7 +16,7 @@
     const ref = $derived(currentRef(page.url));
 
     const description =
-        "Deadlock+ is a free companion app for Deadlock. Show your match on Discord, pick your servers, and see your match history, rank and stats. No account needed.";
+        "Deadlock+ is a free companion app for Deadlock: Discord Rich Presence, a server picker, match history, rank and stats. No account needed.";
 
     const trust = [
         {
@@ -34,7 +34,11 @@
     ];
 </script>
 
-<Seo title="Deadlock+ | Companion app for Deadlock" {description} schema={[softwareApplication(description)]} />
+<Seo
+    title="Deadlock+ | Discord Rich Presence and Stats for Deadlock"
+    {description}
+    schema={[softwareApplication(description)]}
+/>
 
 <Page>
     <header class="py-12 sm:py-20">
