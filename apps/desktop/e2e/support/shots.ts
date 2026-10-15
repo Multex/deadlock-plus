@@ -53,9 +53,9 @@ export const SHOTS: Shot[] = [
         detail: {
             target: { role: "button", name: "Launch Deadlock" },
             anchor: "start",
-            viewport: 652,
-            width: 547,
-            padding: 13,
+            viewport: 658,
+            width: 549,
+            padding: 11,
             steps: collapseSidebar,
         },
     },
@@ -66,9 +66,9 @@ export const SHOTS: Shot[] = [
         detail: {
             target: { role: "button", name: "Presets" },
             anchor: "start",
-            viewport: 664,
-            width: 549,
-            padding: 8,
+            viewport: 710,
+            width: 593,
+            padding: 7,
             steps: collapseSidebar,
         },
     },
@@ -76,13 +76,33 @@ export const SHOTS: Shot[] = [
         name: "match-history",
         scenario: "default",
         route: "/match-history",
-        detail: { target: { text: /^Matches$/ }, anchor: "start", width: 468, padding: 24 },
+        detail: {
+            target: { role: "heading", name: "Sessions" },
+            anchor: "start",
+            viewport: 876,
+            width: 765,
+            padding: 10,
+            // Narrower, the matches overflow their rows; wider, a third session no longer fits. The crop is
+            // taller than the window, so the window grows to hold it.
+            steps: async (page) => {
+                await collapseSidebar(page);
+                await page.setViewportSize({ width: 876, height: 1100 });
+                // At this width each match's mode name is cut to a stray letter. Its icon still names the mode.
+                await page.locator("main li p > span.truncate").evaluateAll((labels) =>
+                    labels.forEach((label) => {
+                        for (const el of [label, label.nextElementSibling]) {
+                            if (el instanceof HTMLElement) el.style.display = "none";
+                        }
+                    }),
+                );
+            },
+        },
     },
     {
         name: "match",
         scenario: "default",
         route: "/match-history/990000056",
-        height: 1500,
+        height: 1523,
         detail: { target: { role: "table", name: "Scoreboard" }, width: 472, padding: 4 },
     },
     {
@@ -90,37 +110,11 @@ export const SHOTS: Shot[] = [
         scenario: "default",
         route: "/stats",
         detail: {
-            target: { text: /^Winrate$/ },
+            target: { role: "region", name: "Rank" },
             anchor: "start",
-            viewport: 670,
-            width: 559,
-            padding: 26,
-            steps: collapseSidebar,
-        },
-    },
-    {
-        name: "rank",
-        scenario: "default",
-        route: "/stats",
-        detail: {
-            target: { role: "heading", name: "Rank" },
-            anchor: "start",
-            viewport: 664,
-            width: 553,
+            viewport: 721,
+            width: 610,
             padding: 10,
-            steps: collapseSidebar,
-        },
-    },
-    {
-        name: "sessions",
-        scenario: "default",
-        route: "/match-history",
-        detail: {
-            target: { text: /Nice work/ },
-            anchor: "start",
-            viewport: 584,
-            width: 467,
-            padding: 7,
             steps: collapseSidebar,
         },
     },
@@ -129,13 +123,27 @@ export const SHOTS: Shot[] = [
         name: "replays",
         scenario: "default",
         route: "/demos",
-        detail: { target: { role: "button", name: /^All \(/ }, anchor: "start", width: 480, padding: 8 },
+        detail: {
+            target: { role: "button", name: /^All \(/ },
+            anchor: "start",
+            viewport: 656,
+            width: 535,
+            padding: 5,
+            steps: collapseSidebar,
+        },
     },
     {
         name: "storage",
         scenario: "default",
         route: "/settings/storage",
-        detail: { target: { text: "Total found" }, anchor: "start", width: 480, padding: 24 },
+        detail: {
+            target: { role: "heading", name: "Storage" },
+            anchor: "start",
+            viewport: 654,
+            width: 557,
+            padding: 10,
+            steps: collapseSidebar,
+        },
     },
     {
         name: "performance",
@@ -148,7 +156,7 @@ export const SHOTS: Shot[] = [
         detail: {
             target: { role: "table" },
             anchor: "start",
-            viewport: 574,
+            viewport: 576,
             width: 463,
             padding: 10,
             steps: collapseSidebar,
@@ -160,13 +168,13 @@ export const SHOTS: Shot[] = [
         route: "/live",
         height: 1440,
         websiteOnly: true,
-        detail: { target: { role: "table", name: "The Hidden King" }, anchor: "start", width: 520, padding: 8 },
+        detail: { target: { role: "table", name: "The Hidden King" }, anchor: "start", width: 513, padding: 8 },
     },
     {
         name: "discord-presence",
         scenario: "live-match",
         route: "/presence",
-        height: 1556,
+        height: 1529,
         websiteOnly: true,
         steps: async (page) => {
             const states = page.getByRole("navigation", { name: "Activity states" });
@@ -185,7 +193,7 @@ export const SHOTS: Shot[] = [
                 )
                 .toEqual([true, true]);
             // The website's cards show the top of the picture, and the preview is the part worth showing.
-            await scrollInMain(page.getByRole("heading", { name: "Presence editor" }), 44);
+            await scrollInMain(page.getByRole("heading", { name: "Presence editor" }), 33);
             // The pointer is still where the last click was, and would light up the row now under it.
             await page.mouse.move(0, 0);
         },
@@ -193,7 +201,7 @@ export const SHOTS: Shot[] = [
             target: { role: "group", name: "Activity preview" },
             width: 300,
             padding: 12,
-            viewport: 866,
+            viewport: 870,
             // Hidden, not removed, so the card stays where it is. The frame is taller than the card and would
             // otherwise take in the state's title and reset button above it and the editor's helper line below.
             steps: async (page) => {
