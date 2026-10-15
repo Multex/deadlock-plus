@@ -13,7 +13,7 @@
             "reveal_failed": "Не удалось открыть файловый менеджер. Проверьте журнал для получения подробностей.",
             "pin_save_failed": "Не удалось сохранить прикрепленные повторы. Проверьте журнал для получения подробностей.",
             "rules_save_failed": "Не удалось сохранить правила очистки. Проверьте журнал для получения подробностей.",
-            "rules_duplicate_id": "Два правила очистки имеют одинаковый идентификатор.",
+            "rules_duplicate_id": "",
             "rules_zero_days": "Возраст должен быть не менее 1 дня.",
             "rules_zero_size": "Лимит размера должен быть больше 0.",
             "not_a_replay": "",
@@ -44,7 +44,10 @@
             "home_folder_not_found": "",
             "frame_layer_missing": "",
             "frame_layer_install_failed": "",
-            "frame_layer_remove_failed": ""
+            "frame_layer_remove_failed": "",
+            "frame_trace_needs_admin": "",
+            "frames_read_failed": "",
+            "mod_unreadable": ""
         },
         "export": {
             "invalid_name": "",
@@ -60,7 +63,9 @@
         },
         "gc": {
             "steam_not_found": "",
-            "no_login": ""
+            "no_login": "",
+            "disabled": "",
+            "game_running": ""
         },
         "ingest": {
             "rejected": "",
@@ -107,6 +112,10 @@
         "match_history": {
             "too_large": "",
             "not_json": ""
+        },
+        "presence": {
+            "import_invalid": "",
+            "save_failed": ""
         }
     },
     "settings": {
@@ -125,8 +134,10 @@
             "startup": "Запуск и фон",
             "notifications": "Уведомления",
             "privacy": "Конфиденциальность",
-            "about": "Версия",
-            "diagnostics": "Диагностика"
+            "about": "",
+            "diagnostics": "Диагностика",
+            "sharing": "",
+            "storage": ""
         },
         "items": {
             "theme": "Тема",
@@ -147,7 +158,8 @@
             "updates": "Обновления приложения",
             "thanks": "Благодарности",
             "diagnostics": "Диагностика",
-            "licenses": "Лицензии"
+            "licenses": "Лицензии",
+            "storage": ""
         },
         "nav": {
             "label": "Категории настроек",
@@ -201,11 +213,14 @@
         },
         "startup": {
             "tray_description": "",
+            "jobs_description": "",
             "all_jobs_label": "",
             "all_jobs_description": "",
             "tasks_title": "Задачи",
+            "tasks_description": "",
             "run_by_itself": "",
-            "while_running": "Пока Deadlock запущен"
+            "while_running": "Пока Deadlock запущен",
+            "advanced": ""
         },
         "notifications": {
             "alerts_description": "",
@@ -336,7 +351,7 @@
                 "lost": "Поражение",
                 "unscored": "Не засчитано"
             },
-            "editing": "Изменение",
+            "editing": "",
             "editing_default_hint": "",
             "editing_hero_hint": "",
             "no_hero_layer": "",
@@ -414,7 +429,8 @@
             "timer_queueTime": "",
             "field_party_size": "",
             "party_size_hint": "",
-            "preview_party": ""
+            "preview_party": "",
+            "detailed_only": ""
         },
         "privacy": {
             "telemetry_description": "",
@@ -426,7 +442,12 @@
             "ingest_failed": "",
             "ingest_watching": "",
             "ingest_description": "",
-            "gc_description": ""
+            "gc_description": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "gc_own_start": "",
+            "gc_own_cancel": "",
+            "advanced": ""
         },
         "about_page": {
             "copy": "",
@@ -435,7 +456,8 @@
             "install": "",
             "check_now": "",
             "auto_check_label": "",
-            "auto_check_description": ""
+            "auto_check_description": "",
+            "whats_new_in": ""
         },
         "diagnostics": {
             "description": "",
@@ -505,12 +527,17 @@
         "server_blocks_stale": {
             "title": "",
             "body": ""
+        },
+        "break_reminder": {
+            "title": "",
+            "body": ""
         }
     },
     "common": {
         "confirm": "Подтвердить",
         "cancel": "Отменить",
-        "open_link_failed": ""
+        "open_link_failed": "",
+        "link_open_failed": ""
     },
     "platform": {
         "windows": "Windows",
@@ -525,17 +552,19 @@
             "server_picker": "Выбор сервера",
             "live": "Прямой эфир",
             "stats": "Статистика",
-            "alerts": "Обновления",
+            "alerts": "",
             "performance": "",
             "voice_bans": "Муты",
             "demos": "Повторы",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         },
         "sidebar": {
             "unread": "{count} Не прочитано",
             "settings": "Настройки",
             "support": "Поддержать Deadlock+",
-            "discord": "Вступайте в наш Discord"
+            "discord": "Вступайте в наш Discord",
+            "tools": ""
         },
         "titlebar": {
             "expand_sidebar": "Развернуть боковую панель",
@@ -575,7 +604,9 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
-                "connected_title": ""
+                "connected_title": "",
+                "off": "",
+                "off_title": ""
             },
             "live": {
                 "queuing": "",
@@ -599,7 +630,8 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         }
     },
     "ui": {},
@@ -685,6 +717,9 @@
             "matches_known": "",
             "empty": ""
         },
+        "section": {
+            "games": ""
+        },
         "syncing_one": "",
         "syncing_few": "",
         "syncing_many": "",
@@ -725,7 +760,13 @@
             "no_data": "",
             "climbing": "",
             "sliding": "",
-            "forecast_none": ""
+            "forecast_none": "",
+            "hold": "",
+            "heading": "",
+            "your_last": "",
+            "climbing_short": "",
+            "sliding_short": "",
+            "next_tier": ""
         },
         "chart": {
             "heading": "",
@@ -733,7 +774,8 @@
             "aria": "",
             "range": "",
             "legend": "",
-            "empty": ""
+            "empty": "",
+            "legend_changes": ""
         },
         "changes": {
             "promoted_from": "",
@@ -757,9 +799,7 @@
             "heading": "",
             "not_reported": "",
             "none_hint": "",
-            "left_hint": "",
-            "left_few": "",
-            "left_many": ""
+            "left_hint": ""
         }
     },
     "sessions": {
@@ -768,7 +808,9 @@
         "results": {
             "heading": "",
             "intro": "",
-            "intro_detail": ""
+            "intro_detail": "",
+            "hide": "",
+            "show": ""
         },
         "break": {
             "label": "",
@@ -1026,6 +1068,10 @@
             "addons_without_scripts_few": "",
             "addons_without_scripts_many": "",
             "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
         }
     },
     "server_picker": {
@@ -1107,7 +1153,8 @@
             "delete_label": "",
             "empty": "",
             "save_current": "",
-            "new": ""
+            "new": "",
+            "apply_label": ""
         },
         "row": {
             "collapse": "",
@@ -1124,6 +1171,9 @@
             "open": "",
             "block_aria": "",
             "locked": "",
+            "expand_aria": "",
+            "collapse_aria": "",
+            "ping_aria": "",
             "relay_groups_one": "",
             "relay_groups_few": "",
             "relay_groups_many": "",
@@ -1224,7 +1274,9 @@
             "open_statlocker": "",
             "show_in_folder": "",
             "delete": "",
-            "delete_unpin_first": ""
+            "delete_unpin_first": "",
+            "pin_match": "",
+            "more_actions_match": ""
         },
         "delete": {
             "disabled": "",
@@ -1280,7 +1332,11 @@
             "deleted_one": "",
             "deleted_few": "",
             "deleted_many": "",
-            "deleted_other": ""
+            "deleted_other": "",
+            "delete_failed_one": "",
+            "delete_failed_few": "",
+            "delete_failed_many": "",
+            "delete_failed_other": ""
         }
     },
     "storage": {
@@ -1582,7 +1638,8 @@
             "mute": "",
             "search": "",
             "none_found": "",
-            "muted": ""
+            "muted": "",
+            "mute_named": ""
         },
         "filter": {
             "placeholder": "",
@@ -1599,7 +1656,9 @@
             "select": "",
             "open_aria": "",
             "open_title": "",
-            "unmute": ""
+            "unmute": "",
+            "unmute_named": "",
+            "open_named_aria": ""
         },
         "pager": {
             "previous": "",
@@ -1673,7 +1732,7 @@
         "autostart_error": "",
         "welcome": {
             "step_title": "Добро пожаловать в Deadlock+",
-            "returning_title": "У Deadlock+ есть обновленный процесс установки, давайте приступим.",
+            "returning_title": "",
             "returning_body": "",
             "new_title": "",
             "new_body": "Deadlock+ готов к выбору серверов, отслеживайте ваше подключение и отслеживайте каждый матч.",
@@ -1697,7 +1756,8 @@
             "alerts": "",
             "voice_bans": "",
             "demos": "",
-            "performance": ""
+            "performance": "",
+            "presence": ""
         },
         "permissions": {
             "other_title": "",
@@ -1751,7 +1811,9 @@
             "maintenance_note": "",
             "gc_recovery": "",
             "gc_recovery_note": "",
-            "footer": ""
+            "footer": "",
+            "presence": "",
+            "presence_note": ""
         },
         "done": {
             "step_title": "",
@@ -1782,7 +1844,15 @@
             "up_to_date": "У вас последняя версия.",
             "available": "Доступна новая версия {version}.",
             "downloading": "Загрузка {version}. Deadlock+ перезапускается после завершения.",
-            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения."
+            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения.",
+            "check_failed": "",
+            "download_failed": ""
+        },
+        "banner": {
+            "title": "",
+            "body": "",
+            "install": "",
+            "dismiss": ""
         }
     },
     "live": {
@@ -1852,7 +1922,7 @@
         "subtitle": "Обе команды в вашем матче, плюс ваш сервер, пинг и потеря пакетов.",
         "unit_ms": "мс",
         "ms": "{value} ms",
-        "pkt_per_second": "{value} pkt/s",
+        "pkt_per_second": "",
         "series": {
             "ping": "Задержка"
         },
@@ -1868,7 +1938,7 @@
             "title": "Текущий сервер",
             "not_running": "Deadlock не запущен.",
             "not_connected": "",
-            "unknown_relay": "Неизвестный ретранслятор",
+            "unknown_relay": "",
             "in": "в",
             "out": "из",
             "gap": ""
@@ -1921,7 +1991,7 @@
     "home": {
         "today": "",
         "yesterday": "",
-        "stats_error": "Не удалось загрузить.",
+        "stats_error": "",
         "stats_loading": "Пожалуйста, подождите...",
         "tier": "Тир {tier}",
         "glance_label": "Самое главное",
@@ -1946,7 +2016,7 @@
         "rank": {
             "title": "Ранг",
             "progress": "{percent}% пути к {rank}",
-            "empty": "Ранга пока нет."
+            "empty": ""
         },
         "form": {
             "title": "Недавняя форма",
@@ -1956,7 +2026,7 @@
         "update": {
             "title": "Последнее обновление",
             "unread": "{count} новых",
-            "empty": "Пока ничего нет. Откройте обновления для проверки."
+            "empty": ""
         },
         "session": {
             "title": "Последняя сессия",
@@ -2080,7 +2150,7 @@
         "support": "Поддержать Deadlock+",
         "open_palette": "",
         "jump": "",
-        "palette_title": "Палитра Команд",
+        "palette_title": "",
         "palette_description": "Поиск страниц, настроек и действий.",
         "palette_placeholder": "Поиск страниц, настроек и действий",
         "palette_input_label": "Поиск команд",
@@ -2202,6 +2272,20 @@
             "accounts_few": "",
             "accounts_many": "",
             "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "",
+            "reading_history_count": "",
+            "progress": "",
+            "nothing_missing": "",
+            "done": "",
+            "incomplete": "",
+            "rate_limited": "",
+            "stopped": "",
+            "matches_one": "",
+            "matches_few": "",
+            "matches_many": "",
+            "matches_other": ""
         }
     },
     "api_health": {},
@@ -2304,7 +2388,8 @@
                 "others_range": "",
                 "player_heading": "Выбранный игрок за время",
                 "player_aria": "",
-                "player_hint": "Толстые линии - это выбранный игрок."
+                "player_hint": "Толстые линии - это выбранный игрок.",
+                "picker_aria": ""
             },
             "purchases": {
                 "heading": "",
@@ -2322,15 +2407,17 @@
                 "abilities": "",
                 "no_abilities": "",
                 "ability_level_aria": "",
-                "list_aria": ""
+                "list_aria": "",
+                "picker_aria": ""
             },
             "damage": {
                 "heading": "Урон между героями",
-                "hint": "Каждый ряд - это игрок, наносящий ему урон, каждый столбец игрок который получает его. Урон, записанный в собственной ячейки игрока, отображается как Другой урон.",
+                "hint": "",
                 "dealer": "Наносящий",
                 "other": "Другой урон",
                 "target": "Цель",
-                "other_hint": ""
+                "other_hint": "",
+                "picker_aria": ""
             },
             "objectives": {
                 "heading": "Задачи (цели, Objectives)",
@@ -2356,7 +2443,8 @@
             "accolades": {
                 "heading": "Аколады",
                 "tier": "Тир {tier}",
-                "hint": ""
+                "hint": "",
+                "picker_aria": ""
             },
             "names": {
                 "item": "Предмет",
@@ -2380,7 +2468,7 @@
             "loading": "Загрузка матча...",
             "unavailable": "API для Deadlock еще не имеет этого матча. Рейтинг появится здесь, как только он его получит.",
             "error": "Не удалось загрузить этот матч. {error}",
-            "invalid": "Это некорректный идентификатор матча.",
+            "invalid": "",
             "summary": "Сводка матча",
             "bans": "Баны",
             "you": "Вы",
@@ -2425,12 +2513,13 @@
                 "group": "Экспорт таблиц",
                 "save": "Сохранить изображение",
                 "copy": "Копировать изображение",
-                "working": "Отрисовка...",
+                "working": "",
                 "saved": "Изображение таблицы результатов сохранено.",
                 "copied": "Изображение скопировано в буфер обмена.",
                 "save_failed": "Не удалось сохранить это изображение: {error}",
                 "copy_failed": "",
-                "made_with": "Сделано с"
+                "made_with": "Сделано с",
+                "render_failed": ""
             },
             "replay": {
                 "heading": "Повтор",
@@ -2503,6 +2592,7 @@
                 "range_to": "по {time}",
                 "step_start": "",
                 "no_deaths": "",
+                "death_map_player": "",
                 "death_count_one": "",
                 "death_count_few": "",
                 "death_count_many": "",
@@ -2511,9 +2601,9 @@
         },
         "ping": {
             "heading": "Задержка",
-            "source": "Ретрансляция (ICMP)",
+            "source": "",
             "source_engine": "Подключение к игре",
-            "source_icmp": "Сетевой трафик",
+            "source_icmp": "",
             "partial": "Запись из середины матча",
             "avg": "Средний",
             "worst": "Наихудшее",
@@ -2521,7 +2611,7 @@
             "loading": "Загрузка данных задержки...",
             "empty": "Нет данных задержки для этого матча.",
             "chart_aria": "Задержка в матчах",
-            "hint": "Сырая задержка сбрасывалась один раз в секунду во время работы Deadlock+."
+            "hint": ""
         }
     }
 }

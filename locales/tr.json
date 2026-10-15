@@ -13,7 +13,7 @@
             "reveal_failed": "Dosya yöneticisi açılamadı. Detaylar için kayıtları kontrol edin.",
             "pin_save_failed": "Sabitlenmiş tekrarlar kaydedilemedi. Detaylar için kayıtları kontrol edin.",
             "rules_save_failed": "Temizleme kuralları kaydedilemedi. Detaylar için kayıtları kontrol edin.",
-            "rules_duplicate_id": "İki temizleme kuralı aynı kimliğe sahip.",
+            "rules_duplicate_id": "",
             "rules_zero_days": "Zaman sınırı en az 1 gün olmalı.",
             "rules_zero_size": "Boyut sınırı 0'dan fazla olmalı.",
             "not_a_replay": "Bu dosya bir tekrar değil.",
@@ -25,7 +25,7 @@
         },
         "autostart": {
             "user_name_unavailable": "Güncel kullanıcı adı alınamadı.",
-            "program_data_missing": "ProgramData klasörü bulunamadı.",
+            "program_data_missing": "",
             "task_create_failed": "Başlatma görevi oluşturulamadı. Detaylar için kayıtları kontrol edin.",
             "task_delete_failed": "Başlatma görevi kaldırılamadı. Detaylar için kayıtları kontrol edin.",
             "entry_write_failed": "Başlatma girişi yazılamadı. Detaylar için kayıtları kontrol edin.",
@@ -44,7 +44,10 @@
             "home_folder_not_found": "Başlangıç klasörü bulunamadı.",
             "frame_layer_missing": "Deadlock+'ın bu sürümü kare katmanı içermiyor.",
             "frame_layer_install_failed": "Kare katmanı kurulamadı. Detaylar için kayıtları kontrol edin.",
-            "frame_layer_remove_failed": "Kare katmanı kaldırılamadı. Detaylar için kayıtları kontrol edin."
+            "frame_layer_remove_failed": "Kare katmanı kaldırılamadı. Detaylar için kayıtları kontrol edin.",
+            "frame_trace_needs_admin": "",
+            "frames_read_failed": "",
+            "mod_unreadable": ""
         },
         "export": {
             "invalid_name": "Bu dosya adı kullanılamaz.",
@@ -60,11 +63,13 @@
         },
         "gc": {
             "steam_not_found": "Bu bilgisayarda Steam bulunamadı.",
-            "no_login": "Kullanılabilir kaydedilmiş Steam hesabı yok."
+            "no_login": "",
+            "disabled": "",
+            "game_running": ""
         },
         "ingest": {
             "rejected": "Deadlock API maç verisini reddetti.",
-            "request_failed": "Deadlock API isteği başarısız (HTTP {status})."
+            "request_failed": ""
         },
         "logging": {
             "log_folder_unavailable": "Kayıt klasörü bulunamadı.",
@@ -75,9 +80,9 @@
             "search_failed": "Sürüm arama başarısız. Detaylar için kayıtları kontrol edin."
         },
         "server_picker": {
-            "unknown_game": "Bilinmeyen oyun. Detaylar için kayıtları kontrol edin.",
-            "invalid_request": "Sunucu isteği geçersiz. Detaylar için kayıtları kontrol edin.",
-            "no_relay_data": "Valve veri göndermedi. Daha sonra tekrar deneyin.",
+            "unknown_game": "",
+            "invalid_request": "",
+            "no_relay_data": "",
             "block_failed": "Sunucular engellenemedi. Detaylar için kayıtları kontrol edin.",
             "unblock_failed": "Sunucu engelleri kaldırılamadı. Detaylar için kayıtları kontrol edin.",
             "list_blocked_failed": "Engellenmiş sunucu bilgileri alınamadı. Detaylar için kayıtları kontrol edin.",
@@ -94,7 +99,7 @@
         },
         "voice_bans": {
             "no_account": "Steam hesabı bulunamadı.",
-            "no_userdata": "Bu hesabın Steam userdata klasörü yok.",
+            "no_userdata": "",
             "not_utf8": "",
             "read_failed": "",
             "game_running": "Deadlock çalışıyor. Susturmaları değiştirmeden önce oyunu kapatın.",
@@ -107,6 +112,10 @@
         "match_history": {
             "too_large": "",
             "not_json": ""
+        },
+        "presence": {
+            "import_invalid": "",
+            "save_failed": ""
         }
     },
     "settings": {
@@ -125,8 +134,10 @@
             "startup": "Başlangıç ve arkaplan",
             "notifications": "Bildirimler",
             "privacy": "Gizlilik",
-            "about": "Sürüm",
-            "diagnostics": "Tanılar"
+            "about": "",
+            "diagnostics": "Tanılar",
+            "sharing": "",
+            "storage": ""
         },
         "items": {
             "theme": "Tema",
@@ -139,7 +150,7 @@
             "discord_presence": "Discord durumu",
             "discord_clients": "Discord uygulamaları",
             "discord_editor": "Durum düzenleyicisi",
-            "match_ingest": "Deadlock API ile maç verilerini paylaş",
+            "match_ingest": "",
             "telemetry": "Anonim kullanım verilerini ve hata raporlarını paylaş",
             "gc_recovery": "",
             "version": "Sürüm",
@@ -147,7 +158,8 @@
             "updates": "Uygulama güncellemeleri",
             "thanks": "Teşekkürler",
             "diagnostics": "Tanılar",
-            "licenses": "Lisanslar"
+            "licenses": "Lisanslar",
+            "storage": ""
         },
         "nav": {
             "label": "Ayar kategorileri",
@@ -201,11 +213,14 @@
         },
         "startup": {
             "tray_description": "",
+            "jobs_description": "",
             "all_jobs_label": "",
             "all_jobs_description": "",
             "tasks_title": "",
+            "tasks_description": "",
             "run_by_itself": "",
-            "while_running": ""
+            "while_running": "",
+            "advanced": ""
         },
         "notifications": {
             "alerts_description": "",
@@ -238,7 +253,7 @@
             "level_detailed": "Ayrıntılı",
             "level_off_description": "Hiçbir şey göstermez.",
             "level_basic_description": "Deadlock'ta olduğunu gösterir.",
-            "level_detailed_description": "Ne yaptığını gösterir.",
+            "level_detailed_description": "",
             "support_label": "Deadlock+'ı destekle",
             "support_description": "Diğerlerinin görebilmesi için aktivitene \"Deadlock+ İndir\" ekler. Temel ve ayrıntılıda çalışır.",
             "client_running": "Çalışıyor",
@@ -296,14 +311,14 @@
             "preview_large_text": "",
             "preview_small_text": "",
             "share": "Ön ayar paylaş",
-            "share_description": "Ayarlarını metin olarak dışa aktar. Metin ya da dosya olarak içeri aktar.",
+            "share_description": "",
             "import_label": "Ön ayar metin",
             "import": "İçeri aktar",
             "import_file": "Dosyadan içeri aktar",
-            "export": "Dışa aktarı kopyala",
-            "exported": "Koyalanmış aktivite ayarları",
+            "export": "",
+            "exported": "",
             "export_failed": "Panoya kopyalanamadı",
-            "imported": "İçe aktarılmış aktivite ayarları",
+            "imported": "",
             "state": {
                 "playing": "Oynuyor",
                 "mainMenu": "Ana menü",
@@ -334,15 +349,15 @@
                 "lost": "Mağlubiyet",
                 "unscored": "Değerlendirilmedi"
             },
-            "editing": "Düzenleniyor",
+            "editing": "",
             "editing_default_hint": "Buradaki değişiklikler her karakter için geçerlidir. Bir karaktere özel ayar için karakter seç.",
             "editing_hero_hint": "Buradaki değişiklikler sadece {hero} için geçerli. Boş bıraktığın yerler varsayılan olacaktır.",
-            "no_hero_layer": "Karaktere özel değil. Değişiklikler her karakteri etkiler.",
+            "no_hero_layer": "",
             "row_enabled": "",
             "no_top_line": "",
-            "insert_variable": "Değişken ekle",
+            "insert_variable": "",
             "insert_into": "",
-            "sensitive": "Oyunu paylaşır",
+            "sensitive": "",
             "syntax_help": "",
             "variables_hint": "",
             "placeholder": {
@@ -410,7 +425,8 @@
             "timer_queueTime": "",
             "field_party_size": "",
             "party_size_hint": "",
-            "preview_party": ""
+            "preview_party": "",
+            "detailed_only": ""
         },
         "privacy": {
             "telemetry_description": "",
@@ -422,7 +438,12 @@
             "ingest_failed": "",
             "ingest_watching": "",
             "ingest_description": "",
-            "gc_description": ""
+            "gc_description": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "gc_own_start": "",
+            "gc_own_cancel": "",
+            "advanced": ""
         },
         "about_page": {
             "copy": "",
@@ -431,7 +452,8 @@
             "install": "",
             "check_now": "",
             "auto_check_label": "",
-            "auto_check_description": ""
+            "auto_check_description": "",
+            "whats_new_in": ""
         },
         "diagnostics": {
             "description": "",
@@ -499,12 +521,17 @@
         "server_blocks_stale": {
             "title": "",
             "body": ""
+        },
+        "break_reminder": {
+            "title": "",
+            "body": ""
         }
     },
     "common": {
         "confirm": "Onayla",
         "cancel": "İptal",
-        "open_link_failed": "Bağlantı açılamadı: {error}"
+        "open_link_failed": "Bağlantı açılamadı: {error}",
+        "link_open_failed": ""
     },
     "platform": {
         "windows": "Windows",
@@ -519,17 +546,19 @@
             "server_picker": "Sunucu Seçme",
             "live": "Canlı",
             "stats": "İstatistikler",
-            "alerts": "Güncellemeler",
+            "alerts": "",
             "performance": "Performans",
             "voice_bans": "Susturmalar",
             "demos": "Tekrarlar",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         },
         "sidebar": {
             "unread": "{count} okunmamış",
             "settings": "Ayarlar",
             "support": "Deadlock+'ı Destekle",
-            "discord": "Discord'a Katıl"
+            "discord": "Discord'a Katıl",
+            "tools": ""
         },
         "titlebar": {
             "expand_sidebar": "Kenarı büyüt",
@@ -569,7 +598,9 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
-                "connected_title": ""
+                "connected_title": "",
+                "off": "",
+                "off_title": ""
             },
             "live": {
                 "queuing": "",
@@ -593,7 +624,8 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         }
     },
     "ui": {},
@@ -673,6 +705,9 @@
             "matches_known": "",
             "empty": ""
         },
+        "section": {
+            "games": ""
+        },
         "syncing_one": "",
         "syncing_other": "",
         "syncing_hint_one": "",
@@ -705,7 +740,13 @@
             "no_data": "",
             "climbing": "",
             "sliding": "",
-            "forecast_none": ""
+            "forecast_none": "",
+            "hold": "",
+            "heading": "",
+            "your_last": "",
+            "climbing_short": "",
+            "sliding_short": "",
+            "next_tier": ""
         },
         "chart": {
             "heading": "",
@@ -713,7 +754,8 @@
             "aria": "",
             "range": "",
             "legend": "",
-            "empty": ""
+            "empty": "",
+            "legend_changes": ""
         },
         "changes": {
             "promoted_from": "",
@@ -742,7 +784,9 @@
         "results": {
             "heading": "",
             "intro": "",
-            "intro_detail": ""
+            "intro_detail": "",
+            "hide": "",
+            "show": ""
         },
         "break": {
             "label": "",
@@ -982,6 +1026,10 @@
             "pending_other": "",
             "addons_without_scripts_one": "",
             "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
         }
     },
     "server_picker": {
@@ -1057,7 +1105,8 @@
             "delete_label": "",
             "empty": "",
             "save_current": "",
-            "new": ""
+            "new": "",
+            "apply_label": ""
         },
         "row": {
             "collapse": "",
@@ -1074,6 +1123,9 @@
             "open": "",
             "block_aria": "",
             "locked": "",
+            "expand_aria": "",
+            "collapse_aria": "",
+            "ping_aria": "",
             "relay_groups_one": "",
             "relay_groups_other": "",
             "relays_one": "",
@@ -1164,7 +1216,9 @@
             "open_statlocker": "",
             "show_in_folder": "",
             "delete": "",
-            "delete_unpin_first": ""
+            "delete_unpin_first": "",
+            "pin_match": "",
+            "more_actions_match": ""
         },
         "delete": {
             "disabled": "",
@@ -1206,7 +1260,9 @@
         },
         "toast": {
             "deleted_one": "",
-            "deleted_other": ""
+            "deleted_other": "",
+            "delete_failed_one": "",
+            "delete_failed_other": ""
         }
     },
     "storage": {
@@ -1484,7 +1540,8 @@
             "mute": "",
             "search": "",
             "none_found": "",
-            "muted": ""
+            "muted": "",
+            "mute_named": ""
         },
         "filter": {
             "placeholder": "",
@@ -1501,7 +1558,9 @@
             "select": "",
             "open_aria": "",
             "open_title": "",
-            "unmute": ""
+            "unmute": "",
+            "unmute_named": "",
+            "open_named_aria": ""
         },
         "pager": {
             "previous": "",
@@ -1589,7 +1648,8 @@
             "alerts": "",
             "voice_bans": "",
             "demos": "",
-            "performance": ""
+            "performance": "",
+            "presence": ""
         },
         "permissions": {
             "other_title": "",
@@ -1643,7 +1703,9 @@
             "maintenance_note": "",
             "gc_recovery": "",
             "gc_recovery_note": "",
-            "footer": ""
+            "footer": "",
+            "presence": "",
+            "presence_note": ""
         },
         "done": {
             "step_title": "",
@@ -1674,7 +1736,15 @@
             "up_to_date": "",
             "available": "",
             "downloading": "",
-            "downloading_percent": ""
+            "downloading_percent": "",
+            "check_failed": "",
+            "download_failed": ""
+        },
+        "banner": {
+            "title": "",
+            "body": "",
+            "install": "",
+            "dismiss": ""
         }
     },
     "live": {
@@ -2086,6 +2156,18 @@
             "using": "",
             "accounts_one": "",
             "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "",
+            "reading_history_count": "",
+            "progress": "",
+            "nothing_missing": "",
+            "done": "",
+            "incomplete": "",
+            "rate_limited": "",
+            "stopped": "",
+            "matches_one": "",
+            "matches_other": ""
         }
     },
     "api_health": {},
@@ -2186,7 +2268,8 @@
                 "others_range": "",
                 "player_heading": "",
                 "player_aria": "",
-                "player_hint": ""
+                "player_hint": "",
+                "picker_aria": ""
             },
             "purchases": {
                 "heading": "",
@@ -2204,7 +2287,8 @@
                 "abilities": "",
                 "no_abilities": "",
                 "ability_level_aria": "",
-                "list_aria": ""
+                "list_aria": "",
+                "picker_aria": ""
             },
             "damage": {
                 "heading": "",
@@ -2212,7 +2296,8 @@
                 "dealer": "",
                 "other": "",
                 "target": "",
-                "other_hint": ""
+                "other_hint": "",
+                "picker_aria": ""
             },
             "objectives": {
                 "heading": "",
@@ -2238,7 +2323,8 @@
             "accolades": {
                 "heading": "",
                 "tier": "",
-                "hint": ""
+                "hint": "",
+                "picker_aria": ""
             },
             "names": {
                 "item": "",
@@ -2312,7 +2398,8 @@
                 "copied": "",
                 "save_failed": "",
                 "copy_failed": "",
-                "made_with": ""
+                "made_with": "",
+                "render_failed": ""
             },
             "replay": {
                 "heading": "",
@@ -2385,6 +2472,7 @@
                 "range_to": "",
                 "step_start": "",
                 "no_deaths": "",
+                "death_map_player": "",
                 "death_count_one": "",
                 "death_count_other": ""
             }

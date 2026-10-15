@@ -13,7 +13,7 @@
             "reveal_failed": "",
             "pin_save_failed": "Impossible d'enregistrer le replay épinglé. Vérifiez vos journaux (logs) pour plus d'info.",
             "rules_save_failed": "Impossible d'enregistrer les règles. Vérifiez vos journaux (logs) pour plus d'info.",
-            "rules_duplicate_id": "Deux règles partagent un même ID.",
+            "rules_duplicate_id": "",
             "rules_zero_days": "La limite d'âge fichier doit être d'au moins 1 jour.",
             "rules_zero_size": "La limite de taille doit être supérieure 0.",
             "not_a_replay": "Le fichier choisi n'est pas un replay.",
@@ -25,7 +25,7 @@
         },
         "autostart": {
             "user_name_unavailable": "Impossible de lire le nom d'utilisateur.",
-            "program_data_missing": "Impossible de trouver le dossier \"ProgramData\".",
+            "program_data_missing": "",
             "task_create_failed": "",
             "task_delete_failed": "",
             "entry_write_failed": "",
@@ -44,7 +44,10 @@
             "home_folder_not_found": "",
             "frame_layer_missing": "",
             "frame_layer_install_failed": "",
-            "frame_layer_remove_failed": ""
+            "frame_layer_remove_failed": "",
+            "frame_trace_needs_admin": "",
+            "frames_read_failed": "",
+            "mod_unreadable": ""
         },
         "export": {
             "invalid_name": "",
@@ -60,7 +63,9 @@
         },
         "gc": {
             "steam_not_found": "",
-            "no_login": ""
+            "no_login": "",
+            "disabled": "",
+            "game_running": ""
         },
         "ingest": {
             "rejected": "",
@@ -107,6 +112,10 @@
         "match_history": {
             "too_large": "",
             "not_json": ""
+        },
+        "presence": {
+            "import_invalid": "",
+            "save_failed": ""
         }
     },
     "settings": {
@@ -125,8 +134,10 @@
             "startup": "",
             "notifications": "Notifications",
             "privacy": "",
-            "about": "Version",
-            "diagnostics": "Diagnostiques"
+            "about": "",
+            "diagnostics": "Diagnostiques",
+            "sharing": "",
+            "storage": ""
         },
         "items": {
             "theme": "Thème",
@@ -147,7 +158,8 @@
             "updates": "",
             "thanks": "Remerciements",
             "diagnostics": "Diagnostiques",
-            "licenses": "Licences"
+            "licenses": "Licences",
+            "storage": ""
         },
         "nav": {
             "label": "",
@@ -201,11 +213,14 @@
         },
         "startup": {
             "tray_description": "",
+            "jobs_description": "",
             "all_jobs_label": "",
             "all_jobs_description": "",
             "tasks_title": "",
+            "tasks_description": "",
             "run_by_itself": "",
-            "while_running": ""
+            "while_running": "",
+            "advanced": ""
         },
         "notifications": {
             "alerts_description": "",
@@ -410,7 +425,8 @@
             "timer_queueTime": "",
             "field_party_size": "",
             "party_size_hint": "",
-            "preview_party": ""
+            "preview_party": "",
+            "detailed_only": ""
         },
         "privacy": {
             "telemetry_description": "",
@@ -422,7 +438,12 @@
             "ingest_failed": "",
             "ingest_watching": "",
             "ingest_description": "",
-            "gc_description": ""
+            "gc_description": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "gc_own_start": "",
+            "gc_own_cancel": "",
+            "advanced": ""
         },
         "about_page": {
             "copy": "Copier",
@@ -431,7 +452,8 @@
             "install": "",
             "check_now": "",
             "auto_check_label": "",
-            "auto_check_description": ""
+            "auto_check_description": "",
+            "whats_new_in": ""
         },
         "diagnostics": {
             "description": "",
@@ -499,12 +521,17 @@
         "server_blocks_stale": {
             "title": "",
             "body": ""
+        },
+        "break_reminder": {
+            "title": "",
+            "body": ""
         }
     },
     "common": {
         "confirm": "",
         "cancel": "",
-        "open_link_failed": ""
+        "open_link_failed": "",
+        "link_open_failed": ""
     },
     "platform": {
         "windows": "",
@@ -523,13 +550,15 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         },
         "sidebar": {
             "unread": "",
             "settings": "",
             "support": "",
-            "discord": ""
+            "discord": "",
+            "tools": ""
         },
         "titlebar": {
             "expand_sidebar": "",
@@ -569,7 +598,9 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
-                "connected_title": ""
+                "connected_title": "",
+                "off": "",
+                "off_title": ""
             },
             "live": {
                 "queuing": "",
@@ -593,7 +624,8 @@
             "performance": "",
             "voice_bans": "",
             "demos": "",
-            "match_history": ""
+            "match_history": "",
+            "presence": ""
         }
     },
     "ui": {},
@@ -673,6 +705,9 @@
             "matches_known": "",
             "empty": ""
         },
+        "section": {
+            "games": ""
+        },
         "syncing_one": "",
         "syncing_other": "",
         "syncing_hint_one": "",
@@ -705,7 +740,13 @@
             "no_data": "",
             "climbing": "",
             "sliding": "",
-            "forecast_none": ""
+            "forecast_none": "",
+            "hold": "",
+            "heading": "",
+            "your_last": "",
+            "climbing_short": "",
+            "sliding_short": "",
+            "next_tier": ""
         },
         "chart": {
             "heading": "",
@@ -713,7 +754,8 @@
             "aria": "",
             "range": "",
             "legend": "",
-            "empty": ""
+            "empty": "",
+            "legend_changes": ""
         },
         "changes": {
             "promoted_from": "",
@@ -742,7 +784,9 @@
         "results": {
             "heading": "",
             "intro": "",
-            "intro_detail": ""
+            "intro_detail": "",
+            "hide": "",
+            "show": ""
         },
         "break": {
             "label": "",
@@ -982,6 +1026,10 @@
             "pending_other": "",
             "addons_without_scripts_one": "",
             "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
         }
     },
     "server_picker": {
@@ -1057,7 +1105,8 @@
             "delete_label": "",
             "empty": "",
             "save_current": "",
-            "new": ""
+            "new": "",
+            "apply_label": ""
         },
         "row": {
             "collapse": "",
@@ -1074,6 +1123,9 @@
             "open": "Ouvert",
             "block_aria": "Bloquer {name}",
             "locked": "",
+            "expand_aria": "",
+            "collapse_aria": "",
+            "ping_aria": "",
             "relay_groups_one": "",
             "relay_groups_other": "",
             "relays_one": "",
@@ -1164,7 +1216,9 @@
             "open_statlocker": "Ouvrir sur Statlocker",
             "show_in_folder": "",
             "delete": "",
-            "delete_unpin_first": ""
+            "delete_unpin_first": "",
+            "pin_match": "",
+            "more_actions_match": ""
         },
         "delete": {
             "disabled": "",
@@ -1206,7 +1260,9 @@
         },
         "toast": {
             "deleted_one": "",
-            "deleted_other": ""
+            "deleted_other": "",
+            "delete_failed_one": "",
+            "delete_failed_other": ""
         }
     },
     "storage": {
@@ -1473,7 +1529,7 @@
         "profile_unknown": "Inconnu",
         "not_a_voice_ban": "",
         "unrecognised_import": "",
-        "api_error": "Deadlock API a renvoyé {status}",
+        "api_error": "",
         "game_running": {
             "title": "",
             "body": ""
@@ -1484,7 +1540,8 @@
             "mute": "",
             "search": "",
             "none_found": "",
-            "muted": ""
+            "muted": "",
+            "mute_named": ""
         },
         "filter": {
             "placeholder": "",
@@ -1501,7 +1558,9 @@
             "select": "",
             "open_aria": "",
             "open_title": "",
-            "unmute": ""
+            "unmute": "",
+            "unmute_named": "",
+            "open_named_aria": ""
         },
         "pager": {
             "previous": "",
@@ -1589,7 +1648,8 @@
             "alerts": "",
             "voice_bans": "",
             "demos": "",
-            "performance": ""
+            "performance": "",
+            "presence": ""
         },
         "permissions": {
             "other_title": "",
@@ -1643,7 +1703,9 @@
             "maintenance_note": "",
             "gc_recovery": "",
             "gc_recovery_note": "",
-            "footer": ""
+            "footer": "",
+            "presence": "",
+            "presence_note": ""
         },
         "done": {
             "step_title": "",
@@ -1674,7 +1736,15 @@
             "up_to_date": "",
             "available": "",
             "downloading": "",
-            "downloading_percent": ""
+            "downloading_percent": "",
+            "check_failed": "",
+            "download_failed": ""
+        },
+        "banner": {
+            "title": "",
+            "body": "",
+            "install": "",
+            "dismiss": ""
         }
     },
     "live": {
@@ -2086,6 +2156,18 @@
             "using": "",
             "accounts_one": "",
             "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "",
+            "reading_history_count": "",
+            "progress": "",
+            "nothing_missing": "",
+            "done": "",
+            "incomplete": "",
+            "rate_limited": "",
+            "stopped": "",
+            "matches_one": "",
+            "matches_other": ""
         }
     },
     "api_health": {},
@@ -2186,7 +2268,8 @@
                 "others_range": "",
                 "player_heading": "",
                 "player_aria": "",
-                "player_hint": ""
+                "player_hint": "",
+                "picker_aria": ""
             },
             "purchases": {
                 "heading": "",
@@ -2204,7 +2287,8 @@
                 "abilities": "",
                 "no_abilities": "",
                 "ability_level_aria": "",
-                "list_aria": ""
+                "list_aria": "",
+                "picker_aria": ""
             },
             "damage": {
                 "heading": "",
@@ -2212,7 +2296,8 @@
                 "dealer": "",
                 "other": "",
                 "target": "",
-                "other_hint": ""
+                "other_hint": "",
+                "picker_aria": ""
             },
             "objectives": {
                 "heading": "",
@@ -2238,7 +2323,8 @@
             "accolades": {
                 "heading": "",
                 "tier": "",
-                "hint": ""
+                "hint": "",
+                "picker_aria": ""
             },
             "names": {
                 "item": "",
@@ -2312,7 +2398,8 @@
                 "copied": "",
                 "save_failed": "",
                 "copy_failed": "",
-                "made_with": ""
+                "made_with": "",
+                "render_failed": ""
             },
             "replay": {
                 "heading": "",
@@ -2385,6 +2472,7 @@
                 "range_to": "",
                 "step_start": "",
                 "no_deaths": "",
+                "death_map_player": "",
                 "death_count_one": "",
                 "death_count_other": ""
             }
