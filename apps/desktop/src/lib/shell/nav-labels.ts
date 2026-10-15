@@ -24,6 +24,10 @@ export function navLabel(id: string, fallback: string): string {
             return t("shell.nav.demos");
         case "storage":
             return t("shell.nav.storage");
+        case "presence":
+            return t("shell.nav.presence");
+        case "match-history":
+            return t("shell.nav.match_history");
         default:
             return fallback;
     }

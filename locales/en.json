@@ -133,7 +133,6 @@
             "language": "Language",
             "startup": "Startup and background",
             "notifications": "Notifications",
-            "discord": "Discord",
             "privacy": "Privacy",
             "about": "Version",
             "diagnostics": "Diagnostics",
@@ -253,7 +252,7 @@
             "level_detailed": "Detailed",
             "level_off_description": "Shows nothing.",
             "level_basic_description": "Shows that you're in Deadlock.",
-            "level_detailed_description": "Shows what you're doing.",
+            "level_detailed_description": "Shows your hero, mode, rank and match timer.",
             "support_label": "Support Deadlock+",
             "support_description": "Adds a \"Download Deadlock+\" button to your activity so others can find the app. Works with Basic and Detailed.",
             "client_running": "Running",
@@ -310,14 +309,14 @@
             "preview_large_text": "Large image: {text}",
             "preview_small_text": "Small image: {text}",
             "share": "Share a preset",
-            "share_description": "Export copies your settings as text. Import replaces your settings with pasted text or a file.",
+            "share_description": "Copy preset puts your changes on the clipboard as text. Import replaces them with pasted text or a file.",
             "import_label": "Preset text",
             "import": "Import",
             "import_file": "Import from file",
-            "export": "Copy settings",
-            "exported": "Copied presence settings",
+            "export": "Copy preset",
+            "exported": "Copied preset",
             "export_failed": "Couldn't copy to the clipboard",
-            "imported": "Imported presence settings",
+            "imported": "Imported preset",
             "state": {
                 "playing": "Playing",
                 "mainMenu": "Main menu",
@@ -348,7 +347,7 @@
                 "lost": "Lost",
                 "unscored": "Unscored"
             },
-            "editing": "Editing",
+            "editing": "Hero",
             "editing_default_hint": "Changes here apply to every hero. Pick a hero to override only that hero's lines.",
             "editing_hero_hint": "Changes here apply only while you play {hero}. Fields you leave alone follow Default.",
             "no_hero_layer": "This state can't be set per hero. Changes apply to every hero.",
@@ -356,7 +355,7 @@
             "no_top_line": "No top line",
             "insert_variable": "Insert value",
             "insert_into": "Into: {field}",
-            "sensitive": "Reveals the match",
+            "sensitive": "Shows the match ID",
             "syntax_help": "Syntax help",
             "variables_hint": "Click a line, then insert a value into it.",
             "placeholder": {
@@ -423,7 +422,8 @@
             "timer_queueTime": "Time in the queue",
             "field_party_size": "Party size",
             "party_size_hint": "Adds the party count, like (2 of 6), when you are in a party of two or more.",
-            "preview_party": "({size} of {max})"
+            "preview_party": "({size} of {max})",
+            "detailed_only": "Only Detailed uses these states. Basic always shows Playing."
         },
         "privacy": {
             "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
@@ -546,7 +546,8 @@
             "voice_bans": "Mutes",
             "demos": "Replays",
             "storage": "Storage",
-            "match_history": "Match History"
+            "match_history": "Match History",
+            "presence": "Presence"
         },
         "sidebar": {
             "unread": "{count} unread",
@@ -592,7 +593,9 @@
             "discord": {
                 "searching": "Discord not found",
                 "searching_title": "Discord presence is on, but no running Discord was found",
-                "connected_title": "Showing your Deadlock activity on Discord"
+                "connected_title": "Showing your Deadlock activity on Discord",
+                "off": "Discord off",
+                "off_title": "Discord presence is off. Click to set it up."
             },
             "live": {
                 "queuing": "Searching for a match",
@@ -619,7 +622,8 @@
             "voice_bans": "View, add, unmute, export and import your muted players",
             "demos": "Browse your saved match replays and see which are outdated",
             "storage": "See what Deadlock and Deadlock+ use on disk and clear what is safe to",
-            "match_history": "Every match the Deadlock API has, with a full scoreboard for each"
+            "match_history": "Every match the Deadlock API has, with a full scoreboard for each",
+            "presence": "Show your hero, mode and match timer on your Discord profile"
         }
     },
     "ui": {},
@@ -1655,7 +1659,8 @@
             "voice_bans": "See, add and unmute your muted players.",
             "demos": "Browse your saved replays and spot outdated ones.",
             "storage": "See what Deadlock uses on disk and clear what is safe.",
-            "performance": "Scan mods for scripts that can hurt frametimes."
+            "performance": "Scan mods for scripts that can hurt frametimes.",
+            "presence": "Show your hero and match on your Discord profile."
         },
         "permissions": {
             "other_title": "Running on {platform}",
@@ -1699,7 +1704,7 @@
         },
         "extras": {
             "title": "Optional extras",
-            "intro": "All off by default. Change any of them later in Settings.",
+            "intro": "All off by default. You can change any of them later.",
             "autostart_note": "Launches Deadlock+ when you sign in.",
             "tray": "Keep running in the tray",
             "tray_note": "Closing the window hides it instead of quitting.",
@@ -1709,7 +1714,9 @@
             "maintenance_note": "A notification before the usual weekly maintenance.",
             "gc_recovery": "Recover missing replay keys through Steam",
             "gc_recovery_note": "Uses your saved Steam login to fetch replay keys the community database is missing.",
-            "footer": "Alerts and reminders only fire while the app runs, so they pair well with the tray option."
+            "footer": "Alerts and reminders only fire while the app runs, so they pair well with the tray option.",
+            "presence": "Show on Discord",
+            "presence_note": "Shows your hero, mode, rank and match timer on your Discord profile."
         },
         "done": {
             "step_title": "You're set",

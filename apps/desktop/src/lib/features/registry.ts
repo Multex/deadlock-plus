@@ -7,6 +7,7 @@ import {
     HardDrive,
     History,
     House,
+    MessageCircle,
     Swords,
     Timer,
     TrendingUp,
@@ -137,6 +138,17 @@ export const FEATURES: FeatureNavEntry[] = [
         },
         icon: Bell,
         badge: () => alerts.unread,
+    },
+    {
+        id: "presence",
+        get label() {
+            return t("shell.nav.presence");
+        },
+        href: "/presence",
+        get description() {
+            return t("shell.nav_description.presence");
+        },
+        icon: MessageCircle,
     },
     {
         id: "performance",

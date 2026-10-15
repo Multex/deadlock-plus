@@ -169,21 +169,27 @@
         </span>
         <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
     {/if}
-    {#if discord !== "off"}
-        <a
-            href="/settings/discord"
-            class="flex min-w-0 items-center gap-1.5 hover:underline {discord === 'connected'
-                ? 'text-success'
-                : 'text-muted-foreground/70'}"
-            title={discord === "connected"
-                ? t("shell.statusbar.discord.connected_title")
-                : t("shell.statusbar.discord.searching_title")}
-        >
-            <MessageCircle class="size-3.5 shrink-0" />
-            {#if discord !== "connected"}<span class="truncate">{t("shell.statusbar.discord.searching")}</span>{/if}
-        </a>
-        <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
-    {/if}
+    <a
+        href="/presence"
+        class="flex min-w-0 items-center gap-1.5 hover:underline {discord === 'connected'
+            ? 'text-success'
+            : discord === 'off'
+              ? 'text-muted-foreground/50'
+              : 'text-muted-foreground/70'}"
+        title={discord === "connected"
+            ? t("shell.statusbar.discord.connected_title")
+            : discord === "off"
+              ? t("shell.statusbar.discord.off_title")
+              : t("shell.statusbar.discord.searching_title")}
+    >
+        <MessageCircle class="size-3.5 shrink-0" />
+        {#if discord === "off"}
+            <span class="truncate">{t("shell.statusbar.discord.off")}</span>
+        {:else if discord === "searching"}
+            <span class="truncate">{t("shell.statusbar.discord.searching")}</span>
+        {/if}
+    </a>
+    <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
     <span class="flex min-w-0 items-center gap-1.5 {service.tone}" title={service.title}>
         <ServiceIcon class="size-3.5 shrink-0" />
         {#if service.text}<span class="truncate">{service.text}</span>{/if}

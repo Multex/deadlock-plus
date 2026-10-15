@@ -1,5 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import { platformName, type Platform } from "$lib/core/platform";
+import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
 
 export const ONBOARDING_VERSION = 2;
 
@@ -28,6 +29,31 @@ export interface FeatureGroup {
 
 export type IngestChoice = "share" | "decline";
 
+export interface Extras {
+    autostart: boolean;
+    closeToTray: boolean;
+    updateAlerts: boolean;
+    maintenance: boolean;
+    gcRecovery: boolean;
+    showOnDiscord: boolean;
+}
+
+export function defaultExtras(): Extras {
+    return {
+        autostart: false,
+        closeToTray: false,
+        updateAlerts: false,
+        maintenance: false,
+        gcRecovery: false,
+        showOnDiscord: false,
+    };
+}
+
+/** Detailed, because it is the level that shows the hero, mode and rank the switch promises. */
+export function extrasPresence(extras: Extras): Pick<PresenceSettings, "level"> | null {
+    return extras.showOnDiscord ? { level: "detailed" } : null;
+}
+
 export function featureGroups(): FeatureGroup[] {
     return [
         {
@@ -36,6 +62,7 @@ export function featureGroups(): FeatureGroup[] {
             items: [
                 { id: "server-picker", blurb: t("onboarding.blurbs.server_picker") },
                 { id: "live", blurb: t("onboarding.blurbs.live") },
+                { id: "presence", blurb: t("onboarding.blurbs.presence") },
             ],
         },
         {

@@ -70,8 +70,8 @@ test("Server Picker: the import question closes once it is confirmed", async ({ 
     await noQuestion(page);
 });
 
-test("Discord editor: the reset question closes once it is confirmed", async ({ page }) => {
-    await open(page, "/settings/discord");
+test("Presence editor: the reset question closes once it is confirmed", async ({ page }) => {
+    await open(page, "/presence");
     await page.getByRole("button", { name: "Reset everything", exact: true }).click();
     await question(page, "Reset all presence settings?")
         .getByRole("button", { name: "Reset everything", exact: true })
@@ -80,8 +80,8 @@ test("Discord editor: the reset question closes once it is confirmed", async ({ 
     await noQuestion(page);
 });
 
-test("Discord editor: a reset that cannot be saved shows the error on the page", async ({ page }) => {
-    await open(page, "/settings/discord");
+test("Presence editor: a reset that cannot be saved shows the error on the page", async ({ page }) => {
+    await open(page, "/presence");
     await fail(page, "set_presence_config", "the settings file is read-only");
     await page.getByRole("button", { name: "Reset everything", exact: true }).click();
     await question(page, "Reset all presence settings?")

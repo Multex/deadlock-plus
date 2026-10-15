@@ -165,8 +165,8 @@ export const SHOTS: Shot[] = [
     {
         name: "discord-presence",
         scenario: "live-match",
-        route: "/settings/discord",
-        height: 1560,
+        route: "/presence",
+        height: 1556,
         websiteOnly: true,
         steps: async (page) => {
             const states = page.getByRole("navigation", { name: "Activity states" });
@@ -185,7 +185,7 @@ export const SHOTS: Shot[] = [
                 )
                 .toEqual([true, true]);
             // The website's cards show the top of the picture, and the preview is the part worth showing.
-            await scrollInMain(page.getByRole("heading", { name: "Presence editor" }), 36);
+            await scrollInMain(page.getByRole("heading", { name: "Presence editor" }), 44);
             // The pointer is still where the last click was, and would light up the row now under it.
             await page.mouse.move(0, 0);
         },
@@ -193,6 +193,7 @@ export const SHOTS: Shot[] = [
             target: { role: "group", name: "Activity preview" },
             width: 300,
             padding: 12,
+            viewport: 866,
             // Hidden, not removed, so the card stays where it is. The frame is taller than the card and would
             // otherwise take in the state's title and reset button above it and the editor's helper line below.
             steps: async (page) => {

@@ -2,6 +2,7 @@
 const TRACKED = new Set([
     "server-picker",
     "live",
+    "presence",
     "stats",
     "match-history",
     "rank",

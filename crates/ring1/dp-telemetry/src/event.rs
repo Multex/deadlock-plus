@@ -4,6 +4,7 @@ pub const FEATURES: &[&str] = &[
     "home",
     "server-picker",
     "live",
+    "presence",
     "stats",
     "match-history",
     "rank",

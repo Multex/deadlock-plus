@@ -11,6 +11,8 @@ describe("navLabel", () => {
             rank: "Rank",
             sessions: "Sessions",
             alerts: "News",
+            presence: "Presence",
+            "match-history": "Match History",
             performance: "Performance",
             "voice-bans": "Mutes",
             demos: "Replays",

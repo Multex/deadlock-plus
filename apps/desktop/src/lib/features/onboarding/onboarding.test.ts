@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
     ONBOARDING_VERSION,
+    defaultExtras,
+    extrasPresence,
     featureGroups,
     finishOnboarding,
     gameStatus,
@@ -87,6 +89,7 @@ describe("featureGroups", () => {
         expect(ids).toEqual([
             "server-picker",
             "live",
+            "presence",
             "stats",
             "rank",
             "sessions",
@@ -121,5 +124,21 @@ describe("ingestDecision", () => {
 
     it("leaves consent unanswered when skipped", () => {
         expect(ingestDecision(null)).toBeNull();
+    });
+});
+
+describe("extras", () => {
+    it("start all off, Discord included", () => {
+        const extras = defaultExtras();
+        expect(Object.values(extras).every((on) => on === false)).toBe(true);
+        expect(extras.showOnDiscord).toBe(false);
+    });
+
+    it("turn presence on at Detailed when Show on Discord is on", () => {
+        expect(extrasPresence({ ...defaultExtras(), showOnDiscord: true })).toEqual({ level: "detailed" });
+    });
+
+    it("leave presence alone when Show on Discord is off", () => {
+        expect(extrasPresence(defaultExtras())).toBeNull();
     });
 });

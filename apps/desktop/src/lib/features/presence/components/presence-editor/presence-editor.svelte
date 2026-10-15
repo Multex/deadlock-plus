@@ -123,6 +123,9 @@
     <div class="flex flex-col gap-1">
         <h3 class="font-heading text-sm font-semibold tracking-wide">{t("settings.items.discord_editor")}</h3>
         <p class="text-sm text-muted-foreground">{t("settings.discord_editor.description")}</p>
+        {#if settings.presence.level !== "detailed"}
+            <p class="text-sm text-warning">{t("settings.discord_editor.detailed_only")}</p>
+        {/if}
     </div>
 
     {#if store.error}

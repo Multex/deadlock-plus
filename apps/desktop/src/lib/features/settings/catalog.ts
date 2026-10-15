@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { Bell, Bug, Info, Languages, Heart, MessageCircle, Palette, Power, Scale, Shield } from "@lucide/svelte";
+import { Bell, Bug, Info, Languages, Heart, Palette, Power, Scale, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartTitle } from "./autostart";
@@ -9,7 +9,6 @@ export type CategoryId =
     | "language"
     | "startup"
     | "notifications"
-    | "discord"
     | "privacy"
     | "about"
     | "diagnostics"
@@ -57,13 +56,6 @@ export const CATEGORIES: Category[] = [
             return t("settings.categories.notifications");
         },
         icon: Bell,
-    },
-    {
-        id: "discord",
-        get label() {
-            return t("settings.categories.discord");
-        },
-        icon: MessageCircle,
     },
     {
         id: "privacy",
@@ -175,31 +167,6 @@ const BASE_ITEMS: SettingItem[] = [
             return t("settings.items.maintenance");
         },
         keywords: "steam weekly maintenance downtime tuesday wednesday utc remind toast schedule",
-    },
-    {
-        id: "discord-presence",
-        category: "discord",
-        get title() {
-            return t("settings.items.discord_presence");
-        },
-        keywords: "discord rich presence rpc status activity playing game ptb canary",
-    },
-    {
-        id: "discord-clients",
-        category: "discord",
-        get title() {
-            return t("settings.items.discord_clients");
-        },
-        keywords: "discord client stable ptb canary pipe running which",
-    },
-    {
-        id: "discord-editor",
-        category: "discord",
-        get title() {
-            return t("settings.items.discord_editor");
-        },
-        keywords:
-            "discord presence editor customise customize template details state text image icon timer placeholder hero import export preview reset",
     },
     {
         id: "telemetry",

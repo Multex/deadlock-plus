@@ -8,14 +8,22 @@
     import { platform } from "$lib/core/platform";
     import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { nextStep, previousStep, stepsFor, type IngestChoice } from "../onboarding";
+    import {
+        defaultExtras,
+        extrasPresence,
+        nextStep,
+        previousStep,
+        stepsFor,
+        type Extras,
+        type IngestChoice,
+    } from "../onboarding";
     import { onboarding } from "../onboarding.svelte";
     import WelcomeStep from "./steps/welcome-step.svelte";
     import FeaturesStep from "./steps/features-step.svelte";
     import PermissionsStep from "./steps/permissions-step.svelte";
     import SteamStep from "./steps/steam-step.svelte";
     import SharingStep from "./steps/sharing-step.svelte";
-    import ExtrasStep, { type Extras } from "./steps/extras-step.svelte";
+    import ExtrasStep from "./steps/extras-step.svelte";
     import DoneStep from "./steps/done-step.svelte";
 
     type Feature = { id: string; label: string; icon: Component<{ class?: string }> };
@@ -27,13 +35,7 @@
 
     let index = $state(0);
     let busy = $state(false);
-    let extras = $state<Extras>({
-        autostart: false,
-        closeToTray: false,
-        updateAlerts: false,
-        maintenance: false,
-        gcRecovery: false,
-    });
+    let extras = $state<Extras>(defaultExtras());
     let autostartSupported = $state(true);
     let choice = $state<IngestChoice | null>(null);
     let forwardButton = $state<HTMLButtonElement | null>(null);
@@ -74,6 +76,8 @@
         if (extras.updateAlerts) await settings.setUpdateAlerts(true);
         if (extras.maintenance) await settings.setMaintenance({ enabled: true });
         if (extras.gcRecovery) await settings.setGcRecovery(true);
+        const presence = extrasPresence(extras);
+        if (presence) await settings.setPresence(presence);
     }
 
     async function finish(target = "/") {

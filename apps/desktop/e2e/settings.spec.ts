@@ -13,19 +13,16 @@ const FLOOR: Record<string, number> = {
     language: 1,
     startup: 8,
     notifications: 4,
-    discord: 24,
     privacy: 3,
     about: 1,
     diagnostics: 2,
 };
-const TOTAL_FLOOR = 46;
+const TOTAL_FLOOR = 22;
 
-type Kept = "backend" | "presence" | "browser" | "nowhere";
+type Kept = "backend" | "browser" | "nowhere";
 
 // Controls whose change is not written to the key-value store, by page and accessible name.
 //   backend: the backend owns the value, so it must survive leaving Settings and coming back.
-//   presence: part of the Discord activity layout, which the backend owns too. The editor saves it a moment
-//             after the change, and reads it again when the page opens.
 //   browser: kept in the webview's own storage, so it must survive a reload.
 //   nowhere: a view option of the page, reset on purpose every time the page opens.
 const OUTSIDE_KV: Record<string, Record<string, Kept>> = {
@@ -36,13 +33,6 @@ const OUTSIDE_KV: Record<string, Record<string, Kept>> = {
         "Start at login": "backend",
         "Allow background work": "backend",
     },
-    discord: {
-        Editing: "nowhere",
-        "Show Large image": "presence",
-        "Show Small image": "presence",
-        "Party size": "presence",
-        Timer: "presence",
-    },
     diagnostics: { "Auto-scroll": "nowhere", "Minimum level": "nowhere" },
 };
 
@@ -51,23 +41,12 @@ function keptOutsideKv(category: string, name: string): Kept | undefined {
     if (category === "startup" && (name.endsWith("Run by itself") || name.endsWith("While Deadlock runs"))) {
         return "backend";
     }
-    // Each activity state has its own switch, named after the state: "Show {state} on Discord".
-    if (category === "discord" && /^Show .+ on Discord$/.test(name)) return "presence";
     return OUTSIDE_KV[category]?.[name];
 }
 
 // Reloading or leaving Settings closes every disclosure, so this runs again after each.
 async function openDisclosures(page: Page) {
     for (const summary of await main(page).locator("details:not([open]) > summary").all()) await summary.click();
-}
-
-/** The Discord activity layout the demo backend holds, as text that can be compared. */
-function savedPresence(page: Page): Promise<string> {
-    return page.evaluate(() => {
-        type Demo = { handle: { invoke(command: string, args: object): unknown } };
-        const demo = (window as unknown as { __DEADLOCK_PLUS_DEMO__: Demo }).__DEADLOCK_PLUS_DEMO__;
-        return JSON.stringify(demo.handle.invoke("presence_config", {}));
-    });
 }
 
 interface Control {
@@ -215,7 +194,6 @@ for (const category of CATEGORIES) {
                 await expect(locate(page, control), `${label} is disabled`).toBeEnabled();
                 const before = await valueOf(page, control);
                 const written = (await kvWrites(page)).length;
-                const presence = await savedPresence(page);
 
                 await change(page, control);
                 await expect.poll(() => valueOf(page, control), `${label} did not change`).not.toBe(before);
@@ -232,9 +210,6 @@ for (const category of CATEGORIES) {
                 } else if (kept === "browser") {
                     await reload(page);
                 } else if (kept === "backend") {
-                    await leaveSettingsAndReturn(page, category);
-                } else if (kept === "presence") {
-                    await expect.poll(() => savedPresence(page), `${label} was not saved`).not.toBe(presence);
                     await leaveSettingsAndReturn(page, category);
                 }
                 if (kept !== "nowhere") {

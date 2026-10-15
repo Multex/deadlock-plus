@@ -12,11 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A banner offers a waiting update once it is a day old, and comes back each time you open the window until you install it.
 - The update notice has an Install button.
 
+#### Presence page
+
+- Discord presence has its own Presence page in the sidebar.
+- The status bar always links to Presence, and shows "Discord off" while presence is off.
+- Setup offers a "Show on Discord" switch.
+- The activity editor says when only the Detailed level uses its states.
+
 ### Changed
 
 - The Updates page is now called News.
 - Background tasks moved under Advanced in Startup settings.
 - The "Pause while Deadlock is open" setting is gone: each background task now sets what it does in game.
+- Anonymous usage data now counts Presence visits.
 
 - The Discord link opens the invite in the Discord app when it is installed.
 - Anonymous usage data now counts clicks on the Discord link.

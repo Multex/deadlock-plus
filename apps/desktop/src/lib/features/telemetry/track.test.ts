@@ -16,6 +16,10 @@ describe("featureForPath", () => {
         expect(featureForPath("/live")).toBe("live");
     });
 
+    it("names the presence page", () => {
+        expect(featureForPath("/presence")).toBe("presence");
+    });
+
     it("names the match history and what's new pages", () => {
         expect(featureForPath("/match-history")).toBe("match-history");
         expect(featureForPath("/match-history/123")).toBe("match-history");

@@ -1,18 +1,9 @@
-<script lang="ts" module>
-    export interface Extras {
-        autostart: boolean;
-        closeToTray: boolean;
-        updateAlerts: boolean;
-        maintenance: boolean;
-        gcRecovery: boolean;
-    }
-</script>
-
 <script lang="ts">
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { autostartTitle } from "$lib/features/settings/autostart";
+    import type { Extras } from "../../onboarding";
 
     let { extras = $bindable(), autostartSupported }: { extras: Extras; autostartSupported: boolean } = $props();
 </script>
@@ -30,6 +21,13 @@
 <h1 class="font-heading text-2xl font-bold tracking-wide">{t("onboarding.extras.title")}</h1>
 <p class="text-muted-foreground">{t("onboarding.extras.intro")}</p>
 <div class="flex flex-col gap-2">
+    {@render extra(
+        "ob-discord",
+        t("onboarding.extras.presence"),
+        t("onboarding.extras.presence_note"),
+        extras.showOnDiscord,
+        (v) => (extras.showOnDiscord = v),
+    )}
     {#if autostartSupported}
         {@render extra(
             "ob-autostart",
