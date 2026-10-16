@@ -1296,8 +1296,8 @@ mod tests {
     fn the_baked_table_has_the_full_row_set() {
         let table = baked_table();
         assert_eq!(table.schema, MAP_ITEMS_SCHEMA);
-        assert_eq!(table.build_id, Some(25841406));
-        assert_eq!(table.vents_crc, 0x09eff23c);
+        assert_eq!(table.build_id, Some(25997478));
+        assert_eq!(table.vents_crc, 0x8b7805dd);
         let expected = [
             (MapItemKind::Guardian, 6),
             (MapItemKind::Walker, 6),
