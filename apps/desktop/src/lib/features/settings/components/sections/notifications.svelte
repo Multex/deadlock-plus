@@ -25,7 +25,7 @@
 
     let { show }: { show: (id: string) => boolean } = $props();
 
-    const OVERLAY_IDS = ["overlay", "overlay-position", "overlay-duration", "overlay-test"];
+    const OVERLAY_IDS = ["overlay", "overlay-match-found", "overlay-position", "overlay-duration", "overlay-test"];
 
     const positionLabels = $derived<Record<OverlayPosition, string>>({
         topLeft: t("settings.notifications.position.top_left"),
@@ -175,6 +175,21 @@
                     id="overlay"
                     checked={settings.overlay.enabled}
                     onCheckedChange={(v) => settings.setOverlay({ enabled: v })}
+                />
+            </SettingRow>
+        {/if}
+        {#if show("overlay-match-found")}
+            <SettingRow
+                label={t("settings.items.overlay_match_found")}
+                for="overlay-match-found"
+                description={t("settings.notifications.overlay_match_found_description")}
+                size="sub"
+            >
+                <Switch
+                    id="overlay-match-found"
+                    checked={settings.overlay.matchFound}
+                    disabled={!settings.overlay.enabled}
+                    onCheckedChange={(v) => settings.setOverlay({ matchFound: v })}
                 />
             </SettingRow>
         {/if}

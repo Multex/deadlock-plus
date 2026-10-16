@@ -209,6 +209,17 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "overlay in game toast popup over the game full screen borderless window mode",
     },
     {
+        id: "overlay-match-found",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_match_found");
+        },
+        get description() {
+            return t("settings.notifications.overlay_match_found_description");
+        },
+        keywords: "overlay match found queue pop ready game starting matchmaking alert tabbed out",
+    },
+    {
         id: "overlay-position",
         category: "notifications",
         get title() {

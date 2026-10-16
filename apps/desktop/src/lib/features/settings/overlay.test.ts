@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_OVERLAY, DURATION_RANGE, OVERLAY_POSITIONS, resolveOverlay } from "./overlay";
 
 describe("overlay settings", () => {
-    it("defaults to on, top right, six seconds", () => {
-        expect(DEFAULT_OVERLAY).toEqual({ enabled: true, position: "topRight", durationSecs: 6 });
+    it("defaults to on, top right, six seconds, with match found on", () => {
+        expect(DEFAULT_OVERLAY).toEqual({ enabled: true, position: "topRight", durationSecs: 6, matchFound: true });
     });
 
     it("lists the eight positions in reading order", () => {
@@ -31,19 +31,28 @@ describe("overlay settings", () => {
     });
 
     it("keeps every stored value that is valid", () => {
-        expect(resolveOverlay({ enabled: false, position: "bottomLeft", durationSecs: 12 })).toEqual({
-            enabled: false,
-            position: "bottomLeft",
-            durationSecs: 12,
-        });
+        expect(resolveOverlay({ enabled: false, position: "bottomLeft", durationSecs: 12, matchFound: false })).toEqual(
+            {
+                enabled: false,
+                position: "bottomLeft",
+                durationSecs: 12,
+                matchFound: false,
+            },
+        );
     });
 
     it("fills a missing field from the defaults", () => {
         expect(resolveOverlay({ position: "left" })).toEqual({ ...DEFAULT_OVERLAY, position: "left" });
     });
 
+    it("turns match found on for a value stored before it existed", () => {
+        expect(resolveOverlay({ enabled: false, position: "left", durationSecs: 9 }).matchFound).toBe(true);
+    });
+
     it("drops a field of the wrong kind back to its default", () => {
-        expect(resolveOverlay({ enabled: "no", position: "center", durationSecs: "9" })).toEqual(DEFAULT_OVERLAY);
+        expect(resolveOverlay({ enabled: "no", position: "center", durationSecs: "9", matchFound: "off" })).toEqual(
+            DEFAULT_OVERLAY,
+        );
     });
 
     it("pulls a duration into range and onto a whole second", () => {

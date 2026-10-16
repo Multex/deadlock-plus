@@ -85,3 +85,13 @@ test("toasts on screen move when the position changes", async ({ page }) => {
     await expect(stack).toHaveAttribute("data-position", "bottomLeft");
     await expect(page.locator("[data-toast-id]")).toHaveCount(2);
 });
+
+test("a match found card shows in the center with its own icon", async ({ page }) => {
+    await push(page, toast("match-1", { kind: "match", placement: "center", title: "Match found", body: "Ranked" }));
+
+    const center = card(page, "match-1");
+    await expect(center.locator("[data-kind='match']")).toBeVisible();
+    await expect(center).toContainText("Match found");
+    await expect(center).toContainText("Ranked");
+    await expect(center.locator("svg.lucide-swords")).toBeVisible();
+});

@@ -54,11 +54,12 @@ pub struct OverlaySettings {
     pub position: OverlayPosition,
     /// 3-15 s.
     pub duration_secs: u8,
+    pub match_found: bool,
 }
 
 impl Default for OverlaySettings {
     fn default() -> Self {
-        Self { enabled: true, position: OverlayPosition::TopRight, duration_secs: 6 }
+        Self { enabled: true, position: OverlayPosition::TopRight, duration_secs: 6, match_found: true }
     }
 }
 
@@ -130,7 +131,7 @@ impl OverlayService {
         }
     }
 
-    fn settings(&self) -> OverlaySettings {
+    pub fn settings(&self) -> OverlaySettings {
         *self.settings.lock_or_recover()
     }
 }

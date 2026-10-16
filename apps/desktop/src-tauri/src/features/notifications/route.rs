@@ -15,9 +15,10 @@ pub struct Route {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code, reason = "every variant is part of the routing contract; not each has a caller yet")]
 pub enum Visibility {
+    #[allow(dead_code, reason = "part of the routing contract; no caller yet")]
     GameFocused,
+    #[allow(dead_code, reason = "part of the routing contract; no caller yet")]
     GameOpen,
     Always,
 }
@@ -25,11 +26,11 @@ pub enum Visibility {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code, reason = "every variant is part of the routing contract; not each has a caller yet")]
 pub enum Delivery {
     /// Overlay toast only: no center entry, no badge.
     Overlay,
     /// Center entry and a native toast.
+    #[allow(dead_code, reason = "part of the routing contract; no caller yet")]
     Os,
     /// Center entry and one toast: the overlay while the game is focused and the overlay is available, native
     /// otherwise.
@@ -42,7 +43,6 @@ pub enum Delivery {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code, reason = "every variant is part of the routing contract; not each has a caller yet")]
 pub enum Placement {
     /// The user's chosen corner.
     Corner,

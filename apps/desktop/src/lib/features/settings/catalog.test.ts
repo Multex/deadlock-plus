@@ -123,13 +123,14 @@ describe("catalog", () => {
     });
 
     it("files the overlay controls under notifications and finds them by keyword", () => {
-        const ids = ["overlay", "overlay-position", "overlay-duration", "overlay-test"];
+        const ids = ["overlay", "overlay-match-found", "overlay-position", "overlay-duration", "overlay-test"];
         for (const id of ids) expect(ITEMS.find((i) => i.id === id)?.category).toBe("notifications");
         for (const id of ids) expect(matchingItems("overlay")?.has(id)).toBe(true);
         expect(matchingItems("in game toast")?.has("overlay")).toBe(true);
         expect(matchingItems("corner")?.has("overlay-position")).toBe(true);
         expect(matchingItems("seconds")?.has("overlay-duration")).toBe(true);
         expect(matchingItems("preview")?.has("overlay-test")).toBe(true);
+        expect(matchingItems("queue pop")?.has("overlay-match-found")).toBe(true);
     });
 
     it("matches on the category label", () => {

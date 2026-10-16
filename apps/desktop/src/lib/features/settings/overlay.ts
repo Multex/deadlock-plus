@@ -4,7 +4,12 @@ import type { OverlayStatus } from "@deadlock-plus/ipc-types/OverlayStatus";
 
 export type { OverlayPosition, OverlaySettings, OverlayStatus };
 
-export const DEFAULT_OVERLAY: OverlaySettings = { enabled: true, position: "topRight", durationSecs: 6 };
+export const DEFAULT_OVERLAY: OverlaySettings = {
+    enabled: true,
+    position: "topRight",
+    durationSecs: 6,
+    matchFound: true,
+};
 
 export const OVERLAY_POSITIONS: readonly OverlayPosition[] = [
     "topLeft",
@@ -32,10 +37,11 @@ function duration(value: unknown): number {
 
 export function resolveOverlay(stored: unknown): OverlaySettings {
     if (typeof stored !== "object" || stored === null || Array.isArray(stored)) return { ...DEFAULT_OVERLAY };
-    const { enabled, position, durationSecs } = stored as Record<string, unknown>;
+    const { enabled, position, durationSecs, matchFound } = stored as Record<string, unknown>;
     return {
         enabled: typeof enabled === "boolean" ? enabled : DEFAULT_OVERLAY.enabled,
         position: isPosition(position) ? position : DEFAULT_OVERLAY.position,
         durationSecs: duration(durationSecs),
+        matchFound: typeof matchFound === "boolean" ? matchFound : DEFAULT_OVERLAY.matchFound,
     };
 }

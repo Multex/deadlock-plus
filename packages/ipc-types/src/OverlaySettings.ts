@@ -5,4 +5,4 @@ export type OverlaySettings = { enabled: boolean, position: OverlayPosition,
 /**
  * 3-15 s.
  */
-durationSecs: number, };
+durationSecs: number, matchFound: boolean, };

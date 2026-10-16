@@ -166,7 +166,8 @@
             "overlay": "Game overlay",
             "overlay_position": "Overlay position",
             "overlay_duration": "Overlay duration",
-            "overlay_test": "Test the overlay"
+            "overlay_test": "Test the overlay",
+            "overlay_match_found": "Match found"
         },
         "nav": {
             "label": "Settings categories",
@@ -254,7 +255,8 @@
                 "bottom_center": "Bottom center",
                 "bottom_right": "Bottom right",
                 "center": "Match found"
-            }
+            },
+            "overlay_match_found_description": "Shows over the game when your queue pops, even if another window is in front."
         },
         "weekdays": {
             "monday": "Monday",
@@ -552,6 +554,14 @@
         "overlay_test": {
             "title": "Overlay test",
             "body": "Deadlock+ notifications show here while you play."
+        },
+        "match_found": {
+            "title": "Match found",
+            "body": "{mode}"
+        },
+        "match_found_unknown": {
+            "title": "Match found",
+            "body": "Your match is loading."
         }
     },
     "common": {

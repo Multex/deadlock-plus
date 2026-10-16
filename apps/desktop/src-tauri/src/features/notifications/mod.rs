@@ -42,6 +42,7 @@ pub enum NotificationKind {
     Maintenance,
     Servers,
     Session,
+    Match,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
