@@ -12,6 +12,7 @@ export default defineConfig(() => ({
     resolve: { dedupe: peers },
 
     test: {
+        maxWorkers: "50%",
         include: [
             "src/**/*.{test,spec}.{js,ts}",
             "../../scripts/**/*.test.mjs",
