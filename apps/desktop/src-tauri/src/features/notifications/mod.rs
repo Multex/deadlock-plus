@@ -9,8 +9,15 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
+mod route;
+
+use route::{targets, Inputs};
+pub use route::{Delivery, Placement, Route, Visibility};
+
+use crate::features::game_focus::GameFocusService;
 use crate::features::i18n::{translate_in, I18nState};
 use crate::features::tray::badges;
+use dp_game::focus::GameFocus;
 use dp_sync::LockExt;
 use dp_versioned::{self, Migration};
 
@@ -19,6 +26,10 @@ const MIGRATIONS: &[Migration] = &[];
 const MAX_ITEMS: usize = 50;
 const MAIN_WINDOW: &str = "main";
 pub const CHANGED_EVENT: &str = "notifications-changed";
+/// Something the user should act on, shown wherever they are.
+pub const ALERT_ROUTE: Route = Route::new(Visibility::Always, Delivery::Both, Placement::Corner);
+/// Good to know, but not worth a toast over the game.
+pub const INFO_ROUTE: Route = Route::new(Visibility::Always, Delivery::Quiet, Placement::Corner);
 
 static NEXT_SEQ: AtomicU64 = AtomicU64::new(0);
 
@@ -146,31 +157,77 @@ fn toast_text(locale: &str, notif: &AppNotification) -> (String, String) {
     (translate_in(locale, &format!("{key}.title"), &params), translate_in(locale, &format!("{key}.body"), &params))
 }
 
-/// The single place a native OS notification gets sent from: `alerts`, `maintenance` and the server
-/// block sync call this instead of the notification plugin directly, so every native toast also lands
-/// in the notification center and updates the tray/taskbar badge. The toast itself only fires while the
-/// main window isn't focused; the center entry is added either way. The toast text is rendered here in
-/// the current language; the center renders from `key` and `params` when it is shown.
-pub fn push(app: &AppHandle, kind: NotificationKind, key: &str, params: &[(&str, String)], link: Option<String>) {
+trait Sinks {
+    fn center(&mut self, notif: AppNotification);
+    fn native(&mut self, notif: &AppNotification);
+    fn overlay(&mut self, notif: &AppNotification, placement: Placement);
+}
+
+fn deliver(route: Route, inputs: Inputs, notif: AppNotification, sinks: &mut impl Sinks) {
+    let to = targets(route, inputs);
+    if to.overlay {
+        sinks.overlay(&notif, route.placement);
+    }
+    if to.native {
+        sinks.native(&notif);
+    }
+    if to.center {
+        sinks.center(notif);
+    }
+}
+
+struct AppSinks<'a> {
+    app: &'a AppHandle,
+}
+
+impl Sinks for AppSinks<'_> {
+    fn center(&mut self, notif: AppNotification) {
+        let state = self.app.state::<NotificationsState>();
+        state.with_stored(self.app, |s| insert(s, notif));
+        state.persist(self.app);
+        if let Err(e) = self.app.emit(CHANGED_EVENT, ()) {
+            log::warn!("could not emit {CHANGED_EVENT}: {e}");
+        }
+        badges::refresh(self.app);
+    }
+
+    fn native(&mut self, notif: &AppNotification) {
+        let (title, body) = toast_text(&self.app.state::<I18nState>().locale(), notif);
+        if let Err(e) = self.app.notification().builder().title(title).body(body).show() {
+            log::warn!("could not show the notification: {e}");
+        }
+    }
+
+    fn overlay(&mut self, notif: &AppNotification, placement: Placement) {
+        log::debug!("overlay toast {} ({placement:?}) has no window to show in", notif.id);
+    }
+}
+
+fn inputs(app: &AppHandle) -> Inputs {
+    Inputs {
+        game_running: dp_game::is_running(),
+        game_focused: app.state::<GameFocusService>().state().focus == GameFocus::Focused,
+        main_focused: app.get_webview_window(MAIN_WINDOW).and_then(|w| w.is_focused().ok()).unwrap_or(false),
+        overlay_available: false,
+    }
+}
+
+/// The single place a notification gets sent from: `alerts`, `maintenance`, the server block sync and the break
+/// reminder call this instead of the notification plugin directly. `route` decides, at this moment, whether it
+/// shows at all, whether it lands in the notification center (and so the tray/taskbar badge), and which toast
+/// fires. Toast text is rendered here in the current language; the center renders from `key` and `params` when
+/// it is shown.
+pub fn push(
+    app: &AppHandle,
+    kind: NotificationKind,
+    key: &str,
+    params: &[(&str, String)],
+    link: Option<String>,
+    route: Route,
+) {
     let seq = NEXT_SEQ.fetch_add(1, Ordering::Relaxed);
     let notif = build(kind, key, params, link, unix_now(), seq);
-    let (title, body) = toast_text(&app.state::<I18nState>().locale(), &notif);
-
-    let state = app.state::<NotificationsState>();
-    state.with_stored(app, |s| insert(s, notif));
-    state.persist(app);
-    if let Err(e) = app.emit(CHANGED_EVENT, ()) {
-        log::warn!("could not emit {CHANGED_EVENT}: {e}");
-    }
-    badges::refresh(app);
-
-    let focused = app.get_webview_window(MAIN_WINDOW).and_then(|w| w.is_focused().ok()).unwrap_or(false);
-    if focused {
-        return;
-    }
-    if let Err(e) = app.notification().builder().title(title).body(body).show() {
-        log::warn!("could not show the notification: {e}");
-    }
+    deliver(route, inputs(app), notif, &mut AppSinks { app });
 }
 
 pub mod commands {
@@ -189,6 +246,7 @@ pub mod commands {
             "notifications.break_reminder",
             &[("count", loss_streak.to_string())],
             Some("/match-history".into()),
+            ALERT_ROUTE,
         );
     }
 
@@ -320,6 +378,49 @@ mod tests {
                 assert_ne!(crate::features::i18n::translate_in("en", &full, &[]), full, "{full} missing");
             }
         }
+    }
+
+    #[derive(Default)]
+    struct Recorder {
+        center: Vec<String>,
+        native: Vec<String>,
+        overlay: Vec<(String, Placement)>,
+    }
+
+    impl Sinks for Recorder {
+        fn center(&mut self, notif: AppNotification) {
+            self.center.push(notif.id);
+        }
+        fn native(&mut self, notif: &AppNotification) {
+            self.native.push(notif.id.clone());
+        }
+        fn overlay(&mut self, notif: &AppNotification, placement: Placement) {
+            self.overlay.push((notif.id.clone(), placement));
+        }
+    }
+
+    const IN_GAME: Inputs =
+        Inputs { game_running: true, game_focused: true, main_focused: false, overlay_available: true };
+
+    #[test]
+    fn overlay_delivery_writes_no_center_entry() {
+        let mut sinks = Recorder::default();
+        deliver(Route::new(Visibility::Always, Delivery::Overlay, Placement::Center), IN_GAME, notif("a"), &mut sinks);
+        assert_eq!(sinks.overlay, [("a".to_string(), Placement::Center)]);
+        assert!(sinks.center.is_empty() && sinks.native.is_empty());
+    }
+
+    #[test]
+    fn both_delivery_outside_the_game_writes_a_center_entry_and_a_native_toast() {
+        let mut sinks = Recorder::default();
+        deliver(
+            Route::new(Visibility::Always, Delivery::Both, Placement::Corner),
+            Inputs::default(),
+            notif("a"),
+            &mut sinks,
+        );
+        assert_eq!((sinks.center, sinks.native), (vec!["a".to_string()], vec!["a".to_string()]));
+        assert!(sinks.overlay.is_empty());
     }
 
     #[test]

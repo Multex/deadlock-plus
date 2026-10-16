@@ -41,6 +41,7 @@ async fn run_in_background(app: &AppHandle) {
             "notifications.server_blocks_updated",
             &[("servers", outcome.updated.join(", "))],
             Some("/server-picker".into()),
+            notifications::INFO_ROUTE,
         );
     }
     if !outcome.failed.is_empty() {
@@ -50,6 +51,7 @@ async fn run_in_background(app: &AppHandle) {
             "notifications.server_blocks_stale",
             &[("servers", outcome.failed.join(", "))],
             Some("/server-picker".into()),
+            notifications::ALERT_ROUTE,
         );
     }
 }

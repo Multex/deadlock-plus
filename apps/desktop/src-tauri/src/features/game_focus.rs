@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use dp_game::focus::FocusWatcher;
+use dp_game::focus::{FocusState, FocusWatcher};
 use dp_sync::LockExt;
 
 #[derive(Default)]
@@ -19,6 +19,11 @@ impl GameFocusService {
             Ok(started) => *watcher = Some(started),
             Err(e) => log::warn!("game focus watcher could not start: {e}"),
         }
+    }
+
+    /// `Closed` while the watcher is not running.
+    pub fn state(&self) -> FocusState {
+        self.watcher.lock_or_recover().as_ref().map(FocusWatcher::state).unwrap_or_default()
     }
 
     pub fn stop(&self) {

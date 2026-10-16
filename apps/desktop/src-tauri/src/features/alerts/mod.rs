@@ -123,7 +123,14 @@ impl AlertsState {
             return;
         }
         if let Some((key, params)) = notification_message(&fresh) {
-            notifications::push(app, NotificationKind::Alert, key, &params, Some("/alerts".into()));
+            notifications::push(
+                app,
+                NotificationKind::Alert,
+                key,
+                &params,
+                Some("/alerts".into()),
+                notifications::ALERT_ROUTE,
+            );
         }
     }
 }

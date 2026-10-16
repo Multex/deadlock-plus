@@ -123,6 +123,7 @@ impl MaintenanceState {
             "notifications.maintenance_soon",
             &[("minutes", mins.to_string())],
             None,
+            notifications::ALERT_ROUTE,
         );
     }
 }
