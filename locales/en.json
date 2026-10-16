@@ -136,6 +136,7 @@
             "language": "Language",
             "startup": "Startup and background",
             "notifications": "Notifications",
+            "overlay": "Game overlay",
             "privacy": "Privacy",
             "about": "About",
             "diagnostics": "Diagnostics",
@@ -167,7 +168,10 @@
             "overlay_position": "Overlay position",
             "overlay_duration": "Overlay duration",
             "overlay_test": "Test the overlay",
-            "overlay_match_found": "Match found"
+            "overlay_match_found": "Match found",
+            "server_blocks_updated": "Server blocks updated",
+            "server_blocks_stale": "Server blocks out of date",
+            "break_reminder": "Break reminder"
         },
         "nav": {
             "label": "Settings categories",
@@ -256,7 +260,20 @@
                 "bottom_right": "Bottom right",
                 "center": "Match found"
             },
-            "overlay_match_found_description": "Shows over the game when your queue pops, even if another window is in front."
+            "overlay_match_found_description": "Tells you when your queue pops, even if another window is in front.",
+            "server_blocks_updated_description": "Tells you when Valve changes server addresses and Deadlock+ updates your Server Picker blocks to match.",
+            "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
+            "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
+            "delivery_label": "Shows as",
+            "delivery": {
+                "both": "Overlay in game, else desktop",
+                "overlay": "Overlay only",
+                "os": "Desktop notification",
+                "quiet": "Desktop, not while in game",
+                "center": "Notification center only"
+            },
+            "overlay_off_fallback": "The game overlay is off, so this shows as a desktop notification.",
+            "overlay_off_hidden": "The game overlay is off, so this does not show."
         },
         "weekdays": {
             "monday": "Monday",

@@ -5,20 +5,21 @@ import { expect, settle, test } from "./support/test";
 
 const CATEGORIES = settingsCategories();
 
-// Controls the loop found on each page on 2026-10-14, with every "Advanced" disclosure open. A page that
+// Controls the loop found on each page on 2026-10-16, with every "Advanced" disclosure open. A page that
 // renders fewer has lost a control or changed how it exposes one, and the loop would otherwise pass without
 // having tried it.
 const FLOOR: Record<string, number> = {
     appearance: 3,
     language: 1,
     startup: 8,
-    notifications: 8,
+    notifications: 14,
+    overlay: 3,
     privacy: 1,
     sharing: 2,
     diagnostics: 2,
     about: 1,
 };
-const TOTAL_FLOOR = 26;
+const TOTAL_FLOOR = 35;
 
 type Kept = "backend" | "browser" | "nowhere";
 

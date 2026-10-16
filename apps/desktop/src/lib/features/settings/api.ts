@@ -1,6 +1,7 @@
 import { command, listen, type Unlisten } from "$lib/core/tauri";
 import type { AppInfo } from "@deadlock-plus/ipc-types/AppInfo";
 import type { AutostartStatus } from "@deadlock-plus/ipc-types/AutostartStatus";
+import type { NotificationSettings } from "@deadlock-plus/ipc-types/NotificationSettings";
 import type { OverlaySettings } from "@deadlock-plus/ipc-types/OverlaySettings";
 import type { OverlayStatus } from "@deadlock-plus/ipc-types/OverlayStatus";
 import type { MaintenanceSchedule } from "./maintenance";
@@ -31,6 +32,10 @@ export function setMaintenanceSchedule(schedule: MaintenanceSchedule) {
 
 export function setOverlaySettings(settings: OverlaySettings) {
     return command("set_overlay_settings", { settings });
+}
+
+export function setNotificationSettings(settings: NotificationSettings) {
+    return command("set_notification_settings", { settings });
 }
 
 export function showOverlayTest() {

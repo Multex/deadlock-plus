@@ -1,73 +1,18 @@
 <script lang="ts">
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { toast } from "svelte-sonner";
-    import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
-    import { BellRing, CalendarDays, MonitorPlay, TriangleAlert } from "@lucide/svelte";
-    import PositionPicker from "@deadlock-plus/ui/position-picker.svelte";
+    import { Bell, BellMinus, BellRing, CalendarDays, Inbox, Layers, MonitorPlay } from "@lucide/svelte";
+    import type { Component } from "svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
-    import Slider from "@deadlock-plus/ui/slider.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { onOverlayStatus, overlayStatus, showOverlayTest } from "$lib/features/settings/api";
     import { formatTime, LEAD_OPTIONS, parseTime, weekdays } from "$lib/features/settings/maintenance";
-    import {
-        DURATION_RANGE,
-        NO_GAME,
-        OVERLAY_POSITIONS,
-        type OverlayPosition,
-        type OverlayStatus,
-    } from "$lib/features/settings/overlay";
+    import { DELIVERIES, type Delivery, type NotificationTopic } from "$lib/features/settings/notification-topics";
     import { leadItems, weekdayItems } from "./select-items";
 
     let { show }: { show: (id: string) => boolean } = $props();
-
-    const OVERLAY_IDS = ["overlay", "overlay-match-found", "overlay-position", "overlay-duration", "overlay-test"];
-
-    const positionLabels = $derived<Record<OverlayPosition, string>>({
-        topLeft: t("settings.notifications.position.top_left"),
-        topCenter: t("settings.notifications.position.top_center"),
-        topRight: t("settings.notifications.position.top_right"),
-        left: t("settings.notifications.position.left"),
-        right: t("settings.notifications.position.right"),
-        bottomLeft: t("settings.notifications.position.bottom_left"),
-        bottomCenter: t("settings.notifications.position.bottom_center"),
-        bottomRight: t("settings.notifications.position.bottom_right"),
-    });
-    const positionOptions = $derived(OVERLAY_POSITIONS.map((value) => ({ value, label: positionLabels[value] })));
-    const seconds = (value: number) => t("settings.notifications.overlay_seconds", { seconds: value });
-
-    let status = $state<OverlayStatus>(NO_GAME);
-    let testing = $state(false);
-
-    $effect(() => {
-        let alive = true;
-        let unlisten: (() => void) | undefined;
-        onOverlayStatus((next) => (status = next))
-            .then((stop) => (alive ? (unlisten = stop) : stop()))
-            .catch(() => {});
-        overlayStatus()
-            .then((next) => alive && (status = next))
-            .catch(() => {});
-        return () => {
-            alive = false;
-            unlisten?.();
-        };
-    });
-
-    async function showTest() {
-        testing = true;
-        try {
-            await showOverlayTest();
-        } catch (e) {
-            toast.error(errorText(e));
-        } finally {
-            testing = false;
-        }
-    }
 
     const dayItems = $derived(weekdayItems(weekdays()));
     const leadOptions = $derived(
@@ -76,6 +21,28 @@
             hours: (hours) => t("settings.notifications.lead_hours", { hours }),
         }),
     );
+
+    const DELIVERY_ICONS: Record<Delivery, Component<{ "aria-hidden"?: "true" }>> = {
+        both: Layers,
+        overlay: MonitorPlay,
+        os: Bell,
+        quiet: BellMinus,
+        center: Inbox,
+    };
+    const deliveryItems = $derived(
+        DELIVERIES.map((value) => ({
+            value,
+            label: t(`settings.notifications.delivery.${value}`),
+            icon: DELIVERY_ICONS[value],
+        })),
+    );
+
+    function overlayOffHint(delivery: Delivery): string | undefined {
+        if (settings.overlay.enabled) return undefined;
+        if (delivery === "both") return t("settings.notifications.overlay_off_fallback");
+        if (delivery === "overlay") return t("settings.notifications.overlay_off_hidden");
+        return undefined;
+    }
 
     let maintenanceTime = $state(formatTime(settings.maintenance.minuteOfDay));
     $effect(() => {
@@ -89,8 +56,26 @@
     }
 </script>
 
+{#snippet deliveryRow(topic: NotificationTopic, title: string)}
+    {@const delivery = settings.notifications.deliveries[topic]}
+    {@const SelectedIcon = DELIVERY_ICONS[delivery]}
+    <SettingRow label={t("settings.notifications.delivery_label")} hint={overlayOffHint(delivery)} size="sub">
+        <SelectMenu
+            items={deliveryItems}
+            value={delivery}
+            onValueChange={(v) => settings.setDelivery(topic, v as Delivery)}
+            aria-label={`${title} ${t("settings.notifications.delivery_label")}`}
+            align="end"
+            class="w-60 shrink-0"
+        >
+            {#snippet leading(item)}<item.icon aria-hidden="true" />{/snippet}
+            {#snippet icon()}<SelectedIcon aria-hidden="true" />{/snippet}
+        </SelectMenu>
+    </SettingRow>
+{/snippet}
+
 {#if show("update-alerts")}
-    <Card as="section">
+    <Card as="section" class="flex flex-col gap-4">
         <SettingRow
             label={t("settings.items.update_alerts")}
             for="update-alerts"
@@ -102,11 +87,12 @@
                 onCheckedChange={(v) => settings.setUpdateAlerts(v)}
             />
         </SettingRow>
+        {@render deliveryRow("updates", t("settings.items.update_alerts"))}
     </Card>
 {/if}
 
 {#if show("maintenance")}
-    <Card as="section">
+    <Card as="section" class="flex flex-col gap-4">
         <SettingRow
             label={t("settings.items.maintenance")}
             for="maintenance"
@@ -118,7 +104,7 @@
                 onCheckedChange={(v) => settings.setMaintenance({ enabled: v })}
             />
         </SettingRow>
-        <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
+        <div class="flex flex-wrap items-center gap-3 text-sm">
             <label class="flex items-center gap-2 text-muted-foreground">
                 {t("settings.notifications.day")}
                 <SelectMenu
@@ -152,103 +138,74 @@
                 </SelectMenu>
             </label>
         </div>
+        {@render deliveryRow("maintenance", t("settings.items.maintenance"))}
     </Card>
 {/if}
 
-{#if OVERLAY_IDS.some(show)}
+{#if show("server-blocks-updated")}
     <Card as="section" class="flex flex-col gap-4">
-        {#if show("overlay")}
-            <SettingRow
-                label={t("settings.items.overlay")}
-                for="overlay"
-                description={t("settings.notifications.overlay_description")}
-            >
-                {#snippet details()}
-                    {#if status.exclusiveFullscreen}
-                        <p class="flex items-start gap-1.5 text-xs text-warning">
-                            <TriangleAlert class="mt-px size-3.5 shrink-0" aria-hidden="true" />
-                            {t("settings.notifications.overlay_fullscreen")}
-                        </p>
-                    {/if}
-                {/snippet}
-                <Switch
-                    id="overlay"
-                    checked={settings.overlay.enabled}
-                    onCheckedChange={(v) => settings.setOverlay({ enabled: v })}
-                />
-            </SettingRow>
-        {/if}
-        {#if show("overlay-match-found")}
-            <SettingRow
-                label={t("settings.items.overlay_match_found")}
-                for="overlay-match-found"
-                description={t("settings.notifications.overlay_match_found_description")}
-                size="sub"
-            >
-                <Switch
-                    id="overlay-match-found"
-                    checked={settings.overlay.matchFound}
-                    disabled={!settings.overlay.enabled}
-                    onCheckedChange={(v) => settings.setOverlay({ matchFound: v })}
-                />
-            </SettingRow>
-        {/if}
-        {#if show("overlay-position")}
-            <SettingRow
-                label={t("settings.items.overlay_position")}
-                description={t("settings.notifications.overlay_position_description")}
-                size="sub"
-            >
-                <PositionPicker
-                    options={positionOptions}
-                    value={settings.overlay.position}
-                    centerLabel={t("settings.notifications.position.center")}
-                    aria-label={t("settings.items.overlay_position")}
-                    onValueChange={(v) => settings.setOverlay({ position: v })}
-                />
-            </SettingRow>
-        {/if}
-        {#if show("overlay-duration")}
-            <SettingRow
-                label={t("settings.items.overlay_duration")}
-                description={t("settings.notifications.overlay_duration_description")}
-                size="sub"
-            >
-                <div class="flex w-48 shrink-0 items-center gap-3">
-                    <Slider
-                        class="min-w-0 flex-1"
-                        value={settings.overlay.durationSecs}
-                        {...DURATION_RANGE}
-                        ticks
-                        formatValue={seconds}
-                        bubble={false}
-                        aria-label={t("settings.items.overlay_duration")}
-                        onValueChange={(v) => settings.setOverlay({ durationSecs: v })}
-                    />
-                    <span class="w-8 text-right text-sm tabular-nums text-muted-foreground" aria-hidden="true">
-                        {seconds(settings.overlay.durationSecs)}
-                    </span>
-                </div>
-            </SettingRow>
-        {/if}
-        {#if show("overlay-test")}
-            <SettingRow
-                label={t("settings.items.overlay_test")}
-                description={t("settings.notifications.overlay_test_description")}
-                hint={status.gameOpen ? undefined : t("errors.overlay.game_not_running")}
-                size="sub"
-            >
-                <Button
-                    variant="outline"
-                    size="sm"
-                    class="shrink-0"
-                    disabled={!status.gameOpen || testing}
-                    onclick={showTest}
-                >
-                    <MonitorPlay aria-hidden="true" />
-                    {t("settings.notifications.overlay_test_button")}
-                </Button>
-            </SettingRow>
-        {/if}
+        <SettingRow
+            label={t("settings.items.server_blocks_updated")}
+            for="server-blocks-updated"
+            description={t("settings.notifications.server_blocks_updated_description")}
+        >
+            <Switch
+                id="server-blocks-updated"
+                checked={settings.notifications.serverBlocksUpdated}
+                onCheckedChange={(v) => settings.setNotifications({ serverBlocksUpdated: v })}
+            />
+        </SettingRow>
+        {@render deliveryRow("serverBlocksUpdated", t("settings.items.server_blocks_updated"))}
+    </Card>
+{/if}
+
+{#if show("server-blocks-stale")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.server_blocks_stale")}
+            for="server-blocks-stale"
+            description={t("settings.notifications.server_blocks_stale_description")}
+        >
+            <Switch
+                id="server-blocks-stale"
+                checked={settings.notifications.serverBlocksStale}
+                onCheckedChange={(v) => settings.setNotifications({ serverBlocksStale: v })}
+            />
+        </SettingRow>
+        {@render deliveryRow("serverBlocksStale", t("settings.items.server_blocks_stale"))}
+    </Card>
+{/if}
+
+{#if show("break-reminder")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.break_reminder")}
+            for="break-reminder"
+            description={t("settings.notifications.break_reminder_description")}
+        >
+            <Switch
+                id="break-reminder"
+                checked={settings.breakHint}
+                onCheckedChange={(v) => settings.setBreakHint(v)}
+            />
+        </SettingRow>
+        {@render deliveryRow("breakReminder", t("settings.items.break_reminder"))}
+    </Card>
+{/if}
+
+{#if show("match-found")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.overlay_match_found")}
+            for="match-found"
+            description={t("settings.notifications.overlay_match_found_description")}
+        >
+            <Switch
+                id="match-found"
+                checked={settings.overlay.matchFound}
+                onCheckedChange={(v) => settings.setOverlay({ matchFound: v })}
+            />
+        </SettingRow>
+        {@render deliveryRow("matchFound", t("settings.items.overlay_match_found"))}
     </Card>
 {/if}

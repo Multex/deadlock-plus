@@ -9,6 +9,7 @@
     import Language from "./sections/language.svelte";
     import Startup from "./sections/startup.svelte";
     import Notifications from "./sections/notifications.svelte";
+    import Overlay from "./sections/overlay.svelte";
     import Privacy from "./sections/privacy.svelte";
     import Sharing from "./sections/sharing.svelte";
     import Storage from "./sections/storage.svelte";
@@ -24,6 +25,7 @@
         language: Language,
         startup: Startup,
         notifications: Notifications,
+        overlay: Overlay,
         privacy: Privacy,
         sharing: Sharing,
         storage: Storage,

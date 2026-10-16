@@ -4,6 +4,7 @@ import {
     setGcRecoveryEnabled,
     setIngestEnabled,
     setMaintenanceSchedule,
+    setNotificationSettings,
     setOverlaySettings,
 } from "./api";
 import { kvGet, kvSet } from "$lib/core/kv";
@@ -17,6 +18,13 @@ import { resolveTelemetry, shouldSend } from "$lib/features/telemetry/consent";
 import { resetTelemetryId, setTelemetrySettings } from "$lib/features/telemetry/api";
 import { resolveIngestConsent } from "./ingest-consent";
 import { DEFAULT_SCHEDULE, type MaintenanceSchedule } from "./maintenance";
+import {
+    DEFAULT_NOTIFICATIONS,
+    resolveNotifications,
+    type Delivery,
+    type NotificationSettings,
+    type NotificationTopic,
+} from "./notification-topics";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
 import { DEFAULT_THEME, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
 
@@ -28,6 +36,7 @@ const CLOSE_TO_TRAY_KEY = "closeToTray";
 const MAINTENANCE_KEY = "maintenanceSchedule";
 const ALERTS_KEY = "updateAlerts";
 const OVERLAY_KEY = "overlay";
+const NOTIFICATIONS_KEY = "notifications";
 const BREAK_HINT_KEY = "breakHint";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
@@ -58,6 +67,7 @@ class Settings {
     maintenance = $state<MaintenanceSchedule>({ ...DEFAULT_SCHEDULE });
     updateAlerts = $state(false);
     overlay = $state<OverlaySettings>({ ...DEFAULT_OVERLAY });
+    notifications = $state(resolveNotifications(DEFAULT_NOTIFICATIONS));
     breakHint = $state(false);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
@@ -87,6 +97,7 @@ class Settings {
         this.maintenance = { ...DEFAULT_SCHEDULE, ...schedule };
         this.updateAlerts = (await stored<boolean>(ALERTS_KEY)) ?? false;
         this.overlay = resolveOverlay(await stored<unknown>(OVERLAY_KEY));
+        this.notifications = resolveNotifications(await stored<unknown>(NOTIFICATIONS_KEY));
         this.breakHint = (await stored<boolean>(BREAK_HINT_KEY)) ?? false;
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
@@ -99,6 +110,7 @@ class Settings {
         await this.applyMaintenance();
         await this.applyUpdateAlerts();
         await this.applyOverlay();
+        await this.applyNotifications();
         await this.applyPresence();
         this.resolveReady();
     }
@@ -156,6 +168,37 @@ class Settings {
         await this.applyOverlay();
         try {
             await kvSet(STORE, OVERLAY_KEY, $state.snapshot(this.overlay));
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    private async applyNotifications() {
+        try {
+            await setNotificationSettings($state.snapshot(this.notifications));
+        } catch {
+            // Not running inside Tauri.
+        }
+    }
+
+    async setNotifications(patch: Partial<Omit<NotificationSettings, "deliveries">>) {
+        this.notifications = { ...this.notifications, ...patch };
+        await this.applyNotifications();
+        try {
+            await kvSet(STORE, NOTIFICATIONS_KEY, $state.snapshot(this.notifications));
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setDelivery(topic: NotificationTopic, delivery: Delivery) {
+        this.notifications = {
+            ...this.notifications,
+            deliveries: { ...this.notifications.deliveries, [topic]: delivery },
+        };
+        await this.applyNotifications();
+        try {
+            await kvSet(STORE, NOTIFICATIONS_KEY, $state.snapshot(this.notifications));
         } catch {
             // The choice just won't persist across restarts.
         }

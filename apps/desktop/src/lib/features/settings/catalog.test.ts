@@ -26,6 +26,7 @@ describe("catalog", () => {
             "language",
             "startup",
             "notifications",
+            "overlay",
             "privacy",
             "sharing",
             "storage",
@@ -122,15 +123,43 @@ describe("catalog", () => {
         expect(matchingItems("space cache clear")?.has("storage")).toBe(true);
     });
 
-    it("files the overlay controls under notifications and finds them by keyword", () => {
-        const ids = ["overlay", "overlay-match-found", "overlay-position", "overlay-duration", "overlay-test"];
-        for (const id of ids) expect(ITEMS.find((i) => i.id === id)?.category).toBe("notifications");
-        for (const id of ids) expect(matchingItems("overlay")?.has(id)).toBe(true);
+    it("files the overlay controls under their own category and finds them by keyword", () => {
+        const ids = ["overlay", "overlay-position", "overlay-duration", "overlay-test"];
+        for (const id of ids) expect(ITEMS.find((i) => i.id === id)?.category).toBe("overlay");
+        expect(ITEMS.find((i) => i.id === "match-found")?.category).toBe("notifications");
+        for (const id of [...ids, "match-found"]) expect(matchingItems("overlay")?.has(id)).toBe(true);
         expect(matchingItems("in game toast")?.has("overlay")).toBe(true);
         expect(matchingItems("corner")?.has("overlay-position")).toBe(true);
         expect(matchingItems("seconds")?.has("overlay-duration")).toBe(true);
         expect(matchingItems("preview")?.has("overlay-test")).toBe(true);
-        expect(matchingItems("queue pop")?.has("overlay-match-found")).toBe(true);
+        expect(matchingItems("queue pop")?.has("match-found")).toBe(true);
+    });
+
+    it("lists every notification type under notifications, in page order", () => {
+        expect(ITEMS.filter((i) => i.category === "notifications").map((i) => i.id)).toEqual([
+            "update-alerts",
+            "maintenance",
+            "server-blocks-updated",
+            "server-blocks-stale",
+            "break-reminder",
+            "match-found",
+        ]);
+        expect(ITEMS.map((i) => i.id)).not.toContain("overlay-match-found");
+    });
+
+    it("titles and describes the new notification types", () => {
+        const item = (id: string) => ITEMS.find((i) => i.id === id);
+        expect(item("server-blocks-updated")?.title).toBe("Server blocks updated");
+        expect(item("server-blocks-stale")?.title).toBe("Server blocks out of date");
+        expect(item("break-reminder")?.title).toBe("Break reminder");
+        expect(item("break-reminder")?.description).toContain("losses in a row");
+    });
+
+    it("finds every notification type by how it shows", () => {
+        const ids = ITEMS.filter((i) => i.category === "notifications").map((i) => i.id);
+        for (const query of ["shows as", "desktop notification", "notification center", "overlay", "popup"]) {
+            for (const id of ids) expect(matchingItems(query)?.has(id), `${query} -> ${id}`).toBe(true);
+        }
     });
 
     it("matches on the category label", () => {

@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { Bell, Bug, HardDrive, Info, Languages, Palette, Power, Share2, Shield } from "@lucide/svelte";
+import { Bell, Bug, HardDrive, Info, Languages, Layers, Palette, Power, Share2, Shield } from "@lucide/svelte";
 import { platform, type Platform } from "$lib/core/platform";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartDescription, autostartTitle } from "./autostart";
@@ -9,6 +9,7 @@ export type CategoryId =
     | "language"
     | "startup"
     | "notifications"
+    | "overlay"
     | "privacy"
     | "sharing"
     | "storage"
@@ -57,6 +58,13 @@ export const CATEGORIES: Category[] = [
             return t("settings.categories.notifications");
         },
         icon: Bell,
+    },
+    {
+        id: "overlay",
+        get label() {
+            return t("settings.categories.overlay");
+        },
+        icon: Layers,
     },
     {
         id: "privacy",
@@ -184,7 +192,8 @@ const BASE_ITEMS: SettingItem[] = [
         get description() {
             return t("settings.notifications.alerts_description");
         },
-        keywords: "updates patch notes steam announcements toast notify",
+        keywords:
+            "updates patch notes steam announcements notify shows as desktop notification toast overlay notification center popup",
     },
     {
         id: "maintenance",
@@ -195,11 +204,60 @@ const BASE_ITEMS: SettingItem[] = [
         get description() {
             return t("settings.notifications.maintenance_description");
         },
-        keywords: "steam weekly maintenance downtime tuesday wednesday utc remind toast schedule",
+        keywords:
+            "steam weekly maintenance downtime tuesday wednesday utc remind schedule shows as desktop notification toast overlay notification center popup",
+    },
+    {
+        id: "server-blocks-updated",
+        category: "notifications",
+        get title() {
+            return t("settings.items.server_blocks_updated");
+        },
+        get description() {
+            return t("settings.notifications.server_blocks_updated_description");
+        },
+        keywords:
+            "server picker blocks firewall valve server addresses changed relay ip shows as desktop notification toast overlay notification center popup",
+    },
+    {
+        id: "server-blocks-stale",
+        category: "notifications",
+        get title() {
+            return t("settings.items.server_blocks_stale");
+        },
+        get description() {
+            return t("settings.notifications.server_blocks_stale_description");
+        },
+        keywords:
+            "server picker blocks firewall out of date stale failed could not update relay ip shows as desktop notification toast overlay notification center popup",
+    },
+    {
+        id: "break-reminder",
+        category: "notifications",
+        get title() {
+            return t("settings.items.break_reminder");
+        },
+        get description() {
+            return t("settings.notifications.break_reminder_description");
+        },
+        keywords:
+            "break hint reminder tilt loss streak losing sessions rest shows as desktop notification toast overlay notification center popup",
+    },
+    {
+        id: "match-found",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_match_found");
+        },
+        get description() {
+            return t("settings.notifications.overlay_match_found_description");
+        },
+        keywords:
+            "match found queue pop ready game starting matchmaking alert tabbed out shows as desktop notification toast overlay notification center popup",
     },
     {
         id: "overlay",
-        category: "notifications",
+        category: "overlay",
         get title() {
             return t("settings.items.overlay");
         },
@@ -209,19 +267,8 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "overlay in game toast popup over the game full screen borderless window mode",
     },
     {
-        id: "overlay-match-found",
-        category: "notifications",
-        get title() {
-            return t("settings.items.overlay_match_found");
-        },
-        get description() {
-            return t("settings.notifications.overlay_match_found_description");
-        },
-        keywords: "overlay match found queue pop ready game starting matchmaking alert tabbed out",
-    },
-    {
         id: "overlay-position",
-        category: "notifications",
+        category: "overlay",
         get title() {
             return t("settings.items.overlay_position");
         },
@@ -232,7 +279,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "overlay-duration",
-        category: "notifications",
+        category: "overlay",
         get title() {
             return t("settings.items.overlay_duration");
         },
@@ -243,7 +290,7 @@ const BASE_ITEMS: SettingItem[] = [
     },
     {
         id: "overlay-test",
-        category: "notifications",
+        category: "overlay",
         get title() {
             return t("settings.items.overlay_test");
         },

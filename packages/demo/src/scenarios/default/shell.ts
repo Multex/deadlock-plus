@@ -186,6 +186,7 @@ const SETTERS = [
     "set_maintenance_schedule",
     "set_alerts_enabled",
     "set_overlay_settings",
+    "set_notification_settings",
     "set_presence_settings",
     "set_presence_art",
     "force_run_job",

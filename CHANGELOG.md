@@ -12,12 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Notifications show over the game instead of as Windows notifications while you play.
 - The overlay needs Borderless Window or Window mode; Settings says when Deadlock is in Full Screen.
-- Settings > Notifications has a switch to turn the overlay off.
+- The game overlay has its own Settings page, with a switch to turn it off.
 - You can pick where overlay notifications appear on screen.
 - You can choose how long overlay notifications stay up.
 - A Show test button shows a sample notification over the game.
 - "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
 - Settings > Notifications has a switch to turn "Match found" off.
+
+#### Notification settings
+
+- Settings > Notifications lists every notification type, each with its own switch.
+- Each type lets you choose how it shows: over the game, as a desktop notification, or only in the notification center.
+- Server block updates and out-of-date warnings can be turned off separately.
+- The break reminder switch is also in Settings > Notifications.
 
 ### Changed
 
