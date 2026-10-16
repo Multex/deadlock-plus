@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 /// How one notification is delivered, checked against the game and window state when it is pushed.
@@ -23,20 +23,21 @@ pub enum Visibility {
     Always,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub enum Delivery {
     /// Overlay toast only: no center entry, no badge.
     Overlay,
     /// Center entry and a native toast.
-    #[allow(dead_code, reason = "part of the routing contract; no caller yet")]
     Os,
     /// Center entry and one toast: the overlay while the game is focused and the overlay is available, native
     /// otherwise.
     Both,
     /// Center entry, plus a native toast only while the game is not focused.
     Quiet,
+    /// Center entry only, never a toast.
+    Center,
 }
 
 /// Where an overlay toast sits. Ignored when no overlay shows.
@@ -90,6 +91,7 @@ pub fn targets(route: Route, inputs: Inputs) -> Targets {
             Targets { center: true, native: !overlay && native_allowed, overlay }
         }
         Delivery::Quiet => Targets { center: true, native: !inputs.game_focused && native_allowed, overlay: false },
+        Delivery::Center => Targets { center: true, native: false, overlay: false },
     }
 }
 
@@ -101,8 +103,8 @@ mod tests {
     const PLACEMENTS: [Placement; 2] = [Placement::Corner, Placement::Center];
 
     /// Running, game focused, main focused, overlay available; then the expected targets for `Os`, `Both`,
-    /// `Quiet` and `Overlay`.
-    type Row = (u8, u8, u8, u8, &'static str, &'static str, &'static str, &'static str);
+    /// `Quiet`, `Overlay` and `Center`.
+    type Row = (u8, u8, u8, u8, &'static str, &'static str, &'static str, &'static str, &'static str);
 
     /// `c` center entry, `n` native toast, `o` overlay toast.
     fn parse(expected: &str) -> Targets {
@@ -113,25 +115,25 @@ mod tests {
     fn every_route_and_input_combination_routes_as_specified() {
         #[rustfmt::skip]
         let rows: [Row; 16] = [
-            (0, 0, 0, 0, "cn", "cn", "cn", ""),
-            (0, 0, 0, 1, "cn", "cn", "cn", "o"),
-            (0, 0, 1, 0, "c",  "c",  "c",  ""),
-            (0, 0, 1, 1, "c",  "c",  "c",  "o"),
-            (0, 1, 0, 0, "cn", "cn", "c",  ""),
-            (0, 1, 0, 1, "cn", "co", "c",  "o"),
-            (0, 1, 1, 0, "c",  "c",  "c",  ""),
-            (0, 1, 1, 1, "c",  "co", "c",  "o"),
-            (1, 0, 0, 0, "cn", "cn", "cn", ""),
-            (1, 0, 0, 1, "cn", "cn", "cn", "o"),
-            (1, 0, 1, 0, "c",  "c",  "c",  ""),
-            (1, 0, 1, 1, "c",  "c",  "c",  "o"),
-            (1, 1, 0, 0, "cn", "cn", "c",  ""),
-            (1, 1, 0, 1, "cn", "co", "c",  "o"),
-            (1, 1, 1, 0, "c",  "c",  "c",  ""),
-            (1, 1, 1, 1, "c",  "co", "c",  "o"),
+            (0, 0, 0, 0, "cn", "cn", "cn", "",  "c"),
+            (0, 0, 0, 1, "cn", "cn", "cn", "o", "c"),
+            (0, 0, 1, 0, "c",  "c",  "c",  "",  "c"),
+            (0, 0, 1, 1, "c",  "c",  "c",  "o", "c"),
+            (0, 1, 0, 0, "cn", "cn", "c",  "",  "c"),
+            (0, 1, 0, 1, "cn", "co", "c",  "o", "c"),
+            (0, 1, 1, 0, "c",  "c",  "c",  "",  "c"),
+            (0, 1, 1, 1, "c",  "co", "c",  "o", "c"),
+            (1, 0, 0, 0, "cn", "cn", "cn", "",  "c"),
+            (1, 0, 0, 1, "cn", "cn", "cn", "o", "c"),
+            (1, 0, 1, 0, "c",  "c",  "c",  "",  "c"),
+            (1, 0, 1, 1, "c",  "c",  "c",  "o", "c"),
+            (1, 1, 0, 0, "cn", "cn", "c",  "",  "c"),
+            (1, 1, 0, 1, "cn", "co", "c",  "o", "c"),
+            (1, 1, 1, 0, "c",  "c",  "c",  "",  "c"),
+            (1, 1, 1, 1, "c",  "co", "c",  "o", "c"),
         ];
         let mut checked = 0;
-        for (running, focused, main, overlay, os, both, quiet, overlay_only) in rows {
+        for (running, focused, main, overlay, os, both, quiet, overlay_only, center_only) in rows {
             let inputs = Inputs {
                 game_running: running == 1,
                 game_focused: focused == 1,
@@ -150,6 +152,7 @@ mod tests {
                         (Delivery::Both, both),
                         (Delivery::Quiet, quiet),
                         (Delivery::Overlay, overlay_only),
+                        (Delivery::Center, center_only),
                     ] {
                         let route = Route::new(visibility, delivery, placement);
                         let want = if shown { parse(expected) } else { Targets::default() };
@@ -159,6 +162,6 @@ mod tests {
                 }
             }
         }
-        assert_eq!(checked, 16 * 3 * 2 * 4);
+        assert_eq!(checked, 16 * 3 * 2 * 5);
     }
 }

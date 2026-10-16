@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 
 use super::i18n::{translate_in, I18nState};
 use super::live::link::GameLinkService;
-use super::notifications::{self, Delivery, NotificationKind, Placement, Route, Visibility};
+use super::notifications::{self, NotificationTopic};
 use super::overlay::OverlayService;
 use detector::{Detector, Seen};
 
@@ -18,7 +18,6 @@ const POLL: Duration = Duration::from_secs(1);
 const EXIT_WAIT: Duration = Duration::from_secs(2);
 const KEY: &str = "notifications.match_found";
 const KEY_NO_MODE: &str = "notifications.match_found_unknown";
-const ROUTE: Route = Route::new(Visibility::Always, Delivery::Overlay, Placement::Center);
 
 #[derive(Default)]
 pub struct MatchFoundService {
@@ -77,7 +76,7 @@ fn announce(app: &AppHandle, facts: &LiveFacts) {
         return;
     }
     let (key, params) = message(facts, &app.state::<I18nState>().locale());
-    notifications::push(app, NotificationKind::Match, key, &params, None, ROUTE);
+    notifications::push(app, NotificationTopic::MatchFound, key, &params, None);
 }
 
 /// Street Brawl is a game mode, not a match mode, so it wins over whatever match mode it reports.

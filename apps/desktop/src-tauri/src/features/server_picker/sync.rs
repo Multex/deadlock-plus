@@ -4,7 +4,7 @@ use tauri::{AppHandle, Manager};
 
 use super::state::ServerPickerState;
 use crate::features::jobs::{JobSpec, JobsState, Policy};
-use crate::features::notifications::{self, NotificationKind};
+use crate::features::notifications::{self, NotificationTopic};
 use crate::http::Http;
 use dp_firewall as firewall;
 use dp_server_picker::sync::sync_blocks;
@@ -37,21 +37,19 @@ async fn run_in_background(app: &AppHandle) {
     if !outcome.updated.is_empty() {
         notifications::push(
             app,
-            NotificationKind::Servers,
+            NotificationTopic::ServerBlocksUpdated,
             "notifications.server_blocks_updated",
             &[("servers", outcome.updated.join(", "))],
             Some("/server-picker".into()),
-            notifications::INFO_ROUTE,
         );
     }
     if !outcome.failed.is_empty() {
         notifications::push(
             app,
-            NotificationKind::Servers,
+            NotificationTopic::ServerBlocksStale,
             "notifications.server_blocks_stale",
             &[("servers", outcome.failed.join(", "))],
             Some("/server-picker".into()),
-            notifications::ALERT_ROUTE,
         );
     }
 }

@@ -10,9 +10,11 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 mod route;
+mod topic;
 
 use route::{targets, Inputs};
-pub use route::{Delivery, Placement, Route, Visibility};
+pub use route::{Placement, Route, Visibility};
+pub use topic::{NotificationSettings, NotificationTopic};
 
 use crate::features::game_focus::GameFocusService;
 use crate::features::i18n::{translate_in, I18nState};
@@ -27,10 +29,6 @@ const MIGRATIONS: &[Migration] = &[];
 const MAX_ITEMS: usize = 50;
 const MAIN_WINDOW: &str = "main";
 pub const CHANGED_EVENT: &str = "notifications-changed";
-/// Something the user should act on, shown wherever they are.
-pub const ALERT_ROUTE: Route = Route::new(Visibility::Always, Delivery::Both, Placement::Corner);
-/// Good to know, but not worth a toast over the game.
-pub const INFO_ROUTE: Route = Route::new(Visibility::Always, Delivery::Quiet, Placement::Corner);
 
 static NEXT_SEQ: AtomicU64 = AtomicU64::new(0);
 
@@ -101,6 +99,7 @@ fn save(path: &Path, stored: &Stored) -> std::io::Result<()> {
 #[derive(Default)]
 pub struct NotificationsState {
     stored: Mutex<Option<Stored>>,
+    settings: Mutex<NotificationSettings>,
 }
 
 impl NotificationsState {
@@ -216,21 +215,23 @@ fn inputs(app: &AppHandle) -> Inputs {
     }
 }
 
-/// The single place a notification gets sent from: `alerts`, `maintenance`, the server block sync and the break
-/// reminder call this instead of the notification plugin directly. `route` decides, at this moment, whether it
-/// shows at all, whether it lands in the notification center (and so the tray/taskbar badge), and which toast
-/// fires. Toast text is rendered here in the current language; the center renders from `key` and `params` when
-/// it is shown.
-pub fn push(
-    app: &AppHandle,
-    kind: NotificationKind,
-    key: &str,
-    params: &[(&str, String)],
-    link: Option<String>,
-    route: Route,
-) {
+/// `None` when the user switched the topic off.
+fn route(settings: &NotificationSettings, topic: NotificationTopic) -> Option<Route> {
+    settings.allows(topic).then(|| Route::new(Visibility::Always, settings.delivery(topic), topic.placement()))
+}
+
+/// The single place a notification gets sent from: `alerts`, `maintenance`, the server block sync, the break
+/// reminder and match found call this instead of the notification plugin directly. The user's settings pick the
+/// topic's delivery or drop it; the route then decides, at this moment, whether it lands in the notification
+/// center (and so the tray/taskbar badge) and which toast fires. Toast text is rendered here in the current
+/// language; the center renders from `key` and `params` when it is shown.
+pub fn push(app: &AppHandle, topic: NotificationTopic, key: &str, params: &[(&str, String)], link: Option<String>) {
+    let settings = app.state::<NotificationsState>().settings.lock_or_recover().clone();
+    let Some(route) = route(&settings, topic) else {
+        return;
+    };
     let seq = NEXT_SEQ.fetch_add(1, Ordering::Relaxed);
-    let notif = build(kind, key, params, link, unix_now(), seq);
+    let notif = build(topic.kind(), key, params, link, unix_now(), seq);
     deliver(route, inputs(app), notif, &mut AppSinks { app });
 }
 
@@ -243,14 +244,18 @@ pub mod commands {
     }
 
     #[tauri::command]
+    pub fn set_notification_settings(settings: NotificationSettings, state: tauri::State<'_, NotificationsState>) {
+        *state.settings.lock_or_recover() = settings;
+    }
+
+    #[tauri::command]
     pub fn notify_break_reminder(app: AppHandle, loss_streak: u32) {
         push(
             &app,
-            NotificationKind::Session,
+            NotificationTopic::BreakReminder,
             "notifications.break_reminder",
             &[("count", loss_streak.to_string())],
             Some("/match-history".into()),
-            ALERT_ROUTE,
         );
     }
 
@@ -291,6 +296,7 @@ pub mod commands {
 
 #[cfg(test)]
 mod tests {
+    use super::route::Delivery;
     use super::*;
     use std::fs;
 
@@ -425,6 +431,28 @@ mod tests {
         );
         assert_eq!((sinks.center, sinks.native), (vec!["a".to_string()], vec!["a".to_string()]));
         assert!(sinks.overlay.is_empty());
+    }
+
+    #[test]
+    fn a_topic_routes_by_the_chosen_delivery_at_its_own_placement() {
+        let chosen = NotificationSettings {
+            deliveries: BTreeMap::from([(NotificationTopic::MatchFound, Delivery::Center)]),
+            ..Default::default()
+        };
+        assert_eq!(
+            route(&chosen, NotificationTopic::MatchFound),
+            Some(Route::new(Visibility::Always, Delivery::Center, Placement::Center))
+        );
+        assert_eq!(
+            route(&NotificationSettings::default(), NotificationTopic::ServerBlocksUpdated),
+            Some(Route::new(Visibility::Always, Delivery::Quiet, Placement::Corner))
+        );
+    }
+
+    #[test]
+    fn a_switched_off_topic_has_no_route() {
+        let off = NotificationSettings { server_blocks_stale: false, ..Default::default() };
+        assert_eq!(route(&off, NotificationTopic::ServerBlocksStale), None);
     }
 
     #[test]

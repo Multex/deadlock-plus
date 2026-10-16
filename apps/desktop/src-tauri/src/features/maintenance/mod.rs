@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use ts_rs::TS;
 
-use crate::features::notifications::{self, NotificationKind};
+use crate::features::notifications::{self, NotificationTopic};
 use dp_sync::LockExt;
 use dp_versioned::{self, Migration};
 use serde::{Deserialize, Serialize};
@@ -119,11 +119,10 @@ impl MaintenanceState {
         log::info!("Steam maintenance reminder fired ({mins} min ahead)");
         notifications::push(
             app,
-            NotificationKind::Maintenance,
+            NotificationTopic::Maintenance,
             "notifications.maintenance_soon",
             &[("minutes", mins.to_string())],
             None,
-            notifications::ALERT_ROUTE,
         );
     }
 }

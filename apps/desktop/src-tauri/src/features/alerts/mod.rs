@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::features::notifications::{self, NotificationKind};
+use crate::features::notifications::{self, NotificationTopic};
 use crate::features::patch_notes::PatchNotesState;
 use crate::http::Http;
 use dp_alerts::feed::parse_feed_with_text;
@@ -123,14 +123,7 @@ impl AlertsState {
             return;
         }
         if let Some((key, params)) = notification_message(&fresh) {
-            notifications::push(
-                app,
-                NotificationKind::Alert,
-                key,
-                &params,
-                Some("/alerts".into()),
-                notifications::ALERT_ROUTE,
-            );
+            notifications::push(app, NotificationTopic::Updates, key, &params, Some("/alerts".into()));
         }
     }
 }
