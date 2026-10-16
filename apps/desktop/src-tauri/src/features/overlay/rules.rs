@@ -31,6 +31,13 @@ pub(super) fn show_rect(focus: &FocusState) -> Option<ScreenRect> {
     }
 }
 
+/// Where to move a window already showing toasts after focus changed: only when the new spot differs from where
+/// it was last shown. The focus watcher re-sends the same state on its recheck, which must not re-show.
+pub(super) fn follow_rect(shown: Option<ScreenRect>, focus: &FocusState, toasts_visible: bool) -> Option<ScreenRect> {
+    let shown = shown.filter(|_| toasts_visible)?;
+    show_rect(focus).filter(|rect| *rect != shown)
+}
+
 /// `exclusive_now` only counts while the game is focused: once tabbed out the system reads "busy", not
 /// fullscreen, so the last focused reading is the one that describes the game's display mode.
 pub(super) fn next_status(current: OverlayStatus, focus: GameFocus, exclusive_now: bool) -> OverlayStatus {
@@ -129,6 +136,20 @@ mod tests {
         );
         assert_eq!(show_rect(&state(GameFocus::Focused, None)), Some(MONITOR));
         assert_eq!(show_rect(&FocusState::default()), None);
+    }
+
+    #[test]
+    fn a_visible_toast_follows_focus_to_a_new_rect() {
+        let other = ScreenRect { x: 2560, y: 0, width: 1920, height: 1080 };
+        let other_monitor =
+            FocusState { focus: GameFocus::Background, game_rect: Some(GAME), monitor_rect: Some(other) };
+        let on_game = state(GameFocus::Focused, Some(GAME));
+        assert_eq!(follow_rect(Some(other), &on_game, true), Some(GAME), "clicked into the game");
+        assert_eq!(follow_rect(Some(GAME), &other_monitor, true), Some(other), "tabbed out to another monitor");
+        assert_eq!(follow_rect(Some(GAME), &on_game, true), None, "unchanged rect");
+        assert_eq!(follow_rect(Some(other), &on_game, false), None, "no toast on screen");
+        assert_eq!(follow_rect(None, &on_game, true), None, "window not shown yet");
+        assert_eq!(follow_rect(Some(GAME), &FocusState::default(), true), None, "no monitor known");
     }
 
     #[test]

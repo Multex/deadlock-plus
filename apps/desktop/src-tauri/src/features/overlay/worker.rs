@@ -3,11 +3,11 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use dp_game::focus::{FocusState, GameFocus};
+use dp_game::focus::{FocusState, GameFocus, ScreenRect};
 use dp_sync::LockExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use super::rules::{lifecycle, next_status, show_rect, Lifecycle};
+use super::rules::{follow_rect, lifecycle, next_status, show_rect, Lifecycle};
 use super::toasts::Toasts;
 use super::{window, OverlayService, OverlayToast, STATUS_EVENT, TOAST_EVENT};
 
@@ -27,7 +27,7 @@ pub(super) fn spawn(app: AppHandle) -> io::Result<Sender<Msg>> {
     let (tx, rx) = mpsc::channel();
     thread::Builder::new()
         .name("overlay".into())
-        .spawn(move || Worker { app, focus: FocusState::default(), toasts: Toasts::default() }.run(rx))?;
+        .spawn(move || Worker { app, focus: FocusState::default(), toasts: Toasts::default(), shown: None }.run(rx))?;
     Ok(tx)
 }
 
@@ -35,6 +35,7 @@ struct Worker {
     app: AppHandle,
     focus: FocusState,
     toasts: Toasts,
+    shown: Option<ScreenRect>,
 }
 
 impl Worker {
@@ -56,6 +57,7 @@ impl Worker {
             }
             if self.toasts.expire(Instant::now()) {
                 window::hide(&self.app);
+                self.shown = None;
             }
             if self.focus.focus == GameFocus::Focused {
                 self.refresh_status();
@@ -78,17 +80,23 @@ impl Worker {
                 match lifecycle(self.focus.focus, next.focus) {
                     Some(Lifecycle::Create) => {
                         self.toasts.window_created();
+                        self.shown = None;
                         if let Err(e) = window::create(&self.app) {
                             log::warn!("could not create the overlay window: {e}");
                         }
                     }
                     Some(Lifecycle::Close) => {
                         self.toasts.window_closed();
+                        self.shown = None;
                         window::destroy(&self.app);
                     }
                     None => {}
                 }
                 self.focus = next;
+                if let Some(rect) = follow_rect(self.shown, &self.focus, self.toasts.hide_at().is_some()) {
+                    window::show(&self.app, rect);
+                    self.shown = Some(rect);
+                }
                 self.refresh_status();
             }
             Msg::Toast(toast) => {
@@ -103,7 +111,7 @@ impl Worker {
         }
     }
 
-    fn send(&self, toasts: Vec<OverlayToast>) {
+    fn send(&mut self, toasts: Vec<OverlayToast>) {
         if toasts.is_empty() {
             return;
         }
@@ -113,7 +121,10 @@ impl Worker {
             }
         }
         match show_rect(&self.focus) {
-            Some(rect) => window::show(&self.app, rect),
+            Some(rect) => {
+                window::show(&self.app, rect);
+                self.shown = Some(rect);
+            }
             None => log::debug!("no monitor to show the overlay on"),
         }
     }
