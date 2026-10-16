@@ -12,6 +12,7 @@
     import MonitorNotices from "$lib/features/connection/components/monitor-notices.svelte";
     import PingCard from "$lib/features/connection/components/ping-card.svelte";
     import MatchBoard from "$lib/features/live/components/match-board.svelte";
+    import MatchHeader from "$lib/features/live/components/match-header.svelte";
     import StateCard from "$lib/features/live/components/state-card.svelte";
     import { live } from "$lib/features/live/live.svelte";
     import { stateLine } from "$lib/features/live/live";
@@ -28,6 +29,11 @@
     const relay = $derived(snap?.relay ?? null);
     let engineHistory = $state.raw<HistoryPoint[]>([]);
     const chart = $derived(historySeries(engine ? engineHistory : history));
+    const board = $derived(
+        live.boardShown && live.state && live.match && live.match.teams.length > 0
+            ? { match: live.match, phase: live.state.phase }
+            : null,
+    );
     const line = $derived(live.state ? stateLine(live.state.phase, live.state.matchPresent) : null);
 
     async function refresh() {
@@ -59,14 +65,15 @@
 <Page>
     <PageHeader title={t("connection.page.title")} subtitle={t("connection.subtitle")}>
         {#snippet actions()}
+            {#if board}<MatchHeader match={board.match} phase={board.phase} />{/if}
             <Badge variant={snap?.gameRunning ? "success" : "outline"}>
                 {snap?.gameRunning ? t("connection.page.deadlock_running") : t("connection.page.deadlock_not_running")}
             </Badge>
         {/snippet}
     </PageHeader>
 
-    {#if live.boardShown && live.state && live.match && live.match.teams.length > 0}
-        <MatchBoard match={live.match} phase={live.state.phase} heroes={live.heroes} tiers={live.tiers} />
+    {#if board}
+        <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} />
     {:else if line}
         <StateCard {line} queue={live.state?.phase === "queuing" ? (live.match?.queue ?? null) : null} />
     {/if}

@@ -7,15 +7,17 @@ import type { LiveTeam } from "@deadlock-plus/ipc-types/LiveTeam";
 import type { VoiceBanFile } from "@deadlock-plus/ipc-types/VoiceBanFile";
 
 import type { Handlers } from "../../backend";
+import type { ApiRoute } from "../../fetch";
 import { defineScenario, type Identity, type Module, type Scenario } from "../../scenario";
 import type { ScenarioOptions } from "../default";
-import { fakeAccountId, fakeName, IDENTITY, NOW_MS, SEED } from "../default/identity";
+import { fakeAccountId, fakeName, IDENTITY, MATCH_IDS, NOW_MS, SEED } from "../default/identity";
 import { matchDetailModule } from "../default/match-detail";
 import { progressModule } from "../default/progress";
 import { serverPicker } from "../default/server-picker";
 import { shellModule } from "../default/shell";
 import { supportModule } from "../default/support";
 import { upkeepModule } from "../default/upkeep";
+import { analyticsRoutes } from "./analytics";
 
 const STEAM64_OFFSET = 76561197960265728n;
 const CLOCK_SECS = 23 * 60 + 41;
@@ -26,27 +28,27 @@ const STATE: LiveState = { phase: "inMatch", matchPresent: true };
 
 /**
  * One row per lobby slot, The Hidden King's six first. Columns: hero, rank badge (tier times ten plus subrank),
- * souls, kills, deaths, assists, hero damage, objective damage, healing. The hero ids are Lash, Infernus, Dynamo,
- * Haze, Abrams and Kelvin against Seven, Vindicta, Lady Geist, Wraith, McGinnis and Paradox. Each team's kills
- * add up to the other team's deaths.
+ * souls, kills, deaths, assists, hero damage, objective damage, healing, and the part of that healing the player
+ * gave themself. The hero ids are Lash, Infernus, Dynamo, Haze, Abrams and Kelvin against Seven, Vindicta, Lady
+ * Geist, Wraith, McGinnis and Paradox. Each team's kills add up to the other team's deaths.
  */
 const PLAYERS: readonly (readonly number[])[] = [
-    [31, 86, 31240, 9, 3, 8, 21480, 3120, 4210],
-    [1, 85, 28410, 7, 4, 6, 24950, 2480, 1890],
-    [11, 84, 22870, 2, 5, 15, 9860, 1740, 11320],
-    [13, 91, 33980, 8, 4, 5, 26110, 5230, 2140],
-    [6, 86, 25630, 4, 6, 11, 15240, 4390, 9870],
-    [12, 83, 21150, 1, 4, 14, 8730, 6820, 13460],
-    [2, 85, 29870, 8, 5, 7, 23340, 2910, 1620],
-    [3, 92, 27560, 6, 4, 6, 20870, 1980, 980],
-    [4, 84, 24310, 5, 6, 8, 18420, 3640, 6230],
-    [7, 86, 30120, 5, 5, 4, 19760, 7410, 1450],
-    [8, 82, 23480, 1, 5, 12, 11230, 8950, 12740],
-    [10, 85, 20940, 1, 6, 11, 9410, 2260, 2880],
+    [31, 86, 31240, 9, 3, 8, 21480, 3120, 4210, 3380],
+    [1, 85, 28410, 7, 4, 6, 24950, 2480, 1890, 1720],
+    [11, 84, 22870, 2, 5, 15, 9860, 1740, 11320, 2410],
+    [13, 91, 33980, 8, 4, 5, 26110, 5230, 2140, 2140],
+    [6, 86, 25630, 4, 6, 11, 15240, 4390, 9870, 9120],
+    [12, 83, 21150, 1, 4, 14, 8730, 6820, 13460, 2880],
+    [2, 85, 29870, 8, 5, 7, 23340, 2910, 1620, 1480],
+    [3, 92, 27560, 6, 4, 6, 20870, 1980, 980, 980],
+    [4, 84, 24310, 5, 6, 8, 18420, 3640, 6230, 5940],
+    [7, 86, 30120, 5, 5, 4, 19760, 7410, 1450, 1310],
+    [8, 82, 23480, 1, 5, 12, 11230, 8950, 12740, 3150],
+    [10, 85, 20940, 1, 6, 11, 9410, 2260, 2880, 2610],
 ];
 
 function player(identity: Identity, cells: readonly number[], slot: number): LivePlayer {
-    const [heroId, rank, souls, kills, deaths, assists, heroDamage, objectiveDamage, healing] = cells;
+    const [heroId, rank, souls, kills, deaths, assists, heroDamage, objectiveDamage, healing, selfHealing] = cells;
     const isYou = slot === YOUR_SLOT;
     // The invented names start after the player's own slot.
     const other = slot - 1;
@@ -64,7 +66,7 @@ function player(identity: Identity, cells: readonly number[], slot: number): Liv
         heroDamage: heroDamage!,
         objectiveDamage: objectiveDamage!,
         healing: healing!,
-        selfHealing: null,
+        selfHealing: selfHealing!,
         isYou,
     };
 }
@@ -86,6 +88,62 @@ function liveMatch(identity: Identity): LiveMatch {
         queue: null,
     };
 }
+
+// What a rank lookup of the lobby finds besides plain ranks: one account opted out of the API, one player
+// still in placements, and one whose last ranked match is over 30 days old.
+const OPTED_OUT_SLOT = 4;
+const PLACEMENTS_SLOT = 9;
+const STALE_SLOT = 7;
+const DAY_S = 86_400;
+
+interface RankRow {
+    account_id: number;
+    badge: number;
+    rank: number;
+    subrank: number;
+    last_match: { match_id: number; start_time: number } | null;
+}
+
+function rankRow(slot: number, accountId: number, nowS: number): RankRow | null {
+    if (slot === OPTED_OUT_SLOT) return null;
+    if (slot === PLACEMENTS_SLOT) return { account_id: accountId, badge: 0, rank: 0, subrank: 0, last_match: null };
+    const badge = PLAYERS[slot]![1]!;
+    const ago = slot === STALE_SLOT ? 41 * DAY_S : (slot + 1) * 5 * 3600;
+    return {
+        account_id: accountId,
+        badge,
+        rank: Math.floor(badge / 10),
+        subrank: badge % 10,
+        last_match: { match_id: MATCH_IDS[0]! + 1 + slot, start_time: nowS - ago },
+    };
+}
+
+/**
+ * The analytics the Live page grades the player against, and `GET /v1/players/rank`, which an unranked match
+ * asks for the lobby's ranks. Accounts outside the lobby are absent.
+ */
+const liveAnalytics: Module = {
+    name: "live-analytics",
+    create({ identity, now }) {
+        const nowS = Math.floor(now / 1000);
+        const rows = new Map<number, RankRow>();
+        PLAYERS.forEach((cells, slot) => {
+            const steamId = player(identity, cells, slot).steamId!;
+            const accountId = Number(BigInt(steamId) - STEAM64_OFFSET);
+            const row = rankRow(slot, accountId, nowS);
+            if (row) rows.set(accountId, row);
+        });
+        const routes: ApiRoute[] = [
+            [
+                /^\/v1\/players\/rank$/,
+                (url) =>
+                    (url.searchParams.get("account_ids") ?? "").split(",").flatMap((id) => rows.get(Number(id)) ?? []),
+            ],
+            ...analyticsRoutes,
+        ];
+        return { routes };
+    },
+};
 
 /** What the app's own command answers when asked to change the mute list while the game runs. */
 function gameRunning(): never {
@@ -139,6 +197,14 @@ export function liveMatchScenario(options: ScenarioOptions): Scenario {
         identity: IDENTITY,
         now: NOW_MS,
         seed: SEED,
-        modules: [shell, support, serverPicker({ inMatch: true }), progressModule, matchDetailModule(options), upkeep],
+        modules: [
+            shell,
+            support,
+            serverPicker({ inMatch: true }),
+            progressModule,
+            liveAnalytics,
+            matchDetailModule(options),
+            upkeep,
+        ],
     });
 }

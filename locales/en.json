@@ -1861,6 +1861,51 @@
             "line": "{from} switched to {to}",
             "named": "{name} switched from {from} to {to}",
             "dismiss": "Dismiss"
+        },
+        "grades": {
+            "label": {
+                "overall": "Overall",
+                "kills": "Kills",
+                "deaths": "Deaths",
+                "assists": "Assists",
+                "souls": "Souls/min",
+                "damage": "Dmg/min",
+                "objective_damage": "Obj dmg/min",
+                "healing": "Healing"
+            },
+            "name": {
+                "kills": "Kills",
+                "deaths": "Deaths",
+                "assists": "Assists",
+                "souls": "Souls per minute",
+                "damage": "Damage per minute",
+                "objective_damage": "Objective damage per minute",
+                "healing": "Healing"
+            },
+            "too_early": "Too early",
+            "too_early_long": "Too early to grade",
+            "after_first_minute": "Grades after 1:00",
+            "no_targets": "No targets",
+            "frozen": "Targets frozen",
+            "loading": "Loading targets",
+            "avg": "avg",
+            "average": "Average: {value}",
+            "better_than": "Better than {pct}%",
+            "fewer_deaths": "Fewer deaths than {pct}%",
+            "self_heal": "Self heal {n}",
+            "healing_teammates": "Healing teammates {n}",
+            "group": {
+                "rank": "vs Average for {hero} at {rank}",
+                "range": "vs Average for {hero} at {rankFrom}–{rankTo}",
+                "all_ranks": "vs Average for {hero}, all ranks",
+                "street_brawl": "vs Average for {hero} in Street Brawl"
+            },
+            "reason": {
+                "offline": "No targets: you appear to be offline.",
+                "api_down": "No targets: the Deadlock API is not responding.",
+                "rate_limited": "No targets: too many requests to the Deadlock API.",
+                "empty_data": "No targets: the Deadlock API has no data for this hero yet."
+            }
         }
     },
     "connection": {

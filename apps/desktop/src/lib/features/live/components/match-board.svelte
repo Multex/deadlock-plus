@@ -3,9 +3,10 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
     import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
+    import { grades } from "../grades.svelte";
     import { live } from "../live.svelte";
     import { orderTeams } from "../live";
-    import MatchHeader from "./match-header.svelte";
+    import GradeStrip from "./grade-strip.svelte";
     import SwapsNotice from "./swaps-notice.svelte";
     import TeamTable from "./team-table.svelte";
 
@@ -22,7 +23,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-    <MatchHeader {match} {phase} />
+    {#if grades.view.kind !== "hidden"}<GradeStrip view={grades.view} {heroes} {tiers} />{/if}
     <SwapsNotice swaps={live.swaps} teams={match.teams} {heroes} ondismiss={() => live.dismissSwaps()} />
     {#each teams as team (team.side)}
         <TeamTable

@@ -28,8 +28,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Server block updates and out-of-date warnings can be turned off separately.
 - The break reminder switch is also in Settings > Notifications.
 
+#### Live performance grades
+
+- The Live page grades how you play, from E to S, while the match runs.
+- Grades compare you with players of your hero at your lobby's rank, at the same point in the match.
+- Kills, deaths, assists, souls, damage, objective damage and healing each get a grade, plus an overall grade.
+- Hover a grade to see the average and how many players you beat.
+
 ### Changed
 
+- The match time and mode now sit at the top of the Live page.
 - Server block updates no longer show a Windows notification while you're in the game.
 
 ## [0.12.0] - 2026-10-15

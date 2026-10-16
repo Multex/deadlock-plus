@@ -2,7 +2,7 @@ import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
 import type { NetworkSnapshot } from "@deadlock-plus/ipc-types/NetworkSnapshot";
 import type { VoiceBanFile } from "@deadlock-plus/ipc-types/VoiceBanFile";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
 import { liveMatchScenario } from "./index";
 
@@ -10,6 +10,27 @@ const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: 
 
 /** Heroes a player can pick, as the public hero assets listed them on 2026-10-13. */
 const PICKABLE = [1, 2, 3, 4, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 27, 31, 35, 50, 52, 58, 60];
+
+const API = "https://api.deadlock-api.com/v1";
+const LASH = 31;
+const ORACLE = "min_average_badge=81&max_average_badge=86";
+const CURVE_METRICS = ["kills", "deaths", "assists", "net_worth", "player_damage", "boss_damage", "player_healing"];
+const METRIC_KEYS = [
+    "kills",
+    "deaths",
+    "assists",
+    "net_worth_per_min",
+    "player_damage_per_min",
+    "boss_damage_per_min",
+    "player_healing_per_min",
+];
+const PERCENTILES = [1, 5, 10, 25, 50, 75, 90, 95, 99];
+
+async function get(path: string): Promise<unknown> {
+    const response = await fetch(API + path);
+    expect(response.status, path).toBe(200);
+    return response.json();
+}
 
 describe("live-match scenario", () => {
     const handles: DemoHandle[] = [];
@@ -20,6 +41,7 @@ describe("live-match scenario", () => {
     };
     afterEach(() => {
         while (handles.length) handles.pop()!.uninstall();
+        vi.unstubAllGlobals();
     });
 
     it("says the game is running in a match through every command that reports it", () => {
@@ -109,5 +131,100 @@ describe("live-match scenario", () => {
                 expect(player.souls! / (match.clockSecs! / 60)).toBeLessThan(2000);
             }
         }
+    });
+
+    it("gives every player a self healing that is part of their healing, so the split has two sides", () => {
+        const match = start().invoke("get_live_match", {}) as LiveMatch;
+        for (const player of match.teams.flatMap((team) => team.players)) {
+            expect(player.selfHealing, player.name!).toEqual(expect.any(Number));
+            expect(player.selfHealing!).toBeGreaterThan(0);
+            expect(player.selfHealing!).toBeLessThanOrEqual(player.healing!);
+        }
+        const you = match.teams.flatMap((team) => team.players).find((player) => player.isYou)!;
+        expect(you.selfHealing!).toBeLessThan(you.healing!);
+    });
+
+    describe("Deadlock API analytics", () => {
+        const startOffline = () => {
+            vi.stubGlobal(
+                "fetch",
+                vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))),
+            );
+            return start();
+        };
+
+        it("answers the performance curve: cumulative points at 3, 6, 9, 12 and 15 minutes, then every 5", async () => {
+            startOffline();
+            const curve = (await get(
+                `/analytics/player-performance-curve?resolution=0&hero_ids=${LASH}&game_mode=normal&${ORACLE}`,
+            )) as Record<string, number>[];
+            expect(curve.map((point) => point.game_time)).toEqual([
+                180, 360, 540, 720, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000,
+            ]);
+            for (const metric of CURVE_METRICS) {
+                const avgs = curve.map((point) => point[`${metric}_avg`]!);
+                for (const point of curve) {
+                    expect(point[`${metric}_avg`], metric).toBeGreaterThan(0);
+                    expect(point[`${metric}_std`], metric).toBeGreaterThan(0);
+                }
+                expect(avgs, metric).toEqual([...avgs].sort((a, b) => a - b));
+            }
+            // Early on most players have no kill yet, so the spread is wider than the average.
+            expect(curve[0]!.kills_std).toBeGreaterThan(curve[0]!.kills_avg!);
+            expect(curve.at(-1)!.kills_std).toBeLessThan(curve.at(-1)!.kills_avg!);
+        });
+
+        it("answers the stat distributions with sketch percentiles that never go down", async () => {
+            startOffline();
+            const metrics = (await get(
+                `/analytics/player-stats/metrics?hero_ids=${LASH}&game_mode=normal&${ORACLE}`,
+            )) as Record<string, Record<string, number>>;
+            for (const key of METRIC_KEYS) {
+                const entry = metrics[key]!;
+                expect(entry, key).toMatchObject({ avg: expect.any(Number), std: expect.any(Number) });
+                expect(entry.avg, key).toBeGreaterThan(0);
+                const values = PERCENTILES.map((p) => entry[`percentile${p}`]!);
+                expect(values, key).toEqual([...values].sort((a, b) => a - b));
+                expect(values[4]!, key).toBeLessThan(values[8]!);
+            }
+        });
+
+        it("answers hero stats with one row per hero and enough matches for Lash at Oracle", async () => {
+            startOffline();
+            const rows = (await get(`/analytics/hero-stats?game_mode=normal&${ORACLE}`)) as {
+                hero_id: number;
+                matches: number;
+            }[];
+            expect(rows.map((row) => row.hero_id).sort((a, b) => a - b)).toEqual(PICKABLE);
+            for (const row of rows) expect(row.matches).toBeGreaterThan(0);
+            expect(rows.find((row) => row.hero_id === LASH)!.matches).toBeGreaterThanOrEqual(200);
+            const all = (await get("/analytics/hero-stats?game_mode=normal")) as typeof rows;
+            expect(all.find((row) => row.hero_id === LASH)!.matches).toBeGreaterThan(
+                rows.find((row) => row.hero_id === LASH)!.matches,
+            );
+        });
+
+        it("answers the lobby's ranks, leaving out opted-out accounts", async () => {
+            const match = startOffline().invoke("get_live_match", {}) as LiveMatch;
+            const ids = match.teams
+                .flatMap((team) => team.players)
+                .map((player) => Number(BigInt(player.steamId!) - 76561197960265728n));
+            const rows = (await get(`/players/rank?account_ids=${ids.join(",")}`)) as {
+                account_id: number;
+                badge: number;
+                rank: number;
+                subrank: number;
+                last_match: { start_time: number } | null;
+            }[];
+            expect(rows.length).toBeGreaterThanOrEqual(8);
+            expect(rows.length).toBeLessThan(ids.length);
+            for (const row of rows) {
+                expect(ids).toContain(row.account_id);
+                expect(row.badge === 0 || row.badge === row.rank * 10 + row.subrank, String(row.account_id)).toBe(true);
+            }
+            expect(rows.find((row) => row.account_id === ids[0])).toMatchObject({ badge: 86 });
+            expect(rows.some((row) => row.badge === 0 && row.last_match === null)).toBe(true);
+            expect(rows.filter((row) => row.badge > 0).every((row) => row.last_match !== null)).toBe(true);
+        });
     });
 });
