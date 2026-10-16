@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { snapshot } from "./invite-poll";
 import { discordClick, downloadClick, pageview } from "./visit";
 
 const NOW = new Date("2026-10-13T12:00:00.000Z");
@@ -85,16 +84,6 @@ describe("event names and properties the dashboards read", () => {
                 $raw_user_agent: BROWSER,
                 ...ANONYMOUS,
             },
-        });
-    });
-
-    it("discord_invite_uses", () => {
-        const [event] = snapshot([{ code: "652zsGZZgD", uses: 7 }], NOW);
-        expect(event).toEqual({
-            event: "discord_invite_uses",
-            distinct_id: event?.distinct_id,
-            timestamp: "2026-10-13T12:00:00.000Z",
-            properties: { code: "652zsGZZgD", ref: "github", channel: "web", uses: 7, ...ANONYMOUS },
         });
     });
 });

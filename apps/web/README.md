@@ -8,8 +8,7 @@ The Deadlock+ website. SvelteKit on a Cloudflare Worker.
 - **Look**: the theme, fonts and UI primitives (bits-ui, tailwind-variants) come from `packages/ui` (`@deadlock-plus/ui`), the same package the desktop app uses. `src/app.css` imports them and adds only the website's own rules.
 - **Discord redirect** at `/discord/<ref>`. It records the click and answers `302` to the invite for that ref.
 - **Referrer counts.** Every page view records where the visitor came from.
-- **Join counts.** Once an hour a bot reads how many times each Discord invite was used.
-- **Transparency numbers.** The same hourly job stores four public totals for `/transparency`.
+- **Transparency numbers.** An hourly job stores four public totals for `/transparency`.
 
 All counts go to PostHog. Without `POSTHOG_KEY` and `POSTHOG_HOST` the site sends nothing.
 
@@ -72,7 +71,7 @@ Never revoke an `app` or `direct` invite. Shipped app builds and posted links po
 | `$pageview`            | A page is served               | `$pathname`, `$referrer`, `$referring_domain`, `ref`, `country`                                 |
 | `discord_invite_click` | `/discord/<ref>` is requested  | `ref`, `channel`, `known`, `code`, `$referrer`, `$referring_domain`, `country`                  |
 | `download_click`       | `/get/<platform>` is requested | `platform`, `version`, `latest`, `ref`, `fallback`, `$referrer`, `$referring_domain`, `country` |
-| `discord_invite_uses`  | Hourly, one per invite         | `code`, `ref`, `channel`, `uses`                                                                |
+| `discord_invite_uses`  | Hourly, one per invite         | `code`, `ref`, `channel`, `uses`; sent by the Discord bot (`apps/discord-bot`), not the site    |
 
 - Clicks and joins are different numbers. A click is a request to the redirect. A join is a use of the invite.
 - `uses` is Discord's running total. Joins over a period are the difference between two snapshots.
@@ -132,12 +131,12 @@ A source that fails or has no secrets keeps its last stored number and time.
     pnpm wrangler secret put POSTHOG_KEY
     pnpm wrangler secret put POSTHOG_HOST
     ```
-3. For join counts, create a Discord application with a bot, add the bot to the server with the Manage Server permission, then:
+3. For the Discord member count on `/transparency`, set the Deadlock+ bot's token (`apps/discord-bot`) and the server id:
     ```sh
     pnpm wrangler secret put DISCORD_BOT_TOKEN
     pnpm wrangler secret put DISCORD_GUILD_ID
     ```
-    Without these two the hourly job does nothing.
+    Without these two the page shows no member count.
 4. For the transparency page, create the KV namespace and put its id in `wrangler.toml` (`TRANSPARENCY`), then add a PostHog personal API key limited to `query:read` on the project:
     ```sh
     pnpm wrangler kv namespace create TRANSPARENCY
