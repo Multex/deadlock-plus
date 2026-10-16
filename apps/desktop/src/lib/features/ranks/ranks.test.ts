@@ -1,12 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+import { command } from "$lib/core/tauri";
 import type { RankArt } from "@deadlock-plus/ipc-types/RankArt";
 import type { RankTier } from "@deadlock-plus/stats/rank";
-import { apiForm, mergeRankTiers, rankNames } from "./ranks";
+import { apiForm, loadRankTiers, mergeRankTiers, rankNames } from "./ranks";
 
 vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(),
     fileSrc: (path: string) => `asset://${path}`,
 }));
+
+const apiRanks = vi.fn();
+vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: { ranks: () => apiRanks() } }));
 
 function tier(over: Partial<RankTier> & { tier: number }): RankTier {
     return { name: `Tier ${over.tier}`, color: "#111", image: null, ...over };
@@ -79,5 +83,19 @@ describe("rankNames", () => {
         expect(rankNames([tier({ tier: 1, name: "Initiate" }), tier({ tier: 2, name: "" })])).toEqual({
             1: "Initiate",
         });
+    });
+});
+
+describe("loadRankTiers", () => {
+    it("reads local art only after the API answered, so a slow API never hands back a released folder", async () => {
+        let answer!: (body: unknown) => void;
+        apiRanks.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+        vi.mocked(command).mockResolvedValue([art({ tier: 5, lg: "C:/game-art/new/rank05_lg.png" })]);
+        const pending = loadRankTiers();
+        await new Promise((r) => setTimeout(r, 0));
+        expect(command).not.toHaveBeenCalled();
+        answer([{ tier: 5, name: "Ritualist" }]);
+        expect((await pending)[0].image).toBe("asset://C:/game-art/new/rank05_lg.png");
+        expect(command).toHaveBeenCalledWith("game_rank_art");
     });
 });

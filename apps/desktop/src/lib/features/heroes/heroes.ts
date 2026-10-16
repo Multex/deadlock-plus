@@ -2,6 +2,7 @@ import { deadlockApi } from "$lib/core/deadlock-api";
 import { command, fileSrc } from "$lib/core/tauri";
 import { i18n } from "$lib/core/i18n.svelte";
 import { prefs } from "$lib/core/prefs";
+import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import type { AssetHero } from "@deadlock-plus/deadlock-api";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
 import type { HeroEntry } from "@deadlock-plus/ipc-types/HeroEntry";
@@ -116,6 +117,7 @@ let inflight: { locale: string; promise: Promise<Record<number, Hero>> } | null 
 let lastLoadAt: number | null = null;
 let apiFetch: Promise<Record<number, Hero> | null> | null = null;
 let lastApiAttemptAt: number | null = null;
+let generation = 0;
 
 const listeners = new Set<(heroes: Record<number, Hero>) => void>();
 
@@ -175,6 +177,7 @@ function refreshApiInBackground() {
 }
 
 async function build(locale: string): Promise<Record<number, Hero>> {
+    const started = generation;
     lastLoadAt = Date.now();
     const [game, art] = await Promise.all([loadGame(locale), loadArt()]);
     const fresh = readCache(false);
@@ -185,7 +188,7 @@ async function build(locale: string): Promise<Record<number, Hero>> {
     } else {
         heroes = fresh ?? (await fetchApi()) ?? readCache(true) ?? {};
     }
-    if (locale === i18n.locale) loaded = { locale, game, art, heroes };
+    if (locale === i18n.locale && started === generation) loaded = { locale, game, art, heroes };
     return heroes;
 }
 
@@ -210,4 +213,13 @@ export function loadHeroes(wanted: Iterable<number> = []): Promise<Record<number
 i18n.onLocaleChange(() => {
     if (!loaded && !inflight) return;
     void loadHeroes().then(notify);
+});
+
+onGameArtChanged(async () => {
+    if (!loaded && !inflight) return;
+    // A build started before the change may hold old-folder paths; it must not become `loaded`.
+    generation++;
+    loaded = null;
+    inflight = null;
+    notify(await loadHeroes());
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
-    import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
+    import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { allPlayers, findPlayer, type MatchDetail } from "@deadlock-plus/match/detail";
     import Accolades from "./deep-dive/accolades.svelte";
     import Damage from "./deep-dive/damage.svelte";
@@ -25,6 +25,7 @@
         });
         return () => (live = false);
     });
+    $effect(() => onHeroesRefreshed((h) => (heroes = h)));
 </script>
 
 <div class="flex flex-col gap-4" data-match-id={detail.matchId}>

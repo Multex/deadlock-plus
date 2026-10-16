@@ -2,6 +2,7 @@ import { untrack } from "svelte";
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { t } from "$lib/core/i18n.svelte";
 import { kvGet, kvSet } from "$lib/core/kv";
+import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { parseStatsCache, toStatsCache, type StatsSnapshot } from "@deadlock-plus/stats/cache";
 import { apiForm, loadApiRanks, withLocalArt } from "$lib/features/ranks/ranks";
 import { parseRankInfo, type RankInfo, type RankTier } from "@deadlock-plus/stats/rank";
@@ -60,17 +61,19 @@ class StatsStore {
         this.error = null;
         void this.listenForCaptures();
         try {
-            const [history, ranks, rank] = await Promise.all([
+            const [history, apiRanks, rank] = await Promise.all([
                 // It rejects only when the request never got an answer; a bad status comes back as a value.
                 deadlockApi.playerMatchHistory(accountId).catch(() => {
                     throw new Error(t("errors.common.network"));
                 }),
-                loadApiRanks().then(withLocalArt),
+                loadApiRanks(),
                 deadlockApi.playerRank(accountId).catch(() => null),
             ]);
             // A rate-limited response still carries the stored history in its body.
             const matches = parseHistory(history.body);
             if (!history.ok && matches.length === 0) throw new Error(t("stats.api_error", { status: history.status }));
+            // Art is read once the slow requests are done, so a game update meanwhile cannot leave old paths.
+            const ranks = await withLocalArt(apiRanks);
 
             this.apply({ matches, ranks, rankInfo: parseRankInfo(rank) });
             this.cachedAt = null;
@@ -98,6 +101,14 @@ class StatsStore {
             this.error = e instanceof Error ? e.message : String(e);
             this.status = "error";
         }
+    }
+
+    /** Points the rank badges at the current game build's art. */
+    async relinkArt() {
+        if (this.ranks.length === 0) return;
+        const accountId = this.loadedFor;
+        const ranks = await withLocalArt(this.ranks);
+        if (this.loadedFor === accountId) this.ranks = ranks;
     }
 
     private switchAccount(accountId: number) {
@@ -171,3 +182,5 @@ class StatsStore {
 }
 
 export const stats = new StatsStore();
+
+onGameArtChanged(() => stats.relinkArt());

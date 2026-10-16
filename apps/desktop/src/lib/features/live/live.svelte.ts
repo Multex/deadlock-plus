@@ -3,6 +3,7 @@ import type { RankTier } from "@deadlock-plus/stats/rank";
 import { getLiveMatch, getLiveState, onLiveMatch, onLiveSnapshot, type LiveMatch, type LiveState } from "./api";
 import { BOARD_LINGER_MS, NO_SWAPS, boardVisible, postMatchStart, trackSwaps, type SwapTracker } from "./live";
 import { loadRankTiers } from "$lib/features/ranks/ranks";
+import { keepGameArt } from "$lib/features/gamedata/art-refresh";
 
 class LiveStore {
     state = $state.raw<LiveState | null>(null);
@@ -111,9 +112,13 @@ class LiveStore {
                 if (!stopped) this.heroes = h;
             }),
         );
-        void loadRankTiers().then((r) => {
-            if (!stopped) this.tiers = r;
-        });
+        keep(
+            keepGameArt(() =>
+                loadRankTiers().then((r) => {
+                    if (!stopped) this.tiers = r;
+                }),
+            ),
+        );
 
         return () => {
             stopped = true;

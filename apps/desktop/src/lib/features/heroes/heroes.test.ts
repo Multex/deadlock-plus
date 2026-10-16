@@ -4,9 +4,14 @@ import type { HeroEntry } from "@deadlock-plus/ipc-types/HeroEntry";
 import { mergeHeroes, needsRefresh, parseHeroCache, slimHeroes, type Hero } from "./heroes";
 
 const command = vi.fn();
+const events = new Map<string, () => void>();
 vi.mock("$lib/core/tauri", () => ({
     command: (...args: unknown[]) => command(...args),
     fileSrc: (path: string) => `asset://${path}`,
+    listen: async (event: string, handler: () => void) => {
+        events.set(event, handler);
+        return () => events.delete(event);
+    },
 }));
 
 function entry(over: Partial<HeroEntry> & { id: number }): HeroEntry {
@@ -131,7 +136,8 @@ describe("loadHeroes", () => {
         const { i18n } = await import("$lib/core/i18n.svelte");
         i18n.reset({ en: {} }, "de");
         const heroes = await import("./heroes");
-        return { i18n, ...heroes };
+        const { gameArt } = await import("$lib/features/gamedata/art-refresh");
+        return { i18n, gameArt, ...heroes };
     }
 
     function apiResponse() {
@@ -232,6 +238,32 @@ describe("loadHeroes", () => {
         const cached = store.get("deadlock-plus:heroes")!;
         expect(cached).not.toContain("2_sm.png");
         expect(cached).not.toContain("asset://");
+    });
+
+    it("reloads local art from the new build folder when the game art changes", async () => {
+        let folder = "old";
+        const seen: (string | null)[] = [];
+        let shownAtRelease: string | null | undefined;
+        command.mockImplementation(async (name: string) => {
+            if (name === "game_hero_art")
+                return [{ id: 2, sm: `C:/game-art/${folder}/2_sm.png`, card: null, mm: null }];
+            if (name === "release_old_game_art") return void (shownAtRelease = seen.at(-1));
+            return [entry({ id: 2, name: "Sieben" })];
+        });
+        fetchMock.mockResolvedValue(apiResponse());
+        const { loadHeroes, onHeroesRefreshed, gameArt } = await modules();
+        expect((await loadHeroes())[2].icon).toBe("asset://C:/game-art/old/2_sm.png");
+        await vi.waitFor(() => expect(store.get("deadlock-plus:heroes")).toBeDefined());
+        onHeroesRefreshed((h) => seen.push(h[2].icon));
+        const stop = gameArt.start();
+        await vi.waitFor(() => expect(events.has("game-art-changed")).toBe(true));
+
+        folder = "new";
+        events.get("game-art-changed")!();
+        await vi.waitFor(() => expect(command).toHaveBeenCalledWith("release_old_game_art"));
+        expect(shownAtRelease).toBe("asset://C:/game-art/new/2_sm.png");
+        expect((await loadHeroes())[2].icon).toBe("asset://C:/game-art/new/2_sm.png");
+        stop();
     });
 
     it("still loads heroes when the art command fails", async () => {

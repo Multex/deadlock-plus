@@ -4,6 +4,7 @@ import { installFrontendLogging } from "./logging/frontend";
 import { apiHealth } from "./api-health/health.svelte";
 import { alerts } from "./alerts/alerts.svelte";
 import { connectivity } from "./connectivity/online.svelte";
+import { gameArt } from "./gamedata/art-refresh";
 import { gcStatus } from "./gc/status.svelte";
 import { ingestStatus } from "./ingest/status.svelte";
 import { jobs } from "./jobs/jobs.svelte";
@@ -176,6 +177,7 @@ export const SERVICES: Service[] = [
     () => jobs.start(),
     () => performanceScan.start(),
     () => connectivity.start(),
+    () => gameArt.start(),
     () => live.start(),
     () => grades.start(),
     () => presenceStatus.start(),

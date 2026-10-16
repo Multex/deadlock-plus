@@ -11,6 +11,7 @@
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { presencePreview } from "$lib/features/presence/api";
     import { loadRankTiers, rankNames as namesOf } from "$lib/features/ranks/ranks";
+    import { keepGameArt } from "$lib/features/gamedata/art-refresh";
     import { isCustomised, resetScope, type Scope } from "$lib/features/presence/config";
     import { presenceConfigStore as store } from "$lib/features/presence/config.svelte";
     import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
@@ -56,11 +57,17 @@
     onMount(() => {
         void store.load();
         void loadHeroes().then((all) => (heroes = heroOptions(all)));
-        void loadRankTiers().then((tiers) => {
-            rankNames = namesOf(tiers);
-            rankBadge = tiers.find((tier) => tier.tier === SAMPLE_RANK_TIER)?.image ?? null;
-        });
-        return onHeroesRefreshed((all) => (heroes = heroOptions(all)));
+        const stopArt = keepGameArt(() =>
+            loadRankTiers().then((tiers) => {
+                rankNames = namesOf(tiers);
+                rankBadge = tiers.find((tier) => tier.tier === SAMPLE_RANK_TIER)?.image ?? null;
+            }),
+        );
+        const stopHeroes = onHeroesRefreshed((all) => (heroes = heroOptions(all)));
+        return () => {
+            stopArt();
+            stopHeroes();
+        };
     });
 
     $effect(() => {

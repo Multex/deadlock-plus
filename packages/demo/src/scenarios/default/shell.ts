@@ -274,6 +274,7 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                 // Empty local game data makes the hero and rank lookups use the public Deadlock API instead.
                 game_heroes: () => [],
                 game_rank_art: () => [],
+                release_old_game_art: () => null,
             };
 
             return {

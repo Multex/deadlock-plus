@@ -4,6 +4,7 @@
     import { i18n } from "$lib/core/i18n.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { loadRankTiers } from "$lib/features/ranks/ranks";
+    import { keepGameArt } from "$lib/features/gamedata/art-refresh";
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
     import { resolveItemListVisuals } from "../../deep-dive/catalog";
@@ -40,16 +41,23 @@
         const ids = itemIds;
         const locale = i18n.locale;
         let live = true;
-        void (async () => {
+        const stopArt = keepGameArt(async () => {
             const resolved = await resolveItemListVisuals(ids, locale);
             if (live) visuals = resolved;
-        })();
-        return () => (live = false);
+        });
+        return () => {
+            live = false;
+            stopArt();
+        };
     });
 
     onMount(() => {
-        void loadRankTiers().then((r) => (tiers = r));
-        return onHeroesRefreshed((h) => (heroes = h));
+        const stopArt = keepGameArt(() => loadRankTiers().then((r) => (tiers = r)));
+        const stopHeroes = onHeroesRefreshed((h) => (heroes = h));
+        return () => {
+            stopArt();
+            stopHeroes();
+        };
     });
 </script>
 

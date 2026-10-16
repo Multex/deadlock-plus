@@ -9,7 +9,8 @@
         loadMinimapIcons,
         type MinimapArt,
     } from "$lib/features/gamedata/gamedata";
-    import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
+    import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
+    import { keepGameArt } from "$lib/features/gamedata/art-refresh";
     import HeroIcon from "$lib/features/live/components/hero-icon.svelte";
     import { formatClock } from "$lib/features/live/live";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -106,12 +107,17 @@
 
     $effect(() => {
         let live = true;
-        void loadMinimapArt().then((found) => {
-            if (!live) return;
-            art = found;
-            artLoaded = true;
-        });
-        return () => (live = false);
+        const stopArt = keepGameArt(() =>
+            loadMinimapArt().then((found) => {
+                if (!live) return;
+                art = found;
+                artLoaded = true;
+            }),
+        );
+        return () => {
+            live = false;
+            stopArt();
+        };
     });
 
     $effect(() => {
@@ -124,23 +130,35 @@
 
     $effect(() => {
         let live = true;
-        void loadMinimapIcons([...MAP_OBJECT_STEMS]).then((found) => {
-            if (live) objectIcons = found;
-        });
-        return () => (live = false);
+        const stopArt = keepGameArt(() =>
+            loadMinimapIcons([...MAP_OBJECT_STEMS]).then((found) => {
+                if (live) objectIcons = found;
+            }),
+        );
+        return () => {
+            live = false;
+            stopArt();
+        };
     });
 
     $effect(() => {
         let live = true;
-        void loadHeroMinimapArt().then((found) => {
-            if (live) heroArt = found;
-        });
-        void loadMinimapIcons(["player_marker_self", "player_cone"]).then((found) => {
-            if (!live) return;
-            markerArt = found.player_marker_self ?? null;
-            coneArt = found.player_cone ?? null;
-        });
-        return () => (live = false);
+        const stopArt = keepGameArt(() =>
+            Promise.all([
+                loadHeroMinimapArt().then((found) => {
+                    if (live) heroArt = found;
+                }),
+                loadMinimapIcons(["player_marker_self", "player_cone"]).then((found) => {
+                    if (!live) return;
+                    markerArt = found.player_marker_self ?? null;
+                    coneArt = found.player_cone ?? null;
+                }),
+            ]),
+        );
+        return () => {
+            live = false;
+            stopArt();
+        };
     });
 
     $effect(() => {
@@ -151,6 +169,7 @@
         });
         return () => (live = false);
     });
+    $effect(() => onHeroesRefreshed((h) => (heroes = h)));
 
     const wantsItems = $derived(kinds.includes("item-buy") || kinds.includes("item-sell"));
     $effect(() => {
@@ -160,10 +179,15 @@
         ];
         const locale = i18n.locale;
         let live = true;
-        void resolveItemListVisuals(ids, locale).then((found) => {
-            if (live) itemVisuals = found;
-        });
-        return () => (live = false);
+        const stopArt = keepGameArt(() =>
+            resolveItemListVisuals(ids, locale).then((found) => {
+                if (live) itemVisuals = found;
+            }),
+        );
+        return () => {
+            live = false;
+            stopArt();
+        };
     });
 
     $effect(() => {

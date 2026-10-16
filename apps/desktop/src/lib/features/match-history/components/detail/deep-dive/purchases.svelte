@@ -15,6 +15,7 @@
     import Slider from "@deadlock-plus/ui/slider.svelte";
     import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
     import { resolveItemListVisuals } from "../../../deep-dive/catalog";
+    import { keepGameArt } from "$lib/features/gamedata/art-refresh";
     import {
         ABILITY_UPGRADES,
         clampStep,
@@ -48,9 +49,11 @@
         ];
         const locale = i18n.locale;
         const mine = ++token;
-        void resolveItemListVisuals(ids, locale).then((found) => {
-            if (mine === token) visuals = found;
-        });
+        return keepGameArt(() =>
+            resolveItemListVisuals(ids, locale).then((found) => {
+                if (mine === token) visuals = found;
+            }),
+        );
     });
 
     const actions = $derived(purchaseActions(selected.items, (id) => visuals.get(id)?.kind));

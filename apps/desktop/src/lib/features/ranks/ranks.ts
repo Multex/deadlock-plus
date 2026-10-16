@@ -58,8 +58,10 @@ export async function withLocalArt(tiers: RankTier[]): Promise<RankTier[]> {
 }
 
 export async function loadRankTiers(): Promise<RankTier[]> {
-    const [api, art] = await Promise.all([loadApiRanks(), loadArt()]);
-    return mergeRankTiers(api, art);
+    // Art is read after the API answers: read alongside it, a slow API could return paths into a build
+    // folder that a game update released in the meantime.
+    const api = await loadApiRanks();
+    return mergeRankTiers(api, await loadArt());
 }
 
 export async function loadRankNames(): Promise<Record<number, string>> {

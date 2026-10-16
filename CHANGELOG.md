@@ -40,6 +40,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The match time and mode now sit at the top of the Live page.
 - Server block updates no longer show a Windows notification while you're in the game.
 
+### Fixed
+
+- Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
+
 ## [0.12.0] - 2026-10-15
 
 ### Added
