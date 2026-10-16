@@ -92,4 +92,81 @@ describe("createDeadlockApi", () => {
         const { api } = setup(() => new Response("<html>", { status: 502 }));
         expect(await api.playerMatchHistory(1)).toEqual({ ok: false, status: 502, body: null });
     });
+
+    describe("analytics", () => {
+        const filter = {
+            gameMode: "street_brawl",
+            matchMode: ["ranked", "unranked"],
+            minAverageBadge: 61,
+            maxAverageBadge: 100,
+        } as const;
+        const query = "game_mode=street_brawl&match_mode=ranked,unranked&min_average_badge=61&max_average_badge=100";
+
+        it("requests the performance curve for one hero", async () => {
+            const { fetch, api } = setup();
+            await api.performanceCurve(7, {});
+            await api.performanceCurve(7, filter);
+            expect(fetch.mock.calls).toEqual([
+                [`${BASE}/analytics/player-performance-curve?resolution=0&hero_ids=7`],
+                [`${BASE}/analytics/player-performance-curve?resolution=0&hero_ids=7&${query}`],
+            ]);
+        });
+
+        it("requests the player stat metrics for one hero", async () => {
+            const { fetch, api } = setup();
+            await api.playerStatsMetrics(7, {});
+            await api.playerStatsMetrics(7, filter);
+            expect(fetch.mock.calls).toEqual([
+                [`${BASE}/analytics/player-stats/metrics?hero_ids=7`],
+                [`${BASE}/analytics/player-stats/metrics?hero_ids=7&${query}`],
+            ]);
+        });
+
+        it("requests hero stats without a hero filter", async () => {
+            const { fetch, api } = setup();
+            await api.heroStats({ heroIds: [1, 2], ...filter });
+            await api.heroStats({});
+            const [first, second] = fetch.mock.calls.map(([url]) => url);
+            expect(first).toBe(`${BASE}/analytics/hero-stats?${query}`);
+            expect(second).toBe(`${BASE}/analytics/hero-stats`);
+            expect(first).not.toContain("hero_ids");
+        });
+
+        it("omits undefined filter fields and empty match mode lists", async () => {
+            const { fetch, api } = setup();
+            await api.heroStats({ gameMode: undefined, matchMode: [], minAverageBadge: 0 });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/hero-stats?min_average_badge=0`);
+        });
+
+        it("keeps a hero id from the filter out of the performance curve query", async () => {
+            const { fetch, api } = setup();
+            await api.performanceCurve(7, { heroIds: [1, 2] });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/player-performance-curve?resolution=0&hero_ids=7`);
+        });
+
+        it("returns null-filled bodies as they came", async () => {
+            const { api } = setup(() => Response.json([{ game_time: 180, kills_avg: null, kills_std: null }]));
+            expect(await api.performanceCurve(7, {})).toEqual([{ game_time: 180, kills_avg: null, kills_std: null }]);
+        });
+
+        it("joins account ids when asking for player ranks", async () => {
+            const { fetch, api } = setup();
+            await api.playerRanks([5, "6", 7]);
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/players/rank?account_ids=5,6,7`);
+        });
+
+        it("rejects a non-ok analytics response with its status", async () => {
+            const { api } = setup(() => new Response("", { status: 429 }));
+            for (const call of [
+                () => api.performanceCurve(1, {}),
+                () => api.playerStatsMetrics(1, {}),
+                () => api.heroStats({}),
+                () => api.playerRanks([1]),
+            ]) {
+                const error = await call().catch((e: unknown) => e);
+                expect(error).toBeInstanceOf(DeadlockApiError);
+                expect((error as DeadlockApiError).status).toBe(429);
+            }
+        });
+    });
 });
