@@ -1,5 +1,22 @@
 pub mod minimap;
 
+use std::path::PathBuf;
+
+use dp_gamedata::ArtCache;
+use tauri::{AppHandle, Emitter};
+
+pub const ART_CHANGED_EVENT: &str = "game-art-changed";
+
+/// The art store, emitting `ART_CHANGED_EVENT` when the game build changes during this run.
+pub fn art_cache(app: &AppHandle, root: PathBuf) -> ArtCache {
+    let app = app.clone();
+    ArtCache::new(root).on_build_change(move || {
+        if let Err(e) = app.emit(ART_CHANGED_EVENT, ()) {
+            log::warn!("could not emit {ART_CHANGED_EVENT}: {e}");
+        }
+    })
+}
+
 pub mod commands {
     use std::sync::Arc;
 
@@ -81,6 +98,12 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(move || MapItemsPayload::from(&*items.resolve()))
             .await
             .map_err(AppError::internal)
+    }
+
+    #[tauri::command]
+    pub async fn release_old_game_art(art: State<'_, ArtCache>) -> Result<(), AppError> {
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || art.release_old_builds()).await.map_err(AppError::internal)
     }
 
     #[tauri::command]

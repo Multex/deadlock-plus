@@ -65,7 +65,7 @@ pub fn run() {
         .manage(features::diagnostics::scan_job::AddonScanState::default())
         .setup(|app| {
             features::crash::begin(app.handle());
-            app.manage(dp_gamedata::ArtCache::new(app.path().app_data_dir()?.join("game-art")));
+            app.manage(features::gamedata::art_cache(app.handle(), app.path().app_data_dir()?.join("game-art")));
             app.manage(std::sync::Arc::new(dp_gamedata::GameMapItems::installed(
                 app.path().app_data_dir()?.join("map-items"),
             )));
@@ -148,6 +148,7 @@ pub fn run() {
             features::gamedata::commands::game_item_art,
             features::gamedata::commands::game_minimap_art,
             features::gamedata::commands::game_minimap_icons,
+            features::gamedata::commands::release_old_game_art,
             features::gamedata::commands::game_map_items,
             features::steam_account::commands::current_steam_account,
             features::steam_account::commands::local_steam_account_ids,

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 
 use deadlock_data::art::{Art, ArtArchive, HeroArtKind, ItemArtKind, MinimapArtKind, RankArtKind};
@@ -283,7 +283,15 @@ struct Shared<I> {
     install: I,
     root: PathBuf,
     opener: Opener,
-    state: Mutex<Option<Build>>,
+    on_change: OnceLock<Box<dyn Fn() + Send + Sync>>,
+    state: Mutex<State>,
+}
+
+#[derive(Default)]
+struct State {
+    build: Option<Build>,
+    /// The fingerprint of the newest build this run has served art from.
+    served: Option<String>,
 }
 
 /// PNG files decoded from the installed game, one directory per game build under `root`.
@@ -324,7 +332,21 @@ fn file_safe(class_name: &str) -> bool {
 
 impl<I: Install> ArtCache<I> {
     pub fn with_opener(install: I, root: PathBuf, opener: Opener) -> Self {
-        Self { shared: Arc::new(Shared { install, root, opener, state: Mutex::new(None) }) }
+        Self { shared: Arc::new(Shared { install, root, opener, on_change: OnceLock::new(), state: Mutex::default() }) }
+    }
+
+    /// Calls `f` when an art call finds a game build other than the one already served this run.
+    pub fn on_build_change(self, f: impl Fn() + Send + Sync + 'static) -> Self {
+        let _ = self.shared.on_change.set(Box::new(f));
+        self
+    }
+
+    /// Deletes every build directory except the current build's. Files in the store root, such as the
+    /// downloaded minimap, are kept because the UI may still show them.
+    pub fn release_old_builds(&self) {
+        let state = self.shared.state.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(keep) = state.served.as_deref() else { return };
+        self.remove_entries(|entry| entry.path().is_dir() && entry.file_name().to_string_lossy() != keep);
     }
 
     /// Local `sm`, `card` and `mm` files per hero, decoding what the cache lacks. Heroes with no local
@@ -454,18 +476,36 @@ impl<I: Install> ArtCache<I> {
 
     /// Runs `f` on the current build and its directory, starting a fresh build when the game changed.
     /// `None` when there is no installed game to decode from.
+    ///
+    /// The first build of a run evicts every other build. A later build keeps the older directories,
+    /// whose paths the UI may still hold, until `release_old_builds`, and fires the change callback.
     fn with_build<R>(&self, f: impl FnOnce(&mut Build, &Path) -> R) -> Option<R> {
         let mut guard = self.shared.state.lock().unwrap_or_else(|e| e.into_inner());
+        let state = &mut *guard;
         let dir = self.shared.install.citadel_dir();
         let fingerprint = dir.as_deref().and_then(fingerprint);
-        let stale = guard.as_ref().is_none_or(|b| b.dir != dir || b.fingerprint != fingerprint);
+        let stale = state.build.as_ref().is_none_or(|b| b.dir != dir || b.fingerprint != fingerprint);
+        let mut changed = false;
         if stale {
-            self.evict_except(fingerprint.as_deref());
-            *guard = Some(Build { dir, fingerprint, source: None, failed: HashSet::new() });
+            if let Some(new) = &fingerprint {
+                match &state.served {
+                    None => self.remove_entries(|entry| entry.file_name().to_string_lossy() != new.as_str()),
+                    Some(served) => changed = served != new,
+                }
+                state.served = Some(new.clone());
+            }
+            state.build = Some(Build { dir, fingerprint, source: None, failed: HashSet::new() });
         }
-        let build = guard.as_mut().expect("set above");
-        let build_dir = build.fingerprint.as_ref().map(|f| self.shared.root.join(f))?;
-        Some(f(build, &build_dir))
+        let build = state.build.as_mut().expect("set above");
+        let out = build.fingerprint.as_ref().map(|f| self.shared.root.join(f)).map(|build_dir| f(build, &build_dir));
+        // The callback may call back into the cache, so it runs after the lock is released.
+        drop(guard);
+        if changed {
+            if let Some(on_change) = self.shared.on_change.get() {
+                on_change();
+            }
+        }
+        out
     }
 
     fn ensure(
@@ -491,10 +531,10 @@ impl<I: Install> ArtCache<I> {
         ready.then(|| path.to_string_lossy().into_owned())
     }
 
-    fn evict_except(&self, keep: Option<&str>) {
+    fn remove_entries(&self, remove: impl Fn(&std::fs::DirEntry) -> bool) {
         let Ok(entries) = std::fs::read_dir(&self.shared.root) else { return };
         for entry in entries.flatten() {
-            if Some(entry.file_name().to_string_lossy().as_ref()) == keep {
+            if !remove(&entry) {
                 continue;
             }
             let path = entry.path();
@@ -514,7 +554,7 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, Mutex, OnceLock};
     use std::time::SystemTime;
 
     struct FakeInstall(Mutex<Option<PathBuf>>);
@@ -947,20 +987,102 @@ mod tests {
         assert!(cache.item_art(&names(&["upgrade_a"]), ItemImage::Shop).is_empty());
     }
 
+    fn build_dir(path: &Option<String>) -> PathBuf {
+        PathBuf::from(path.as_ref().unwrap()).parent().unwrap().to_path_buf()
+    }
+
+    fn dirs_in(root: &Path) -> Vec<PathBuf> {
+        fs::read_dir(root).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect()
+    }
+
     #[test]
-    fn a_new_build_evicts_older_builds_and_redecodes() {
-        let rig = Rig::new("evict", &[]);
+    fn a_new_build_mid_session_keeps_the_old_build_and_redecodes() {
+        let rig = Rig::new("keep-old", &[]);
         let cache = rig.cache();
         let heroes = [hero(1, "hero_inferno")];
         let old = cache.hero_art(&heroes);
-        let old_dir = PathBuf::from(old[0].sm.clone().unwrap()).parent().unwrap().to_path_buf();
         rig.touch_archive(120);
         let new = cache.hero_art(&heroes);
-        let new_dir = PathBuf::from(new[0].sm.clone().unwrap()).parent().unwrap().to_path_buf();
+        let (old_dir, new_dir) = (build_dir(&old[0].sm), build_dir(&new[0].sm));
         assert_ne!(old_dir, new_dir);
-        assert!(!old_dir.exists());
+        assert!(old_dir.join("hero_inferno_sm.png").is_file(), "paths the UI holds stay valid");
         assert!(new_dir.join("hero_inferno_sm.png").is_file());
-        assert_eq!(fs::read_dir(&rig.root).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn a_build_change_is_signalled_once_and_the_first_build_is_not() {
+        let rig = Rig::new("signal", &[]);
+        let changes = Arc::new(AtomicUsize::new(0));
+        let counted = Arc::clone(&changes);
+        let cache = rig.cache().on_build_change(move || {
+            counted.fetch_add(1, Ordering::Relaxed);
+        });
+        let heroes = [hero(1, "hero_inferno")];
+        cache.hero_art(&heroes);
+        cache.rank_art(&[1]);
+        assert_eq!(changes.load(Ordering::Relaxed), 0);
+        rig.touch_archive(120);
+        cache.hero_art(&heroes);
+        cache.minimap_art().unwrap();
+        assert_eq!(changes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn the_change_signal_can_call_back_into_the_cache() {
+        let rig = Rig::new("signal-reenter", &[]);
+        let slot: Arc<OnceLock<ArtCache<FakeInstall>>> = Arc::new(OnceLock::new());
+        let inner = Arc::clone(&slot);
+        let reloaded = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::clone(&reloaded);
+        let cache = rig.cache().on_build_change(move || {
+            let art = inner.get().unwrap().hero_art(&[hero(1, "hero_inferno")]);
+            seen.fetch_add(art.len(), Ordering::Relaxed);
+        });
+        let _ = slot.set(cache.clone());
+        cache.hero_art(&[hero(1, "hero_inferno")]);
+        rig.touch_archive(120);
+        cache.hero_art(&[hero(1, "hero_inferno")]);
+        assert_eq!(reloaded.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn releasing_leaves_only_the_current_build() {
+        let rig = Rig::new("release", &[]);
+        let cache = rig.cache();
+        let heroes = [hero(1, "hero_inferno")];
+        cache.hero_art(&heroes);
+        rig.touch_archive(120);
+        cache.hero_art(&heroes);
+        rig.touch_archive(240);
+        let current = cache.hero_art(&heroes);
+        assert_eq!(dirs_in(&rig.root).len(), 3);
+        cache.release_old_builds();
+        assert_eq!(dirs_in(&rig.root), vec![build_dir(&current[0].sm)]);
+        assert!(PathBuf::from(current[0].sm.as_ref().unwrap()).is_file());
+    }
+
+    #[test]
+    fn releasing_keeps_the_downloaded_minimap_the_ui_may_show() {
+        let rig = Rig::new("release-remote", &[]);
+        let cache = rig.cache();
+        cache.hero_art(&[hero(1, "hero_inferno")]);
+        let remote = cache.remote_minimap_path();
+        fs::write(&remote, b"png").unwrap();
+        cache.release_old_builds();
+        assert!(remote.is_file());
+    }
+
+    #[test]
+    fn the_first_build_of_a_run_still_evicts_builds_left_by_a_mid_session_change() {
+        let rig = Rig::new("next-run", &[]);
+        let heroes = [hero(1, "hero_inferno")];
+        let cache = rig.cache();
+        let old = cache.hero_art(&heroes);
+        rig.touch_archive(120);
+        let new = cache.hero_art(&heroes);
+        rig.cache().hero_art(&heroes);
+        assert!(!build_dir(&old[0].sm).exists());
+        assert_eq!(dirs_in(&rig.root), vec![build_dir(&new[0].sm)]);
     }
 
     #[test]
@@ -1028,7 +1150,7 @@ mod tests {
         rig.touch_archive(120);
         let new = PathBuf::from(cache.minimap_art().unwrap());
         assert_ne!(old.parent(), new.parent());
-        assert!(!old.exists());
+        assert!(old.is_file());
         assert!(new.is_file());
         assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
     }
