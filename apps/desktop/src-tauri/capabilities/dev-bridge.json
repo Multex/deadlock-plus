@@ -3,7 +3,8 @@
   "identifier": "dev-bridge",
   "description": "UI automation bridge, registered in debug builds only",
   "windows": [
-    "main"
+    "main",
+    "overlay"
   ],
   "permissions": [
     "mcp-bridge:default"
