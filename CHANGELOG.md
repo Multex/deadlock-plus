@@ -42,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- Map positions and some hero and item images load again after Deadlock's October 16 patch.
 - Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
 
 ## [0.12.0] - 2026-10-15
