@@ -5,7 +5,7 @@ use dp_gamedata::{ArtCache, MinimapError, MINIMAP_RADIUS};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-const MAP_URL: &str = "https://api.deadlock-api.com/v1/assets/map";
+pub(super) const MAP_URL: &str = "https://api.deadlock-api.com/v1/assets/map";
 const MAX_PNG_BYTES: usize = 16 * 1024 * 1024;
 const REMOTE_MAX_AGE: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 const PNG_SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
@@ -81,7 +81,7 @@ fn is_fresh(path: &Path, now: SystemTime) -> bool {
     now.duration_since(modified).is_ok_and(|age| age < REMOTE_MAX_AGE)
 }
 
-async fn get_bytes(http: &reqwest::Client, url: &str) -> Option<Vec<u8>> {
+pub(super) async fn get_bytes(http: &reqwest::Client, url: &str) -> Option<Vec<u8>> {
     let res = http.get(url).send().await.ok()?.error_for_status().ok()?;
     if res.content_length().is_some_and(|n| n > MAX_PNG_BYTES as u64) {
         return None;

@@ -7,6 +7,6 @@ import type { MapItemsSource } from "./MapItemsSource";
  */
 export type MapItemsPayload = { source: MapItemsSource, 
 /**
- * Set with `StaleBaked`: the installed build the baked rows do not match.
+ * Set with `StaleCache`: the installed build the cached rows do not match.
  */
 installedBuild: number | null, table: MapItemTable, };

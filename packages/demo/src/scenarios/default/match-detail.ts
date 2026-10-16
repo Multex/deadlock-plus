@@ -18,7 +18,7 @@ import { fakeAccountId, fakeName } from "./identity";
 import { historyRows, type HistoryRow } from "./progress";
 
 export interface MatchDetailOptions {
-    /** The map table the app ships as its fallback: `crates/ring2/dp-gamedata/data/map_items.tsv`. */
+    /** The map table decoded from a real game build: `crates/ring2/dp-gamedata/fixtures/map_items.tsv`. */
     mapItemsTsv: string;
 }
 
@@ -1336,8 +1336,8 @@ async function classArt(
 /** Lane slot of each player lane id, as the app assigns it when it reads the same table. */
 const LANE_SLOTS: Readonly<Record<number, number>> = { 1: 1, 4: 3, 6: 4 };
 
-/** Reads the app's fallback map table: three header lines, then tab-separated rows with `-` for an absent value. */
-function bakedMapItems(tsv: string): MapItemsPayload {
+/** Reads the fixture map table: three header lines, then tab-separated rows with `-` for an absent value. */
+function fixtureMapItems(tsv: string): MapItemsPayload {
     const text = (v: string) => (v === "-" ? null : v);
     const number = (v: string) => (v === "-" ? null : Number(v));
     const rows: MapItem[] = [];
@@ -1369,7 +1369,7 @@ function bakedMapItems(tsv: string): MapItemsPayload {
             });
         }
     }
-    return { source: "baked", installedBuild: null, table: { schema: 2, buildId: null, ventsCrc: 0, rows, lanes } };
+    return { source: "game", installedBuild: null, table: { schema: 2, buildId: null, ventsCrc: 0, rows, lanes } };
 }
 
 export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
@@ -1385,7 +1385,7 @@ export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
                 cores: new Map(),
             };
             const asset = assetLoader();
-            const mapItems = bakedMapItems(mapItemsTsv);
+            const mapItems = fixtureMapItems(mapItemsTsv);
 
             const handlers: Handlers = {
                 game_items: async (): Promise<ItemEntry[]> =>

@@ -58,7 +58,7 @@ describe("default scenario", () => {
         expect(handle.invoke("changelog", {})).toBe("# Changelog\n");
         expect(handle.invoke("kv_get", { store: "app-settings", key: "lastSeenVersion" })).toBe("1.2.3");
         expect(handle.invoke("game_map_items", {})).toMatchObject({
-            source: "baked",
+            source: "game",
             table: {
                 rows: [{ kind: "shop", team: 0, laneSlot: null, x: 1, y: 2, z: 3, name: "Shop", hasIcon: true }],
                 lanes: [{ laneNum: 1, markerSlot: 2, startTeam: 0, midIndex: 3 }],

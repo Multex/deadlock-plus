@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::art::MINIMAP_RADIUS;
 use crate::catalog::{Install, SteamInstall};
 
 pub const MAP_ITEMS_SCHEMA: u32 = 2;
 
 const CACHE_FILE: &str = "map-items.tsv";
-const BAKED_TABLE: &str = include_str!("../data/map_items.tsv");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, TS)]
 #[ts(export)]
@@ -91,11 +91,15 @@ pub struct LaneLine {
 pub enum TableSource {
     Game,
     Cache,
-    Baked,
-    /// The installed build differs from the baked one and the game files could not be read.
-    StaleBaked {
-        installed_build: u64,
+    /// The game files could not be read; the rows were decoded from an earlier build, or from an
+    /// install that is no longer found (`installed_build` is then `None`).
+    StaleCache {
+        installed_build: Option<u64>,
     },
+    /// Converted from the Deadlock API's map assets. Set by the caller that fetched them.
+    Api,
+    /// Nothing usable: the table is empty.
+    None,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -104,8 +108,9 @@ pub enum TableSource {
 pub enum MapItemsSource {
     Game,
     Cache,
-    Baked,
-    StaleBaked,
+    StaleCache,
+    Api,
+    None,
 }
 
 /// What the frontend receives: the table plus where it came from.
@@ -114,7 +119,7 @@ pub enum MapItemsSource {
 #[serde(rename_all = "camelCase")]
 pub struct MapItemsPayload {
     pub source: MapItemsSource,
-    /// Set with `StaleBaked`: the installed build the baked rows do not match.
+    /// Set with `StaleCache`: the installed build the cached rows do not match.
     pub installed_build: Option<u64>,
     pub table: MapItemTable,
 }
@@ -124,8 +129,9 @@ impl From<&Resolved> for MapItemsPayload {
         let (source, installed_build) = match resolved.source {
             TableSource::Game => (MapItemsSource::Game, None),
             TableSource::Cache => (MapItemsSource::Cache, None),
-            TableSource::Baked => (MapItemsSource::Baked, None),
-            TableSource::StaleBaked { installed_build } => (MapItemsSource::StaleBaked, Some(installed_build)),
+            TableSource::StaleCache { installed_build } => (MapItemsSource::StaleCache, installed_build),
+            TableSource::Api => (MapItemsSource::Api, None),
+            TableSource::None => (MapItemsSource::None, None),
         };
         Self { source, installed_build, table: resolved.table.clone() }
     }
@@ -196,6 +202,11 @@ fn extracted_from_map(map: deadlock_data::map::MapEntities) -> ExtractedVents {
 
 pub fn map_entities<'a>(entities: impl IntoIterator<Item = &'a RawEntity>) -> Vec<MapItem> {
     let mut rows: Vec<MapItem> = entities.into_iter().filter_map(map_entity).collect();
+    sort_rows(&mut rows);
+    rows
+}
+
+fn sort_rows(rows: &mut [MapItem]) {
     rows.sort_by(|a, b| {
         (a.kind, a.team, a.lane_slot)
             .cmp(&(b.kind, b.team, b.lane_slot))
@@ -203,7 +214,168 @@ pub fn map_entities<'a>(entities: impl IntoIterator<Item = &'a RawEntity>) -> Ve
             .then(a.y.total_cmp(&b.y))
             .then(a.z.total_cmp(&b.z))
     });
-    rows
+}
+
+/// The parts of the Deadlock API's `GET /v1/assets/map` that carry map item positions. Every field
+/// is optional so that a change elsewhere in the response does not cost the rows that still parse.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AssetsMap {
+    pub radius: Option<f32>,
+    pub objective_positions: BTreeMap<String, AssetsRelativePosition>,
+    pub neutral_camps: Vec<AssetsCamp>,
+    pub entities: AssetsEntities,
+}
+
+/// Fractions of the minimap image, from its left and top edges.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+pub struct AssetsRelativePosition {
+    pub left_relative: f32,
+    pub top_relative: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct AssetsCamp {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub kind: Option<String>,
+    /// World position.
+    pub position: [f32; 3],
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct AssetsEntities {
+    pub base_sentries: Vec<AssetsEntity>,
+    pub teleporters: Vec<AssetsEntity>,
+    pub soul_urn_pads: Vec<AssetsEntity>,
+    pub shops: Vec<AssetsEntity>,
+    pub bridge_buffs: Vec<AssetsEntity>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct AssetsEntity {
+    /// World position.
+    pub position: [f32; 3],
+    #[serde(default)]
+    pub team: Option<i64>,
+    #[serde(default)]
+    pub kind: Option<String>,
+}
+
+/// The map items the API knows about, as a table. It has no lane lines and lacks the kinds the API
+/// does not list (base guardians, shrines, the mid boss, souls dealers); unknown kinds are skipped.
+pub fn table_from_assets_map(map: &AssetsMap) -> MapItemTable {
+    let radius = map.radius.filter(|r| r.is_finite() && *r > 0.0).unwrap_or(MINIMAP_RADIUS);
+    let mut rows: Vec<MapItem> =
+        map.objective_positions.iter().filter_map(|(key, pos)| objective_row(key, *pos, radius)).collect();
+    rows.extend(map.neutral_camps.iter().filter_map(camp_row));
+
+    let entities = &map.entities;
+    let neutral = |kind: MapItemKind, class: &str, list: &[AssetsEntity]| -> Vec<MapItem> {
+        list.iter().filter_map(|e| api_row(kind, class, e.position)).collect()
+    };
+    rows.extend(entities.base_sentries.iter().filter_map(|e| {
+        Some(MapItem {
+            team: api_team(e.team),
+            ..api_row(MapItemKind::BaseSentry, "npc_base_defense_sentry", e.position)?
+        })
+    }));
+    rows.extend(entities.shops.iter().filter_map(|e| {
+        // Base shops are not map markers, as with the game's own entities.
+        let team = match e.kind.as_deref()? {
+            "lane" | "secret" => api_team(e.team),
+            _ => return None,
+        };
+        Some(MapItem { team, ..api_row(MapItemKind::Shop, "trigger_item_shop", e.position)? })
+    }));
+    rows.extend(neutral(MapItemKind::UrnReturn, "citadel_trigger_idol_return", &entities.soul_urn_pads));
+    rows.extend(neutral(MapItemKind::Teleporter, "citadel_trigger_teleport", &entities.teleporters));
+    rows.extend(neutral(MapItemKind::BuffSpawner, "citadel_item_powerup_spawner", &entities.bridge_buffs));
+
+    sort_rows(&mut rows);
+    MapItemTable { rows, ..MapItemTable::empty() }
+}
+
+/// The API places each objective by the top-left corner of a marker box a tenth of the map wide, so
+/// the objective itself sits half a box further right and down. Measured against the game's own
+/// positions: every guardian, walker and patron lands within the API's four-decimal rounding of them.
+const OBJECTIVE_BOX_HALF: f32 = 0.05;
+
+fn objective_row(key: &str, pos: AssetsRelativePosition, radius: f32) -> Option<MapItem> {
+    let (team, rest) = key.strip_prefix("team")?.split_once('_')?;
+    let team = match team {
+        "0" => 0,
+        "1" => 1,
+        _ => return None,
+    };
+    let slot = |s: &str| match s {
+        "1" => Some(1),
+        "3" => Some(3),
+        "4" => Some(4),
+        _ => None,
+    };
+    // `core` is skipped: its two positions are not mirror images like the rest of the map, and match
+    // no entity the game files hold.
+    let (kind, class, lane_slot, objective_id) = match rest.split_once('_') {
+        None if rest == "titan" => (MapItemKind::Patron, "npc_boss_tier3", 3, 9),
+        Some(("tier1", s)) => (MapItemKind::Guardian, "info_super_trooper_spawn", slot(s)?, slot(s)?),
+        Some(("tier2", s)) => (MapItemKind::Walker, "npc_boss_tier2", slot(s)?, slot(s)? + 4),
+        _ => return None,
+    };
+    let x = (pos.left_relative + OBJECTIVE_BOX_HALF) * 2.0 * radius - radius;
+    let y = radius - (pos.top_relative + OBJECTIVE_BOX_HALF) * 2.0 * radius;
+    Some(MapItem {
+        team: Some(team),
+        lane_slot: Some(lane_slot),
+        objective_id: Some(objective_id),
+        ..api_row(kind, class, [x, y, 0.0])?
+    })
+}
+
+fn camp_row(camp: &AssetsCamp) -> Option<MapItem> {
+    let (kind, subclass) = match camp.kind.as_deref()? {
+        "weak" => (MapItemKind::CampWeak, "neutral_camp_weak"),
+        "medium" => (MapItemKind::CampMedium, "neutral_camp_medium"),
+        "strong" => (MapItemKind::CampStrong, "neutral_camp_strong"),
+        "vault" => (MapItemKind::CampVault, "neutral_camp_vaults"),
+        _ => return None,
+    };
+    Some(MapItem {
+        subclass: Some(subclass.to_owned()),
+        name: camp.name.clone().filter(|n| !n.is_empty()),
+        ..api_row(kind, "info_neutral_trooper_camp", camp.position)?
+    })
+}
+
+/// A neutral row with the game's class name for its kind, so API rows read like decoded ones.
+fn api_row(kind: MapItemKind, class: &str, [x, y, z]: [f32; 3]) -> Option<MapItem> {
+    if !(x.is_finite() && y.is_finite() && z.is_finite()) {
+        return None;
+    }
+    let round = |v: f32| (v * 10.0).round() / 10.0;
+    Some(MapItem {
+        kind,
+        team: None,
+        lane_slot: None,
+        objective_id: None,
+        x: round(x),
+        y: round(y),
+        z: round(z),
+        class_name: class.to_owned(),
+        subclass: None,
+        name: None,
+        has_icon: kind != MapItemKind::BaseSentry,
+    })
+}
+
+fn api_team(team: Option<i64>) -> Option<u8> {
+    match team {
+        Some(0) => Some(0),
+        Some(1) => Some(1),
+        _ => None,
+    }
 }
 
 fn map_entity(raw: &RawEntity) -> Option<MapItem> {
@@ -431,8 +603,12 @@ const TSV_MAGIC: &str = "# dp-map-items ";
 const LANE_KEY: &str = "lane";
 
 impl MapItemTable {
-    /// Plain tab-separated text, `-` for an absent value. Keeps the cache and the baked file free of a
-    /// JSON dependency and readable in a diff.
+    pub fn empty() -> Self {
+        Self { schema: MAP_ITEMS_SCHEMA, build_id: None, vents_crc: 0, rows: Vec::new(), lanes: Vec::new() }
+    }
+
+    /// Plain tab-separated text, `-` for an absent value. Keeps the cache and the test fixture free of
+    /// a JSON dependency and readable in a diff.
     pub fn to_tsv(&self) -> String {
         let mut out = format!("{TSV_MAGIC}{}\n", self.schema);
         out.push_str(&format!("build_id\t{}\n", or_dash(self.build_id.map(|b| b.to_string()))));
@@ -522,24 +698,6 @@ fn lane_from_fields(f: &[&str]) -> Option<LaneLine> {
     })
 }
 
-pub fn baked_table() -> MapItemTable {
-    static BAKED: OnceLock<MapItemTable> = OnceLock::new();
-    BAKED
-        .get_or_init(|| {
-            MapItemTable::from_tsv(BAKED_TABLE).unwrap_or_else(|| {
-                log::error!("the baked map item table is unreadable");
-                MapItemTable {
-                    schema: MAP_ITEMS_SCHEMA,
-                    build_id: None,
-                    vents_crc: 0,
-                    rows: Vec::new(),
-                    lanes: Vec::new(),
-                }
-            })
-        })
-        .clone()
-}
-
 type Memo = (Option<PathBuf>, Option<u64>, Arc<Resolved>);
 
 pub struct MapItems<I: Install = SteamInstall, E: VentsSource = NoExtractor> {
@@ -580,53 +738,52 @@ impl<I: Install, E: VentsSource> MapItems<I, E> {
     }
 
     fn load(&self, dir: Option<&Path>, build: Option<u64>) -> Resolved {
-        let baked = || {
-            let table = baked_table();
-            let source = match build {
-                Some(installed_build) if table.build_id != Some(installed_build) => {
-                    log::warn!(
-                        "map items: game build {installed_build} differs from the baked build {:?} and the game \
-                         files could not be read; positions may be out of date",
-                        table.build_id
-                    );
-                    TableSource::StaleBaked { installed_build }
-                }
-                _ => TableSource::Baked,
-            };
-            Resolved { table, source }
-        };
-        let Some(dir) = dir else { return baked() };
-
         let cache_path = self.cache_dir.join(CACHE_FILE);
-        if let Some(build) = build {
-            let cached = std::fs::read_to_string(&cache_path).ok().and_then(|t| MapItemTable::from_tsv(&t));
-            if let Some(table) = cached.filter(|t| t.schema == MAP_ITEMS_SCHEMA && t.build_id == Some(build)) {
+        let cached = || {
+            std::fs::read_to_string(&cache_path)
+                .ok()
+                .and_then(|t| MapItemTable::from_tsv(&t))
+                .filter(|t| t.schema == MAP_ITEMS_SCHEMA && !t.rows.is_empty())
+        };
+
+        if let Some(dir) = dir {
+            if let Some(table) = build.and_then(|b| cached().filter(|t| t.build_id == Some(b))) {
                 return Resolved { table, source: TableSource::Cache };
             }
+            match self.extract(dir, build) {
+                Ok(table) => {
+                    if build.is_some() {
+                        if let Err(e) = write_cache(&cache_path, &table) {
+                            log::warn!("map items: could not write the cache: {e}");
+                        }
+                    }
+                    return Resolved { table, source: TableSource::Game };
+                }
+                Err(e) => log::warn!("map items: reading the game map failed: {e}"),
+            }
         }
 
-        let extracted = self.extractor.extract(dir).and_then(|v| {
-            let rows = map_entities(&v.entities);
-            if rows.is_empty() {
-                return Err("the map file holds no recognised objectives".to_owned());
+        match cached() {
+            Some(table) => {
+                log::warn!(
+                    "map items: serving rows decoded from build {:?} for installed build {build:?}; positions may \
+                     be out of date",
+                    table.build_id
+                );
+                Resolved { table, source: TableSource::StaleCache { installed_build: build } }
             }
-            let lanes = map_lane_lines(&v.entities, &rows);
-            Ok(MapItemTable { schema: MAP_ITEMS_SCHEMA, build_id: build, vents_crc: v.crc, rows, lanes })
-        });
-        match extracted {
-            Ok(table) => {
-                if build.is_some() {
-                    if let Err(e) = write_cache(&cache_path, &table) {
-                        log::warn!("map items: could not write the cache: {e}");
-                    }
-                }
-                Resolved { table, source: TableSource::Game }
-            }
-            Err(e) => {
-                log::warn!("map items: reading the game map failed: {e}");
-                baked()
-            }
+            None => Resolved { table: MapItemTable::empty(), source: TableSource::None },
         }
+    }
+
+    fn extract(&self, dir: &Path, build: Option<u64>) -> Result<MapItemTable, String> {
+        let v = self.extractor.extract(dir)?;
+        let rows = map_entities(&v.entities);
+        if rows.is_empty() {
+            return Err("the map file holds no recognised objectives".to_owned());
+        }
+        let lanes = map_lane_lines(&v.entities, &rows);
+        Ok(MapItemTable { schema: MAP_ITEMS_SCHEMA, build_id: build, vents_crc: v.crc, rows, lanes })
     }
 }
 
@@ -644,6 +801,12 @@ mod tests {
     use super::*;
     use std::fs;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    const FIXTURE_PATH: &str = "fixtures/map_items.tsv";
+
+    fn fixture_table() -> MapItemTable {
+        MapItemTable::from_tsv(include_str!("../fixtures/map_items.tsv")).expect("readable fixture")
+    }
 
     fn parse_vents_text(text: &str) -> Vec<RawEntity> {
         let mut out = Vec::new();
@@ -1044,8 +1207,8 @@ mod tests {
     }
 
     #[test]
-    fn the_baked_table_has_all_twelve_lane_lines_running_base_to_base() {
-        let table = baked_table();
+    fn the_fixture_has_all_twelve_lane_lines_running_base_to_base() {
+        let table = fixture_table();
         assert_eq!(table.lanes.len(), 12);
         for lane in [1u8, 4, 6] {
             for slot in 0u8..4 {
@@ -1066,28 +1229,214 @@ mod tests {
 
     #[test]
     #[ignore = "needs the installed game; set DEADLOCK_CITADEL_DIR to its game/citadel folder"]
-    fn the_installed_game_yields_the_baked_rows() {
+    fn the_installed_game_yields_the_fixture_rows() {
         let dir = std::env::var("DEADLOCK_CITADEL_DIR").expect("set DEADLOCK_CITADEL_DIR");
         let extracted = VpkVentsSource.extract(Path::new(&dir)).unwrap();
         let rows = map_entities(&extracted.entities);
-        let baked = baked_table();
-        assert_eq!(extracted.crc, baked.vents_crc);
-        assert_eq!(rows.len(), baked.rows.len());
-        assert_eq!(rows, baked.rows);
-        assert_eq!(map_lane_lines(&extracted.entities, &rows), baked.lanes);
+        let fixture = fixture_table();
+        assert_eq!(rows.len(), fixture.rows.len());
+        assert_eq!(rows, fixture.rows);
+        assert_eq!(map_lane_lines(&extracted.entities, &rows), fixture.lanes);
     }
 
     #[test]
     fn the_payload_carries_the_source_and_the_stale_build() {
-        let table = baked_table();
-        let stale = Resolved { table: table.clone(), source: TableSource::StaleBaked { installed_build: 9 } };
+        let table = fixture_table();
+        let stale = Resolved { table: table.clone(), source: TableSource::StaleCache { installed_build: Some(9) } };
         let payload = MapItemsPayload::from(&stale);
-        assert_eq!((payload.source, payload.installed_build), (MapItemsSource::StaleBaked, Some(9)));
+        assert_eq!((payload.source, payload.installed_build), (MapItemsSource::StaleCache, Some(9)));
         assert_eq!(payload.table, table);
 
-        let cache = Resolved { table, source: TableSource::Cache };
-        let payload = MapItemsPayload::from(&cache);
-        assert_eq!((payload.source, payload.installed_build), (MapItemsSource::Cache, None));
+        let no_install = Resolved { table: table.clone(), source: TableSource::StaleCache { installed_build: None } };
+        let payload = MapItemsPayload::from(&no_install);
+        assert_eq!((payload.source, payload.installed_build), (MapItemsSource::StaleCache, None));
+
+        for (source, expected) in [
+            (TableSource::Cache, MapItemsSource::Cache),
+            (TableSource::Game, MapItemsSource::Game),
+            (TableSource::Api, MapItemsSource::Api),
+            (TableSource::None, MapItemsSource::None),
+        ] {
+            let payload = MapItemsPayload::from(&Resolved { table: table.clone(), source });
+            assert_eq!((payload.source, payload.installed_build), (expected, None));
+        }
+    }
+
+    // A real response is parsed in the desktop crate, which has a JSON parser.
+    fn rel(left: f32, top: f32) -> AssetsRelativePosition {
+        AssetsRelativePosition { left_relative: left, top_relative: top }
+    }
+
+    fn at(x: f32, y: f32, z: f32) -> AssetsEntity {
+        AssetsEntity { position: [x, y, z], team: None, kind: None }
+    }
+
+    fn camp(kind: &str, name: &str, position: [f32; 3]) -> AssetsCamp {
+        AssetsCamp { name: Some(name.into()), kind: Some(kind.into()), position }
+    }
+
+    fn objectives(pairs: &[(&str, AssetsRelativePosition)]) -> AssetsMap {
+        AssetsMap {
+            radius: Some(10752.0),
+            objective_positions: pairs.iter().map(|(k, p)| (k.to_string(), *p)).collect(),
+            ..AssetsMap::default()
+        }
+    }
+
+    #[test]
+    fn objective_positions_are_box_corners_half_a_tenth_from_the_marker() {
+        // Values from the live response; the game puts these guardians at (0, -1792), (-8192, -1856) and
+        // the Hidden King's patron at (-1280, -8034).
+        let map = objectives(&[
+            ("team0_tier1_3", rel(0.45, 0.5333)),
+            ("team0_tier1_1", rel(0.069, 0.5363)),
+            ("team0_titan", rel(0.3905, 0.8236)),
+        ]);
+        let table = table_from_assets_map(&map);
+        let pos = |kind: MapItemKind, slot: u8| {
+            let r = table.rows.iter().find(|r| r.kind == kind && r.lane_slot == Some(slot)).unwrap();
+            (r.x, r.y, r.z)
+        };
+        assert_eq!(pos(MapItemKind::Guardian, 3), (0.0, -1791.3, 0.0));
+        assert_eq!(pos(MapItemKind::Guardian, 1), (-8193.0, -1855.8, 0.0));
+        assert_eq!(pos(MapItemKind::Patron, 3), (-1279.5, -8033.9, 0.0));
+    }
+
+    #[test]
+    fn a_missing_or_bad_radius_uses_the_minimap_radius() {
+        let mut map = objectives(&[("team1_tier1_3", rel(0.45, 0.3667))]);
+        let expected = table_from_assets_map(&map).rows;
+        assert_eq!((expected[0].x, expected[0].y), (0.0, 1791.3));
+        map.radius = None;
+        assert_eq!(table_from_assets_map(&map).rows, expected);
+        map.radius = Some(-1.0);
+        assert_eq!(table_from_assets_map(&map).rows, expected);
+        map.radius = Some(5376.0);
+        assert_eq!(table_from_assets_map(&map).rows[0].y, 895.6);
+    }
+
+    #[test]
+    fn objective_keys_map_to_kinds_teams_slots_and_enum_ids() {
+        let p = rel(0.45, 0.45);
+        let map = objectives(&[
+            ("team0_tier1_1", p),
+            ("team1_tier1_4", p),
+            ("team0_tier2_3", p),
+            ("team1_tier2_4", p),
+            ("team1_titan", p),
+        ]);
+        let got: Vec<_> =
+            table_from_assets_map(&map).rows.iter().map(|r| (r.kind, r.team, r.lane_slot, r.objective_id)).collect();
+        assert_eq!(
+            got,
+            [
+                (MapItemKind::Guardian, Some(0), Some(1), Some(1)),
+                (MapItemKind::Guardian, Some(1), Some(4), Some(4)),
+                (MapItemKind::Walker, Some(0), Some(3), Some(7)),
+                (MapItemKind::Walker, Some(1), Some(4), Some(8)),
+                (MapItemKind::Patron, Some(1), Some(3), Some(9)),
+            ]
+        );
+    }
+
+    #[test]
+    fn unknown_objective_keys_and_the_cores_are_skipped() {
+        let p = rel(0.45, 0.45);
+        let map = objectives(&[
+            ("team0_core", p),
+            ("team1_core", p),
+            ("team2_tier1_1", p),
+            ("team0_tier1_2", p),
+            ("team0_tier3_1", p),
+            ("team0_titan_2", p),
+            ("zipline", p),
+        ]);
+        assert!(table_from_assets_map(&map).rows.is_empty());
+    }
+
+    #[test]
+    fn camps_map_by_kind_with_world_positions_and_unknown_kinds_are_skipped() {
+        let map = AssetsMap {
+            neutral_camps: vec![
+                camp("weak", "park_club_camp", [6304.0, 964.0, 264.0]),
+                camp("medium", "nw_bank_camp", [-8624.0, 4264.0, 648.0]),
+                camp("strong", "dock_camp", [-9248.0, 0.0, 288.87]),
+                camp("vault", "chinatown_bell_1", [3248.0, -1888.0, 0.0]),
+                camp("legendary", "new_camp", [1.0, 2.0, 3.0]),
+                AssetsCamp { name: None, kind: None, position: [1.0, 2.0, 3.0] },
+            ],
+            ..AssetsMap::default()
+        };
+        let rows = table_from_assets_map(&map).rows;
+        let got: Vec<_> = rows.iter().map(|r| (r.kind, r.subclass.as_deref(), r.name.as_deref(), r.team)).collect();
+        assert_eq!(
+            got,
+            [
+                (MapItemKind::CampWeak, Some("neutral_camp_weak"), Some("park_club_camp"), None),
+                (MapItemKind::CampMedium, Some("neutral_camp_medium"), Some("nw_bank_camp"), None),
+                (MapItemKind::CampStrong, Some("neutral_camp_strong"), Some("dock_camp"), None),
+                (MapItemKind::CampVault, Some("neutral_camp_vaults"), Some("chinatown_bell_1"), None),
+            ]
+        );
+        assert_eq!((rows[2].x, rows[2].y, rows[2].z), (-9248.0, 0.0, 288.9));
+        assert!(rows.iter().all(|r| r.class_name == "info_neutral_trooper_camp" && r.has_icon));
+    }
+
+    #[test]
+    fn entities_map_to_their_kinds_and_base_shops_are_dropped() {
+        let team = |t: i64, e: AssetsEntity| AssetsEntity { team: Some(t), ..e };
+        let shop =
+            |kind: &str, t: Option<i64>, x: f32| AssetsEntity { kind: Some(kind.into()), team: t, ..at(x, 0.0, 0.0) };
+        let map = AssetsMap {
+            entities: AssetsEntities {
+                base_sentries: vec![team(0, at(-1568.0, -9424.0, 1152.0)), team(1, at(864.0, 9664.0, 1216.0))],
+                teleporters: vec![at(-3904.0, 1792.0, -128.0)],
+                soul_urn_pads: vec![at(-6592.0, -8.0, 192.0)],
+                shops: vec![
+                    shop("lane", Some(0), -8832.0),
+                    shop("secret", None, -3920.0),
+                    shop("base", Some(0), -752.0),
+                    shop("mystery", None, 5.0),
+                ],
+                bridge_buffs: vec![at(-3936.0, 136.0, 912.0)],
+            },
+            ..AssetsMap::default()
+        };
+        let rows = table_from_assets_map(&map).rows;
+        let got: Vec<_> = rows.iter().map(|r| (r.kind, r.team, r.x)).collect();
+        assert_eq!(
+            got,
+            [
+                (MapItemKind::BaseSentry, Some(0), -1568.0),
+                (MapItemKind::BaseSentry, Some(1), 864.0),
+                (MapItemKind::Shop, None, -3920.0),
+                (MapItemKind::Shop, Some(0), -8832.0),
+                (MapItemKind::UrnReturn, None, -6592.0),
+                (MapItemKind::Teleporter, None, -3904.0),
+                (MapItemKind::BuffSpawner, None, -3936.0),
+            ]
+        );
+        assert!(!rows[0].has_icon);
+        assert!(rows[2..].iter().all(|r| r.has_icon && r.lane_slot.is_none() && r.objective_id.is_none()));
+    }
+
+    #[test]
+    fn an_api_table_has_no_build_and_no_lanes() {
+        let table = table_from_assets_map(&objectives(&[("team0_titan", rel(0.39, 0.82))]));
+        assert_eq!((table.schema, table.build_id, table.vents_crc), (MAP_ITEMS_SCHEMA, None, 0));
+        assert_eq!(table.rows.len(), 1);
+        assert!(table.lanes.is_empty());
+        assert!(table_from_assets_map(&AssetsMap::default()).rows.is_empty());
+    }
+
+    #[test]
+    fn non_finite_positions_are_skipped() {
+        let map = AssetsMap {
+            objective_positions: [("team0_titan".to_owned(), rel(f32::NAN, 0.5))].into(),
+            entities: AssetsEntities { teleporters: vec![at(f32::INFINITY, 0.0, 0.0)], ..AssetsEntities::default() },
+            ..AssetsMap::default()
+        };
+        assert!(table_from_assets_map(&map).rows.is_empty());
     }
 
     #[test]
@@ -1249,32 +1598,79 @@ mod tests {
         assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
     }
 
+    fn seed_cache(cache: &Path, build: Option<u64>) -> MapItemTable {
+        let table =
+            MapItemTable { build_id: build, vents_crc: 0x900, rows: map_entities(&one_shop()), ..fixture_table() };
+        write_cache(&cache.join(CACHE_FILE), &table).unwrap();
+        table
+    }
+
     #[test]
-    fn a_failed_extraction_on_a_new_build_falls_back_to_the_baked_table_and_says_stale() {
+    fn a_failed_extraction_on_a_new_build_serves_the_cache_of_the_old_build_as_stale() {
         let tmp = Tmp::new("stale");
-        let citadel = tmp.steam_layout(Some(&manifest_with_build(1)));
+        let cache = tmp.0.join("cache");
+        let old = seed_cache(&cache, Some(900));
+        let citadel = tmp.steam_layout(Some(&manifest_with_build(901)));
+        let (map, calls) = items(Some(citadel), &cache, Err("boom".into()));
+        let resolved = map.resolve();
+        assert_eq!(resolved.source, TableSource::StaleCache { installed_build: Some(901) });
+        assert_eq!(resolved.table, old);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn a_failed_extraction_with_no_cache_gives_an_empty_table_for_the_caller_to_fill() {
+        let tmp = Tmp::new("nothing");
+        let citadel = tmp.steam_layout(Some(&manifest_with_build(901)));
         let (map, _) = items(Some(citadel), &tmp.0.join("cache"), Err("boom".into()));
         let resolved = map.resolve();
-        assert_eq!(resolved.source, TableSource::StaleBaked { installed_build: 1 });
-        assert_eq!(resolved.table, baked_table());
-        assert!(!resolved.table.rows.is_empty());
+        assert_eq!(resolved.source, TableSource::None);
+        assert_eq!(resolved.table, MapItemTable::empty());
     }
 
     #[test]
-    fn a_failed_extraction_on_the_baked_build_is_not_stale() {
-        let tmp = Tmp::new("fresh");
-        let baked = baked_table().build_id.expect("baked build id");
-        let citadel = tmp.steam_layout(Some(&manifest_with_build(baked)));
-        let (map, _) = items(Some(citadel), &tmp.0.join("cache"), Err("boom".into()));
-        assert_eq!(map.resolve().source, TableSource::Baked);
+    fn a_foreign_schema_cache_is_not_served_as_stale() {
+        let tmp = Tmp::new("stale-schema");
+        let cache = tmp.0.join("cache");
+        let mut foreign = seed_cache(&cache, Some(900));
+        foreign.schema = MAP_ITEMS_SCHEMA + 1;
+        write_cache(&cache.join(CACHE_FILE), &foreign).unwrap();
+        let citadel = tmp.steam_layout(Some(&manifest_with_build(901)));
+        let (map, _) = items(Some(citadel), &cache, Err("boom".into()));
+        assert_eq!(map.resolve().source, TableSource::None);
     }
 
     #[test]
-    fn no_install_serves_the_baked_table_without_extracting() {
+    fn an_install_without_a_build_id_serves_the_cache_as_stale_when_extraction_fails() {
+        let tmp = Tmp::new("stale-nobuild");
+        let cache = tmp.0.join("cache");
+        let old = seed_cache(&cache, Some(900));
+        let citadel = tmp.steam_layout(None);
+        let (map, _) = items(Some(citadel), &cache, Err("boom".into()));
+        let resolved = map.resolve();
+        assert_eq!(resolved.source, TableSource::StaleCache { installed_build: None });
+        assert_eq!(resolved.table, old);
+    }
+
+    #[test]
+    fn no_install_serves_the_last_cache_as_stale_without_extracting() {
+        let tmp = Tmp::new("none-cached");
+        let cache = tmp.0.join("cache");
+        let old = seed_cache(&cache, Some(900));
+        let (map, calls) = items(None, &cache, Ok((1, one_shop())));
+        let resolved = map.resolve();
+        assert_eq!(resolved.source, TableSource::StaleCache { installed_build: None });
+        assert_eq!(resolved.table, old);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn no_install_and_no_cache_gives_an_empty_table_without_extracting() {
         let tmp = Tmp::new("none");
         let (map, calls) = items(None, &tmp.0.join("cache"), Ok((1, one_shop())));
         let resolved = map.resolve();
-        assert_eq!(resolved.source, TableSource::Baked);
+        assert_eq!(resolved.source, TableSource::None);
+        assert!(resolved.table.rows.is_empty());
         assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
 
@@ -1283,7 +1679,7 @@ mod tests {
         let tmp = Tmp::new("memo");
         let citadel = tmp.steam_layout(Some(&manifest_with_build(900)));
         let (map, calls) = items(Some(citadel), &tmp.0.join("cache"), Err("boom".into()));
-        map.resolve();
+        assert_eq!(map.resolve().source, TableSource::None);
         map.resolve();
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
@@ -1293,11 +1689,9 @@ mod tests {
     }
 
     #[test]
-    fn the_baked_table_has_the_full_row_set() {
-        let table = baked_table();
+    fn the_fixture_has_the_full_row_set() {
+        let table = fixture_table();
         assert_eq!(table.schema, MAP_ITEMS_SCHEMA);
-        assert_eq!(table.build_id, Some(25997478));
-        assert_eq!(table.vents_crc, 0x8b7805dd);
         let expected = [
             (MapItemKind::Guardian, 6),
             (MapItemKind::Walker, 6),
@@ -1324,8 +1718,8 @@ mod tests {
     }
 
     #[test]
-    fn the_baked_table_matches_the_documented_coordinates() {
-        let table = baked_table();
+    fn the_fixture_matches_the_documented_coordinates() {
+        let table = fixture_table();
         let at = |kind: MapItemKind| -> Vec<(i32, i32)> {
             let mut v: Vec<_> = table
                 .rows
@@ -1359,8 +1753,8 @@ mod tests {
     }
 
     #[test]
-    fn the_baked_objective_ids_follow_the_enum() {
-        let table = baked_table();
+    fn the_fixture_objective_ids_follow_the_enum() {
+        let table = fixture_table();
         let ids = |kind: MapItemKind| {
             let mut v: Vec<u8> = table.rows.iter().filter(|r| r.kind == kind).filter_map(|r| r.objective_id).collect();
             v.sort();
@@ -1380,16 +1774,16 @@ mod tests {
 
     #[test]
     #[ignore = "needs a decoded default_ents.vents text dump; set DP_VENTS_TEXT"]
-    fn the_baked_table_matches_the_decoded_game_file() {
+    fn the_fixture_matches_the_decoded_game_file() {
         let path = std::env::var("DP_VENTS_TEXT").expect("set DP_VENTS_TEXT");
         let text = fs::read_to_string(path).unwrap();
         let rows = map_entities(&parse_vents_text(&text));
-        assert_eq!(rows, baked_table().rows);
+        assert_eq!(rows, fixture_table().rows);
     }
 
     #[test]
-    #[ignore = "writes data/map_items.tsv from the installed game; set DEADLOCK_CITADEL_DIR"]
-    fn regenerate_the_baked_table() {
+    #[ignore = "writes fixtures/map_items.tsv from the installed game; set DEADLOCK_CITADEL_DIR"]
+    fn regenerate_the_fixture() {
         let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("set DEADLOCK_CITADEL_DIR"));
         let extracted = VpkVentsSource.extract(&dir).unwrap();
         let rows = map_entities(&extracted.entities);
@@ -1401,7 +1795,7 @@ mod tests {
             rows,
             lanes,
         };
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("data/map_items.tsv");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_PATH);
         fs::write(path, table.to_tsv()).unwrap();
     }
 }

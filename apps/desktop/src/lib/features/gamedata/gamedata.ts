@@ -79,7 +79,10 @@ export async function loadMinimapArt(): Promise<MinimapArt | null> {
     }
 }
 
-/** Map objectives, neutrals and lane lines: read from the installed game, else the cache, else the table baked into the app. Null on failure. */
+/**
+ * Map objectives, neutrals and lane lines: from the installed game, else a cached decode, else the
+ * Deadlock API (no lanes, fewer rows), else an empty table. Null on failure.
+ */
 export async function loadMapItems(): Promise<MapItemsPayload | null> {
     try {
         return await command<MapItemsPayload>("game_map_items");

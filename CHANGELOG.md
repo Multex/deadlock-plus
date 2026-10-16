@@ -39,6 +39,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - The match time and mode now sit at the top of the Live page.
 - Server block updates no longer show a Windows notification while you're in the game.
+- When the game files can't be read, the replay map keeps the markers from the last game version it read.
+- With no earlier map data, the replay map gets most of its markers from the Deadlock API, without lane lines.
 
 ### Fixed
 

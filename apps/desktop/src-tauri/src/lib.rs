@@ -62,6 +62,7 @@ pub fn run() {
         .manage(dp_demos::pin::PinStore::default())
         .manage(dp_kv::KvStore::default())
         .manage(features::jobs::JobsState::default())
+        .manage(features::gamedata::map_items::ApiMapItems::default())
         .manage(features::diagnostics::scan_job::AddonScanState::default())
         .setup(|app| {
             features::crash::begin(app.handle());

@@ -3,7 +3,7 @@ import { emit } from "@tauri-apps/api/event";
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
 import CHANGELOG from "../../../../../CHANGELOG.md?raw";
-import MAP_ITEMS_TSV from "../../../../../crates/ring2/dp-gamedata/data/map_items.tsv?raw";
+import MAP_ITEMS_TSV from "../../../../../crates/ring2/dp-gamedata/fixtures/map_items.tsv?raw";
 import { version as APP_VERSION } from "../../../package.json";
 
 /** What a test reads from the page. Before load it may hold only `scenario`, to pick the one to start. */

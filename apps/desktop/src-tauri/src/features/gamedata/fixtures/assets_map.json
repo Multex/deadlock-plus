@@ -1,0 +1,648 @@
+{
+  "radius": 10752,
+  "images": {
+    "minimap": "https://assets-bucket.deadlock-api.com/assets-api-res/images/maps/minimap_midtown_mid.png"
+  },
+  "objective_positions": {
+    "team0_core": {
+      "left_relative": 0.2905,
+      "top_relative": 0.92
+    },
+    "team1_core": {
+      "left_relative": 0.4095,
+      "top_relative": 0.0
+    },
+    "team0_titan": {
+      "left_relative": 0.3905,
+      "top_relative": 0.8236
+    },
+    "team1_titan": {
+      "left_relative": 0.5095,
+      "top_relative": 0.0757
+    },
+    "team0_tier2_1": {
+      "left_relative": 0.1583,
+      "top_relative": 0.6702
+    },
+    "team0_tier2_3": {
+      "left_relative": 0.3901,
+      "top_relative": 0.6115
+    },
+    "team0_tier2_4": {
+      "left_relative": 0.7117,
+      "top_relative": 0.6853
+    },
+    "team1_tier2_1": {
+      "left_relative": 0.1981,
+      "top_relative": 0.2164
+    },
+    "team1_tier2_3": {
+      "left_relative": 0.5099,
+      "top_relative": 0.2885
+    },
+    "team1_tier2_4": {
+      "left_relative": 0.7497,
+      "top_relative": 0.2279
+    },
+    "team0_tier1_1": {
+      "left_relative": 0.069,
+      "top_relative": 0.5363
+    },
+    "team0_tier1_3": {
+      "left_relative": 0.45,
+      "top_relative": 0.5333
+    },
+    "team0_tier1_4": {
+      "left_relative": 0.7774,
+      "top_relative": 0.5423
+    },
+    "team1_tier1_1": {
+      "left_relative": 0.1226,
+      "top_relative": 0.3577
+    },
+    "team1_tier1_3": {
+      "left_relative": 0.45,
+      "top_relative": 0.3667
+    },
+    "team1_tier1_4": {
+      "left_relative": 0.828,
+      "top_relative": 0.3637
+    }
+  },
+  "zipline_paths": [
+    {
+      "origin": [
+        -1280.0,
+        -10774.0,
+        1472.0
+      ],
+      "color": "#29b1cc",
+      "P0_points": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1158.0,
+          288.0
+        ],
+        [
+          0.0,
+          1847.0,
+          708.0
+        ],
+        [
+          0.0,
+          3046.0,
+          1008.0
+        ],
+        [
+          0.0,
+          3942.0,
+          467.0
+        ],
+        [
+          0.0,
+          4646.0,
+          106.0
+        ]
+      ],
+      "P1_points": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -328.0244,
+          -148.0
+        ],
+        [
+          0.0,
+          -328.0244,
+          -240.0
+        ],
+        [
+          0.0,
+          -409.288,
+          47.082775
+        ],
+        [
+          0.0,
+          -303.91858,
+          171.3341
+        ],
+        [
+          0.0,
+          -248.23149,
+          89.048805
+        ]
+      ],
+      "P2_points": [
+        [
+          16.0,
+          606.0,
+          26.0
+        ],
+        [
+          0.0,
+          430.0,
+          186.0
+        ],
+        [
+          0.0,
+          430.0,
+          265.0
+        ],
+        [
+          0.0,
+          483.0,
+          -49.36621
+        ],
+        [
+          0.0,
+          229.72961,
+          -129.51007
+        ],
+        [
+          0.0,
+          146.71558,
+          -52.631702
+        ]
+      ],
+      "color_parsed": {
+        "red": 41,
+        "green": 177,
+        "blue": 204,
+        "alpha": 255
+      }
+    }
+  ],
+  "neutral_camps": [
+    {
+      "name": "dock_authority_camp",
+      "kind": "weak",
+      "position": [
+        -7168.0,
+        -1280.0,
+        264.008179
+      ],
+      "left_relative": 0.16666666666666666,
+      "top_relative": 0.5595238095238095,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_small_psd.png"
+    },
+    {
+      "name": "park_club_camp",
+      "kind": "weak",
+      "position": [
+        6304.0,
+        964.0,
+        264.008179
+      ],
+      "left_relative": 0.7931547619047619,
+      "top_relative": 0.45517113095238093,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_small_psd.png"
+    },
+    {
+      "name": "slums_garage_down_camp",
+      "kind": "medium",
+      "position": [
+        -3318.0,
+        -1260.0,
+        256.0
+      ],
+      "left_relative": 0.345703125,
+      "top_relative": 0.55859375,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_medium_psd.png"
+    },
+    {
+      "name": "park_chapel_camp",
+      "kind": "medium",
+      "position": [
+        7936.0,
+        -2288.0,
+        257.0
+      ],
+      "left_relative": 0.8690476190476191,
+      "top_relative": 0.6063988095238095,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_medium_psd.png"
+    },
+    {
+      "name": "dock_camp",
+      "kind": "strong",
+      "position": [
+        -9248.0,
+        0.0,
+        288.869995
+      ],
+      "left_relative": 0.06994047619047619,
+      "top_relative": 0.5,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_large_psd.png"
+    },
+    {
+      "name": "park_gate_camp",
+      "kind": "strong",
+      "position": [
+        9184.0,
+        0.0,
+        256.0
+      ],
+      "left_relative": 0.9270833333333334,
+      "top_relative": 0.5,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_large_psd.png"
+    },
+    {
+      "name": "chinatown_bell_1",
+      "kind": "vault",
+      "position": [
+        3248.0,
+        -1888.0,
+        2499.0
+      ],
+      "left_relative": 0.6510416666666666,
+      "top_relative": 0.5877976190476191,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_vault_psd.png"
+    },
+    {
+      "name": "slums_garage_up_camp",
+      "kind": "vault",
+      "position": [
+        -3264.0,
+        -1600.0,
+        564.0
+      ],
+      "left_relative": 0.3482142857142857,
+      "top_relative": 0.5744047619047619,
+      "icon": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/minimap/neutral_vault_psd.png"
+    }
+  ],
+  "entities": {
+    "crates": [
+      {
+        "position": [
+          -8976.0,
+          3840.0,
+          640.5
+        ],
+        "left_relative": 0.0826,
+        "top_relative": 0.3214,
+        "kind": "wooden_crate"
+      },
+      {
+        "position": [
+          -8902.06,
+          3843.61,
+          640.5
+        ],
+        "left_relative": 0.086,
+        "top_relative": 0.3213,
+        "kind": "wooden_crate"
+      }
+    ],
+    "tough_crates": [
+      {
+        "position": [
+          -9616.0,
+          592.0,
+          288.0
+        ],
+        "left_relative": 0.0528,
+        "top_relative": 0.4725,
+        "kind": "tough_crate"
+      },
+      {
+        "position": [
+          -9376.0,
+          -560.0,
+          288.0
+        ],
+        "left_relative": 0.064,
+        "top_relative": 0.526,
+        "kind": "tough_crate"
+      }
+    ],
+    "golden_statues": [
+      {
+        "position": [
+          -9280.0,
+          2938.88,
+          488.25
+        ],
+        "left_relative": 0.0685,
+        "top_relative": 0.3633,
+        "kind": "item_container"
+      },
+      {
+        "position": [
+          -8784.0,
+          -2256.0,
+          256.0
+        ],
+        "left_relative": 0.0915,
+        "top_relative": 0.6049,
+        "kind": "item_container"
+      }
+    ],
+    "bells": [
+      {
+        "position": [
+          2705.0,
+          -2000.0,
+          658.0
+        ],
+        "left_relative": 0.6258,
+        "top_relative": 0.593,
+        "kind": "bell"
+      },
+      {
+        "position": [
+          3456.0,
+          -1362.5,
+          664.0
+        ],
+        "left_relative": 0.6607,
+        "top_relative": 0.5634,
+        "kind": "bell"
+      }
+    ],
+    "healing_snacks": [
+      {
+        "position": [
+          -8576.0,
+          -3136.0,
+          896.0
+        ],
+        "left_relative": 0.1012,
+        "top_relative": 0.6458
+      },
+      {
+        "position": [
+          -8016.0,
+          2560.0,
+          720.0
+        ],
+        "left_relative": 0.1272,
+        "top_relative": 0.381
+      }
+    ],
+    "bridge_buffs": [
+      {
+        "position": [
+          -3936.0,
+          136.0,
+          912.0
+        ],
+        "left_relative": 0.317,
+        "top_relative": 0.4937
+      },
+      {
+        "position": [
+          3936.0,
+          -128.0,
+          912.0
+        ],
+        "left_relative": 0.683,
+        "top_relative": 0.506
+      }
+    ],
+    "climb_ropes": [
+      {
+        "position": [
+          -7248.0,
+          -2416.0,
+          632.0
+        ],
+        "left_relative": 0.1629,
+        "top_relative": 0.6124
+      },
+      {
+        "position": [
+          -6432.0,
+          2112.0,
+          640.0
+        ],
+        "left_relative": 0.2009,
+        "top_relative": 0.4018
+      }
+    ],
+    "teleporters": [
+      {
+        "position": [
+          -3904.0,
+          1792.0,
+          -128.0
+        ],
+        "left_relative": 0.3185,
+        "top_relative": 0.4167,
+        "target": [
+          3584.0,
+          2656.0,
+          -128.0
+        ]
+      },
+      {
+        "position": [
+          -3584.0,
+          -2784.0,
+          -112.0
+        ],
+        "left_relative": 0.3333,
+        "top_relative": 0.6295,
+        "target": [
+          3904.0,
+          -1664.0,
+          -144.0
+        ]
+      }
+    ],
+    "shops": [
+      {
+        "position": [
+          -8832.0,
+          -1944.0,
+          312.0
+        ],
+        "left_relative": 0.0893,
+        "top_relative": 0.5904,
+        "team": 0,
+        "kind": "lane"
+      },
+      {
+        "position": [
+          -3920.0,
+          1120.0,
+          -80.0
+        ],
+        "left_relative": 0.3177,
+        "top_relative": 0.4479,
+        "kind": "secret"
+      },
+      {
+        "position": [
+          -752.0,
+          -10714.0,
+          1142.5
+        ],
+        "left_relative": 0.465,
+        "top_relative": 0.9982,
+        "team": 0,
+        "kind": "base"
+      }
+    ],
+    "soul_urn_spawns": [
+      {
+        "position": [
+          -6584.0,
+          0.0,
+          144.0
+        ],
+        "left_relative": 0.1938,
+        "top_relative": 0.5
+      },
+      {
+        "position": [
+          -4544.0,
+          2560.0,
+          656.0
+        ],
+        "left_relative": 0.2887,
+        "top_relative": 0.381
+      }
+    ],
+    "soul_urn_pads": [
+      {
+        "position": [
+          -6592.0,
+          -8.0,
+          192.0
+        ],
+        "left_relative": 0.1935,
+        "top_relative": 0.5004
+      },
+      {
+        "position": [
+          6304.0,
+          -96.0,
+          192.0
+        ],
+        "left_relative": 0.7932,
+        "top_relative": 0.5045
+      }
+    ],
+    "base_sentries": [
+      {
+        "position": [
+          -1943.06,
+          -9740.36,
+          1155.52
+        ],
+        "left_relative": 0.4096,
+        "top_relative": 0.953,
+        "team": 0
+      },
+      {
+        "position": [
+          864.0,
+          9664.0,
+          1216.0
+        ],
+        "left_relative": 0.5402,
+        "top_relative": 0.0506,
+        "team": 1
+      }
+    ],
+    "bounce_pads": [
+      {
+        "position": [
+          -8390.0,
+          3777.49,
+          844.48
+        ],
+        "left_relative": 0.1098,
+        "top_relative": 0.3243,
+        "target": [
+          -5952.0,
+          3464.0,
+          688.0
+        ]
+      },
+      {
+        "position": [
+          -6112.0,
+          -704.0,
+          588.5
+        ],
+        "left_relative": 0.2158,
+        "top_relative": 0.5327,
+        "target": [
+          -3936.0,
+          128.0,
+          928.0
+        ]
+      }
+    ],
+    "steam_vents": [
+      {
+        "position": [
+          -8880.0,
+          3020.0,
+          256.0
+        ],
+        "left_relative": 0.0871,
+        "top_relative": 0.3596
+      },
+      {
+        "position": [
+          -8624.0,
+          -3456.0,
+          272.0
+        ],
+        "left_relative": 0.099,
+        "top_relative": 0.6607
+      }
+    ],
+    "cosmic_veils": [
+      {
+        "position": [
+          -7120.0,
+          -2368.0,
+          288.0
+        ],
+        "left_relative": 0.1689,
+        "top_relative": 0.6101
+      },
+      {
+        "position": [
+          -5112.0,
+          2668.0,
+          288.0
+        ],
+        "left_relative": 0.2623,
+        "top_relative": 0.3759
+      }
+    ],
+    "unstable_rifts": [
+      {
+        "position": [
+          -7648.0,
+          0.0,
+          420.0
+        ],
+        "left_relative": 0.1443,
+        "top_relative": 0.5
+      },
+      {
+        "position": [
+          7648.0,
+          0.0,
+          420.0
+        ],
+        "left_relative": 0.8557,
+        "top_relative": 0.5
+      }
+    ]
+  }
+}

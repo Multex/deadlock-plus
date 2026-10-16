@@ -1,3 +1,4 @@
+pub mod map_items;
 pub mod minimap;
 
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ pub mod commands {
     };
     use tauri::State;
 
+    use super::map_items::ApiMapItems;
     use super::minimap::MinimapArtResult;
 
     use crate::features::error::AppError;
@@ -93,11 +95,15 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub async fn game_map_items(items: State<'_, Arc<GameMapItems>>) -> Result<MapItemsPayload, AppError> {
+    pub async fn game_map_items(
+        items: State<'_, Arc<GameMapItems>>,
+        api: State<'_, ApiMapItems>,
+        http: State<'_, crate::http::Http>,
+    ) -> Result<MapItemsPayload, AppError> {
         let items = Arc::clone(items.inner());
-        tauri::async_runtime::spawn_blocking(move || MapItemsPayload::from(&*items.resolve()))
-            .await
-            .map_err(AppError::internal)
+        let resolved =
+            tauri::async_runtime::spawn_blocking(move || items.resolve()).await.map_err(AppError::internal)?;
+        Ok(super::map_items::map_items(&resolved, api.inner(), &http.0).await)
     }
 
     #[tauri::command]
