@@ -17,4 +17,4 @@ rank: number | null,
 /**
  * Net worth.
  */
-souls: number | null, kills: number | null, deaths: number | null, assists: number | null, heroDamage: number | null, objectiveDamage: number | null, healing: number | null, isYou: boolean, };
+souls: number | null, kills: number | null, deaths: number | null, assists: number | null, heroDamage: number | null, objectiveDamage: number | null, healing: number | null, selfHealing: number | null, isYou: boolean, };

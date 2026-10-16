@@ -66,6 +66,7 @@ const player = (over: Partial<LivePlayer> = {}): LivePlayer => ({
     heroDamage: 100,
     objectiveDamage: 10,
     healing: 0,
+    selfHealing: null,
     isYou: false,
     ...over,
 });

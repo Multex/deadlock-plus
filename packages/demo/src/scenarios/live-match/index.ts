@@ -64,6 +64,7 @@ function player(identity: Identity, cells: readonly number[], slot: number): Liv
         heroDamage: heroDamage!,
         objectiveDamage: objectiveDamage!,
         healing: healing!,
+        selfHealing: null,
         isYou,
     };
 }

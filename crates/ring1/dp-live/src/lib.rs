@@ -132,6 +132,7 @@ pub struct BoardPlayer {
     pub hero_damage: Option<u32>,
     pub objective_damage: Option<u32>,
     pub healing: Option<u32>,
+    pub self_healing: Option<u32>,
     pub is_you: bool,
 }
 

@@ -115,6 +115,7 @@ pub fn board_from_snapshot(snap: &LiveSnapshot) -> Board {
                 hero_damage: p.hero_damage,
                 objective_damage: p.objective_damage,
                 healing: p.healing,
+                self_healing: p.self_healing,
                 is_you: is_you(p),
             })
             .collect();
@@ -518,6 +519,7 @@ mod tests {
                 hero_damage: None,
                 objective_damage: None,
                 healing: None,
+                self_healing: None,
                 is_you: i == 0,
             })
             .collect();
@@ -638,6 +640,7 @@ mod tests {
             hero_damage: Some(300),
             objective_damage: Some(40),
             healing: Some(5),
+            self_healing: Some(7),
             packed_rank: Some(53),
             steam_id: Some(76_561_198_000_000_000 + u64::from(slot)),
             ..row(team, 10 + slot, local, observed)
@@ -686,6 +689,7 @@ mod tests {
                 hero_damage: Some(300),
                 objective_damage: Some(40),
                 healing: Some(5),
+                self_healing: Some(7),
                 is_you: false,
             }
         );

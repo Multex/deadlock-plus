@@ -68,6 +68,7 @@ pub struct LivePlayer {
     pub hero_damage: Option<u32>,
     pub objective_damage: Option<u32>,
     pub healing: Option<u32>,
+    pub self_healing: Option<u32>,
     pub is_you: bool,
 }
 
@@ -194,6 +195,7 @@ fn player(side_of: LiveSide, p: &BoardPlayer) -> LivePlayer {
         hero_damage: p.hero_damage,
         objective_damage: p.objective_damage,
         healing: p.healing,
+        self_healing: p.self_healing,
         is_you: p.is_you,
     }
 }
@@ -217,6 +219,7 @@ mod tests {
             hero_damage: Some(400),
             objective_damage: Some(50),
             healing: None,
+            self_healing: Some(9),
             is_you: you,
         }
     }
@@ -258,6 +261,7 @@ mod tests {
         let p = &m.teams[0].players[0];
         assert_eq!((p.key, p.side, p.is_you, p.hero_id, p.rank), (1, LiveSide::Amber, true, Some(11), Some(53)));
         assert_eq!(p.healing, None);
+        assert_eq!(p.self_healing, Some(9));
         assert_eq!(p.steam_id.as_deref(), Some("76561198000000001"));
         assert_eq!(m.teams[1].players[0].side, LiveSide::Sapphire);
     }
