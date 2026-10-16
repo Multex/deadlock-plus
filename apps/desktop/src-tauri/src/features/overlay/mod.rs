@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use dp_game::focus::{FocusState, GameFocus};
 use dp_sync::LockExt;
@@ -98,6 +99,9 @@ error_codes! {
 
 const TEST_KEY: &str = "notifications.overlay_test";
 
+/// Time to click into the game before the test toast appears.
+const TEST_DELAY: Duration = Duration::from_secs(3);
+
 static NEXT_TEST: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Default)]
@@ -171,12 +175,14 @@ pub mod commands {
         );
     }
 
-    /// Shows one corner toast whether or not the overlay is on, so the user can see where it lands first.
+    /// Shows one corner toast whether or not the overlay is on, so the user can see where it lands first. Waits
+    /// `TEST_DELAY` first, so the user can bring the game forward.
     #[tauri::command]
-    pub fn show_overlay_test(app: AppHandle) -> Result<(), AppError> {
+    pub async fn show_overlay_test(app: AppHandle) -> Result<(), AppError> {
         if app.state::<GameFocusService>().state().focus == GameFocus::Closed {
             return Err(OverlayError::GameNotRunning.into());
         }
+        tokio::time::sleep(TEST_DELAY).await;
         let locale = app.state::<I18nState>().locale();
         let text = (
             translate_in(&locale, &format!("{TEST_KEY}.title"), &[]),

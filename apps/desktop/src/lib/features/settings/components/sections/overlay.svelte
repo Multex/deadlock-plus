@@ -21,6 +21,8 @@
 
     let { show }: { show: (id: string) => boolean } = $props();
 
+    // Display only: the backend does the waiting, so the window can lose focus without the toast slipping.
+    const TEST_DELAY_SECS = 3;
     const OVERLAY_IDS = ["overlay", "overlay-position", "overlay-duration", "overlay-test"];
 
     const positionLabels = $derived<Record<OverlayPosition, string>>({
@@ -38,6 +40,7 @@
 
     let status = $state<OverlayStatus>(NO_GAME);
     let testing = $state(false);
+    let countdown = $state(TEST_DELAY_SECS);
 
     $effect(() => {
         let alive = true;
@@ -56,11 +59,14 @@
 
     async function showTest() {
         testing = true;
+        countdown = TEST_DELAY_SECS;
+        const timer = setInterval(() => (countdown = Math.max(1, countdown - 1)), 1000);
         try {
             await showOverlayTest();
         } catch (e) {
             toast.error(errorText(e));
         } finally {
+            clearInterval(timer);
             testing = false;
         }
     }
@@ -142,7 +148,9 @@
                     onclick={showTest}
                 >
                     <MonitorPlay aria-hidden="true" />
-                    {t("settings.notifications.overlay_test_button")}
+                    {testing
+                        ? t("settings.notifications.overlay_test_countdown", { seconds: countdown })
+                        : t("settings.notifications.overlay_test_button")}
                 </Button>
             </SettingRow>
         {/if}

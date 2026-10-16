@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - You can pick where overlay notifications appear on screen.
 - You can choose how long overlay notifications stay up.
 - A Show test button shows a sample notification over the game.
+- The test notification waits 3 seconds, so you can click into the game first.
 - "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
 - Settings > Notifications has a switch to turn "Match found" off.
 

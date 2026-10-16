@@ -248,6 +248,7 @@
             "overlay_duration_description": "How long each notification stays on screen.",
             "overlay_test_description": "Shows a sample notification over the game.",
             "overlay_test_button": "Show test",
+            "overlay_test_countdown": "Showing in {seconds}",
             "overlay_seconds": "{seconds} s",
             "position": {
                 "top_left": "Top left",
