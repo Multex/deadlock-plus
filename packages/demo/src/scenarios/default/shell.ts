@@ -8,6 +8,7 @@ import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
 import type { LiveState } from "@deadlock-plus/ipc-types/LiveState";
 import type { MaintenanceSchedule } from "@deadlock-plus/ipc-types/MaintenanceSchedule";
+import type { OverlayStatus } from "@deadlock-plus/ipc-types/OverlayStatus";
 import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
 import type { PresenceSample } from "@deadlock-plus/ipc-types/PresenceSample";
 import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
@@ -184,6 +185,7 @@ const SETTERS = [
     "set_close_to_tray",
     "set_maintenance_schedule",
     "set_alerts_enabled",
+    "set_overlay_settings",
     "set_presence_settings",
     "set_presence_art",
     "force_run_job",
@@ -239,6 +241,10 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                     return null;
                 },
                 is_game_running: () => false,
+                overlay_status: (): OverlayStatus => ({ gameOpen: false, exclusiveFullscreen: false }),
+                show_overlay_test: () => {
+                    throw { code: "overlay.game_not_running", params: {} };
+                },
                 main_window_visible: () => true,
                 get_live_state: () => LIVE_STATE,
                 get_live_match: () => LIVE_MATCH,

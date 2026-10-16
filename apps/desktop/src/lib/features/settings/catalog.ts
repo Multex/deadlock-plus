@@ -198,6 +198,50 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "steam weekly maintenance downtime tuesday wednesday utc remind toast schedule",
     },
     {
+        id: "overlay",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay");
+        },
+        get description() {
+            return t("settings.notifications.overlay_description");
+        },
+        keywords: "overlay in game toast popup over the game full screen borderless window mode",
+    },
+    {
+        id: "overlay-position",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_position");
+        },
+        get description() {
+            return t("settings.notifications.overlay_position_description");
+        },
+        keywords: "overlay position corner top bottom left right center placement where screen",
+    },
+    {
+        id: "overlay-duration",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_duration");
+        },
+        get description() {
+            return t("settings.notifications.overlay_duration_description");
+        },
+        keywords: "overlay duration seconds time how long stay visible",
+    },
+    {
+        id: "overlay-test",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_test");
+        },
+        get description() {
+            return t("settings.notifications.overlay_test_description");
+        },
+        keywords: "overlay test preview try sample example show",
+    },
+    {
         id: "telemetry",
         category: "privacy",
         get title() {

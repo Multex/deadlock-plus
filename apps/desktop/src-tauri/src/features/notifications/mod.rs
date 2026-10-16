@@ -16,6 +16,7 @@ pub use route::{Delivery, Placement, Route, Visibility};
 
 use crate::features::game_focus::GameFocusService;
 use crate::features::i18n::{translate_in, I18nState};
+use crate::features::overlay;
 use crate::features::tray::badges;
 use dp_game::focus::GameFocus;
 use dp_sync::LockExt;
@@ -199,16 +200,18 @@ impl Sinks for AppSinks<'_> {
     }
 
     fn overlay(&mut self, notif: &AppNotification, placement: Placement) {
-        log::debug!("overlay toast {} ({placement:?}) has no window to show in", notif.id);
+        let text = toast_text(&self.app.state::<I18nState>().locale(), notif);
+        overlay::show_toast(self.app, notif.id.clone(), notif.kind, text, placement);
     }
 }
 
 fn inputs(app: &AppHandle) -> Inputs {
+    let focus = app.state::<GameFocusService>().state();
     Inputs {
         game_running: dp_game::is_running(),
-        game_focused: app.state::<GameFocusService>().state().focus == GameFocus::Focused,
+        game_focused: focus.focus == GameFocus::Focused,
         main_focused: app.get_webview_window(MAIN_WINDOW).and_then(|w| w.is_focused().ok()).unwrap_or(false),
-        overlay_available: false,
+        overlay_available: overlay::available(app, &focus),
     }
 }
 

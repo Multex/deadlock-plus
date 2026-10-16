@@ -4,6 +4,7 @@ import {
     setGcRecoveryEnabled,
     setIngestEnabled,
     setMaintenanceSchedule,
+    setOverlaySettings,
 } from "./api";
 import { kvGet, kvSet } from "$lib/core/kv";
 import { setPresenceArt, setPresenceSettings } from "$lib/features/presence/api";
@@ -16,6 +17,7 @@ import { resolveTelemetry, shouldSend } from "$lib/features/telemetry/consent";
 import { resetTelemetryId, setTelemetrySettings } from "$lib/features/telemetry/api";
 import { resolveIngestConsent } from "./ingest-consent";
 import { DEFAULT_SCHEDULE, type MaintenanceSchedule } from "./maintenance";
+import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
 import { DEFAULT_THEME, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
 
 const STORE = "app-settings";
@@ -25,6 +27,7 @@ const GC_RECOVERY_KEY = "gcRecovery";
 const CLOSE_TO_TRAY_KEY = "closeToTray";
 const MAINTENANCE_KEY = "maintenanceSchedule";
 const ALERTS_KEY = "updateAlerts";
+const OVERLAY_KEY = "overlay";
 const BREAK_HINT_KEY = "breakHint";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
@@ -54,6 +57,7 @@ class Settings {
     closeToTray = $state(false);
     maintenance = $state<MaintenanceSchedule>({ ...DEFAULT_SCHEDULE });
     updateAlerts = $state(false);
+    overlay = $state<OverlaySettings>({ ...DEFAULT_OVERLAY });
     breakHint = $state(false);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
@@ -82,6 +86,7 @@ class Settings {
         const schedule = await stored<Partial<MaintenanceSchedule>>(MAINTENANCE_KEY);
         this.maintenance = { ...DEFAULT_SCHEDULE, ...schedule };
         this.updateAlerts = (await stored<boolean>(ALERTS_KEY)) ?? false;
+        this.overlay = resolveOverlay(await stored<unknown>(OVERLAY_KEY));
         this.breakHint = (await stored<boolean>(BREAK_HINT_KEY)) ?? false;
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
@@ -93,6 +98,7 @@ class Settings {
         await this.applyCloseToTray();
         await this.applyMaintenance();
         await this.applyUpdateAlerts();
+        await this.applyOverlay();
         await this.applyPresence();
         this.resolveReady();
     }
@@ -132,6 +138,24 @@ class Settings {
         await this.applyUpdateAlerts();
         try {
             await kvSet(STORE, ALERTS_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    private async applyOverlay() {
+        try {
+            await setOverlaySettings($state.snapshot(this.overlay));
+        } catch {
+            // Not running inside Tauri.
+        }
+    }
+
+    async setOverlay(patch: Partial<OverlaySettings>) {
+        this.overlay = { ...this.overlay, ...patch };
+        await this.applyOverlay();
+        try {
+            await kvSet(STORE, OVERLAY_KEY, $state.snapshot(this.overlay));
         } catch {
             // The choice just won't persist across restarts.
         }

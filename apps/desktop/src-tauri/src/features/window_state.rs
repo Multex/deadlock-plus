@@ -10,7 +10,7 @@ fn restored_state() -> StateFlags {
 }
 
 pub fn plugin() -> TauriPlugin<Wry> {
-    tauri_plugin_window_state::Builder::default().with_state_flags(restored_state()).build()
+    tauri_plugin_window_state::Builder::default().with_state_flags(restored_state()).with_denylist(&["overlay"]).build()
 }
 
 #[cfg(test)]

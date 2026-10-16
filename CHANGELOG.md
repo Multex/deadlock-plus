@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+#### Game overlay
+
+- Notifications show over the game instead of as Windows notifications while you play.
+- The overlay needs Borderless Window or Window mode; Settings says when Deadlock is in Full Screen.
+- Settings > Notifications has a switch to turn the overlay off.
+- You can pick where overlay notifications appear on screen.
+- You can choose how long overlay notifications stay up.
+- A Show test button shows a sample notification over the game.
+
 ### Changed
 
 - Server block updates no longer show a Windows notification while you're in the game.

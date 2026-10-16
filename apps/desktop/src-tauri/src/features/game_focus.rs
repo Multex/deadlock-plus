@@ -2,6 +2,9 @@ use std::sync::Mutex;
 
 use dp_game::focus::{FocusState, FocusWatcher};
 use dp_sync::LockExt;
+use tauri::AppHandle;
+
+use crate::features::overlay;
 
 #[derive(Default)]
 pub struct GameFocusService {
@@ -10,12 +13,17 @@ pub struct GameFocusService {
 
 impl GameFocusService {
     /// Idempotent. Runs for the app's lifetime; it only reads windows while the game is running.
-    pub fn start(&self) {
+    pub fn start(&self, app: &AppHandle) {
         let mut watcher = self.watcher.lock_or_recover();
         if watcher.is_some() {
             return;
         }
-        match FocusWatcher::start(|state| log::debug!("game focus: {state:?}")) {
+        let app = app.clone();
+        let on_change = move |state| {
+            log::debug!("game focus: {state:?}");
+            overlay::on_focus_change(&app, state);
+        };
+        match FocusWatcher::start(on_change) {
             Ok(started) => *watcher = Some(started),
             Err(e) => log::warn!("game focus watcher could not start: {e}"),
         }

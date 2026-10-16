@@ -116,6 +116,9 @@
         "presence": {
             "import_invalid": "That isn't a Deadlock+ presence preset. Copy the whole export text and try again.",
             "save_failed": "Couldn't save your Discord presence settings. Check the log for details."
+        },
+        "overlay": {
+            "game_not_running": "Start Deadlock to test the overlay."
         }
     },
     "settings": {
@@ -159,7 +162,11 @@
             "thanks": "Thanks",
             "diagnostics": "Diagnostics",
             "licenses": "Licenses",
-            "storage": "Disk usage"
+            "storage": "Disk usage",
+            "overlay": "Game overlay",
+            "overlay_position": "Overlay position",
+            "overlay_duration": "Overlay duration",
+            "overlay_test": "Test the overlay"
         },
         "nav": {
             "label": "Settings categories",
@@ -229,7 +236,25 @@
             "time": "Time (UTC)",
             "remind": "Remind me",
             "lead_minutes": "{minutes} min before",
-            "lead_hours": "{hours} h before"
+            "lead_hours": "{hours} h before",
+            "overlay_description": "Show notifications on top of Deadlock while you play.",
+            "overlay_fullscreen": "Deadlock is in Full Screen mode. Switch to Borderless Window to see the overlay over the game.",
+            "overlay_position_description": "Where notifications appear over the game.",
+            "overlay_duration_description": "How long each notification stays on screen.",
+            "overlay_test_description": "Shows a sample notification over the game.",
+            "overlay_test_button": "Show test",
+            "overlay_seconds": "{seconds} s",
+            "position": {
+                "top_left": "Top left",
+                "top_center": "Top center",
+                "top_right": "Top right",
+                "left": "Left",
+                "right": "Right",
+                "bottom_left": "Bottom left",
+                "bottom_center": "Bottom center",
+                "bottom_right": "Bottom right",
+                "center": "Match found"
+            }
         },
         "weekdays": {
             "monday": "Monday",
@@ -523,6 +548,10 @@
         "break_reminder": {
             "title": "Time for a break?",
             "body": "{count} losses in a row this session. A short break might be worth it."
+        },
+        "overlay_test": {
+            "title": "Overlay test",
+            "body": "Deadlock+ notifications show here while you play."
         }
     },
     "common": {

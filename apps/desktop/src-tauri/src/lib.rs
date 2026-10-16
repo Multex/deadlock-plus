@@ -45,6 +45,7 @@ pub fn run() {
         .manage(features::live::LiveService::default())
         .manage(features::live::link::GameLinkService::default())
         .manage(features::game_focus::GameFocusService::default())
+        .manage(features::overlay::OverlayService::default())
         .manage(PresenceService::default())
         .manage(dp_frames::capture::FrameCapture::default())
         .manage(features::i18n::I18nState::default())
@@ -82,7 +83,8 @@ pub fn run() {
             #[cfg(windows)]
             features::context_menu::install(app.handle());
             app.state::<features::live::link::GameLinkService>().start(app.handle());
-            app.state::<features::game_focus::GameFocusService>().start();
+            app.state::<features::overlay::OverlayService>().start(app.handle());
+            app.state::<features::game_focus::GameFocusService>().start(app.handle());
             app.state::<PostgameService>().start(app.handle());
             features::maintenance::start(app.handle());
             features::presence::start(app.handle());
@@ -201,6 +203,9 @@ pub fn run() {
             features::notifications::commands::mark_notifications_read,
             features::notifications::commands::mark_notification_read,
             features::notifications::commands::notify_break_reminder,
+            features::overlay::commands::set_overlay_settings,
+            features::overlay::commands::show_overlay_test,
+            features::overlay::commands::overlay_status,
             features::patch_notes::commands::search_patch_notes,
             features::jobs::commands::jobs_snapshot,
             features::jobs::commands::cancel_job,

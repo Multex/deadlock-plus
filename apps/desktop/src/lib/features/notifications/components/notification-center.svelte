@@ -1,9 +1,10 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { Bell, CalendarClock, Check, Coffee, Megaphone, Server } from "@lucide/svelte";
+    import { Bell, Check } from "@lucide/svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import { kindIcon } from "$lib/features/notifications/kind-icon";
     import { notifications } from "$lib/features/notifications/notifications.svelte";
     import { formatRelative, notificationText, type AppNotification } from "$lib/features/notifications/notifications";
 
@@ -47,20 +48,13 @@
             {:else}
                 {#each notifications.items as item (item.id)}
                     {@const text = notificationText(item)}
+                    {@const Icon = kindIcon(item.kind)}
                     <div class="group flex items-start gap-1 rounded-sm px-1 py-1 transition-colors hover:bg-accent/60">
                         <DropdownMenu.Item
                             onSelect={() => openItem(item)}
                             class="flex min-w-0 flex-1 items-start gap-2.5 px-1.5 py-1 text-left"
                         >
-                            {#if item.kind === "maintenance"}
-                                <CalendarClock class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                            {:else if item.kind === "servers"}
-                                <Server class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                            {:else if item.kind === "session"}
-                                <Coffee class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                            {:else}
-                                <Megaphone class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                            {/if}
+                            <Icon class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5">
                                     {#if !item.read}

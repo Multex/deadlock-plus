@@ -20,6 +20,7 @@ pub mod maintenance;
 pub mod match_history;
 pub mod network;
 pub mod notifications;
+pub mod overlay;
 pub mod patch_notes;
 pub mod postgame;
 pub mod presence;
