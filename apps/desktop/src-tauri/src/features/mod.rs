@@ -7,6 +7,7 @@ pub mod demos;
 pub mod diagnostics;
 pub mod error;
 pub mod export;
+pub mod game_focus;
 pub mod gamedata;
 pub mod gc;
 pub mod i18n;

@@ -44,6 +44,7 @@ pub fn run() {
         .manage(PostgameService::default())
         .manage(features::live::LiveService::default())
         .manage(features::live::link::GameLinkService::default())
+        .manage(features::game_focus::GameFocusService::default())
         .manage(PresenceService::default())
         .manage(dp_frames::capture::FrameCapture::default())
         .manage(features::i18n::I18nState::default())
@@ -81,6 +82,7 @@ pub fn run() {
             #[cfg(windows)]
             features::context_menu::install(app.handle());
             app.state::<features::live::link::GameLinkService>().start(app.handle());
+            app.state::<features::game_focus::GameFocusService>().start();
             app.state::<PostgameService>().start(app.handle());
             features::maintenance::start(app.handle());
             features::presence::start(app.handle());
@@ -238,6 +240,7 @@ pub fn run() {
             handle.state::<PostgameService>().stop();
             handle.state::<PresenceService>().stop();
             handle.state::<features::live::link::GameLinkService>().stop();
+            handle.state::<features::game_focus::GameFocusService>().stop();
             handle.state::<dp_frames::capture::FrameCapture>().stop();
             log::logger().flush();
         }
