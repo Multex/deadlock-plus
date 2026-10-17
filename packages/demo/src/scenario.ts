@@ -29,8 +29,11 @@ export interface Module {
     name: string;
     /** Commands this module takes over from a module listed before it. */
     overrides?: readonly string[];
-    /** Runs once per install, so any state it closes over belongs to that install alone. */
-    create(context: ScenarioContext): ModuleParts;
+    /**
+     * Runs once per install, so any state it closes over belongs to that install alone. `replaced` holds this
+     * install's earlier answers to the commands named in `overrides`, so an override can wrap them.
+     */
+    create(context: ScenarioContext, replaced: Readonly<Handlers>): ModuleParts;
 }
 
 export interface ScenarioSpec extends ScenarioContext {
@@ -95,7 +98,13 @@ function assemble(spec: ScenarioSpec, layers: readonly ModuleParts[]): Assembled
     };
 
     for (const module of spec.modules) {
-        const parts = module.create({ identity, now, seed });
+        const replaced = Object.fromEntries(
+            (module.overrides ?? []).flatMap((command) => {
+                const handler = out.handlers[command];
+                return handler ? [[command, handler]] : [];
+            }),
+        );
+        const parts = module.create({ identity, now, seed }, replaced);
         for (const [command, handler] of Object.entries(parts.handlers ?? {})) {
             claim("command", "handle", command, module, module.overrides?.includes(command));
             out.handlers[command] = handler;

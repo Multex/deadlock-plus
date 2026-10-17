@@ -45,7 +45,20 @@ describe("scenario", () => {
     it("hands each module the scenario's identity, clock and seed", () => {
         const create = vi.fn(() => ({}));
         start(defineScenario(spec([{ name: "probe", create }])));
-        expect(create).toHaveBeenLastCalledWith({ identity: IDENTITY, now: NOW, seed: 5 });
+        expect(create).toHaveBeenLastCalledWith({ identity: IDENTITY, now: NOW, seed: 5 }, {});
+    });
+
+    it("hands an override the handler it replaces, from the same install", () => {
+        const doubled: Module = {
+            name: "doubled",
+            overrides: ["count"],
+            create: (_, replaced) => ({ handlers: { count: (args) => Number(replaced.count!(args)) * 2 } }),
+        };
+        const scenario = defineScenario(spec([counter, doubled]));
+        const first = start(scenario);
+        first.invoke("bump", {});
+        expect(first.invoke("count", {})).toBe(2);
+        expect(start(scenario).invoke("count", {})).toBe(0);
     });
 
     it("refuses two modules that answer the same command", () => {

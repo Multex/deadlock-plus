@@ -28,7 +28,7 @@ function noAccount(): never {
 
 /** `module` with its parts changed after each create, so the change works on that install's own state. */
 function adapted(module: Module, change: (parts: ModuleParts) => ModuleParts): Module {
-    return { name: module.name, create: (context) => change(module.create(context)) };
+    return { name: module.name, create: (context, replaced) => change(module.create(context, replaced)) };
 }
 
 /**

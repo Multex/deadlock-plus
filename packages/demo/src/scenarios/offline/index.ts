@@ -48,8 +48,8 @@ function withoutGameData(module: Module): Module {
     };
     return {
         name: module.name,
-        create(context) {
-            const parts = module.create(context);
+        create(context, replaced) {
+            const parts = module.create(context, replaced);
             return { ...parts, handlers: { ...parts.handlers, ...handlers } };
         },
     };

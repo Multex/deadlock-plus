@@ -38,6 +38,17 @@ describe("admin access module", () => {
         expect(status()).toEqual({ elevated: true, route: "inProcess", canPrompt: false, gameRunsAsAdmin: false });
     });
 
+    it("lets privileged work through in the default scenario", () => {
+        handle = install(defaultScenario(OPTIONS));
+        handle.invoke("block_server_groups", { groups: [{ id: "fra" }] });
+        expect(handle.invoke("list_blocked_group_ids", { candidateIds: ["fra"] })).toEqual(["fra"]);
+        handle.invoke("start_frame_capture", {});
+        handle.invoke("frame_capture_status", {});
+        expect(handle.invoke("frame_capture_status", {})).toMatchObject({ state: "capturing", error: null });
+        handle.invoke("start_network_monitor", { allowPrompt: false });
+        expect(handle.invoke("network_snapshot", {})).toMatchObject({ needsPermission: false });
+    });
+
     it("refuses to allow or remove while elevated", () => {
         start();
         expect(() => handle!.invoke("allow_admin_access", { always: false })).toThrow(

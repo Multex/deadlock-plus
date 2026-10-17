@@ -155,8 +155,8 @@ function gameRunning(): never {
 function adapted(module: Module, change: (handlers: Handlers, identity: Identity) => Handlers): Module {
     return {
         name: module.name,
-        create(context) {
-            const parts = module.create(context);
+        create(context, replaced) {
+            const parts = module.create(context, replaced);
             const handlers = parts.handlers ?? {};
             return { ...parts, handlers: { ...handlers, ...change(handlers, context.identity) } };
         },
