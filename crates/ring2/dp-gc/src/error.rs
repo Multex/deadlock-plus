@@ -7,6 +7,10 @@ pub enum GcError {
     AuthUnavailable(String),
     /// The GC handshake or a GC job failed, for example because the account does not own the game.
     GcUnavailable(String),
+    /// Claiming the game for a request failed: Steam or the GC never welcomed the session.
+    ClaimFailed(String),
+    /// The user's own Steam client needs the game, or Steam logged the session off.
+    Yielded,
     /// Steam's GC is throttling this account.
     GcRateLimited,
     /// The GC refused a friend's match history because their profile is private.
@@ -22,6 +26,8 @@ impl fmt::Display for GcError {
         match self {
             Self::AuthUnavailable(s) => write!(f, "Steam session unavailable: {s}"),
             Self::GcUnavailable(s) => write!(f, "Steam GC unavailable: {s}"),
+            Self::ClaimFailed(s) => write!(f, "Steam GC claim failed: {s}"),
+            Self::Yielded => write!(f, "stopped for the user's own Steam client"),
             Self::GcRateLimited => write!(f, "Steam GC rate-limited the request"),
             Self::HistoryPrivate => write!(f, "match history is private"),
             Self::Api(s) => write!(f, "deadlock-api request failed: {s}"),

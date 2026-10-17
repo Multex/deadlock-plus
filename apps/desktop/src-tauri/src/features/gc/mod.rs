@@ -15,9 +15,10 @@ use ts_rs::TS;
 
 use dp_gc::auth::{self, AuthContext};
 use dp_gc::client::{GcSession, RecoveredSalts};
+use dp_gc::error::GcError as SteamGcError;
 use dp_gc::friends;
 use dp_gc::ledger::{FriendCooldowns, SaltAttempts};
-use dp_gc::pass::{fetch_loop, history_loop, AccountState, Host, GC_BACKOFF_SECS};
+use dp_gc::pass::{fetch_loop, history_loop, with_release, AccountState, Host, GC_BACKOFF_SECS};
 use dp_gc::picks::fresh_newest_first;
 use dp_ingest::salts::Salts;
 use dp_kv::KvStore;
@@ -315,23 +316,31 @@ async fn friend_matches(
     ids
 }
 
+/// Whether a pass goes on to the next account.
+#[derive(Debug, PartialEq, Eq)]
+enum Flow {
+    Next,
+    /// The user's own Steam client needs the game.
+    Stop,
+}
+
 async fn run_account(
     ctx: &AuthContext,
     ledger: &mut Ledger,
     http: &reqwest::Client,
     host: &mut impl Host,
     processed: &mut HashSet<u64>,
-) -> Result<(), AppError> {
+) -> Result<Flow, AppError> {
     let now = now_secs();
     let Ledger { accounts, attempts, cooldowns } = ledger;
     let state = accounts.entry(ctx.steam_id64.to_string()).or_default();
     if state.backed_off(now) {
         log::debug!("gc: account {} is backed off, skipping", ctx.account_id());
-        return Ok(());
+        return Ok(Flow::Next);
     }
     if state.quota.remaining(now) == 0 {
         log::debug!("gc: account {} has used its 24h quota", ctx.account_id());
-        return Ok(());
+        return Ok(Flow::Next);
     }
 
     // A failed to-fetch read only empties that phase; friends' matches can still be fetched.
@@ -344,7 +353,7 @@ async fn run_account(
     };
     if to_fetch.iter().all(|id| processed.contains(id)) && state.history_budget(now) == 0 {
         log::debug!("gc: nothing to fetch for account {}", ctx.account_id());
-        return to_fetch_error.map_or(Ok(()), Err);
+        return to_fetch_error.map_or(Ok(Flow::Next), Err);
     }
 
     // A failed handshake repeats identically on every pass, for example when the account does
@@ -354,21 +363,33 @@ async fn run_account(
             state.backoff_until = None;
             s
         }
+        Err(SteamGcError::Yielded) => {
+            state.yield_to_user(now);
+            return Ok(Flow::Stop);
+        }
         Err(e) => {
             log::warn!("gc: account {} cannot reach the GC: {e}", ctx.account_id());
             state.backoff_until = Some(now + GC_BACKOFF_SECS);
-            return Ok(());
+            return Ok(Flow::Next);
         }
     };
 
-    let mut ids = friend_matches(&session, state, attempts, cooldowns, http, host, processed).await;
-    ids.extend(fresh_newest_first(to_fetch, processed, usize::MAX));
-    let outcome = fetch_loop(&session, host, ids, state, processed, attempts).await;
+    let (outcome, yielded) = with_release(session, async |session| {
+        let mut ids = friend_matches(session, state, attempts, cooldowns, http, host, processed).await;
+        ids.extend(fresh_newest_first(to_fetch, processed, usize::MAX));
+        let outcome = fetch_loop(session, host, ids, state, processed, attempts).await;
+        (outcome, session.yielded())
+    })
+    .await;
+    if yielded {
+        state.yield_to_user(now_secs());
+        return Ok(Flow::Stop);
+    }
     if outcome.rate_limited {
         log::warn!("gc: account {} was rate-limited by Steam", ctx.account_id());
     }
     log::debug!("gc: account {} delivered {} match(es)", ctx.account_id(), outcome.delivered);
-    to_fetch_error.map_or(Ok(()), Err)
+    to_fetch_error.map_or(Ok(Flow::Next), Err)
 }
 
 async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
@@ -410,14 +431,21 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
             halted,
             on_delivered: || shared.status.lock_or_recover().delivered += 1,
         };
-        match run_account(ctx, &mut ledger, http, &mut host, &mut processed).await {
-            Ok(()) => shared.status.lock_or_recover().last_error = None,
+        let flow = match run_account(ctx, &mut ledger, http, &mut host, &mut processed).await {
+            Ok(flow) => {
+                shared.status.lock_or_recover().last_error = None;
+                flow
+            }
             Err(e) => {
                 log::warn!("gc: account {} pass failed: {e}", ctx.account_id());
                 shared.status.lock_or_recover().last_error = Some(e);
+                Flow::Next
             }
-        }
+        };
         ledger.save(app);
+        if flow == Flow::Stop {
+            break;
+        }
     }
 }
 

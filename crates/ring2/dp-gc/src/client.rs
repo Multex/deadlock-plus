@@ -1,12 +1,22 @@
 use std::collections::{HashMap, HashSet};
+use std::future::ready;
 use std::future::Future;
-use std::time::Duration;
+use std::pin::pin;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
-use futures_util::StreamExt as _;
+use futures_util::future::{select, Either};
+use futures_util::{stream, Stream, StreamExt as _};
 use prost::Message as _;
+use steam_vent::proto::enums_clientserver::EMsg;
+use steam_vent::proto::steammessages_clientserver::cmsg_client_games_played::GamePlayed;
+use steam_vent::proto::steammessages_clientserver::CMsgClientGamesPlayed;
+use steam_vent::proto::steammessages_clientserver_2::CMsgClientPlayingSessionState;
 use steam_vent::proto::steammessages_clientserver_friends::{
     CMsgClientFriendsList, CMsgClientPersonaState, CMsgClientRequestFriendData,
 };
+use steam_vent::proto::steammessages_clientserver_login::{CMsgClientHello, CMsgClientLoggedOff};
 use steam_vent::proto::{MsgKind, RpcMessageWithKind as _};
 use steam_vent::{Connection, ConnectionTrait, GameCoordinator, RawNetMessage, ServerList, UntypedMessage};
 use valveprotos::deadlock::c_msg_client_to_gc_get_match_history_response::EResult as HistoryResult;
@@ -19,12 +29,16 @@ use valveprotos::deadlock::{
 use crate::auth::{account_id_of, AuthContext};
 use crate::error::GcError;
 use crate::friends::Persona;
+use crate::pass::claimed;
 
 const DEADLOCK_APP_ID: u32 = 1422450;
 const GC_CALL_TIMEOUT: Duration = Duration::from_secs(30);
+// The GC drops hellos sent before it is ready for the session, so they are repeated until it
+// welcomes one.
+const HELLO_INTERVAL: Duration = Duration::from_secs(5);
 const STEAM_ID_64_IDENT: u64 = 76561197960265728;
-// Steam pushes the friends list right after logon. It normally lands during the GC handshake, so
-// this only bounds the wait when it never comes.
+// Steam pushes the friends list right after logon. It normally lands during the handshake check,
+// so this only bounds the wait when it never comes.
 const FRIENDS_LIST_WAIT: Duration = Duration::from_secs(5);
 // Persona states arrive as a burst of pushes, not as one reply.
 const PERSONA_WAIT: Duration = Duration::from_secs(5);
@@ -93,6 +107,90 @@ pub fn friend_account_ids(list: &CMsgClientFriendsList) -> Vec<u32> {
         .collect()
 }
 
+/// What Steam tells the session about who may play on the account.
+#[derive(Debug, Clone, PartialEq)]
+pub enum SessionEvent {
+    Playing(CMsgClientPlayingSessionState),
+    LoggedOff,
+    /// The connection ended, so no more events will come.
+    Closed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionAction {
+    Keep,
+    Yield,
+}
+
+/// Steam blocks this session from playing once another session of the account plays, for
+/// example when the user presses Play in their own client.
+pub fn on_session_event(event: &SessionEvent) -> SessionAction {
+    match event {
+        SessionEvent::Playing(state) if state.playing_blocked == Some(true) => SessionAction::Yield,
+        SessionEvent::Playing(_) => SessionAction::Keep,
+        SessionEvent::LoggedOff | SessionEvent::Closed => SessionAction::Yield,
+    }
+}
+
+fn session_event(raw: RawNetMessage) -> Option<SessionEvent> {
+    if raw.kind == MsgKind::from(CMsgClientPlayingSessionState::KIND) {
+        raw.into_message().ok().map(SessionEvent::Playing)
+    } else if raw.kind == MsgKind::from(CMsgClientLoggedOff::KIND) {
+        Some(SessionEvent::LoggedOff)
+    } else {
+        None
+    }
+}
+
+/// Every session event Steam sends from now on, then `Closed` when the connection ends.
+fn session_events(conn: &Connection) -> impl Stream<Item = SessionEvent> + Send + 'static + use<'_> {
+    let playing = conn.on::<CMsgClientPlayingSessionState>().filter_map(|m| ready(m.ok().map(SessionEvent::Playing)));
+    let logged_off = conn.on::<CMsgClientLoggedOff>().filter_map(|m| ready(m.ok().map(|_| SessionEvent::LoggedOff)));
+    stream::select(playing, logged_off).chain(stream::once(ready(SessionEvent::Closed)))
+}
+
+fn note_event(event: &SessionEvent, yielded: &AtomicBool) {
+    if on_session_event(event) == SessionAction::Yield && !yielded.swap(true, Ordering::AcqRel) {
+        let what = match event {
+            SessionEvent::Playing(_) => "another session is playing",
+            SessionEvent::LoggedOff => "Steam logged the session off",
+            SessionEvent::Closed => "the connection closed",
+        };
+        log::info!("gc: stepping aside for the user's own Steam client: {what}");
+    }
+}
+
+/// Resolves once the session must step aside, and records it in `yielded`.
+async fn until_yield(events: impl Stream<Item = SessionEvent>, yielded: Arc<AtomicBool>) {
+    let mut events = pin!(events);
+    while !yielded.load(Ordering::Acquire) {
+        let Some(event) = events.next().await else { return };
+        note_event(&event, &yielded);
+    }
+}
+
+/// Only the claim's own timeouts are claim failures. A yield stays a yield.
+fn claim_failed(e: GcError) -> GcError {
+    match e {
+        GcError::GcUnavailable(s) => GcError::ClaimFailed(s),
+        e => e,
+    }
+}
+
+fn playing() -> CMsgClientGamesPlayed {
+    let mut game = GamePlayed::new();
+    game.game_id = Some(u64::from(DEADLOCK_APP_ID));
+    let mut msg = CMsgClientGamesPlayed::new();
+    msg.games_played = vec![game];
+    msg
+}
+
+/// An empty games-played list. Steam keeps treating a session that claimed Deadlock as playing it
+/// until it hears this or the session times out.
+fn not_playing() -> CMsgClientGamesPlayed {
+    CMsgClientGamesPlayed::new()
+}
+
 async fn with_timeout<T, E: std::fmt::Display>(
     label: &str,
     fut: impl Future<Output = Result<T, E>>,
@@ -109,27 +207,52 @@ fn now_secs() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
-/// A live GC session for one account. Drop it between passes.
+/// A Steam login with an idle GC channel for one account. The game is claimed only for the length
+/// of each GC request, so the user's own client can launch Deadlock between them.
 pub struct GcSession {
     gc: GameCoordinator,
     conn: Connection,
     account_id: u32,
     /// Account ids of this account's Steam friends. Empty when Steam never sent the list.
     pub friends: Vec<u32>,
+    yielded: Arc<AtomicBool>,
+    /// Watches for a yield between requests, while nothing is claimed.
+    watcher: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for GcSession {
+    fn drop(&mut self) {
+        self.watcher.abort();
+    }
 }
 
 impl GcSession {
-    /// Logs in through the user's own account and handshakes the Deadlock GC. Fails when the
-    /// account does not own the game or Steam is unreachable.
+    /// Logs in through the user's own account and checks that the Deadlock GC answers it, with
+    /// one claim that is released straight after. Fails when the account does not own the game or
+    /// Steam is unreachable.
     pub async fn connect(ctx: &AuthContext) -> Result<Self, GcError> {
         let servers = with_timeout("server discovery", ServerList::discover()).await?;
         let conn =
             with_timeout("CM login", Connection::access(&servers, &ctx.account_name, &ctx.refresh_token)).await?;
-        // Listen before draining the unprocessed buffer so the list cannot slip between them.
+        // Listen before draining the unprocessed buffer so nothing can slip between them.
         let friends_list = conn.one::<CMsgClientFriendsList>();
-        let buffered =
-            conn.take_unprocessed().into_iter().find(|m| m.kind == MsgKind::from(CMsgClientFriendsList::KIND));
-        let gc = with_timeout("GC handshake", GameCoordinator::new(&conn, DEADLOCK_APP_ID)).await?;
+        let events = session_events(&conn);
+        let yielded = Arc::new(AtomicBool::new(false));
+        let mut buffered = None;
+        for raw in conn.take_unprocessed() {
+            if raw.kind == MsgKind::from(CMsgClientFriendsList::KIND) {
+                buffered = Some(raw);
+            } else if let Some(event) = session_event(raw) {
+                note_event(&event, &yielded);
+            }
+        }
+        let watcher = tokio::spawn(until_yield(events, yielded.clone()));
+        let gc = with_timeout("GC channel", GameCoordinator::new_without_startup(&conn, DEADLOCK_APP_ID)).await?;
+        let mut session = Self { gc, conn, account_id: ctx.account_id(), friends: Vec::new(), yielded, watcher };
+        if session.yielded() {
+            return Err(GcError::Yielded);
+        }
+        session.with_claim("handshake check", async || Ok(())).await?;
 
         let list = match buffered {
             Some(raw) => raw.into_message::<CMsgClientFriendsList>().ok(),
@@ -138,12 +261,78 @@ impl GcSession {
         if list.is_none() {
             log::debug!("gc: Steam sent no friends list for account {}", ctx.account_id());
         }
-        let friends = list.as_ref().map(friend_account_ids).unwrap_or_default();
-        Ok(Self { gc, conn, account_id: ctx.account_id(), friends })
+        session.friends = list.as_ref().map(friend_account_ids).unwrap_or_default();
+        Ok(session)
+    }
+
+    /// Whether Steam asked this session to step aside for the user's own client. It stays set:
+    /// the session makes no more requests.
+    pub fn yielded(&self) -> bool {
+        self.yielded.load(Ordering::Acquire)
+    }
+
+    /// Runs `fut` until Steam asks the session to step aside. The caller still releases.
+    async fn unless_yielded<T>(&self, fut: impl Future<Output = Result<T, GcError>>) -> Result<T, GcError> {
+        // Subscribed here, before `fut` sends anything, so no event can slip past.
+        let watch = until_yield(session_events(&self.conn), self.yielded.clone());
+        match select(pin!(watch), pin!(fut)).await {
+            Either::Left(((), _)) => Err(GcError::Yielded),
+            Either::Right((out, _)) => out,
+        }
+    }
+
+    /// Reports the account as playing Deadlock and says hello until the GC welcomes the session.
+    pub(crate) async fn claim(&self) -> Result<(), GcError> {
+        self.unless_yielded(async { self.claim_unwatched().await.map_err(claim_failed) }).await
+    }
+
+    async fn claim_unwatched(&self) -> Result<(), GcError> {
+        let send = self.conn.send_with_kind(playing(), EMsg::k_EMsgClientGamesPlayedWithDataBlob);
+        with_timeout("claim", send).await?;
+        let welcome = self.gc.wait_welcome();
+        let hellos = async {
+            loop {
+                if let Err(e) = self.gc.send_hello(CMsgClientHello::default).await {
+                    return e;
+                }
+                tokio::time::sleep(HELLO_INTERVAL).await;
+            }
+        };
+        // The welcome is polled first so it listens before the first hello goes out.
+        let handshake = async {
+            match select(pin!(welcome), pin!(hellos)).await {
+                Either::Left((welcome, _)) => welcome.map(drop),
+                Either::Right((e, _)) => Err(e),
+            }
+        };
+        with_timeout("GC handshake", handshake).await
+    }
+
+    /// Tells Steam the account stopped playing Deadlock, so the user's own client can launch it
+    /// without the "playing on another computer" prompt. Every request already does this; it is
+    /// also safe to call when nothing is claimed. Failures are logged, not returned.
+    pub async fn release(&self) {
+        let send = self.conn.send_with_kind(not_playing(), EMsg::k_EMsgClientGamesPlayedWithDataBlob);
+        if let Err(e) = with_timeout("release", send).await {
+            log::warn!("gc: could not release account {}: {e}", self.account_id);
+        }
+    }
+
+    async fn with_claim<T>(&self, label: &str, job: impl AsyncFnOnce() -> Result<T, GcError>) -> Result<T, GcError> {
+        let start = Instant::now();
+        let out = claimed(self, job).await;
+        log::debug!("gc: account {} held Deadlock for {} ms ({label})", self.account_id, start.elapsed().as_millis());
+        out
     }
 
     async fn send_job(&self, req: Vec<u8>, kind: MsgKind, label: &str) -> Result<RawNetMessage, GcError> {
-        with_timeout(label, self.gc.job_untyped(UntypedMessage(req), kind, true)).await
+        if self.yielded() {
+            return Err(GcError::Yielded);
+        }
+        let job = async || {
+            self.unless_yielded(with_timeout(label, self.gc.job_untyped(UntypedMessage(req), kind, true))).await
+        };
+        self.with_claim(label, job).await
     }
 
     /// One `GetMatchMetaData` round trip with no retries, so a failed fetch costs at most one
@@ -358,5 +547,42 @@ mod tests {
             friend((7 << 52) | 9, FRIEND_RELATIONSHIP_FRIEND),
         ];
         assert_eq!(friend_account_ids(&list), vec![5]);
+    }
+
+    #[test]
+    fn release_reports_no_game_played() {
+        assert!(not_playing().games_played.is_empty());
+    }
+
+    fn playing_state(blocked: Option<bool>, app: Option<u32>) -> SessionEvent {
+        let mut msg = CMsgClientPlayingSessionState::new();
+        msg.playing_blocked = blocked;
+        msg.playing_app = app;
+        SessionEvent::Playing(msg)
+    }
+
+    #[test]
+    fn a_blocked_session_yields() {
+        assert_eq!(on_session_event(&playing_state(Some(true), Some(730))), SessionAction::Yield);
+        assert_eq!(on_session_event(&playing_state(Some(true), None)), SessionAction::Yield);
+    }
+
+    #[test]
+    fn our_own_claim_and_release_keep_going() {
+        assert_eq!(on_session_event(&playing_state(Some(false), Some(DEADLOCK_APP_ID))), SessionAction::Keep);
+        assert_eq!(on_session_event(&playing_state(Some(false), Some(0))), SessionAction::Keep);
+        assert_eq!(on_session_event(&playing_state(None, None)), SessionAction::Keep);
+    }
+
+    #[test]
+    fn a_logoff_or_a_closed_connection_yields() {
+        assert_eq!(on_session_event(&SessionEvent::LoggedOff), SessionAction::Yield);
+        assert_eq!(on_session_event(&SessionEvent::Closed), SessionAction::Yield);
+    }
+
+    #[test]
+    fn a_claim_reports_deadlock_only() {
+        let ids: Vec<_> = playing().games_played.iter().map(|g| g.game_id).collect();
+        assert_eq!(ids, vec![Some(u64::from(DEADLOCK_APP_ID))]);
     }
 }

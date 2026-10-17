@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+
 #### Game overlay
 
 - Notifications show over the game instead of as Windows notifications while you play.
@@ -47,6 +48,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Map positions and some hero and item images load again after Deadlock's October 16 patch.
 - Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
 - A new hero's Discord art shows up within an hour of the Deadlock API publishing it, instead of up to a week later.
+- Pressing Play while match salts are being recovered no longer says Deadlock is being played on another computer.
 
 ## [0.12.0] - 2026-10-15
 

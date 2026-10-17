@@ -10,6 +10,10 @@ use crate::quota::{HistoryQuota, SaltQuota};
 
 /// How long an account whose GC handshake failed is left alone.
 pub const GC_BACKOFF_SECS: i64 = 24 * 60 * 60;
+/// How long an account is left alone after it stepped aside for the user's own Steam client. Long
+/// enough to skip the next pass (30 minutes apart), so a user who just pressed Play is not met by
+/// a claim straight after.
+pub const YIELD_BACKOFF_SECS: i64 = 60 * 60;
 /// Friend history lookups per account per pass, so one pass does not spend the day's budget.
 pub const MAX_FRIEND_HISTORIES_PER_PASS: usize = 5;
 /// After a friend's history was looked up, by any account, they are left alone for a while.
@@ -31,6 +35,10 @@ pub struct AccountState {
 impl AccountState {
     pub fn backed_off(&self, now: i64) -> bool {
         self.backoff_until.is_some_and(|until| now < until)
+    }
+
+    pub fn yield_to_user(&mut self, now: i64) {
+        self.backoff_until = Some(now + YIELD_BACKOFF_SECS);
     }
 
     /// Friend history lookups this account may still make this pass. Each one only pays off with
@@ -58,6 +66,49 @@ impl HistoryFetcher for GcSession {
     fn fetch_recent_matches(&self, account_id: u32) -> impl Future<Output = Result<Vec<u64>, GcError>> {
         GcSession::fetch_recent_matches(self, account_id)
     }
+}
+
+/// Ends what a session claimed on the account. See [`GcSession::release`].
+pub trait Release {
+    fn release(&self) -> impl Future<Output = ()>;
+}
+
+impl Release for GcSession {
+    fn release(&self) -> impl Future<Output = ()> {
+        GcSession::release(self)
+    }
+}
+
+/// Runs `body` on `session`, then releases it, whichever way `body` returns. Taking the session
+/// by value keeps it from being used after the release. Each request already releases its own
+/// claim; this one covers a request whose future was dropped part way.
+pub async fn with_release<S: Release, T>(session: S, body: impl AsyncFnOnce(&S) -> T) -> T {
+    let out = body(&session).await;
+    session.release().await;
+    out
+}
+
+/// Reports the account as playing Deadlock for the length of one GC request.
+pub trait Claim: Release {
+    /// Claims the game and waits until the GC answers.
+    fn claim(&self) -> impl Future<Output = Result<(), GcError>>;
+}
+
+impl Claim for GcSession {
+    fn claim(&self) -> impl Future<Output = Result<(), GcError>> {
+        GcSession::claim(self)
+    }
+}
+
+/// Claims the game, runs `job` and releases, whichever way either returns. A failed claim is
+/// released too: the game may have been reported before the handshake failed.
+pub async fn claimed<C: Claim, T>(session: &C, job: impl AsyncFnOnce() -> Result<T, GcError>) -> Result<T, GcError> {
+    let out = match session.claim().await {
+        Ok(()) => job().await,
+        Err(e) => Err(e),
+    };
+    session.release().await;
+    out
 }
 
 /// What the caller supplies around the fetch loops: pacing, the stop condition and delivery.
@@ -102,6 +153,11 @@ pub async fn fetch_loop(
                 out.rate_limited = true;
                 break;
             }
+            // Neither reached the GC, so they cost nothing and the match stays open for later.
+            Err(e @ (GcError::Yielded | GcError::ClaimFailed(_))) => {
+                log::info!("gc: salt fetches stopped: {e}");
+                break;
+            }
             Err(e) => {
                 log::warn!("gc: salt fetch failed for {match_id}: {e}");
                 processed.insert(match_id);
@@ -142,6 +198,10 @@ pub async fn history_loop(
             }
             Err(GcError::GcRateLimited) => {
                 state.history_quota.exhaust(host.now());
+                break;
+            }
+            Err(e @ (GcError::Yielded | GcError::ClaimFailed(_))) => {
+                log::info!("gc: friend history lookups stopped: {e}");
                 break;
             }
             Err(GcError::HistoryPrivate) => {
@@ -192,6 +252,15 @@ pub async fn fetch_all(
                 out.rate_limited = true;
                 break;
             }
+            Err(GcError::Yielded) => {
+                out.stopped = true;
+                break;
+            }
+            Err(e @ GcError::ClaimFailed(_)) => {
+                log::warn!("gc: salt fetches stopped: {e}");
+                out.failed += 1;
+                break;
+            }
             Err(e) => {
                 log::warn!("gc: salt fetch failed for {match_id}: {e}");
                 attempts.record(match_id);
@@ -215,36 +284,104 @@ mod tests {
     use super::*;
     use crate::ledger::MAX_SALT_ATTEMPTS;
     use crate::quota::{FETCH_QUOTA_LIMIT, FRIEND_HISTORY_QUOTA_LIMIT};
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::collections::HashMap;
+    use std::rc::Rc;
 
     const NOW: i64 = 1_000_000;
 
-    struct Fake(RefCell<HashMap<u64, Result<RecoveredSalts, GcError>>>);
+    /// What a fake session has claimed on the account. Shared with the host so it can check that
+    /// nothing is held while it waits.
+    #[derive(Default)]
+    struct Claims {
+        held: Cell<bool>,
+        claims: Cell<u32>,
+        releases: Cell<u32>,
+        refuse: RefCell<Option<GcError>>,
+    }
+
+    impl Claims {
+        /// A failed claim still counts as held: the real one may have reported the game before the
+        /// handshake failed.
+        fn claim(&self) -> Result<(), GcError> {
+            assert!(!self.held.get(), "claims overlap");
+            self.held.set(true);
+            self.claims.set(self.claims.get() + 1);
+            match self.refuse.borrow().clone() {
+                Some(e) => Err(e),
+                None => Ok(()),
+            }
+        }
+
+        fn release(&self) {
+            self.held.set(false);
+            self.releases.set(self.releases.get() + 1);
+        }
+    }
+
+    struct Fake {
+        replies: RefCell<HashMap<u64, Result<RecoveredSalts, GcError>>>,
+        claims: Rc<Claims>,
+    }
 
     impl Fake {
         fn new(entries: Vec<(u64, Result<RecoveredSalts, GcError>)>) -> Self {
-            Self(RefCell::new(entries.into_iter().collect()))
+            Self { replies: RefCell::new(entries.into_iter().collect()), claims: Rc::default() }
         }
     }
 
     impl SaltFetcher for Fake {
         async fn fetch_match_salts(&self, match_id: u64) -> Result<RecoveredSalts, GcError> {
-            self.0.borrow_mut().remove(&match_id).expect("unexpected fetch")
+            claimed(self, async || {
+                assert!(self.claims.held.get(), "fetch without a claim");
+                self.replies.borrow_mut().remove(&match_id).expect("unexpected fetch")
+            })
+            .await
         }
     }
 
-    struct FakeHistory(RefCell<HashMap<u32, Result<Vec<u64>, GcError>>>);
+    impl Claim for Fake {
+        async fn claim(&self) -> Result<(), GcError> {
+            self.claims.claim()
+        }
+    }
+
+    impl Release for Fake {
+        async fn release(&self) {
+            self.claims.release();
+        }
+    }
+
+    struct FakeHistory {
+        replies: RefCell<HashMap<u32, Result<Vec<u64>, GcError>>>,
+        claims: Rc<Claims>,
+    }
 
     impl FakeHistory {
         fn new(entries: Vec<(u32, Result<Vec<u64>, GcError>)>) -> Self {
-            Self(RefCell::new(entries.into_iter().collect()))
+            Self { replies: RefCell::new(entries.into_iter().collect()), claims: Rc::default() }
         }
     }
 
     impl HistoryFetcher for FakeHistory {
         async fn fetch_recent_matches(&self, account_id: u32) -> Result<Vec<u64>, GcError> {
-            self.0.borrow_mut().remove(&account_id).expect("unexpected lookup")
+            claimed(self, async || {
+                assert!(self.claims.held.get(), "lookup without a claim");
+                self.replies.borrow_mut().remove(&account_id).expect("unexpected lookup")
+            })
+            .await
+        }
+    }
+
+    impl Claim for FakeHistory {
+        async fn claim(&self) -> Result<(), GcError> {
+            self.claims.claim()
+        }
+    }
+
+    impl Release for FakeHistory {
+        async fn release(&self) {
+            self.claims.release();
         }
     }
 
@@ -252,16 +389,22 @@ mod tests {
         allow_requests: usize,
         accept: bool,
         delivered: Vec<u64>,
+        claims: Rc<Claims>,
     }
 
     impl TestHost {
         fn new() -> Self {
-            Self { allow_requests: usize::MAX, accept: true, delivered: Vec::new() }
+            Self { allow_requests: usize::MAX, accept: true, delivered: Vec::new(), claims: Rc::default() }
+        }
+
+        fn watching(claims: &Rc<Claims>) -> Self {
+            Self { claims: claims.clone(), ..Self::new() }
         }
     }
 
     impl Host for TestHost {
         async fn before_request(&mut self) -> bool {
+            assert!(!self.claims.held.get(), "claimed while waiting");
             if self.allow_requests == 0 {
                 return false;
             }
@@ -501,5 +644,216 @@ mod tests {
         let mut host = TestHost { allow_requests: 0, ..TestHost::new() };
         let out = block_on(fetch_all(&fetcher, &mut host, &[9], &mut SaltAttempts::default(), &mut HashSet::new()));
         assert!(out.stopped);
+    }
+
+    #[test]
+    fn release_follows_the_body_whatever_it_returns() {
+        let fake = Fake::new(vec![]);
+        let claims = fake.claims.clone();
+        let out = block_on(with_release(fake, async |_| Err::<(), _>(GcError::GcRateLimited)));
+        assert_eq!(out, Err(GcError::GcRateLimited));
+        assert_eq!(claims.releases.get(), 1);
+    }
+
+    fn stopped() -> TestHost {
+        TestHost { allow_requests: 0, ..TestHost::new() }
+    }
+
+    #[test]
+    fn release_runs_after_every_way_a_fetch_loop_ends() {
+        let mut spent = Ctx::default();
+        spent.state.quota.exhaust(NOW);
+        let cases: Vec<(&str, Fake, TestHost, Ctx)> = vec![
+            ("all fetched", Fake::new(vec![(9, Ok(salts(9))), (8, Ok(salts(8)))]), TestHost::new(), Ctx::default()),
+            ("rate limited", Fake::new(vec![(9, Err(GcError::GcRateLimited))]), TestHost::new(), Ctx::default()),
+            ("host stopped", Fake::new(vec![]), stopped(), Ctx::default()),
+            ("quota spent", Fake::new(vec![]), TestHost::new(), spent),
+        ];
+        for (name, fetcher, host, mut ctx) in cases {
+            let claims = fetcher.claims.clone();
+            let mut host = TestHost { claims: claims.clone(), ..host };
+            let in_body = block_on(with_release(fetcher, async |f| {
+                fetch_loop(f, &mut host, vec![9, 8], &mut ctx.state, &mut ctx.processed, &mut ctx.attempts).await;
+                claims.releases.get()
+            }));
+            assert_eq!(claims.releases.get(), in_body + 1, "{name}");
+            assert!(!claims.held.get(), "{name}");
+        }
+    }
+
+    #[test]
+    fn release_runs_after_every_way_a_full_run_ends() {
+        let cases: Vec<(&str, Fake, TestHost)> = vec![
+            ("all fetched", Fake::new(vec![(9, Ok(salts(9))), (8, Ok(salts(8)))]), TestHost::new()),
+            ("rate limited", Fake::new(vec![(9, Err(GcError::GcRateLimited))]), TestHost::new()),
+            ("cancelled", Fake::new(vec![]), stopped()),
+        ];
+        for (name, fetcher, host) in cases {
+            let claims = fetcher.claims.clone();
+            let mut host = TestHost { claims: claims.clone(), ..host };
+            let in_body = block_on(with_release(fetcher, async |f| {
+                fetch_all(f, &mut host, &[9, 8], &mut SaltAttempts::default(), &mut HashSet::new()).await;
+                claims.releases.get()
+            }));
+            assert_eq!(claims.releases.get(), in_body + 1, "{name}");
+            assert!(!claims.held.get(), "{name}");
+        }
+    }
+
+    #[test]
+    fn release_runs_after_every_way_a_history_loop_ends() {
+        let cases: Vec<(&str, FakeHistory, TestHost)> = vec![
+            ("all looked up", FakeHistory::new(vec![(1, Ok(vec![12])), (2, Ok(vec![13]))]), TestHost::new()),
+            ("rate limited", FakeHistory::new(vec![(1, Err(GcError::GcRateLimited))]), TestHost::new()),
+            ("host stopped", FakeHistory::new(vec![]), stopped()),
+        ];
+        for (name, fetcher, host) in cases {
+            let claims = fetcher.claims.clone();
+            let mut host = TestHost { claims: claims.clone(), ..host };
+            let (mut state, mut cooldowns) = (AccountState::default(), FriendCooldowns::default());
+            let in_body = block_on(with_release(fetcher, async |f| {
+                history_loop(f, &mut host, vec![(1, 0), (2, 0)], &mut state, &mut cooldowns).await;
+                claims.releases.get()
+            }));
+            assert_eq!(claims.releases.get(), in_body + 1, "{name}");
+            assert!(!claims.held.get(), "{name}");
+        }
+    }
+
+    #[test]
+    fn a_claim_is_released_whatever_the_job_returns() {
+        let fake = Fake::new(vec![]);
+        let out = block_on(claimed(&fake, async || Err::<(), _>(GcError::HistoryPrivate)));
+        assert_eq!(out, Err(GcError::HistoryPrivate));
+        assert_eq!((fake.claims.claims.get(), fake.claims.releases.get()), (1, 1));
+        assert!(!fake.claims.held.get());
+    }
+
+    #[test]
+    fn a_failed_claim_is_released_and_skips_the_job() {
+        let fake = Fake::new(vec![]);
+        *fake.claims.refuse.borrow_mut() = Some(no_welcome());
+        let out = block_on(claimed(&fake, async || -> Result<(), GcError> { panic!("job ran without a claim") }));
+        assert_eq!(out, Err(no_welcome()));
+        assert!(!fake.claims.held.get());
+        assert_eq!(fake.claims.releases.get(), 1);
+    }
+
+    #[test]
+    fn each_salt_fetch_is_its_own_claim() {
+        let fetcher =
+            Fake::new(vec![(9, Ok(salts(9))), (8, Err(GcError::GcUnavailable("x".into()))), (7, Ok(salts(7)))]);
+        let mut host = TestHost::watching(&fetcher.claims);
+        let mut ctx = Ctx::default();
+        block_on(fetch_loop(&fetcher, &mut host, vec![9, 8, 7], &mut ctx.state, &mut ctx.processed, &mut ctx.attempts));
+        assert_eq!((fetcher.claims.claims.get(), fetcher.claims.releases.get()), (3, 3));
+        assert!(!fetcher.claims.held.get());
+    }
+
+    #[test]
+    fn each_history_lookup_is_its_own_claim() {
+        let fetcher = FakeHistory::new(vec![(1, Ok(vec![12])), (2, Err(GcError::HistoryPrivate))]);
+        let mut host = TestHost::watching(&fetcher.claims);
+        let (mut state, mut cooldowns) = (AccountState::default(), FriendCooldowns::default());
+        block_on(history_loop(&fetcher, &mut host, vec![(1, 0), (2, 0)], &mut state, &mut cooldowns));
+        assert_eq!((fetcher.claims.claims.get(), fetcher.claims.releases.get()), (2, 2));
+    }
+
+    fn no_welcome() -> GcError {
+        GcError::ClaimFailed("no welcome".into())
+    }
+
+    #[test]
+    fn a_yield_during_the_claim_is_released_and_skips_the_job() {
+        let fake = Fake::new(vec![]);
+        *fake.claims.refuse.borrow_mut() = Some(GcError::Yielded);
+        let out = block_on(claimed(&fake, async || -> Result<(), GcError> { panic!("job ran without a claim") }));
+        assert_eq!(out, Err(GcError::Yielded));
+        assert!(!fake.claims.held.get());
+    }
+
+    #[test]
+    fn a_yield_mid_job_is_released() {
+        let fake = Fake::new(vec![]);
+        let out = block_on(claimed(&fake, async || Err::<(), _>(GcError::Yielded)));
+        assert_eq!(out, Err(GcError::Yielded));
+        assert_eq!((fake.claims.claims.get(), fake.claims.releases.get()), (1, 1));
+        assert!(!fake.claims.held.get());
+    }
+
+    #[test]
+    fn a_yield_ends_the_fetch_loop_at_no_cost() {
+        let fetcher = Fake::new(vec![(9, Err(GcError::Yielded))]);
+        let mut host = TestHost::watching(&fetcher.claims);
+        let mut ctx = Ctx::default();
+        let out = run(&fetcher, &mut host, vec![9, 8], &mut ctx);
+        assert_eq!(out, Outcome::default());
+        assert_eq!(ctx.state.quota.remaining(NOW), FETCH_QUOTA_LIMIT);
+        assert!(ctx.processed.is_empty());
+        assert_eq!(ctx.attempts, SaltAttempts::default());
+        assert!(!fetcher.claims.held.get());
+    }
+
+    #[test]
+    fn a_failed_claim_ends_the_fetch_loop_at_no_cost() {
+        let fetcher = Fake::new(vec![]);
+        *fetcher.claims.refuse.borrow_mut() = Some(no_welcome());
+        let mut host = TestHost::watching(&fetcher.claims);
+        let mut ctx = Ctx::default();
+        let out = run(&fetcher, &mut host, vec![9, 8], &mut ctx);
+        assert_eq!(out, Outcome::default());
+        assert_eq!(fetcher.claims.claims.get(), 1);
+        assert_eq!(ctx.state.quota.remaining(NOW), FETCH_QUOTA_LIMIT);
+        assert!(ctx.processed.is_empty());
+        assert_eq!(ctx.attempts, SaltAttempts::default());
+    }
+
+    #[test]
+    fn a_yield_or_failed_claim_ends_the_history_loop_at_no_cost() {
+        let yielded = FakeHistory::new(vec![(1, Err(GcError::Yielded))]);
+        let refused = FakeHistory::new(vec![]);
+        *refused.claims.refuse.borrow_mut() = Some(no_welcome());
+        for (name, fetcher) in [("yielded", yielded), ("claim failed", refused)] {
+            let mut host = TestHost::watching(&fetcher.claims);
+            let (mut state, mut cooldowns) = (AccountState::default(), FriendCooldowns::default());
+            let found = history(&fetcher, &mut host, vec![(1, 0), (2, 0)], &mut state, &mut cooldowns);
+            assert!(found.is_empty(), "{name}");
+            assert_eq!(fetcher.claims.claims.get(), 1, "{name}");
+            assert_eq!(state.history_quota.remaining(NOW), FRIEND_HISTORY_QUOTA_LIMIT, "{name}");
+            assert!(cooldowns.is_due(1, NOW), "{name}");
+        }
+    }
+
+    #[test]
+    fn a_yield_stops_a_full_run_at_no_cost() {
+        let fetcher = Fake::new(vec![(9, Err(GcError::Yielded))]);
+        let mut host = TestHost::watching(&fetcher.claims);
+        let (mut attempts, mut done) = (SaltAttempts::default(), HashSet::new());
+        let out = block_on(fetch_all(&fetcher, &mut host, &[9, 8], &mut attempts, &mut done));
+        assert_eq!(out, FullOutcome { stopped: true, ..Default::default() });
+        assert_eq!(attempts, SaltAttempts::default());
+        assert!(done.is_empty());
+    }
+
+    #[test]
+    fn a_failed_claim_ends_a_full_run_without_an_attempt() {
+        let fetcher = Fake::new(vec![]);
+        *fetcher.claims.refuse.borrow_mut() = Some(no_welcome());
+        let mut host = TestHost::watching(&fetcher.claims);
+        let (mut attempts, mut done) = (SaltAttempts::default(), HashSet::new());
+        let out = block_on(fetch_all(&fetcher, &mut host, &[9, 8], &mut attempts, &mut done));
+        assert_eq!(out, FullOutcome { failed: 1, ..Default::default() });
+        assert_eq!(fetcher.claims.claims.get(), 1);
+        assert_eq!(attempts, SaltAttempts::default());
+        assert!(!fetcher.claims.held.get());
+    }
+
+    #[test]
+    fn yielding_backs_off_briefly() {
+        let mut state = AccountState::default();
+        state.yield_to_user(NOW);
+        assert!(state.backed_off(NOW + YIELD_BACKOFF_SECS - 1));
+        assert!(!state.backed_off(NOW + YIELD_BACKOFF_SECS));
+        const { assert!(YIELD_BACKOFF_SECS < GC_BACKOFF_SECS) };
     }
 }

@@ -8,7 +8,7 @@ use ts_rs::TS;
 use dp_gc::client::GcSession;
 use dp_gc::error::GcError as SteamGcError;
 use dp_gc::ledger::SaltAttempts;
-use dp_gc::pass::{fetch_all, FullOutcome, Host};
+use dp_gc::pass::{fetch_all, with_release, FullOutcome, Host};
 use dp_sync::LockExt;
 
 use super::{api, block_on, load, save, steam_accounts, GcHost, Shared, ATTEMPTS_KEY};
@@ -85,6 +85,7 @@ async fn own_account(
     {
         Ok(h) => h,
         Err(SteamGcError::GcRateLimited) => return Ok(FullOutcome { rate_limited: true, ..Default::default() }),
+        Err(SteamGcError::Yielded) => return Ok(FullOutcome { stopped: true, ..Default::default() }),
         Err(e) => return Err(e.to_string()),
     };
     log::debug!("gc: read {} match(es) from the history of account {account_id}", history.len());
@@ -120,6 +121,10 @@ async fn recover(
         }
         let session = match GcSession::connect(ctx).await {
             Ok(s) => s,
+            Err(SteamGcError::Yielded) => {
+                stopped = true;
+                break;
+            }
             Err(e) => {
                 log::warn!("gc: account {} cannot reach the GC: {e}", ctx.account_id());
                 failed += 1;
@@ -133,7 +138,11 @@ async fn recover(
             halted,
             on_delivered: || update(shared, |own| own.delivered += 1),
         };
-        match own_account(&session, ctx.account_id(), http, &mut host, &mut attempts, &mut done, shared).await {
+        let out = with_release(session, async |session| {
+            own_account(session, ctx.account_id(), http, &mut host, &mut attempts, &mut done, shared).await
+        })
+        .await;
+        match out {
             Ok(out) => {
                 failed += out.failed;
                 rate_limited |= out.rate_limited;
