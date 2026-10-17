@@ -204,6 +204,7 @@ const storageRows = (remote: string): StorageRow[] => [
         oldestDays: 38,
     },
     { id: "match-ping", path: `${APP_DATA}\\match-ping`, clearable: true, bytes: 2.3 * MB, count: 46, oldestDays: 38 },
+    { id: "mvp-grades", path: `${APP_DATA}\\mvp`, clearable: true, bytes: 412_000, count: 46, oldestDays: 38 },
     { id: "other-app-files", path: APP_DATA, bytes: 88_000 },
     { id: "logs", path: APP_LOGS, clearable: true, bytes: 5.2 * MB, count: 9, oldestDays: 12 },
 ];

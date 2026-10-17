@@ -2,12 +2,15 @@
     import {
         ArrowDown,
         ArrowUp,
+        Award,
         Coins,
+        DoorOpen,
         Crosshair,
         Handshake,
         HeartPulse,
         Minus,
         Package,
+        ScanSearch,
         Skull,
         Zap,
     } from "@lucide/svelte";
@@ -21,6 +24,10 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
     import { higherIsBetter, type Versus, type VersusKey, type VersusStat } from "@deadlock-plus/match/versus";
+    import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import { gradeBySlot } from "../../mvp";
+    import GradeChip from "./grade-chip.svelte";
     import ItemTile from "./item-tile.svelte";
     import {
         BOARD_COLUMN_MIN_REM,
@@ -50,6 +57,7 @@
         bans,
         averageBadge,
         versus = null,
+        grade = null,
     }: {
         boards: BoardTeam[];
         heroes: Record<number, Hero>;
@@ -58,7 +66,10 @@
         bans: number[];
         averageBadge: number | null;
         versus?: Versus | null;
+        grade?: MvpMatchGrade | null;
     } = $props();
+
+    const grades = $derived(gradeBySlot(grade));
 
     const compact = (n: number) => formatCompact(n) ?? "0";
     const teamName = (b: BoardTeam) =>
@@ -195,6 +206,26 @@
     </th>
 {/snippet}
 
+{#snippet gradeCell(c: BoardColumn, i: number)}
+    {@const g = grades.get(c.player.slot)}
+    <td class="grade" class:me={c.own} class:odd={i % 2 === 1} data-team={c.player.team}>
+        {#if g}<GradeChip grade={g} />{/if}
+    </td>
+{/snippet}
+
+{#snippet gradeFlag(Icon: Component, text: string)}
+    <Tooltip.Root delayDuration={100}>
+        <Tooltip.Trigger>
+            {#snippet child({ props })}
+                <button {...props} type="button" class="flag" aria-label={text}>
+                    <Icon size={12} aria-hidden="true" />
+                </button>
+            {/snippet}
+        </Tooltip.Trigger>
+        <Tooltip.Content>{text}</Tooltip.Content>
+    </Tooltip.Root>
+{/snippet}
+
 {#snippet total(Icon: Component, text: string, value: string)}
     <span title={text}>
         <Icon size={13} aria-hidden="true" />
@@ -221,90 +252,112 @@
     </th>
 {/snippet}
 
-<div
-    class="scroller"
-    data-export-board
-    style:--item-cols={ITEM_GRID_COLUMNS}
-    style:--item-size="{ITEM_TILE_PX}px"
-    style:--item-gap="{ITEM_GAP_PX}px"
-    style:--bar-left="var(--team-{boards[0].team})"
-    style:--bar-right="var(--team-{boards[1].team})"
->
-    <table
-        aria-label={t("match_history.detail.board.label")}
-        style:--cols={columnCount}
-        style:--col-min="{BOARD_COLUMN_MIN_REM}rem"
-        style:--mid="{BOARD_LABEL_REM}rem"
+<Tooltip.Provider>
+    <div
+        class="scroller"
+        data-export-board
+        style:--item-cols={ITEM_GRID_COLUMNS}
+        style:--item-size="{ITEM_TILE_PX}px"
+        style:--item-gap="{ITEM_GAP_PX}px"
+        style:--bar-left="var(--team-{boards[0].team})"
+        style:--bar-right="var(--team-{boards[1].team})"
     >
-        <colgroup>
-            {#each boards[0].columns as c (c.player.slot)}<col />{/each}
-            <col class="mid" />
-            {#each boards[1].columns as c (c.player.slot)}<col />{/each}
-        </colgroup>
-        <thead>
-            <tr>
-                {@render teamHead(boards[0], "left")}
-                <td class="corner top">
-                    {#if bans.length > 0}
-                        <div class="bans">
-                            <span class="mid-label">{t("match_history.detail.bans")}</span>
-                            <ul class="ban-list">
-                                {#each bans as id (id)}
-                                    <li><HeroIcon heroId={id} {heroes} size={24} /></li>
-                                {/each}
-                            </ul>
-                        </div>
-                    {/if}
-                </td>
-                {@render teamHead(boards[1], "right")}
-            </tr>
-            <tr>
-                {#each boards[0].columns as c, i (c.player.slot)}{@render header(c, i)}{/each}
-                <th scope="col" class="corner">
-                    {#if averageBadge !== null}
-                        <span class="avg" style={rankArtVars(rankView(averageBadge)?.tier)}>
-                            <RankBadge rank={averageBadge} {tiers} />
-                            <span class="mid-label">{t("match_history.detail.avg_rank")}</span>
-                        </span>
-                    {:else}
-                        <span class="sr-only">{t("match_history.detail.board.stat")}</span>
-                    {/if}
-                </th>
-                {#each boards[1].columns as c, i (c.player.slot)}{@render header(c, i)}{/each}
-            </tr>
-        </thead>
-        <tbody>
-            {#each BOARD_ROWS as row (row.key)}
-                {@const text = t(row.labelKey)}
-                {#if row.key === "items"}
-                    {@render band(rowIcon.items, text, itemsCell)}
-                {:else}
-                    {@const key = row.key}
-                    {@const isCompact = compactRow.get(key) ?? false}
+        <table
+            aria-label={t("match_history.detail.board.label")}
+            style:--cols={columnCount}
+            style:--col-min="{BOARD_COLUMN_MIN_REM}rem"
+            style:--mid="{BOARD_LABEL_REM}rem"
+        >
+            <colgroup>
+                {#each boards[0].columns as c (c.player.slot)}<col />{/each}
+                <col class="mid" />
+                {#each boards[1].columns as c (c.player.slot)}<col />{/each}
+            </colgroup>
+            <thead>
+                <tr>
+                    {@render teamHead(boards[0], "left")}
+                    <td class="corner top">
+                        {#if bans.length > 0}
+                            <div class="bans">
+                                <span class="mid-label">{t("match_history.detail.bans")}</span>
+                                <ul class="ban-list">
+                                    {#each bans as id (id)}
+                                        <li><HeroIcon heroId={id} {heroes} size={24} /></li>
+                                    {/each}
+                                </ul>
+                            </div>
+                        {/if}
+                    </td>
+                    {@render teamHead(boards[1], "right")}
+                </tr>
+                <tr>
+                    {#each boards[0].columns as c, i (c.player.slot)}{@render header(c, i)}{/each}
+                    <th scope="col" class="corner">
+                        {#if averageBadge !== null}
+                            <span class="avg" style={rankArtVars(rankView(averageBadge)?.tier)}>
+                                <RankBadge rank={averageBadge} {tiers} />
+                                <span class="mid-label">{t("match_history.detail.avg_rank")}</span>
+                            </span>
+                        {:else}
+                            <span class="sr-only">{t("match_history.detail.board.stat")}</span>
+                        {/if}
+                    </th>
+                    {#each boards[1].columns as c, i (c.player.slot)}{@render header(c, i)}{/each}
+                </tr>
+                {#if grade && grades.size > 0}
                     <tr>
-                        {#each [boards[0], boards[1]] as b, i (b.team)}
-                            {#if i === 1}{@render label(rowIcon[key], text)}{/if}
-                            {#each b.columns as c, ci (c.player.slot)}
-                                <td
-                                    class="cell"
-                                    class:me={c.own}
-                                    class:odd={ci % 2 === 1}
-                                    class:first={i === 0 && ci === 0}
-                                    class:last={i === 1 && ci === b.columns.length - 1}
-                                    data-team={b.team}
-                                >
-                                    {@render statCell(c, key, isCompact)}
-                                </td>
-                            {:else}
-                                <td class="cell"></td>
-                            {/each}
-                        {/each}
+                        {#each boards[0].columns as c, i (c.player.slot)}{@render gradeCell(c, i)}{/each}
+                        <th scope="row" class="label grade-label">
+                            <Award size={16} aria-hidden="true" />
+                            <span class="label-text">{t("match_history.detail.grade.label")}</span>
+                            {#if grade.leaver || !grade.pathsChecked}
+                                <span class="flags">
+                                    {#if grade.leaver}
+                                        {@render gradeFlag(DoorOpen, t("match_history.detail.grade.leaver"))}
+                                    {/if}
+                                    {#if !grade.pathsChecked}
+                                        {@render gradeFlag(ScanSearch, t("match_history.detail.grade.unchecked"))}
+                                    {/if}
+                                </span>
+                            {/if}
+                        </th>
+                        {#each boards[1].columns as c, i (c.player.slot)}{@render gradeCell(c, i)}{/each}
                     </tr>
                 {/if}
-            {/each}
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                {#each BOARD_ROWS as row (row.key)}
+                    {@const text = t(row.labelKey)}
+                    {#if row.key === "items"}
+                        {@render band(rowIcon.items, text, itemsCell)}
+                    {:else}
+                        {@const key = row.key}
+                        {@const isCompact = compactRow.get(key) ?? false}
+                        <tr>
+                            {#each [boards[0], boards[1]] as b, i (b.team)}
+                                {#if i === 1}{@render label(rowIcon[key], text)}{/if}
+                                {#each b.columns as c, ci (c.player.slot)}
+                                    <td
+                                        class="cell"
+                                        class:me={c.own}
+                                        class:odd={ci % 2 === 1}
+                                        class:first={i === 0 && ci === 0}
+                                        class:last={i === 1 && ci === b.columns.length - 1}
+                                        data-team={b.team}
+                                    >
+                                        {@render statCell(c, key, isCompact)}
+                                    </td>
+                                {:else}
+                                    <td class="cell"></td>
+                                {/each}
+                            {/each}
+                        </tr>
+                    {/if}
+                {/each}
+            </tbody>
+        </table>
+    </div>
+</Tooltip.Provider>
 
 <style>
     .scroller {
@@ -516,6 +569,34 @@
         color: var(--muted-foreground);
         border-inline: 1px solid var(--border);
     }
+    .grade {
+        padding: 6px 2px 8px;
+        border-bottom: 1px solid var(--border);
+    }
+    .grade-label {
+        border-bottom: 1px solid var(--border);
+    }
+    .flags {
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+        margin-top: 2px;
+    }
+    .flag {
+        display: inline-flex;
+        padding: 2px;
+        border-radius: 4px;
+        color: var(--warning);
+        cursor: default;
+    }
+    .flag:hover,
+    .flag:focus-visible {
+        background: color-mix(in oklch, var(--accent) 60%, transparent);
+        outline: none;
+    }
+    .flag:focus-visible {
+        box-shadow: 0 0 0 2px var(--ring);
+    }
     .label :global(svg) {
         display: block;
         margin: 0 auto 2px;
@@ -533,10 +614,12 @@
         color: var(--foreground);
     }
     .cell.odd,
+    .grade.odd,
     .player.odd {
         background: color-mix(in oklch, var(--foreground) 5%, transparent);
     }
     .cell.me,
+    .grade.me,
     .player.me {
         background: color-mix(in oklch, var(--tc) 12%, transparent);
     }

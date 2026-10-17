@@ -1573,6 +1573,14 @@
                 "consequence": "Matches lose their recorded ping graph. The match you are playing right now is kept.",
                 "units_one": "{count} match",
                 "units_other": "{count} matches"
+            },
+            "mvp_grades": {
+                "label": "Match grades",
+                "clear_name": "match grades",
+                "description": "The weekly grading sample and the grades Deadlock+ worked out for your matches.",
+                "consequence": "Grades are worked out again on the next background run. Nothing else is lost.",
+                "units_one": "{count} match",
+                "units_other": "{count} matches"
             }
         }
     },
@@ -2239,6 +2247,10 @@
             "server_block_sync": {
                 "title": "Updating server blocks",
                 "description": "Keeps your blocked regions up to date when Valve changes its server addresses. Only edits Windows Firewall rules Deadlock+ already created, and tells you when it changes one."
+            },
+            "match_grades": {
+                "title": "Updating match grades",
+                "description": "Downloads a weekly sample of recent matches and grades your matches against it."
             }
         },
         "policy": {
@@ -2580,6 +2592,21 @@
                 "step_start": "Step through",
                 "no_deaths": "No deaths",
                 "death_map_player": "Player for death map"
+            },
+            "grade": {
+                "label": "Grade",
+                "place_ordinal_one": "{place}st",
+                "place_ordinal_two": "{place}nd",
+                "place_ordinal_few": "{place}rd",
+                "place_ordinal_other": "{place}th",
+                "aria": "Grade {letter}, score {score}, {place}",
+                "better_than": "Better than this share of players on the same hero",
+                "leaver": "Someone left this match early, so every grade in it is skewed.",
+                "unchecked": "Early leavers not checked: this grade comes from the game's own match data.",
+                "stat": {
+                    "self_healing": "Self healing/min",
+                    "support": "Ally healing/min"
+                }
             }
         },
         "ping": {

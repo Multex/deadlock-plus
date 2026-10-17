@@ -38,6 +38,10 @@ const JOB_TEXT: Record<string, { title: () => string; description: () => string 
         title: () => t("jobs.catalog.addon_scan.title"),
         description: () => t("jobs.catalog.addon_scan.description"),
     },
+    "match-grades": {
+        title: () => t("jobs.catalog.match_grades.title"),
+        description: () => t("jobs.catalog.match_grades.description"),
+    },
     "patch-notes-index": {
         title: () => t("jobs.catalog.patch_notes_index.title"),
         description: () => t("jobs.catalog.patch_notes_index.description"),

@@ -69,12 +69,12 @@ test.describe("the list", () => {
         await option(page, "Outcome", "Win").click();
         await expectTotal(page, 33);
         await expect(main(page).getByText("33W 0L", { exact: true })).toBeVisible();
-        await expectEveryRow(page, / Win \d/);
+        await expectEveryRow(page, / Win( Grade [^,]+, score [\d.]+, \S+)? \d/);
 
         await option(page, "Outcome", "Loss").click();
         await expectTotal(page, 27, true);
         await expect(main(page).getByText("0W 27L", { exact: true })).toBeVisible();
-        await expectEveryRow(page, / Loss \d/);
+        await expectEveryRow(page, / Loss( Grade [^,]+, score [\d.]+, \S+)? \d/);
 
         await option(page, "Outcome", "Not scored").click();
         await expect(noResults(page)).toBeVisible();
@@ -117,7 +117,7 @@ test.describe("the list", () => {
         await pickHero(page, "Abrams");
         await option(page, "Outcome", "Loss").click();
         await expectTotal(page, 3);
-        await expectEveryRow(page, /^Abrams .* Loss \d/);
+        await expectEveryRow(page, /^Abrams .* Loss( Grade [^,]+, score [\d.]+, \S+)? \d/);
 
         await filters(page).getByRole("button", { name: "Clear filters", exact: true }).click();
 
@@ -190,6 +190,18 @@ test.describe("the list", () => {
         await expect(page).toHaveURL(/\/match-history$/);
         await expectTotal(page, MATCHES);
     });
+
+    test("a graded match row shows your grade letter and place beside the result", async ({ page }) => {
+        const first = rows(page).getByRole("link").first();
+        const grade = first.getByTitle(/^Grade /);
+
+        await expect(grade).toHaveText(/^Grade ([SABCDEF][+-]?), score \d+\.\d, (\d+(st|nd|rd|th))\s*\1\s*\2$/);
+        const label = (await grade.getAttribute("title"))!;
+        const [, letter, place] = label.match(/^Grade (\S+), score [\d.]+, (\S+)$/)!;
+        await expect(grade.getByText(letter!, { exact: true })).toBeVisible();
+        await expect(grade.getByText(place!, { exact: true })).toBeVisible();
+        await expect(first).toHaveAccessibleName(new RegExp(label.replace(/[.+]/g, "\\$&")));
+    });
 });
 
 test.describe("a match", () => {
@@ -210,6 +222,42 @@ test.describe("a match", () => {
         for (const card of ["Replay", "Ping", "Souls and damage", "Purchases"]) {
             await expect(page.getByRole("heading", { level: 2, name: card, exact: true })).toBeVisible();
         }
+    });
+
+    test("every graded player shows a grade with a score and a place, and a tie shares the place", async ({ page }) => {
+        const scoreboard = page.getByRole("table", { name: "Scoreboard" });
+        const grades = scoreboard.getByRole("button", {
+            name: /^Grade [SABCDEF][+-]?, score \d+\.\d, \d+(st|nd|rd|th)$/,
+        });
+
+        await expect(scoreboard.getByRole("rowheader", { name: "Grade", exact: true })).toBeVisible();
+        await expect(grades).toHaveCount(12);
+        await expect(scoreboard.getByRole("button", { name: /, 1st$/ })).toHaveCount(1);
+        await expect(scoreboard.getByRole("button", { name: /, 2nd$/ })).toHaveCount(2);
+        await expect(scoreboard.getByRole("button", { name: /, 3rd$/ })).toHaveCount(0);
+        await expect(scoreboard.getByRole("button", { name: /early/i })).toHaveCount(0);
+
+        await grades.first().hover();
+        await expect(page.locator("[data-tooltip-content]")).toContainText(
+            "Better than this share of players on the same hero",
+        );
+    });
+
+    test("a leaver match and a game-captured match flag their grades", async ({ page }) => {
+        const scoreboard = page.getByRole("table", { name: "Scoreboard" });
+        const grades = scoreboard.getByRole("button", { name: /^Grade / });
+        const leaver = scoreboard.getByRole("button", { name: /^Someone left this match early/ });
+        const unchecked = scoreboard.getByRole("button", { name: /^Early leavers not checked/ });
+
+        await open(page, `/match-history/${NEWEST - 1}`);
+        await expect(grades).toHaveCount(11);
+        await expect(leaver).toHaveCount(1);
+        await expect(unchecked).toHaveCount(0);
+
+        await open(page, `/match-history/${NEWEST - 2}`);
+        await expect(grades).toHaveCount(12);
+        await expect(leaver).toHaveCount(0);
+        await expect(unchecked).toHaveCount(1);
     });
 
     test("an id that is not a number says the match is not valid", async ({ page }) => {

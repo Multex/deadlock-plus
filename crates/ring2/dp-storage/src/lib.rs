@@ -21,6 +21,10 @@ pub const MATCH_PING_DIR: &str = "match-ping";
 const MATCH_PING_EXT: &str = "dpmp";
 const MATCH_PING_INDEX: &str = "index.json";
 
+/// The MVP model and its per-match grades; clearing it only costs a regrade on the next background run.
+const MVP_DIR: &str = "mvp";
+const MVP_GRADES_DIR: &str = "grades";
+
 /// Which files in the app data folder each entry owns. Whatever no entry lists falls into
 /// `OtherAppFiles`, so a new file is counted the moment it appears.
 const APP_FILES: &[(EntryId, &[&str])] = &[
@@ -37,6 +41,7 @@ const APP_FILES: &[(EntryId, &[&str])] = &[
     (EntryId::MatchCache, &[MATCHES_DIR]),
     (EntryId::PostgameDetail, &[postgame::POSTGAME_DIR]),
     (EntryId::MatchPing, &[MATCH_PING_DIR]),
+    (EntryId::MvpGrades, &[MVP_DIR]),
 ];
 
 fn app_files(id: EntryId) -> Option<&'static [&'static str]> {
@@ -69,11 +74,12 @@ pub enum EntryId {
     MatchCache,
     PostgameDetail,
     MatchPing,
+    MvpGrades,
     OtherAppFiles,
     Logs,
 }
 
-pub const ALL_ENTRIES: [EntryId; 24] = [
+pub const ALL_ENTRIES: [EntryId; 25] = [
     EntryId::Replays,
     EntryId::Addons,
     EntryId::AddonsBackups,
@@ -96,6 +102,7 @@ pub const ALL_ENTRIES: [EntryId; 24] = [
     EntryId::MatchCache,
     EntryId::PostgameDetail,
     EntryId::MatchPing,
+    EntryId::MvpGrades,
     EntryId::OtherAppFiles,
     EntryId::Logs,
 ];
@@ -148,6 +155,7 @@ pub fn is_clearable(id: EntryId) -> bool {
             | EntryId::MatchCache
             | EntryId::PostgameDetail
             | EntryId::MatchPing
+            | EntryId::MvpGrades
             | EntryId::Logs
     )
 }
@@ -276,6 +284,9 @@ fn units(id: EntryId, roots: &Roots) -> Option<Vec<PathBuf>> {
             items(id, roots).into_iter().next().map(|i| children_matching(&i.path, |_, _| true))
         }
         EntryId::MatchPing => items(id, roots).into_iter().next().map(|i| match_ping_recordings(&i.path)),
+        EntryId::MvpGrades => {
+            items(id, roots).into_iter().next().map(|i| children_matching(&i.path.join(MVP_GRADES_DIR), |_, _| true))
+        }
         EntryId::ConfigBackups | EntryId::GameinfoBackups | EntryId::VoiceBanBackups => {
             location(id, roots).map(|_| items(id, roots).into_iter().map(|i| i.path).collect())
         }
@@ -332,7 +343,7 @@ fn clear_paths(id: EntryId, roots: &Roots, keep: &[String]) -> Result<Vec<PathBu
             citadel.iter().flat_map(|c| children_matching(&c.join("shadercache"), |_, _| true)).collect()
         }
         EntryId::ConsoleLog => citadel.iter().map(|c| c.join("console.log")).filter(|p| p.is_file()).collect(),
-        EntryId::MatchCache | EntryId::PostgameDetail => {
+        EntryId::MatchCache | EntryId::PostgameDetail | EntryId::MvpGrades => {
             items(id, roots).iter().flat_map(|i| children_matching(&i.path, |_, _| true)).collect()
         }
         EntryId::MatchPing => items(id, roots).iter().flat_map(|i| match_ping_paths(&i.path, keep)).collect(),
@@ -458,6 +469,9 @@ mod tests {
         write(&appdata.join(MATCHES_DIR).join("100.json"), 40);
         write(&appdata.join(MATCHES_DIR).join("200.json"), 60);
         write(&appdata.join(postgame::POSTGAME_DIR).join("300.json"), 70);
+        write(&appdata.join(MVP_DIR).join("model.json"), 30);
+        write(&appdata.join(MVP_DIR).join(MVP_GRADES_DIR).join("5.json"), 20);
+        write(&appdata.join(MVP_DIR).join(MVP_GRADES_DIR).join("6.json"), 10);
         write(&appdata.join(MATCH_PING_DIR).join("m1-1.dpmp"), 16);
         write(&appdata.join(MATCH_PING_DIR).join("m1-2.dpmp"), 26);
         write(&appdata.join(MATCH_PING_DIR).join("index.json"), 2);
@@ -541,6 +555,7 @@ mod tests {
         assert_eq!(entry_size(EntryId::MatchCache, &roots), 100);
         assert_eq!(entry_size(EntryId::PostgameDetail, &roots), 70);
         assert_eq!(entry_size(EntryId::MatchPing, &roots), 44);
+        assert_eq!(entry_size(EntryId::MvpGrades, &roots), 60);
         assert_eq!(entry_size(EntryId::OtherAppFiles, &roots), 29);
         assert_eq!(entry_size(EntryId::Logs, &roots), 55);
     }
@@ -596,6 +611,7 @@ mod tests {
                 EntryId::MatchCache,
                 EntryId::PostgameDetail,
                 EntryId::MatchPing,
+                EntryId::MvpGrades,
                 EntryId::Logs
             ]
         );
@@ -697,6 +713,24 @@ mod tests {
         let (base, roots) = fixture("postgame-list");
         assert_eq!(location(EntryId::PostgameDetail, &roots), Some(base.join("appdata").join(postgame::POSTGAME_DIR)));
         assert_eq!(entry_stats(EntryId::PostgameDetail, &roots).count, Some(1));
+    }
+
+    #[test]
+    fn the_mvp_entry_is_listed_with_its_folder_and_counts_grades_only() {
+        let (base, roots) = fixture("mvp-list");
+        assert_eq!(location(EntryId::MvpGrades, &roots), Some(base.join("appdata").join(MVP_DIR)));
+        assert_eq!(entry_stats(EntryId::MvpGrades, &roots).count, Some(2));
+    }
+
+    #[test]
+    fn clearing_the_mvp_entry_removes_the_model_and_grades_but_keeps_the_folder() {
+        let (base, roots) = fixture("mvp-clear");
+        let report = clear(EntryId::MvpGrades, &roots).unwrap();
+        let dir = base.join("appdata").join(MVP_DIR);
+        assert_eq!((report.freed_bytes, report.removed), (60, 2));
+        assert!(dir.is_dir());
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 0);
+        assert!(base.join("appdata").join(postgame::POSTGAME_DIR).join("300.json").is_file());
     }
 
     #[test]
@@ -820,6 +854,7 @@ mod tests {
             EntryId::MatchCache,
             EntryId::PostgameDetail,
             EntryId::MatchPing,
+            EntryId::MvpGrades,
             EntryId::OtherAppFiles,
         ];
         let sum: u64 = app_entries.iter().map(|id| entry_size(*id, &roots)).sum();

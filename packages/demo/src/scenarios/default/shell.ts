@@ -100,6 +100,7 @@ type JobEntry = JobsSnapshot["catalog"][number];
 const JOBS: JobsSnapshot = {
     catalog: [
         { id: "addon-scan", policy: "pauseInGame", policyConfigurable: true, enabled: true },
+        { id: "match-grades", policy: "always", policyConfigurable: false, enabled: true },
         { id: "patch-notes-index", policy: "pauseInGame", policyConfigurable: true, enabled: true },
         { id: "server-block-sync", policy: "always", policyConfigurable: false, enabled: true },
     ],

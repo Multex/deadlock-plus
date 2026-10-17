@@ -101,6 +101,7 @@ pub fn start(app: &AppHandle) {
     let state = app.state::<JobsState>();
     state.registry.declare(crate::features::patch_notes::INDEX_JOB);
     state.registry.declare(crate::features::diagnostics::scan_job::JOB);
+    state.registry.declare(crate::features::mvp::JOB);
     #[cfg(windows)]
     state.registry.declare(crate::features::server_picker::SYNC_JOB);
     if let Ok(dir) = app.path().app_data_dir() {

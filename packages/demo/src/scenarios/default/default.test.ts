@@ -126,6 +126,7 @@ describe("default scenario", () => {
         expect(handle.invoke("jobs_snapshot", {})).toMatchObject({
             catalog: [
                 { id: "addon-scan", enabled: false, policy: "pauseInGame" },
+                { id: "match-grades", enabled: true, policy: "always", policyConfigurable: false },
                 { id: "patch-notes-index", enabled: true, policy: "always" },
                 { id: "server-block-sync", enabled: true },
             ],

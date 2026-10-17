@@ -41,6 +41,7 @@ dp-firewall = { path = "../../../crates/ring1/dp-firewall" }
 dp-steam = { path = "../../../crates/ring1/dp-steam" }
 dp-frames = { path = "../../../crates/ring1/dp-frames" }
 dp-postgame = { path = "../../../crates/ring1/dp-postgame" }
+dp-mvp = { path = "../../../crates/ring1/dp-mvp" }
 dp-telemetry = { path = "../../../crates/ring1/dp-telemetry" }
 dp-storage = { path = "../../../crates/ring2/dp-storage" }
 dp-voice-bans = { path = "../../../crates/ring2/dp-voice-bans" }
@@ -58,7 +59,7 @@ dp-gamedata = { path = "../../../crates/ring2/dp-gamedata" }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "brotli"] }
 tokio = { version = "1", features = ["process", "sync", "time", "rt"] }
 futures = "0.3"
 sysinfo = "0.33"

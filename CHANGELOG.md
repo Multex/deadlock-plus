@@ -33,6 +33,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Server block updates and out-of-date warnings can be turned off separately.
 - The break reminder switch is also in Settings > Notifications.
 
+#### Match grades
+
+- Deadlock+ grades your recent matches in the background, against a weekly sample of real matches.
+- Each graded player gets a score from 0 to 100, a letter from S+ to F, and a place in the match.
+- Grades compare each player with others on the same hero, adjusted for the lobby's rank and the match length.
+- Each match in Match History shows your grade and place under the result.
+- The match detail shows every graded player's grade; hover one for a breakdown of each stat.
+- Matches where someone left early are marked, since every grade in them is skewed.
+- Settings > Storage lists the match grades, with a clear action.
+
 #### Live performance grades
 
 - The Live page grades how you play, from E to S, while the match runs.

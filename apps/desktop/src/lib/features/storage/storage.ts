@@ -32,6 +32,7 @@ export const ENTRY_IDS: EntryId[] = [
     "match-cache",
     "postgame-detail",
     "match-ping",
+    "mvp-grades",
     "other-app-files",
     "logs",
 ];
@@ -147,6 +148,11 @@ export const ENTRY_META: Record<EntryId, EntryMeta> = {
     "match-ping": {
         owner: "deadlock-plus",
         kind: "history",
+        countable: true,
+    },
+    "mvp-grades": {
+        owner: "deadlock-plus",
+        kind: "regenerates",
         countable: true,
     },
     "replay-info-cache": {

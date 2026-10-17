@@ -11,6 +11,8 @@
     import { allPlayers, type MatchDetail } from "@deadlock-plus/match/detail";
     import { boardTeams, headerSummary } from "@deadlock-plus/match/scoreboard";
     import type { Versus } from "@deadlock-plus/match/versus";
+    import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+    import { liveGradeDeps, watchMatchGrade } from "../../mvp";
     import TeamBoard from "./team-board.svelte";
 
     let {
@@ -22,10 +24,12 @@
     let heroes = $state<Record<number, Hero>>({});
     let tiers = $state.raw<RankTier[]>([]);
     let visuals = $state.raw<ReadonlyMap<number, IdVisual>>(new Map());
+    let grade = $state.raw<MvpMatchGrade | null>(null);
 
     const boards = $derived(boardTeams(detail, ownAccountId));
     const summary = $derived(headerSummary(detail, ownAccountId));
     const heroIds = $derived([...new Set(allPlayers(detail).map((p) => p.heroId))]);
+    const matchId = $derived(detail.matchId);
     const itemIds = $derived([...new Set(allPlayers(detail).flatMap((p) => p.items.map((i) => i.itemId)))]);
 
     $effect(() => {
@@ -51,6 +55,12 @@
         };
     });
 
+    $effect(() => {
+        const id = matchId;
+        grade = null;
+        return watchMatchGrade(id, liveGradeDeps, (g) => (grade = g));
+    });
+
     onMount(() => {
         const stopArt = keepGameArt(() => loadRankTiers().then((r) => (tiers = r)));
         const stopHeroes = onHeroesRefreshed((h) => (heroes = h));
@@ -61,4 +71,13 @@
     });
 </script>
 
-<TeamBoard {boards} {heroes} {tiers} {visuals} bans={summary.bans} averageBadge={summary.averageBadge} {versus} />
+<TeamBoard
+    {boards}
+    {heroes}
+    {tiers}
+    {visuals}
+    bans={summary.bans}
+    averageBadge={summary.averageBadge}
+    {versus}
+    {grade}
+/>

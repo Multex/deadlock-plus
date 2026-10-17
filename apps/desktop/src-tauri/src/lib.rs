@@ -62,6 +62,7 @@ pub fn run() {
         .manage(dp_demos::pin::PinStore::default())
         .manage(dp_kv::KvStore::default())
         .manage(features::jobs::JobsState::default())
+        .manage(features::mvp::MvpService::default())
         .manage(features::gamedata::map_items::ApiMapItems::default())
         .manage(features::diagnostics::scan_job::AddonScanState::default())
         .setup(|app| {
@@ -96,6 +97,7 @@ pub fn run() {
             features::alerts::start(app.handle());
             features::patch_notes::start(app.handle());
             features::match_history::start(app.handle());
+            features::mvp::start(app.handle());
             server_picker::start(app.handle());
             Ok(())
         })
@@ -174,6 +176,8 @@ pub fn run() {
             features::storage::commands::storage_clear,
             features::match_history::commands::match_detail_cache_read,
             features::match_history::commands::match_detail_cache_write,
+            features::mvp::commands::mvp_grades,
+            features::mvp::commands::mvp_grade_match,
             features::about::commands::app_info,
             features::about::commands::changelog,
             features::logging::commands::read_logs,

@@ -64,6 +64,15 @@ describe("entry metadata", () => {
         expect([...ENTRY_IDS].sort()).toEqual(Object.keys(ENTRY_META).sort());
     });
 
+    it("lists the MVP grades as a countable cache that regenerates", () => {
+        expect(ENTRY_IDS).toContain("mvp-grades");
+        expect(ENTRY_META["mvp-grades"]).toMatchObject({
+            owner: "deadlock-plus",
+            kind: "regenerates",
+            countable: true,
+        });
+    });
+
     it("has no broad app data entry", () => {
         expect(ENTRY_IDS).not.toContain("app-data" as never);
     });

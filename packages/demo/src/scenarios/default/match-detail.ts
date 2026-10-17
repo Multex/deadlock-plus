@@ -9,12 +9,14 @@ import type { MatchPingSeries } from "@deadlock-plus/ipc-types/MatchPingSeries";
 import type { MinimapArtResult } from "@deadlock-plus/ipc-types/MinimapArtResult";
 import type { MinimapIcon } from "@deadlock-plus/ipc-types/MinimapIcon";
 import type { MinimapIconArt } from "@deadlock-plus/ipc-types/MinimapIconArt";
+import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
 import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
 
 import type { Handlers } from "../../backend";
 import { seeded } from "../../random";
 import type { Identity, Module } from "../../scenario";
 import { fakeAccountId, fakeName } from "./identity";
+import { demoGrade } from "./match-grades";
 import { historyRows, type HistoryRow } from "./progress";
 
 export interface MatchDetailOptions {
@@ -1372,6 +1374,9 @@ function fixtureMapItems(tsv: string): MapItemsPayload {
     return { source: "game", installedBuild: null, table: { schema: 2, buildId: null, ventsCrc: 0, rows, lanes } };
 }
 
+/** How long before the scenario's now the grading sample was fetched. */
+const GRADES_AGE_S = 2 * 24 * 3600;
+
 export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
     return {
         name: "match-detail",
@@ -1386,6 +1391,17 @@ export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
             };
             const asset = assetLoader();
             const mapItems = fixtureMapItems(mapItemsTsv);
+            const gradesBuiltAt = Math.floor(context.now / 1000) - GRADES_AGE_S;
+            const grades = new Map<number, MvpMatchGrade>();
+            const gradeOf = (matchId: number): MvpMatchGrade | null => {
+                if (!world.rows.has(matchId)) return null;
+                let grade = grades.get(matchId);
+                if (!grade) {
+                    grade = demoGrade(metadata(world, matchId), gradesBuiltAt, identity.accountId);
+                    grades.set(matchId, grade);
+                }
+                return grade;
+            };
 
             const handlers: Handlers = {
                 game_items: async (): Promise<ItemEntry[]> =>
@@ -1439,6 +1455,9 @@ export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
                 match_detail_cache_read: () => null,
                 match_detail_cache_write: () => null,
                 match_ping_points: (): MatchPingSeries | null => null,
+                mvp_grades: ({ matchIds }): MvpMatchGrade[] =>
+                    (matchIds as number[]).flatMap((id) => gradeOf(Number(id)) ?? []),
+                mvp_grade_match: ({ matchId }) => gradeOf(Number(matchId)),
             };
 
             return {

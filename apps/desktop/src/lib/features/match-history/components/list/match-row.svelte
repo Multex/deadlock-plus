@@ -9,6 +9,8 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
     import { kdaRatio } from "@deadlock-plus/match/list-summary";
+    import { rowGrades } from "../../row-grades.svelte";
+    import RowGrade from "./row-grade.svelte";
     import { deltaView, matchHref, modeLabelKey, outcomeLabelKey } from "./view-model";
 
     let { row, hero, tiers }: { row: MatchRow; hero: Hero | undefined; tiers: RankTier[] } = $props();
@@ -38,9 +40,12 @@
     const ratio = $derived(kdaRatio(row).toFixed(1));
     const duration = $derived(formatClock(row.durationS) ?? "-");
     const time = $derived(formatDate(row.startTime * 1000, { hour: "2-digit", minute: "2-digit" }));
+    const grade = $derived(rowGrades.own(row.matchId));
     const outcomeVariant = $derived(
         row.outcome === "win" ? "success" : row.outcome === "loss" ? "destructive" : "outline",
     );
+
+    $effect(() => rowGrades.watch(row.matchId));
 </script>
 
 <li>
@@ -75,7 +80,12 @@
             </p>
         </div>
 
-        <Badge variant={outcomeVariant} class="justify-self-start">{t(outcomeLabelKey(row.outcome))}</Badge>
+        <div class="flex flex-col items-start gap-1.5">
+            <Badge variant={outcomeVariant}>{t(outcomeLabelKey(row.outcome))}</Badge>
+            {#if grade}
+                <RowGrade {grade} class="pl-0.5" />
+            {/if}
+        </div>
 
         <div class="text-right" title={t("match_history.list.row.kda_split")}>
             <p class="text-sm font-medium tabular-nums">{row.kills} / {row.deaths} / {row.assists}</p>
