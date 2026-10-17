@@ -195,6 +195,7 @@ pub fn run() {
             features::i18n::commands::set_language,
             features::tray::commands::set_close_to_tray,
             features::tray::commands::main_window_visible,
+            features::tray::commands::launched_hidden,
             features::tray::commands::frontend_ready,
             features::tray::badges::commands::set_update_badge,
             features::maintenance::commands::set_maintenance_schedule,

@@ -3,10 +3,11 @@ import { afterNavigate } from "$app/navigation";
 import { initLanguage } from "$lib/core/i18n.svelte";
 import { command, listen } from "$lib/core/tauri";
 import { SERVICES, resolveReducedMotion, settings, updater } from "$lib/features/registry";
+import { useLastRoute } from "./last-route.svelte";
 import { overlays, skipFirst } from "./overlays";
 
 /** Call once from the root layout's script. Owns service start-up, document attributes and overlay lifecycle. */
-export function useAppShell() {
+export function useAppShell(options: { onboardingPending: () => Promise<boolean> }) {
     let osReducedMotion = $state(false);
 
     $effect(() => {
@@ -32,6 +33,8 @@ export function useAppShell() {
     // The first navigation is the app's own start-up; closing overlays then would close the ones it just opened.
     afterNavigate(skipFirst(() => overlays.closeAll()));
 
+    const lastRoute = useLastRoute(options.onboardingPending);
+
     onMount(() => {
         const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
         osReducedMotion = motionQuery.matches;
@@ -49,13 +52,20 @@ export function useAppShell() {
         // with a real frame already rendered behind it, not a flash of empty/background-colored space.
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                command("frontend_ready").catch((e) => console.error("frontend_ready failed:", e));
+                void lastRoute
+                    .beforeReveal()
+                    .catch(() => {})
+                    // A restored page needs its own painted frame before the reveal.
+                    .then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))))
+                    .then(() => command("frontend_ready"))
+                    .catch((e) => console.error("frontend_ready failed:", e));
             });
         });
 
         return () => {
             motionQuery.removeEventListener("change", onMotionChange);
             for (const stop of stops) if (typeof stop === "function") stop();
+            lastRoute.stop();
             void unlistenHidden.then((fn) => fn());
         };
     });

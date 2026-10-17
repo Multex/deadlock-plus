@@ -8,6 +8,8 @@
     import Titlebar from "$lib/shell/titlebar.svelte";
     import { useAppShell } from "$lib/shell/startup.svelte";
     import CommandPalette from "$lib/features/keyboard/components/command-palette.svelte";
+    import { kvGet } from "$lib/core/kv";
+    import { needsOnboarding } from "$lib/features/onboarding/onboarding";
     import { OVERLAY_WINDOW } from "$lib/features/overlay/api";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { DEFAULT_THEME, isLightTheme } from "$lib/features/settings/themes";
@@ -26,7 +28,9 @@
         root.dataset.theme = DEFAULT_THEME;
         root.toggleAttribute("data-reduced-motion", window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     } else {
-        useAppShell();
+        useAppShell({
+            onboardingPending: async () => needsOnboarding(await kvGet<number>("app-settings", "onboardingVersion")),
+        });
         setOverlayHost(overlayHost);
 
         afterNavigate(({ to }) => {

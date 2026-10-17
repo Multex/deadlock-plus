@@ -247,6 +247,7 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                     throw { code: "overlay.game_not_running", params: {} };
                 },
                 main_window_visible: () => true,
+                launched_hidden: () => false,
                 get_live_state: () => LIVE_STATE,
                 get_live_match: () => LIVE_MATCH,
                 presence_status: () => PRESENCE_STATUS,

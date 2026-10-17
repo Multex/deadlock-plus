@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- Deadlock+ reopens on the page you last had open, including match details.
 
 #### Game overlay
 

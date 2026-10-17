@@ -201,6 +201,11 @@ pub mod commands {
     }
 
     #[tauri::command]
+    pub fn launched_hidden() -> bool {
+        super::launched_hidden(std::env::args())
+    }
+
+    #[tauri::command]
     pub fn main_window_visible(state: tauri::State<'_, MainWindowVisibility>) -> bool {
         state.get()
     }
@@ -212,7 +217,7 @@ pub mod commands {
     /// `"visible": false` in `tauri.conf.json`, means the user never sees the empty state at all.
     #[tauri::command]
     pub fn frontend_ready(app: AppHandle) {
-        if first_ready(&READY_SEEN) && !launched_hidden(std::env::args()) {
+        if first_ready(&READY_SEEN) && !super::launched_hidden(std::env::args()) {
             show_main(&app);
         }
     }
