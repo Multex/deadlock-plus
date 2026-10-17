@@ -119,6 +119,10 @@
         },
         "overlay": {
             "game_not_running": "Start Deadlock to test the overlay."
+        },
+        "ptrace": {
+            "unavailable": "No fix is available for this system.",
+            "failed": "Changing the ptrace setting failed. Check the log for details."
         }
     },
     "settings": {
@@ -1922,6 +1926,15 @@
                 "rate_limited": "No targets: too many requests to the Deadlock API.",
                 "empty_data": "No targets: the Deadlock API has no data for this hero yet."
             }
+        },
+        "ptrace": {
+            "title": "Linux is blocking Deadlock+ from reading the game",
+            "body": "Your kernel's ptrace setting stops live match data and instant results.",
+            "fix": "Allow access",
+            "fix_restart": "Allow access and restart",
+            "reboot": "Takes effect after you restart your computer.",
+            "manual": "Run Steam and Deadlock+ as the same user, outside a Flatpak or Snap sandbox.",
+            "failed": "Could not change the ptrace setting."
         }
     },
     "connection": {

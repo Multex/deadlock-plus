@@ -15,6 +15,7 @@ import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings
 import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
 import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
 import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
+import type { PtraceStatus } from "@deadlock-plus/ipc-types/PtraceStatus";
 import type { SteamAccount } from "@deadlock-plus/ipc-types/SteamAccount";
 
 import type { Handlers } from "../../backend";
@@ -252,9 +253,11 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                 },
                 main_window_visible: () => true,
                 launched_hidden: () => false,
-                get_live_state: () => LIVE_STATE,
                 take_launch_route: () => null,
+                get_live_state: () => LIVE_STATE,
                 get_live_match: () => LIVE_MATCH,
+                ptrace_status: (): PtraceStatus => ({ denied: false, fix: null }),
+                fix_ptrace: () => false,
                 presence_status: () => PRESENCE_STATUS,
                 presence_config: () => presenceConfig,
                 presence_defaults: () => PRESENCE_DEFAULTS,

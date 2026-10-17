@@ -53,6 +53,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 #### Linux
 
+- The Live page says when Linux blocks Deadlock+ from reading the game, with a button to allow it.
 - The server block update job is listed in Jobs and can be turned off.
 - Support reports include the session type, desktop, Steam install type and package type.
 

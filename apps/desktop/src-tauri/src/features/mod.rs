@@ -27,6 +27,7 @@ pub mod overlay;
 pub mod patch_notes;
 pub mod postgame;
 pub mod presence;
+pub mod ptrace;
 pub mod reveal;
 pub mod server_picker;
 pub mod steam_account;

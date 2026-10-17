@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
 
     import { t } from "$lib/core/i18n.svelte";
+    import { platform } from "$lib/core/platform";
     import { createPoller } from "$lib/core/poller";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
@@ -13,9 +14,11 @@
     import PingCard from "$lib/features/connection/components/ping-card.svelte";
     import MatchBoard from "$lib/features/live/components/match-board.svelte";
     import MatchHeader from "$lib/features/live/components/match-header.svelte";
+    import PtraceCard from "$lib/features/live/components/ptrace-card.svelte";
     import StateCard from "$lib/features/live/components/state-card.svelte";
     import { live } from "$lib/features/live/live.svelte";
     import { stateLine } from "$lib/features/live/live";
+    import { ptraceNotice, ptraceStatus, type PtraceStatus } from "$lib/features/live/ptrace";
     import { enginePingLatest, networkPoll, startNetworkMonitor } from "$lib/features/connection/api";
     import { appendPoint, historySeries, mergeTail } from "$lib/features/connection/connection";
     import type { EnginePingView, HistoryPoint, NetworkSnapshot } from "$lib/features/connection/types";
@@ -25,6 +28,9 @@
     let snap = $state.raw<NetworkSnapshot | null>(null);
     let history = $state.raw<HistoryPoint[]>([]);
     let engine = $state.raw<EnginePingView | null>(null);
+    let ptrace = $state.raw<PtraceStatus | null>(null);
+    let ptraceApplied = $state(false);
+    const ptraceShown = $derived(ptraceNotice(ptrace, platform, ptraceApplied));
 
     const relay = $derived(snap?.relay ?? null);
     let engineHistory = $state.raw<HistoryPoint[]>([]);
@@ -37,6 +43,11 @@
     const line = $derived(live.state ? stateLine(live.state.phase, live.state.matchPresent) : null);
 
     async function refresh() {
+        if (platform === "linux") {
+            ptraceStatus()
+                .then((next) => (ptrace = next))
+                .catch(() => {});
+        }
         try {
             const poll = await networkPoll(history.at(-1)?.t ?? null);
             snap = poll.snapshot;
@@ -74,6 +85,8 @@
 
     {#if board}
         <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} />
+    {:else if ptraceShown}
+        <PtraceCard notice={ptraceShown} onapplied={() => (ptraceApplied = true)} />
     {:else if line}
         <StateCard {line} queue={live.state?.phase === "queuing" ? (live.match?.queue ?? null) : null} />
     {/if}

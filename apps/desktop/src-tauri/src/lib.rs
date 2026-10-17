@@ -238,6 +238,8 @@ pub fn run() {
             features::export::commands::save_text_file,
             features::export::commands::save_binary_file,
             features::support::commands::build_support_report,
+            features::ptrace::commands::ptrace_status,
+            features::ptrace::commands::fix_ptrace,
             features::diagnostics::commands::start_addon_scan,
             features::diagnostics::commands::addon_scan_report,
             features::diagnostics::frames::commands::start_frame_capture,

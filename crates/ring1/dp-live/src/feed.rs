@@ -6,6 +6,7 @@ use deadlock_reader::supervise::{Attached, ReaderSupervisor, DEFAULT_RETRY_INTER
 use deadlock_reader::Reader;
 use deadlock_walker::{Error as WalkerError, PartyQueue, PartyQueueState, PeImage, QueueFlag};
 
+use crate::attach::{self, Outcome};
 use crate::convert::{hideout_party_size, queue_state};
 use crate::link::{Backend, LiveRead, ReadError, Snapshot};
 use crate::party_policy::in_match;
@@ -13,9 +14,9 @@ use crate::probes::{ProbeFeed, QueueSource, PROBE_INTERVAL};
 use crate::queue::{ProbeError, QueuePoller, QueueProbe, QueueState};
 use crate::{board_from_snapshot, from_snapshot};
 
-/// The live-facts side of a [`crate::GameLink`]: the supervised attach plus the reader that walks it.
 const CLIENT_MODULE: &str = "client.dll";
 
+/// The live-facts side of a [`crate::GameLink`]: the supervised attach plus the reader that walks it.
 #[derive(Default)]
 pub struct SupervisedBackend {
     supervisor: Option<ReaderSupervisor>,
@@ -34,15 +35,21 @@ impl Backend for SupervisedBackend {
     fn acquire(&mut self) -> Option<Arc<Reader>> {
         match self.supervisor().acquire() {
             Attached::Fresh(r) => {
+                attach::record(Outcome::Attached);
                 self.reader.start(&r);
                 Some(r)
             }
             Attached::Held(r) => Some(r),
             Attached::Failed(reason) => {
                 log::warn!("game link could not attach to the game: {reason}");
+                attach::record(Outcome::Failed(&reason));
                 None
             }
-            Attached::Absent | Attached::Waiting => None,
+            Attached::Absent => {
+                attach::record(Outcome::Absent);
+                None
+            }
+            Attached::Waiting => None,
         }
     }
 

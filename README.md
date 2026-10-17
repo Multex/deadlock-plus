@@ -96,7 +96,12 @@ The installer is not yet Windows code-signed, so SmartScreen may warn on first r
 Support is best-effort and mostly untested. macOS is not supported.
 
 - The Server Picker and Connection page should work. Both ask for your password.
-- Live match data and instant match results read the game's memory through `process_vm_readv`. Many distros block that between unrelated processes (Yama `ptrace_scope`). If the Live page stays on "game closed" while Deadlock runs, either run `sudo sysctl kernel.yama.ptrace_scope=0` or grant the app `sudo setcap cap_sys_ptrace+ep <path to the binary>`. A sandboxed Steam (Flatpak, snap) blocks it too. The native Linux build of the game is not readable yet; Proton is.
+- Live match data and instant match results read the game's memory through `process_vm_readv`. Many distros block that between unrelated processes (Yama `ptrace_scope`). When that happens, the Live page says so and offers a one-click fix that asks for your password:
+  - deb: grants the app binary `cap_sys_ptrace` with `setcap` and restarts it.
+  - AppImage: a file capability cannot work there, because the AppImage runs from a mount that ignores it. Instead, the fix sets `kernel.yama.ptrace_scope = 0` in `/etc/sysctl.d/60-deadlock-plus-ptrace.conf`. That lets any of your programs read each other's memory, not just Deadlock+.
+  - If `ptrace_scope` is 3, the kernel only lowers it at boot, so restart your computer after the fix.
+
+  A sandboxed Steam (Flatpak, snap) blocks it too. The native Linux build of the game is not readable yet; Proton is.
 - Frametimes uses a Vulkan layer you install from the Performance page and enable with a Steam launch option. It is unavailable under Wine.
 - Autostart, Steam and Deadlock discovery under Wine and Proton, and the AppImage and deb installers are new and untested.
 
