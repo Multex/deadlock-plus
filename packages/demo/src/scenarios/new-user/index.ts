@@ -8,6 +8,7 @@ import type { Handlers } from "../../backend";
 import type { ApiRoute } from "../../fetch";
 import { defineScenario, type Module, type ModuleParts, type Scenario } from "../../scenario";
 import type { ScenarioOptions } from "../default";
+import { adminAccessModule } from "../default/admin-access";
 import { IDENTITY, NOW_MS, SEED } from "../default/identity";
 import { matchDetailModule } from "../default/match-detail";
 import { serverPickerModule } from "../default/server-picker";
@@ -101,6 +102,7 @@ export function newUserScenario(options: ScenarioOptions): Scenario {
             noHistoryModule,
             matchDetailModule(options),
             emptied(upkeepModule, deleteEveryReplay),
+            adminAccessModule(),
         ],
     });
 }

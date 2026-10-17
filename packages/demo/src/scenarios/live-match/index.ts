@@ -10,6 +10,7 @@ import type { Handlers } from "../../backend";
 import type { ApiRoute } from "../../fetch";
 import { defineScenario, type Identity, type Module, type Scenario } from "../../scenario";
 import type { ScenarioOptions } from "../default";
+import { adminAccessModule } from "../default/admin-access";
 import { fakeAccountId, fakeName, IDENTITY, MATCH_IDS, NOW_MS, SEED } from "../default/identity";
 import { matchDetailModule } from "../default/match-detail";
 import { progressModule } from "../default/progress";
@@ -205,6 +206,7 @@ export function liveMatchScenario(options: ScenarioOptions): Scenario {
             liveAnalytics,
             matchDetailModule(options),
             upkeep,
+            adminAccessModule(),
         ],
     });
 }

@@ -1,4 +1,5 @@
 import { defineScenario, type Scenario } from "../../scenario";
+import { adminAccessModule, type AdminAccessOptions } from "./admin-access";
 import { IDENTITY, NOW_MS, SEED } from "./identity";
 import { matchDetailModule, type MatchDetailOptions } from "./match-detail";
 import { progressModule } from "./progress";
@@ -8,7 +9,7 @@ import { supportModule } from "./support";
 import { upkeepModule } from "./upkeep";
 
 /** What a scenario needs from the app it runs in. These live outside the package, so the app hands them over. */
-export type ScenarioOptions = ShellOptions & MatchDetailOptions;
+export type ScenarioOptions = ShellOptions & MatchDetailOptions & { adminAccess?: AdminAccessOptions };
 
 /** An established player on a quiet evening: the game is closed, three weeks of matches are on record. */
 export function defaultScenario(options: ScenarioOptions): Scenario {
@@ -24,6 +25,7 @@ export function defaultScenario(options: ScenarioOptions): Scenario {
             progressModule,
             matchDetailModule(options),
             upkeepModule,
+            adminAccessModule(options.adminAccess),
         ],
     });
 }

@@ -3,6 +3,7 @@ import { defaultScenario, type ScenarioOptions } from "./default";
 import { liveMatchScenario } from "./live-match";
 import { newUserScenario } from "./new-user";
 import { apiDownScenario, offlineScenario } from "./offline";
+import { unelevatedScenario } from "./unelevated";
 import { updateAvailableScenario } from "./update-available";
 
 export type { ScenarioOptions };
@@ -16,6 +17,7 @@ export const scenarios: Record<string, ScenarioFactory> = {
     offline: offlineScenario,
     "api-down": apiDownScenario,
     "update-available": updateAvailableScenario,
+    unelevated: unelevatedScenario,
 };
 
 /** The factory of scenario `id`. Throws on an id that is not registered. */
