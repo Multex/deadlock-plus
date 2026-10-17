@@ -34,6 +34,14 @@ pub struct LiveState {
     pub match_present: bool,
 }
 
+impl LivePhase {
+    /// A privilege prompt would cover the game or distract from it.
+    #[allow(dead_code)]
+    pub fn blocks_prompts(self) -> bool {
+        matches!(self, LivePhase::Pregame | LivePhase::InMatch)
+    }
+}
+
 impl LiveState {
     pub fn of(phase: LivePhase) -> Self {
         let match_present = matches!(phase, LivePhase::Pregame | LivePhase::InMatch | LivePhase::PostMatch);
@@ -155,6 +163,21 @@ fn emit(app: &AppHandle, state: Option<LiveState>) {
 mod tests {
     use super::*;
     use dp_live::PartyFacts;
+
+    #[test]
+    fn only_pregame_and_in_match_block_prompts() {
+        for phase in [
+            LivePhase::GameClosed,
+            LivePhase::Menus,
+            LivePhase::Queuing,
+            LivePhase::Pregame,
+            LivePhase::InMatch,
+            LivePhase::PostMatch,
+        ] {
+            let expected = matches!(phase, LivePhase::Pregame | LivePhase::InMatch);
+            assert_eq!(phase.blocks_prompts(), expected, "{phase:?}");
+        }
+    }
 
     fn facts(context: Context, phase: Option<Phase>) -> LiveFacts {
         LiveFacts { context, phase, ..Default::default() }

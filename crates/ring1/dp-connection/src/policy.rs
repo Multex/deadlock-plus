@@ -5,17 +5,11 @@
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
-const PKEXEC_CANDIDATES: [&str; 3] = ["/usr/bin/pkexec", "/run/wrappers/bin/pkexec", "/usr/local/bin/pkexec"];
+use dp_privilege::NO_AGENT;
 
 /// Directory and file the helper is installed to when the running binary cannot be elevated in place.
 pub const HELPER_DIR: &str = "/var/lib/deadlock-plus";
 pub const HELPER_PATH: &str = "/var/lib/deadlock-plus/capture-helper";
-
-/// Only absolute locations that a normal user cannot write to are considered, so `PATH` never decides
-/// which program receives administrator rights.
-pub fn pick_pkexec(exists: impl Fn(&Path) -> bool) -> Option<PathBuf> {
-    PKEXEC_CANDIDATES.iter().map(PathBuf::from).find(|p| exists(p))
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FileFacts {
@@ -94,7 +88,7 @@ pub fn peer_allowed(peer_uid: u32) -> bool {
 pub fn explain_early_exit(code: Option<i32>, stderr: &str) -> Option<String> {
     match code {
         Some(126) => Some("Permission was not granted.".into()),
-        Some(127) => Some("No authentication agent is running, so the password prompt could not open.".into()),
+        Some(127) => Some(NO_AGENT.into()),
         Some(0) => None,
         Some(70) => Some("the capture helper could not be found to install".into()),
         Some(71..=73) => Some("the capture helper could not be installed safely".into()),
@@ -169,14 +163,6 @@ mod tests {
     #[test]
     fn copy_script_failures_are_explained() {
         assert!(explain_early_exit(Some(72), "").unwrap().contains("installed"));
-    }
-
-    #[test]
-    fn pkexec_is_taken_from_a_fixed_list_never_the_path() {
-        let found = pick_pkexec(|p| p == Path::new("/run/wrappers/bin/pkexec"));
-        assert_eq!(found, Some(PathBuf::from("/run/wrappers/bin/pkexec")));
-        assert_eq!(pick_pkexec(|_| false), None);
-        assert_eq!(pick_pkexec(|_| true), Some(PathBuf::from("/usr/bin/pkexec")));
     }
 
     #[test]

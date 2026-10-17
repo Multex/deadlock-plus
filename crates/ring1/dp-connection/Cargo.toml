@@ -9,6 +9,7 @@ publish.workspace = true
 tier = 1
 
 [dependencies]
+dp-privilege = { path = "../../ring0/dp-privilege" }
 log = "0.4.34"
 
 [target.'cfg(unix)'.dependencies]

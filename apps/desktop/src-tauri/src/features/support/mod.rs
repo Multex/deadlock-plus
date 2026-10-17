@@ -251,10 +251,8 @@ fn platform_fields() -> Fields {
     let ptrace = fs::read_to_string("/proc/sys/kernel/yama/ptrace_scope")
         .map(|raw| describe_ptrace_scope(&raw))
         .unwrap_or_else(|e| format!("{UNKNOWN} ({e})"));
-    let pkexec = ["/usr/bin/pkexec", "/run/wrappers/bin/pkexec", "/usr/local/bin/pkexec"]
-        .iter()
-        .find(|p| Path::new(p).exists())
-        .map_or("not found".to_string(), |p| format!("found at {p}"));
+    let pkexec = dp_privilege::pick_pkexec(Path::exists)
+        .map_or("not found".to_string(), |p| format!("found at {}", p.display()));
     let setcap = std::env::current_exe()
         .map_err(|e| e.to_string())
         .and_then(|exe| std::process::Command::new("getcap").arg(exe).output().map_err(|e| e.to_string()))

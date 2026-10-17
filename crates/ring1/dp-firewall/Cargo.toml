@@ -10,6 +10,7 @@ tier = 1
 
 [dependencies]
 dp-atomic = { path = "../../ring0/dp-atomic" }
+dp-privilege = { path = "../../ring0/dp-privilege" }
 dp-sync = { path = "../../ring0/dp-sync" }
 log = "0.4.34"
 serde = { version = "1", features = ["derive"] }

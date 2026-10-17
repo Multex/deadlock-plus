@@ -33,6 +33,7 @@ dp-kv = { path = "../../../crates/ring0/dp-kv" }
 dp-game = { path = "../../../crates/ring1/dp-game" }
 dp-icmp = { path = "../../../crates/ring1/dp-icmp" }
 dp-connection = { path = "../../../crates/ring1/dp-connection" }
+dp-privilege = { path = "../../../crates/ring0/dp-privilege" }
 dp-elevation = { path = "../../../crates/ring1/dp-elevation" }
 dp-discord-ipc = { path = "../../../crates/ring1/dp-discord-ipc" }
 dp-live = { path = "../../../crates/ring1/dp-live" }

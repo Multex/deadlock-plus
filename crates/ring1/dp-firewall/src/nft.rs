@@ -3,6 +3,8 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use dp_privilege::{pick_pkexec, NO_AGENT};
+
 use super::ruleset::Backend;
 use super::FirewallRuleSpec;
 
@@ -53,7 +55,7 @@ fn render(groups: &[FirewallRuleSpec]) -> String {
 fn explain_failure(code: Option<i32>, stderr: &str) -> String {
     match code {
         Some(126) => "Authorization was cancelled or denied.".into(),
-        Some(127) => "No authentication agent is running, so the password prompt could not open.".into(),
+        Some(127) => NO_AGENT.into(),
         _ => format!("nft failed: {}", stderr.trim()),
     }
 }
@@ -90,7 +92,9 @@ impl Backend for Nft {
             c.args(["-f", "-"]);
             c
         } else {
-            let mut c = Command::new(tool("pkexec")?);
+            let pkexec =
+                pick_pkexec(Path::exists).ok_or("pkexec was not found, so administrator rights cannot be requested")?;
+            let mut c = Command::new(pkexec);
             c.arg(nft).args(["-f", "-"]);
             c
         };

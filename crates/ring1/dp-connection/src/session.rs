@@ -95,8 +95,8 @@ fn spawn_helper(exe: &Path, socket: &Path) -> Result<Child, String> {
         command.arg(HELPER_ARG).arg(socket);
         return launch(command);
     }
-    let pkexec =
-        policy::pick_pkexec(Path::exists).ok_or("pkexec was not found, so administrator rights cannot be requested")?;
+    let pkexec = dp_privilege::pick_pkexec(Path::exists)
+        .ok_or("pkexec was not found, so administrator rights cannot be requested")?;
     let mut command = Command::new(pkexec);
     let chain = component_facts(exe).unwrap_or_default();
     match policy::plan_elevation(&chain) {

@@ -4,6 +4,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use dp_privilege::{pkexec_exit, Outcome};
 use serde::Serialize;
 use ts_rs::TS;
 
@@ -114,12 +115,10 @@ pub fn sysctl_invocation(pkexec: &Path, apply_now: bool) -> Invocation {
 
 /// `Ok(false)` when the user dismissed the password prompt.
 pub fn outcome(exit_code: Option<i32>) -> Result<bool, AppError> {
-    match exit_code {
-        Some(0) => Ok(true),
-        // pkexec exits 126 when the authentication dialog is dismissed.
-        Some(126) => Ok(false),
-        Some(code) => Err(AppError::new(PtraceError::Failed).detail(format!("pkexec exited with {code}"))),
-        None => Err(AppError::new(PtraceError::Failed).detail("pkexec was killed by a signal")),
+    match pkexec_exit(exit_code) {
+        Outcome::Applied => Ok(true),
+        Outcome::Cancelled => Ok(false),
+        Outcome::Failed(detail) => Err(AppError::new(PtraceError::Failed).detail(detail)),
     }
 }
 
@@ -130,7 +129,6 @@ mod platform {
 
     use super::*;
 
-    const PKEXEC: &[&str] = &["/usr/bin/pkexec", "/run/wrappers/bin/pkexec", "/usr/local/bin/pkexec"];
     // Debian keeps setcap in sbin, which is not on a regular user's PATH, so pkexec gets the full path.
     const SETCAP: &[&str] =
         &["/usr/sbin/setcap", "/sbin/setcap", "/usr/bin/setcap", "/run/current-system/sw/bin/setcap"];
@@ -149,13 +147,13 @@ mod platform {
             has_cap: fs::read_to_string("/proc/self/status").is_ok_and(|s| has_sys_ptrace(&s)),
             setcap_found: find(SETCAP).is_some(),
         };
-        let fix = find(PKEXEC).and(choose_fix(&host));
+        let fix = dp_privilege::pick_pkexec(Path::exists).and(choose_fix(&host));
         PtraceStatus { denied: true, fix }
     }
 
     pub fn apply(fix: PtraceFix) -> Result<bool, AppError> {
         let unavailable = || AppError::new(PtraceError::Unavailable);
-        let pkexec = find(PKEXEC).ok_or_else(unavailable)?;
+        let pkexec = dp_privilege::pick_pkexec(Path::exists).ok_or_else(unavailable)?;
         let inv = match fix {
             PtraceFix::Setcap => {
                 let setcap = find(SETCAP).ok_or_else(unavailable)?;

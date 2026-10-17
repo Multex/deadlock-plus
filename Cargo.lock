@@ -1228,6 +1228,7 @@ dependencies = [
  "dp-patch-notes",
  "dp-postgame",
  "dp-presence",
+ "dp-privilege",
  "dp-server-picker",
  "dp-steam",
  "dp-storage",
@@ -1535,6 +1536,7 @@ version = "0.12.0"
 name = "dp-connection"
 version = "0.12.0"
 dependencies = [
+ "dp-privilege",
  "ferrisetw",
  "libc",
  "log",
@@ -1607,6 +1609,7 @@ name = "dp-firewall"
 version = "0.12.0"
 dependencies = [
  "dp-atomic",
+ "dp-privilege",
  "dp-sync",
  "log",
  "serde",
@@ -1782,6 +1785,10 @@ dependencies = [
  "serde_json",
  "ts-rs",
 ]
+
+[[package]]
+name = "dp-privilege"
+version = "0.12.0"
 
 [[package]]
 name = "dp-server-picker"

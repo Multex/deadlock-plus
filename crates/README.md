@@ -10,6 +10,7 @@
 - [dp-kv](ring0/dp-kv/README.md): A key-value store over a fixed list of JSON files.
 - [dp-frames-wire](ring0/dp-frames-wire/README.md): The frame file format, a lock-free ring and XDG paths shared by the Vulkan layer and the app.
 - [dp-crash](ring0/dp-crash/README.md): Crash markers, the session sentinel, crash reports and the issue link.
+- [dp-privilege](ring0/dp-privilege/README.md): Outcomes and rules for asking for administrator rights (pkexec, UAC).
 
 ## Ring 1, platform
 
