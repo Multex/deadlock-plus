@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - name: linux-x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
             args: ""
             rust-targets: ""
             glob: |

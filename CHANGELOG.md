@@ -59,6 +59,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - With no earlier map data, the replay map gets most of its markers from the Deadlock API, without lane lines.
 - "Match found" shows only over the game, never as a desktop notification or in the notification center.
 - On Linux, Settings hides the game overlay options, since the overlay is Windows only.
+- Linux builds now run on Ubuntu 22.04 and Debian 12.
 
 ### Fixed
 

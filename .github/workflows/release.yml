@@ -132,7 +132,7 @@ jobs:
 
   # Linux bundles are unsigned for the OS. Only the updater signature is made, with the same key as Windows.
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
     steps:
