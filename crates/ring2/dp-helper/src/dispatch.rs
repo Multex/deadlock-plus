@@ -5,12 +5,11 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use crate::access::{self, ApprovedSids};
 use crate::args::{self, SERVICE_NAME};
-use crate::op::{Op, Reply, Trace};
+use crate::op::{Op, Reply, Trace, NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
 use crate::serve::{Mode, Out};
 use crate::{paths, scm, store, trace};
 
 const SERVICE_DISPLAY: &str = "Deadlock+ helper";
-const NEEDS_INSTALLED_APP: &str = "always_allow_needs_installed_app";
 
 struct Running {
     owner: u64,
@@ -140,7 +139,7 @@ fn approve(ctx: &Ctx) -> Reply {
     match std::env::current_exe() {
         Ok(exe) if args::is_protected_install(&exe, &roots) => match install_service(&exe, &ctx.sid) {
             Ok(()) => Reply::Ok {},
-            Err(detail) => error(format!("service_install_failed: {detail}")),
+            Err(detail) => error(format!("{SERVICE_INSTALL_FAILED}{detail}")),
         },
         _ => error(NEEDS_INSTALLED_APP),
     }

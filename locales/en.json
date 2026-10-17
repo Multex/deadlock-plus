@@ -125,6 +125,8 @@
             "already_elevated": "Deadlock+ is already running as administrator, so there is nothing to allow.",
             "in_match": "You can change administrator access once your match ends.",
             "allow_failed": "Couldn't get administrator access.",
+            "always_allow_blocked": "Always allow didn't work (blocked by security software?). You'll be asked each time.",
+            "always_allow_needs_install": "Always allow only works with the installed Deadlock+ app. You'll be asked each time.",
             "remove_failed": "Couldn't turn off Always allow.",
             "unsupported": "Administrator access is only needed on Windows."
         },

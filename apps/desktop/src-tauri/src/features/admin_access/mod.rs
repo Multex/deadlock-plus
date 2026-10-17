@@ -4,6 +4,7 @@
 
 pub mod commands;
 
+use dp_helper::op::{NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
 use dp_helper::route::Route;
 use dp_privilege::Outcome;
 use serde::Serialize;
@@ -19,6 +20,10 @@ error_codes! {
         AlreadyElevated = "already_elevated",
         InMatch = "in_match",
         AllowFailed = "allow_failed",
+        // The service install was blocked (security software?). The helper still runs and this session is allowed.
+        AlwaysAllowBlocked = "always_allow_blocked",
+        // Always allow needs the installed app. The helper still runs and this session is allowed.
+        AlwaysAllowNeedsInstall = "always_allow_needs_install",
         RemoveFailed = "remove_failed",
         Unsupported = "unsupported",
     }
@@ -110,7 +115,14 @@ pub fn outcome(outcome: Outcome) -> AdminAccessOutcome {
         Outcome::Applied => AdminAccessOutcome::Applied,
         Outcome::Cancelled => AdminAccessOutcome::Cancelled,
         Outcome::Failed(detail) => {
-            AdminAccessOutcome::Failed { error: AppError::new(AdminAccessError::AllowFailed).detail(detail) }
+            let error = if detail == NEEDS_INSTALLED_APP {
+                AppError::new(AdminAccessError::AlwaysAllowNeedsInstall)
+            } else if let Some(service) = detail.strip_prefix(SERVICE_INSTALL_FAILED) {
+                AppError::new(AdminAccessError::AlwaysAllowBlocked).detail(service)
+            } else {
+                AppError::new(AdminAccessError::AllowFailed).detail(detail)
+            };
+            AdminAccessOutcome::Failed { error }
         }
     }
 }
@@ -225,6 +237,23 @@ mod tests {
             panic!("a failure was not reported");
         };
         assert_eq!(error.to_string(), "admin_access.allow_failed: Windows error 5");
+    }
+
+    #[test]
+    fn always_allow_failures_get_their_own_codes() {
+        let AdminAccessOutcome::Failed { error } = outcome(Outcome::Failed(NEEDS_INSTALLED_APP.into())) else {
+            panic!("a failure was not reported");
+        };
+        assert_eq!(error.to_string(), "admin_access.always_allow_needs_install");
+        let blocked = format!("{SERVICE_INSTALL_FAILED}Windows error 5");
+        let AdminAccessOutcome::Failed { error } = outcome(Outcome::Failed(blocked)) else {
+            panic!("a failure was not reported");
+        };
+        assert_eq!(error.to_string(), "admin_access.always_allow_blocked: Windows error 5");
+        let AdminAccessOutcome::Failed { error } = outcome(Outcome::Failed("service_install_failed".into())) else {
+            panic!("a failure was not reported");
+        };
+        assert_eq!(error.code(), "admin_access.allow_failed");
     }
 
     #[test]

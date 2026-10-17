@@ -7,6 +7,10 @@ use dp_server_picker::external::is_external_rule_name;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_LINE_LEN: usize = 1 << 20;
+/// Failure detail of an Always allow request from an app that is not in a protected install location.
+pub const NEEDS_INSTALLED_APP: &str = "always_allow_needs_installed_app";
+/// Failure detail prefix when the service could not be installed; the system error follows it.
+pub const SERVICE_INSTALL_FAILED: &str = "service_install_failed: ";
 const MAX_GROUPS: usize = 128;
 const MAX_NAMES: usize = 64;
 const MAX_NAME_LEN: usize = 128;
