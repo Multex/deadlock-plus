@@ -6,6 +6,9 @@
     import { ChevronRight, Gauge, Pause, Play } from "@lucide/svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
+    import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
+    import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
+    import { adminAccessRow, type AdminAccessChoice } from "$lib/features/settings/admin-access";
     import { jobDescription, jobTitle, POLICY_OPTIONS, type Policy } from "$lib/features/jobs/jobs";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
@@ -26,6 +29,19 @@
     let autostart = $state<AutostartStatus | null>(null);
     let autostartError = $state<unknown>(null);
     let autostartBusy = $state(false);
+
+    const admin = $derived(adminAccessRow(adminAccess.status));
+    const adminChoices = $derived([
+        { value: "ask" as const, label: t("settings.startup.admin_access_ask") },
+        { value: "always" as const, label: t("admin_access.always_allow") },
+    ]);
+    let adminMessage = $state<string | null>(null);
+
+    async function chooseAdminAccess(choice: AdminAccessChoice) {
+        if (choice === admin?.choice) return;
+        adminMessage = null;
+        adminMessage = choice === "always" ? (await adminAccess.allow(true)).message : await adminAccess.remove();
+    }
 
     onMount(() => {
         getAutostart()
@@ -60,6 +76,26 @@
                 disabled={!autostart || autostartBusy}
                 onCheckedChange={toggleAutostart}
             />
+        </SettingRow>
+    </Card>
+{/if}
+
+{#if show("admin-access") && admin}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.admin_access")}
+            description={t("settings.startup.admin_access_description")}
+            hint={adminMessage ?? (admin.afterMatch ? t("admin_access.after_match") : undefined)}
+        >
+            <div class="shrink-0">
+                <Segmented
+                    label={t("settings.items.admin_access")}
+                    options={adminChoices}
+                    value={admin.choice}
+                    disabled={admin.afterMatch || adminAccess.busy}
+                    onselect={chooseAdminAccess}
+                />
+            </div>
         </SettingRow>
     </Card>
 {/if}

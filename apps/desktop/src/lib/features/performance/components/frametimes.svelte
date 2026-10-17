@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { Play, Square } from "@lucide/svelte";
+    import { Play, ShieldAlert, Square } from "@lucide/svelte";
 
     import { errorText } from "$lib/core/errors";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
@@ -8,6 +8,8 @@
     import Card from "@deadlock-plus/ui/card.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
 
+    import AdminButtons from "$lib/features/admin-access/admin-buttons.svelte";
+    import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
     import FrameLayerSetup from "$lib/features/performance/components/frame-layer-setup.svelte";
     import { frameCapture } from "$lib/features/performance/frames.svelte";
     import { addonTitle, formatDuration, frameCaptureNote, framePolyline } from "$lib/features/performance/performance";
@@ -24,6 +26,26 @@
     const recent = $derived(status?.recentFrametimesMs ?? []);
     const ceiling = $derived(Math.max(MIN_CEILING_MS, ...recent));
     const noFrames = $derived(status?.state === "capturing" && status.frames === 0 && status.elapsedMs > 5000);
+    const failure = $derived(status?.state === "failed" ? status.error : null);
+    const needsAdmin = $derived(
+        failure === "diagnostics.frame_trace_needs_admin" && adminAccess.buttons.kind === "prompt",
+    );
+    let adminMessage = $state<string | null>(null);
+
+    async function toggleCapture() {
+        adminMessage = null;
+        await (frameCapture.active ? frameCapture.stop() : frameCapture.start());
+    }
+
+    async function allowAdmin(always: boolean) {
+        adminMessage = null;
+        const { retry, message } = await adminAccess.allow(always);
+        adminMessage = message;
+        if (retry) {
+            await frameCapture.stop();
+            await frameCapture.start();
+        }
+    }
 
     let label = $state("");
     let savedResult = $state.raw<typeof result>(null);
@@ -69,7 +91,7 @@
             variant={frameCapture.active ? "outline" : "default"}
             size="sm"
             disabled={platform === "macos"}
-            onclick={() => (frameCapture.active ? frameCapture.stop() : frameCapture.start())}
+            onclick={toggleCapture}
         >
             {#if frameCapture.active}<Square aria-hidden="true" /> {t("performance.frametimes.stop")}{:else}<Play
                     aria-hidden="true"
@@ -85,8 +107,22 @@
     {#if frameCapture.error}
         <p class="text-sm text-destructive">{frameCapture.error}</p>
     {/if}
-    {#if status?.state === "failed" && status.error}
-        <p class="text-sm text-destructive">{errorText({ code: status.error, params: {} })}</p>
+    {#if needsAdmin}
+        <div
+            role="alert"
+            class="flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
+        >
+            <span class="flex items-center gap-2">
+                <ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
+                {t("performance.frametimes.needs_admin")}
+            </span>
+            <AdminButtons status={adminAccess.status} busy={adminAccess.busy} onallow={allowAdmin} />
+        </div>
+    {:else if failure}
+        <p class="text-sm text-destructive">{errorText({ code: failure, params: {} })}</p>
+    {/if}
+    {#if adminMessage}
+        <p class="text-sm text-muted-foreground">{adminMessage}</p>
     {/if}
 
     {#if frameCapture.active && status}

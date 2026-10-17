@@ -6,11 +6,12 @@
     import SupportLink from "$lib/components/support-link.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { CATEGORIES, matchingCategories, matchingItems } from "../catalog";
+    import { hiddenNow } from "../hidden";
     import { settingsUi } from "../ui.svelte";
 
     let { collapsed, onback }: { collapsed: boolean; onback: () => void } = $props();
 
-    const hits = $derived(matchingItems(settingsUi.query));
+    const hits = $derived(matchingItems(settingsUi.query, hiddenNow));
     const visible = $derived(matchingCategories(hits));
     const current = $derived(page.params.category);
 </script>

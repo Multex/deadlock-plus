@@ -8,10 +8,12 @@
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
 
+    import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
     import CurrentServer from "$lib/features/connection/components/current-server.svelte";
     import HistoryCard from "$lib/features/connection/components/history-card.svelte";
     import MonitorNotices from "$lib/features/connection/components/monitor-notices.svelte";
     import PingCard from "$lib/features/connection/components/ping-card.svelte";
+    import GameAdminCard from "$lib/features/live/components/game-admin-card.svelte";
     import MatchBoard from "$lib/features/live/components/match-board.svelte";
     import MatchHeader from "$lib/features/live/components/match-header.svelte";
     import PtraceCard from "$lib/features/live/components/ptrace-card.svelte";
@@ -85,6 +87,8 @@
 
     {#if board}
         <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} />
+    {:else if adminAccess.status?.gameRunsAsAdmin}
+        <GameAdminCard />
     {:else if ptraceShown}
         <PtraceCard notice={ptraceShown} onapplied={() => (ptraceApplied = true)} />
     {:else if line}

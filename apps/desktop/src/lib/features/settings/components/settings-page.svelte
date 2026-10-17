@@ -4,6 +4,7 @@
     import Input from "@deadlock-plus/ui/input.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { CATEGORIES, matchingCategories, matchingItems, type CategoryId } from "../catalog";
+    import { hiddenNow } from "../hidden";
     import { settingsUi } from "../ui.svelte";
     import Appearance from "./sections/appearance.svelte";
     import Language from "./sections/language.svelte";
@@ -33,7 +34,7 @@
         about: About,
     };
 
-    const hits = $derived(matchingItems(settingsUi.query));
+    const hits = $derived(matchingItems(settingsUi.query, hiddenNow));
     const visible = $derived(matchingCategories(hits));
     const shown = $derived(hits === null ? [category] : visible);
     const show = (id: string) => hits === null || hits.has(id);

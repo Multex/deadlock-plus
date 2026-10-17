@@ -1,6 +1,7 @@
 import { Bell, ChartColumn, Film, Globe, Gauge, History, House, MessageCircle, Swords, VolumeX } from "@lucide/svelte";
 import type { Component } from "svelte";
 import { installFrontendLogging } from "./logging/frontend";
+import { adminAccess } from "./admin-access/admin-access.svelte";
 import { apiHealth } from "./api-health/health.svelte";
 import { alerts } from "./alerts/alerts.svelte";
 import { connectivity } from "./connectivity/online.svelte";
@@ -180,6 +181,7 @@ export const SERVICES: Service[] = [
     () => gameArt.start(),
     () => live.start(),
     () => grades.start(),
+    () => adminAccess.start(),
     () => presenceStatus.start(),
     startBreakReminder,
     () => {

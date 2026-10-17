@@ -2,6 +2,7 @@ import { toast } from "svelte-sonner";
 
 import { errorText, failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
+import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
 import { isGameRunning } from "$lib/features/voice-bans/api";
 import {
     blockServerGroups,
@@ -15,6 +16,7 @@ import {
     syncServerBlocks,
     unblockServerGroups,
 } from "./api";
+import { AdminPrompt } from "./admin-prompt.svelte";
 import { readCachedServerData, writeCachedServerData } from "./cache";
 import { diffBlocks, readPresets, resolveBlockedIds, writePresets, type Preset } from "./presets";
 import {
@@ -55,6 +57,7 @@ export class ServerPicker {
     importOpen = $state(false);
     sort = $state<SortState>(DEFAULT_SORT);
     gameRunning = $state(false);
+    readonly admin = new AdminPrompt({ access: adminAccess, notify: (text, tone) => toast[tone](text) });
 
     unclusteredById = $derived(indexById(this.serverData?.unclustered ?? []));
     regions = $derived(this.serverData?.clustered ?? []);
@@ -257,14 +260,15 @@ export class ServerPicker {
             }
         } catch (e) {
             const name = group.description;
-            toast.error(
-                failureText(
-                    e,
-                    checked
-                        ? t("server_picker.toast.block_failed", { name })
-                        : t("server_picker.toast.unblock_failed", { name }),
-                ),
-            );
+            this.admin.failed(e, {
+                title: checked
+                    ? t("server_picker.admin_needed.block", { name })
+                    : t("server_picker.admin_needed.unblock", { name }),
+                fallback: checked
+                    ? t("server_picker.toast.block_failed", { name })
+                    : t("server_picker.toast.unblock_failed", { name }),
+                retry: () => this.toggleGroup(group, checked),
+            });
         } finally {
             this.markBusy([group.id], false);
         }
@@ -283,7 +287,11 @@ export class ServerPicker {
             this.blockedIds = new Set([...this.blockedIds, ...ids]);
             toast.success(t("server_picker.toast.blocked", { name: siblings.map((g) => g.description).join(", ") }));
         } catch (e) {
-            toast.error(failureText(e, t("server_picker.toast.siblings_failed")));
+            this.admin.failed(e, {
+                title: t("server_picker.admin_needed.siblings"),
+                fallback: t("server_picker.toast.siblings_failed"),
+                retry: () => this.blockSiblings(group),
+            });
         } finally {
             this.markBusy(ids, false);
         }
@@ -298,7 +306,11 @@ export class ServerPicker {
             this.blockedIds = new Set();
             toast.success(tn("server_picker.toast.unblocked_rules", ids.length));
         } catch (e) {
-            toast.error(failureText(e, t("server_picker.toast.unblock_all_failed")));
+            this.admin.failed(e, {
+                title: t("server_picker.admin_needed.unblock_all"),
+                fallback: t("server_picker.toast.unblock_all_failed"),
+                retry: () => this.unblockAll(),
+            });
         }
     }
 
@@ -332,7 +344,11 @@ export class ServerPicker {
                 }),
             );
         } catch (e) {
-            toast.error(failureText(e, t("server_picker.toast.preset_apply_failed", { name: preset.name })));
+            this.admin.failed(e, {
+                title: t("server_picker.admin_needed.preset", { name: preset.name }),
+                fallback: t("server_picker.toast.preset_apply_failed", { name: preset.name }),
+                retry: () => this.applyPreset(preset),
+            });
             try {
                 const ids = [...new Set([...this.regions, ...(this.serverData?.unclustered ?? [])].map((g) => g.id))];
                 this.blockedIds = new Set(await listBlockedGroupIds(ids));
@@ -376,7 +392,11 @@ export class ServerPicker {
             this.externalBlocks = await detectExternalBlocks(this.gameDef.id);
             toast.success(tn("server_picker.toast.imported", ids.length, { source: this.externalLabel }));
         } catch (e) {
-            toast.error(failureText(e, t("server_picker.toast.import_failed")));
+            this.admin.failed(e, {
+                title: t("server_picker.admin_needed.import"),
+                fallback: t("server_picker.toast.import_failed"),
+                retry: () => this.importExternal(),
+            });
         } finally {
             this.importing = false;
         }

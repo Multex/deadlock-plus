@@ -222,6 +222,27 @@ describe("catalog", () => {
         expect(ids("macos")).not.toContain("overlay");
     });
 
+    it("lists admin access under startup, right after starting with the system, on Windows only", () => {
+        const ids = (p: "windows" | "linux" | "macos") => itemsFor(p).map((i) => i.id);
+        expect(ids("windows").indexOf("admin-access")).toBe(ids("windows").indexOf("autostart") + 1);
+        expect(itemsFor("windows").find((i) => i.id === "admin-access")?.category).toBe("startup");
+        expect(ids("linux")).not.toContain("admin-access");
+        expect(ids("macos")).not.toContain("admin-access");
+    });
+
+    it("finds admin access by the words people search for", () => {
+        for (const query of ["admin", "administrator", "uac", "firewall", "frame times", "always allow"]) {
+            expect(matchingItems(query)?.has("admin-access"), query).toBe(true);
+        }
+    });
+
+    it("leaves a row the app hides out of the search results", () => {
+        const hidden = (id: string) => id === "admin-access";
+        expect(matchingItems("admin", hidden)?.has("admin-access")).toBe(false);
+        expect(matchingItems("tray", hidden)?.has("close-to-tray")).toBe(true);
+        expect(matchingCategories(matchingItems("uac", hidden))).toEqual([]);
+    });
+
     it("matches on the category label", () => {
         expect(matchingItems("match sharing")?.has("match-ingest")).toBe(true);
         expect(matchingItems("startup and background")?.has("close-to-tray")).toBe(true);

@@ -184,6 +184,18 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "autostart launch boot sign in login log in startup task scheduler launch agent xdg",
     },
     {
+        id: "admin-access",
+        category: "startup",
+        get title() {
+            return t("settings.items.admin_access");
+        },
+        get description() {
+            return t("settings.startup.admin_access_description");
+        },
+        keywords:
+            "admin administrator elevated rights permission uac prompt ask each time always allow helper service firewall server blocks connection monitor frame times",
+    },
+    {
         id: "close-to-tray",
         category: "startup",
         get title() {
@@ -438,11 +450,11 @@ export const hasOverlay = (p: Platform): boolean => p === "windows";
 
 const needsOverlay = (item: SettingItem) => item.category === "overlay" || item.id === "match-found";
 
-/** Null means no filter is active. Every word of the query must appear in an item's title, category label, description or keywords. */
 export function itemsFor(p: Platform): SettingItem[] {
     const items = p === "macos" ? BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration") : BASE_ITEMS;
     return items
         .filter((item) => hasOverlay(p) || !needsOverlay(item))
+        .filter((item) => p === "windows" || item.id !== "admin-access")
         .map((item) =>
             item.id === "autostart"
                 ? {
@@ -469,11 +481,16 @@ export function categoriesFor(p: Platform): Category[] {
 
 export const SHOWN_CATEGORIES: Category[] = categoriesFor(platform);
 
-export function matchingItems(query: string): Set<string> | null {
+/**
+ * Null means no filter is active. Every word of the query must appear in an item's title, category label,
+ * description or keywords. `hidden` drops rows the page leaves out at runtime, so search never lists them.
+ */
+export function matchingItems(query: string, hidden: (id: string) => boolean = () => false): Set<string> | null {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return null;
     const hits = new Set<string>();
     for (const item of ITEMS) {
+        if (hidden(item.id)) continue;
         const category = CATEGORIES.find((c) => c.id === item.category)?.label ?? "";
         const haystack = `${item.title} ${category} ${item.description ?? ""} ${item.keywords}`.toLowerCase();
         if (words.every((w) => haystack.includes(w))) hits.add(item.id);

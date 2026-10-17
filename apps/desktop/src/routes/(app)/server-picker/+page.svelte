@@ -11,6 +11,7 @@
     import { createPoller } from "$lib/core/poller";
 
     import { ServerPicker } from "$lib/features/server-picker/picker.svelte";
+    import AdminAccessDialog from "$lib/features/server-picker/components/admin-access-dialog.svelte";
     import ExternalBlocksBanner from "$lib/features/server-picker/components/external-blocks-banner.svelte";
     import GameRunningBanner from "$lib/features/server-picker/components/game-running-banner.svelte";
     import PresetsDialog from "$lib/features/server-picker/components/presets-dialog.svelte";
@@ -137,3 +138,5 @@
     onSave={(preset) => picker.savePreset(preset)}
     onDelete={(id) => picker.deletePreset(id)}
 />
+
+<AdminAccessDialog prompt={picker.admin} />

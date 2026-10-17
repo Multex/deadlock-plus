@@ -1,6 +1,8 @@
 <script lang="ts">
     import { t } from "$lib/core/i18n.svelte";
     import { platformName, type Platform } from "$lib/core/platform";
+    import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
+    import AdminAccessChoice from "./admin-access-choice.svelte";
 
     let { platform, elevated }: { platform: Platform; elevated: boolean } = $props();
 </script>
@@ -26,6 +28,8 @@
             {t("onboarding.permissions.broken")}
         </li>
     </ul>
+{:else if adminAccess.buttons.kind !== "hidden"}
+    <AdminAccessChoice />
 {:else}
     <h1 class="font-heading text-2xl font-bold tracking-wide">{t("onboarding.permissions.windows_title")}</h1>
     <p class="text-muted-foreground">{t("onboarding.permissions.windows_body")}</p>

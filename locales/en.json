@@ -188,7 +188,8 @@
             "break_reminder": "Break reminder",
             "ui_scale": "UI scale",
             "hardware_acceleration": "Hardware acceleration",
-            "open_on_game_start": "Open with Deadlock"
+            "open_on_game_start": "Open with Deadlock",
+            "admin_access": "Admin access"
         },
         "nav": {
             "label": "Settings categories",
@@ -253,7 +254,9 @@
             "run_by_itself": "Run by itself",
             "while_running": "While Deadlock runs",
             "advanced": "Advanced",
-            "open_on_game_start_description": "Shows the Deadlock+ window when the game starts, even if Deadlock+ was in the tray."
+            "open_on_game_start_description": "Shows the Deadlock+ window when the game starts, even if Deadlock+ was in the tray.",
+            "admin_access_ask": "Ask each time",
+            "admin_access_description": "Server blocks, the connection monitor and frame times need Windows admin rights."
         },
         "notifications": {
             "alerts_description": "Notifies you when a new Deadlock patch note or Steam announcement is posted. Checks the public Deadlock API every 15 minutes and sends nothing about you. Needs the app running, so pair it with the tray option.",
@@ -605,6 +608,12 @@
             "title": "Match found",
             "body": "Your match is loading."
         }
+    },
+    "admin_access": {
+        "allow": "Allow",
+        "always_allow": "Always allow",
+        "after_match": "Available after this match",
+        "nothing_changed": "Nothing changed."
     },
     "common": {
         "confirm": "Confirm",
@@ -1075,7 +1084,8 @@
             "label_placeholder": "Label, e.g. Mod off",
             "save": "Save run",
             "saved": "Saved",
-            "spike_at": "at {time}"
+            "spike_at": "at {time}",
+            "needs_admin": "Frame times need administrator access."
         },
         "scripts": {
             "intro": "Scans the scripts inside your installed Deadlock mods for patterns that can hurt frametimes, like timers that pile up. Nothing is changed or run.",
@@ -1231,6 +1241,15 @@
             "imported_one": "Imported {count} block from {source}",
             "imported_other": "Imported {count} blocks from {source}",
             "import_failed": "Couldn't import the existing firewall blocks. Check the log for details."
+        },
+        "admin_needed": {
+            "block": "Couldn't block {name}.",
+            "unblock": "Couldn't unblock {name}.",
+            "siblings": "Couldn't block the related servers.",
+            "unblock_all": "Couldn't unblock everything.",
+            "preset": "Couldn't apply \"{name}\".",
+            "import": "Couldn't import the existing firewall blocks.",
+            "description": "Deadlock+ needs administrator access to change firewall rules. Allow asks Windows once for this session. Always allow asks once, then never again on this Windows account."
         }
     },
     "demos": {
@@ -1752,7 +1771,14 @@
             "monitor_label": "Connection monitor:",
             "monitor": "live ping and loss for your match come from watching your network traffic, which is also admin-only.",
             "nothing_else": "Nothing else needs administrator rights.",
-            "not_elevated": "This copy runs without administrator rights, so the Server Picker and Live page won't work until you relaunch it as administrator."
+            "not_elevated": "This copy runs without administrator rights, so the Server Picker and Live page won't work until you relaunch it as administrator.",
+            "admin_title": "Administrator access",
+            "admin_body": "A few features change Windows settings that only an administrator can change. Deadlock+ asks Windows for permission when one of them is used.",
+            "always_note": "One Windows prompt now, then never again on this Windows account.",
+            "later": "Ask me later",
+            "later_note": "Deadlock+ asks the first time a feature needs it.",
+            "always_on": "Always allow is on. Windows won't ask again on this account.",
+            "always_on_hint": "You can turn it off in Settings > Startup and background."
         },
         "steam": {
             "title": "Your Steam account",
@@ -1947,6 +1973,10 @@
             "reboot": "Takes effect after you restart your computer.",
             "manual": "Run Steam and Deadlock+ as the same user, outside a Flatpak or Snap sandbox.",
             "failed": "Could not change the ptrace setting."
+        },
+        "game_admin": {
+            "title": "Deadlock runs as admin",
+            "body": "Start Steam normally to use live match data."
         }
     },
     "connection": {
@@ -1982,7 +2012,9 @@
         "notices": {
             "permission": "Live monitoring needs to watch your network traffic while Deadlock runs. Your system will ask for your password.",
             "allow": "Allow",
-            "retry": "Retry"
+            "retry": "Retry",
+            "admin_title": "Live monitoring needs admin access",
+            "admin_body": "Live monitoring needs to watch your network traffic while Deadlock runs."
         },
         "ping": {
             "no_data": "No data yet.",
