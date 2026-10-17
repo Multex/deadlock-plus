@@ -79,6 +79,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - On Linux, ping times no longer fail on systems set to a language other than English.
 - On Linux, Deadlock+ picks the Steam install you last signed in to when there are several.
 - Discord presence works with Vesktop installed from Flatpak.
+- On Linux desktops without a tray, starting with your computer shows the window instead of hiding it.
 
 ## [0.12.0] - 2026-10-15
 

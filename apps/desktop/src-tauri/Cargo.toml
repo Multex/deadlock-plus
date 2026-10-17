@@ -93,3 +93,4 @@ windows-core = "0.61"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust = "4.18"
+zbus = "5.19"

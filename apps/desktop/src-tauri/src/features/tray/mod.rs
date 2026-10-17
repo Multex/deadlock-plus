@@ -1,8 +1,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod badges;
+mod host;
 
 use crate::features::i18n::I18nState;
+use host::TrayHost;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
@@ -51,13 +53,23 @@ impl MainWindowVisibility {
     }
 }
 
-/// The autostart task passes `--autostart`; that launch stays in the tray until the user opens it.
-pub fn launched_hidden<I, S>(args: I) -> bool
+/// The autostart task passes `--autostart`.
+fn autostart_launch<I, S>(args: I) -> bool
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
     args.into_iter().any(|a| a.as_ref() == AUTOSTART_ARG)
+}
+
+fn starts_hidden(autostart: bool, host: impl FnOnce() -> TrayHost) -> bool {
+    autostart && host() == TrayHost::Present
+}
+
+/// An autostart launch stays in the tray until the user opens it. With no tray host (plain GNOME) there
+/// is no icon to open it from, so it shows the window instead.
+pub fn launched_hidden() -> bool {
+    starts_hidden(autostart_launch(std::env::args()), host::tray_host)
 }
 
 pub fn show_main(app: &AppHandle) {
@@ -154,7 +166,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     app.manage(tray_icon);
     badges::setup(app);
 
-    if launched_hidden(std::env::args()) {
+    if launched_hidden() {
         log::info!("autostart launch, staying in the tray");
     }
     Ok(())
@@ -202,7 +214,7 @@ pub mod commands {
 
     #[tauri::command]
     pub fn launched_hidden() -> bool {
-        super::launched_hidden(std::env::args())
+        super::launched_hidden()
     }
 
     #[tauri::command]
@@ -217,7 +229,7 @@ pub mod commands {
     /// `"visible": false` in `tauri.conf.json`, means the user never sees the empty state at all.
     #[tauri::command]
     pub fn frontend_ready(app: AppHandle) {
-        if first_ready(&READY_SEEN) && !super::launched_hidden(std::env::args()) {
+        if first_ready(&READY_SEEN) && !super::launched_hidden() {
             show_main(&app);
         }
     }
@@ -242,14 +254,26 @@ mod tests {
     }
 
     #[test]
-    fn autostart_arg_means_hidden_launch() {
-        assert!(launched_hidden(["deadlock-plus.exe", "--autostart"]));
+    fn autostart_arg_marks_an_autostart_launch() {
+        assert!(autostart_launch(["deadlock-plus.exe", "--autostart"]));
     }
 
     #[test]
-    fn normal_launch_is_visible() {
-        assert!(!launched_hidden(["deadlock-plus.exe"]));
-        assert!(!launched_hidden(["deadlock-plus.exe", "--autostart-not"]));
+    fn normal_launch_is_not_autostart() {
+        assert!(!autostart_launch(["deadlock-plus.exe"]));
+        assert!(!autostart_launch(["deadlock-plus.exe", "--autostart-not"]));
+    }
+
+    #[test]
+    fn autostart_stays_hidden_only_with_a_tray_host() {
+        assert!(starts_hidden(true, || TrayHost::Present));
+        assert!(!starts_hidden(true, || TrayHost::Absent));
+        assert!(!starts_hidden(true, || TrayHost::Unknown));
+    }
+
+    #[test]
+    fn normal_launch_shows_without_probing_the_tray_host() {
+        assert!(!starts_hidden(false, || unreachable!("probed on a normal launch")));
     }
 
     #[test]
