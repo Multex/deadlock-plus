@@ -63,6 +63,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
 - A new hero's Discord art shows up within an hour of the Deadlock API publishing it, instead of up to a week later.
 - Pressing Play while match salts are being recovered no longer says Deadlock is being played on another computer.
+- Discord shows "Finding match" with the queue timer again when you queue as a party.
+- "Match found" over the game also shows when you queue as a party.
 
 ## [0.12.0] - 2026-10-15
 

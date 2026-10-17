@@ -19,6 +19,9 @@ pub struct QueueState {
     pub match_mode: Option<MatchMode>,
     pub game_mode: Option<GameMode>,
     pub bot_difficulty: Option<u32>,
+    /// When the party's search started, in unix seconds. A party search never sets the solo flag above. `None` or 0
+    /// while the party is not searching.
+    pub party_start: Option<u64>,
 }
 
 impl QueueState {
@@ -267,7 +270,13 @@ mod tests {
     }
 
     fn solo(match_mode: MatchMode, game_mode: GameMode, bot_difficulty: Option<u32>) -> Option<QueueState> {
-        Some(QueueState { queueing: true, match_mode: Some(match_mode), game_mode: Some(game_mode), bot_difficulty })
+        Some(QueueState {
+            queueing: true,
+            match_mode: Some(match_mode),
+            game_mode: Some(game_mode),
+            bot_difficulty,
+            ..QueueState::default()
+        })
     }
 
     #[test]

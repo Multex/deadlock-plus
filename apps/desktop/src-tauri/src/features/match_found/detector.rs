@@ -127,6 +127,27 @@ mod tests {
     }
 
     #[test]
+    fn a_party_queue_arms_and_fires() {
+        let party_queue = |queued_secs| {
+            Seen::Facts(LiveFacts {
+                context: Context::Hideout,
+                party: Some(PartyFacts {
+                    size: 2,
+                    queueing: true,
+                    queued_secs: Some(queued_secs),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        };
+        let mut c = Clock::new();
+        assert!(!c.at(0, party_queue(40)));
+        assert!(matches!(c.d.state(), State::Armed { .. }));
+        assert!(!c.at(1, party_queue(41)));
+        assert!(c.at(3, in_match(Some(Phase::MatchIntro))));
+    }
+
+    #[test]
     fn loading_and_pregame_also_fire_when_the_intro_was_missed() {
         for phase in [Phase::Loading, Phase::PreGame] {
             let mut c = Clock::new();
