@@ -71,6 +71,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - "Match found" over the game also shows when you queue as a party.
 - Match salt recovery no longer misses friends' online status when many answer at once.
 - On Linux, ping times no longer fail on systems set to a language other than English.
+- On Linux, Deadlock+ picks the Steam install you last signed in to when there are several.
 
 ## [0.12.0] - 2026-10-15
 

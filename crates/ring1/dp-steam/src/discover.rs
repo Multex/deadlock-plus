@@ -185,10 +185,17 @@ fn child_dirs(parent: &Path) -> Vec<PathBuf> {
     dirs
 }
 
+fn last_login_time(root: &Path) -> Option<std::time::SystemTime> {
+    std::fs::metadata(root.join("config/loginusers.vdf")).and_then(|m| m.modified()).ok()
+}
+
 /// Every Steam install found on this machine, native ones first, then Steam running under Wine.
 pub fn steam_roots(env: &Env, host: Host) -> Vec<SteamRoot> {
     let mut list = RootList { roots: Vec::new(), seen: Vec::new() };
-    for path in native_steam_candidates(env, host) {
+    let mut native = native_steam_candidates(env, host);
+    // Stable sort: ties and installs without the file keep the candidate order.
+    native.sort_by_key(|path| std::cmp::Reverse(last_login_time(path)));
+    for path in native {
         list.push(path, None);
     }
     let mut prefixes = fixed_prefixes(env, host);
@@ -345,6 +352,36 @@ mod tests {
                 home.0.join(".wine/drive_c/Program Files/Steam")
             ]
         );
+    }
+
+    fn touch(path: &Path, secs: u64) {
+        let file = fs::OpenOptions::new().write(true).open(path).unwrap();
+        file.set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs)).unwrap();
+    }
+
+    #[test]
+    fn the_install_with_the_newest_login_file_comes_first() {
+        let home = Home::new("recent-login");
+        let flatpak = ".var/app/com.valvesoftware.Steam/.local/share/Steam";
+        home.dir(&format!("{flatpak}/steamapps"));
+        home.dir(".steam/steam/steamapps");
+        home.write(&format!("{flatpak}/config/loginusers.vdf"), "");
+        home.write(".steam/steam/config/loginusers.vdf", "");
+        touch(&home.0.join(flatpak).join("config/loginusers.vdf"), 1_000);
+        touch(&home.0.join(".steam/steam/config/loginusers.vdf"), 2_000);
+        let paths: Vec<PathBuf> = steam_roots(&home.env(), Host::Linux).into_iter().map(|r| r.path).collect();
+        assert_eq!(paths, vec![home.0.join(".steam/steam"), home.0.join(flatpak)]);
+    }
+
+    #[test]
+    fn an_install_with_a_login_file_beats_one_without() {
+        let home = Home::new("any-login");
+        let flatpak = ".var/app/com.valvesoftware.Steam/.local/share/Steam";
+        home.dir(&format!("{flatpak}/steamapps"));
+        home.dir(".steam/steam/steamapps");
+        home.write(".steam/steam/config/loginusers.vdf", "");
+        let paths: Vec<PathBuf> = steam_roots(&home.env(), Host::Linux).into_iter().map(|r| r.path).collect();
+        assert_eq!(paths, vec![home.0.join(".steam/steam"), home.0.join(flatpak)]);
     }
 
     #[test]
