@@ -1,6 +1,6 @@
 # dp-server-picker
 
-Fetches Valve's Steam Datagram Relay (SDR) server groups, pings them, validates block requests, keeps the firewall blocks current and imports blocks from other server pickers. It is ring 2 because it combines the firewall and ICMP crates with Valve's relay data.
+Fetches Valve's Steam Datagram Relay (SDR) server groups, pings them, keeps the firewall blocks current and imports blocks from other server pickers. It is ring 2 because it combines the firewall and ICMP crates with Valve's relay data.
 
 ## Public API
 
@@ -17,10 +17,6 @@ Fetches Valve's Steam Datagram Relay (SDR) server groups, pings them, validates 
 `ping` module:
 
 - `ping_group(ips)` returns the lowest round-trip time in whole milliseconds, or `None` if no relay replied.
-
-`validate` module:
-
-- `validate_group_id(id)` and `validate_block_request(id, description, relay_ips)` return `Result<(), String>`.
 
 `sync` module:
 
@@ -42,8 +38,7 @@ No platform-specific code. The firewall and ping backends differ by OS, and this
 
 ## Gotchas
 
-- `validate_block_request` limits ids to 48 characters of `[A-Za-z0-9_.-]`, descriptions to 200 bytes without control characters, and lists to 1 through 256 addresses. It refuses unspecified, loopback, private, link-local, multicast and broadcast addresses, and IPv6 unique-local addresses, because a block on those would cut the machine off its own network. It cannot tell a public address that is not a relay.
-- `sync_blocks` drops any group that fails validation and never adds a block. A skipped group keeps its existing rule. The caller passes the `tokio::sync::Mutex` so the picker opening and a timer cannot run two syncs at once.
+- `sync_blocks` drops any group that fails `dp_firewall::validate::validate_block_request` and never adds a block. A skipped group keeps its existing rule. The caller passes the `tokio::sync::Mutex` so the picker opening and a timer cannot run two syncs at once.
 - `ping_group` samples the first 3 relays of a group and retries with timeouts of 1, 2, 3 and 4 seconds, only for groups with no reply. A semaphore allows 24 groups at a time.
 - `import` removes an external rule only if every IP it blocks is covered by a group Deadlock+ now blocks, so nothing is lifted by accident.
 - `load_definitions` panics if `resources/games.json` does not match `GameDefinition`.

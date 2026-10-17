@@ -5,7 +5,7 @@ use ts_rs::TS;
 
 use crate::definitions::load_definitions;
 use crate::sdr::{fetch_server_data, ServerData};
-use crate::validate::validate_block_request;
+use dp_firewall::validate::validate_block_request;
 use dp_firewall::{self as firewall, FirewallRuleSpec};
 
 /// One spec per group id, dropping any group that fails the same validation a manual block

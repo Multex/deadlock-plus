@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub mod validate;
+
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]

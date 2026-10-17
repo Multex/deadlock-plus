@@ -13,6 +13,7 @@ Blocks outbound TCP and UDP to groups of relay IP addresses. It is ring 1 becaus
 - `refresh_stale_groups(specs)` corrects groups that are already blocked when their IPs changed. It returns a `RefreshReport` with `updated` and `failed` lists. It never blocks a new group.
 - `read_block_rules(names)` returns enabled outbound block rules by exact name as `ExistingBlockRule` values with `name` and `remote_ips`.
 - `remove_rules_by_name(names)` deletes rules by name.
+- `validate::validate_group_id(id)` and `validate::validate_block_request(id, description, relay_ips)` return `Result<(), String>`. Block requests from the web view and from sync go through them first.
 
 ## Dependencies
 
@@ -29,6 +30,7 @@ Blocks outbound TCP and UDP to groups of relay IP addresses. It is ring 1 becaus
 
 ## Gotchas
 
+- `validate_block_request` limits ids to 48 characters of `[A-Za-z0-9_.-]`, descriptions to 200 bytes without control characters, and lists to 1 through 256 addresses. It refuses unspecified, loopback, private, link-local, multicast and broadcast addresses, and IPv6 unique-local addresses, because a block on those would cut the machine off its own network. It cannot tell a public address that is not a relay.
 - Rules name TCP and UDP and not "any", so ICMP stays open and ping still works against a blocked region.
 - The Linux backend cannot query the firewall without root. They record the blocked set in `firewall-blocks.json` and reapply the whole ruleset on every change. `list_blocked` reads that file, not the kernel.
 - Kernel rules do not survive a reboot, so the state file is ignored when its boot id differs from the current one.

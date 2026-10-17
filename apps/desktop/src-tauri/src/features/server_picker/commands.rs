@@ -8,11 +8,12 @@ use super::state::ServerPickerState;
 use crate::features::error::AppError;
 use crate::http::Http;
 use dp_firewall as firewall;
+use dp_firewall::validate;
 use dp_server_picker::definitions::{find_definition, load_definitions, GameDefinition};
+use dp_server_picker::external;
 use dp_server_picker::ping::ping_group;
 use dp_server_picker::sdr::{fetch_server_data, ServerData};
 use dp_server_picker::sync::{sync_blocks, SyncOutcome};
-use dp_server_picker::{external, validate};
 
 #[tauri::command]
 pub fn get_game_definitions() -> Vec<GameDefinition> {
