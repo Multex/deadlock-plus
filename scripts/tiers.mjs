@@ -8,6 +8,7 @@ export const SAME_TIER_ALLOWLIST = [
     ["dp-versioned", "dp-atomic"],
     ["dp-kv", "dp-versioned"],
     ["dp-export", "dp-atomic"],
+    ["dp-helper", "dp-server-picker"],
 ];
 
 const CRATE_DIR = /\/crates\/(ring\d+)\/[^/]+\/Cargo\.toml$/;

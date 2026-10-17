@@ -1690,6 +1690,12 @@ dependencies = [
 [[package]]
 name = "dp-helper"
 version = "0.12.0"
+dependencies = [
+ "dp-firewall",
+ "dp-server-picker",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "dp-icmp"

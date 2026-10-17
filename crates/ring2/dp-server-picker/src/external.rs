@@ -26,6 +26,11 @@ fn candidate_rule_names(descriptions: &[String]) -> Vec<String> {
     names
 }
 
+/// Whether a firewall rule name belongs to one of the known other tools.
+pub fn is_external_rule_name(name: &str) -> bool {
+    source_label(name).is_some()
+}
+
 fn source_label(rule_name: &str) -> Option<&'static str> {
     SOURCES.iter().find(|(prefix, _)| rule_name.starts_with(prefix)).map(|(_, label)| *label)
 }
@@ -82,6 +87,22 @@ pub fn import(data: &ServerData, scan: &ScanResult) -> Result<Vec<String>, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn external_rule_names_match_known_prefixes_only() {
+        assert!(is_external_rule_name("server_picker_x_Frankfurt"));
+        assert!(is_external_rule_name("CS2ServerPicker_Frankfurt"));
+        for bad in [
+            "",
+            "deadlock_plus_fra_tcp",
+            "Server_Picker_X_a",
+            "xserver_picker_x_a",
+            "CS2ServerPicker",
+            "Core Networking",
+        ] {
+            assert!(!is_external_rule_name(bad), "{bad:?}");
+        }
+    }
 
     fn group(id: &str, desc: &str, ips: &[&str]) -> ServerGroup {
         ServerGroup {

@@ -8,3 +8,8 @@ publish.workspace = true
 [package.metadata.dp]
 tier = 2
 
+[dependencies]
+dp-firewall = { path = "../../ring1/dp-firewall" }
+dp-server-picker = { path = "../dp-server-picker" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
