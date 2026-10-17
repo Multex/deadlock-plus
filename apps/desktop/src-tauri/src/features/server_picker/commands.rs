@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use tauri::State;
 use ts_rs::TS;
 
+#[cfg(windows)]
+use super::error::routed_error;
 use super::error::{invalid_request, unknown_game, ServerPickerError};
 use super::state::ServerPickerState;
 use crate::features::error::AppError;
@@ -14,6 +16,9 @@ use dp_server_picker::external;
 use dp_server_picker::ping::ping_group;
 use dp_server_picker::sdr::{fetch_server_data, ServerData};
 use dp_server_picker::sync::{sync_blocks, SyncOutcome};
+
+#[cfg(windows)]
+use dp_helper::routed;
 
 #[tauri::command]
 pub fn get_game_definitions() -> Vec<GameDefinition> {
@@ -66,22 +71,34 @@ pub async fn block_server_groups(groups: Vec<BlockGroupRequest>) -> Result<(), A
         .into_iter()
         .map(|g| firewall::FirewallRuleSpec { group_id: g.id, description: g.description, relay_ips: g.relay_ips })
         .collect();
-    tauri::async_runtime::spawn_blocking(move || {
-        firewall::block_groups(&specs).map_err(|e| AppError::new(ServerPickerError::BlockFailed).detail(e))
-    })
-    .await
-    .map_err(AppError::internal)?
+    tauri::async_runtime::spawn_blocking(move || block(&specs)).await.map_err(AppError::internal)?
+}
+
+#[cfg(windows)]
+fn block(specs: &[firewall::FirewallRuleSpec]) -> Result<(), AppError> {
+    routed::block_groups(specs).map_err(|e| routed_error(e, ServerPickerError::BlockFailed))
+}
+
+#[cfg(not(windows))]
+fn block(specs: &[firewall::FirewallRuleSpec]) -> Result<(), AppError> {
+    firewall::block_groups(specs).map_err(|e| AppError::new(ServerPickerError::BlockFailed).detail(e))
 }
 
 #[tauri::command]
 pub async fn unblock_server_groups(ids: Vec<String>) -> Result<(), AppError> {
     ids.iter().try_for_each(|id| validate::validate_group_id(id)).map_err(invalid_request)?;
     log::info!("unblocking {} server group(s): {}", ids.len(), ids.join(", "));
-    tauri::async_runtime::spawn_blocking(move || {
-        firewall::unblock_groups(&ids).map_err(|e| AppError::new(ServerPickerError::UnblockFailed).detail(e))
-    })
-    .await
-    .map_err(AppError::internal)?
+    tauri::async_runtime::spawn_blocking(move || unblock(&ids)).await.map_err(AppError::internal)?
+}
+
+#[cfg(windows)]
+fn unblock(ids: &[String]) -> Result<(), AppError> {
+    routed::unblock_groups(ids).map_err(|e| routed_error(e, ServerPickerError::UnblockFailed))
+}
+
+#[cfg(not(windows))]
+fn unblock(ids: &[String]) -> Result<(), AppError> {
+    firewall::unblock_groups(ids).map_err(|e| AppError::new(ServerPickerError::UnblockFailed).detail(e))
 }
 
 #[tauri::command]
@@ -93,7 +110,7 @@ pub async fn sync_server_blocks(
     if !firewall::SUPPORTED || !super::sync::is_enabled(&app) {
         return Ok(SyncOutcome::default());
     }
-    let outcome = sync_blocks(&state.sync_lock, &http.0, true, dp_firewall::refresh_stale_groups)
+    let outcome = sync_blocks(&state.sync_lock, &http.0, true, super::sync::REFRESH)
         .await
         .map_err(|e| AppError::new(ServerPickerError::SyncFailed).detail(e))?;
     if !outcome.updated.is_empty() {
@@ -158,5 +175,23 @@ pub async fn import_external_blocks(http: State<'_, Http>, game_id: String) -> R
         scan.rules.len(),
         scan.covered_group_ids.len()
     );
+    import(data, scan).await
+}
+
+#[cfg(windows)]
+async fn import(data: ServerData, scan: external::ScanResult) -> Result<Vec<String>, AppError> {
+    let plan = external::import_plan(&data, &scan);
+    tauri::async_runtime::spawn_blocking(move || {
+        let failed = |e| routed_error(e, ServerPickerError::ExternalImportFailed);
+        routed::block_groups(&plan.specs).map_err(failed)?;
+        routed::remove_rules_by_name(&plan.removable).map_err(failed)?;
+        Ok(plan.group_ids)
+    })
+    .await
+    .map_err(AppError::internal)?
+}
+
+#[cfg(not(windows))]
+async fn import(data: ServerData, scan: external::ScanResult) -> Result<Vec<String>, AppError> {
     external::import(&data, &scan).map_err(|e| AppError::new(ServerPickerError::ExternalImportFailed).detail(e))
 }

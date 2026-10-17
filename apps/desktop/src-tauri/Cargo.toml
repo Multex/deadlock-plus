@@ -39,6 +39,7 @@ dp-discord-ipc = { path = "../../../crates/ring1/dp-discord-ipc" }
 dp-live = { path = "../../../crates/ring1/dp-live" }
 dp-autostart = { path = "../../../crates/ring1/dp-autostart" }
 dp-firewall = { path = "../../../crates/ring1/dp-firewall" }
+dp-helper = { path = "../../../crates/ring2/dp-helper" }
 dp-steam = { path = "../../../crates/ring1/dp-steam" }
 dp-frames = { path = "../../../crates/ring1/dp-frames" }
 dp-postgame = { path = "../../../crates/ring1/dp-postgame" }

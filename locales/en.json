@@ -88,7 +88,8 @@
             "list_blocked_failed": "Couldn't read your blocked servers. Check the log for details.",
             "sync_failed": "Couldn't update your blocked servers. Check the log for details.",
             "external_scan_failed": "Couldn't scan for existing firewall blocks. Check the log for details.",
-            "external_import_failed": "Couldn't import the existing firewall blocks. Check the log for details."
+            "external_import_failed": "Couldn't import the existing firewall blocks. Check the log for details.",
+            "needs_permission": "Deadlock+ needs administrator access to change firewall rules."
         },
         "storage": {
             "location_missing": "That location doesn't exist.",
@@ -119,6 +120,13 @@
         },
         "overlay": {
             "game_not_running": "Start Deadlock to test the overlay."
+        },
+        "admin_access": {
+            "already_elevated": "Deadlock+ is already running as administrator, so there is nothing to allow.",
+            "in_match": "You can change administrator access once your match ends.",
+            "allow_failed": "Couldn't get administrator access.",
+            "remove_failed": "Couldn't turn off Always allow.",
+            "unsupported": "Administrator access is only needed on Windows."
         },
         "ptrace": {
             "unavailable": "No fix is available for this system.",

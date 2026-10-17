@@ -1,0 +1,78 @@
+use tauri::{AppHandle, Manager};
+
+use super::{AdminAccessOutcome, AdminAccessStatus};
+use crate::features::error::AppError;
+use crate::features::live::state::LivePhase;
+use crate::features::live::LiveService;
+
+#[cfg(windows)]
+mod platform {
+    use dp_helper::routed;
+
+    use super::super::{allow_refusal, outcome, remove_result, status, AdminAccessOutcome, AdminAccessStatus};
+    use crate::features::error::AppError;
+    use crate::features::live::state::LivePhase;
+
+    pub fn status_now(phase: LivePhase) -> AdminAccessStatus {
+        status(dp_elevation::is_elevated(), routed::route_now(), phase, dp_live::game_access_denied())
+    }
+
+    pub fn refusal(phase: LivePhase) -> Option<AppError> {
+        allow_refusal(dp_elevation::is_elevated(), phase)
+    }
+
+    /// Blocks while the UAC prompt is open.
+    pub fn allow(always: bool) -> Result<AdminAccessOutcome, AppError> {
+        Ok(outcome(routed::allow(always)))
+    }
+
+    pub fn remove() -> Result<(), AppError> {
+        remove_result(dp_elevation::is_elevated(), routed::revoke)
+    }
+}
+
+#[cfg(not(windows))]
+mod platform {
+    use super::super::{AdminAccessError, AdminAccessOutcome, AdminAccessStatus};
+    use crate::features::error::AppError;
+    use crate::features::live::state::LivePhase;
+
+    pub fn status_now(_phase: LivePhase) -> AdminAccessStatus {
+        AdminAccessStatus::unsupported()
+    }
+
+    pub fn refusal(_phase: LivePhase) -> Option<AppError> {
+        Some(AppError::new(AdminAccessError::Unsupported))
+    }
+
+    pub fn allow(_always: bool) -> Result<AdminAccessOutcome, AppError> {
+        Err(AppError::new(AdminAccessError::Unsupported))
+    }
+
+    pub fn remove() -> Result<(), AppError> {
+        Err(AppError::new(AdminAccessError::Unsupported))
+    }
+}
+
+fn phase(app: &AppHandle) -> LivePhase {
+    app.state::<LiveService>().current().phase
+}
+
+#[tauri::command]
+pub async fn admin_access_status(app: AppHandle) -> Result<AdminAccessStatus, AppError> {
+    let phase = phase(&app);
+    tauri::async_runtime::spawn_blocking(move || platform::status_now(phase)).await.map_err(AppError::internal)
+}
+
+#[tauri::command]
+pub async fn allow_admin_access(app: AppHandle, always: bool) -> Result<AdminAccessOutcome, AppError> {
+    if let Some(error) = platform::refusal(phase(&app)) {
+        return Err(error);
+    }
+    tauri::async_runtime::spawn_blocking(move || platform::allow(always)).await.map_err(AppError::internal)?
+}
+
+#[tauri::command]
+pub async fn remove_admin_access() -> Result<(), AppError> {
+    tauri::async_runtime::spawn_blocking(platform::remove).await.map_err(AppError::internal)?
+}

@@ -4,7 +4,7 @@ use crate::features::diagnostics::error::DiagnosticsError;
 use crate::features::error::AppError;
 use crate::features::game_focus::GameFocusService;
 
-use dp_frames::capture::{CaptureStatus, FrameCapture};
+use dp_frames::capture::{CaptureStatus, FrameCapture, PresentSource};
 use dp_frames::layer_install::{self, LayerStatus};
 use dp_frames::FrameStats;
 use dp_game::focus::GameFocus;
@@ -15,8 +15,22 @@ pub async fn start_frame_capture(
     focus: State<'_, GameFocusService>,
 ) -> Result<(), AppError> {
     capture.set_game_focused(counts_as_focused(focus.state().focus));
-    capture.start(|| dp_game::find_pid(dp_game::is_process));
+    capture.start_with(find_game_pid, present_source());
     Ok(())
+}
+
+fn find_game_pid() -> u32 {
+    dp_game::find_pid(dp_game::is_process)
+}
+
+#[cfg(windows)]
+fn present_source() -> PresentSource {
+    dp_helper::routed::start_frames
+}
+
+#[cfg(not(windows))]
+fn present_source() -> PresentSource {
+    dp_frames::capture::start_present_trace
 }
 
 #[tauri::command]
@@ -74,6 +88,18 @@ pub async fn uninstall_frame_layer() -> Result<LayerStatus, AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_capture_uses_the_routed_source() {
+        assert_eq!(present_source() as usize, dp_helper::routed::start_frames as PresentSource as usize);
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn other_platforms_trace_in_process() {
+        assert_eq!(present_source() as usize, dp_frames::capture::start_present_trace as PresentSource as usize);
+    }
 
     #[test]
     fn only_a_backgrounded_game_counts_as_unfocused() {

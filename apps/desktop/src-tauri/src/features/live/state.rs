@@ -36,7 +36,6 @@ pub struct LiveState {
 
 impl LivePhase {
     /// A privilege prompt would cover the game or distract from it.
-    #[allow(dead_code)]
     pub fn blocks_prompts(self) -> bool {
         matches!(self, LivePhase::Pregame | LivePhase::InMatch)
     }

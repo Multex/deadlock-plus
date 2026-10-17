@@ -1,7 +1,12 @@
 use crate::features::error::{error_codes, AppError};
 use dp_server_picker::sdr::SdrError;
 
+#[cfg(windows)]
+use dp_helper::routed::Routed;
+
 error_codes! {
+    /// Only the Windows privileged-helper routing reports `NeedsPermission`.
+    #[cfg_attr(not(windows), allow(dead_code))]
     pub enum ServerPickerError in "server_picker" {
         UnknownGame = "unknown_game",
         InvalidRequest = "invalid_request",
@@ -12,6 +17,7 @@ error_codes! {
         SyncFailed = "sync_failed",
         ExternalScanFailed = "external_scan_failed",
         ExternalImportFailed = "external_import_failed",
+        NeedsPermission = "needs_permission",
     }
 }
 
@@ -30,6 +36,14 @@ pub fn unknown_game(game_id: &str) -> AppError {
 
 pub fn invalid_request(reason: String) -> AppError {
     AppError::new(ServerPickerError::InvalidRequest).detail(reason)
+}
+
+#[cfg(windows)]
+pub fn routed_error(error: Routed, failed: ServerPickerError) -> AppError {
+    match error {
+        Routed::NeedsPermission => AppError::new(ServerPickerError::NeedsPermission),
+        Routed::Failed(detail) => AppError::new(failed).detail(detail),
+    }
 }
 
 #[cfg(test)]
@@ -51,6 +65,23 @@ mod tests {
     #[test]
     fn an_unknown_game_keeps_the_id_out_of_the_code() {
         assert_eq!(unknown_game("nope").code(), "server_picker.unknown_game");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_missing_grant_maps_to_its_own_code_without_detail() {
+        let err = routed_error(Routed::NeedsPermission, ServerPickerError::BlockFailed);
+        assert_eq!(err.code(), "server_picker.needs_permission");
+        assert_eq!(err.to_string(), "server_picker.needs_permission");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_routed_failure_keeps_the_callers_code_and_the_detail() {
+        let err = routed_error(Routed::Failed("rule add failed".into()), ServerPickerError::UnblockFailed);
+        assert_eq!(err.to_string(), "server_picker.unblock_failed: rule add failed");
+        let err = routed_error(Routed::Failed("x".into()), ServerPickerError::ExternalImportFailed);
+        assert_eq!(err.code(), "server_picker.external_import_failed");
     }
 
     #[test]

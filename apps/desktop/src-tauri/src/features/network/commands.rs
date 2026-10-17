@@ -41,6 +41,16 @@ fn relay_source(http: reqwest::Client) -> RelaySource {
     })
 }
 
+#[cfg(windows)]
+fn net_source() -> dp_connection::Start {
+    dp_helper::routed::start_net
+}
+
+#[cfg(not(windows))]
+fn net_source() -> dp_connection::Start {
+    dp_connection::start
+}
+
 pub fn start_monitor(app: &AppHandle, prompt: bool) {
     let dir = match app.path().app_data_dir() {
         Ok(dir) => dir,
@@ -56,7 +66,7 @@ pub fn start_monitor(app: &AppHandle, prompt: bool) {
         relay_source(http),
         dir.join(HISTORY_FILE),
         prompt,
-        dp_connection::start,
+        net_source(),
     );
 }
 
@@ -132,4 +142,21 @@ pub async fn match_ping_points(
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())
         .map(|ping| ping.map(|ping| MatchPingSeries::from_ping(&ping, max_points as usize)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_monitor_uses_the_routed_source() {
+        assert_eq!(net_source() as usize, dp_helper::routed::start_net as dp_connection::Start as usize);
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn other_platforms_monitor_in_process() {
+        assert_eq!(net_source() as usize, dp_connection::start as dp_connection::Start as usize);
+    }
 }

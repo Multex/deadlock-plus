@@ -1,4 +1,5 @@
 pub mod about;
+pub mod admin_access;
 pub mod alerts;
 pub mod app_window;
 pub mod autostart;

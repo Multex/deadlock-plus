@@ -21,6 +21,80 @@ pub fn capture_helper_exit_code() -> Option<i32> {
     Some(args.next().map_or(2, |socket| dp_connection::run_helper(&socket)))
 }
 
+#[cfg(windows)]
+#[derive(Debug, PartialEq, Eq)]
+enum PrivilegedAction {
+    Normal,
+    Helper { pipe: String, app_pid: u32 },
+    Service,
+    Invalid(String),
+}
+
+#[cfg(windows)]
+fn privileged_action(argv: &[std::ffi::OsString]) -> PrivilegedAction {
+    use dp_helper::args::Launch;
+    match dp_helper::args::parse(argv) {
+        None => PrivilegedAction::Normal,
+        Some(Ok(Launch::Helper { pipe, app_pid })) => PrivilegedAction::Helper { pipe, app_pid },
+        Some(Ok(Launch::Service)) => PrivilegedAction::Service,
+        Some(Err(error)) => PrivilegedAction::Invalid(error),
+    }
+}
+
+/// When the binary was started as the privileged helper or service, runs it and returns its exit code.
+/// Otherwise `None`, and the app should start normally.
+#[cfg(windows)]
+pub fn privileged_server_exit_code() -> Option<i32> {
+    match privileged_action(&std::env::args_os().collect::<Vec<_>>()) {
+        PrivilegedAction::Normal => None,
+        PrivilegedAction::Helper { pipe, app_pid } => Some(dp_helper::helper_main::run(&pipe, app_pid)),
+        PrivilegedAction::Service => Some(dp_helper::service_main::run()),
+        PrivilegedAction::Invalid(error) => {
+            eprintln!("{error}");
+            Some(2)
+        }
+    }
+}
+
+#[cfg(all(test, windows))]
+mod privileged_launch_tests {
+    use super::{privileged_action, PrivilegedAction};
+    use std::ffi::OsString;
+
+    fn argv(parts: &[&str]) -> Vec<OsString> {
+        parts.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn normal_argv_starts_the_app() {
+        assert_eq!(privileged_action(&argv(&["dp.exe"])), PrivilegedAction::Normal);
+        assert_eq!(privileged_action(&argv(&["dp.exe", "deadlockplus://x"])), PrivilegedAction::Normal);
+    }
+
+    #[test]
+    fn helper_argv_runs_the_helper() {
+        let pipe = dp_helper::args::helper_pipe_name(4242, 7);
+        let a = argv(&["dp.exe", "--privileged-helper", &pipe, "4242"]);
+        assert_eq!(privileged_action(&a), PrivilegedAction::Helper { pipe, app_pid: 4242 });
+    }
+
+    #[test]
+    fn service_argv_runs_the_service() {
+        assert_eq!(privileged_action(&argv(&["dp.exe", "--service"])), PrivilegedAction::Service);
+    }
+
+    #[test]
+    fn bad_privileged_argv_is_invalid() {
+        for bad in [
+            argv(&["dp.exe", "--privileged-helper"]),
+            argv(&["dp.exe", "--privileged-helper", r"\\.\pipe\x", "1"]),
+            argv(&["dp.exe", "--service", "extra"]),
+        ] {
+            assert!(matches!(privileged_action(&bad), PrivilegedAction::Invalid(_)), "{bad:?}");
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     features::logging::install_panic_hook();
@@ -240,6 +314,9 @@ pub fn run() {
             features::support::commands::build_support_report,
             features::ptrace::commands::ptrace_status,
             features::ptrace::commands::fix_ptrace,
+            features::admin_access::commands::admin_access_status,
+            features::admin_access::commands::allow_admin_access,
+            features::admin_access::commands::remove_admin_access,
             features::diagnostics::commands::start_addon_scan,
             features::diagnostics::commands::addon_scan_report,
             features::diagnostics::frames::commands::start_frame_capture,

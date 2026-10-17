@@ -1219,6 +1219,7 @@ dependencies = [
  "dp-game",
  "dp-gamedata",
  "dp-gc",
+ "dp-helper",
  "dp-icmp",
  "dp-ingest",
  "dp-kv",

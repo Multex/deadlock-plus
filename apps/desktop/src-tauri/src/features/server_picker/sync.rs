@@ -7,10 +7,17 @@ use crate::features::jobs::{JobSpec, JobsState, Policy};
 use crate::features::notifications::{self, NotificationTopic};
 use crate::http::Http;
 use dp_firewall as firewall;
-use dp_server_picker::sync::sync_blocks;
+use dp_server_picker::sync::{sync_blocks, Refresh};
 
 const FIRST_RUN_DELAY: Duration = Duration::from_secs(20);
 const INTERVAL: Duration = Duration::from_secs(30 * 60);
+
+/// Without a grant this only reads and never prompts: the stale groups come back as failed and
+/// surface as the "blocks are out of date" notice.
+#[cfg(windows)]
+pub(super) const REFRESH: Refresh = dp_helper::routed::refresh_stale_groups;
+#[cfg(not(windows))]
+pub(super) const REFRESH: Refresh = firewall::refresh_stale_groups;
 
 /// Never registered as a running job: a sync is a short firewall edit, not something to show in
 /// the status bar. It is declared only so settings can list it and switch it off.
@@ -25,20 +32,14 @@ async fn run_in_background(app: &AppHandle) {
     if !is_enabled(app) {
         return;
     }
-    let outcome = match sync_blocks(
-        &app.state::<ServerPickerState>().sync_lock,
-        &app.state::<Http>().0,
-        false,
-        dp_firewall::refresh_stale_groups,
-    )
-    .await
-    {
-        Ok(outcome) => outcome,
-        Err(e) => {
-            log::warn!("background block sync failed: {e}");
-            return;
-        }
-    };
+    let outcome =
+        match sync_blocks(&app.state::<ServerPickerState>().sync_lock, &app.state::<Http>().0, false, REFRESH).await {
+            Ok(outcome) => outcome,
+            Err(e) => {
+                log::warn!("background block sync failed: {e}");
+                return;
+            }
+        };
     log::debug!("block sync: {} updated, {} failed", outcome.updated.len(), outcome.failed.len());
 
     if !outcome.updated.is_empty() {
