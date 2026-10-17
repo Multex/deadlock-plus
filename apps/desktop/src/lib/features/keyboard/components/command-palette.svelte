@@ -7,7 +7,7 @@
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { NAV_ENTRIES, updater } from "$lib/features/registry";
-    import { CATEGORIES } from "$lib/features/settings/catalog";
+    import { SHOWN_CATEGORIES } from "$lib/features/settings/catalog";
     import { openSupport } from "$lib/features/support/support";
     import { buildCommands, type Command as PaletteCommand, type CommandGroup } from "../commands";
     import { palette } from "../palette.svelte";
@@ -32,7 +32,7 @@
     const commands = $derived(
         buildCommands({
             pages: NAV_ENTRIES,
-            settingsSections: CATEGORIES,
+            settingsSections: SHOWN_CATEGORIES,
             platform,
             go: (href) => void goto(href),
             checkForUpdates: () => {

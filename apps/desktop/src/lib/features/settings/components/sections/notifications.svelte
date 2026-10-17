@@ -11,6 +11,8 @@
     import { formatTime, LEAD_OPTIONS, parseTime, weekdays } from "$lib/features/settings/maintenance";
     import { DELIVERIES, type Delivery, type NotificationTopic } from "$lib/features/settings/notification-topics";
     import { leadItems, weekdayItems } from "./select-items";
+    import { hasOverlay } from "$lib/features/settings/catalog";
+    import { platform } from "$lib/core/platform";
 
     let { show }: { show: (id: string) => boolean } = $props();
 
@@ -193,12 +195,13 @@
     </Card>
 {/if}
 
-{#if show("match-found")}
+{#if hasOverlay(platform) && show("match-found")}
     <Card as="section" class="flex flex-col gap-4">
         <SettingRow
             label={t("settings.items.overlay_match_found")}
             for="match-found"
             description={t("settings.notifications.overlay_match_found_description")}
+            hint={overlayOffHint("overlay")}
         >
             <Switch
                 id="match-found"
@@ -206,6 +209,5 @@
                 onCheckedChange={(v) => settings.setOverlay({ matchFound: v })}
             />
         </SettingRow>
-        {@render deliveryRow("matchFound", t("settings.items.overlay_match_found"))}
     </Card>
 {/if}

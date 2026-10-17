@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NOTIFICATIONS, DELIVERIES, resolveNotifications } from "./notification-topics";
+import { DEFAULT_NOTIFICATIONS, DELIVERIES, deliveriesFor, resolveNotifications } from "./notification-topics";
 
 describe("notification settings", () => {
     it("matches the backend defaults", () => {
@@ -35,12 +35,32 @@ describe("notification settings", () => {
                 serverBlocksUpdated: "overlay",
                 serverBlocksStale: "quiet",
                 breakReminder: "overlay",
-                matchFound: "both",
+                matchFound: "overlay",
             },
             serverBlocksUpdated: false,
             serverBlocksStale: false,
         };
         expect(resolveNotifications(stored)).toEqual(stored);
+    });
+
+    it("offers the overlay delivery only where there is an overlay", () => {
+        expect(deliveriesFor("windows")).toEqual(["both", "overlay", "os", "quiet", "center"]);
+        expect(deliveriesFor("linux")).toEqual(["both", "os", "quiet", "center"]);
+        expect(deliveriesFor("macos")).not.toContain("overlay");
+    });
+
+    it("reads a stored overlay delivery as os where there is no overlay", () => {
+        const stored = { deliveries: { updates: "overlay", breakReminder: "overlay", maintenance: "center" } };
+        const linux = resolveNotifications(stored, "linux").deliveries;
+        expect([linux.updates, linux.breakReminder, linux.maintenance]).toEqual(["os", "os", "center"]);
+        const windows = resolveNotifications(stored, "windows").deliveries;
+        expect([windows.updates, windows.breakReminder]).toEqual(["overlay", "overlay"]);
+    });
+
+    it("reads every stored match found delivery as overlay", () => {
+        for (const matchFound of ["both", "os", "quiet", "center"]) {
+            expect(resolveNotifications({ deliveries: { matchFound } }).deliveries.matchFound).toBe("overlay");
+        }
     });
 
     it("falls back per field for missing or invalid values", () => {

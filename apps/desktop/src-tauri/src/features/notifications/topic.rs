@@ -63,8 +63,12 @@ impl Default for NotificationSettings {
 }
 
 impl NotificationSettings {
+    /// Match found shows in the game overlay only, never as a desktop toast or a center entry.
     pub fn delivery(&self, topic: NotificationTopic) -> Delivery {
-        self.deliveries.get(&topic).copied().unwrap_or(topic.default_delivery())
+        match topic {
+            NotificationTopic::MatchFound => Delivery::Overlay,
+            _ => self.deliveries.get(&topic).copied().unwrap_or(topic.default_delivery()),
+        }
     }
 
     /// Only the server topics are switched off here; every other topic is gated by its own feature first.
@@ -130,6 +134,17 @@ mod tests {
         };
         assert_eq!(settings.delivery(NotificationTopic::Updates), Delivery::Center);
         assert_eq!(settings.delivery(NotificationTopic::MatchFound), Delivery::Overlay);
+    }
+
+    #[test]
+    fn match_found_is_delivered_by_the_overlay_whatever_is_stored() {
+        for stored in [Delivery::Os, Delivery::Both, Delivery::Quiet, Delivery::Center, Delivery::Overlay] {
+            let settings = NotificationSettings {
+                deliveries: BTreeMap::from([(NotificationTopic::MatchFound, stored)]),
+                ..Default::default()
+            };
+            assert_eq!(settings.delivery(NotificationTopic::MatchFound), Delivery::Overlay, "{stored:?}");
+        }
     }
 
     #[test]

@@ -29,7 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 #### Notification settings
 
 - Settings > Notifications lists every notification type, each with its own switch.
-- Each type lets you choose how it shows: over the game, as a desktop notification, or only in the notification center.
+- Each type except "Match found" lets you choose how it shows: over the game, as a desktop notification, or only in the notification center.
 - Server block updates and out-of-date warnings can be turned off separately.
 - The break reminder switch is also in Settings > Notifications.
 
@@ -56,6 +56,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Server block updates no longer show a Windows notification while you're in the game.
 - When the game files can't be read, the replay map keeps the markers from the last game version it read.
 - With no earlier map data, the replay map gets most of its markers from the Deadlock API, without lane lines.
+- "Match found" shows only over the game, never as a desktop notification or in the notification center.
+- On Linux, Settings hides the game overlay options, since the overlay is Windows only.
 
 ### Fixed
 

@@ -286,8 +286,7 @@ const BASE_ITEMS: SettingItem[] = [
         get description() {
             return t("settings.notifications.overlay_match_found_description");
         },
-        keywords:
-            "match found queue pop ready game starting matchmaking alert tabbed out shows as desktop notification toast overlay notification center popup",
+        keywords: "match found queue pop ready game starting matchmaking alert tabbed out toast overlay popup",
     },
     {
         id: "overlay",
@@ -435,27 +434,40 @@ const BASE_ITEMS: SettingItem[] = [
     },
 ];
 
+export const hasOverlay = (p: Platform): boolean => p === "windows";
+
+const needsOverlay = (item: SettingItem) => item.category === "overlay" || item.id === "match-found";
+
 /** Null means no filter is active. Every word of the query must appear in an item's title, category label, description or keywords. */
 export function itemsFor(p: Platform): SettingItem[] {
     const items = p === "windows" ? BASE_ITEMS : BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration");
-    return items.map((item) =>
-        item.id === "autostart"
-            ? {
-                  id: item.id,
-                  category: item.category,
-                  keywords: item.keywords,
-                  get title() {
-                      return autostartTitle(p);
-                  },
-                  get description() {
-                      return autostartDescription(p);
-                  },
-              }
-            : item,
-    );
+    return items
+        .filter((item) => hasOverlay(p) || !needsOverlay(item))
+        .map((item) =>
+            item.id === "autostart"
+                ? {
+                      id: item.id,
+                      category: item.category,
+                      keywords: item.keywords,
+                      get title() {
+                          return autostartTitle(p);
+                      },
+                      get description() {
+                          return autostartDescription(p);
+                      },
+                  }
+                : item,
+        );
 }
 
 export const ITEMS: SettingItem[] = itemsFor(platform);
+
+export function categoriesFor(p: Platform): Category[] {
+    const listed = matchingCategories(null, itemsFor(p));
+    return CATEGORIES.filter((c) => listed.includes(c.id));
+}
+
+export const SHOWN_CATEGORIES: Category[] = categoriesFor(platform);
 
 export function matchingItems(query: string): Set<string> | null {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -469,8 +481,9 @@ export function matchingItems(query: string): Set<string> | null {
     return hits;
 }
 
-export function matchingCategories(hits: Set<string> | null): CategoryId[] {
-    return CATEGORIES.filter((c) => hits === null || ITEMS.some((i) => i.category === c.id && hits.has(i.id))).map(
+/** Categories with at least one listed item, so a section with nothing on this platform is left out. */
+export function matchingCategories(hits: Set<string> | null, items: SettingItem[] = ITEMS): CategoryId[] {
+    return CATEGORIES.filter((c) => items.some((i) => i.category === c.id && (hits === null || hits.has(i.id)))).map(
         (c) => c.id,
     );
 }

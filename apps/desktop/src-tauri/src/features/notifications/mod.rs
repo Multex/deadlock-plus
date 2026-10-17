@@ -436,12 +436,15 @@ mod tests {
     #[test]
     fn a_topic_routes_by_the_chosen_delivery_at_its_own_placement() {
         let chosen = NotificationSettings {
-            deliveries: BTreeMap::from([(NotificationTopic::MatchFound, Delivery::Center)]),
+            deliveries: BTreeMap::from([
+                (NotificationTopic::BreakReminder, Delivery::Center),
+                (NotificationTopic::MatchFound, Delivery::Os),
+            ]),
             ..Default::default()
         };
         assert_eq!(
             route(&chosen, NotificationTopic::MatchFound),
-            Some(Route::new(Visibility::Always, Delivery::Center, Placement::Center))
+            Some(Route::new(Visibility::Always, Delivery::Overlay, Placement::Center))
         );
         assert_eq!(
             route(&NotificationSettings::default(), NotificationTopic::ServerBlocksUpdated),
@@ -499,3 +502,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 }
+        assert_eq!(
+            route(&chosen, NotificationTopic::BreakReminder),
+            Some(Route::new(Visibility::Always, Delivery::Center, Placement::Corner))
+        );

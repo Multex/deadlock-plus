@@ -12,14 +12,14 @@ const FLOOR: Record<string, number> = {
     appearance: 3,
     language: 1,
     startup: 8,
-    notifications: 14,
+    notifications: 13,
     overlay: 3,
     privacy: 1,
     sharing: 2,
     diagnostics: 2,
     about: 1,
 };
-const TOTAL_FLOOR = 35;
+const TOTAL_FLOOR = 34;
 
 type Kept = "backend" | "browser" | "nowhere";
 

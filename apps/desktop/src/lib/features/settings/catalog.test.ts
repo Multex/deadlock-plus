@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CATEGORIES, ITEMS, itemsFor, matchingItems, matchingCategories } from "./catalog";
+import { CATEGORIES, ITEMS, categoriesFor, hasOverlay, itemsFor, matchingItems, matchingCategories } from "./catalog";
 
 describe("catalog", () => {
     it("assigns every item to a known category", () => {
@@ -183,11 +183,43 @@ describe("catalog", () => {
         expect(item("break-reminder")?.description).toContain("losses in a row");
     });
 
-    it("finds every notification type by how it shows", () => {
-        const ids = ITEMS.filter((i) => i.category === "notifications").map((i) => i.id);
+    it("finds every notification type with a delivery choice by how it shows", () => {
+        const ids = ITEMS.filter((i) => i.category === "notifications" && i.id !== "match-found").map((i) => i.id);
         for (const query of ["shows as", "desktop notification", "notification center", "overlay", "popup"]) {
             for (const id of ids) expect(matchingItems(query)?.has(id), `${query} -> ${id}`).toBe(true);
         }
+    });
+
+    it("does not find match found by deliveries it cannot use", () => {
+        for (const query of ["shows as", "desktop notification", "notification center"]) {
+            expect(matchingItems(query)?.has("match-found"), query).toBe(false);
+        }
+    });
+
+    it("has the game overlay on Windows only", () => {
+        expect(hasOverlay("windows")).toBe(true);
+        expect(hasOverlay("linux")).toBe(false);
+        expect(hasOverlay("macos")).toBe(false);
+    });
+
+    it("hides match found and the game overlay section where there is no overlay", () => {
+        const overlayIds = ["match-found", "overlay", "overlay-position", "overlay-duration", "overlay-test"];
+        const ids = (p: "windows" | "linux") => itemsFor(p).map((i) => i.id);
+        for (const id of overlayIds) {
+            expect(ids("windows"), id).toContain(id);
+            expect(ids("linux"), id).not.toContain(id);
+        }
+        expect(matchingCategories(null, itemsFor("linux"))).toEqual(
+            CATEGORIES.map((c) => c.id).filter((id) => id !== "overlay"),
+        );
+        expect(matchingCategories(null, itemsFor("windows"))).toEqual(CATEGORIES.map((c) => c.id));
+    });
+
+    it("offers the game overlay category on Windows only", () => {
+        const ids = (p: "windows" | "linux" | "macos") => categoriesFor(p).map((c) => c.id);
+        expect(ids("windows")).toEqual(CATEGORIES.map((c) => c.id));
+        expect(ids("linux")).toEqual(CATEGORIES.map((c) => c.id).filter((id) => id !== "overlay"));
+        expect(ids("macos")).not.toContain("overlay");
     });
 
     it("matches on the category label", () => {
