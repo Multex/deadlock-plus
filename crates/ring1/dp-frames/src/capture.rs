@@ -84,6 +84,9 @@ impl FrameCapture {
         *guard = Some(Running { shared, stop_trace });
     }
 
+    /// Unused here: the capture watches the foreground itself, from the same thread that hooks it.
+    pub fn set_game_focused(&self, _focused: bool) {}
+
     pub fn status(&self) -> CaptureStatus {
         let guard = self.running.lock_or_recover();
         let Some(r) = guard.as_ref() else {

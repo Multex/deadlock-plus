@@ -57,6 +57,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The taskbar icon shows your unread notification count on docks that support it.
 - The right-click menu shows the same short list as on Windows.
 - Notifications know when Deadlock is in front on X11 and XWayland.
+- Frame time stats leave out the time you spend tabbed out of the game.
 - The server block update job is listed in Jobs and can be turned off.
 - Support reports include the session type, desktop, Steam install type and package type.
 

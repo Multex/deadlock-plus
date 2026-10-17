@@ -20,6 +20,11 @@ impl FrameCapture {
         self.inner.start();
     }
 
+    /// Call on every focus change, capturing or not. A closed game counts as focused.
+    pub fn set_game_focused(&self, focused: bool) {
+        self.inner.set_game_focused(focused);
+    }
+
     pub fn status(&self) -> CaptureStatus {
         self.inner.status()
     }

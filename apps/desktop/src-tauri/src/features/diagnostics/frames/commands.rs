@@ -2,13 +2,19 @@ use tauri::State;
 
 use crate::features::diagnostics::error::DiagnosticsError;
 use crate::features::error::AppError;
+use crate::features::game_focus::GameFocusService;
 
 use dp_frames::capture::{CaptureStatus, FrameCapture};
 use dp_frames::layer_install::{self, LayerStatus};
 use dp_frames::FrameStats;
+use dp_game::focus::GameFocus;
 
 #[tauri::command]
-pub async fn start_frame_capture(capture: State<'_, FrameCapture>) -> Result<(), AppError> {
+pub async fn start_frame_capture(
+    capture: State<'_, FrameCapture>,
+    focus: State<'_, GameFocusService>,
+) -> Result<(), AppError> {
+    capture.set_game_focused(counts_as_focused(focus.state().focus));
     capture.start(|| dp_game::find_pid(dp_game::is_process));
     Ok(())
 }
@@ -21,6 +27,12 @@ pub async fn frame_capture_status(capture: State<'_, FrameCapture>) -> Result<Ca
 #[tauri::command]
 pub async fn stop_frame_capture(capture: State<'_, FrameCapture>) -> Result<FrameStats, AppError> {
     Ok(capture.stop())
+}
+
+/// Mirrors the Windows capture, where no game process also counts as focused, so a capture started before
+/// launch is not all background.
+pub(crate) fn counts_as_focused(focus: GameFocus) -> bool {
+    focus != GameFocus::Background
 }
 
 fn layer_status() -> LayerStatus {
@@ -57,4 +69,16 @@ pub async fn uninstall_frame_layer() -> Result<LayerStatus, AppError> {
             .map_err(|e| AppError::new(DiagnosticsError::FrameLayerRemoveFailed).detail(e))?;
     }
     Ok(layer_status())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_a_backgrounded_game_counts_as_unfocused() {
+        assert!(counts_as_focused(GameFocus::Focused));
+        assert!(counts_as_focused(GameFocus::Closed));
+        assert!(!counts_as_focused(GameFocus::Background));
+    }
 }

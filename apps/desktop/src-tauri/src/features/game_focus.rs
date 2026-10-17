@@ -2,8 +2,9 @@ use std::sync::Mutex;
 
 use dp_game::focus::{FocusState, FocusWatcher};
 use dp_sync::LockExt;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
+use crate::features::diagnostics::frames::commands::counts_as_focused;
 use crate::features::overlay;
 
 #[derive(Default)]
@@ -22,6 +23,7 @@ impl GameFocusService {
         let on_change = move |state| {
             log::debug!("game focus: {state:?}");
             overlay::on_focus_change(&app, state);
+            app.state::<dp_frames::capture::FrameCapture>().set_game_focused(counts_as_focused(state.focus));
         };
         match FocusWatcher::start(on_change) {
             Ok(started) => *watcher = Some(started),
