@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use super::{Coalescer, GameFlag, GameWatcher, JobsSnapshot, Policy, Registry, Sleeper};
+use super::{Coalescer, GameFlag, GameWatcher, JobSpec, JobsSnapshot, Policy, Registry, Sleeper};
 use dp_kv::KvStore;
 
 const EVENT: &str = "jobs://changed";
@@ -95,15 +95,25 @@ fn load_saved(kv: &KvStore, dir: &Path, registry: &Registry) {
     }
 }
 
+fn declared_jobs(firewall_supported: bool) -> Vec<JobSpec> {
+    let mut jobs = vec![
+        crate::features::patch_notes::INDEX_JOB,
+        crate::features::diagnostics::scan_job::JOB,
+        crate::features::mvp::JOB,
+    ];
+    if firewall_supported {
+        jobs.push(crate::features::server_picker::SYNC_JOB);
+    }
+    jobs
+}
+
 /// Loads saved policies, starts the game poller and the change event. Call once from `setup()`,
 /// before any job registers.
 pub fn start(app: &AppHandle) {
     let state = app.state::<JobsState>();
-    state.registry.declare(crate::features::patch_notes::INDEX_JOB);
-    state.registry.declare(crate::features::diagnostics::scan_job::JOB);
-    state.registry.declare(crate::features::mvp::JOB);
-    #[cfg(windows)]
-    state.registry.declare(crate::features::server_picker::SYNC_JOB);
+    for job in declared_jobs(dp_firewall::SUPPORTED) {
+        state.registry.declare(job);
+    }
     if let Ok(dir) = app.path().app_data_dir() {
         load_saved(&app.state::<KvStore>(), &dir, &state.registry);
     }
@@ -199,9 +209,23 @@ pub mod commands {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::features::jobs::JobSpec;
     use serde_json::json;
     use std::path::PathBuf;
+
+    fn declares_sync(firewall_supported: bool) -> bool {
+        let sync = crate::features::server_picker::SYNC_JOB.id;
+        declared_jobs(firewall_supported).iter().any(|job| job.id == sync)
+    }
+
+    #[test]
+    fn the_server_block_sync_job_is_declared_wherever_the_firewall_is_supported() {
+        assert!(declares_sync(true));
+    }
+
+    #[test]
+    fn the_server_block_sync_job_is_not_declared_without_a_firewall() {
+        assert!(!declares_sync(false));
+    }
 
     fn temp_dir(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("deadlock-plus-jobs-{name}-{}", std::process::id()));

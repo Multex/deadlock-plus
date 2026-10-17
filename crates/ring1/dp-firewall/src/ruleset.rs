@@ -16,6 +16,8 @@ pub trait Backend {
     fn apply(&self, script: &str) -> Result<(), String>;
     /// Changes on every boot.
     fn boot_id(&self) -> Option<String>;
+    /// True when `apply` would ask the user for a password.
+    fn needs_prompt(&self) -> bool;
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -114,12 +116,17 @@ impl<B: Backend> Ruleset<B> {
         Ok(group_ids.iter().filter(|id| blocked.contains(*id)).cloned().collect())
     }
 
-    pub fn refresh_stale_groups(&self, specs: &[FirewallRuleSpec]) -> Result<RefreshReport, String> {
+    /// With `prompt` false, a refresh that would ask for a password applies nothing and reports
+    /// the changed groups as failed instead.
+    pub fn refresh_stale_groups(&self, specs: &[FirewallRuleSpec], prompt: bool) -> Result<RefreshReport, String> {
         let _write = self.write.lock_or_recover();
         let mut groups = self.load()?;
         let updated = refresh(&mut groups, specs);
         if updated.is_empty() {
             return Ok(RefreshReport::default());
+        }
+        if !prompt && self.backend.needs_prompt() {
+            return Ok(RefreshReport { updated: Vec::new(), failed: updated });
         }
         match self.commit(groups) {
             Ok(()) => Ok(RefreshReport { updated, failed: Vec::new() }),
@@ -139,11 +146,17 @@ mod tests {
         applied: Mutex<Vec<String>>,
         fail: Mutex<bool>,
         boot: Mutex<Option<String>>,
+        prompts: Mutex<bool>,
     }
 
     impl Fake {
         fn new() -> Self {
-            Self { applied: Mutex::default(), fail: Mutex::new(false), boot: Mutex::new(Some("boot-1".into())) }
+            Self {
+                applied: Mutex::default(),
+                fail: Mutex::new(false),
+                boot: Mutex::new(Some("boot-1".into())),
+                prompts: Mutex::new(false),
+            }
         }
     }
 
@@ -160,6 +173,9 @@ mod tests {
         }
         fn boot_id(&self) -> Option<String> {
             self.boot.lock().unwrap().clone()
+        }
+        fn needs_prompt(&self) -> bool {
+            *self.prompts.lock().unwrap()
         }
     }
 
@@ -238,7 +254,7 @@ mod tests {
         let rs = ruleset(&fake, "refresh");
         rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
         let report =
-            rs.refresh_stale_groups(&[spec("fra", &["1.1.1.1", "3.3.3.3"]), spec("sto", &["2.2.2.2"])]).unwrap();
+            rs.refresh_stale_groups(&[spec("fra", &["1.1.1.1", "3.3.3.3"]), spec("sto", &["2.2.2.2"])], true).unwrap();
         assert_eq!(report.updated, ids(&["fra"]));
         assert_eq!(fake.applied.lock().unwrap().last().unwrap(), "fra");
         assert!(rs.list_blocked(&ids(&["sto"])).unwrap().is_empty());
@@ -249,7 +265,7 @@ mod tests {
         let fake = Fake::new();
         let rs = ruleset(&fake, "noop");
         rs.block_groups(&[spec("fra", &["1.1.1.1", "2.2.2.2"])]).unwrap();
-        let report = rs.refresh_stale_groups(&[spec("fra", &["2.2.2.2", "1.1.1.1"])]).unwrap();
+        let report = rs.refresh_stale_groups(&[spec("fra", &["2.2.2.2", "1.1.1.1"])], true).unwrap();
         assert!(report.updated.is_empty());
         assert_eq!(fake.applied.lock().unwrap().len(), 1);
     }
@@ -260,7 +276,53 @@ mod tests {
         let rs = ruleset(&fake, "refresh-fail");
         rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
         *fake.fail.lock().unwrap() = true;
-        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])]).unwrap();
+        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])], true).unwrap();
         assert_eq!(report.failed, ids(&["fra"]));
+    }
+
+    #[test]
+    fn an_unattended_refresh_that_would_prompt_applies_nothing_and_reports_stale() {
+        let fake = Fake::new();
+        let rs = ruleset(&fake, "unattended-prompt");
+        rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
+        *fake.prompts.lock().unwrap() = true;
+        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])], false).unwrap();
+        assert!(report.updated.is_empty());
+        assert_eq!(report.failed, ids(&["fra"]));
+        assert_eq!(fake.applied.lock().unwrap().len(), 1, "only the block itself was applied");
+
+        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])], true).unwrap();
+        assert_eq!(report.updated, ids(&["fra"]), "the stale block was not recorded as fixed");
+    }
+
+    #[test]
+    fn an_unattended_refresh_applies_when_no_prompt_is_needed() {
+        let fake = Fake::new();
+        let rs = ruleset(&fake, "unattended-root");
+        rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
+        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])], false).unwrap();
+        assert_eq!(report.updated, ids(&["fra"]));
+        assert_eq!(fake.applied.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_refresh_the_user_asked_for_may_prompt() {
+        let fake = Fake::new();
+        let rs = ruleset(&fake, "user-prompt");
+        rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
+        *fake.prompts.lock().unwrap() = true;
+        let report = rs.refresh_stale_groups(&[spec("fra", &["9.9.9.9"])], true).unwrap();
+        assert_eq!(report.updated, ids(&["fra"]));
+        assert_eq!(fake.applied.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn an_unattended_refresh_with_nothing_stale_reports_nothing() {
+        let fake = Fake::new();
+        let rs = ruleset(&fake, "unattended-noop");
+        rs.block_groups(&[spec("fra", &["1.1.1.1"])]).unwrap();
+        *fake.prompts.lock().unwrap() = true;
+        let report = rs.refresh_stale_groups(&[spec("fra", &["1.1.1.1"])], false).unwrap();
+        assert!(report.updated.is_empty() && report.failed.is_empty());
     }
 }

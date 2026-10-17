@@ -40,8 +40,13 @@ pub struct SyncOutcome {
 
 /// Fetches Valve's current relays straight from the source (never from the web view) and
 /// corrects every stale block. Runs one at a time through `lock`: the picker opening and the
-/// timer can land together.
-pub async fn sync_blocks(lock: &tokio::sync::Mutex<()>, http: &reqwest::Client) -> Result<SyncOutcome, String> {
+/// timer can land together. Pass `prompt` true only when the user asked for the sync: false
+/// reports blocks that would need a password as failed instead of asking for one.
+pub async fn sync_blocks(
+    lock: &tokio::sync::Mutex<()>,
+    http: &reqwest::Client,
+    prompt: bool,
+) -> Result<SyncOutcome, String> {
     let _one_at_a_time = lock.lock().await;
     let mut outcome = SyncOutcome::default();
 
@@ -51,7 +56,7 @@ pub async fn sync_blocks(lock: &tokio::sync::Mutex<()>, http: &reqwest::Client) 
         let names: HashMap<String, String> =
             specs.iter().map(|s| (s.group_id.clone(), s.description.clone())).collect();
 
-        let report = tokio::task::spawn_blocking(move || firewall::refresh_stale_groups(&specs))
+        let report = tokio::task::spawn_blocking(move || firewall::refresh_stale_groups(&specs, prompt))
             .await
             .map_err(|e| e.to_string())??;
 
@@ -117,7 +122,8 @@ mod tests {
     #[tokio::test]
     async fn sync_blocks_runs_when_the_lock_is_free() {
         let lock = tokio::sync::Mutex::new(());
-        let result = tokio::time::timeout(Duration::from_secs(5), sync_blocks(&lock, &unreachable_client())).await;
+        let result =
+            tokio::time::timeout(Duration::from_secs(5), sync_blocks(&lock, &unreachable_client(), true)).await;
         assert!(matches!(result, Ok(Err(_))));
     }
 
@@ -125,7 +131,8 @@ mod tests {
     async fn sync_blocks_waits_for_the_lock() {
         let lock = tokio::sync::Mutex::new(());
         let _held = lock.lock().await;
-        let result = tokio::time::timeout(Duration::from_millis(300), sync_blocks(&lock, &unreachable_client())).await;
+        let result =
+            tokio::time::timeout(Duration::from_millis(300), sync_blocks(&lock, &unreachable_client(), true)).await;
         assert!(result.is_err());
     }
 }

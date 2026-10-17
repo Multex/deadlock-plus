@@ -22,7 +22,7 @@ pub fn read_block_rules(_names: &[String]) -> Result<Vec<ExistingBlockRule>, Str
     Ok(Vec::new())
 }
 
-pub fn refresh_stale_groups(_specs: &[FirewallRuleSpec]) -> Result<RefreshReport, String> {
+pub fn refresh_stale_groups(_specs: &[FirewallRuleSpec], _prompt: bool) -> Result<RefreshReport, String> {
     Ok(RefreshReport::default())
 }
 
@@ -48,7 +48,7 @@ mod tests {
     fn reads_report_no_rules() {
         assert!(list_blocked(&["fra".into()]).unwrap().is_empty());
         assert!(read_block_rules(&["x".into()]).unwrap().is_empty());
-        let report = refresh_stale_groups(&[spec()]).unwrap();
+        let report = refresh_stale_groups(&[spec()], false).unwrap();
         assert!(report.updated.is_empty() && report.failed.is_empty());
         assert!(remove_rules_by_name(&["x".into()]).is_ok());
     }

@@ -235,7 +235,9 @@ fn snapshot_rule(rule: &INetFwRule) -> RuleSnapshot {
 /// IPs, a rule was disabled, or one protocol's rule is missing). Existing rules are edited
 /// in place, so a block is never lifted while it is being corrected. Groups with no rule
 /// of ours are left alone: this never turns on a block the user didn't ask for.
-pub fn refresh_stale_groups(specs: &[FirewallRuleSpec]) -> Result<RefreshReport, String> {
+///
+/// `prompt` is ignored: these COM calls run with the app's own rights and never ask for one.
+pub fn refresh_stale_groups(specs: &[FirewallRuleSpec], _prompt: bool) -> Result<RefreshReport, String> {
     let _write = WRITE_LOCK.lock_or_recover();
     let _com = ComGuard::new();
     let rules = open_rules().map_err(|e| e.to_string())?;

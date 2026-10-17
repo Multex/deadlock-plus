@@ -2247,7 +2247,7 @@
             },
             "server_block_sync": {
                 "title": "Updating server blocks",
-                "description": "Keeps your blocked regions up to date when Valve changes its server addresses. Only edits Windows Firewall rules Deadlock+ already created, and tells you when it changes one."
+                "description": "Keeps your blocked regions up to date when Valve changes its server addresses. Only edits firewall rules Deadlock+ already created, and tells you when it changes one."
             },
             "match_grades": {
                 "title": "Updating match grades",

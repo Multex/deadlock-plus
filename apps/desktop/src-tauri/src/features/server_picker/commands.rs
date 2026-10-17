@@ -92,7 +92,7 @@ pub async fn sync_server_blocks(
     if !firewall::SUPPORTED || !super::sync::is_enabled(&app) {
         return Ok(SyncOutcome::default());
     }
-    let outcome = sync_blocks(&state.sync_lock, &http.0)
+    let outcome = sync_blocks(&state.sync_lock, &http.0, true)
         .await
         .map_err(|e| AppError::new(ServerPickerError::SyncFailed).detail(e))?;
     if !outcome.updated.is_empty() {

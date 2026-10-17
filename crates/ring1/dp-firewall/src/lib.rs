@@ -39,8 +39,8 @@ mod native {
         RULES.list_blocked(group_ids)
     }
 
-    pub fn refresh_stale_groups(specs: &[FirewallRuleSpec]) -> Result<RefreshReport, String> {
-        RULES.refresh_stale_groups(specs)
+    pub fn refresh_stale_groups(specs: &[FirewallRuleSpec], prompt: bool) -> Result<RefreshReport, String> {
+        RULES.refresh_stale_groups(specs, prompt)
     }
 
     /// Rules made by other tools are Windows Firewall entries; there is nothing comparable to import.

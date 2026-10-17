@@ -117,6 +117,10 @@ impl Backend for Nft {
     fn boot_id(&self) -> Option<String> {
         std::fs::read_to_string("/proc/sys/kernel/random/boot_id").ok().map(|s| s.trim().to_string())
     }
+
+    fn needs_prompt(&self) -> bool {
+        !is_root()
+    }
 }
 
 #[cfg(test)]
