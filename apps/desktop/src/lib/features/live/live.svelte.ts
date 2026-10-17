@@ -1,4 +1,4 @@
-import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
+import { lacksDiscordArt, loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 import type { RankTier } from "@deadlock-plus/stats/rank";
 import { getLiveMatch, getLiveState, onLiveMatch, onLiveSnapshot, type LiveMatch, type LiveState } from "./api";
 import { BOARD_LINGER_MS, NO_SWAPS, boardVisible, postMatchStart, trackSwaps, type SwapTracker } from "./live";
@@ -24,7 +24,7 @@ class LiveStore {
 
     private refreshUnknownHeroes() {
         const ids = (this.match?.teams ?? []).flatMap((t) => t.players).flatMap((p) => (p.heroId ? [p.heroId] : []));
-        if (ids.every((id) => id in this.heroes)) return;
+        if (ids.every((id) => id in this.heroes && !lacksDiscordArt(this.heroes[id]))) return;
         void loadHeroes(ids).then((h) => {
             if (h !== this.heroes) this.heroes = h;
         });

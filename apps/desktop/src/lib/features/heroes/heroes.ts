@@ -92,6 +92,7 @@ function writeCache(heroes: Record<number, Hero>) {
 }
 
 const RETRY_MS = 60 * 1000;
+export const ART_RETRY_MS = 60 * 60 * 1000;
 
 /** Whether a hero the game reported is missing from `known`, at most once per `RETRY_MS`. */
 export function needsRefresh(
@@ -102,6 +103,25 @@ export function needsRefresh(
 ): boolean {
     if (lastAttemptAt !== null && now - lastAttemptAt < RETRY_MS) return false;
     for (const id of wanted) if (!(id in known)) return true;
+    return false;
+}
+
+/** Discord art is the remote URL; local file paths cannot reach Discord. */
+export function lacksDiscordArt(hero: Hero): boolean {
+    const icon = hero.apiArtIcon !== undefined ? hero.apiArtIcon : hero.artIcon;
+    const portrait = hero.apiPortrait !== undefined ? hero.apiPortrait : hero.portrait;
+    return icon === null && portrait === null;
+}
+
+/** Whether a wanted hero is known but has no Discord art, at most once per `ART_RETRY_MS`. */
+export function needsArtRefetch(
+    known: Record<number, Hero>,
+    wanted: Iterable<number>,
+    lastAttemptAt: number | null,
+    now: number,
+): boolean {
+    if (lastAttemptAt !== null && now - lastAttemptAt < ART_RETRY_MS) return false;
+    for (const id of wanted) if (id in known && lacksDiscordArt(known[id])) return true;
     return false;
 }
 
@@ -117,6 +137,7 @@ let inflight: { locale: string; promise: Promise<Record<number, Hero>> } | null 
 let lastLoadAt: number | null = null;
 let apiFetch: Promise<Record<number, Hero> | null> | null = null;
 let lastApiAttemptAt: number | null = null;
+let lastArtAttemptAt: number | null = null;
 let generation = 0;
 
 const listeners = new Set<(heroes: Record<number, Hero>) => void>();
@@ -170,13 +191,19 @@ function refreshApiInBackground() {
     if (lastApiAttemptAt !== null && now - lastApiAttemptAt < RETRY_MS) return;
     lastApiAttemptAt = now;
     void fetchApi().then((api) => {
-        if (!api || !loaded?.game) return;
-        loaded = { ...loaded, heroes: mergeHeroes(loaded.game, api, loaded.art) };
+        if (!api || !loaded) return;
+        loaded = { ...loaded, heroes: loaded.game ? mergeHeroes(loaded.game, api, loaded.art) : api };
         notify(loaded.heroes);
     });
 }
 
-async function build(locale: string): Promise<Record<number, Hero>> {
+function refetchMissingArt(wanted: number[]) {
+    if (!loaded || !needsArtRefetch(loaded.heroes, wanted, lastArtAttemptAt, Date.now())) return;
+    lastArtAttemptAt = Date.now();
+    refreshApiInBackground();
+}
+
+async function build(locale: string, wanted: number[]): Promise<Record<number, Hero>> {
     const started = generation;
     lastLoadAt = Date.now();
     const [game, art] = await Promise.all([loadGame(locale), loadArt()]);
@@ -188,7 +215,10 @@ async function build(locale: string): Promise<Record<number, Hero>> {
     } else {
         heroes = fresh ?? (await fetchApi()) ?? readCache(true) ?? {};
     }
-    if (locale === i18n.locale && started === generation) loaded = { locale, game, art, heroes };
+    if (locale === i18n.locale && started === generation) {
+        loaded = { locale, game, art, heroes };
+        refetchMissingArt(wanted);
+    }
     return heroes;
 }
 
@@ -199,11 +229,13 @@ async function build(locale: string): Promise<Record<number, Hero>> {
  */
 export function loadHeroes(wanted: Iterable<number> = []): Promise<Record<number, Hero>> {
     const locale = i18n.locale;
-    if (loaded?.locale === locale && !needsRefresh(loaded.heroes, wanted, lastLoadAt, Date.now())) {
+    const ids = [...wanted];
+    if (loaded?.locale === locale && !needsRefresh(loaded.heroes, ids, lastLoadAt, Date.now())) {
+        refetchMissingArt(ids);
         return Promise.resolve(loaded.heroes);
     }
     if (inflight?.locale === locale) return inflight.promise;
-    const promise = build(locale).finally(() => {
+    const promise = build(locale, ids).finally(() => {
         if (inflight?.promise === promise) inflight = null;
     });
     inflight = { locale, promise };

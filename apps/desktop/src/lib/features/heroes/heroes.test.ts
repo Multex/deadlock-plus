@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
 import type { HeroEntry } from "@deadlock-plus/ipc-types/HeroEntry";
-import { mergeHeroes, needsRefresh, parseHeroCache, slimHeroes, type Hero } from "./heroes";
+import {
+    lacksDiscordArt,
+    mergeHeroes,
+    needsArtRefetch,
+    needsRefresh,
+    parseHeroCache,
+    slimHeroes,
+    type Hero,
+} from "./heroes";
 
 const command = vi.fn();
 const events = new Map<string, () => void>();
@@ -266,6 +274,64 @@ describe("loadHeroes", () => {
         stop();
     });
 
+    const artlessCache = () =>
+        store.set("deadlock-plus:heroes", JSON.stringify({ at: Date.now(), heroes: { 2: apiHero({ id: 2 }) } }));
+    const artResponse = () => ({
+        ok: true,
+        json: async () => [{ id: 2, name: "Seven", images: { icon_image_small: "a-sm", icon_hero_card: "a-card" } }],
+    });
+
+    it("refetches the API once when a fresh cache holds a wanted hero without art", async () => {
+        artlessCache();
+        command.mockImplementation(async (name: string) =>
+            name === "game_hero_art" ? [] : [entry({ id: 2, name: "Sieben" })],
+        );
+        fetchMock.mockResolvedValue(artResponse());
+        const { loadHeroes, onHeroesRefreshed } = await modules();
+        const seen: Record<number, Hero>[] = [];
+        onHeroesRefreshed((h) => seen.push(h));
+        await loadHeroes([2]);
+        await vi.waitFor(() => expect(seen).toHaveLength(1));
+        expect(seen[0][2]).toMatchObject({ name: "Sieben", apiArtIcon: "a-sm", apiPortrait: "a-card" });
+        await loadHeroes([2]);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries art the API still lacks only once an hour", async () => {
+        artlessCache();
+        command.mockImplementation(async (name: string) =>
+            name === "game_hero_art" ? [] : [entry({ id: 2, name: "Sieben" })],
+        );
+        fetchMock.mockResolvedValue({ ok: true, json: async () => [{ id: 2, name: "Seven" }] });
+        let now = Date.now();
+        vi.spyOn(Date, "now").mockImplementation(() => now);
+        const { loadHeroes, onHeroesRefreshed, ART_RETRY_MS } = await modules();
+        let refreshes = 0;
+        onHeroesRefreshed(() => refreshes++);
+        await loadHeroes([2]);
+        await vi.waitFor(() => expect(refreshes).toBe(1));
+        now += 2 * 60 * 1000;
+        await loadHeroes([2]);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        now += ART_RETRY_MS;
+        await loadHeroes([2]);
+        await vi.waitFor(() => expect(refreshes).toBe(2));
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        vi.restoreAllMocks();
+    });
+
+    it("refetches without the game when the cached hero has no art", async () => {
+        artlessCache();
+        command.mockRejectedValue(new Error("boom"));
+        fetchMock.mockResolvedValue(artResponse());
+        const { loadHeroes, onHeroesRefreshed } = await modules();
+        const seen: Record<number, Hero>[] = [];
+        onHeroesRefreshed((h) => seen.push(h));
+        await loadHeroes([2]);
+        await vi.waitFor(() => expect(seen).toHaveLength(1));
+        expect(seen[0][2]).toMatchObject({ artIcon: "a-sm", portrait: "a-card" });
+    });
+
     it("still loads heroes when the art command fails", async () => {
         route(Promise.reject(new Error("boom")));
         fetchMock.mockResolvedValue(apiResponse());
@@ -290,6 +356,49 @@ describe("needsRefresh", () => {
     it("waits a minute after the last attempt before trying again", () => {
         expect(needsRefresh(known, [88], 1000, 1000 + minute - 1)).toBe(false);
         expect(needsRefresh(known, [88], 1000, 1000 + minute)).toBe(true);
+    });
+});
+
+describe("lacksDiscordArt", () => {
+    it("is true when both Discord images are null", () => {
+        expect(lacksDiscordArt(apiHero({ id: 2 }))).toBe(true);
+    });
+
+    it("is false when either image is set", () => {
+        expect(lacksDiscordArt(apiHero({ id: 2, artIcon: "sm" }))).toBe(false);
+        expect(lacksDiscordArt(apiHero({ id: 2, portrait: "card" }))).toBe(false);
+    });
+
+    it("counts the API fields over local paths that cannot reach Discord", () => {
+        expect(lacksDiscordArt(apiHero({ id: 2, artIcon: "asset://sm", apiArtIcon: null, apiPortrait: null }))).toBe(
+            true,
+        );
+        expect(lacksDiscordArt(apiHero({ id: 2, apiArtIcon: "sm" }))).toBe(false);
+    });
+});
+
+describe("needsArtRefetch", () => {
+    const hour = 60 * 60 * 1000;
+    const bare = { 2: apiHero({ id: 2 }) };
+
+    it("is true for a wanted hero with no art", () => {
+        expect(needsArtRefetch(bare, [2], null, 5000)).toBe(true);
+    });
+
+    it("is false once the hero has art", () => {
+        expect(needsArtRefetch({ 2: apiHero({ id: 2, artIcon: "sm" }) }, [2], null, 5000)).toBe(false);
+        expect(needsArtRefetch({ 2: apiHero({ id: 2, portrait: "card" }) }, [2], null, 5000)).toBe(false);
+        expect(needsArtRefetch({ 2: apiHero({ id: 2, apiArtIcon: "sm" }) }, [2], null, 5000)).toBe(false);
+    });
+
+    it("ignores heroes nobody asked for and unknown ids", () => {
+        expect(needsArtRefetch(bare, [3], null, 5000)).toBe(false);
+        expect(needsArtRefetch(bare, [], null, 5000)).toBe(false);
+    });
+
+    it("waits an hour after the last attempt", () => {
+        expect(needsArtRefetch(bare, [2], 1000, 1000 + hour - 1)).toBe(false);
+        expect(needsArtRefetch(bare, [2], 1000, 1000 + hour)).toBe(true);
     });
 });
 
