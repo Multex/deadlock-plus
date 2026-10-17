@@ -5,9 +5,16 @@ import { peers } from "@deadlock-plus/ui/peers";
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
+// Dev servers sharing one dep cache re-optimize each other's dependencies, which holds `tauri dev` back
+// at startup. Only `tauri dev` keeps the default directory.
+const demoId = process.env.DEMO_ID ? `-${process.env.DEMO_ID}` : "";
+const cacheDir = process.env.VITE_DEMO ? `node_modules/.vite-demo${demoId}` : undefined;
+
 // https://vite.dev/config/
 export default defineConfig(() => ({
     plugins: [tailwindcss(), sveltekit()],
+
+    cacheDir,
 
     resolve: { dedupe: peers },
 
@@ -33,6 +40,15 @@ export default defineConfig(() => ({
         port: 1420,
         strictPort: true,
         fs: { allow: ["../.."] },
+        // Transforms the startup graph while cargo compiles, so the page is not held for the crawl.
+        warmup: {
+            clientFiles: [
+                "./src/hooks.client.ts",
+                "./src/routes/+layout.svelte",
+                "./src/routes/(app)/+layout.svelte",
+                "./src/routes/(app)/+page.svelte",
+            ],
+        },
         host: host || "127.0.0.1",
         hmr: host
             ? {
