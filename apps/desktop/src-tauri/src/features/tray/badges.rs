@@ -41,13 +41,24 @@ pub struct BadgeState {
 }
 
 impl BadgeState {
-    fn badges(&self, app: &AppHandle) -> Badges {
-        let unread = app.state::<NotificationsState>().unread_count(app);
+    fn badges(&self, unread: usize) -> Badges {
         Badges {
             update_available: self.update_available.load(Ordering::Relaxed),
             unread_label: (unread > 0).then(|| count_label(unread)),
         }
     }
+}
+
+/// The `count` and `count-visible` values a Unity LauncherEntry update carries.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn launcher_count(unread: usize) -> (i64, bool) {
+    (i64::try_from(unread).unwrap_or(i64::MAX), unread > 0)
+}
+
+/// Tauri's bundler names the installed desktop file after the product name.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn launcher_app_uri(product_name: &str) -> String {
+    format!("application://{product_name}.desktop")
 }
 
 fn count_label(n: usize) -> String {
@@ -74,7 +85,10 @@ pub fn setup(app: &AppHandle) {
 /// so the two never collide.
 pub fn refresh(app: &AppHandle) {
     let state = app.state::<BadgeState>();
-    let badges = state.badges(app);
+    let unread = app.state::<NotificationsState>().unread_count(app);
+    let badges = state.badges(unread);
+    #[cfg(target_os = "linux")]
+    launcher::set(app, unread);
 
     let tray_icon = state.base.lock_or_recover().as_ref().map(|base| tray_icon_with_badges(base, &badges));
     if let Some(icon) = tray_icon {
@@ -379,6 +393,39 @@ mod overlay {
     pub fn set(_window: &tauri::WebviewWindow, _image: Option<(&[u8], u32, u32)>) {}
 }
 
+/// Sends the Unity LauncherEntry `Update` signal itself rather than through Tauri's `set_badge_count`: tao only
+/// forwards that through libunity, and only while Unity owns its bus name, so KDE Plasma, Ubuntu Dock, Dash to
+/// Dock and Plank, which all listen for this signal, would never see a count.
+#[cfg(target_os = "linux")]
+mod launcher {
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+
+    use tauri::AppHandle;
+    use zbus::blocking::Connection;
+    use zbus::names::BusName;
+    use zbus::zvariant::Value;
+
+    const PATH: &str = "/com/canonical/unity/launcherentry/deadlock_plus";
+    const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
+
+    pub fn set(app: &AppHandle, unread: usize) {
+        // Docks drop an entry's count when its sender leaves the bus, so the connection lives as long as the app.
+        static CONNECTION: OnceLock<Option<Connection>> = OnceLock::new();
+        let Some(connection) = CONNECTION.get_or_init(|| {
+            Connection::session().inspect_err(|e| log::warn!("no session bus for the launcher badge: {e}")).ok()
+        }) else {
+            return;
+        };
+        let (count, visible) = super::launcher_count(unread);
+        let properties = HashMap::from([("count", Value::from(count)), ("count-visible", Value::from(visible))]);
+        let uri = super::launcher_app_uri(&app.package_info().name);
+        if let Err(e) = connection.emit_signal(None::<BusName<'_>>, PATH, INTERFACE, "Update", &(uri, properties)) {
+            log::warn!("could not update the launcher badge: {e}");
+        }
+    }
+}
+
 pub mod commands {
     use super::*;
 
@@ -399,6 +446,22 @@ mod tests {
         assert_eq!(count_label(9), "9");
         assert_eq!(count_label(10), "9+");
         assert_eq!(count_label(500), "9+");
+    }
+
+    #[test]
+    fn the_launcher_count_is_the_full_unread_count() {
+        assert_eq!(launcher_count(1), (1, true));
+        assert_eq!(launcher_count(42), (42, true));
+    }
+
+    #[test]
+    fn no_unread_hides_the_launcher_count() {
+        assert_eq!(launcher_count(0), (0, false));
+    }
+
+    #[test]
+    fn the_launcher_uri_names_the_bundled_desktop_file() {
+        assert_eq!(launcher_app_uri("Deadlock+"), "application://Deadlock+.desktop");
     }
 
     #[test]
