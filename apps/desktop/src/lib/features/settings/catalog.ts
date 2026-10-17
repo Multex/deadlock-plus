@@ -440,7 +440,7 @@ const needsOverlay = (item: SettingItem) => item.category === "overlay" || item.
 
 /** Null means no filter is active. Every word of the query must appear in an item's title, category label, description or keywords. */
 export function itemsFor(p: Platform): SettingItem[] {
-    const items = p === "windows" ? BASE_ITEMS : BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration");
+    const items = p === "macos" ? BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration") : BASE_ITEMS;
     return items
         .filter((item) => hasOverlay(p) || !needsOverlay(item))
         .map((item) =>

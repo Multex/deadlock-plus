@@ -10,7 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Deadlock+ reopens on the page you last had open, including match details.
 - Settings > Appearance has a UI scale slider, from 80 to 150%.
-- Hardware acceleration can be turned off on Windows, with a button to restart Deadlock+ and apply it.
+- Hardware acceleration can be turned off on Windows and Linux, with a button to restart Deadlock+ and apply it.
 - Deadlock+ can open its window when Deadlock starts, even from the tray.
 - Clicking a Deadlock+ desktop notification opens the page it is about.
 

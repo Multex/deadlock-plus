@@ -56,8 +56,8 @@ describe("catalog", () => {
         expect(matchingItems("stutter")?.has("hardware-acceleration")).toBe(true);
     });
 
-    it("lists hardware acceleration on Windows only", () => {
-        expect(itemsFor("linux").some((i) => i.id === "hardware-acceleration")).toBe(false);
+    it("lists hardware acceleration on Windows and Linux", () => {
+        expect(itemsFor("linux").some((i) => i.id === "hardware-acceleration")).toBe(true);
         expect(itemsFor("macos").some((i) => i.id === "hardware-acceleration")).toBe(false);
     });
 

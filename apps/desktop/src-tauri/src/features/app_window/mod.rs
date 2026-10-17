@@ -7,13 +7,10 @@ use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 pub const MAIN_WINDOW: &str = "main";
 const SETTINGS_STORE: &str = "app-settings";
 const UI_SCALE_KEY: &str = "uiScale";
-#[cfg(windows)]
 const HARDWARE_ACCELERATION_KEY: &str = "hardwareAcceleration";
 const MIN_SCALE_PERCENT: f64 = 80.0;
 const MAX_SCALE_PERCENT: f64 = 150.0;
-#[cfg(any(windows, test))]
 const DISABLE_GPU_ARG: &str = "--disable-gpu";
-#[cfg(windows)]
 const BROWSER_ARGS_ENV: &str = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
 
 /// Percent as the frontend stores it, clamped to the range the Settings slider offers.
@@ -21,7 +18,6 @@ fn zoom_factor(stored: Option<&Value>) -> f64 {
     stored.and_then(Value::as_f64).map_or(100.0, |p| p.clamp(MIN_SCALE_PERCENT, MAX_SCALE_PERCENT)) / 100.0
 }
 
-#[cfg(any(windows, test))]
 fn hardware_acceleration(stored: Option<&Value>) -> bool {
     stored.and_then(Value::as_bool).unwrap_or(true)
 }
@@ -29,7 +25,6 @@ fn hardware_acceleration(stored: Option<&Value>) -> bool {
 /// WebView2 appends this variable to the arguments wry passes, so its defaults stay in place, and every
 /// webview in the process gets the same set. That matters: WebView2 refuses to create a webview whose
 /// arguments differ from those of the browser process already running for the same data folder.
-#[cfg(any(windows, test))]
 fn browser_args(existing: Option<&str>, hardware_acceleration: bool) -> Option<String> {
     if hardware_acceleration {
         return None;
@@ -39,6 +34,47 @@ fn browser_args(existing: Option<&str>, hardware_acceleration: bool) -> Option<S
         return Some(existing.to_string());
     }
     Some(if existing.is_empty() { DISABLE_GPU_ARG.to_string() } else { format!("{existing} {DISABLE_GPU_ARG}") })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WebviewEngine {
+    WebView2,
+    WebKitGtk,
+    Other,
+}
+
+impl WebviewEngine {
+    const CURRENT: Self = if cfg!(windows) {
+        Self::WebView2
+    } else if cfg!(target_os = "linux") {
+        Self::WebKitGtk
+    } else {
+        Self::Other
+    };
+}
+
+/// Variables the webview engine reads when the first webview is created; none of them can change later.
+/// WebKitGTK has no GPU switch of its own: compositing off covers the GL path, and the DMA-BUF renderer is the
+/// one behind the black and flickering windows on some Nvidia and Wayland setups.
+fn webview_env(
+    engine: WebviewEngine,
+    hardware_acceleration: bool,
+    existing: impl Fn(&str) -> Option<String>,
+) -> Vec<(&'static str, String)> {
+    if hardware_acceleration {
+        return Vec::new();
+    }
+    match engine {
+        WebviewEngine::WebView2 => browser_args(existing(BROWSER_ARGS_ENV).as_deref(), false)
+            .map(|args| (BROWSER_ARGS_ENV, args))
+            .into_iter()
+            .collect(),
+        WebviewEngine::WebKitGtk => vec![
+            ("WEBKIT_DISABLE_COMPOSITING_MODE", "1".to_string()),
+            ("WEBKIT_DISABLE_DMABUF_RENDERER", "1".to_string()),
+        ],
+        WebviewEngine::Other => Vec::new(),
+    }
 }
 
 /// Whether the main window comes up when Deadlock starts, so a tray-only autostart launch is one game launch
@@ -79,13 +115,14 @@ pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             None
         })
     };
-    #[cfg(windows)]
-    {
-        let accelerated = hardware_acceleration(read(HARDWARE_ACCELERATION_KEY).as_ref());
-        if let Some(args) = browser_args(std::env::var(BROWSER_ARGS_ENV).ok().as_deref(), accelerated) {
-            log::info!("hardware acceleration off: WebView2 arguments \"{args}\"");
-            std::env::set_var(BROWSER_ARGS_ENV, args);
-        }
+    let accelerated = hardware_acceleration(read(HARDWARE_ACCELERATION_KEY).as_ref());
+    for (name, value) in webview_env(WebviewEngine::CURRENT, accelerated, |name| std::env::var(name).ok()) {
+        log::info!("hardware acceleration off: {name}=\"{value}\"");
+        // Not thread-safe on Linux (`unsafe` from edition 2024): other threads already run here (crash
+        // reporting, logging, the async runtime). Rust's `env::var` shares std's lock with this write; only a
+        // C-level `getenv` on another thread could race it. Moving this before `tauri::Builder` would close
+        // that gap, but the app data dir that holds the setting is only known once the app is built.
+        std::env::set_var(name, value);
     }
     let config =
         app.config().app.windows.iter().find(|w| w.label == MAIN_WINDOW).ok_or("tauri.conf.json has no main window")?;
@@ -180,6 +217,41 @@ mod tests {
     #[test]
     fn browser_args_do_not_repeat_the_flag() {
         assert_eq!(browser_args(Some("--disable-gpu"), false).as_deref(), Some("--disable-gpu"));
+    }
+
+    fn unset(_: &str) -> Option<String> {
+        None
+    }
+
+    #[test]
+    fn webkit_drops_compositing_and_dmabuf_with_acceleration_off() {
+        assert_eq!(
+            webview_env(WebviewEngine::WebKitGtk, false, unset),
+            vec![
+                ("WEBKIT_DISABLE_COMPOSITING_MODE", "1".to_string()),
+                ("WEBKIT_DISABLE_DMABUF_RENDERER", "1".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn webkit_env_is_untouched_with_acceleration_on() {
+        assert!(webview_env(WebviewEngine::WebKitGtk, true, unset).is_empty());
+    }
+
+    #[test]
+    fn webview2_gets_the_gpu_flag_appended_to_what_the_user_set() {
+        let existing = |name: &str| (name == BROWSER_ARGS_ENV).then(|| "--remote-debugging-port=9222".to_string());
+        assert_eq!(
+            webview_env(WebviewEngine::WebView2, false, existing),
+            vec![(BROWSER_ARGS_ENV, "--remote-debugging-port=9222 --disable-gpu".to_string())]
+        );
+        assert!(webview_env(WebviewEngine::WebView2, true, existing).is_empty());
+    }
+
+    #[test]
+    fn other_engines_get_no_env() {
+        assert!(webview_env(WebviewEngine::Other, false, unset).is_empty());
     }
 
     #[test]

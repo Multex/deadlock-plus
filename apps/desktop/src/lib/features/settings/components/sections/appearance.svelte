@@ -148,7 +148,7 @@
     </Card>
 {/if}
 
-{#if platform === "windows" && show("hardware-acceleration")}
+{#if (platform === "windows" || platform === "linux") && show("hardware-acceleration")}
     <Card as="section">
         <SettingRow
             label={t("settings.items.hardware_acceleration")}
