@@ -168,9 +168,8 @@
                     {#snippet child({ props })}
                         <Switch
                             {...props}
-                            checked={isBlocked}
+                            bind:checked={() => isBlocked, onToggle}
                             disabled={busy || external || lockedBy != null}
-                            onCheckedChange={onToggle}
                             aria-label={t("server_picker.row.block_aria", { name: group.description })}
                             class="data-[state=checked]:bg-destructive"
                         />

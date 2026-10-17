@@ -87,6 +87,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - On Linux, Deadlock+ picks the Steam install you last signed in to when there are several.
 - Discord presence works with Vesktop installed from Flatpak.
 - On Linux desktops without a tray, starting with your computer shows the window instead of hiding it.
+- A server's switch in the Server Picker goes back to its real state when blocking or unblocking fails.
 
 ## [0.12.0] - 2026-10-15
 
