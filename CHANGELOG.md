@@ -71,6 +71,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - On Linux, Settings hides the game overlay options, since the overlay is Windows only.
 - On Linux, background server block updates no longer ask for your password; Deadlock+ says the blocks are out of date instead.
 - Linux builds now run on Ubuntu 22.04 and Debian 12.
+- Uninstalling Deadlock+ on Windows now lifts its server blocks.
 
 ### Fixed
 
