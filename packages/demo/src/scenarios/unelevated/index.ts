@@ -12,3 +12,15 @@ export function unelevatedScenario(options: ScenarioOptions): Scenario {
     });
     return { ...scenario, id: "unelevated" };
 }
+
+/** The unelevated player whose Deadlock runs as administrator, so the app cannot read it. */
+export function unelevatedGameAdminScenario(options: ScenarioOptions): Scenario {
+    const scenario = unelevatedScenario({
+        ...options,
+        adminAccess: {
+            status: { elevated: false, route: "needsPermission", canPrompt: true, gameRunsAsAdmin: true },
+            ...options.adminAccess,
+        },
+    });
+    return { ...scenario, id: "unelevated-game-admin" };
+}

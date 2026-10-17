@@ -3,7 +3,7 @@ import type { FrameStats } from "@deadlock-plus/ipc-types/FrameStats";
 import type { NetworkSnapshot } from "@deadlock-plus/ipc-types/NetworkSnapshot";
 import { afterEach, describe, expect, it } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
-import { unelevatedScenario } from "./index";
+import { unelevatedGameAdminScenario, unelevatedScenario } from "./index";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const NEEDS_PERMISSION = { code: "server_picker.needs_permission", params: {} };
@@ -28,6 +28,16 @@ it("runs without administrator rights until allowed", () => {
         gameRunsAsAdmin: false,
     });
     expect(handle!.invoke("allow_admin_access", { always: false })).toEqual({ status: "applied" });
+});
+
+it("can start with Deadlock itself running as administrator", () => {
+    handle = install(unelevatedGameAdminScenario(OPTIONS));
+    expect(handle.scenario).toBe("unelevated-game-admin");
+    expect(handle.invoke("admin_access_status", {})).toMatchObject({
+        elevated: false,
+        route: "needsPermission",
+        gameRunsAsAdmin: true,
+    });
 });
 
 it("keeps each install's permission to itself", () => {
