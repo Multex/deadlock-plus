@@ -14,10 +14,13 @@ use crate::features::game_focus::GameFocusService;
 use crate::features::i18n::{translate_in, I18nState};
 use crate::features::notifications::{NotificationKind, Placement};
 
+mod linux_support;
 mod rules;
 mod toasts;
 mod window;
 mod worker;
+#[cfg(target_os = "linux")]
+mod x11;
 
 use worker::Msg;
 
@@ -147,7 +150,7 @@ pub fn on_focus_change(app: &AppHandle, state: FocusState) {
 
 pub fn available(app: &AppHandle, focus: &FocusState) -> bool {
     let settings = app.state::<OverlayService>().settings();
-    rules::available(cfg!(windows), settings, focus, window::exclusive_fullscreen())
+    rules::available(window::platform_ready(), settings, focus, window::exclusive_fullscreen())
 }
 
 pub fn show_toast(app: &AppHandle, id: String, kind: NotificationKind, text: (String, String), placement: Placement) {

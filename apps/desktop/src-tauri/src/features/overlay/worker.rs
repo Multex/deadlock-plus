@@ -7,7 +7,7 @@ use dp_game::focus::{FocusState, GameFocus, ScreenRect};
 use dp_sync::LockExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use super::rules::{follow_rect, lifecycle, next_status, show_rect, Lifecycle};
+use super::rules::{follow_rect, lifecycle, next_status, raise_after_focus, show_rect, Lifecycle};
 use super::toasts::Toasts;
 use super::{window, OverlayService, OverlayToast, STATUS_EVENT, TOAST_EVENT};
 
@@ -92,10 +92,14 @@ impl Worker {
                     }
                     None => {}
                 }
-                self.focus = next;
-                if let Some(rect) = follow_rect(self.shown, &self.focus, self.toasts.hide_at().is_some()) {
+                let previous = std::mem::replace(&mut self.focus, next).focus;
+                let visible = self.toasts.hide_at().is_some();
+                if let Some(rect) = follow_rect(self.shown, &self.focus, visible) {
                     window::show(&self.app, rect);
                     self.shown = Some(rect);
+                }
+                if raise_after_focus(previous, self.focus.focus, visible && self.shown.is_some()) {
+                    window::raise(&self.app);
                 }
                 self.refresh_status();
             }

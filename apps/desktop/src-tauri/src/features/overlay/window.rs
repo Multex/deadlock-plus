@@ -3,7 +3,7 @@ use tauri::AppHandle;
 
 pub(super) const LABEL: &str = "overlay";
 
-pub(super) use platform::{create, destroy, exclusive_fullscreen, hide, show};
+pub(super) use platform::{create, destroy, exclusive_fullscreen, hide, platform_ready, raise, show};
 
 #[cfg(windows)]
 mod platform {
@@ -91,6 +91,13 @@ mod platform {
         unsafe { SHQueryUserNotificationState() }.is_ok_and(|state| state == QUNS_RUNNING_D3D_FULL_SCREEN)
     }
 
+    pub(crate) fn platform_ready() -> bool {
+        true
+    }
+
+    /// `HWND_TOPMOST` on every show already keeps it above the game.
+    pub(crate) fn raise(_app: &AppHandle) {}
+
     fn wanted_ex_style() -> u32 {
         (WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT).0
     }
@@ -156,7 +163,167 @@ mod platform {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+mod platform {
+    use std::ffi::c_ulong;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+    use webkit2gtk::glib::prelude::ObjectExt;
+
+    use super::super::linux_support::{
+        predicted_backend, support, Backend, DisplayEnv, Unsupported, LINUX_OVERLAY_ENABLED,
+    };
+    use super::super::x11::Connection;
+    use super::*;
+
+    const MAIN_WINDOW: &str = "main";
+
+    /// What the last `create` found; read on every notification, so it must not touch X.
+    static READY: AtomicBool = AtomicBool::new(false);
+
+    /// An X11 override-redirect window (XWayland included): the window manager never focuses, frames, places or
+    /// lists it. Tauri's `show()`/`hide()` are safe here: on GTK they map and unmap without asking for focus.
+    pub(crate) fn create(app: &AppHandle) -> tauri::Result<()> {
+        if app.get_webview_window(LABEL).is_some() {
+            return Ok(());
+        }
+        let checked = check(app);
+        READY.store(checked.is_ok(), Ordering::Release);
+        if let Err(reason) = checked {
+            log::info!("no game overlay on this desktop: {reason:?}");
+            return Ok(());
+        }
+        let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("overlay".into()))
+            .title("Deadlock+ overlay")
+            .visible(false)
+            .focused(false)
+            .focusable(false)
+            .transparent(true)
+            .decorations(false)
+            .skip_taskbar(true)
+            .always_on_top(true)
+            .build()?;
+        // Queued before any show, so the hook is in place when the first show realizes and maps the window.
+        let hooked = window.clone();
+        window.run_on_main_thread(move || hook_realize(hooked))?;
+        Ok(())
+    }
+
+    pub(crate) fn destroy(app: &AppHandle) {
+        if let Some(window) = app.get_webview_window(LABEL) {
+            if let Err(e) = window.destroy() {
+                log::warn!("could not close the overlay window: {e}");
+            }
+        }
+    }
+
+    /// `rect` is in root-window pixels, the space the focus watcher reads; tao divides by GDK's scale itself.
+    pub(crate) fn show(app: &AppHandle, rect: ScreenRect) {
+        let Some(window) = app.get_webview_window(LABEL) else {
+            return;
+        };
+        let size = PhysicalSize::new(rect.width.max(1).unsigned_abs(), rect.height.max(1).unsigned_abs());
+        if let Err(e) = window
+            .set_position(PhysicalPosition::new(rect.x, rect.y))
+            .and_then(|()| window.set_size(size))
+            .and_then(|()| window.show())
+        {
+            log::warn!("could not show the overlay window: {e}");
+        }
+    }
+
+    pub(crate) fn hide(app: &AppHandle) {
+        if let Some(window) = app.get_webview_window(LABEL) {
+            if let Err(e) = window.hide() {
+                log::warn!("could not hide the overlay window: {e}");
+            }
+        }
+    }
+
+    pub(crate) fn raise(app: &AppHandle) {
+        let Some(xid) = app.get_webview_window(LABEL).as_ref().and_then(xid) else {
+            return;
+        };
+        if let Some(x11) = Connection::open() {
+            x11.raise(xid);
+        }
+    }
+
+    /// X11 has no exclusive mode that hides other windows; a compositor draws the overlay over a fullscreen game.
+    pub(crate) fn exclusive_fullscreen() -> bool {
+        false
+    }
+
+    pub(crate) fn platform_ready() -> bool {
+        READY.load(Ordering::Acquire)
+    }
+
+    fn check(app: &AppHandle) -> Result<(), Unsupported> {
+        if !LINUX_OVERLAY_ENABLED {
+            return Err(Unsupported::Disabled);
+        }
+        let backend = backend(app);
+        let compositor = match backend {
+            Backend::X11 => Connection::open().map(|x11| x11.compositor_running()),
+            Backend::Wayland | Backend::Unknown => None,
+        };
+        support(true, backend, compositor)
+    }
+
+    /// The main window's handle says what GTK really picked; before it is first shown, GDK's own rules decide.
+    fn backend(app: &AppHandle) -> Backend {
+        let realized = app.get_webview_window(MAIN_WINDOW).and_then(|w| w.window_handle().ok().map(|h| h.as_raw()));
+        match realized {
+            Some(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_)) => Backend::X11,
+            Some(RawWindowHandle::Wayland(_)) => Backend::Wayland,
+            _ => {
+                let var = |name| std::env::var(name).ok();
+                let (gdk_backend, wayland_display, display, session_type) =
+                    (var("GDK_BACKEND"), var("WAYLAND_DISPLAY"), var("DISPLAY"), var("XDG_SESSION_TYPE"));
+                predicted_backend(DisplayEnv {
+                    gdk_backend: gdk_backend.as_deref(),
+                    wayland_display: wayland_display.as_deref(),
+                    display: display.as_deref(),
+                    session_type: session_type.as_deref(),
+                })
+            }
+        }
+    }
+
+    fn xid(window: &WebviewWindow) -> Option<c_ulong> {
+        match window.window_handle().ok()?.as_raw() {
+            RawWindowHandle::Xlib(h) => Some(h.window),
+            RawWindowHandle::Xcb(h) => Some(c_ulong::from(h.window.get())),
+            _ => None,
+        }
+    }
+
+    /// GTK realizes and maps in one go on the first show, and a window manager reads override-redirect only at
+    /// map time, so the X window is changed from GTK's realize signal: the X window exists, nothing is mapped yet.
+    fn hook_realize(window: WebviewWindow) {
+        let gtk = match window.gtk_window() {
+            Ok(gtk) => gtk,
+            Err(e) => {
+                log::warn!("overlay window has no GTK window: {e}");
+                return;
+            }
+        };
+        gtk.connect_local("realize", true, move |_| {
+            match (xid(&window), Connection::open()) {
+                (Some(xid), Some(x11)) => {
+                    x11.make_overlay(xid);
+                    log::info!("overlay window created (X11 0x{xid:x})");
+                }
+                _ => log::warn!("overlay window realized without an X11 window; it may take focus"),
+            }
+            None
+        });
+    }
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 mod platform {
     use super::*;
 
@@ -173,4 +340,10 @@ mod platform {
     pub(crate) fn exclusive_fullscreen() -> bool {
         false
     }
+
+    pub(crate) fn platform_ready() -> bool {
+        false
+    }
+
+    pub(crate) fn raise(_app: &AppHandle) {}
 }

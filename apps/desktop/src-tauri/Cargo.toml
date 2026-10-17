@@ -93,5 +93,7 @@ windows-core = "0.61"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust = "4.18"
+raw-window-handle = "0.6"
 webkit2gtk = "2.0"
+x11-dl = "2.21"
 zbus = "5.19"

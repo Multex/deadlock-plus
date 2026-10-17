@@ -12,14 +12,15 @@ impl OverlaySettings {
     }
 }
 
-/// Whether an overlay toast can be seen right now. In exclusive fullscreen nothing composites over the game.
+/// Whether an overlay toast can be seen right now. `platform_ready`: this desktop can float a click-through window
+/// over the game. In exclusive fullscreen nothing composites over the game.
 pub(super) fn available(
-    on_windows: bool,
+    platform_ready: bool,
     settings: OverlaySettings,
     focus: &FocusState,
     exclusive_fullscreen: bool,
 ) -> bool {
-    on_windows && settings.enabled && focus.game_rect.is_some() && !exclusive_fullscreen
+    platform_ready && settings.enabled && focus.game_rect.is_some() && !exclusive_fullscreen
 }
 
 /// Over the game while it is in front, so Window mode keeps cards inside its frame; otherwise over whatever
@@ -36,6 +37,12 @@ pub(super) fn show_rect(focus: &FocusState) -> Option<ScreenRect> {
 pub(super) fn follow_rect(shown: Option<ScreenRect>, focus: &FocusState, toasts_visible: bool) -> Option<ScreenRect> {
     let shown = shown.filter(|_| toasts_visible)?;
     show_rect(focus).filter(|rect| *rect != shown)
+}
+
+/// Whether to put a window already showing toasts back on top: a window manager raises the game when it takes
+/// focus, which on X11 can cover the overlay. Moving or re-showing a mapped window does not restack it.
+pub(super) fn raise_after_focus(previous: GameFocus, next: GameFocus, toasts_visible: bool) -> bool {
+    toasts_visible && next == GameFocus::Focused && previous != GameFocus::Focused
 }
 
 /// `exclusive_now` only counts while the game is focused: once tabbed out the system reads "busy", not
@@ -107,12 +114,12 @@ mod tests {
     }
 
     #[test]
-    fn available_needs_windows_the_setting_a_game_window_and_no_exclusive_fullscreen() {
+    fn available_needs_a_ready_platform_the_setting_a_game_window_and_no_exclusive_fullscreen() {
         let on = OverlaySettings::default();
         let off = OverlaySettings { enabled: false, ..on };
         let focused = state(GameFocus::Focused, Some(GAME));
         assert!(available(true, on, &focused, false));
-        assert!(!available(false, on, &focused, false), "not on Linux");
+        assert!(!available(false, on, &focused, false), "Linux without a usable X11 overlay");
         assert!(!available(true, off, &focused, false), "the user turned it off");
         assert!(!available(true, on, &state(GameFocus::Background, None), false), "the game has no window");
         assert!(!available(true, on, &state(GameFocus::Closed, None), false));
@@ -150,6 +157,29 @@ mod tests {
         assert_eq!(follow_rect(Some(other), &on_game, false), None, "no toast on screen");
         assert_eq!(follow_rect(None, &on_game, true), None, "window not shown yet");
         assert_eq!(follow_rect(Some(GAME), &FocusState::default(), true), None, "no monitor known");
+    }
+
+    #[test]
+    fn a_visible_toast_is_raised_when_the_game_takes_focus() {
+        use GameFocus::*;
+        assert!(raise_after_focus(Background, Focused, true));
+        assert!(raise_after_focus(Closed, Focused, true));
+        assert!(!raise_after_focus(Focused, Focused, true), "the recheck re-sends the same state");
+        assert!(!raise_after_focus(Focused, Background, true), "tabbing out raises another window");
+        assert!(!raise_after_focus(Background, Focused, false), "no toast on screen");
+    }
+
+    #[test]
+    fn x11_rects_place_the_window_like_win32_ones() {
+        let left = ScreenRect { x: 0, y: 0, width: 1920, height: 1080 };
+        let right = ScreenRect { x: 1920, y: 0, width: 2560, height: 1440 };
+        let fullscreen_on_right =
+            FocusState { focus: GameFocus::Focused, game_rect: Some(right), monitor_rect: Some(right) };
+        assert_eq!(show_rect(&fullscreen_on_right), Some(right));
+        let browser_on_left =
+            FocusState { focus: GameFocus::Background, monitor_rect: Some(left), ..fullscreen_on_right };
+        assert_eq!(show_rect(&browser_on_left), Some(left));
+        assert_eq!(follow_rect(Some(right), &browser_on_left, true), Some(left));
     }
 
     #[test]
