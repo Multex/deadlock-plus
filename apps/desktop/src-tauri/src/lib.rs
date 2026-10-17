@@ -87,7 +87,7 @@ pub fn run() {
             dp_firewall::init(&app.path().app_data_dir()?);
             network::commands::start_monitor(app.handle(), false);
             features::tray::setup(app.handle())?;
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "linux"))]
             features::context_menu::install(app.handle());
             app.state::<features::live::link::GameLinkService>().start(app.handle());
             app.state::<features::overlay::OverlayService>().start(app.handle());
