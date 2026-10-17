@@ -1648,6 +1648,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dp-mvp"
+version = "0.12.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "dp-network"
 version = "0.12.0"
 dependencies = [
