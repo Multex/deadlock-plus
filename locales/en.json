@@ -555,6 +555,8 @@
             "donators_description": "Keep the app free.",
             "others_one": "and {count} other",
             "others_other": "and {count} others",
+            "anonymous_one": "{count} anonymous donator",
+            "anonymous_other": "{count} anonymous donators",
             "nobody_yet": "Nobody listed yet."
         }
     },

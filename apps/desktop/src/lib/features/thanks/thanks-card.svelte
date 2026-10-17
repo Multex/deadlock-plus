@@ -4,7 +4,7 @@
     import { i18n, t, tn } from "$lib/core/i18n.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
-    import { THANKS, isEmpty, translatorLanguages, type Person } from "./thanks";
+    import { THANKS, donatorsOthersKey, isEmpty, translatorLanguages, type Person } from "./thanks";
 
     const open = (url: string) => void openLink(url);
 </script>
@@ -75,7 +75,7 @@
                         {/each}
                         {#if THANKS.donators.others > 0}
                             <li class="text-muted-foreground">
-                                {tn("settings.thanks.others", THANKS.donators.others)}
+                                {tn(donatorsOthersKey(THANKS.donators.names), THANKS.donators.others)}
                             </li>
                         {/if}
                     </ul>

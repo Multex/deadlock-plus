@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LANGUAGES } from "$lib/features/settings/languages";
-import { THANKS, isEmpty, parseThanks, translatorLanguages } from "./thanks";
+import { THANKS, donatorsOthersKey, isEmpty, parseThanks, translatorLanguages } from "./thanks";
 
 describe("parseThanks", () => {
     it("keeps named entries and drops blank names", () => {
@@ -38,6 +38,16 @@ describe("isEmpty", () => {
     it("is true only when nobody is listed", () => {
         expect(isEmpty({ contributors: [], translators: [], donators: { names: [], others: 0 } })).toBe(true);
         expect(isEmpty({ contributors: [], translators: [], donators: { names: [], others: 1 } })).toBe(false);
+    });
+});
+
+describe("donatorsOthersKey", () => {
+    it("says anonymous when no donator is named", () => {
+        expect(donatorsOthersKey([])).toBe("settings.thanks.anonymous");
+    });
+
+    it("says others when donators are named", () => {
+        expect(donatorsOthersKey(["Cy"])).toBe("settings.thanks.others");
     });
 });
 

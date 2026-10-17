@@ -48,6 +48,10 @@ export function isEmpty(t: Thanks): boolean {
     );
 }
 
+export function donatorsOthersKey(names: string[]): "settings.thanks.anonymous" | "settings.thanks.others" {
+    return names.length === 0 ? "settings.thanks.anonymous" : "settings.thanks.others";
+}
+
 function localizedName(code: string, locale: string): string | undefined {
     try {
         return new Intl.DisplayNames([locale], { type: "language" }).of(code);
