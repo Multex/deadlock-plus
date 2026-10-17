@@ -220,6 +220,9 @@ mod platform {
     }
 }
 
+#[cfg(windows)]
+mod run_key;
+
 pub mod commands {
     use super::*;
 

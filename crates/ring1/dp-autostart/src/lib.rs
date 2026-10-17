@@ -3,6 +3,7 @@ use std::io;
 use std::path::Path;
 
 pub mod desktop_entry;
+pub mod run_key;
 
 pub const LAUNCH_ARG: &str = "--autostart";
 

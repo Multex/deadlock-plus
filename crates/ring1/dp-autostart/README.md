@@ -8,6 +8,11 @@ Starts Deadlock+ at login on Linux. It is ring 1 because it writes to the OS's l
 - `stale` means the entry launches a different exe than the one to launch now.
 - `LAUNCH_ARG` is `--autostart`.
 - `desktop_entry` renders and parses the Linux entry file. It compiles on every host.
+- `run_key` is the pure half of Windows Run-key autostart. It compiles on every host and does no registry I/O:
+  - `VALUE_NAME`, `RUN_KEY`, `APPROVED_KEY` name the value and the two `HKCU` key paths.
+  - `render(exe)` gives the value data, `"<exe>" --autostart`. `parse_exe(data)` reads the exe back, quoted or unquoted.
+  - `approved(bytes)` reads the `StartupApproved` bytes: low bit of the first byte set means disabled, none or empty means enabled. `APPROVED_ENABLED` is the 12-byte enabled value.
+  - `state(run_data, approved_bytes, target_exe)` combines them. Disabled in Task Manager reads as `enabled: false, stale: false`.
 - `launch_exe`, `read_state`, `write_entry`, `remove_entry` are the file-level building blocks.
 
 ## Dependencies
