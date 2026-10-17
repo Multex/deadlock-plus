@@ -80,6 +80,22 @@
     </Card>
 {/if}
 
+{#if show("open-on-game-start")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.open_on_game_start")}
+            for="open-on-game-start"
+            description={t("settings.startup.open_on_game_start_description")}
+        >
+            <Switch
+                id="open-on-game-start"
+                checked={settings.openOnGameStart}
+                onCheckedChange={(v) => settings.setOpenOnGameStart(v)}
+            />
+        </SettingRow>
+    </Card>
+{/if}
+
 {#if show("background-jobs")}
     <Card as="section">
         <div class="flex flex-col gap-1">

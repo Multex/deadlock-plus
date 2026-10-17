@@ -73,6 +73,7 @@ pub fn run() {
             let log_dir = app.path().app_log_dir()?;
             app.handle().plugin(features::logging::plugin(&log_dir)?)?;
             features::logging::log_startup(app.handle());
+            features::app_window::build_main(app)?;
             match features::telemetry::init(app.handle()) {
                 Ok(service) => {
                     app.manage(service);
@@ -194,6 +195,9 @@ pub fn run() {
             features::autostart::commands::set_autostart,
             features::i18n::commands::set_language,
             features::tray::commands::set_close_to_tray,
+            features::app_window::commands::set_ui_scale,
+            features::app_window::commands::set_open_on_game_start,
+            features::app_window::commands::restart_app,
             features::tray::commands::main_window_visible,
             features::tray::commands::launched_hidden,
             features::tray::commands::frontend_ready,

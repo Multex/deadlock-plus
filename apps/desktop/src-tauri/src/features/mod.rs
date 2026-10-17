@@ -1,5 +1,6 @@
 pub mod about;
 pub mod alerts;
+pub mod app_window;
 pub mod autostart;
 pub mod context_menu;
 pub mod crash;

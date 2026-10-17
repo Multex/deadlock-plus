@@ -118,11 +118,13 @@ pub fn start(app: &AppHandle) {
 
     let mut last = None;
     let game = state.registry.game_flag();
+    let probe_app = app.clone();
     let watcher = GameWatcher::spawn(
         game,
         move || {
             let running = dp_game::is_running();
             if last != Some(running) {
+                crate::features::app_window::on_game_probe(&probe_app, last, running);
                 last = Some(running);
                 events.notify();
             }

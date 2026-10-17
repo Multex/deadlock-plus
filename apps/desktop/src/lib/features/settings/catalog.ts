@@ -139,6 +139,29 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "atkinson hyperlegible dyslexia low vision readable text typeface",
     },
     {
+        id: "ui-scale",
+        category: "appearance",
+        get title() {
+            return t("settings.items.ui_scale");
+        },
+        get description() {
+            return t("settings.appearance.scale_description");
+        },
+        keywords: "zoom size text size font size bigger smaller larger dpi magnify interface",
+    },
+    {
+        id: "hardware-acceleration",
+        category: "appearance",
+        get title() {
+            return t("settings.items.hardware_acceleration");
+        },
+        get description() {
+            return t("settings.appearance.hardware_acceleration_description");
+        },
+        keywords:
+            "gpu graphics card performance lag stutter flicker black screen capture obs recording webview2 driver",
+    },
+    {
         id: "language",
         category: "language",
         get title() {
@@ -170,6 +193,17 @@ const BASE_ITEMS: SettingItem[] = [
             return t("settings.startup.tray_description");
         },
         keywords: "background close hide quit minimize system tray",
+    },
+    {
+        id: "open-on-game-start",
+        category: "startup",
+        get title() {
+            return t("settings.items.open_on_game_start");
+        },
+        get description() {
+            return t("settings.startup.open_on_game_start_description");
+        },
+        keywords: "deadlock game launch starts open show window automatically play tray",
     },
     {
         id: "background-jobs",
@@ -403,7 +437,8 @@ const BASE_ITEMS: SettingItem[] = [
 
 /** Null means no filter is active. Every word of the query must appear in an item's title, category label, description or keywords. */
 export function itemsFor(p: Platform): SettingItem[] {
-    return BASE_ITEMS.map((item) =>
+    const items = p === "windows" ? BASE_ITEMS : BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration");
+    return items.map((item) =>
         item.id === "autostart"
             ? {
                   id: item.id,

@@ -44,6 +44,34 @@ describe("catalog", () => {
         expect(cat("licenses")).toBe("about");
     });
 
+    it("finds the UI scale by the words people search for", () => {
+        expect(matchingItems("zoom")?.has("ui-scale")).toBe(true);
+        expect(matchingItems("text size")?.has("ui-scale")).toBe(true);
+        expect(ITEMS.find((i) => i.id === "ui-scale")?.category).toBe("appearance");
+    });
+
+    it("finds hardware acceleration by GPU and lag", () => {
+        expect(itemsFor("windows").some((i) => i.id === "hardware-acceleration")).toBe(true);
+        expect(matchingItems("gpu")?.has("hardware-acceleration")).toBe(true);
+        expect(matchingItems("stutter")?.has("hardware-acceleration")).toBe(true);
+    });
+
+    it("lists hardware acceleration on Windows only", () => {
+        expect(itemsFor("linux").some((i) => i.id === "hardware-acceleration")).toBe(false);
+        expect(itemsFor("macos").some((i) => i.id === "hardware-acceleration")).toBe(false);
+    });
+
+    it("finds opening the window with the game under startup", () => {
+        expect(ITEMS.find((i) => i.id === "open-on-game-start")?.category).toBe("startup");
+        expect(matchingItems("game launch")?.has("open-on-game-start")).toBe(true);
+        expect(matchingItems("deadlock starts")?.has("open-on-game-start")).toBe(true);
+    });
+
+    it("lists opening with the game right after the tray setting", () => {
+        const ids = ITEMS.map((i) => i.id);
+        expect(ids.indexOf("open-on-game-start")).toBe(ids.indexOf("close-to-tray") + 1);
+    });
+
     it("has unique item ids", () => {
         expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
     });

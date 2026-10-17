@@ -5,7 +5,9 @@ import {
     setIngestEnabled,
     setMaintenanceSchedule,
     setNotificationSettings,
+    setOpenOnGameStart,
     setOverlaySettings,
+    setUiScale,
 } from "./api";
 import { kvGet, kvSet } from "$lib/core/kv";
 import { setPresenceArt, setPresenceSettings } from "$lib/features/presence/api";
@@ -25,6 +27,7 @@ import {
     type NotificationSettings,
     type NotificationTopic,
 } from "./notification-topics";
+import { DEFAULT_UI_SCALE, resolveHardwareAcceleration, resolveUiScale } from "./app-window";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
 import { DEFAULT_THEME, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
 
@@ -33,6 +36,7 @@ const ACCESSIBLE_FONT_KEY = "accessibleFont";
 const INGEST_KEY = "matchIngest";
 const GC_RECOVERY_KEY = "gcRecovery";
 const CLOSE_TO_TRAY_KEY = "closeToTray";
+const OPEN_ON_GAME_START_KEY = "openOnGameStart";
 const MAINTENANCE_KEY = "maintenanceSchedule";
 const ALERTS_KEY = "updateAlerts";
 const OVERLAY_KEY = "overlay";
@@ -44,6 +48,9 @@ const AUTO_UPDATE_KEY = "autoUpdateCheck";
 const PRESENCE_KEY = "discordPresence";
 const TELEMETRY_KEY = "telemetry";
 const TELEMETRY_NOTICE_KEY = "telemetryNoticeShown";
+// The backend reads these two from the store itself at startup, before the window exists.
+const UI_SCALE_KEY = "uiScale";
+const HARDWARE_ACCELERATION_KEY = "hardwareAcceleration";
 
 // Each key is read on its own so one unreadable value keeps its default without discarding the rest.
 async function stored<T>(key: string): Promise<T | undefined> {
@@ -64,6 +71,7 @@ class Settings {
     telemetryNoticeShown = $state(false);
     gcRecovery = $state(false);
     closeToTray = $state(false);
+    openOnGameStart = $state(false);
     maintenance = $state<MaintenanceSchedule>({ ...DEFAULT_SCHEDULE });
     updateAlerts = $state(false);
     overlay = $state<OverlaySettings>({ ...DEFAULT_OVERLAY });
@@ -71,6 +79,10 @@ class Settings {
     breakHint = $state(false);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
+    uiScale = $state(DEFAULT_UI_SCALE);
+    hardwareAcceleration = $state(true);
+    /** What the running webview was built with; a change only takes effect after a restart. */
+    hardwareAccelerationAtLaunch = $state(true);
 
     private resolveReady: () => void = () => {};
     ready = new Promise<void>((resolve) => (this.resolveReady = resolve));
@@ -93,6 +105,7 @@ class Settings {
         this.telemetryNoticeShown = telemetry.noticeShown;
         this.gcRecovery = (await stored<boolean>(GC_RECOVERY_KEY)) ?? false;
         this.closeToTray = (await stored<boolean>(CLOSE_TO_TRAY_KEY)) ?? false;
+        this.openOnGameStart = (await stored<boolean>(OPEN_ON_GAME_START_KEY)) ?? false;
         const schedule = await stored<Partial<MaintenanceSchedule>>(MAINTENANCE_KEY);
         this.maintenance = { ...DEFAULT_SCHEDULE, ...schedule };
         this.updateAlerts = (await stored<boolean>(ALERTS_KEY)) ?? false;
@@ -103,10 +116,14 @@ class Settings {
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
         this.autoUpdateCheck = (await stored<boolean>(AUTO_UPDATE_KEY)) ?? true;
         this.presence = resolvePresence(await stored<unknown>(PRESENCE_KEY));
+        this.uiScale = resolveUiScale(await stored<unknown>(UI_SCALE_KEY));
+        this.hardwareAcceleration = resolveHardwareAcceleration(await stored<unknown>(HARDWARE_ACCELERATION_KEY));
+        this.hardwareAccelerationAtLaunch = this.hardwareAcceleration;
         await this.applyIngest();
         await this.applyTelemetry();
         await this.applyGcRecovery();
         await this.applyCloseToTray();
+        await this.applyOpenOnGameStart();
         await this.applyMaintenance();
         await this.applyUpdateAlerts();
         await this.applyOverlay();
@@ -276,6 +293,24 @@ class Settings {
         }
     }
 
+    private async applyOpenOnGameStart() {
+        try {
+            await setOpenOnGameStart(this.openOnGameStart);
+        } catch {
+            // Not running inside Tauri.
+        }
+    }
+
+    async setOpenOnGameStart(value: boolean) {
+        this.openOnGameStart = value;
+        await this.applyOpenOnGameStart();
+        try {
+            await kvSet(STORE, OPEN_ON_GAME_START_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
     private async applyIngest() {
         try {
             await setIngestEnabled(this.matchIngest);
@@ -343,6 +378,29 @@ class Settings {
         await this.applyIngest();
         try {
             await kvSet(STORE, INGEST_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setUiScale(value: number) {
+        this.uiScale = resolveUiScale(value);
+        try {
+            await setUiScale(this.uiScale);
+        } catch {
+            // Not running inside Tauri.
+        }
+        try {
+            await kvSet(STORE, UI_SCALE_KEY, this.uiScale);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setHardwareAcceleration(value: boolean) {
+        this.hardwareAcceleration = value;
+        try {
+            await kvSet(STORE, HARDWARE_ACCELERATION_KEY, value);
         } catch {
             // The choice just won't persist across restarts.
         }

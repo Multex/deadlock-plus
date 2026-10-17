@@ -12,6 +12,8 @@
     "app": {
         "windows": [
             {
+                "label": "main",
+                "create": false,
                 "title": "Deadlock+",
                 "width": 1520,
                 "height": 900,

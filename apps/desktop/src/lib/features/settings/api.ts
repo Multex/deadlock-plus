@@ -38,6 +38,10 @@ export function setNotificationSettings(settings: NotificationSettings) {
     return command("set_notification_settings", { settings });
 }
 
+export function setUiScale(percent: number) {
+    return command("set_ui_scale", { percent });
+}
+
 export function showOverlayTest() {
     return command("show_overlay_test");
 }
@@ -51,6 +55,14 @@ export const onOverlayStatus = (handler: (status: OverlayStatus) => void): Promi
 
 export function setCloseToTray(enabled: boolean) {
     return command("set_close_to_tray", { enabled });
+}
+
+export function setOpenOnGameStart(enabled: boolean) {
+    return command("set_open_on_game_start", { enabled });
+}
+
+export function restartApp() {
+    return command("restart_app");
 }
 
 export function setIngestEnabled(enabled: boolean) {

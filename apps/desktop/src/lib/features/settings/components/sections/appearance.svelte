@@ -3,13 +3,17 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import type { Component } from "svelte";
-    import { Monitor, Sparkles, Turtle } from "@lucide/svelte";
+    import { Monitor, RotateCw, Sparkles, Turtle } from "@lucide/svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
+    import Slider from "@deadlock-plus/ui/slider.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { THEMES, resolveMotionPreference } from "$lib/features/settings/themes";
+    import { UI_SCALE_RANGE } from "$lib/features/settings/app-window";
+    import { restartApp } from "$lib/features/settings/api";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
-    import { t } from "$lib/core/i18n.svelte";
+    import { platform } from "$lib/core/platform";
+    import { formatNumber, t } from "$lib/core/i18n.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
 
@@ -19,6 +23,12 @@
         { value: "reduce", label: t("settings.appearance.motion_reduce") },
         { value: "full", label: t("settings.appearance.motion_full") },
     ]);
+
+    // Zooming while the thumb is held would move the slider out from under the pointer, so the scale
+    // applies on release and only the readout follows the drag.
+    let scaleDraft = $state<number | null>(null);
+    const scaleShown = $derived(scaleDraft ?? settings.uiScale);
+    const percent = (value: number) => formatNumber(value / 100, { style: "percent" });
 
     function onThemeKeydown(e: KeyboardEvent) {
         const next = radioTarget(
@@ -107,6 +117,56 @@
                 id="accessible-font"
                 checked={settings.accessibleFont}
                 onCheckedChange={(v) => settings.setAccessibleFont(v)}
+            />
+        </SettingRow>
+    </Card>
+{/if}
+
+{#if show("ui-scale")}
+    <Card as="section">
+        <SettingRow label={t("settings.items.ui_scale")} description={t("settings.appearance.scale_description")}>
+            <div class="flex w-48 shrink-0 items-center gap-3">
+                <Slider
+                    class="min-w-0 flex-1"
+                    value={settings.uiScale}
+                    {...UI_SCALE_RANGE}
+                    ticks
+                    formatValue={percent}
+                    bubble={false}
+                    aria-label={t("settings.items.ui_scale")}
+                    onValueChange={(v) => (scaleDraft = v)}
+                    onValueCommit={(v) => {
+                        scaleDraft = null;
+                        void settings.setUiScale(v);
+                    }}
+                />
+                <span class="w-10 text-right text-sm tabular-nums text-muted-foreground" aria-hidden="true">
+                    {percent(scaleShown)}
+                </span>
+            </div>
+        </SettingRow>
+    </Card>
+{/if}
+
+{#if platform === "windows" && show("hardware-acceleration")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.hardware_acceleration")}
+            for="hardware-acceleration"
+            description={t("settings.appearance.hardware_acceleration_description")}
+        >
+            {#snippet details()}
+                {#if settings.hardwareAcceleration !== settings.hardwareAccelerationAtLaunch}
+                    <Button variant="outline" size="sm" class="mt-1 self-start" onclick={() => void restartApp()}>
+                        <RotateCw aria-hidden="true" />
+                        {t("settings.appearance.restart_app")}
+                    </Button>
+                {/if}
+            {/snippet}
+            <Switch
+                id="hardware-acceleration"
+                checked={settings.hardwareAcceleration}
+                onCheckedChange={(v) => settings.setHardwareAcceleration(v)}
             />
         </SettingRow>
     </Card>

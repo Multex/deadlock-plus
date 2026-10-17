@@ -171,7 +171,10 @@
             "overlay_match_found": "Match found",
             "server_blocks_updated": "Server blocks updated",
             "server_blocks_stale": "Server blocks out of date",
-            "break_reminder": "Break reminder"
+            "break_reminder": "Break reminder",
+            "ui_scale": "UI scale",
+            "hardware_acceleration": "Hardware acceleration",
+            "open_on_game_start": "Open with Deadlock"
         },
         "nav": {
             "label": "Settings categories",
@@ -185,7 +188,10 @@
             "motion_system": "Follow system",
             "motion_reduce": "Reduce",
             "motion_full": "Full motion",
-            "font_description": "Swap the game-style fonts for Atkinson Hyperlegible, designed for low vision and easier reading."
+            "font_description": "Swap the game-style fonts for Atkinson Hyperlegible, designed for low vision and easier reading.",
+            "scale_description": "Make everything in Deadlock+ larger or smaller.",
+            "hardware_acceleration_description": "Draws Deadlock+ with your graphics card. Turn it off if the window flickers or shows up black in screen captures.",
+            "restart_app": "Restart Deadlock+"
         },
         "themes": {
             "deadlock": {
@@ -232,7 +238,8 @@
             "tasks_description": "Each task can run by itself or not, and can pause, slow down or keep running while Deadlock is open.",
             "run_by_itself": "Run by itself",
             "while_running": "While Deadlock runs",
-            "advanced": "Advanced"
+            "advanced": "Advanced",
+            "open_on_game_start_description": "Shows the Deadlock+ window when the game starts, even if Deadlock+ was in the tray."
         },
         "notifications": {
             "alerts_description": "Notifies you when a new Deadlock patch note or Steam announcement is posted. Checks the public Deadlock API every 15 minutes and sends nothing about you. Needs the app running, so pair it with the tray option.",
