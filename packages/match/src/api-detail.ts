@@ -125,7 +125,13 @@ function outcome(winning: MatchTeam | undefined, notScored: boolean, team: Match
     return winning === team ? "win" : "loss";
 }
 
-function player(r: Obj, winning: MatchTeam | undefined, notScored: boolean): MatchPlayer | null {
+function pathSeconds(paths: unknown, slot: number): number | undefined {
+    if (!isObj(paths)) return undefined;
+    const row = objs(paths.paths).find((p) => num(p.player_slot) === slot);
+    return row === undefined ? undefined : arr(row.x_pos).length * (num(paths.interval_s) ?? 1);
+}
+
+function player(r: Obj, winning: MatchTeam | undefined, notScored: boolean, paths: unknown): MatchPlayer | null {
     const slot = num(r.player_slot);
     const accountId = num(r.account_id);
     const heroId = num(r.hero_id);
@@ -137,6 +143,10 @@ function player(r: Obj, winning: MatchTeam | undefined, notScored: boolean): Mat
         .filter((p): p is SeriesPoint => p !== null)
         .sort((a, b) => a.timeS - b.timeS);
     const last = series.at(-1);
+    const lastRaw = objs(r.stats)
+        .filter((s) => num(s.time_stamp_s) !== undefined)
+        .sort((x, y) => numOr0(x.time_stamp_s) - numOr0(y.time_stamp_s))
+        .at(-1);
     const items = objs(r.items)
         .map(item)
         .filter((i): i is MatchItem => i !== null)
@@ -161,6 +171,12 @@ function player(r: Obj, winning: MatchTeam | undefined, notScored: boolean): Mat
         denies: numOr0(r.denies),
         playerDamage: last?.playerDamage ?? 0,
         healing: last?.healing ?? 0,
+        bossDamage: num(lastRaw?.boss_damage),
+        teammateHealing: num(lastRaw?.teammate_healing),
+        teammateBarriering: num(lastRaw?.teammate_barriering),
+        abandonMatchTimeS: num(r.abandon_match_time_s),
+        playerMatchOutcome: num(r.player_match_outcome),
+        pathS: pathSeconds(paths, slot),
         mvpRank: num(r.mvp_rank),
         outcome: outcome(winning, notScored, team),
         items,
@@ -274,7 +290,7 @@ export function parseApiDetail(raw: unknown, options: ParseOptions = {}): MatchD
     const winningTeam = teamOf(info.winning_team);
     const notScored = info.not_scored === true;
     const players = objs(info.players)
-        .map((p) => player(p, winningTeam, notScored))
+        .map((p) => player(p, winningTeam, notScored, info.match_paths))
         .filter((p): p is MatchPlayer => p !== null)
         .sort((a, b) => a.slot - b.slot);
     if (players.length === 0) return null;
@@ -298,6 +314,8 @@ export function parseApiDetail(raw: unknown, options: ParseOptions = {}): MatchD
         durationS: numOr0(info.duration_s),
         matchMode: numOr0(info.match_mode),
         gameMode: numOr0(info.game_mode),
+        matchOutcome: num(info.match_outcome),
+        lowPriPool: typeof info.low_pri_pool === "boolean" ? info.low_pri_pool : undefined,
         winningTeam,
         notScored,
         bans: nums(isObj(raw.match_info) ? raw.banned_hero_ids : info.banned_hero_ids),

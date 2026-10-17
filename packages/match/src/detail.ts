@@ -82,6 +82,16 @@ export interface MatchPlayer {
     denies: number;
     playerDamage: number;
     healing: number;
+    /** From the last stats sample. Absent on data that predates the field. */
+    bossDamage?: number;
+    teammateHealing?: number;
+    teammateBarriering?: number;
+    /** Seconds into the match when the player left; 0 when they stayed. */
+    abandonMatchTimeS?: number;
+    /** Raw API value: 1 win, 2 loss, 3 penalised, 4 penalised party, 5 not scored. */
+    playerMatchOutcome?: number;
+    /** Seconds of recorded path; compare with the match duration to spot players who left early. */
+    pathS?: number;
     mvpRank?: number;
     outcome: PlayerOutcome;
     items: MatchItem[];
@@ -170,6 +180,9 @@ export interface MatchDetail {
     durationS: number;
     matchMode: number;
     gameMode: number;
+    /** Raw API value; 0 is a team win. */
+    matchOutcome?: number;
+    lowPriPool?: boolean;
     winningTeam?: MatchTeam;
     notScored: boolean;
     bans: number[];

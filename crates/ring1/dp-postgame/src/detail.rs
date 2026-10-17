@@ -42,6 +42,8 @@ mod tests {
 
     const FIXTURE: &str = include_str!("../../../../packages/match/src/fixtures/api-ranked.json");
 
+    const GOLDEN_LEAVER: &str = include_str!("../../../../packages/match/src/fixtures/golden/leaver-118343128.json");
+
     /// The keys `parseApiDetail` reads, per object level. Arrays are walked element by element.
     struct Read {
         leaves: &'static [&'static str],
@@ -65,6 +67,8 @@ mod tests {
             "last_hits",
             "denies",
             "mvp_rank",
+            "abandon_match_time_s",
+            "player_match_outcome",
         ],
         children: &[
             (
@@ -99,6 +103,9 @@ mod tests {
                         "kills",
                         "deaths",
                         "assists",
+                        "boss_damage",
+                        "teammate_healing",
+                        "teammate_barriering",
                     ],
                     children: &[],
                 },
@@ -138,9 +145,21 @@ mod tests {
             "duration_s",
             "match_mode",
             "game_mode",
+            "match_outcome",
+            "low_pri_pool",
         ],
         children: &[
             ("players", PLAYER),
+            (
+                "match_paths",
+                Read {
+                    leaves: &["interval_s", "x_resolution", "y_resolution"],
+                    children: &[(
+                        "paths",
+                        Read { leaves: &["player_slot", "x_min", "y_min", "x_max", "y_max", "x_pos"], children: &[] },
+                    )],
+                },
+            ),
             (
                 "objectives",
                 Read {
@@ -269,6 +288,16 @@ mod tests {
         assert!(players.len() >= 2 && !players[0]["stats"].as_array().unwrap().is_empty());
         same_shape("match_info", &fixture["match_info"], &got["match_info"], &MATCH_INFO);
         assert_eq!(got["banned_hero_ids"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn the_eligibility_keys_survive_for_a_match_with_a_leaver() {
+        let fixture: Value = serde_json::from_str(GOLDEN_LEAVER).unwrap();
+        let got = detail_json(&from_api(&fixture));
+
+        let players = fixture["match_info"]["players"].as_array().unwrap();
+        assert!(players.iter().any(|p| p["abandon_match_time_s"].as_i64().unwrap_or(0) > 0));
+        same_shape("match_info", &fixture["match_info"], &got["match_info"], &MATCH_INFO);
     }
 
     #[test]
