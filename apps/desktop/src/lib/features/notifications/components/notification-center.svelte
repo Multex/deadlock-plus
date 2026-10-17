@@ -6,14 +6,19 @@
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { kindIcon } from "$lib/features/notifications/kind-icon";
     import { notifications } from "$lib/features/notifications/notifications.svelte";
-    import { formatRelative, notificationText, type AppNotification } from "$lib/features/notifications/notifications";
+    import {
+        formatRelative,
+        notificationTarget,
+        notificationText,
+        type AppNotification,
+    } from "$lib/features/notifications/notifications";
 
     let open = $state(false);
 
     function openItem(item: AppNotification) {
         open = false;
-        if (item.link) void goto(item.link);
-        else if (item.kind === "maintenance") void goto("/settings/notifications");
+        const target = notificationTarget(item);
+        if (target) void goto(target);
     }
 </script>
 

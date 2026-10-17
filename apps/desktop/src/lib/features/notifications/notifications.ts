@@ -22,3 +22,32 @@ export function formatRelative(unixSeconds: number): string {
         ? t("notification_list.relative.yesterday")
         : t("notification_list.relative.days", { count: days });
 }
+
+export function notificationTarget(item: { kind: string; link: string | null }): string | null {
+    if (item.link) return item.link;
+    if (item.kind === "maintenance") return "/settings/notifications";
+    return null;
+}
+
+export const NOTIFICATION_OPEN_EVENT = "notifications://open";
+
+export interface NotificationOpenDeps {
+    goto: (target: string) => unknown;
+    markRead: (id: string) => unknown;
+}
+
+export function openNotificationFromEvent(
+    payload: unknown,
+    items: AppNotification[],
+    deps: NotificationOpenDeps,
+): void {
+    if (typeof payload !== "object" || payload === null) return;
+    const { id, kind, link } = payload as Record<string, unknown>;
+    if (typeof id !== "string" || id === "") return;
+    const item = items.find((n) => n.id === id);
+    const target = notificationTarget(
+        item ?? { kind: typeof kind === "string" ? kind : "", link: typeof link === "string" ? link : null },
+    );
+    deps.markRead(id);
+    if (target) void deps.goto(target);
+}

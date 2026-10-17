@@ -1,5 +1,12 @@
-import { listNotifications, markNotificationRead, markNotificationsRead, onNotificationsChanged } from "./api";
-import { unreadCount, type AppNotification } from "./notifications";
+import { goto } from "$app/navigation";
+import {
+    listNotifications,
+    markNotificationRead,
+    markNotificationsRead,
+    onNotificationOpen,
+    onNotificationsChanged,
+} from "./api";
+import { openNotificationFromEvent, unreadCount, type AppNotification } from "./notifications";
 
 class NotificationsStore {
     items = $state<AppNotification[]>([]);
@@ -35,7 +42,13 @@ class NotificationsStore {
     start() {
         void this.refresh();
         const unlisten = onNotificationsChanged(() => void this.refresh()).catch(() => () => {});
-        return () => void unlisten.then((fn) => fn());
+        const unlistenOpen = onNotificationOpen((payload) =>
+            openNotificationFromEvent(payload, this.items, { goto, markRead: (id) => this.markRead(id) }),
+        ).catch(() => () => {});
+        return () => {
+            void unlisten.then((fn) => fn());
+            void unlistenOpen.then((fn) => fn());
+        };
     }
 }
 

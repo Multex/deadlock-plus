@@ -44,15 +44,27 @@ function isKnown(known: Set<string>, pathname: string): boolean {
 
 export interface RestoreInput {
     stored: unknown;
+    /** From `take_launch_route`: the page of the notification the app was started from. */
+    launchRoute?: unknown;
     launchPath: string;
     onboardingPending: boolean;
     known: Set<string>;
 }
 
-export function routeToRestore({ stored, launchPath, onboardingPending, known }: RestoreInput): string | null {
-    if (onboardingPending || launchPath !== "/") return null;
-    if (typeof stored !== "string" || !stored.startsWith("/") || stored.startsWith("//")) return null;
-    const pathname = stored.split(/[?#]/, 1)[0]!;
+function restorable(route: unknown, known: Set<string>): string | null {
+    if (typeof route !== "string" || !route.startsWith("/") || route.startsWith("//")) return null;
+    const pathname = route.split(/[?#]/, 1)[0]!;
     if (pathname === "/" || isOnboarding(pathname) || !isKnown(known, pathname)) return null;
-    return stored;
+    return route;
+}
+
+export function routeToRestore({
+    stored,
+    launchRoute,
+    launchPath,
+    onboardingPending,
+    known,
+}: RestoreInput): string | null {
+    if (onboardingPending || launchPath !== "/") return null;
+    return restorable(launchRoute, known) ?? restorable(stored, known);
 }

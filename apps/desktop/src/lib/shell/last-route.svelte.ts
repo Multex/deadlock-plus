@@ -26,9 +26,14 @@ export function useLastRoute(onboardingPending: () => Promise<boolean>) {
     async function restore() {
         try {
             await settings.ready;
-            const [stored, pending] = await Promise.all([kvGet<string>(STORE, ROUTE_KEY), onboardingPending()]);
+            const [stored, pending, launchRoute] = await Promise.all([
+                kvGet<string>(STORE, ROUTE_KEY),
+                onboardingPending(),
+                command<string | null>("take_launch_route").catch(() => null),
+            ]);
             const target = routeToRestore({
                 stored,
+                launchRoute,
                 launchPath: location.pathname,
                 onboardingPending: pending,
                 known: pages,

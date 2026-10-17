@@ -253,6 +253,7 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                 main_window_visible: () => true,
                 launched_hidden: () => false,
                 get_live_state: () => LIVE_STATE,
+                take_launch_route: () => null,
                 get_live_match: () => LIVE_MATCH,
                 presence_status: () => PRESENCE_STATUS,
                 presence_config: () => presenceConfig,

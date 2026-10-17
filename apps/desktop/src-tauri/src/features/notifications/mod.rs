@@ -7,11 +7,13 @@ use ts_rs::TS;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_notification::NotificationExt;
 
+mod click;
+mod native;
 mod route;
 mod topic;
 
+use click::{launch_from_args, Launch};
 use route::{targets, Inputs};
 pub use route::{Placement, Route, Visibility};
 pub use topic::{NotificationSettings, NotificationTopic};
@@ -19,7 +21,7 @@ pub use topic::{NotificationSettings, NotificationTopic};
 use crate::features::game_focus::GameFocusService;
 use crate::features::i18n::{translate_in, I18nState};
 use crate::features::overlay;
-use crate::features::tray::badges;
+use crate::features::tray::{self, badges};
 use dp_game::focus::GameFocus;
 use dp_sync::LockExt;
 use dp_versioned::{self, Migration};
@@ -29,6 +31,8 @@ const MIGRATIONS: &[Migration] = &[];
 const MAX_ITEMS: usize = 50;
 const MAIN_WINDOW: &str = "main";
 pub const CHANGED_EVENT: &str = "notifications-changed";
+pub const OPEN_EVENT: &str = "notifications://open";
+const OPEN_ACTION_KEY: &str = "notifications.open_action";
 
 static NEXT_SEQ: AtomicU64 = AtomicU64::new(0);
 
@@ -100,6 +104,8 @@ fn save(path: &Path, stored: &Stored) -> std::io::Result<()> {
 pub struct NotificationsState {
     stored: Mutex<Option<Stored>>,
     settings: Mutex<NotificationSettings>,
+    /// A cold start from a toast or a `deadlock-plus://` link, until the page takes it.
+    launch: Mutex<Option<Launch>>,
 }
 
 impl NotificationsState {
@@ -193,16 +199,110 @@ impl Sinks for AppSinks<'_> {
     }
 
     fn native(&mut self, notif: &AppNotification) {
-        let (title, body) = toast_text(&self.app.state::<I18nState>().locale(), notif);
-        if let Err(e) = self.app.notification().builder().title(title).body(body).show() {
-            log::warn!("could not show the notification: {e}");
-        }
+        let locale = self.app.state::<I18nState>().locale();
+        let (title, body) = toast_text(&locale, notif);
+        let toast = native::Toast {
+            id: notif.id.clone(),
+            title,
+            body,
+            route: click::click_target(notif),
+            action_label: translate_in(&locale, OPEN_ACTION_KEY, &[]),
+        };
+        native::show(self.app, toast);
     }
 
     fn overlay(&mut self, notif: &AppNotification, placement: Placement) {
         let text = toast_text(&self.app.state::<I18nState>().locale(), notif);
         overlay::show_toast(self.app, notif.id.clone(), notif.kind, text, placement);
     }
+}
+
+/// Sent to the main window when the user clicks an OS toast; the page navigates from `kind` and `link` the same
+/// way a click in the notification center does.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationOpen {
+    pub id: String,
+    pub kind: NotificationKind,
+    pub link: Option<String>,
+}
+
+trait Opener {
+    fn show_main(&mut self);
+    /// Marks the item read and returns it; `None` once it has left the stored list.
+    fn mark_read(&mut self, id: &str) -> Option<AppNotification>;
+    fn emit_open(&mut self, payload: NotificationOpen);
+}
+
+fn open_with(id: &str, opener: &mut impl Opener) {
+    opener.show_main();
+    match opener.mark_read(id) {
+        Some(item) => opener.emit_open(NotificationOpen { id: item.id, kind: item.kind, link: item.link }),
+        None => log::debug!("clicked notification {id} is no longer stored"),
+    }
+}
+
+struct AppOpener<'a> {
+    app: &'a AppHandle,
+}
+
+impl Opener for AppOpener<'_> {
+    fn show_main(&mut self) {
+        tray::show_main(self.app);
+    }
+
+    fn mark_read(&mut self, id: &str) -> Option<AppNotification> {
+        mark_read(self.app, &self.app.state::<NotificationsState>(), id)
+    }
+
+    fn emit_open(&mut self, payload: NotificationOpen) {
+        if let Err(e) = self.app.emit_to(MAIN_WINDOW, OPEN_EVENT, payload) {
+            log::warn!("could not emit {OPEN_EVENT}: {e}");
+        }
+    }
+}
+
+/// A click on an OS toast: bring Deadlock+ forward, mark the item read and let the page open its target.
+pub fn open(app: &AppHandle, id: &str) {
+    open_with(id, &mut AppOpener { app });
+}
+
+/// The second instance's arguments, forwarded by the single-instance plugin: a toast click after the app was
+/// started by other means, or a `deadlock-plus://` link.
+pub fn open_from_args<S: AsRef<str>>(app: &AppHandle, args: &[S]) {
+    match launch_from_args(args) {
+        Some(launch) => open(app, &launch.id),
+        None => tray::show_main(app),
+    }
+}
+
+/// Called once in setup with the process arguments.
+pub fn remember_launch(app: &AppHandle, args: impl IntoIterator<Item = String>) {
+    *app.state::<NotificationsState>().launch.lock_or_recover() = launch_from_args(args);
+}
+
+/// One-shot: the route of the notification the app was started from, once its id is known to be a stored item.
+/// Anything else opens the window on its usual page.
+fn take_route(slot: &Mutex<Option<Launch>>, mark_read: impl FnOnce(&str) -> bool) -> Option<&'static str> {
+    let launch = slot.lock_or_recover().take()?;
+    mark_read(&launch.id).then_some(launch.route)
+}
+
+fn mark_read(app: &AppHandle, state: &NotificationsState, id: &str) -> Option<AppNotification> {
+    let (item, changed) = state.with_stored(app, |s| {
+        let n = s.items.iter_mut().find(|n| n.id == id)?;
+        let changed = !n.read;
+        n.read = true;
+        Some((n.clone(), changed))
+    })?;
+    if changed {
+        state.persist(app);
+        if let Err(e) = app.emit(CHANGED_EVENT, ()) {
+            log::warn!("could not emit {CHANGED_EVENT}: {e}");
+        }
+        badges::refresh(app);
+    }
+    Some(item)
 }
 
 fn inputs(app: &AppHandle) -> Inputs {
@@ -276,21 +376,13 @@ pub mod commands {
     }
 
     #[tauri::command]
+    pub fn take_launch_route(app: AppHandle, state: tauri::State<'_, NotificationsState>) -> Option<String> {
+        take_route(&state.launch, |id| mark_read(&app, &state, id).is_some()).map(String::from)
+    }
+
+    #[tauri::command]
     pub fn mark_notification_read(id: String, app: AppHandle, state: tauri::State<'_, NotificationsState>) {
-        let changed = state.with_stored(&app, |s| match s.items.iter_mut().find(|n| n.id == id) {
-            Some(n) if !n.read => {
-                n.read = true;
-                true
-            }
-            _ => false,
-        });
-        if changed {
-            state.persist(&app);
-            if let Err(e) = app.emit(CHANGED_EVENT, ()) {
-                log::warn!("could not emit {CHANGED_EVENT}: {e}");
-            }
-            badges::refresh(&app);
-        }
+        mark_read(&app, &state, &id);
     }
 }
 
@@ -388,6 +480,7 @@ mod tests {
                 assert_ne!(crate::features::i18n::translate_in("en", &full, &[]), full, "{full} missing");
             }
         }
+        assert_ne!(translate_in("en", OPEN_ACTION_KEY, &[]), OPEN_ACTION_KEY, "{OPEN_ACTION_KEY} missing");
     }
 
     #[derive(Default)]
@@ -407,6 +500,93 @@ mod tests {
         fn overlay(&mut self, notif: &AppNotification, placement: Placement) {
             self.overlay.push((notif.id.clone(), placement));
         }
+    }
+
+    #[derive(Default)]
+    struct OpenRecorder {
+        stored: Vec<AppNotification>,
+        calls: Vec<String>,
+        emitted: Vec<NotificationOpen>,
+    }
+
+    impl Opener for OpenRecorder {
+        fn show_main(&mut self) {
+            self.calls.push("show".into());
+        }
+        fn mark_read(&mut self, id: &str) -> Option<AppNotification> {
+            self.calls.push(format!("read {id}"));
+            let item = self.stored.iter_mut().find(|n| n.id == id)?;
+            item.read = true;
+            Some(item.clone())
+        }
+        fn emit_open(&mut self, payload: NotificationOpen) {
+            self.calls.push("emit".into());
+            self.emitted.push(payload);
+        }
+    }
+
+    #[test]
+    fn opening_a_toast_shows_the_window_marks_it_read_then_tells_the_page() {
+        let mut opener = OpenRecorder {
+            stored: vec![AppNotification {
+                kind: NotificationKind::Servers,
+                link: Some("/server-picker".into()),
+                ..notif("a")
+            }],
+            ..Default::default()
+        };
+        open_with("a", &mut opener);
+        assert_eq!(opener.calls, ["show", "read a", "emit"]);
+        assert!(opener.stored[0].read);
+        assert_eq!(
+            opener.emitted,
+            [NotificationOpen { id: "a".into(), kind: NotificationKind::Servers, link: Some("/server-picker".into()) }]
+        );
+    }
+
+    #[test]
+    fn opening_a_toast_whose_item_is_gone_only_shows_the_window() {
+        let mut opener = OpenRecorder::default();
+        open_with("gone", &mut opener);
+        assert_eq!(opener.calls, ["show", "read gone"]);
+        assert!(opener.emitted.is_empty());
+    }
+
+    fn launch(route: &'static str, id: &str) -> Mutex<Option<Launch>> {
+        Mutex::new(Some(Launch { route, id: id.into() }))
+    }
+
+    #[test]
+    fn the_launch_route_is_taken_once_and_marks_its_item_read() {
+        let slot = launch("/alerts", "a");
+        let mut read = Vec::new();
+        assert_eq!(
+            take_route(&slot, |id| {
+                read.push(id.to_string());
+                true
+            }),
+            Some("/alerts")
+        );
+        assert_eq!(read, ["a"]);
+        assert_eq!(take_route(&slot, |_| true), None);
+    }
+
+    #[test]
+    fn a_launch_for_an_unknown_item_opens_no_page() {
+        let slot = launch("/alerts", "gone");
+        assert_eq!(take_route(&slot, |_| false), None);
+        assert!(slot.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn no_launch_means_no_route() {
+        assert_eq!(take_route(&Mutex::new(None), |_| panic!("nothing to mark")), None);
+    }
+
+    #[test]
+    fn the_open_payload_is_camel_case_with_a_nullable_link() {
+        let payload = NotificationOpen { id: "m".into(), kind: NotificationKind::Maintenance, link: None };
+        assert_eq!(serde_json::to_string(&payload).unwrap(), r#"{"id":"m","kind":"maintenance","link":null}"#);
     }
 
     const IN_GAME: Inputs =
@@ -442,6 +622,10 @@ mod tests {
             ]),
             ..Default::default()
         };
+        assert_eq!(
+            route(&chosen, NotificationTopic::BreakReminder),
+            Some(Route::new(Visibility::Always, Delivery::Center, Placement::Corner))
+        );
         assert_eq!(
             route(&chosen, NotificationTopic::MatchFound),
             Some(Route::new(Visibility::Always, Delivery::Overlay, Placement::Center))
@@ -502,7 +686,3 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 }
-        assert_eq!(
-            route(&chosen, NotificationTopic::BreakReminder),
-            Some(Route::new(Visibility::Always, Delivery::Center, Placement::Corner))
-        );

@@ -552,6 +552,7 @@
         "tooltip": "Deadlock+"
     },
     "notifications": {
+        "open_action": "Open",
         "alert_new": {
             "title": "New Deadlock update",
             "body": "{title}"

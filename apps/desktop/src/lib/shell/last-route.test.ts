@@ -72,4 +72,22 @@ describe("routeToRestore", () => {
     it("never restores into onboarding", () => {
         expect(routeToRestore({ ...base, stored: "/onboarding" })).toBeNull();
     });
+
+    it("opens the notification the app was started from instead of the saved route", () => {
+        const withAlerts = { ...base, known: new Set([...known, "/alerts"]) };
+        expect(routeToRestore({ ...withAlerts, launchRoute: "/alerts" })).toBe("/alerts");
+        expect(routeToRestore({ ...withAlerts, stored: null, launchRoute: "/alerts" })).toBe("/alerts");
+    });
+
+    it("lets an unfinished onboarding beat the launch route", () => {
+        const withAlerts = { ...base, known: new Set([...known, "/alerts"]) };
+        expect(routeToRestore({ ...withAlerts, onboardingPending: true, launchRoute: "/alerts" })).toBeNull();
+    });
+
+    it("ignores a launch route that is not a page", () => {
+        expect(routeToRestore({ ...base, launchRoute: "/gone" })).toBe("/stats?hero=12");
+        expect(routeToRestore({ ...base, launchRoute: "//evil.example/stats" })).toBe("/stats?hero=12");
+        expect(routeToRestore({ ...base, launchRoute: "/onboarding" })).toBe("/stats?hero=12");
+        expect(routeToRestore({ ...base, launchRoute: 5 })).toBe("/stats?hero=12");
+    });
 });

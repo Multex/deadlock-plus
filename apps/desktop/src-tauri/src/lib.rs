@@ -29,7 +29,9 @@ pub fn run() {
     let builder =
         builder.plugin(tauri_plugin_mcp_bridge::init_with_config(tauri_plugin_mcp_bridge::Config::localhost_only()));
     let app = builder
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| features::tray::show_main(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            features::notifications::open_from_args(app, &args)
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
@@ -74,6 +76,7 @@ pub fn run() {
             let log_dir = app.path().app_log_dir()?;
             app.handle().plugin(features::logging::plugin(&log_dir)?)?;
             features::logging::log_startup(app.handle());
+            features::notifications::remember_launch(app.handle(), std::env::args());
             features::app_window::build_main(app)?;
             match features::telemetry::init(app.handle()) {
                 Ok(service) => {
@@ -215,6 +218,7 @@ pub fn run() {
             features::notifications::commands::list_notifications,
             features::notifications::commands::mark_notifications_read,
             features::notifications::commands::mark_notification_read,
+            features::notifications::commands::take_launch_route,
             features::notifications::commands::notify_break_reminder,
             features::notifications::commands::set_notification_settings,
             features::overlay::commands::set_overlay_settings,
