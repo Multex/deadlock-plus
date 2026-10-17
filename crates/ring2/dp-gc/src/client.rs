@@ -13,6 +13,7 @@ use steam_vent::proto::enums_clientserver::EMsg;
 use steam_vent::proto::steammessages_clientserver::cmsg_client_games_played::GamePlayed;
 use steam_vent::proto::steammessages_clientserver::CMsgClientGamesPlayed;
 use steam_vent::proto::steammessages_clientserver_2::CMsgClientPlayingSessionState;
+use steam_vent::proto::steammessages_clientserver_friends::cmsg_client_persona_state::Friend as PersonaFriend;
 use steam_vent::proto::steammessages_clientserver_friends::{
     CMsgClientFriendsList, CMsgClientPersonaState, CMsgClientRequestFriendData,
 };
@@ -40,8 +41,11 @@ const STEAM_ID_64_IDENT: u64 = 76561197960265728;
 // Steam pushes the friends list right after logon. It normally lands during the handshake check,
 // so this only bounds the wait when it never comes.
 const FRIENDS_LIST_WAIT: Duration = Duration::from_secs(5);
-// Persona states arrive as a burst of pushes, not as one reply.
-const PERSONA_WAIT: Duration = Duration::from_secs(5);
+// Persona states arrive as a burst of pushes, not as one reply. Steam-vent hands each message kind
+// to subscribers through a 16-slot broadcast channel, so a request for many friends overruns it and
+// the oldest replies are lost. Small batches keep each burst well under that.
+const PERSONA_BATCH: usize = 8;
+const PERSONA_WAITS: PersonaWaits = PersonaWaits { batch: Duration::from_secs(2), total: Duration::from_secs(10) };
 const FRIEND_RELATIONSHIP_FRIEND: u32 = 3;
 const PERSONA_FLAGS_STATUS_PRESENCE_LAST_SEEN: u32 = 1 | 16 | 64;
 
@@ -201,6 +205,79 @@ async fn with_timeout<T, E: std::fmt::Display>(
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PersonaWaits {
+    batch: Duration,
+    total: Duration,
+}
+
+fn note_persona(f: PersonaFriend, now: i64, pending: &mut HashSet<u32>, personas: &mut HashMap<u32, Persona>) {
+    let Some(id) = f.friendid.map(account_id_of) else { return };
+    // Steam also pushes updates for friends nobody asked about; only the requested ones count.
+    if !pending.remove(&id) {
+        return;
+    }
+    let online = f.persona_state.is_some_and(|s| s != 0);
+    let last_seen = if online {
+        Some(now)
+    } else {
+        [f.last_seen_online, f.last_logoff].into_iter().flatten().filter(|&t| t != 0).max().map(i64::from)
+    };
+    personas.insert(id, Persona { in_deadlock: f.game_played_app_id == Some(DEADLOCK_APP_ID), last_seen });
+}
+
+/// Asks `send` for `account_ids` and reads the answers from `updates`, which must be subscribed
+/// before the first send.
+async fn collect_personas<E>(
+    updates: impl Stream<Item = Result<CMsgClientPersonaState, E>>,
+    account_ids: &[u32],
+    mut send: impl AsyncFnMut(&[u32]) -> Result<(), GcError>,
+    now: i64,
+    waits: PersonaWaits,
+) -> HashMap<u32, Persona> {
+    let mut updates = pin!(updates);
+    let mut personas = HashMap::new();
+    let mut pending: HashSet<u32> = account_ids.iter().copied().collect();
+    let requested = pending.len();
+    let pass_deadline = tokio::time::Instant::now() + waits.total;
+    'batches: for batch in account_ids.chunks(PERSONA_BATCH) {
+        if tokio::time::Instant::now() >= pass_deadline {
+            break;
+        }
+        if let Err(e) = send(batch).await {
+            log::warn!("gc: {e}");
+            break;
+        }
+        let deadline = (tokio::time::Instant::now() + waits.batch).min(pass_deadline);
+        let mut retried = false;
+        while batch.iter().any(|id| pending.contains(id)) {
+            match tokio::time::timeout_at(deadline, updates.next()).await {
+                Ok(Some(Ok(msg))) => {
+                    for f in msg.friends {
+                        note_persona(f, now, &mut pending, &mut personas);
+                    }
+                }
+                Ok(Some(Err(_))) => {
+                    log::debug!("gc: persona updates dropped (receiver lagged)");
+                    if retried {
+                        continue;
+                    }
+                    retried = true;
+                    let missing: Vec<u32> = batch.iter().copied().filter(|id| pending.contains(id)).collect();
+                    if let Err(e) = send(&missing).await {
+                        log::warn!("gc: {e}");
+                        break 'batches;
+                    }
+                }
+                Ok(None) => break 'batches,
+                Err(_) => break,
+            }
+        }
+    }
+    log::debug!("gc: personas resolved {}/{requested}", personas.len());
+    personas
+}
+
 fn now_secs() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -349,48 +426,18 @@ impl GcSession {
     /// What Steam says about each of `account_ids`, who must be friends. Friends Steam does not
     /// answer for in time are missing from the map.
     pub async fn request_personas(&self, account_ids: &[u32]) -> HashMap<u32, Persona> {
-        let mut personas = HashMap::new();
         if account_ids.is_empty() {
-            return personas;
+            return HashMap::new();
         }
-        let mut updates = Box::pin(self.conn.on::<CMsgClientPersonaState>());
-        let mut req = CMsgClientRequestFriendData::new();
-        req.persona_state_requested = Some(PERSONA_FLAGS_STATUS_PRESENCE_LAST_SEEN);
-        req.friends = account_ids.iter().map(|&id| STEAM_ID_64_IDENT + u64::from(id)).collect();
-        if let Err(e) = with_timeout("persona request", self.conn.send(req)).await {
-            log::warn!("gc: {e}");
-            return personas;
-        }
-
-        // Steam also pushes updates for friends nobody asked about; only the requested ones count
-        // towards being done.
-        let mut pending: HashSet<u32> = account_ids.iter().copied().collect();
-        let now = now_secs();
-        let deadline = tokio::time::Instant::now() + PERSONA_WAIT;
-        while !pending.is_empty() {
-            let msg = match tokio::time::timeout_at(deadline, updates.next()).await {
-                Ok(Some(Ok(msg))) => msg,
-                Ok(Some(Err(e))) => {
-                    log::debug!("gc: unreadable persona state: {e}");
-                    continue;
-                }
-                Ok(None) | Err(_) => break,
-            };
-            for f in msg.friends {
-                let Some(id) = f.friendid.map(account_id_of) else { continue };
-                if !pending.remove(&id) {
-                    continue;
-                }
-                let online = f.persona_state.is_some_and(|s| s != 0);
-                let last_seen = if online {
-                    Some(now)
-                } else {
-                    [f.last_seen_online, f.last_logoff].into_iter().flatten().filter(|&t| t != 0).max().map(i64::from)
-                };
-                personas.insert(id, Persona { in_deadlock: f.game_played_app_id == Some(DEADLOCK_APP_ID), last_seen });
-            }
-        }
-        personas
+        // Unclaimed on purpose: persona requests go to Steam, not the GC, and need no GamesPlayed.
+        let updates = self.conn.on::<CMsgClientPersonaState>();
+        let send = async |ids: &[u32]| {
+            let mut req = CMsgClientRequestFriendData::new();
+            req.persona_state_requested = Some(PERSONA_FLAGS_STATUS_PRESENCE_LAST_SEEN);
+            req.friends = ids.iter().map(|&id| STEAM_ID_64_IDENT + u64::from(id)).collect();
+            with_timeout("persona request", self.conn.send(req)).await
+        };
+        collect_personas(updates, account_ids, send, now_secs(), PERSONA_WAITS).await
     }
 
     async fn history_page(
@@ -584,5 +631,89 @@ mod tests {
     fn a_claim_reports_deadlock_only() {
         let ids: Vec<_> = playing().games_played.iter().map(|g| g.game_id).collect();
         assert_eq!(ids, vec![Some(u64::from(DEADLOCK_APP_ID))]);
+    }
+
+    type Update = Result<CMsgClientPersonaState, &'static str>;
+
+    fn persona_state(ids: &[u32]) -> Update {
+        let mut msg = CMsgClientPersonaState::new();
+        msg.friends = ids
+            .iter()
+            .map(|&id| {
+                let mut f = PersonaFriend::new();
+                f.friendid = Some(STEAM_ID_64_IDENT + u64::from(id));
+                f.persona_state = Some(1);
+                f
+            })
+            .collect();
+        Ok(msg)
+    }
+
+    /// A fake Steam: each request is recorded and `reply` turns it into the updates the
+    /// subscription then yields. An empty queue never resolves, like a Steam that stays quiet.
+    fn run_personas(
+        ids: &[u32],
+        waits: PersonaWaits,
+        mut reply: impl FnMut(usize, &[u32]) -> Vec<Update>,
+    ) -> (HashMap<u32, Persona>, Vec<Vec<u32>>, Duration) {
+        let queue = std::cell::RefCell::new(std::collections::VecDeque::new());
+        let sent = std::cell::RefCell::new(Vec::new());
+        let updates = stream::poll_fn(|_| match queue.borrow_mut().pop_front() {
+            Some(update) => std::task::Poll::Ready(Some(update)),
+            None => std::task::Poll::Pending,
+        });
+        let send = async |batch: &[u32]| {
+            let n = sent.borrow().len();
+            sent.borrow_mut().push(batch.to_vec());
+            queue.borrow_mut().extend(reply(n, batch));
+            Ok(())
+        };
+        let rt = tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
+        let start = Instant::now();
+        let personas = rt.block_on(collect_personas(updates, ids, send, 100, waits));
+        (personas, sent.into_inner(), start.elapsed())
+    }
+
+    const QUICK: PersonaWaits = PersonaWaits { batch: Duration::from_millis(100), total: Duration::from_secs(5) };
+
+    #[test]
+    fn personas_are_requested_in_batches_of_at_most_eight() {
+        let ids: Vec<u32> = (1..=20).collect();
+        let (personas, sent, _) = run_personas(&ids, QUICK, |_, batch| vec![persona_state(batch)]);
+        assert_eq!(personas.len(), 20);
+        assert!(sent.iter().all(|b| b.len() <= PERSONA_BATCH), "{sent:?}");
+        assert_eq!(sent.concat(), ids);
+    }
+
+    #[test]
+    fn a_lagged_receiver_rerequests_the_pending_friends_once() {
+        let (personas, sent, _) = run_personas(&[1, 2, 3], QUICK, |n, batch| match n {
+            0 => vec![persona_state(&[1]), Err("lagged")],
+            _ => vec![Err("lagged"), persona_state(batch)],
+        });
+        assert_eq!(sent, vec![vec![1, 2, 3], vec![2, 3]]);
+        assert_eq!(personas.len(), 3);
+    }
+
+    #[test]
+    fn a_friend_steam_never_answers_costs_one_batch_wait() {
+        let ids: Vec<u32> = (1..=16).collect();
+        let waits = PersonaWaits { batch: Duration::from_millis(50), total: Duration::from_secs(5) };
+        let (personas, _, elapsed) = run_personas(&ids, waits, |_, batch| {
+            let answered: Vec<u32> = batch.iter().copied().filter(|&id| id != 5).collect();
+            vec![persona_state(&answered)]
+        });
+        assert_eq!(personas.len(), 15);
+        assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+    }
+
+    #[test]
+    fn a_silent_steam_stops_at_the_pass_limit() {
+        let ids: Vec<u32> = (1..=200).collect();
+        let waits = PersonaWaits { batch: Duration::from_millis(40), total: Duration::from_millis(200) };
+        let (personas, sent, elapsed) = run_personas(&ids, waits, |_, _| Vec::new());
+        assert!(personas.is_empty());
+        assert!(elapsed < Duration::from_millis(600), "{elapsed:?}");
+        assert!(sent.len() < ids.len().div_ceil(PERSONA_BATCH), "{} batches", sent.len());
     }
 }
