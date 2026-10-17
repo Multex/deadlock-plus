@@ -4,10 +4,16 @@ use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 pub mod focus;
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+#[path = "focus_linux.rs"]
+pub mod focus;
+#[cfg(not(any(windows, target_os = "linux")))]
 #[path = "focus_stub.rs"]
 pub mod focus;
+mod focus_pick;
 mod focus_state;
+#[cfg(target_os = "linux")]
+mod x11;
 
 /// Deadlock runs as `deadlock.exe` under Wine and Proton too, though Proton can report a different process name.
 pub const PROCESS_NAME: &str = "deadlock.exe";

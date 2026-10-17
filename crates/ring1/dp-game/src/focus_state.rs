@@ -1,4 +1,4 @@
-#![cfg_attr(not(windows), allow(dead_code))]
+#![cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 
 use std::sync::{Arc, Mutex};
 
@@ -33,7 +33,8 @@ pub struct FocusState {
 pub(crate) trait FocusSource {
     /// 0 when the game is not running.
     fn game_pid(&mut self) -> u32;
-    fn foreground_pid(&mut self) -> u32;
+    /// Whether the foreground window belongs to the game. Deadlock+'s own windows do not.
+    fn game_in_front(&mut self, game_pid: u32) -> bool;
     fn game_rect(&mut self, game_pid: u32) -> Option<ScreenRect>;
     fn foreground_monitor(&mut self) -> Option<ScreenRect>;
 }
@@ -52,13 +53,17 @@ impl<S: FocusSource> Tracker<S> {
         Self { source, shared, on_change }
     }
 
+    #[cfg(target_os = "linux")]
+    pub(crate) fn source_mut(&mut self) -> &mut S {
+        &mut self.source
+    }
+
     pub(crate) fn refresh(&mut self) {
         let game_pid = self.source.game_pid();
         let next = if game_pid == 0 {
             FocusState::default()
         } else {
-            let focused = self.source.foreground_pid() == game_pid;
-            let focus = if focused { GameFocus::Focused } else { GameFocus::Background };
+            let focus = if self.source.game_in_front(game_pid) { GameFocus::Focused } else { GameFocus::Background };
             FocusState {
                 focus,
                 game_rect: self.source.game_rect(game_pid),
@@ -113,9 +118,9 @@ mod tests {
         fn game_pid(&mut self) -> u32 {
             self.desktop.lock().unwrap().game_pid
         }
-        fn foreground_pid(&mut self) -> u32 {
+        fn game_in_front(&mut self, game_pid: u32) -> bool {
             *self.window_reads.lock().unwrap() += 1;
-            self.desktop.lock().unwrap().foreground_pid
+            self.desktop.lock().unwrap().foreground_pid == game_pid
         }
         fn game_rect(&mut self, game_pid: u32) -> Option<ScreenRect> {
             *self.window_reads.lock().unwrap() += 1;

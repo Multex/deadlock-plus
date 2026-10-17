@@ -143,9 +143,9 @@ impl FocusSource for Win32Source {
         crate::find_pid(crate::is_process)
     }
 
-    fn foreground_pid(&mut self) -> u32 {
+    fn game_in_front(&mut self, game_pid: u32) -> bool {
         // SAFETY: both calls take no ownership; a null window yields pid 0.
-        unsafe { window_pid(GetForegroundWindow()) }
+        unsafe { window_pid(GetForegroundWindow()) == game_pid }
     }
 
     fn game_rect(&mut self, game_pid: u32) -> Option<ScreenRect> {

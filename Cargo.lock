@@ -1647,6 +1647,7 @@ version = "0.12.0"
 dependencies = [
  "sysinfo",
  "windows 0.58.0",
+ "x11-dl",
 ]
 
 [[package]]
