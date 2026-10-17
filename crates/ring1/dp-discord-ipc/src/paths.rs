@@ -3,7 +3,8 @@ use std::path::PathBuf;
 pub(crate) const MAX_PIPES: u8 = 10;
 
 #[cfg_attr(windows, allow(dead_code))]
-const SANDBOX_SUBDIRS: [&str; 6] = [
+const SANDBOX_SUBDIRS: [&str; 7] = [
+    ".flatpak/dev.vencord.Vesktop/xdg-run",
     "app/com.discordapp.Discord",
     "app/com.discordapp.DiscordPTB",
     "app/com.discordapp.DiscordCanary",
@@ -46,6 +47,21 @@ mod tests {
         assert_eq!(d[..3], [PathBuf::from("/run/user/1000"), PathBuf::from("/var/tmp"), PathBuf::from("/tmp")]);
         assert!(d.contains(&PathBuf::from("/run/user/1000").join("app/com.discordapp.Discord")));
         assert!(d.contains(&PathBuf::from("/run/user/1000").join("snap.discord")));
+    }
+
+    #[test]
+    fn vesktop_flatpak_and_other_clients_are_candidates() {
+        let d = socket_dirs(Some("/run/user/1000"), None);
+        let base = PathBuf::from("/run/user/1000");
+        for sub in [
+            ".flatpak/dev.vencord.Vesktop/xdg-run",
+            "app/com.discordapp.DiscordPTB",
+            "app/com.discordapp.DiscordCanary",
+            "snap.discord-ptb",
+            "snap.discord-canary",
+        ] {
+            assert!(d.contains(&base.join(sub)), "missing {sub}");
+        }
     }
 
     #[test]
