@@ -35,6 +35,7 @@
 - [dp-ingest](ring2/dp-ingest/README.md): Replay URLs from Steam's cache, parsed into match salts.
 - [dp-patch-notes](ring2/dp-patch-notes/README.md): Offline patch note search with a bundled embedding model.
 - [dp-diagnostics](ring2/dp-diagnostics/README.md): Static scan of addon VPK files for scripts that leave timers running.
+- [dp-helper](ring2/dp-helper/README.md): The privileged server for firewall writes and ETW on Windows, as a UAC helper or an on-demand service.
 
 The app in `apps/desktop/src-tauri` is ring 3. It is the only place that knows Tauri.
 
