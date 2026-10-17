@@ -263,6 +263,34 @@ pub fn refresh_stale_groups(specs: &[FirewallRuleSpec], _prompt: bool) -> Result
     Ok(report)
 }
 
+fn group_is_stale(rules: &[Option<RuleSnapshot>], legacy_present: bool, wanted: &[String]) -> bool {
+    legacy_present || rules.iter().any(|rule| rule_action(rule.as_ref(), wanted) != RuleAction::Keep)
+}
+
+/// Groups we already block whose rules would change on a refresh. Read-only.
+pub fn stale_groups(specs: &[FirewallRuleSpec]) -> Result<Vec<String>, String> {
+    let _com = ComGuard::new();
+    let rules = open_rules().map_err(|e| e.to_string())?;
+    let mut stale = Vec::new();
+
+    for spec in specs {
+        // SAFETY: `ComGuard` above is still in scope; `rules` and the temporary `BSTR` outlive each call.
+        let lookup = |name: &str| unsafe { rules.Item(&BSTR::from(name)) }.ok();
+        let is_blocked = owned_rule_names(&spec.group_id).iter().any(|n| lookup(n).is_some());
+        if !is_blocked {
+            continue;
+        }
+        let snapshots: Vec<Option<RuleSnapshot>> =
+            block_rules(&spec.group_id).iter().map(|(name, _)| lookup(name).map(|r| snapshot_rule(&r))).collect();
+        let legacy_present = lookup(&legacy_rule_name(&spec.group_id)).is_some();
+        if group_is_stale(&snapshots, legacy_present, &spec.relay_ips) {
+            stale.push(spec.group_id.clone());
+        }
+    }
+
+    Ok(stale)
+}
+
 fn refresh_group(rules: &INetFwRules, spec: &FirewallRuleSpec) -> Result<bool, String> {
     let mut changed = false;
 
@@ -383,5 +411,44 @@ mod tests {
         assert!(names.contains(&"deadlock_plus_fra".to_string()));
         assert!(names.contains(&"deadlock_plus_fra_tcp".to_string()));
         assert!(names.contains(&"deadlock_plus_fra_udp".to_string()));
+    }
+
+    fn snap(ips: &[&str], enabled: bool) -> Option<RuleSnapshot> {
+        Some(RuleSnapshot { ips: ips.iter().map(|s| s.to_string()).collect(), enabled })
+    }
+
+    #[test]
+    fn group_is_current_when_every_rule_matches() {
+        let rules = [snap(&["1.1.1.1", "2.2.2.2"], true), snap(&["2.2.2.2", "1.1.1.1"], true)];
+        assert!(!group_is_stale(&rules, false, &ips(&["1.1.1.1", "2.2.2.2"])));
+    }
+
+    #[test]
+    fn group_is_stale_when_a_relay_changed() {
+        let rules = [snap(&["1.1.1.1"], true), snap(&["1.1.1.1"], true)];
+        assert!(group_is_stale(&rules, false, &ips(&["1.1.1.1", "3.3.3.3"])));
+    }
+
+    #[test]
+    fn group_is_stale_when_a_rule_is_disabled_or_missing() {
+        let wanted = ips(&["1.1.1.1"]);
+        assert!(group_is_stale(&[snap(&["1.1.1.1"], false), snap(&["1.1.1.1"], true)], false, &wanted));
+        assert!(group_is_stale(&[snap(&["1.1.1.1"], true), None], false, &wanted));
+    }
+
+    #[test]
+    fn group_is_stale_when_the_legacy_rule_is_left_over() {
+        let rules = [snap(&["1.1.1.1"], true), snap(&["1.1.1.1"], true)];
+        assert!(group_is_stale(&rules, true, &ips(&["1.1.1.1"])));
+    }
+
+    #[test]
+    fn stale_groups_of_an_unblocked_group_is_empty() {
+        let spec = FirewallRuleSpec {
+            group_id: "dp-test-stale-groups-no-rules".into(),
+            description: String::new(),
+            relay_ips: ips(&["1.1.1.1"]),
+        };
+        assert_eq!(stale_groups(&[spec]).unwrap(), Vec::<String>::new());
     }
 }

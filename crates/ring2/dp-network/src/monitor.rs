@@ -11,7 +11,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::history_store::{Compaction, HistoryStore};
 use crate::types::{HistoryPoint, PingStats, RelayInfo, Snapshot};
-use dp_connection::{self as connection, Config, Packet, Status};
+use dp_connection::{Config, Packet, Start, Status};
 use dp_sync::{LockExt, RwLockExt};
 
 const PING_WINDOW: usize = 60;
@@ -152,7 +152,14 @@ fn pick_game_flow(window: &HashMap<FlowKey, FlowAgg>, secs: f32) -> Option<(&Flo
 
 impl NetworkMonitor {
     /// `prompt` says the user asked for this, so a permission prompt is acceptable.
-    pub fn start(&self, runtime: &tokio::runtime::Handle, relays: RelaySource, history_path: PathBuf, prompt: bool) {
+    pub fn start(
+        &self,
+        runtime: &tokio::runtime::Handle,
+        relays: RelaySource,
+        history_path: PathBuf,
+        prompt: bool,
+        source: Start,
+    ) {
         let mut guard = self.running.lock_or_recover();
         if let Some(running) = guard.as_ref() {
             let snap = running.shared.snapshot.lock_or_recover();
@@ -168,7 +175,7 @@ impl NetworkMonitor {
 
         log::info!("network monitor starting");
         spawn_history_loader(shared.clone(), history_path);
-        let stop_trace = spawn_trace(shared.clone(), prompt);
+        let stop_trace = spawn_trace(shared.clone(), prompt, source);
         spawn_relay_map_loader(runtime, shared.clone(), relays);
         spawn_aggregator(shared.clone());
         spawn_sampler(shared.clone());
@@ -338,7 +345,7 @@ fn is_game_packet(pid: Option<u32>, game_pid: u32) -> bool {
     }
 }
 
-fn spawn_trace(shared: Arc<Shared>, prompt: bool) -> Sender<()> {
+fn spawn_trace(shared: Arc<Shared>, prompt: bool, source: Start) -> Sender<()> {
     let wanted_shared = shared.clone();
     let wanted = Arc::new(move |pid: u32| pid == wanted_shared.game_pid.load(Ordering::Relaxed));
 
@@ -354,7 +361,7 @@ fn spawn_trace(shared: Arc<Shared>, prompt: bool) -> Sender<()> {
     let remotes = Arc::new(move || remotes_shared.relay_map.read_or_recover().keys().copied().collect());
 
     let status_shared = shared;
-    connection::start(Config {
+    source(Config {
         wanted,
         sink,
         remotes,
@@ -591,6 +598,28 @@ mod tests {
     fn an_unattributed_packet_belongs_to_the_game_only_while_it_runs() {
         assert!(is_game_packet(None, 10));
         assert!(!is_game_packet(None, 0));
+    }
+
+    fn fake_source(config: Config) -> Sender<()> {
+        (config.sink)(Packet {
+            pid: None,
+            remote: std::net::SocketAddrV4::new(ip(1), 27015),
+            inbound: true,
+            ticks_100ns: 0,
+        });
+        (config.on_status)(Status::NeedsPermission);
+        std::sync::mpsc::channel().0
+    }
+
+    #[test]
+    fn the_given_source_feeds_packets_and_status_into_the_monitor() {
+        let shared = Arc::new(Shared::new());
+        shared.game_pid.store(10, Ordering::Relaxed);
+
+        let _stop = spawn_trace(shared.clone(), false, fake_source);
+
+        assert_eq!(shared.window.lock_or_recover()[&key(1)].pkts_in, 1);
+        assert!(shared.snapshot.lock_or_recover().needs_permission);
     }
 
     #[test]

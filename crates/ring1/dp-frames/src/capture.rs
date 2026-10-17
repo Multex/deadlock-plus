@@ -36,8 +36,21 @@ const FOCUS_RECHECK_MS: u32 = 1000;
 const FOCUS_PAD_TICKS: u64 = 2_500_000;
 const UNIX_TO_FILETIME_TICKS: u64 = 116_444_736_000_000_000;
 
+/// One present as a trace source reports it. `pid: None` means the source already kept only the game's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Present {
+    Frame { pid: Option<u32>, ticks: u64 },
+    Others(u32),
+}
+
+pub type PresentSink = Arc<dyn Fn(Present) + Send + Sync>;
+pub type OnTraceError = Box<dyn FnOnce(CaptureError) + Send>;
+/// Starts delivering presents to the sink; sending on (or dropping) the returned channel stops it.
+pub type PresentSource = fn(PresentSink, OnTraceError) -> Sender<()>;
+
 struct Shared {
     timestamps: Mutex<Vec<u64>>,
+    max_frames: usize,
     game_pid: AtomicU32,
     other_events: AtomicU64,
     truncated: AtomicBool,
@@ -47,6 +60,43 @@ struct Shared {
     stop: AtomicBool,
     error: Mutex<Option<CaptureError>>,
     started: Instant,
+}
+
+impl Shared {
+    fn new(max_frames: usize) -> Self {
+        Self {
+            timestamps: Mutex::new(Vec::with_capacity(60 * 60 * 10)),
+            max_frames,
+            game_pid: AtomicU32::new(0),
+            other_events: AtomicU64::new(0),
+            truncated: AtomicBool::new(false),
+            game_focused: AtomicBool::new(true),
+            focus_thread: AtomicU32::new(0),
+            unfocused: Mutex::new(Vec::new()),
+            stop: AtomicBool::new(false),
+            error: Mutex::new(None),
+            started: Instant::now(),
+        }
+    }
+
+    fn record(&self, present: Present) {
+        match present {
+            Present::Others(count) => {
+                self.other_events.fetch_add(count as u64, Ordering::Relaxed);
+            }
+            Present::Frame { pid: Some(pid), .. } if pid != self.game_pid.load(Ordering::Relaxed) => {
+                self.other_events.fetch_add(1, Ordering::Relaxed);
+            }
+            Present::Frame { ticks, .. } => {
+                let mut ts = self.timestamps.lock_or_recover();
+                if ts.len() < self.max_frames {
+                    ts.push(ticks);
+                } else {
+                    self.truncated.store(true, Ordering::Relaxed);
+                }
+            }
+        }
+    }
 }
 
 struct Running {
@@ -61,24 +111,22 @@ pub struct FrameCapture {
 
 impl FrameCapture {
     pub fn start(&self, find_game_pid: fn() -> u32) {
+        self.start_with(find_game_pid, start_present_trace);
+    }
+
+    pub fn start_with(&self, find_game_pid: fn() -> u32, source: PresentSource) {
         let mut guard = self.running.lock_or_recover();
         if guard.is_some() {
             return;
         }
-        let shared = Arc::new(Shared {
-            timestamps: Mutex::new(Vec::with_capacity(60 * 60 * 10)),
-            game_pid: AtomicU32::new(0),
-            other_events: AtomicU64::new(0),
-            truncated: AtomicBool::new(false),
-            game_focused: AtomicBool::new(true),
-            focus_thread: AtomicU32::new(0),
-            unfocused: Mutex::new(Vec::new()),
-            stop: AtomicBool::new(false),
-            error: Mutex::new(None),
-            started: Instant::now(),
-        });
+        let shared = Arc::new(Shared::new(MAX_FRAMES));
         log::info!("frame capture starting");
-        let stop_trace = spawn_trace(shared.clone());
+        let sink_shared = shared.clone();
+        let error_shared = shared.clone();
+        let stop_trace = source(
+            Arc::new(move |present| sink_shared.record(present)),
+            Box::new(move |error| *error_shared.error.lock_or_recover() = Some(error)),
+        );
         spawn_pid_poller(shared.clone(), find_game_pid);
         spawn_focus_watcher(shared.clone());
         *guard = Some(Running { shared, stop_trace });
@@ -159,7 +207,8 @@ fn system32_tool(system_root: Option<std::ffi::OsString>, name: &str) -> std::pa
     std::path::Path::new(&root).join("System32").join(name)
 }
 
-fn spawn_trace(shared: Arc<Shared>) -> Sender<()> {
+/// The DXGI present trace. Needs administrator or Performance Log Users.
+pub fn start_present_trace(sink: PresentSink, on_error: OnTraceError) -> Sender<()> {
     let (tx, rx) = mpsc::channel::<()>();
 
     thread::Builder::new()
@@ -174,20 +223,9 @@ fn spawn_trace(shared: Arc<Shared>) -> Sender<()> {
                 log::debug!("could not run logman to clear a stale frame session: {e}");
             }
 
-            let cb_shared = shared.clone();
             let callback = move |record: &EventRecord, _locator: &ferrisetw::schema_locator::SchemaLocator| {
-                if record.event_id() != PRESENT_START {
-                    return;
-                }
-                if record.process_id() != cb_shared.game_pid.load(Ordering::Relaxed) {
-                    cb_shared.other_events.fetch_add(1, Ordering::Relaxed);
-                    return;
-                }
-                let mut ts = cb_shared.timestamps.lock_or_recover();
-                if ts.len() < MAX_FRAMES {
-                    ts.push(record.raw_timestamp() as u64);
-                } else {
-                    cb_shared.truncated.store(true, Ordering::Relaxed);
+                if record.event_id() == PRESENT_START {
+                    sink(Present::Frame { pid: Some(record.process_id()), ticks: record.raw_timestamp() as u64 });
                 }
             };
 
@@ -208,7 +246,7 @@ fn spawn_trace(shared: Arc<Shared>) -> Sender<()> {
                 }
                 Err(e) => {
                     log::error!("couldn't start the frame trace (needs administrator): {e:?}");
-                    *shared.error.lock_or_recover() = Some(CaptureError::NeedsAdmin);
+                    on_error(CaptureError::NeedsAdmin);
                 }
             }
         })
@@ -384,6 +422,102 @@ fn spawn_focus_watcher(shared: Arc<Shared>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn recorder(game_pid: u32, max_frames: usize) -> Shared {
+        let shared = Shared::new(max_frames);
+        shared.game_pid.store(game_pid, Ordering::Relaxed);
+        shared
+    }
+
+    #[test]
+    fn a_pidless_frame_counts_as_the_game_even_before_its_pid_is_known() {
+        for game_pid in [0, 42] {
+            let s = recorder(game_pid, 10);
+            s.record(Present::Frame { pid: None, ticks: 7 });
+            assert_eq!(*s.timestamps.lock_or_recover(), vec![7]);
+            assert_eq!(s.other_events.load(Ordering::Relaxed), 0);
+        }
+    }
+
+    #[test]
+    fn frames_from_another_pid_count_as_other_events_only() {
+        let s = recorder(42, 10);
+        s.record(Present::Frame { pid: Some(42), ticks: 1 });
+        s.record(Present::Frame { pid: Some(7), ticks: 2 });
+        s.record(Present::Frame { pid: Some(0), ticks: 3 });
+        assert_eq!(*s.timestamps.lock_or_recover(), vec![1]);
+        assert_eq!(s.other_events.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn a_frame_with_a_pid_before_the_game_is_found_is_another_process() {
+        let s = recorder(0, 10);
+        s.record(Present::Frame { pid: Some(9), ticks: 1 });
+        assert!(s.timestamps.lock_or_recover().is_empty());
+        assert_eq!(s.other_events.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn others_add_their_count() {
+        let s = recorder(42, 10);
+        s.record(Present::Others(5));
+        s.record(Present::Others(u32::MAX));
+        assert_eq!(s.other_events.load(Ordering::Relaxed), 5 + u32::MAX as u64);
+        assert!(s.timestamps.lock_or_recover().is_empty());
+    }
+
+    #[test]
+    fn frames_past_the_cap_are_dropped_and_flagged() {
+        let s = recorder(42, 2);
+        for ticks in 1..=3 {
+            s.record(Present::Frame { pid: None, ticks });
+        }
+        assert_eq!(*s.timestamps.lock_or_recover(), vec![1, 2]);
+        assert!(s.truncated.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn frames_under_the_cap_are_not_flagged() {
+        let s = recorder(42, 2);
+        s.record(Present::Frame { pid: None, ticks: 1 });
+        s.record(Present::Frame { pid: None, ticks: 2 });
+        assert_eq!(s.timestamps.lock_or_recover().len(), 2);
+        assert!(!s.truncated.load(Ordering::Relaxed));
+    }
+
+    fn no_game() -> u32 {
+        0
+    }
+
+    fn fake_source(sink: PresentSink, _on_error: OnTraceError) -> Sender<()> {
+        sink(Present::Frame { pid: None, ticks: 10 });
+        sink(Present::Frame { pid: None, ticks: 20 });
+        sink(Present::Others(3));
+        mpsc::channel().0
+    }
+
+    fn failing_source(_sink: PresentSink, on_error: OnTraceError) -> Sender<()> {
+        on_error(CaptureError::NeedsAdmin);
+        mpsc::channel().0
+    }
+
+    #[test]
+    fn a_supplied_source_feeds_the_capture() {
+        let capture = FrameCapture::default();
+        capture.start_with(no_game, fake_source);
+        let status = capture.status();
+        assert_eq!((status.frames, status.other_process_events, status.error), (2, 3, None));
+        assert_eq!(capture.stop().frame_count, 1);
+    }
+
+    #[test]
+    fn a_source_error_fails_the_capture() {
+        let capture = FrameCapture::default();
+        capture.start_with(no_game, failing_source);
+        let status = capture.status();
+        assert_eq!((status.state, status.error), (CaptureState::Failed, Some(CaptureError::NeedsAdmin)));
+        capture.stop();
+    }
 
     #[test]
     fn logman_runs_from_the_system_directory() {

@@ -25,7 +25,14 @@ async fn run_in_background(app: &AppHandle) {
     if !is_enabled(app) {
         return;
     }
-    let outcome = match sync_blocks(&app.state::<ServerPickerState>().sync_lock, &app.state::<Http>().0, false).await {
+    let outcome = match sync_blocks(
+        &app.state::<ServerPickerState>().sync_lock,
+        &app.state::<Http>().0,
+        false,
+        dp_firewall::refresh_stale_groups,
+    )
+    .await
+    {
         Ok(outcome) => outcome,
         Err(e) => {
             log::warn!("background block sync failed: {e}");

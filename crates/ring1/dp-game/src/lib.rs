@@ -105,6 +105,10 @@ fn first_pid(procs: &[Proc], matches: fn(&OsStr) -> bool) -> u32 {
     procs.iter().find(|p| p.matches(matches)).map(|p| p.pid).unwrap_or(0)
 }
 
+fn all_pids(procs: &[Proc], matches: fn(&OsStr) -> bool) -> Vec<u32> {
+    procs.iter().filter(|p| p.matches(matches)).map(|p| p.pid).collect()
+}
+
 /// Whether Deadlock is running. Reads a process scan shared app-wide and at most [`MAX_AGE`] old.
 pub fn is_running() -> bool {
     shared().with(Instant::now(), running)
@@ -119,6 +123,11 @@ pub fn start_time() -> Option<u64> {
 /// Shares the same bounded-age scan.
 pub fn find_pid(matches: fn(&OsStr) -> bool) -> u32 {
     shared().with(Instant::now(), |procs| first_pid(procs, matches))
+}
+
+/// Pids of every process [`find_pid`] would consider, in scan order. Shares the same bounded-age scan.
+pub fn pids(matches: fn(&OsStr) -> bool) -> Vec<u32> {
+    shared().with(Instant::now(), |procs| all_pids(procs, matches))
 }
 
 #[cfg(test)]
@@ -246,6 +255,21 @@ mod tests {
         let procs = [proc(7, "deadlock.exe", 1)];
         assert_eq!(first_pid(&procs, is_process), 7);
         assert_eq!(first_pid(&procs[..0], is_process), 0);
+    }
+
+    #[test]
+    fn all_pids_lists_every_match_including_renamed_proton_games() {
+        let path = r"S:\steamapps\common\Deadlock\game\bin\win64\deadlock.exe";
+        let procs = [
+            proc(1, "steam", 5),
+            proc(7, "deadlock.exe", 300),
+            proc(3, "explorer.exe", 1),
+            proton_proc(9, "MainThrd", 400, path),
+            proc(4, "Deadlock.EXE", 500),
+        ];
+        assert_eq!(all_pids(&procs, is_process), vec![7, 9, 4]);
+        assert_eq!(all_pids(&procs[..1], is_process), Vec::<u32>::new());
+        assert_eq!(all_pids(&[], is_process), Vec::<u32>::new());
     }
 
     fn counting(calls: &std::sync::Arc<std::sync::atomic::AtomicUsize>, pid: u32) -> ScanCache<impl Fn() -> Vec<Proc>> {

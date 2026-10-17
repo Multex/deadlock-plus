@@ -57,10 +57,16 @@ pub fn scan(data: &ServerData, def: &GameDefinition) -> Result<ScanResult, Strin
     Ok(ScanResult { rules, sources, covered_group_ids, covered_ips })
 }
 
-/// Recreates the covered blocks as our own rules, then removes only the external
-/// rules that are entirely accounted for, so nothing they blocked gets silently lifted.
-pub fn import(data: &ServerData, scan: &ScanResult) -> Result<Vec<String>, String> {
-    let specs: Vec<FirewallRuleSpec> = data
+pub struct ImportPlan {
+    pub specs: Vec<FirewallRuleSpec>,
+    pub removable: Vec<String>,
+    pub group_ids: Vec<String>,
+}
+
+/// The blocks to recreate as our own rules and the external rules that are entirely
+/// accounted for by them, so nothing they blocked gets silently lifted.
+pub fn import_plan(data: &ServerData, scan: &ScanResult) -> ImportPlan {
+    let specs = data
         .clustered
         .iter()
         .filter(|g| scan.covered_group_ids.contains(&g.id))
@@ -71,17 +77,23 @@ pub fn import(data: &ServerData, scan: &ScanResult) -> Result<Vec<String>, Strin
         })
         .collect();
 
-    firewall::block_groups(&specs)?;
-
-    let removable: Vec<String> = scan
+    let removable = scan
         .rules
         .iter()
         .filter(|r| r.remote_ips.iter().all(|ip| scan.covered_ips.contains(ip)))
         .map(|r| r.name.clone())
         .collect();
-    firewall::remove_rules_by_name(&removable)?;
 
-    Ok(scan.covered_group_ids.clone())
+    ImportPlan { specs, removable, group_ids: scan.covered_group_ids.clone() }
+}
+
+/// Recreates the covered blocks as our own rules, then removes only the external rules
+/// the plan marks as fully accounted for.
+pub fn import(data: &ServerData, scan: &ScanResult) -> Result<Vec<String>, String> {
+    let plan = import_plan(data, scan);
+    firewall::block_groups(&plan.specs)?;
+    firewall::remove_rules_by_name(&plan.removable)?;
+    Ok(plan.group_ids)
 }
 
 #[cfg(test)]
@@ -136,5 +148,48 @@ mod tests {
         let blocked: HashSet<String> = ["1.1.1.1", "2.2.2.2", "3.3.3.3"].iter().map(|s| s.to_string()).collect();
         let covered = covered_groups(&groups, &blocked);
         assert_eq!(covered.iter().map(|g| g.id.as_str()).collect::<Vec<_>>(), vec!["a"]);
+    }
+
+    fn rule(name: &str, ips: &[&str]) -> ExistingBlockRule {
+        ExistingBlockRule { name: name.into(), remote_ips: ips.iter().map(|s| s.to_string()).collect() }
+    }
+
+    #[test]
+    fn import_plan_recreates_covered_groups_and_removes_only_fully_covered_rules() {
+        let a = group("a", "A", &["1.1.1.1", "2.2.2.2"]);
+        let b = group("b", "B", &["3.3.3.3"]);
+        let data = ServerData { revision: "1".into(), unclustered: Vec::new(), clustered: vec![a, b] };
+        let scan = ScanResult {
+            rules: vec![
+                rule("server_picker_x_A", &["1.1.1.1", "2.2.2.2"]),
+                rule("server_picker_x_Mixed", &["2.2.2.2", "9.9.9.9"]),
+            ],
+            sources: vec!["ServerPickerX".into()],
+            covered_group_ids: vec!["a".into()],
+            covered_ips: ["1.1.1.1", "2.2.2.2"].iter().map(|s| s.to_string()).collect(),
+        };
+        let plan = import_plan(&data, &scan);
+        assert_eq!(plan.specs.len(), 1);
+        assert_eq!(plan.specs[0].group_id, "a");
+        assert_eq!(plan.specs[0].relay_ips, ["1.1.1.1", "2.2.2.2"]);
+        assert_eq!(plan.removable, ["server_picker_x_A"]);
+        assert_eq!(plan.group_ids, ["a"]);
+    }
+
+    #[test]
+    fn import_plan_is_empty_when_nothing_is_covered() {
+        let data = ServerData {
+            revision: "1".into(),
+            unclustered: Vec::new(),
+            clustered: vec![group("a", "A", &["1.1.1.1"])],
+        };
+        let scan = ScanResult {
+            rules: Vec::new(),
+            sources: Vec::new(),
+            covered_group_ids: Vec::new(),
+            covered_ips: HashSet::new(),
+        };
+        let plan = import_plan(&data, &scan);
+        assert!(plan.specs.is_empty() && plan.removable.is_empty() && plan.group_ids.is_empty());
     }
 }

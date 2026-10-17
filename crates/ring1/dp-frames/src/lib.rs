@@ -3,6 +3,7 @@ use ts_rs::TS;
 
 pub mod layer_capture;
 pub mod layer_install;
+pub mod line;
 mod status;
 
 #[cfg(windows)]

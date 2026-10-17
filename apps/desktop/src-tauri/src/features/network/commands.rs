@@ -51,7 +51,13 @@ pub fn start_monitor(app: &AppHandle, prompt: bool) {
     };
     let http = app.state::<Http>().0.clone();
     let runtime = tauri::async_runtime::handle();
-    app.state::<NetworkMonitor>().start(runtime.inner(), relay_source(http), dir.join(HISTORY_FILE), prompt);
+    app.state::<NetworkMonitor>().start(
+        runtime.inner(),
+        relay_source(http),
+        dir.join(HISTORY_FILE),
+        prompt,
+        dp_connection::start,
+    );
 }
 
 #[tauri::command]

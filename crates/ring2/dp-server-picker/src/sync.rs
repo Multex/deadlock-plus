@@ -6,7 +6,10 @@ use ts_rs::TS;
 use crate::definitions::load_definitions;
 use crate::sdr::{fetch_server_data, ServerData};
 use dp_firewall::validate::validate_block_request;
-use dp_firewall::{self as firewall, FirewallRuleSpec};
+use dp_firewall::{FirewallRuleSpec, RefreshReport};
+
+/// The firewall's stale-block refresh, injected so callers choose the backend.
+pub type Refresh = fn(&[FirewallRuleSpec], bool) -> Result<RefreshReport, String>;
 
 /// One spec per group id, dropping any group that fails the same validation a manual block
 /// goes through. A skipped group keeps whatever rule it already has.
@@ -38,6 +41,15 @@ pub struct SyncOutcome {
     pub failed: Vec<String>,
 }
 
+fn run_refresh(refresh: Refresh, specs: &[FirewallRuleSpec], prompt: bool) -> Result<SyncOutcome, String> {
+    let names: HashMap<&str, &str> = specs.iter().map(|s| (s.group_id.as_str(), s.description.as_str())).collect();
+    let report = refresh(specs, prompt)?;
+    let describe = |ids: Vec<String>| {
+        ids.into_iter().map(|id| names.get(id.as_str()).map_or(id, |d| d.to_string())).collect::<Vec<_>>()
+    };
+    Ok(SyncOutcome { updated: describe(report.updated), failed: describe(report.failed) })
+}
+
 /// Fetches Valve's current relays straight from the source (never from the web view) and
 /// corrects every stale block. Runs one at a time through `lock`: the picker opening and the
 /// timer can land together. Pass `prompt` true only when the user asked for the sync: false
@@ -46,6 +58,7 @@ pub async fn sync_blocks(
     lock: &tokio::sync::Mutex<()>,
     http: &reqwest::Client,
     prompt: bool,
+    refresh: Refresh,
 ) -> Result<SyncOutcome, String> {
     let _one_at_a_time = lock.lock().await;
     let mut outcome = SyncOutcome::default();
@@ -53,16 +66,11 @@ pub async fn sync_blocks(
     for def in load_definitions() {
         let data = fetch_server_data(http, &def).await.map_err(|e| e.to_string())?;
         let specs = desired_specs(&data);
-        let names: HashMap<String, String> =
-            specs.iter().map(|s| (s.group_id.clone(), s.description.clone())).collect();
-
-        let report = tokio::task::spawn_blocking(move || firewall::refresh_stale_groups(&specs, prompt))
+        let part = tokio::task::spawn_blocking(move || run_refresh(refresh, &specs, prompt))
             .await
             .map_err(|e| e.to_string())??;
-
-        let describe = |ids: Vec<String>| ids.into_iter().map(|id| names.get(&id).cloned().unwrap_or(id));
-        outcome.updated.extend(describe(report.updated));
-        outcome.failed.extend(describe(report.failed));
+        outcome.updated.extend(part.updated);
+        outcome.failed.extend(part.failed);
     }
 
     Ok(outcome)
@@ -115,6 +123,36 @@ mod tests {
         assert_eq!(specs.len(), 2);
     }
 
+    fn no_refresh(_: &[FirewallRuleSpec], _: bool) -> Result<RefreshReport, String> {
+        Ok(RefreshReport::default())
+    }
+
+    fn spec(id: &str, description: &str) -> FirewallRuleSpec {
+        FirewallRuleSpec { group_id: id.into(), description: description.into(), relay_ips: vec!["1.1.1.1".into()] }
+    }
+
+    fn fake_refresh(specs: &[FirewallRuleSpec], prompt: bool) -> Result<RefreshReport, String> {
+        assert!(prompt);
+        assert_eq!(specs.len(), 2);
+        Ok(RefreshReport { updated: vec!["fra".into(), "unknown".into()], failed: vec!["ams".into()] })
+    }
+
+    #[test]
+    fn run_refresh_names_groups_by_description_and_keeps_unknown_ids() {
+        let specs = [spec("fra", "Frankfurt"), spec("ams", "Amsterdam")];
+        let out = run_refresh(fake_refresh, &specs, true).unwrap();
+        assert_eq!(out.updated, ["Frankfurt", "unknown"]);
+        assert_eq!(out.failed, ["Amsterdam"]);
+    }
+
+    #[test]
+    fn run_refresh_passes_the_error_through() {
+        fn failing(_: &[FirewallRuleSpec], _: bool) -> Result<RefreshReport, String> {
+            Err("denied".into())
+        }
+        assert_eq!(run_refresh(failing, &[], false).unwrap_err(), "denied");
+    }
+
     fn unreachable_client() -> reqwest::Client {
         reqwest::Client::builder().proxy(reqwest::Proxy::all("http://127.0.0.1:1").unwrap()).build().unwrap()
     }
@@ -123,7 +161,8 @@ mod tests {
     async fn sync_blocks_runs_when_the_lock_is_free() {
         let lock = tokio::sync::Mutex::new(());
         let result =
-            tokio::time::timeout(Duration::from_secs(5), sync_blocks(&lock, &unreachable_client(), true)).await;
+            tokio::time::timeout(Duration::from_secs(5), sync_blocks(&lock, &unreachable_client(), true, no_refresh))
+                .await;
         assert!(matches!(result, Ok(Err(_))));
     }
 
@@ -131,8 +170,11 @@ mod tests {
     async fn sync_blocks_waits_for_the_lock() {
         let lock = tokio::sync::Mutex::new(());
         let _held = lock.lock().await;
-        let result =
-            tokio::time::timeout(Duration::from_millis(300), sync_blocks(&lock, &unreachable_client(), true)).await;
+        let result = tokio::time::timeout(
+            Duration::from_millis(300),
+            sync_blocks(&lock, &unreachable_client(), true, no_refresh),
+        )
+        .await;
         assert!(result.is_err());
     }
 }

@@ -14,8 +14,7 @@ mod helper;
 mod policy;
 #[cfg(unix)]
 mod session;
-#[cfg_attr(windows, allow(dead_code))]
-mod wire;
+pub mod wire;
 #[cfg(unix)]
 pub use helper::run as run_helper;
 #[cfg(unix)]
@@ -52,6 +51,9 @@ pub enum Status {
 }
 
 pub type OnStatus = Box<dyn FnOnce(Status) + Send>;
+
+/// The shape of every capture backend's `start`, so a caller can pick one at run time.
+pub type Start = fn(Config) -> std::sync::mpsc::Sender<()>;
 
 pub struct Config {
     pub wanted: Wanted,
