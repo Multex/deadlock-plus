@@ -176,10 +176,10 @@ fn attach_logs(dir: &Path, previous_log: &str) {
 }
 
 /// Call once at launch, before the log files roll. A sentinel left by the last run means it died
-/// without a clean exit, unless a marker already explains it or the build changed (the Windows
-/// updater ends the old process without a clean exit). Markers still lacking a log get the tail of
-/// `previous_log`, which is the log of the run that wrote them. Returns the id of the
-/// `unclean-exit` marker when one was written.
+/// without a clean exit, unless a marker already explains it, the build changed (the Windows
+/// updater ends the old process without a clean exit) or `ctx.dev` is set. Markers still lacking
+/// a log get the tail of `previous_log`, which is the log of the run that wrote them. Returns the
+/// id of the `unclean-exit` marker when one was written.
 pub fn begin_session(ctx: &CrashContext, previous_log: &str) -> io::Result<Option<String>> {
     fs::create_dir_all(&ctx.dir)?;
     let now = crate::now_ms();
@@ -187,8 +187,8 @@ pub fn begin_session(ctx: &CrashContext, previous_log: &str) -> io::Result<Optio
     if let Some(found) = read_sentinel(&ctx.dir) {
         let sentinel = found.unwrap_or(Sentinel { started_ms: 0, version: ctx.version.clone(), os: ctx.os.clone() });
         let explained = list_markers(&ctx.dir).iter().any(|(_, m)| m.timestamp_ms >= sentinel.started_ms);
-        if sentinel.version == ctx.version && !explained {
-            let past = CrashContext { dir: ctx.dir.clone(), version: sentinel.version, os: sentinel.os };
+        if !ctx.dev && sentinel.version == ctx.version && !explained {
+            let past = CrashContext { dir: ctx.dir.clone(), version: sentinel.version, os: sentinel.os, dev: ctx.dev };
             let message = format!(
                 "The previous run, started {}, did not exit cleanly (crash, forced close or shutdown).",
                 format_utc(sentinel.started_ms)
@@ -218,7 +218,11 @@ mod tests {
     }
 
     fn ctx(dir: &Path) -> CrashContext {
-        CrashContext { dir: dir.to_path_buf(), version: "0.5.0".into(), os: "Test OS".into() }
+        CrashContext { dir: dir.to_path_buf(), version: "0.5.0".into(), os: "Test OS".into(), dev: false }
+    }
+
+    fn dev_ctx(dir: &Path) -> CrashContext {
+        CrashContext { dev: true, ..ctx(dir) }
     }
 
     #[test]
@@ -378,6 +382,40 @@ mod tests {
         begin_session(&old, "").unwrap();
         assert_eq!(begin_session(&ctx(&dir), "").unwrap(), None);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_leftover_sentinel_in_a_dev_build_is_not_a_crash() {
+        let dir = scratch("dev-unclean");
+        begin_session(&dev_ctx(&dir), "").unwrap();
+        assert_eq!(begin_session(&dev_ctx(&dir), "").unwrap(), None);
+        assert!(list_markers(&dir).is_empty());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_panic_in_a_dev_build_is_still_reported() {
+        let dir = scratch("dev-panic");
+        begin_session(&dev_ctx(&dir), "").unwrap();
+        record_panic(&dev_ctx(&dir), "panicked", "bt").unwrap();
+        begin_session(&dev_ctx(&dir), "").unwrap();
+        assert_eq!(pending(&dir).unwrap().1.kind, CrashKind::Panic);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_dev_build_still_writes_the_same_sentinel() {
+        let (release, dev) = (scratch("sentinel-release"), scratch("sentinel-dev"));
+        begin_session(&ctx(&release), "").unwrap();
+        begin_session(&dev_ctx(&dev), "").unwrap();
+        let read = |dir: &Path| -> serde_json::Value {
+            let mut v: serde_json::Value = serde_json::from_slice(&fs::read(dir.join(SENTINEL_FILE)).unwrap()).unwrap();
+            v["startedMs"] = 0.into();
+            v
+        };
+        assert_eq!(read(&release), read(&dev));
+        let _ = fs::remove_dir_all(&release);
+        let _ = fs::remove_dir_all(&dev);
     }
 
     #[test]

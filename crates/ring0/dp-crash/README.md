@@ -4,7 +4,7 @@ Crash marker files, the session sentinel, the crash report text and the pre-fill
 
 ## Public API
 
-- `CrashContext { dir, version, os }` says where markers go and which build is running.
+- `CrashContext { dir, version, os, dev }` says where markers go and which build is running. `dev` is true only for `tauri dev` builds.
 - `write_marker(ctx, kind, message, backtrace, timestamp_ms)` writes `<dir>/<timestamp>-<kind>.json` and returns its id. `record_panic(ctx, message, backtrace)` is the panic-hook form.
 - `list_markers(dir)`, `pending(dir)`, `read_marker(dir, id)` read markers, newest first.
 - `begin_session(ctx, previous_log)` runs once per launch and `end_session(dir)` on a clean exit.
@@ -24,6 +24,7 @@ No platform-specific code.
 
 - `write_marker` and `record_panic` use plain `std::fs` and take no locks or shared state, so a panic hook can call them.
 - A sentinel left by the last run becomes an `unclean-exit` marker, unless a marker written since that run started already explains it or the sentinel came from another version. The Windows updater ends the old process without a clean exit, and the version check keeps that from looking like a crash.
+- With `dev` set no `unclean-exit` marker is written, because `tauri dev` kills the app on every rebuild. Panic markers are still written, so a dev panic still shows the dialog. A native crash in a dev build does not.
 - A marker gets the tail of the previous run's log at the next `begin_session`, because the log files roll at startup. A marker created in the current run has no log yet, and `build_bundle` falls back to `current_log`.
 - Marker ids are validated (`[a-z0-9-]`) before any path is built, so a web view argument cannot leave the folder.
 - The bundle keeps the last 500 log lines. The whole text goes through `redact`, which masks values after `token`, `bearer`, `secret`, `password` and `api_key`. It does not know other secret shapes.

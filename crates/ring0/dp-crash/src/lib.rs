@@ -88,6 +88,9 @@ pub struct CrashContext {
     pub dir: PathBuf,
     pub version: String,
     pub os: String,
+    /// `tauri dev` kills the app on every rebuild, so a dev build never reports an unclean exit.
+    /// Panic markers are still written.
+    pub dev: bool,
 }
 
 pub fn now_ms() -> u64 {

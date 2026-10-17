@@ -57,7 +57,7 @@ fn build_context(app: &tauri::AppHandle) -> Result<CrashContext, String> {
         sysinfo::System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
         std::env::consts::ARCH
     );
-    Ok(CrashContext { dir, version: app.package_info().version.to_string(), os })
+    Ok(CrashContext { dir, version: app.package_info().version.to_string(), os, dev: tauri::is_dev() })
 }
 
 fn context() -> Result<&'static CrashContext, AppError> {
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn a_crash_bundle_stays_inside_the_crash_folder() {
         let dir = scratch("bundle-path");
-        let ctx = CrashContext { dir: dir.clone(), version: "0".into(), os: "test".into() };
+        let ctx = CrashContext { dir: dir.clone(), version: "0".into(), os: "test".into(), dev: false };
         let id = dp_crash::write_marker(&ctx, dp_crash::CrashKind::Webview, "boom", None, 1).unwrap();
         let path = dp_crash::write_bundle(&dir, &id, "").unwrap();
         assert_eq!(path.parent(), Some(dir.as_path()));
