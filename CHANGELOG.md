@@ -51,6 +51,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Kills, deaths, assists, souls, damage, objective damage and healing each get a grade, plus an overall grade.
 - Hover a grade to see the average and how many players you beat.
 
+#### Linux
+
+- Support reports include the session type, desktop, Steam install type and package type.
+
 ### Changed
 
 - The match time and mode now sit at the top of the Live page.

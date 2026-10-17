@@ -111,6 +111,35 @@ fn describe_ptrace_scope(raw: &str) -> String {
 }
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn steam_flavour(install_path: &str) -> &'static str {
+    let path = install_path.replace('\\', "/");
+    if path.contains("/.var/app/com.valvesoftware.Steam/") {
+        "Flatpak"
+    } else if path.contains("/snap/steam/") {
+        "Snap"
+    } else {
+        "native"
+    }
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn package_kind(appimage: Option<&str>) -> &'static str {
+    if appimage.is_some_and(|v| !v.is_empty()) {
+        "AppImage"
+    } else {
+        "deb"
+    }
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn env_value(value: Option<&str>) -> String {
+    match value.map(str::trim) {
+        Some(v) if !v.is_empty() => v.to_string(),
+        _ => "unset".to_string(),
+    }
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn parse_getcap(output: &str) -> &'static str {
     if output.contains("cap_sys_ptrace") {
         "set"
@@ -231,7 +260,17 @@ fn platform_fields() -> Fields {
         .and_then(|exe| std::process::Command::new("getcap").arg(exe).output().map_err(|e| e.to_string()))
         .map(|out| parse_getcap(&String::from_utf8_lossy(&out.stdout)).to_string())
         .unwrap_or_else(|e| format!("{UNKNOWN} ({e})"));
-    vec![field("ptrace_scope", ptrace), field("pkexec", pkexec), field("cap_sys_ptrace on the app binary", setcap)]
+    let var = |name: &str| std::env::var(name).ok();
+    let steam = dp_steam::game_install_dir().map_or("not found", |dir| steam_flavour(&dir.to_string_lossy()));
+    vec![
+        field("session type", env_value(var("XDG_SESSION_TYPE").as_deref())),
+        field("desktop", env_value(var("XDG_CURRENT_DESKTOP").as_deref())),
+        field("steam flavour", steam),
+        field("package", package_kind(var("APPIMAGE").as_deref())),
+        field("ptrace_scope", ptrace),
+        field("pkexec", pkexec),
+        field("cap_sys_ptrace on the app binary", setcap),
+    ]
 }
 
 fn settings_probe(app: &tauri::AppHandle) -> Result<Fields, String> {
@@ -373,6 +412,31 @@ mod tests {
         assert!(describe_ptrace_scope("2").starts_with("2 (admin only"));
         assert!(describe_ptrace_scope("3").starts_with("3 (disabled"));
         assert_eq!(describe_ptrace_scope("banana"), "unrecognised value: banana");
+    }
+
+    #[test]
+    fn steam_flavour_is_read_from_the_install_path() {
+        assert_eq!(steam_flavour("/home/u/.steam/steam/steamapps/common/Deadlock"), "native");
+        assert_eq!(steam_flavour("/home/u/.local/share/Steam/steamapps/common/Deadlock"), "native");
+        assert_eq!(
+            steam_flavour("/home/u/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/Deadlock"),
+            "Flatpak"
+        );
+        assert_eq!(steam_flavour("/home/u/snap/steam/common/.local/share/Steam/steamapps/common/Deadlock"), "Snap");
+    }
+
+    #[test]
+    fn package_kind_follows_the_appimage_variable() {
+        assert_eq!(package_kind(Some("/tmp/.mount_x/app.AppImage")), "AppImage");
+        assert_eq!(package_kind(Some("")), "deb");
+        assert_eq!(package_kind(None), "deb");
+    }
+
+    #[test]
+    fn env_values_are_shown_or_marked_unset() {
+        assert_eq!(env_value(Some("wayland")), "wayland");
+        assert_eq!(env_value(Some("  ")), "unset");
+        assert_eq!(env_value(None), "unset");
     }
 
     #[test]
