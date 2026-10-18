@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use deadlock_walker::QueueRequest;
+
 use crate::{GameMode, MatchMode, PartyFacts};
 
 /// A failed build of the probe is not retried sooner than this; building reads the whole client image.
@@ -22,6 +24,9 @@ pub struct QueueState {
     /// When the party's search started, in unix seconds. A party search never sets the solo flag above. `None` or 0
     /// while the party is not searching.
     pub party_start: Option<u64>,
+    /// What the party's search asked for, as the raw numbers the client holds. Only set while the party is searching
+    /// and at least one of its modes is known.
+    pub party_request: Option<QueueRequest>,
 }
 
 impl QueueState {
@@ -288,19 +293,36 @@ mod tests {
         assert_eq!(p.bot_difficulty, Some(0));
     }
 
-    #[test]
-    fn the_partys_own_modes_win_over_the_clients_request() {
-        let party = PartyFacts {
+    fn ranked_party() -> PartyFacts {
+        PartyFacts {
             size: 2,
             queueing: true,
             queued_secs: Some(3),
             match_mode: Some(MatchMode::Ranked),
             game_mode: Some(GameMode::Normal),
             ..PartyFacts::default()
-        };
+        }
+    }
+
+    #[test]
+    fn the_partys_own_modes_win_over_the_clients_request() {
         let ui = solo(MatchMode::Unranked, GameMode::StreetBrawl, None);
-        let merged = QueueMerge::default().merge(Instant::now(), false, Some(party), ui).unwrap();
+        let merged = QueueMerge::default().merge(Instant::now(), false, Some(ranked_party()), ui).unwrap();
         assert_eq!((merged.match_mode, merged.game_mode), (Some(MatchMode::Ranked), Some(GameMode::Normal)));
+    }
+
+    #[test]
+    fn a_request_without_modes_keeps_the_partys_modes() {
+        let merged = QueueMerge::default().merge(Instant::now(), false, Some(ranked_party()), on()).unwrap();
+        assert_eq!((merged.match_mode, merged.game_mode), (Some(MatchMode::Ranked), Some(GameMode::Normal)));
+    }
+
+    #[test]
+    fn the_partys_modes_survive_a_false_or_unknown_flag() {
+        let mut m = QueueMerge::default();
+        for ui in [off(), None] {
+            assert_eq!(m.merge(Instant::now(), false, Some(ranked_party()), ui), Some(ranked_party()));
+        }
     }
 
     #[test]

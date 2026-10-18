@@ -4,6 +4,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use deadlock_walker::QueueRequest;
+
+use crate::convert::queue_state;
 use crate::link::{lock, Stop};
 use crate::queue::{QueueMerge, QueueState};
 use crate::PartyFacts;
@@ -71,20 +74,31 @@ fn run_queue(mut source: impl QueueSource, shared: &Mutex<Shared>, epoch: u64, s
 /// is what a user's log shows of it.
 #[derive(Default)]
 struct QueueLog {
-    last: Option<(Option<bool>, u64, Option<u32>)>,
+    last: Option<QueueLogInputs>,
 }
 
+type QueueLogInputs = (Option<bool>, u64, Option<QueueRequest>, Option<u32>);
+
 impl QueueLog {
-    fn line(&mut self, ui: Option<bool>, party_start: u64, party_size: Option<u32>) -> Option<String> {
-        let now = (ui, party_start, party_size);
+    fn line(
+        &mut self,
+        ui: Option<bool>,
+        party_start: u64,
+        party_request: Option<QueueRequest>,
+        party_size: Option<u32>,
+    ) -> Option<String> {
+        let now = (ui, party_start, party_request, party_size);
         if self.last == Some(now) {
             return None;
         }
         self.last = Some(now);
         let unknown = || "unknown".to_owned();
+        let none = || "none".to_owned();
         Some(format!(
-            "queue ui={} party_start={party_start} party_size={}",
+            "queue ui={} party_start={party_start} mm={} gm={} party_size={}",
             ui.map_or_else(unknown, |f| f.to_string()),
+            party_request.map_or_else(none, |r| r.match_mode.to_string()),
+            party_request.map_or_else(none, |r| r.game_mode.to_string()),
             party_size.map_or_else(unknown, |n| n.to_string()),
         ))
     }
@@ -157,16 +171,22 @@ impl ProbeFeed {
             shared.queueing
         };
         let party_start = ui.and_then(|ui| ui.party_start).unwrap_or(0);
-        if let Some(line) = self.log.line(ui.map(|ui| ui.queueing), party_start, self.party_size) {
+        let party_request = ui.and_then(|ui| ui.party_request).filter(|_| party_start > 0);
+        if let Some(line) = self.log.line(ui.map(|ui| ui.queueing), party_start, party_request, self.party_size) {
             log::debug!("{line}");
         }
         let party = match (self.party_size, party_start) {
-            (size, start) if start > 0 => Some(PartyFacts {
-                size: size.unwrap_or(1),
-                queueing: true,
-                queued_secs: Some(unix_now().saturating_sub(start)),
-                ..PartyFacts::default()
-            }),
+            (size, start) if start > 0 => {
+                let modes = queue_state(true, party_request);
+                Some(PartyFacts {
+                    size: size.unwrap_or(1),
+                    queueing: true,
+                    queued_secs: Some(unix_now().saturating_sub(start)),
+                    match_mode: modes.match_mode,
+                    game_mode: modes.game_mode,
+                    bot_difficulty: modes.bot_difficulty,
+                })
+            }
             (size, _) => size.map(|size| PartyFacts { size, ..PartyFacts::default() }),
         };
         self.queue.merge(now, in_match, party, ui)
@@ -281,6 +301,48 @@ mod tests {
         assert!(p.queued_secs.is_some_and(|s| (30..=32).contains(&s)), "{:?}", p.queued_secs);
     }
 
+    fn party_queue_for(start: u64, match_mode: u32, game_mode: u32) -> Option<QueueState> {
+        let party_request = Some(QueueRequest { match_mode, game_mode, bot_difficulty: 0 });
+        Some(QueueState { party_start: Some(start), party_request, ..QueueState::default() })
+    }
+
+    #[test]
+    fn a_party_queue_carries_the_partys_mode_without_the_solo_flag() {
+        let cases = [
+            (4, 1, Some(MatchMode::Ranked), Some(GameMode::Normal)),
+            (1, 1, Some(MatchMode::Unranked), Some(GameMode::Normal)),
+            (1, 4, Some(MatchMode::Unranked), Some(GameMode::StreetBrawl)),
+        ];
+        for (mm, gm, want_mm, want_gm) in cases {
+            let mut feed = ProbeFeed::default();
+            feed.start(Fake { queueing: party_queue_for(unix_now() - 5, mm, gm), ..Fake::default() }, FAST).unwrap();
+            let p = wait_for(|| feed.party(Instant::now(), false, Some(2)).filter(|p| p.queueing));
+            assert_eq!((p.size, p.match_mode, p.game_mode, p.bot_difficulty), (2, want_mm, want_gm, None), "{mm} {gm}");
+        }
+    }
+
+    #[test]
+    fn a_party_queue_without_modes_has_no_mode() {
+        let mut feed = ProbeFeed::default();
+        feed.start(Fake { queueing: party_queue(unix_now() - 5), ..Fake::default() }, FAST).unwrap();
+        let p = wait_for(|| feed.party(Instant::now(), false, Some(2)).filter(|p| p.queueing));
+        assert_eq!((p.match_mode, p.game_mode, p.bot_difficulty), (None, None, None));
+    }
+
+    #[test]
+    fn the_partys_mode_wins_over_the_solo_request() {
+        let ui = QueueState {
+            queueing: true,
+            match_mode: Some(MatchMode::Unranked),
+            game_mode: Some(GameMode::StreetBrawl),
+            ..party_queue_for(unix_now() - 5, 4, 1).unwrap()
+        };
+        let mut feed = ProbeFeed::default();
+        feed.start(Fake { queueing: Some(ui), ..Fake::default() }, FAST).unwrap();
+        let p = wait_for(|| feed.party(Instant::now(), false, Some(2)).filter(|p| p.queueing));
+        assert_eq!((p.match_mode, p.game_mode), (Some(MatchMode::Ranked), Some(GameMode::Normal)));
+    }
+
     #[test]
     fn a_zero_party_start_is_no_queue() {
         let mut feed = ProbeFeed::default();
@@ -321,6 +383,7 @@ mod tests {
             game_mode: Some(GameMode::StreetBrawl),
             bot_difficulty: None,
             party_start: None,
+            party_request: None,
         };
         let mut feed = ProbeFeed::default();
         feed.start(Fake { queueing: Some(ui), ..Fake::default() }, FAST).unwrap();
@@ -346,14 +409,26 @@ mod tests {
     #[test]
     fn the_queue_line_is_logged_once_per_change() {
         let mut log = QueueLog::default();
-        assert_eq!(log.line(None, 0, None).as_deref(), Some("queue ui=unknown party_start=0 party_size=unknown"));
-        assert_eq!(log.line(None, 0, None), None);
         assert_eq!(
-            log.line(Some(false), 1_760_000_000, Some(2)).as_deref(),
-            Some("queue ui=false party_start=1760000000 party_size=2")
+            log.line(None, 0, None, None).as_deref(),
+            Some("queue ui=unknown party_start=0 mm=none gm=none party_size=unknown")
         );
-        assert_eq!(log.line(Some(false), 1_760_000_000, Some(2)), None);
-        assert_eq!(log.line(Some(true), 0, Some(1)).as_deref(), Some("queue ui=true party_start=0 party_size=1"));
+        assert_eq!(log.line(None, 0, None, None), None);
+        let ranked = Some(QueueRequest { match_mode: 4, game_mode: 1, bot_difficulty: 0 });
+        assert_eq!(
+            log.line(Some(false), 1_760_000_000, ranked, Some(2)).as_deref(),
+            Some("queue ui=false party_start=1760000000 mm=4 gm=1 party_size=2")
+        );
+        assert_eq!(log.line(Some(false), 1_760_000_000, ranked, Some(2)), None);
+        let brawl = Some(QueueRequest { match_mode: 1, game_mode: 4, bot_difficulty: 0 });
+        assert_eq!(
+            log.line(Some(false), 1_760_000_000, brawl, Some(2)).as_deref(),
+            Some("queue ui=false party_start=1760000000 mm=1 gm=4 party_size=2")
+        );
+        assert_eq!(
+            log.line(Some(true), 0, None, Some(1)).as_deref(),
+            Some("queue ui=true party_start=0 mm=none gm=none party_size=1")
+        );
     }
 
     #[test]

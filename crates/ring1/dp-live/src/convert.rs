@@ -155,7 +155,7 @@ pub(crate) fn queue_state(queueing: bool, request: Option<QueueRequest>) -> Queu
         match_mode: match_mode(RMatchMode::from_raw(request.match_mode)),
         game_mode: game_mode(RGameMode::from_raw(request.game_mode)),
         bot_difficulty: Some(request.bot_difficulty).filter(|d| *d > 0),
-        party_start: None,
+        ..QueueState::default()
     }
 }
 
@@ -466,7 +466,7 @@ mod tests {
                 match_mode: Some(MatchMode::Unranked),
                 game_mode: Some(GameMode::StreetBrawl),
                 bot_difficulty: None,
-                party_start: None,
+                ..QueueState::default()
             }
         );
         let bots = queue_state(true, Some(QueueRequest { match_mode: 2, game_mode: 1, bot_difficulty: 2 }));

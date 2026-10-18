@@ -1161,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "deadlock-core"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "serde",
 ]
@@ -1169,7 +1169,7 @@ dependencies = [
 [[package]]
 name = "deadlock-data"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "deadlock-core",
  "png 0.18.1",
@@ -1181,7 +1181,7 @@ dependencies = [
 [[package]]
 name = "deadlock-events"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "deadlock-memory",
  "deadlock-reader",
@@ -1192,7 +1192,7 @@ dependencies = [
 [[package]]
 name = "deadlock-memory"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "libc",
  "memchr",
@@ -1274,7 +1274,7 @@ dependencies = [
 [[package]]
 name = "deadlock-reader"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "deadlock-core",
  "deadlock-memory",
@@ -1284,7 +1284,7 @@ dependencies = [
 [[package]]
 name = "deadlock-walker"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=03207348b7343f7b5817270cd0aefb53c87f7f2f#03207348b7343f7b5817270cd0aefb53c87f7f2f"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
 dependencies = [
  "deadlock-memory",
  "memchr",

@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use deadlock_reader::supervise::{Attached, ReaderSupervisor, DEFAULT_RETRY_INTERVAL};
 use deadlock_reader::Reader;
-use deadlock_walker::{Error as WalkerError, PartyQueue, PartyQueueState, PeImage, QueueFlag};
+use deadlock_walker::{Error as WalkerError, PartyQueue, PartyQueueState, PeImage, QueueFlag, QueueRequest};
 
 use crate::attach::{self, Outcome};
 use crate::convert::{hideout_party_size, queue_state};
@@ -188,20 +188,32 @@ impl QueueSource for GameQueue {
 
 type Probed<T> = Result<Option<T>, ProbeError>;
 
-/// The solo flag's state with the party's search start on it. A party search never sets the solo flag, so a party
-/// that is searching is reported even when the flag cannot be read.
+/// The solo flag's state with the party's search on it. A party search never sets the solo flag, so a party that is
+/// searching is reported even when the flag cannot be read.
 fn combine(ui: Probed<QueueState>, party: Probed<PartyQueueState>) -> Probed<QueueState> {
-    let party_start = match party {
+    let party = match party {
         Err(ProbeError::WrongProcess) => return Err(ProbeError::WrongProcess),
         Err(ProbeError::Failed) | Ok(None) => None,
-        Ok(Some(party)) => Some(u64::from(party.start_unix)).filter(|start| *start > 0),
+        Ok(Some(party)) => Some(party).filter(|party| party.start_unix > 0),
     };
-    match (ui, party_start) {
-        (ui, None) => ui,
-        (Err(ProbeError::WrongProcess), _) => Err(ProbeError::WrongProcess),
-        (Ok(ui), party_start) => Ok(Some(QueueState { party_start, ..ui.unwrap_or_default() })),
-        (Err(ProbeError::Failed), party_start) => Ok(Some(QueueState { party_start, ..QueueState::default() })),
+    let Some(party) = party else { return ui };
+    let party_start = Some(u64::from(party.start_unix));
+    let party_request = party_request(&party);
+    match ui {
+        Err(ProbeError::WrongProcess) => Err(ProbeError::WrongProcess),
+        Ok(ui) => Ok(Some(QueueState { party_start, party_request, ..ui.unwrap_or_default() })),
+        Err(ProbeError::Failed) => Ok(Some(QueueState { party_start, party_request, ..QueueState::default() })),
     }
+}
+
+/// The party's modes as the raw game numbers the solo request uses; an unknown mode reads as 0, which maps to unknown.
+fn party_request(party: &PartyQueueState) -> Option<QueueRequest> {
+    let known = party.match_mode.is_some() || party.game_mode.is_some() || party.bot_difficulty.is_some();
+    known.then(|| QueueRequest {
+        match_mode: party.match_mode.map_or(0, |m| m as u32),
+        game_mode: party.game_mode.map_or(0, |m| m as u32),
+        bot_difficulty: party.bot_difficulty.map_or(0, |d| d as u32),
+    })
 }
 
 #[cfg(test)]
@@ -209,7 +221,31 @@ mod tests {
     use super::*;
 
     fn party(start_unix: u32) -> Probed<PartyQueueState> {
-        Ok(Some(PartyQueueState { start_unix }))
+        Ok(Some(PartyQueueState { start_unix, match_mode: None, game_mode: None, bot_difficulty: None }))
+    }
+
+    fn party_with_modes(start_unix: u32, match_mode: i32, game_mode: i32) -> Probed<PartyQueueState> {
+        Ok(Some(PartyQueueState {
+            start_unix,
+            match_mode: Some(match_mode.try_into().unwrap()),
+            game_mode: Some(game_mode.try_into().unwrap()),
+            bot_difficulty: Some(0.try_into().unwrap()),
+        }))
+    }
+
+    #[test]
+    fn a_party_search_carries_its_modes_as_raw_numbers() {
+        let state = combine(Ok(Some(QueueState::default())), party_with_modes(1_760_000_000, 4, 1)).unwrap().unwrap();
+        assert_eq!(state.party_start, Some(1_760_000_000));
+        assert_eq!(state.party_request, Some(QueueRequest { match_mode: 4, game_mode: 1, bot_difficulty: 0 }));
+        let unknown_flag = combine(Err(ProbeError::Failed), party_with_modes(1_760_000_000, 1, 4)).unwrap().unwrap();
+        assert_eq!(unknown_flag.party_request, Some(QueueRequest { match_mode: 1, game_mode: 4, bot_difficulty: 0 }));
+    }
+
+    #[test]
+    fn a_party_search_with_unknown_modes_has_no_request() {
+        let state = combine(Ok(Some(QueueState::default())), party(1_760_000_000)).unwrap().unwrap();
+        assert_eq!(state.party_request, None);
     }
 
     #[test]
