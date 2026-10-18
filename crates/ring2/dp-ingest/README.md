@@ -29,7 +29,7 @@ No platform-specific code.
 
 ## Gotchas
 
-- `Salts` serialises `username` as `"ingest-tool:<id>"` and leaves the field out when it is unknown.
+- `Salts` serialises `username` as `"deadlockplus:<id>"` and leaves the field out when it is unknown.
 - The metadata salt and the replay salt are tracked separately in `Seen`. A match with only its metadata salt seen still counts as new for a replay salt.
 - `Seen` clears itself when it holds more than 10,000 matches.
 - `scan_directory` descends into subfolders, reads at most 200 bytes per file and skips folders and files it cannot read.

@@ -623,6 +623,6 @@ Content-Length: 2
         });
         assert_eq!(s.username, Some(7));
         assert_eq!((s.match_id, s.cluster_id, s.metadata_salt, s.replay_salt), (5, Some(404), Some(1), None));
-        assert_eq!(serde_json::to_value(s).unwrap()["username"], "ingest-tool:7");
+        assert_eq!(serde_json::to_value(s).unwrap()["username"], "deadlockplus:7");
     }
 }

@@ -14,7 +14,7 @@ pub struct Salts {
 
 fn serialize_username<S: Serializer>(value: &Option<u32>, serializer: S) -> Result<S::Ok, S::Error> {
     match value {
-        Some(id) => serializer.serialize_str(&format!("ingest-tool:{id}")),
+        Some(id) => serializer.serialize_str(&format!("deadlockplus:{id}")),
         None => serializer.serialize_none(),
     }
 }
@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn username_is_prefixed_and_omitted_when_unknown() {
         let mut s = Salts::from_url("http://replay1.valve.net/1422450/1_2.meta.bz2", Some(42)).unwrap();
-        assert_eq!(serde_json::to_value(s).unwrap()["username"], "ingest-tool:42");
+        assert_eq!(serde_json::to_value(s).unwrap()["username"], "deadlockplus:42");
         s.username = None;
         assert!(serde_json::to_value(s).unwrap().get("username").is_none());
     }
