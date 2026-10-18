@@ -132,12 +132,18 @@ fn service_sddl(sids: &ApprovedSids) -> Result<String, String> {
     access::service_sddl(&refs).ok_or_else(|| "an approved account is not a valid SID".to_string())
 }
 
-/// The service runs the helper's own exe as SYSTEM, so only an exe that normal users cannot replace may become it.
+/// The service runs this exe as SYSTEM, so it must be one normal users cannot replace. Only the installer's copy in
+/// Common Files qualifies: Program Files alone is not enough, since the app's install folder may be user-writable.
+fn may_become_service(exe: &Path, roots: &[&Path], installed: Option<&Path>) -> bool {
+    args::is_protected_install(exe, roots) && installed.is_some_and(|installed| args::same_path(exe, installed))
+}
+
 fn approve(ctx: &Ctx) -> Reply {
     let roots = paths::program_files_roots();
     let roots: Vec<&Path> = roots.iter().map(PathBuf::as_path).collect();
+    let installed = paths::installed_helper();
     match std::env::current_exe() {
-        Ok(exe) if args::is_protected_install(&exe, &roots) => match install_service(&exe, &ctx.sid) {
+        Ok(exe) if may_become_service(&exe, &roots, installed.as_deref()) => match install_service(&exe, &ctx.sid) {
             Ok(()) => Reply::Ok {},
             Err(detail) => error(format!("{SERVICE_INSTALL_FAILED}{detail}")),
         },
@@ -420,6 +426,29 @@ mod tests {
         assert!(!service_exists(SERVICE_NAME));
         assert_eq!(scm::query_pid(SERVICE_NAME), None);
         assert!(!service_client::approved(SERVICE_NAME));
+    }
+
+    const INSTALLED: &str = r"C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe";
+    const PROGRAM_FILES: &str = r"C:\Program Files";
+
+    fn may_become(exe: &str, installed: Option<&str>) -> bool {
+        may_become_service(Path::new(exe), &[Path::new(PROGRAM_FILES)], installed.map(Path::new))
+    }
+
+    #[test]
+    fn only_the_installed_helper_may_become_the_service() {
+        assert!(may_become(INSTALLED, Some(INSTALLED)));
+        assert!(may_become(&INSTALLED.to_uppercase(), Some(INSTALLED)));
+        assert!(!may_become(r"C:\Program Files\Deadlock+\deadlock-plus.exe", Some(INSTALLED)));
+        assert!(!may_become(r"C:\Program Files\Deadlock+\deadlock-plus-helper.exe", Some(INSTALLED)));
+        assert!(!may_become(r"D:\Programs\Deadlock+\deadlock-plus-helper.exe", Some(INSTALLED)));
+        assert!(!may_become(INSTALLED, None));
+    }
+
+    #[test]
+    fn the_installed_helper_outside_program_files_is_refused() {
+        let installed = r"D:\Common Files\Deadlock+\deadlock-plus-helper.exe";
+        assert!(!may_become(installed, Some(installed)));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # dp-helper
 
-The privileged server that runs firewall writes and ETW captures for Deadlock+ on Windows when the app itself is not elevated. One server, two launch modes: a short-lived helper started through UAC ("Allow"), or an on-demand service ("Always allow"). While the app runs elevated, every call stays in process and nothing here touches the service, a pipe or UAC.
+The privileged server that runs firewall writes and ETW captures for Deadlock+ on Windows when the app itself is not elevated. One server in its own exe, `deadlock-plus-helper.exe`, with two launch modes: a short-lived helper started through UAC ("Allow"), or an on-demand service ("Always allow"). The installer writes it to `%CommonProgramFiles%\Deadlock+\`, which only administrators can write, and both modes start that copy. While the app runs elevated, every call stays in process and nothing here touches the service, a pipe or UAC.
 
 ## Public API
 
@@ -12,9 +12,9 @@ App side:
 
 Server side:
 
-- `helper_main::run` and `service_main::run` are the two launch modes, picked by `args::parse` from `--privileged-helper <pipe> <app pid>` or `--service`. The helper checks that the pipe is served by the app's PID and acts for the app user's SID. The service accepts approved accounts through `listener::listen`.
+- `entry::run(argv)` is the helper exe's whole `main`: `args::parse` picks `helper_main::run` (`--privileged-helper <pipe> <app pid>`) or `service_main::run` (`--service`); any other argv exits 2 and starts nothing. The helper checks that the pipe is served by the app's PID and acts for the app user's SID. The service accepts approved accounts through `listener::listen`.
 - `serve::serve` is the request loop: capped line reads, `op::validate`, mode rules (Approve only in the helper, Revoke only in the service), then `dispatch::exec`.
-- `dispatch::exec` runs firewall ops, starts at most one trace of each kind per server ("busy" otherwise), and handles Approve (installs or updates the service, only from an exe under Program Files) and Revoke (removes the caller; the last one deletes the service).
+- `dispatch::exec` runs firewall ops, starts at most one trace of each kind per server ("busy" otherwise), and handles Approve (installs or updates the service, only when the server is the Common Files copy under Program Files) and Revoke (removes the caller; the last one deletes the service).
 - `trace` streams the caller's own `deadlock.exe` packets (`dp_connection::wire` lines) and frames (`dp_frames::line` lines) over the connection.
 - `relays::RelayCache` keeps the Valve relay set; a refetch happens at most every 10 minutes, and only when a request names an unknown address.
 - `logfile` writes `%ProgramData%\Deadlock+\helper.log` (1 MiB plus one rotated file).
@@ -40,7 +40,8 @@ Everything outside `access`, `args`, `client`, `idle`, `logfile`, `op`, `relays`
 - Windows applies only the first pipe instance's security descriptor to the whole pipe. An account approved while the service is running is refused at the pipe until the service restarts, so `routed` falls back to the helper session in that case. Revoking stays immediate, because every connection's SID is checked against the current list.
 - The listener always creates the next pipe instance before it hands a connected one off, so the pipe name is never free for another process to claim.
 - Pipes use overlapped I/O: a synchronous handle would block a write behind a read pending on the same end.
-- Paths that decide what runs as SYSTEM (Program Files, ProgramData) come from HKLM, never from the environment, which the user controls.
+- Paths that decide what runs as SYSTEM (Program Files, Common Files, ProgramData) come from HKLM, never from the environment, which the user controls.
+- `paths::helper_exe` picks the exe the app launches: release builds take the Common Files copy, then one next to the app (portable copies, or an install whose Common Files write failed; Allow only); debug builds take the one next to the app first, so a dev build never talks to an older installed helper. `tauri.windows.conf.json` turns on the `privileged-helper` feature that builds it, and its `beforeDevCommand` builds it for `tauri dev`.
 - The log folder is refused unless SYSTEM or Administrators own it, it is not a reparse point, and the log file has one link. Users can create folders in ProgramData, so the installer creates this one with a protected DACL.
 - The ETW session names are fixed. Tests never start a real trace: it would stop the session of a running Deadlock+.
 - SIDs are compared as text. Lowercase or zero-padded spellings are rejected instead of normalised.

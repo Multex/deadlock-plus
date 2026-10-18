@@ -14,7 +14,7 @@ use dp_privilege::Outcome;
 use crate::client::{NetEvent, Session};
 use crate::op::{Op, Reply, Trace};
 use crate::route::{self, Route};
-use crate::{args, helper_client, pipe, service_client};
+use crate::{args, helper_client, paths, pipe, service_client};
 
 const CALL_TIMEOUT: Duration = Duration::from_secs(10);
 /// Covers the user reading the UAC prompt, and a demand-start service coming up.
@@ -94,8 +94,7 @@ fn session_or_launch() -> Result<(Route, Arc<Session>), Outcome> {
     if let Some(current) = live(&mut lock(&SESSION)) {
         return Ok(current);
     }
-    let exe =
-        std::env::current_exe().map_err(|e| Outcome::Failed(format!("Could not find the Deadlock+ program: {e}")))?;
+    let exe = paths::helper_exe().map_err(|e| Outcome::Failed(format!("Could not find the Deadlock+ helper: {e}")))?;
     let pipe = helper_client::launch(&exe, CONNECT_TIMEOUT)?;
     let session = start_session(pipe).map_err(|e| Outcome::Failed(format!("Could not use the helper pipe: {e}")))?;
     *lock(&SESSION) = Some((Route::Helper, Arc::clone(&session)));

@@ -12,6 +12,8 @@ pub mod stream;
 #[cfg(windows)]
 pub mod dispatch;
 #[cfg(windows)]
+pub mod entry;
+#[cfg(windows)]
 pub mod helper_client;
 #[cfg(windows)]
 pub mod helper_main;

@@ -146,7 +146,7 @@ mod tests {
         fn new() -> Self {
             static NEXT: AtomicU32 = AtomicU32::new(0);
             let root =
-                format!(r"Software\DeadlockPlusTest\{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed));
+                format!(r"Software\DeadlockPlusTest-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed));
             let scratch = Scratch { run: format!(r"{root}\Run"), approved: format!(r"{root}\Approved"), root };
             scratch.wipe();
             scratch
@@ -154,14 +154,11 @@ mod tests {
 
         fn wipe(&self) {
             let root = wide(&self.root);
-            let parent = wide(r"Software\DeadlockPlusTest");
-            // SAFETY: both strings are NUL-terminated and outlive the calls. Only the scratch key under
-            // `HKCU\Software\DeadlockPlusTest` is ever named; the parent delete fails harmlessly while other
-            // test processes still have keys under it.
+            // SAFETY: `root` is NUL-terminated and outlives the calls. Each test owns a top-level key: a shared
+            // parent deleted by one test while another creates a key under it fails that create.
             unsafe {
                 let _ = RegDeleteTreeW(HKEY_CURRENT_USER, PCWSTR(root.as_ptr()));
                 let _ = RegDeleteKeyW(HKEY_CURRENT_USER, PCWSTR(root.as_ptr()));
-                let _ = RegDeleteKeyW(HKEY_CURRENT_USER, PCWSTR(parent.as_ptr()));
             }
         }
 

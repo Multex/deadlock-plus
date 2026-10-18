@@ -3,6 +3,9 @@
 !ifndef DEADLOCK_PLUS_SERVICE
   !define DEADLOCK_PLUS_SERVICE "DeadlockPlusHelper"
 !endif
+!define DP_HELPER_EXE "deadlock-plus-helper.exe"
+; The 64-bit Common Files folder, which the app looks up. Plain $COMMONFILES is the x86 one in this 32-bit installer.
+!define DP_HELPER_DIR "$COMMONFILES64\Deadlock+"
 ; The privileged server logs to %ProgramData%\Deadlock+ and refuses a folder that SYSTEM or Administrators do not
 ; own: any user may create folders in ProgramData and plant links there. Same DACL as the server's own folder.
 !ifndef DEADLOCK_PLUS_DIR_SDDL
@@ -224,7 +227,60 @@
   Pop $0
 !macroend
 
+; Runas and the service start the helper only from Common Files, which only administrators can write. It is written
+; from the installer's own data: the install dir is whatever folder the user picked, so a file there could be swapped
+; before a copy. The template's copy there is removed once this write works. If it fails, that copy keeps Allow
+; working; the service refuses any exe outside Common Files, so Always allow stays off.
+!macro DeadlockPlusInstallHelper
+  !ifndef DP_HELPER_SRC
+    !searchreplace DP_HELPER_SRC "${MAINBINARYSRCPATH}" "${MAINBINARYNAME}.exe" "${DP_HELPER_EXE}"
+    !if "${DP_HELPER_SRC}" == "${MAINBINARYSRCPATH}"
+      !error "Cannot derive the helper path from ${MAINBINARYSRCPATH}"
+    !endif
+  !endif
+  Push $R0
+  Push $R1
+  Push $R2
+  StrCpy $R0 "${DP_HELPER_DIR}\${DP_HELPER_EXE}"
+  CreateDirectory "${DP_HELPER_DIR}"
+  ${If} ${FileExists} $R0
+    ; A runas helper of the old version exits about a second after the app and holds the file until then. A running
+    ; image cannot be overwritten, but it can be renamed.
+    System::Call 'kernel32::GetTickCount() i .R1'
+    StrCpy $R1 "$R0.old-$R1"
+    ClearErrors
+    Rename $R0 $R1
+    ${IfNot} ${Errors}
+      Delete /REBOOTOK $R1
+    ${EndIf}
+  ${EndIf}
+  ; "try" skips a file it cannot write and sets the error flag, where "on" would ask Abort/Retry/Ignore even in a
+  ; passive update.
+  SetOverwrite try
+  ClearErrors
+  File "/oname=$R0" "${DP_HELPER_SRC}"
+  SetOverwrite lastused
+  ${If} ${Errors}
+    DetailPrint "Could not write ${DP_HELPER_EXE} to ${DP_HELPER_DIR}"
+  ${Else}
+    Delete /REBOOTOK "$INSTDIR\${DP_HELPER_EXE}"
+  ${EndIf}
+  nsExec::ExecToStack '"$SYSDIR\sc.exe" query ${DEADLOCK_PLUS_SERVICE}'
+  Pop $R1
+  Pop $R2
+  ${If} $R1 = 0
+    ; sc.exe reads its arguments with CRT rules: \" is a literal quote inside the quoted binPath.
+    nsExec::Exec `"$SYSDIR\sc.exe" config ${DEADLOCK_PLUS_SERVICE} binPath= "\"$R0\" --service"`
+    Pop $R1
+  ${EndIf}
+  ClearErrors
+  Pop $R2
+  Pop $R1
+  Pop $R0
+!macroend
+
 !macro NSIS_HOOK_POSTINSTALL
+  !insertmacro DeadlockPlusInstallHelper
   !insertmacro DeadlockPlusSetServiceStart demand
   !insertmacro DP_MIGRATE_AUTOSTART_TASK_TO_RUN "$INSTDIR\${MAINBINARYNAME}.exe"
 !macroend
@@ -233,8 +289,8 @@
 ; from an older install), the helper service, the firewall rules and the helper's data folder. An update skips
 ; that, because the new version reuses all of it.
 !macro NSIS_HOOK_PREUNINSTALL
-  ; Stopped even during updates: the template's running-app check comes next and would meet the service's
-  ; SYSTEM process. Stopping keeps the approval.
+  ; The service runs the Common Files helper, and stopping it frees that file for removal or the next install.
+  ; Stopping keeps the approval, so it runs during updates too.
   !insertmacro DeadlockPlusStopService
   ${If} $UpdateMode <> 1
     !insertmacro DP_REMOVE_AUTOSTART_RUN
@@ -253,5 +309,13 @@
       !insertmacro DeadlockPlusRemoveDataDir $0
     ${EndIf}
     Pop $0
+  ${EndIf}
+!macroend
+
+; Runs after the template has closed the app; a runas helper may still be exiting, which /REBOOTOK covers.
+!macro NSIS_HOOK_POSTUNINSTALL
+  ${If} $UpdateMode <> 1
+    Delete /REBOOTOK "${DP_HELPER_DIR}\${DP_HELPER_EXE}"
+    RMDir /REBOOTOK "${DP_HELPER_DIR}"
   ${EndIf}
 !macroend

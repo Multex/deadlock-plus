@@ -92,6 +92,9 @@ jobs:
         if: runner.os == 'Windows'
         run: cargo fmt --all --check -- --config max_width=120,use_small_heuristics=Max
       - run: cargo clippy --workspace --lib --tests -- -D warnings
+      - name: Clippy the privileged helper exe
+        if: runner.os == 'Windows'
+        run: cargo clippy -p deadlock-plus --bins --features privileged-helper -- -D warnings
       - run: cargo test --workspace --lib
 
       - name: Build Vulkan frame layer

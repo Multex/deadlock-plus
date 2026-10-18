@@ -5,6 +5,7 @@ description = "Companion app for Deadlock: server picker, connection monitor, mu
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+default-run = "deadlock-plus"
 
 [package.metadata.dp]
 tier = 3
@@ -17,6 +18,15 @@ tier = 3
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "deadlock_plus_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Windows only (turned on by tauri.windows.conf.json): the installer copies this exe to Common Files, and both the
+# runas helper and the service start that copy, never one from a folder the user can write.
+[[bin]]
+name = "deadlock-plus-helper"
+required-features = ["privileged-helper"]
+
+[features]
+privileged-helper = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

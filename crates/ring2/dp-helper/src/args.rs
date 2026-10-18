@@ -1,6 +1,8 @@
 use std::ffi::OsString;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf, Prefix};
 
+pub const HELPER_DIR: &str = "Deadlock+";
+pub const HELPER_EXE: &str = "deadlock-plus-helper.exe";
 pub const HELPER_ARG: &str = "--privileged-helper";
 pub const SERVICE_ARG: &str = "--service";
 pub const SERVICE_NAME: &str = "DeadlockPlusHelper";
@@ -92,6 +94,59 @@ fn has_dot_segment(path: &Path) -> bool {
 
 fn lowered_components(path: &Path) -> Vec<String> {
     path.components().map(|c| c.as_os_str().to_string_lossy().to_lowercase()).collect()
+}
+
+pub fn installed_helper_path(common_files: &Path) -> PathBuf {
+    common_files.join(HELPER_DIR).join(HELPER_EXE)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HelperPick {
+    Installed,
+    NextToApp,
+}
+
+/// A debug build runs the helper next to it first, so a dev build never runs an older installed helper.
+pub fn pick_helper(installed: bool, next_to_app: bool, debug: bool) -> Option<HelperPick> {
+    match (debug, installed, next_to_app) {
+        (false, true, _) | (true, true, false) => Some(HelperPick::Installed),
+        (_, _, true) => Some(HelperPick::NextToApp),
+        (_, false, false) => None,
+    }
+}
+
+/// Fails closed: relative paths, `.`/`..` segments and non-UTF-8 never match. `\\?\C:\` equals `C:\` and
+/// `\\?\UNC\h\s` equals `\\h\s`. Case folding is ASCII only, since full Unicode lowercasing can join names that
+/// NTFS keeps apart (U+212A KELVIN SIGN lowercases to `k`).
+pub fn same_path(a: &Path, b: &Path) -> bool {
+    match (path_key(a), path_key(b)) {
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    }
+}
+
+fn path_key(path: &Path) -> Option<Vec<String>> {
+    if !path.is_absolute() || has_dot_segment(path) {
+        return None;
+    }
+    path.components()
+        .map(|c| match c {
+            Component::Prefix(prefix) => prefix_key(prefix.kind()),
+            other => other.as_os_str().to_str().map(str::to_ascii_lowercase),
+        })
+        .collect()
+}
+
+fn prefix_key(prefix: Prefix) -> Option<String> {
+    let lower = |part: &std::ffi::OsStr| part.to_str().map(str::to_ascii_lowercase);
+    Some(match prefix {
+        Prefix::Disk(drive) | Prefix::VerbatimDisk(drive) => format!("{}:", drive.to_ascii_lowercase() as char),
+        Prefix::UNC(host, share) | Prefix::VerbatimUNC(host, share) => {
+            format!(r"\\{}\{}", lower(host)?, lower(share)?)
+        }
+        Prefix::Verbatim(part) => format!(r"\\?\{}", lower(part)?),
+        Prefix::DeviceNS(part) => format!(r"\\.\{}", lower(part)?),
+    })
 }
 
 #[cfg(test)]
@@ -255,5 +310,92 @@ mod tests {
         assert!(!is_protected_install(Path::new(r"D:\Program Files\a.exe"), &[r.as_path()]));
         assert!(!is_protected_install(Path::new(r"\\?\C:\Program Files\a.exe"), &[r.as_path()]));
         assert!(!is_protected_install(Path::new(r"\\host\share\Program Files\a.exe"), &[r.as_path()]));
+    }
+
+    #[test]
+    fn installed_helper_sits_in_its_own_folder() {
+        let common = PathBuf::from(if cfg!(windows) { r"C:\Program Files\Common Files" } else { "/common" });
+        assert_eq!(installed_helper_path(&common), common.join("Deadlock+").join("deadlock-plus-helper.exe"));
+    }
+
+    #[test]
+    fn release_prefers_the_installed_helper() {
+        assert_eq!(pick_helper(true, true, false), Some(HelperPick::Installed));
+        assert_eq!(pick_helper(true, false, false), Some(HelperPick::Installed));
+        assert_eq!(pick_helper(false, true, false), Some(HelperPick::NextToApp));
+        assert_eq!(pick_helper(false, false, false), None);
+    }
+
+    #[test]
+    fn debug_prefers_the_helper_next_to_the_app() {
+        assert_eq!(pick_helper(true, true, true), Some(HelperPick::NextToApp));
+        assert_eq!(pick_helper(false, true, true), Some(HelperPick::NextToApp));
+        assert_eq!(pick_helper(true, false, true), Some(HelperPick::Installed));
+        assert_eq!(pick_helper(false, false, true), None);
+    }
+
+    #[test]
+    fn same_path_matches_itself_and_ignores_a_trailing_separator() {
+        let p = under("Common Files/Deadlock+/deadlock-plus-helper.exe");
+        assert!(same_path(&p, &p));
+        let trailing = PathBuf::from(format!("{}{}", root().display(), std::path::MAIN_SEPARATOR));
+        assert!(same_path(&root(), &trailing));
+        assert!(!same_path(&p, &under("Common Files/Deadlock+/other.exe")));
+        assert!(!same_path(&p, &under("Common Files/Deadlock+")));
+        assert!(!same_path(&under("Common Files/Deadlock+"), &p));
+    }
+
+    #[test]
+    fn same_path_refuses_relative_paths_and_dot_segments() {
+        let p = under("Common Files/Deadlock+/deadlock-plus-helper.exe");
+        assert!(!same_path(Path::new(HELPER_EXE), Path::new(HELPER_EXE)));
+        assert!(!same_path(Path::new(""), Path::new("")));
+        let parent = under("Common Files/x/../Deadlock+/deadlock-plus-helper.exe");
+        assert!(!same_path(&parent, &p));
+        assert!(!same_path(&parent, &parent));
+        let current = under("Common Files/./Deadlock+/deadlock-plus-helper.exe");
+        assert!(!same_path(&current, &current));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn same_path_windows_rules() {
+        let installed = Path::new(r"C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe");
+        let same = [
+            r"c:\program files\common files\deadlock+\DEADLOCK-PLUS-HELPER.EXE",
+            r"C:/Program Files/Common Files/Deadlock+/deadlock-plus-helper.exe",
+            r"C:\Program Files\\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\\?\C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\\?\c:\PROGRAM FILES\Common Files\Deadlock+\deadlock-plus-helper.exe",
+        ];
+        for other in same {
+            assert!(same_path(installed, Path::new(other)), "{other}");
+            assert!(same_path(Path::new(other), installed), "{other}");
+        }
+        let different = [
+            r"D:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"C:Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\\host\share\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\\.\C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe",
+            r"\\?\C:\Program Files\Common Files\x\..\Deadlock+\deadlock-plus-helper.exe",
+            r"C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe:stream",
+            r"C:\Program Files\Common Files\Deadlock+\deadlock-plus-helper.exe.",
+            "C:\\Program Files\\Common Files\\Deadloc\u{212A}+\\deadlock-plus-helper.exe",
+        ];
+        for other in different {
+            assert!(!same_path(installed, Path::new(other)), "{other}");
+            assert!(!same_path(Path::new(other), installed), "{other}");
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn same_path_unc_and_verbatim_unc_agree() {
+        let a = Path::new(r"\\Host\Share\Deadlock+\deadlock-plus-helper.exe");
+        let b = Path::new(r"\\?\UNC\host\SHARE\Deadlock+\deadlock-plus-helper.exe");
+        assert!(same_path(a, b));
+        assert!(same_path(b, a));
+        assert!(!same_path(a, Path::new(r"\\host\other\Deadlock+\deadlock-plus-helper.exe")));
     }
 }

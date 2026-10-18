@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::PathBuf;
 
+use crate::args::{installed_helper_path, pick_helper, HelperPick, HELPER_EXE};
 use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::ERROR_MORE_DATA;
 use windows::Win32::System::Registry::{
@@ -94,6 +95,29 @@ pub fn program_data() -> Option<PathBuf> {
     read_path(PROFILE_LIST, w!("ProgramData"))
 }
 
+/// Read from HKLM, never from `%CommonProgramFiles%`, for the same reason as `program_files_roots`.
+pub fn common_files() -> Option<PathBuf> {
+    read_path(CURRENT_VERSION, w!("CommonFilesDir"))
+}
+
+pub fn installed_helper() -> Option<PathBuf> {
+    common_files().map(|root| installed_helper_path(&root))
+}
+
+pub fn helper_exe() -> Result<PathBuf, String> {
+    let installed = installed_helper().filter(|path| path.is_file());
+    let next_to_app = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(HELPER_EXE)))
+        .filter(|path| path.is_file());
+    match pick_helper(installed.is_some(), next_to_app.is_some(), cfg!(debug_assertions)) {
+        Some(HelperPick::Installed) => installed,
+        Some(HelperPick::NextToApp) => next_to_app,
+        None => None,
+    }
+    .ok_or_else(|| format!("{HELPER_EXE} is neither installed nor next to the app"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,6 +140,12 @@ mod tests {
         let path = program_data().expect("ProgramData resolves");
         assert!(existing_absolute_dir(&path), "{path:?}");
         assert!(!path.to_string_lossy().contains('%'), "{path:?}");
+    }
+
+    #[test]
+    fn common_files_is_an_existing_absolute_dir() {
+        let path = common_files().expect("CommonFilesDir resolves");
+        assert!(existing_absolute_dir(&path), "{path:?}");
     }
 
     #[test]
