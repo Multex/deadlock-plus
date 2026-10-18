@@ -96,6 +96,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Discord shows "Finding match" with the queue timer again when you queue as a party.
 - Sharing your matches no longer fails when Steam's cache holds more than 1,000 of them.
 - Every replay link in a Steam cache entry is shared, not just the first.
+- Match recovery hands unfinished matches back to the Deadlock API after each run, so other helpers can pick them up.
 - Discord shows the mode you queued for when you queue as a party.
 - The Live page's current server ignores other traffic from the game, like voice chat.
 - The Live page's current server clears when you leave a server, instead of showing the last one.

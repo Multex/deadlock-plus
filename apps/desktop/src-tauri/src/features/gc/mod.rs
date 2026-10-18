@@ -1,5 +1,7 @@
 mod api;
 mod error;
+#[cfg(test)]
+mod fake_api;
 mod own;
 
 use std::collections::HashSet;
@@ -62,6 +64,7 @@ struct Shared {
     /// Set while an own-history run waits for or holds `gc_lock`. A background pass stops at its
     /// next request.
     own_active: AtomicBool,
+    to_fetch: api::ToFetch,
 }
 
 #[derive(Default)]
@@ -327,6 +330,7 @@ enum Flow {
 async fn run_account(
     ctx: &AuthContext,
     ledger: &mut Ledger,
+    to_fetch: &api::ToFetch,
     http: &reqwest::Client,
     host: &mut impl Host,
     processed: &mut HashSet<u64>,
@@ -344,7 +348,7 @@ async fn run_account(
     }
 
     // A failed to-fetch read only empties that phase; friends' matches can still be fetched.
-    let (to_fetch, to_fetch_error) = match api::to_fetch(http).await {
+    let (to_fetch, to_fetch_error) = match to_fetch.list(http).await {
         Ok(ids) => (ids, None),
         Err(e) => {
             log::warn!("gc: could not read the to-fetch list: {e}");
@@ -392,6 +396,22 @@ async fn run_account(
     to_fetch_error.map_or(Ok(Flow::Next), Err)
 }
 
+/// Runs `account` for each context until one says stop, then hands back the to-fetch list's
+/// claim, whatever the accounts returned.
+async fn each_account<C>(
+    contexts: &[C],
+    to_fetch: &api::ToFetch,
+    http: &reqwest::Client,
+    mut account: impl AsyncFnMut(&C) -> Flow,
+) {
+    for ctx in contexts {
+        if account(ctx).await == Flow::Stop {
+            break;
+        }
+    }
+    to_fetch.release(http).await;
+}
+
 async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwest::Client) {
     if dp_game::is_running() {
         log::debug!("gc: Deadlock is running, skipping this pass");
@@ -421,9 +441,9 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
     let mut ledger = Ledger::load(app);
     let mut processed = HashSet::new();
     let mut last_request = None;
-    for ctx in &contexts {
+    each_account(&contexts, &shared.to_fetch, http, async |ctx| {
         if halted() || dp_game::is_running() {
-            break;
+            return Flow::Stop;
         }
         let mut host = GcHost {
             http,
@@ -431,7 +451,7 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
             halted,
             on_delivered: || shared.status.lock_or_recover().delivered += 1,
         };
-        let flow = match run_account(ctx, &mut ledger, http, &mut host, &mut processed).await {
+        let flow = match run_account(ctx, &mut ledger, &shared.to_fetch, http, &mut host, &mut processed).await {
             Ok(flow) => {
                 shared.status.lock_or_recover().last_error = None;
                 flow
@@ -443,10 +463,9 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
             }
         };
         ledger.save(app);
-        if flow == Flow::Stop {
-            break;
-        }
-    }
+        flow
+    })
+    .await;
 }
 
 /// Runs GC work on the app's shared runtime. The HTTP client pools connections as tasks on the
@@ -549,6 +568,48 @@ Content-Length: 2
         exit_tx.send(()).unwrap();
         first.join().unwrap();
         assert!(matches!(result, Ok(Ok(ref r)) if r.status().is_success()), "request hung: {result:?}");
+    }
+
+    #[test]
+    fn a_pass_releases_the_claim_once_after_its_accounts_even_a_failed_one() {
+        use fake_api::{FakeApi, Reply};
+        let api = FakeApi::serve(vec![
+            Reply::json("[1]").set_cookie("to_fetch_claim=a; Max-Age=900"),
+            Reply::status("500 Internal Server Error"),
+            Reply::status("204 No Content"),
+        ]);
+        let to_fetch = api::ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(each_account(&[(), ()], &to_fetch, &http, async |_| {
+            let _ = to_fetch.list(&http).await;
+            Flow::Next
+        }));
+        let routes: Vec<_> = api.requests().into_iter().map(|r| (r.route, r.cookie)).collect();
+        assert_eq!(
+            routes,
+            vec![
+                ("GET /matches/to-fetch".into(), None),
+                ("GET /matches/to-fetch".into(), Some("to_fetch_claim=a".into())),
+                ("POST /matches/to-fetch/release".into(), Some("to_fetch_claim=a".into())),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_stopped_pass_still_releases_the_claim() {
+        use fake_api::{FakeApi, Reply};
+        let api = FakeApi::serve(vec![
+            Reply::json("[1]").set_cookie("to_fetch_claim=a; Max-Age=900"),
+            Reply::status("204 No Content"),
+        ]);
+        let to_fetch = api::ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(each_account(&[(), ()], &to_fetch, &http, async |_| {
+            let _ = to_fetch.list(&http).await;
+            Flow::Stop
+        }));
+        let routes: Vec<_> = api.requests().into_iter().map(|r| r.route).collect();
+        assert_eq!(routes, vec!["GET /matches/to-fetch", "POST /matches/to-fetch/release"]);
     }
 
     #[test]

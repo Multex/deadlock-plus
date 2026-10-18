@@ -1,16 +1,21 @@
 use std::collections::HashSet;
+use std::sync::Mutex;
 
+use reqwest::header::{HeaderMap, COOKIE, SET_COOKIE};
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use dp_gc::friends::{ActiveFriend, HistoryRow};
 
+use dp_sync::LockExt;
+
 use crate::features::error::AppError;
 
 const API: &str = "https://api.deadlock-api.com/v1";
 const METADATA_CHUNK: usize = 100;
 const PLAYERS_CHUNK: usize = 1000;
+const CLAIM_COOKIE: &str = "to_fetch_claim";
 
 /// deadlock-api answers 404 for a query that matches nothing, which reads as an empty `T`.
 async fn get_json<T: DeserializeOwned + Default>(req: reqwest::RequestBuilder) -> Result<T, AppError> {
@@ -25,9 +30,72 @@ fn join_ids(ids: &[impl ToString]) -> String {
     ids.iter().map(ToString::to_string).collect::<Vec<_>>().join(",")
 }
 
-/// Matches deadlock-api still needs salts for.
-pub async fn to_fetch(http: &reqwest::Client) -> Result<Vec<u64>, AppError> {
-    get_json(http.get(format!("{API}/matches/to-fetch"))).await
+/// The value of a `to_fetch_claim` `Set-Cookie` header. An empty value is the server clearing it.
+fn parse_claim(header: &str) -> Option<&str> {
+    let (name, value) = header.split(';').next()?.split_once('=')?;
+    let value = value.trim();
+    (name.trim() == CLAIM_COOKIE && !value.is_empty()).then_some(value)
+}
+
+fn claim_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers.get_all(SET_COOKIE).iter().filter_map(|v| v.to_str().ok()).find_map(parse_claim).map(str::to_owned)
+}
+
+/// The list of matches deadlock-api still needs salts for, and the claim on them. deadlock-api
+/// hides a listed match from other workers for 15 min unless the claim cookie comes back, on the
+/// next list or on release.
+pub struct ToFetch {
+    base: String,
+    claim: Mutex<Option<String>>,
+}
+
+impl Default for ToFetch {
+    fn default() -> Self {
+        Self::at(API)
+    }
+}
+
+impl ToFetch {
+    pub(super) fn at(base: &str) -> Self {
+        Self { base: base.to_owned(), claim: Mutex::new(None) }
+    }
+
+    fn with_claim(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+        let held = self.claim.lock_or_recover().clone();
+        match held {
+            Some(claim) => req.header(COOKIE, format!("{CLAIM_COOKIE}={claim}")),
+            None => req,
+        }
+    }
+
+    /// Sends back the previous list's claim, so the server releases those matches first.
+    pub async fn list(&self, http: &reqwest::Client) -> Result<Vec<u64>, AppError> {
+        let req = self.with_claim(http.get(format!("{}/matches/to-fetch", self.base)));
+        let resp = req.timeout(super::HTTP_TIMEOUT).send().await.map_err(AppError::network)?;
+        if resp.status() == StatusCode::NOT_FOUND {
+            *self.claim.lock_or_recover() = None;
+            return Ok(Vec::new());
+        }
+        // A failed list keeps the held claim: releasing one the server already dropped is harmless.
+        let resp = resp.error_for_status().map_err(AppError::network)?;
+        *self.claim.lock_or_recover() = claim_from_headers(resp.headers());
+        resp.json().await.map_err(AppError::network)
+    }
+
+    /// Hands the last list's matches back to other workers. Best-effort: an unreleased claim
+    /// expires on its own.
+    pub async fn release(&self, http: &reqwest::Client) {
+        let Some(claim) = self.claim.lock_or_recover().take() else { return };
+        let req = http
+            .post(format!("{}/matches/to-fetch/release", self.base))
+            .header(COOKIE, format!("{CLAIM_COOKIE}={claim}"))
+            .timeout(super::HTTP_TIMEOUT);
+        match req.send().await {
+            Ok(r) if r.status().is_success() => log::debug!("gc: released the to-fetch claim"),
+            Ok(r) => log::warn!("gc: to-fetch release answered HTTP {}", r.status()),
+            Err(e) => log::warn!("gc: to-fetch release failed: {e}"),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -87,7 +155,107 @@ pub async fn active_friends(http: &reqwest::Client, friends: &[u32]) -> Result<V
 
 #[cfg(test)]
 mod tests {
+    use super::super::block_on;
+    use super::super::fake_api::{FakeApi, Reply, Request};
     use super::*;
+
+    const CLAIM: &str = "to_fetch_claim=0b6f9c1e-2d4a; Path=/v1/matches/to-fetch; Max-Age=900; HttpOnly; Secure";
+
+    fn get(cookie: Option<&str>) -> Request {
+        Request { route: "GET /matches/to-fetch".into(), cookie: cookie.map(Into::into) }
+    }
+
+    fn release(cookie: &str) -> Request {
+        Request { route: "POST /matches/to-fetch/release".into(), cookie: Some(cookie.into()) }
+    }
+
+    #[test]
+    fn the_claim_is_the_value_of_a_full_set_cookie_header() {
+        assert_eq!(parse_claim(CLAIM), Some("0b6f9c1e-2d4a"));
+        assert_eq!(parse_claim("to_fetch_claim=abc"), Some("abc"));
+    }
+
+    #[test]
+    fn an_empty_or_other_cookie_is_no_claim() {
+        assert_eq!(parse_claim("to_fetch_claim=; Max-Age=0"), None);
+        assert_eq!(parse_claim("to_fetch_claim_old=abc"), None);
+        assert_eq!(parse_claim("session=abc; Path=/"), None);
+        assert_eq!(parse_claim("garbage"), None);
+    }
+
+    #[test]
+    fn the_held_claim_goes_back_on_the_next_list() {
+        let api = FakeApi::serve(vec![Reply::json("[1,2]").set_cookie(CLAIM), Reply::json("[3]")]);
+        let to_fetch = ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(async {
+            assert_eq!(to_fetch.list(&http).await.unwrap(), vec![1, 2]);
+            assert_eq!(to_fetch.list(&http).await.unwrap(), vec![3]);
+        });
+        assert_eq!(api.requests(), vec![get(None), get(Some("to_fetch_claim=0b6f9c1e-2d4a"))]);
+    }
+
+    #[test]
+    fn release_hands_the_claim_back_once() {
+        let api = FakeApi::serve(vec![Reply::json("[1]").set_cookie(CLAIM), Reply::status("204 No Content")]);
+        let to_fetch = ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(async {
+            to_fetch.list(&http).await.unwrap();
+            to_fetch.release(&http).await;
+            to_fetch.release(&http).await;
+        });
+        assert_eq!(api.requests(), vec![get(None), release("to_fetch_claim=0b6f9c1e-2d4a")]);
+    }
+
+    #[test]
+    fn an_empty_cookie_drops_the_claim() {
+        let api = FakeApi::serve(vec![
+            Reply::json("[1]").set_cookie(CLAIM),
+            Reply::json("[]").set_cookie("to_fetch_claim=; Max-Age=0"),
+            Reply::json("[]"),
+        ]);
+        let to_fetch = ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(async {
+            to_fetch.list(&http).await.unwrap();
+            to_fetch.list(&http).await.unwrap();
+            to_fetch.list(&http).await.unwrap();
+            to_fetch.release(&http).await;
+        });
+        assert_eq!(api.requests(), vec![get(None), get(Some("to_fetch_claim=0b6f9c1e-2d4a")), get(None)]);
+    }
+
+    #[test]
+    fn a_404_drops_the_claim() {
+        let api = FakeApi::serve(vec![Reply::json("[1]").set_cookie(CLAIM), Reply::status("404 Not Found")]);
+        let to_fetch = ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(async {
+            to_fetch.list(&http).await.unwrap();
+            assert_eq!(to_fetch.list(&http).await.unwrap(), Vec::<u64>::new());
+            to_fetch.release(&http).await;
+        });
+        assert_eq!(api.requests(), vec![get(None), get(Some("to_fetch_claim=0b6f9c1e-2d4a"))]);
+    }
+
+    #[test]
+    fn a_failed_list_keeps_the_claim_for_release() {
+        let api = FakeApi::serve(vec![
+            Reply::json("[1]").set_cookie(CLAIM),
+            Reply::status("500 Internal Server Error"),
+            Reply::status("204 No Content"),
+        ]);
+        let to_fetch = ToFetch::at(&api.url);
+        let http = reqwest::Client::new();
+        block_on(async {
+            to_fetch.list(&http).await.unwrap();
+            assert!(to_fetch.list(&http).await.is_err());
+            to_fetch.release(&http).await;
+        });
+        let claim = "to_fetch_claim=0b6f9c1e-2d4a";
+        assert_eq!(api.requests(), vec![get(None), get(Some(claim)), release(claim)]);
+    }
 
     #[test]
     fn ids_are_comma_separated() {
