@@ -191,7 +191,7 @@ fn run(stop: &AtomicBool, status: &Mutex<IngestStatus>, http: &reqwest::Client) 
                 .paths
                 .iter()
                 .filter(|p| p.is_file())
-                .filter_map(|p| scan::extract_replay_url(p))
+                .flat_map(|p| scan::extract_replay_urls(p))
                 .filter_map(|u| Salts::from_url(&u, steam_id))
                 .collect();
             submit(http, &batch, &mut seen, status, stop);
