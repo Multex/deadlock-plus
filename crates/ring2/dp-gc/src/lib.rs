@@ -6,3 +6,4 @@ pub mod ledger;
 pub mod pass;
 pub mod picks;
 pub mod quota;
+pub mod recovery;

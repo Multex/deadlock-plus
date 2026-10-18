@@ -5,8 +5,8 @@ mod fake_api;
 mod own;
 
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use serde::de::DeserializeOwned;
@@ -22,6 +22,7 @@ use dp_gc::friends;
 use dp_gc::ledger::{FriendCooldowns, SaltAttempts};
 use dp_gc::pass::{fetch_loop, history_loop, with_release, AccountState, Host, GC_BACKOFF_SECS};
 use dp_gc::picks::fresh_newest_first;
+use dp_gc::quota::SaltQuota;
 use dp_ingest::salts::Salts;
 use dp_kv::KvStore;
 use dp_sync::LockExt;
@@ -29,8 +30,10 @@ use dp_sync::LockExt;
 use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
+use crate::http::Http;
 use error::GcError;
-pub use own::OwnRecovery;
+pub use own::{DetailCoverage, LastRun, OwnRecovery};
+use own::{KvRunStore, Run, RunEnd, RunStore};
 
 const SALTS_URL: &str = "https://api.deadlock-api.com/v1/matches/salts";
 const STORE: &str = "gc-state";
@@ -52,26 +55,47 @@ pub struct GcStatus {
     pub delivered: u64,
     pub last_error: Option<AppError>,
     pub own_recovery: Option<OwnRecovery>,
+    pub last_run: Option<LastRun>,
 }
 
-/// State the background worker and an own-history run share.
+/// State the background worker and a recovery run share.
 #[derive(Default)]
 struct Shared {
     status: Mutex<GcStatus>,
-    /// Held by whoever is talking to the GC, so a background pass and an own-history run never
-    /// sign in to the same account at once.
+    /// Held by whoever is talking to the GC, so a background pass and a recovery run never sign
+    /// in to the same account at once.
     gc_lock: tokio::sync::Mutex<()>,
-    /// Set while an own-history run waits for or holds `gc_lock`. A background pass stops at its
-    /// next request.
-    own_active: AtomicBool,
+    /// Recovery drives waiting for or holding `gc_lock`. A background pass stops at its next
+    /// request while this is not zero, so a run never waits for a whole pass.
+    recovering: AtomicUsize,
     to_fetch: api::ToFetch,
+    /// Steam ids of the accounts saved on this PC. Reading them decrypts Steam's login cache, so
+    /// the status poll reads them once; a background pass or a recovery drive refreshes them.
+    saved_accounts: Mutex<Option<Vec<u64>>>,
+}
+
+impl Shared {
+    fn saved_steam_ids(&self) -> Vec<u64> {
+        self.saved_accounts
+            .lock_or_recover()
+            .get_or_insert_with(|| steam_accounts().map(|c| steam_ids(&c)).unwrap_or_default())
+            .clone()
+    }
+
+    fn remember_accounts(&self, contexts: &[AuthContext]) {
+        *self.saved_accounts.lock_or_recover() = Some(steam_ids(contexts));
+    }
+}
+
+fn steam_ids(contexts: &[AuthContext]) -> Vec<u64> {
+    contexts.iter().map(|c| c.steam_id64).collect()
 }
 
 #[derive(Default)]
 pub struct GcService {
     stop: Mutex<Option<Arc<StopSignal>>>,
-    own_stop: Mutex<Option<Arc<StopSignal>>>,
     shared: Arc<Shared>,
+    recovery: OnceLock<Arc<Recovery<AppDriver>>>,
 }
 
 impl GcService {
@@ -83,7 +107,6 @@ impl GcService {
                 if let Some(stop) = slot.take() {
                     stop.stop();
                 }
-                self.cancel_own_recovery();
                 log::info!("gc salt recovery disabled");
                 self.shared.status.lock_or_recover().running = false;
                 return;
@@ -106,46 +129,225 @@ impl GcService {
             .expect("spawn thread");
     }
 
-    /// Starts recovering salts for every match in each account's own history. Keeps a run that is
-    /// already going.
-    pub fn recover_own_matches(&self, app: AppHandle, http: reqwest::Client) -> Result<(), AppError> {
-        if self.stop.lock_or_recover().is_none() {
-            return Err(GcError::Disabled.into());
-        }
-        if dp_game::is_running() {
-            return Err(GcError::GameRunning.into());
-        }
-        let mut slot = self.own_stop.lock_or_recover();
-        if self.shared.status.lock_or_recover().own_recovery.as_ref().is_some_and(|r| r.running) {
-            return Ok(());
-        }
-        let stop = Arc::new(StopSignal::default());
-        *slot = Some(stop.clone());
-        let shared = self.shared.clone();
-        shared.own_active.store(true, Ordering::Release);
-        shared.status.lock_or_recover().own_recovery = Some(OwnRecovery { running: true, ..Default::default() });
-        std::thread::Builder::new()
-            .name("gc-own-matches".into())
-            .spawn(move || own::run(&stop, &shared, &app, &http))
-            .expect("spawn thread");
-        Ok(())
+    fn recovery(&self, app: &AppHandle) -> &Arc<Recovery<AppDriver>> {
+        self.recovery.get_or_init(|| {
+            self.shared.status.lock_or_recover().last_run = own::load_last_run(app);
+            let http = app.state::<Http>().0.clone();
+            let driver = AppDriver { app: app.clone(), http, shared: self.shared.clone() };
+            Recovery::new(Run::restore(own::load_run(app)), driver)
+        })
     }
 
-    pub fn cancel_own_recovery(&self) {
-        if let Some(stop) = self.own_stop.lock_or_recover().take() {
-            stop.stop();
-        }
+    /// Picks up a run an earlier session left going. Call once from `setup()`.
+    pub fn restore(&self, app: &AppHandle) {
+        self.recovery(app).continue_run();
+    }
+
+    /// Needs no background toggle: asking for a run is consent for that run.
+    pub fn recover_matches(&self, app: &AppHandle, ids: &[u64], with_history: bool) -> Result<(), AppError> {
+        self.recovery(app).start(ids, with_history)
+    }
+
+    pub fn pause_recovery(&self, app: &AppHandle) {
+        self.recovery(app).pause();
+    }
+
+    pub fn resume_recovery(&self, app: &AppHandle) {
+        self.recovery(app).resume();
+    }
+
+    pub fn cancel_recovery(&self, app: &AppHandle) {
+        self.recovery(app).cancel();
     }
 
     pub fn status(&self) -> GcStatus {
-        self.shared.status.lock_or_recover().clone()
+        let mut status = self.shared.status.lock_or_recover().clone();
+        status.own_recovery = self.recovery.get().and_then(|r| r.status());
+        status
     }
 
     pub fn stop(&self) {
         if let Some(stop) = self.stop.lock_or_recover().take() {
             stop.stop();
         }
-        self.cancel_own_recovery();
+        if let Some(recovery) = self.recovery.get() {
+            recovery.stop();
+        }
+    }
+}
+
+/// Continues a waiting recovery run once Deadlock closes. The game poller calls it on every change.
+pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
+    app.state::<GcService>().recovery(app).on_game_probe(last, running);
+}
+
+/// What a recovery run needs from the app: Steam, saved state, the clock and threads.
+trait Driver: Send + Sync + 'static {
+    type Store<'a>: RunStore
+    where
+        Self: 'a;
+
+    fn store(&self) -> Self::Store<'_>;
+    /// Every Steam account saved on this PC, with its daily limit as the background pass keeps it.
+    fn saved_accounts(&self) -> Vec<(u32, SaltQuota)>;
+    fn game_running(&self) -> bool;
+    fn now(&self) -> i64;
+    /// Drives `run` until it stops. The caller holds the run's driver slot.
+    fn drive(&self, run: &Run, stop: &StopSignal) -> RunEnd;
+    /// Blocks until `until` (unix seconds). Returns whether `stop` cut it short.
+    fn sleep_until(&self, until: i64, stop: &StopSignal) -> bool;
+    fn spawn(&self, name: &str, work: Box<dyn FnOnce() + Send>);
+}
+
+struct AppDriver {
+    app: AppHandle,
+    http: reqwest::Client,
+    shared: Arc<Shared>,
+}
+
+impl Driver for AppDriver {
+    type Store<'a> = KvRunStore<'a>;
+
+    fn store(&self) -> KvRunStore<'_> {
+        KvRunStore { app: &self.app, shared: &self.shared }
+    }
+
+    fn saved_accounts(&self) -> Vec<(u32, SaltQuota)> {
+        let steam_ids = self.shared.saved_steam_ids();
+        if steam_ids.is_empty() {
+            return Vec::new();
+        }
+        let ledger: States = load(&self.app, ACCOUNTS_KEY);
+        steam_ids
+            .into_iter()
+            .map(|id| {
+                (auth::account_id_of(id), ledger.get(&id.to_string()).map(|s| s.quota.clone()).unwrap_or_default())
+            })
+            .collect()
+    }
+
+    fn game_running(&self) -> bool {
+        dp_game::is_running()
+    }
+
+    fn now(&self) -> i64 {
+        now_secs()
+    }
+
+    fn drive(&self, run: &Run, stop: &StopSignal) -> RunEnd {
+        self.shared.recovering.fetch_add(1, Ordering::AcqRel);
+        let end = own::drive_blocking(run, stop, &self.shared, &self.app, &self.http);
+        self.shared.recovering.fetch_sub(1, Ordering::AcqRel);
+        end
+    }
+
+    fn sleep_until(&self, until: i64, stop: &StopSignal) -> bool {
+        let secs = u64::try_from(until - now_secs()).unwrap_or(0);
+        stop.wait(Duration::from_secs(secs))
+    }
+
+    fn spawn(&self, name: &str, work: Box<dyn FnOnce() + Send>) {
+        std::thread::Builder::new().name(name.into()).spawn(work).expect("spawn thread");
+    }
+}
+
+/// The recovery run and what continues it on its own: Deadlock closing and the daily limit
+/// reopening. A paused run only continues on Resume.
+struct Recovery<D: Driver> {
+    run: Run,
+    driver: D,
+    /// Stopped when the app exits.
+    stop: StopSignal,
+    timer: Mutex<Option<Arc<StopSignal>>>,
+}
+
+impl<D: Driver> Recovery<D> {
+    fn new(run: Run, driver: D) -> Arc<Self> {
+        Arc::new(Self { run, driver, stop: StopSignal::default(), timer: Mutex::new(None) })
+    }
+
+    fn start(self: &Arc<Self>, ids: &[u64], with_history: bool) -> Result<(), AppError> {
+        let under_way = self.status().is_some_and(|s| s.running || s.paused);
+        if !under_way && self.driver.game_running() {
+            return Err(GcError::GameRunning.into());
+        }
+        if self.run.start(ids, with_history, &mut self.driver.store()) {
+            self.drive();
+        }
+        Ok(())
+    }
+
+    fn pause(&self) {
+        self.run.pause(&mut self.driver.store());
+    }
+
+    fn resume(self: &Arc<Self>) {
+        if self.run.resume(&mut self.driver.store()) {
+            self.drive();
+        }
+    }
+
+    fn cancel(&self) {
+        self.run.cancel(&mut self.driver.store(), self.driver.now());
+        if let Some(timer) = self.timer.lock_or_recover().take() {
+            timer.stop();
+        }
+    }
+
+    /// Continues a run that is neither paused nor already driving.
+    fn continue_run(self: &Arc<Self>) {
+        if self.run.claim_driver() {
+            self.drive();
+        }
+    }
+
+    fn on_game_probe(self: &Arc<Self>, last: Option<bool>, running: bool) {
+        if last == Some(true) && !running {
+            self.continue_run();
+        }
+    }
+
+    fn drive(self: &Arc<Self>) {
+        let this = self.clone();
+        self.driver.spawn(
+            "gc-match-recovery",
+            Box::new(move || {
+                if let RunEnd::DailyLimit { until } = this.driver.drive(&this.run, &this.stop) {
+                    this.continue_at(until);
+                }
+            }),
+        );
+    }
+
+    fn continue_at(self: &Arc<Self>, until: i64) {
+        let timer = Arc::new(StopSignal::default());
+        if let Some(old) = self.timer.lock_or_recover().replace(timer.clone()) {
+            old.stop();
+        }
+        let this = self.clone();
+        self.driver.spawn(
+            "gc-match-recovery-timer",
+            Box::new(move || {
+                if !this.driver.sleep_until(until, &timer) && !this.stop.is_stopped() {
+                    this.continue_run();
+                }
+            }),
+        );
+    }
+
+    /// None only with no run and no saved Steam account. A run waiting for Deadlock to close or for
+    /// the daily limit reads as running: it continues on its own.
+    fn status(&self) -> Option<OwnRecovery> {
+        let mut s = self.run.status_for(self.driver.now(), &self.driver.saved_accounts());
+        s.running |= s.waiting.is_some();
+        (s.running || s.paused || s.outcome.is_some() || !s.accounts.is_empty()).then_some(s)
+    }
+
+    fn stop(&self) {
+        self.stop.stop();
+        if let Some(timer) = self.timer.lock_or_recover().take() {
+            timer.stop();
+        }
     }
 }
 
@@ -417,18 +619,19 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
         log::debug!("gc: Deadlock is running, skipping this pass");
         return;
     }
-    let halted = || stop.load(Ordering::Relaxed) || shared.own_active.load(Ordering::Acquire);
+    let halted = || stop.load(Ordering::Relaxed) || shared.recovering.load(Ordering::Acquire) > 0;
     if halted() {
         return;
     }
     let Ok(_gc) = shared.gc_lock.try_lock() else {
-        log::debug!("gc: own match history recovery is running, skipping this pass");
+        log::debug!("gc: match recovery is running, skipping this pass");
         return;
     };
     let contexts = match steam_accounts() {
         Ok(c) => c,
         Err(e) => {
             log::debug!("gc: no usable Steam session, skipping this pass: {e}");
+            shared.remember_accounts(&[]);
             let mut st = shared.status.lock_or_recover();
             st.accounts = 0;
             st.last_error = Some(e);
@@ -436,6 +639,7 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
         }
     };
     log::debug!("gc: {} Steam account(s) available", contexts.len());
+    shared.remember_accounts(&contexts);
     shared.status.lock_or_recover().accounts = u32::try_from(contexts.len()).unwrap_or(u32::MAX);
 
     let mut ledger = Ledger::load(app);
@@ -487,7 +691,7 @@ fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Clie
 pub mod commands {
     use tauri::{AppHandle, State};
 
-    use super::{GcService, GcStatus};
+    use super::{api, coverage, DetailCoverage, GcService, GcStatus};
     use crate::features::error::AppError;
     use crate::http::Http;
 
@@ -502,18 +706,42 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub fn recover_own_matches(
-        app: AppHandle,
-        gc: State<'_, GcService>,
-        http: State<'_, Http>,
-    ) -> Result<(), AppError> {
-        gc.recover_own_matches(app, http.0.clone())
+    pub async fn match_detail_coverage(match_ids: Vec<u64>, http: State<'_, Http>) -> Result<DetailCoverage, AppError> {
+        let http = http.0.clone();
+        let (known, replays) =
+            futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
+        Ok(coverage(&match_ids, &known?, replays?))
     }
 
     #[tauri::command]
-    pub fn cancel_own_match_recovery(gc: State<'_, GcService>) {
-        gc.cancel_own_recovery();
+    pub fn recover_matches(
+        match_ids: Vec<u64>,
+        with_history: bool,
+        app: AppHandle,
+        gc: State<'_, GcService>,
+    ) -> Result<(), AppError> {
+        gc.recover_matches(&app, &match_ids, with_history)
     }
+
+    #[tauri::command]
+    pub fn pause_match_recovery(app: AppHandle, gc: State<'_, GcService>) {
+        gc.pause_recovery(&app);
+    }
+
+    #[tauri::command]
+    pub fn resume_match_recovery(app: AppHandle, gc: State<'_, GcService>) {
+        gc.resume_recovery(&app);
+    }
+
+    #[tauri::command]
+    pub fn cancel_match_recovery(app: AppHandle, gc: State<'_, GcService>) {
+        gc.cancel_recovery(&app);
+    }
+}
+
+/// The `ids` the API has details for, in order, and the ones it has a replay for.
+fn coverage(ids: &[u64], known: &HashSet<u64>, with_replay: Vec<u64>) -> DetailCoverage {
+    DetailCoverage { with_details: ids.iter().copied().filter(|id| known.contains(id)).collect(), with_replay }
 }
 
 #[cfg(test)]
@@ -624,5 +852,355 @@ Content-Length: 2
         assert_eq!(s.username, Some(7));
         assert_eq!((s.match_id, s.cluster_id, s.metadata_salt, s.replay_salt), (5, Some(404), Some(1), None));
         assert_eq!(serde_json::to_value(s).unwrap()["username"], "deadlockplus:7");
+    }
+
+    mod recovery {
+        use std::collections::VecDeque;
+        use std::sync::atomic::AtomicI64;
+
+        use dp_gc::pass::{Release, SaltFetcher};
+        use dp_gc::quota::{FETCH_QUOTA_LIMIT, FETCH_QUOTA_WINDOW_SECS};
+
+        use super::super::own::{
+            AccountProgress, History, LastRun, OwnRecoveryOutcome, RecoveryWait, RunEnv, SavedRun,
+        };
+        use super::super::*;
+
+        const T0: i64 = 1_000_000;
+        const ACCOUNT: u32 = 7;
+        const OTHER: u32 = 9;
+
+        type Work = Box<dyn FnOnce() + Send>;
+
+        /// Runs spawned work only when the test asks, and moves the clock instead of sleeping.
+        #[derive(Default)]
+        struct FakeDriver {
+            game: AtomicBool,
+            game_opens_on_drive: AtomicBool,
+            clock: AtomicI64,
+            quota: Mutex<SaltQuota>,
+            saved: Mutex<Vec<u32>>,
+            drives: AtomicUsize,
+            delivered: Mutex<Vec<u64>>,
+            sleeps: Mutex<Vec<i64>>,
+            spawned: Mutex<VecDeque<Work>>,
+        }
+
+        struct NoStore;
+
+        impl RunStore for NoStore {
+            fn save_run(&mut self, _: &SavedRun) {}
+            fn save_last_run(&mut self, _: LastRun) {}
+        }
+
+        impl Driver for FakeDriver {
+            type Store<'a> = NoStore;
+
+            fn store(&self) -> NoStore {
+                NoStore
+            }
+
+            fn saved_accounts(&self) -> Vec<(u32, SaltQuota)> {
+                let quota = self.quota.lock_or_recover().clone();
+                let saved = self.saved.lock_or_recover();
+                saved.iter().map(|&id| (id, if id == ACCOUNT { quota.clone() } else { SaltQuota::default() })).collect()
+            }
+
+            fn game_running(&self) -> bool {
+                self.game.load(Ordering::SeqCst)
+            }
+
+            fn now(&self) -> i64 {
+                self.clock.load(Ordering::SeqCst)
+            }
+
+            fn drive(&self, run: &Run, _: &StopSignal) -> RunEnd {
+                self.drives.fetch_add(1, Ordering::SeqCst);
+                if self.game_opens_on_drive.swap(false, Ordering::SeqCst) {
+                    self.game.store(true, Ordering::SeqCst);
+                }
+                block_on(own::drive(run, &mut TestEnv { fake: self }))
+            }
+
+            fn sleep_until(&self, until: i64, _: &StopSignal) -> bool {
+                self.sleeps.lock_or_recover().push(until);
+                self.clock.store(until, Ordering::SeqCst);
+                false
+            }
+
+            fn spawn(&self, _: &str, work: Work) {
+                self.spawned.lock_or_recover().push_back(work);
+            }
+        }
+
+        impl FakeDriver {
+            fn drives(&self) -> usize {
+                self.drives.load(Ordering::SeqCst)
+            }
+
+            fn delivered(&self) -> Vec<u64> {
+                self.delivered.lock_or_recover().clone()
+            }
+        }
+
+        struct TestEnv<'a> {
+            fake: &'a FakeDriver,
+        }
+
+        struct TestSession(u32);
+
+        impl SaltFetcher for TestSession {
+            async fn fetch_match_salts(&self, match_id: u64) -> Result<RecoveredSalts, SteamGcError> {
+                Ok(RecoveredSalts {
+                    match_id,
+                    cluster_id: Some(1),
+                    metadata_salt: Some(2),
+                    replay_salt: None,
+                    account_id: self.0,
+                })
+            }
+        }
+
+        impl Release for TestSession {
+            async fn release(&self) {}
+        }
+
+        impl Host for TestEnv<'_> {
+            async fn before_request(&mut self) -> bool {
+                !self.fake.game_running()
+            }
+
+            async fn deliver(&mut self, salts: RecoveredSalts) -> bool {
+                self.fake.delivered.lock_or_recover().push(salts.match_id);
+                true
+            }
+
+            fn now(&self) -> i64 {
+                self.fake.now()
+            }
+        }
+
+        impl RunStore for TestEnv<'_> {
+            fn save_run(&mut self, _: &SavedRun) {}
+            fn save_last_run(&mut self, _: LastRun) {}
+        }
+
+        impl RunEnv for TestEnv<'_> {
+            type Session = TestSession;
+
+            fn game_running(&self) -> bool {
+                self.fake.game_running()
+            }
+
+            fn accounts(&mut self) -> Result<Vec<u32>, AppError> {
+                Ok(vec![ACCOUNT])
+            }
+
+            async fn connect(&mut self, account_id: u32) -> Result<TestSession, SteamGcError> {
+                Ok(TestSession(account_id))
+            }
+
+            async fn history(&mut self, _: &TestSession, _: u32) -> Result<History, SteamGcError> {
+                Ok(History::default())
+            }
+
+            fn quota(&self, _: u32) -> SaltQuota {
+                self.fake.quota.lock_or_recover().clone()
+            }
+
+            fn save_quota(&mut self, _: u32, quota: &SaltQuota) {
+                *self.fake.quota.lock_or_recover() = quota.clone();
+            }
+
+            fn attempts(&self) -> SaltAttempts {
+                SaltAttempts::default()
+            }
+
+            fn save_attempts(&mut self, _: &SaltAttempts) {}
+
+            fn report(&mut self, _: OwnRecovery) {}
+        }
+
+        fn recovery() -> Arc<Recovery<FakeDriver>> {
+            let driver = FakeDriver::default();
+            driver.clock.store(T0, Ordering::SeqCst);
+            Recovery::new(Run::default(), driver)
+        }
+
+        fn settle(r: &Recovery<FakeDriver>) {
+            loop {
+                let work = r.driver.spawned.lock_or_recover().pop_front();
+                match work {
+                    Some(work) => work(),
+                    None => return,
+                }
+            }
+        }
+
+        fn spend_the_daily_limit(r: &Recovery<FakeDriver>) {
+            *r.driver.quota.lock_or_recover() = SaltQuota::from_hits(vec![T0; FETCH_QUOTA_LIMIT]);
+        }
+
+        /// A run started with Deadlock closed that finds it open when the drive begins.
+        fn waiting_for_the_game(r: &Arc<Recovery<FakeDriver>>) {
+            r.driver.game_opens_on_drive.store(true, Ordering::SeqCst);
+            r.start(&[1, 2], false).unwrap();
+            settle(r);
+            assert_eq!(r.status().unwrap().waiting, Some(RecoveryWait::GameOpen));
+        }
+
+        #[test]
+        fn deadlock_closing_continues_a_waiting_run() {
+            let r = recovery();
+            waiting_for_the_game(&r);
+            r.driver.game.store(false, Ordering::SeqCst);
+            r.on_game_probe(Some(true), false);
+            settle(&r);
+            assert_eq!(r.driver.drives(), 2);
+            assert_eq!(r.driver.delivered(), [1, 2]);
+        }
+
+        #[test]
+        fn only_deadlock_closing_continues_a_run() {
+            let r = recovery();
+            waiting_for_the_game(&r);
+            r.driver.game.store(false, Ordering::SeqCst);
+            r.on_game_probe(None, false);
+            r.on_game_probe(Some(false), true);
+            settle(&r);
+            assert_eq!(r.driver.drives(), 1);
+        }
+
+        #[test]
+        fn a_paused_run_never_continues_when_deadlock_closes() {
+            let r = recovery();
+            waiting_for_the_game(&r);
+            r.pause();
+            r.driver.game.store(false, Ordering::SeqCst);
+            r.on_game_probe(Some(true), false);
+            r.continue_run();
+            settle(&r);
+            assert_eq!(r.driver.drives(), 1);
+            assert!(r.driver.delivered().is_empty());
+            assert!(r.status().unwrap().paused);
+        }
+
+        #[test]
+        fn the_run_continues_when_the_daily_limit_reopens() {
+            let r = recovery();
+            spend_the_daily_limit(&r);
+            r.start(&[1, 2], false).unwrap();
+            settle(&r);
+            let until = T0 + FETCH_QUOTA_WINDOW_SECS;
+            assert_eq!(*r.driver.sleeps.lock_or_recover(), [until]);
+            assert_eq!(r.driver.drives(), 2);
+            assert_eq!(r.driver.delivered(), [1, 2]);
+            assert_eq!(r.status().unwrap().outcome, Some(OwnRecoveryOutcome::Done));
+        }
+
+        #[test]
+        fn a_paused_run_never_continues_when_the_daily_limit_reopens() {
+            let r = recovery();
+            spend_the_daily_limit(&r);
+            r.start(&[1, 2], false).unwrap();
+            let drive = r.driver.spawned.lock_or_recover().pop_front().unwrap();
+            drive();
+            r.pause();
+            settle(&r);
+            assert_eq!(r.driver.drives(), 1);
+            assert!(r.driver.delivered().is_empty());
+        }
+
+        #[test]
+        fn starting_while_deadlock_runs_and_no_run_is_going_is_refused() {
+            let r = recovery();
+            r.driver.game.store(true, Ordering::SeqCst);
+            let err = r.start(&[1], false).unwrap_err();
+            assert_eq!(err.code(), "gc.game_running");
+            settle(&r);
+            assert_eq!(r.driver.drives(), 0);
+            assert!(r.status().is_none());
+        }
+
+        #[test]
+        fn starting_while_deadlock_runs_adds_to_a_waiting_run() {
+            let r = recovery();
+            waiting_for_the_game(&r);
+            r.start(&[3], false).unwrap();
+            settle(&r);
+            r.driver.game.store(false, Ordering::SeqCst);
+            r.on_game_probe(Some(true), false);
+            settle(&r);
+            assert_eq!(r.driver.delivered(), [3, 1, 2]);
+        }
+
+        /// Pressing Recover is consent for that run (the background toggle has no say).
+        #[test]
+        fn a_run_starts_and_drives_without_the_background_worker() {
+            let r = recovery();
+            r.start(&[4, 5], false).unwrap();
+            settle(&r);
+            assert_eq!(r.driver.delivered(), [4, 5]);
+        }
+
+        #[test]
+        fn a_waiting_run_reads_as_running() {
+            let r = recovery();
+            assert!(r.status().is_none());
+            waiting_for_the_game(&r);
+            assert!(r.status().unwrap().running);
+        }
+
+        #[test]
+        fn an_idle_status_lists_every_saved_account_with_its_daily_use() {
+            let r = recovery();
+            *r.driver.saved.lock_or_recover() = vec![OTHER, ACCOUNT];
+            *r.driver.quota.lock_or_recover() = SaltQuota::from_hits(vec![T0 - 60; 7]);
+            let s = r.status().expect("saved accounts show with no run");
+            assert!(!s.running && !s.paused);
+            assert_eq!((s.waiting, s.outcome, s.total), (None, None, 0));
+            assert_eq!(
+                s.accounts,
+                [
+                    AccountProgress { account_id: ACCOUNT, delivered: 0, used_today: 7, rate_limited: false },
+                    AccountProgress { account_id: OTHER, delivered: 0, used_today: 0, rate_limited: false },
+                ]
+            );
+        }
+
+        #[test]
+        fn after_a_run_the_daily_use_follows_the_ledger_and_keeps_the_runs_deliveries() {
+            let r = recovery();
+            *r.driver.saved.lock_or_recover() = vec![ACCOUNT, OTHER];
+            r.start(&[1, 2], false).unwrap();
+            settle(&r);
+            *r.driver.quota.lock_or_recover() = SaltQuota::from_hits(vec![T0; 5]);
+            let s = r.status().unwrap();
+            assert_eq!(s.outcome, Some(OwnRecoveryOutcome::Done));
+            assert_eq!(
+                s.accounts,
+                [
+                    AccountProgress { account_id: ACCOUNT, delivered: 2, used_today: 5, rate_limited: false },
+                    AccountProgress { account_id: OTHER, delivered: 0, used_today: 0, rate_limited: false },
+                ]
+            );
+        }
+
+        #[test]
+        fn an_account_no_longer_saved_drops_out() {
+            let r = recovery();
+            *r.driver.saved.lock_or_recover() = vec![ACCOUNT];
+            r.start(&[1], false).unwrap();
+            settle(&r);
+            *r.driver.saved.lock_or_recover() = vec![OTHER];
+            let ids: Vec<u32> = r.status().unwrap().accounts.iter().map(|a| a.account_id).collect();
+            assert_eq!(ids, [OTHER]);
+        }
+
+        #[test]
+        fn coverage_keeps_the_asked_order() {
+            let got = coverage(&[3, 1, 2], &HashSet::from([2, 3]), vec![2]);
+            assert_eq!(got, DetailCoverage { with_details: vec![3, 2], with_replay: vec![2] });
+        }
     }
 }

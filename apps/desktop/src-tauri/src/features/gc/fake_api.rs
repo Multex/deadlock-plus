@@ -8,6 +8,7 @@ pub struct Request {
     /// For example `GET /matches/to-fetch`.
     pub route: String,
     pub cookie: Option<String>,
+    pub body: String,
 }
 
 pub struct Reply {
@@ -71,17 +72,28 @@ impl FakeApi {
 fn read_request(conn: &mut impl Read) -> Option<Request> {
     let mut raw = Vec::new();
     let mut buf = [0u8; 1024];
-    while !raw.windows(4).any(|w| w == b"\r\n\r\n") {
+    let head_end = loop {
+        if let Some(i) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+            break i + 4;
+        }
+        let n = conn.read(&mut buf).ok().filter(|&n| n > 0)?;
+        raw.extend_from_slice(&buf[..n]);
+    };
+    let head = String::from_utf8_lossy(&raw[..head_end]).into_owned();
+    let mut lines = head.lines();
+    let mut start = lines.next()?.split(' ');
+    let route = format!("{} {}", start.next()?, start.next()?);
+    let header = |wanted: &str| {
+        head.lines().find_map(|l| {
+            let (name, value) = l.split_once(':')?;
+            name.eq_ignore_ascii_case(wanted).then(|| value.trim().to_owned())
+        })
+    };
+    let length: usize = header("content-length").and_then(|v| v.parse().ok()).unwrap_or(0);
+    while raw.len() < head_end + length {
         let n = conn.read(&mut buf).ok().filter(|&n| n > 0)?;
         raw.extend_from_slice(&buf[..n]);
     }
-    let text = String::from_utf8_lossy(&raw);
-    let mut lines = text.lines();
-    let mut start = lines.next()?.split(' ');
-    let route = format!("{} {}", start.next()?, start.next()?);
-    let cookie = lines.find_map(|l| {
-        let (name, value) = l.split_once(':')?;
-        name.eq_ignore_ascii_case("cookie").then(|| value.trim().to_owned())
-    });
-    Some(Request { route, cookie })
+    let body = String::from_utf8_lossy(&raw[head_end..head_end + length]).into_owned();
+    Some(Request { route, cookie: header("cookie"), body })
 }

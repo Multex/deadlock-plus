@@ -4,7 +4,6 @@ error_codes! {
     pub enum GcError in "gc" {
         SteamNotFound = "steam_not_found",
         NoLogin = "no_login",
-        Disabled = "disabled",
         GameRunning = "game_running",
     }
 }

@@ -13,6 +13,8 @@ use dp_sync::LockExt;
 use crate::features::error::AppError;
 
 const API: &str = "https://api.deadlock-api.com/v1";
+const API_ROOT: &str = "https://api.deadlock-api.com";
+const REPLAY_CHUNK: usize = 10_000;
 const METADATA_CHUNK: usize = 100;
 const PLAYERS_CHUNK: usize = 1000;
 const CLAIM_COOKIE: &str = "to_fetch_claim";
@@ -118,6 +120,55 @@ pub async fn known_match_ids(http: &reqwest::Client, match_ids: &[u64]) -> Resul
     Ok(known)
 }
 
+/// The subset of `match_ids` deadlock-api serves a replay (`demo_url`) for.
+pub async fn replay_match_ids(http: &reqwest::Client, match_ids: &[u64]) -> Result<Vec<u64>, AppError> {
+    replay_match_ids_at(API_ROOT, http, match_ids).await
+}
+
+#[derive(Deserialize)]
+struct GraphqlReply {
+    data: Option<MatchSalts>,
+    #[serde(default)]
+    errors: Vec<GraphqlError>,
+}
+
+#[derive(Deserialize)]
+struct MatchSalts {
+    match_salts: Vec<SaltRow>,
+}
+
+#[derive(Deserialize)]
+struct SaltRow {
+    match_id: u64,
+    demo_url: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct GraphqlError {
+    message: String,
+}
+
+/// `base` is the host root, without `/v1`.
+async fn replay_match_ids_at(base: &str, http: &reqwest::Client, match_ids: &[u64]) -> Result<Vec<u64>, AppError> {
+    let mut replays = Vec::new();
+    for chunk in match_ids.chunks(REPLAY_CHUNK) {
+        let query =
+            format!("{{ match_salts(where: {{match_id: {{in: [{}]}}}}) {{ match_id demo_url }} }}", join_ids(chunk));
+        let req = http.post(format!("{base}/v1/graphql")).json(&serde_json::json!({ "query": query }));
+        let resp = req.timeout(super::HTTP_TIMEOUT).send().await.map_err(AppError::network)?;
+        let reply: GraphqlReply =
+            resp.error_for_status().map_err(AppError::network)?.json().await.map_err(AppError::network)?;
+        if let Some(e) = reply.errors.first() {
+            return Err(AppError::network(&e.message));
+        }
+        let rows = reply.data.ok_or_else(|| AppError::network("graphql reply has no data"))?.match_salts;
+        replays.extend(
+            rows.into_iter().filter(|r| r.demo_url.as_deref().is_some_and(|u| !u.is_empty())).map(|r| r.match_id),
+        );
+    }
+    Ok(replays)
+}
+
 #[derive(Deserialize)]
 struct SteamProfileRow {
     account_id: u32,
@@ -162,11 +213,11 @@ mod tests {
     const CLAIM: &str = "to_fetch_claim=0b6f9c1e-2d4a; Path=/v1/matches/to-fetch; Max-Age=900; HttpOnly; Secure";
 
     fn get(cookie: Option<&str>) -> Request {
-        Request { route: "GET /matches/to-fetch".into(), cookie: cookie.map(Into::into) }
+        Request { route: "GET /matches/to-fetch".into(), cookie: cookie.map(Into::into), body: String::new() }
     }
 
     fn release(cookie: &str) -> Request {
-        Request { route: "POST /matches/to-fetch/release".into(), cookie: Some(cookie.into()) }
+        Request { route: "POST /matches/to-fetch/release".into(), cookie: Some(cookie.into()), body: String::new() }
     }
 
     #[test]
@@ -255,6 +306,74 @@ mod tests {
         });
         let claim = "to_fetch_claim=0b6f9c1e-2d4a";
         assert_eq!(api.requests(), vec![get(None), get(Some(claim)), release(claim)]);
+    }
+
+    fn ask(api: &FakeApi, ids: &[u64]) -> Result<Vec<u64>, AppError> {
+        block_on(replay_match_ids_at(&api.url, &reqwest::Client::new(), ids))
+    }
+
+    #[test]
+    fn replay_ids_are_sent_as_a_match_salts_query() {
+        let api = FakeApi::serve(vec![Reply::json(r#"{"data":{"match_salts":[]}}"#)]);
+        ask(&api, &[7, 8]).unwrap();
+        let requests = api.requests();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].route, "POST /v1/graphql");
+        let body: serde_json::Value = serde_json::from_str(&requests[0].body).unwrap();
+        assert_eq!(body["query"], "{ match_salts(where: {match_id: {in: [7,8]}}) { match_id demo_url } }");
+    }
+
+    #[test]
+    fn only_matches_with_a_demo_url_have_a_replay() {
+        let api = FakeApi::serve(vec![Reply::json(
+            r#"{"data":{"match_salts":[
+                {"match_id":1,"demo_url":"http://replay1.valve.net/1.dem.bz2"},
+                {"match_id":2,"demo_url":null},
+                {"match_id":3,"demo_url":""},
+                {"match_id":4}]}}"#,
+        )]);
+        assert_eq!(ask(&api, &[1, 2, 3, 4, 5]).unwrap(), vec![1]);
+    }
+
+    #[test]
+    fn an_empty_reply_has_no_replays() {
+        let api = FakeApi::serve(vec![Reply::json(r#"{"data":{"match_salts":[]}}"#)]);
+        assert_eq!(ask(&api, &[1]).unwrap(), Vec::<u64>::new());
+    }
+
+    #[test]
+    fn no_ids_send_no_request() {
+        let api = FakeApi::serve(vec![]);
+        assert_eq!(ask(&api, &[]).unwrap(), Vec::<u64>::new());
+        assert!(api.requests().is_empty());
+    }
+
+    #[test]
+    fn ten_thousand_and_one_ids_take_two_requests() {
+        let api = FakeApi::serve(vec![
+            Reply::json(r#"{"data":{"match_salts":[{"match_id":10000,"demo_url":"u"}]}}"#),
+            Reply::json(r#"{"data":{"match_salts":[{"match_id":10001,"demo_url":"u"}]}}"#),
+        ]);
+        let ids: Vec<u64> = (1..=10_001).collect();
+        assert_eq!(ask(&api, &ids).unwrap(), vec![10000, 10001]);
+        let requests = api.requests();
+        assert_eq!(requests.len(), 2);
+        assert!(requests[0].body.contains("[1,2,"));
+        assert!(requests[0].body.contains(",10000]"));
+        assert!(requests[1].body.contains("in: [10001]"));
+        assert!(requests.iter().all(|r| r.route == "POST /v1/graphql"));
+    }
+
+    #[test]
+    fn a_server_error_fails_the_lookup() {
+        let api = FakeApi::serve(vec![Reply::status("503 Service Unavailable")]);
+        assert!(ask(&api, &[1]).is_err());
+    }
+
+    #[test]
+    fn a_graphql_error_fails_the_lookup() {
+        let api = FakeApi::serve(vec![Reply::json(r#"{"errors":[{"message":"rate limited"}]}"#)]);
+        assert!(ask(&api, &[1]).is_err());
     }
 
     #[test]
