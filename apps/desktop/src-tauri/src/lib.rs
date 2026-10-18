@@ -21,6 +21,12 @@ pub fn capture_helper_exit_code() -> Option<i32> {
     Some(args.next().map_or(2, |socket| dp_connection::run_helper(&socket)))
 }
 
+/// Privileged modes live in `deadlock-plus-helper.exe`. A service whose binPath still points at the app exe
+/// would otherwise start the full GUI app as SYSTEM, so any such argv is refused (exit code 2) before Tauri starts.
+pub fn privileged_argv_exit_code(argv: &[std::ffi::OsString]) -> Option<i32> {
+    dp_helper::args::parse(argv).map(|_| 2)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     features::logging::install_panic_hook();
@@ -274,4 +280,34 @@ pub fn run() {
             log::logger().flush();
         }
     });
+}
+
+#[cfg(test)]
+mod privileged_argv_tests {
+    use super::privileged_argv_exit_code;
+    use std::ffi::OsString;
+
+    fn argv(parts: &[&str]) -> Vec<OsString> {
+        parts.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn service_launch_is_refused() {
+        assert_eq!(privileged_argv_exit_code(&argv(&["app.exe", "--service"])), Some(2));
+    }
+
+    #[test]
+    fn helper_launch_is_refused_valid_or_not() {
+        assert_eq!(privileged_argv_exit_code(&argv(&["app.exe", "--privileged-helper"])), Some(2));
+        let pipe = dp_helper::args::helper_pipe_name(7, 1);
+        let ok = argv(&["app.exe", "--privileged-helper", &pipe, "7"]);
+        assert_eq!(privileged_argv_exit_code(&ok), Some(2));
+    }
+
+    #[test]
+    fn ordinary_launches_pass() {
+        assert_eq!(privileged_argv_exit_code(&argv(&["app.exe"])), None);
+        assert_eq!(privileged_argv_exit_code(&argv(&["app.exe", "deadlockplus://match/1"])), None);
+        assert_eq!(privileged_argv_exit_code(&[]), None);
+    }
 }
