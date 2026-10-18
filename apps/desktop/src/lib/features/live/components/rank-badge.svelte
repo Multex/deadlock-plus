@@ -1,16 +1,22 @@
 <script lang="ts">
     import type { RankTier } from "@deadlock-plus/stats/rank";
+    import { t } from "$lib/core/i18n.svelte";
     import { partsName } from "$lib/features/stats/rank-view";
     import { rankView } from "../live";
 
-    let { rank, tiers }: { rank: number | null; tiers: RankTier[] } = $props();
+    let {
+        rank,
+        tiers,
+        fromHistory = false,
+    }: { rank: number | null; tiers: RankTier[]; fromHistory?: boolean } = $props();
 
     const parts = $derived(rankView(rank));
     const tier = $derived(parts ? (tiers.find((t) => t.tier === parts.tier) ?? null) : null);
 </script>
 
 {#if parts}
-    <span class="badge" title={partsName(tiers, parts)}>
+    {@const name = partsName(tiers, parts)}
+    <span class="badge" title={fromHistory ? t("live.rank_from_history", { rank: name }) : name}>
         {#if tier?.image}
             <img src={tier.image} alt="" class="art" />
             <span class="sub">{parts.sub}</span>

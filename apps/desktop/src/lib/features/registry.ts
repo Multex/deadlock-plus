@@ -10,6 +10,7 @@ import { gcStatus } from "./gc/status.svelte";
 import { ingestStatus } from "./ingest/status.svelte";
 import { jobs } from "./jobs/jobs.svelte";
 import { grades } from "./live/grades.svelte";
+import { lobbyRanks } from "./live/lobby-ranks.svelte";
 import { live } from "./live/live.svelte";
 import { startBreakReminder } from "./match-history/break-reminder.svelte";
 import { presenceStatus } from "./presence/status.svelte";
@@ -181,6 +182,7 @@ export const SERVICES: Service[] = [
     () => gameArt.start(),
     () => live.start(),
     () => grades.start(),
+    () => lobbyRanks.start(),
     () => adminAccess.start(),
     () => presenceStatus.start(),
     startBreakReminder,

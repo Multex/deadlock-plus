@@ -38,6 +38,7 @@
         type HeroSwap,
     } from "../live";
     import HeroIcon from "./hero-icon.svelte";
+    import { lobbyRanks } from "../lobby-ranks.svelte";
     import RankBadge from "./rank-badge.svelte";
 
     let {
@@ -148,6 +149,7 @@
             {@const heroDmg = formatCompact(p.heroDamage)}
             {@const objDmg = formatCompact(p.objectiveDamage)}
             {@const heal = formatCompact(p.healing)}
+            {@const shown = lobbyRanks.rank(p)}
             <div class="grid row" class:me={p.isYou} role="row">
                 <span class="id" role="cell">
                     <HeroIcon heroId={p.heroId} {heroes} />
@@ -170,7 +172,7 @@
                             )}
                         </span>
                     {/if}
-                    <RankBadge rank={p.rank} {tiers} />
+                    <RankBadge rank={shown.rank} fromHistory={shown.fromHistory} {tiers} />
                 </span>
                 <span class="g r p cs" class:z={faint(souls)} role="cell">{cell(souls)}</span>
                 <span class="r s lo cspm" class:z={faint(spm)} role="cell">{cell(spm)}</span>

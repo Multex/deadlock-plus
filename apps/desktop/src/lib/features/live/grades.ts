@@ -20,7 +20,7 @@ import {
     type StatMetrics,
 } from "@deadlock-plus/stats/grades";
 import { meanBadge, unrankedLobbyBadge } from "@deadlock-plus/stats/lobby-badge";
-import { steam64ToSteam32 } from "$lib/features/voice-bans/voice-ban";
+import { accountId, lobbyAccountIds } from "./lobby-ranks";
 
 export type NoTargetsReason = "offline" | "apiDown" | "rateLimited" | "emptyData";
 
@@ -80,19 +80,13 @@ export function apiGameMode(gameMode: LiveGameMode | null): ApiGameMode {
     return gameMode === "streetBrawl" ? "street_brawl" : "normal";
 }
 
-const accountId = (steamId: string | null) => (steamId === null ? null : Number(steam64ToSteam32(steamId)));
-
 export function groupSource(match: LiveMatch): GroupSource {
     if (match.gameMode === "streetBrawl") return { kind: "streetBrawl" };
     const lobby = players(match);
     if (match.matchMode === "ranked") return { kind: "ranked", badge: meanBadge(lobby.map((p) => p.rank)) };
-    const ids = lobby.flatMap((p) => {
-        const id = accountId(p.steamId);
-        return id === null ? [] : [id];
-    });
     return {
         kind: "unranked",
-        accountIds: [...new Set(ids)].sort((a, b) => a - b),
+        accountIds: lobbyAccountIds(match),
         you: accountId(yourPlayer(match)?.steamId ?? null),
     };
 }

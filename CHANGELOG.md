@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Hardware acceleration can be turned off on Windows and Linux, with a button to restart Deadlock+ and apply it.
 - Deadlock+ can open its window when Deadlock starts, even from the tray.
 - Clicking a Deadlock+ desktop notification opens the page it is about.
+- In unranked matches, the Live page shows each player's rank from their ranked matches.
 
 #### Game overlay
 

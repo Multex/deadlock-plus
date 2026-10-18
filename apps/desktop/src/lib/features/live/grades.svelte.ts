@@ -13,6 +13,7 @@ import {
 } from "@deadlock-plus/stats/lobby-badge";
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { live } from "./live.svelte";
+import { rankLookup } from "./lobby-ranks.svelte";
 import {
     apiGameMode,
     failureReason,
@@ -248,4 +249,8 @@ export class GradesStore {
     }
 }
 
-export const grades = new GradesStore({ live, api: deadlockApi, nowSecs: () => Math.floor(Date.now() / 1000) });
+export const grades = new GradesStore({
+    live,
+    api: { ...deadlockApi, playerRanks: rankLookup },
+    nowSecs: () => Math.floor(Date.now() / 1000),
+});

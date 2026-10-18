@@ -1909,6 +1909,7 @@
             "objective_damage": "Objective damage",
             "healing": "Healing"
         },
+        "rank_from_history": "{rank}, from their ranked matches",
         "paused": "Paused",
         "player": {
             "steam_profile": "Open Steam profile",
