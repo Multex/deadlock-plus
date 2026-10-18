@@ -1,0 +1,40 @@
+name: Lines of code
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: loc
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+
+      - name: Count lines of code
+        run: node scripts/loc.mjs
+
+      # Pushes made with GITHUB_TOKEN do not start workflows, so this commit cannot retrigger this job or CI.
+      - name: Commit the README
+        run: |
+          if git diff --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs(readme): 📝 update lines of code"
+          git pull --rebase origin main
+          git push origin HEAD:main

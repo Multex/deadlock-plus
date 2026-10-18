@@ -28,7 +28,8 @@
     "version:check": "node ../../scripts/version.mjs --check",
     "tiers:check": "node ../../scripts/tiers.mjs",
     "layers:check": "node ../../scripts/frontend-layers.mjs",
-    "i18n:check": "node ../../scripts/i18n-check.mjs"
+    "i18n:check": "node ../../scripts/i18n-check.mjs",
+    "loc": "node ../../scripts/loc.mjs"
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {
