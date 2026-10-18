@@ -25,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The test notification waits 3 seconds, so you can click into the game first.
 - Overlay notifications move with you when you switch into or out of the game.
 - "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
+- "Match found" only shows while you are tabbed out, since Deadlock shows its own when it is in front.
 - Settings > Notifications has a switch to turn "Match found" off.
 
 #### Notification settings

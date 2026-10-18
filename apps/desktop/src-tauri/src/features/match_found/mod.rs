@@ -3,11 +3,13 @@ pub mod detector;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use dp_game::focus::GameFocus;
 use dp_live::{FactsFeed, GameMode, LiveFacts, MatchMode, Slot, Snapshot};
 use dp_postgame::{Stop, Worker};
 use dp_sync::LockExt;
 use tauri::{AppHandle, Manager};
 
+use super::game_focus::GameFocusService;
 use super::i18n::{translate_in, I18nState};
 use super::live::link::GameLinkService;
 use super::notifications::{self, NotificationTopic};
@@ -72,11 +74,17 @@ fn run(stop: &Stop, app: &AppHandle, slot: &Slot<Snapshot>) {
 }
 
 fn announce(app: &AppHandle, facts: &LiveFacts) {
-    if !app.state::<OverlayService>().settings().match_found {
+    let enabled = app.state::<OverlayService>().settings().match_found;
+    if !wanted(enabled, app.state::<GameFocusService>().state().focus) {
         return;
     }
     let (key, params) = message(facts, &app.state::<I18nState>().locale());
     notifications::push(app, NotificationTopic::MatchFound, key, &params, None);
+}
+
+/// The game shows its own pop while it is in front; this alert is for players who tabbed out.
+fn wanted(enabled: bool, focus: GameFocus) -> bool {
+    enabled && focus != GameFocus::Focused
 }
 
 /// Street Brawl is a game mode, not a match mode, so it wins over whatever match mode it reports.
@@ -147,6 +155,14 @@ mod tests {
         for mode in [None, Some(MatchMode::PrivateLobby), Some(MatchMode::Tutorial), Some(MatchMode::Other)] {
             assert_eq!(mode_param(found(mode, Some(GameMode::Normal))), None, "{mode:?}");
         }
+    }
+
+    #[test]
+    fn announces_only_while_the_game_is_not_in_front() {
+        assert!(!wanted(true, GameFocus::Focused), "the game shows its own pop");
+        assert!(wanted(true, GameFocus::Background), "tabbed out");
+        assert!(wanted(true, GameFocus::Closed), "focus watcher not running");
+        assert!(!wanted(false, GameFocus::Background), "the user turned it off");
     }
 
     #[test]
