@@ -90,6 +90,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- Saved and copied scoreboard images no longer show scrollbars when Windows or Deadlock+ scaling is above 100%.
+- Team names in saved and copied scoreboard images stay on one line instead of covering the team totals.
 - Map positions and some hero and item images load again after Deadlock's October 16 patch.
 - Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
 - A new hero's Discord art shows up within an hour of the Deadlock API publishing it, instead of up to a week later.

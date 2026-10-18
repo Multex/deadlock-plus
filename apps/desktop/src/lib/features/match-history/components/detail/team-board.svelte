@@ -423,9 +423,12 @@
         align-items: baseline;
         gap: 10px;
     }
+    /* The exported image keeps each measured width but can draw the text a fraction wider, which would wrap the
+       name over the totals below it. */
     .team-name {
         font-size: 14px;
         font-weight: 700;
+        white-space: nowrap;
     }
     .result {
         font-size: 11px;

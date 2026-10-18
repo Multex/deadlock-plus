@@ -55,6 +55,17 @@ function pageBackground(): string {
 }
 
 /**
+ * The image keeps every measured width but lays its content out again, and above 100% display or app scaling that
+ * content comes out a fraction wider. A scroll box in the copy would then draw a scrollbar into the image.
+ */
+function stopScrolling(root: HTMLElement): void {
+    for (const el of [root, ...root.querySelectorAll<HTMLElement>("*")]) {
+        const { overflowX, overflowY } = getComputedStyle(el);
+        if ([overflowX, overflowY].some((v) => v === "auto" || v === "scroll")) el.style.overflow = "hidden";
+    }
+}
+
+/**
  * Renders an off-screen copy of `node` with the branded footer attached to the board's bottom edge, so the live
  * page is never touched.
  */
@@ -81,6 +92,7 @@ export async function renderNodeToPng(node: HTMLElement, footerLabel: string): P
     try {
         await document.fonts?.ready;
         await inlineImages(clone);
+        stopScrolling(clone);
         const height = clone.scrollHeight;
         const blob = await toBlob(clone, {
             width: EXPORT_WIDTH,
