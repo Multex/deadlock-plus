@@ -95,6 +95,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pressing Play while match salts are being recovered no longer says Deadlock is being played on another computer.
 - Discord shows "Finding match" with the queue timer again when you queue as a party.
 - Discord shows the mode you queued for when you queue as a party.
+- The Live page's current server ignores other traffic from the game, like voice chat.
+- The Live page's current server clears when you leave a server, instead of showing the last one.
+- The Live page switches to your new server at once when you go from a match to the Hideout or the next match.
 - "Match found" over the game also shows when you queue as a party.
 - Match salt recovery no longer misses friends' online status when many answer at once.
 - On Linux, ping times no longer fail on systems set to a language other than English.

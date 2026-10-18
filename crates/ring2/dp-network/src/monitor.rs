@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 use std::future::Future;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddrV4};
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -45,6 +45,118 @@ pub type RelayMap = HashMap<Ipv4Addr, PopInfo>;
 
 /// Yields the current relay address to PoP mapping. Called again every hour, and every 30 s after a failure.
 pub type RelaySource = Arc<dyn Fn() -> Pin<Box<dyn Future<Output = Result<RelayMap, String>> + Send>> + Send + Sync>;
+
+/// The signon state of a fully connected net channel. Inferred from Source 2 naming, not confirmed in the game.
+pub const SIGNON_FULL: u32 = 6;
+
+/// Ticks a blocked flow must be the only one over the bar before it is taken again: a new match can land on the
+/// same relay ip:port as the last one.
+const REUSE_TICKS: u32 = 5;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EngineServer {
+    Steam(u64),
+    Ip(SocketAddrV4),
+    Loopback,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EngineLink {
+    /// `signon` is `None` when the game has no net channel.
+    NotConnected { signon: Option<u32> },
+    /// `None` when the remote of a connected channel could not be named.
+    Connected(Option<EngineServer>),
+}
+
+impl EngineLink {
+    pub fn from_channel(signon: Option<u32>, server: Option<EngineServer>) -> Self {
+        match signon {
+            Some(SIGNON_FULL) => Self::Connected(server),
+            signon => Self::NotConnected { signon },
+        }
+    }
+}
+
+/// Yields what the game's net channel is connected to, or `None` when that is unknown. Called once a tick.
+pub type EngineSource = Arc<dyn Fn() -> Option<EngineLink> + Send + Sync>;
+
+struct Blocked {
+    key: FlowKey,
+    alone_ticks: u32,
+}
+
+/// Picks the "Current server" flow. The engine says when the game changed server, so the old server's flow, which
+/// can stay busy for minutes after a match, is not shown for the new one.
+#[derive(Default)]
+struct ServerPick {
+    engine: Option<EngineLink>,
+    server: Option<EngineServer>,
+    bound: Option<FlowKey>,
+    blocked: Option<Blocked>,
+}
+
+impl ServerPick {
+    fn select(
+        &mut self,
+        engine: Option<EngineLink>,
+        window: &HashMap<FlowKey, FlowAgg>,
+        secs: f32,
+        relays: &RelayMap,
+    ) -> Option<FlowKey> {
+        if engine != self.engine {
+            log::debug!("engine link {:?} -> {:?}", self.engine, engine);
+            self.engine = engine;
+        }
+        let server = match engine {
+            None | Some(EngineLink::Connected(None)) => return pick_game_flow(window, secs, relays).map(|(k, _)| *k),
+            Some(EngineLink::NotConnected { .. }) | Some(EngineLink::Connected(Some(EngineServer::Loopback))) => {
+                return None
+            }
+            Some(EngineLink::Connected(Some(server))) => server,
+        };
+
+        if self.server.is_some_and(|last| last != server) {
+            if let Some(key) = self.bound.take() {
+                log::debug!("server changed, blocking {}:{}", key.ip, key.port);
+                self.blocked = Some(Blocked { key, alone_ticks: 0 });
+            }
+        }
+        self.server = Some(server);
+        self.update_block(window, secs, relays);
+
+        let exact = match server {
+            EngineServer::Ip(addr) => {
+                Some(FlowKey { ip: *addr.ip(), port: addr.port() }).filter(|k| window.contains_key(k))
+            }
+            _ => None,
+        };
+        let skip = self.blocked.as_ref().map(|b| b.key);
+        let pick = exact.or_else(|| busiest_flow(window, secs, relays, skip).map(|(k, _)| *k));
+        if pick.is_some() {
+            self.bound = pick;
+        }
+        pick
+    }
+
+    fn update_block(&mut self, window: &HashMap<FlowKey, FlowAgg>, secs: f32, relays: &RelayMap) {
+        let Some(blocked) = &mut self.blocked else { return };
+        let key = blocked.key;
+        if !window.get(&key).is_some_and(|f| flow_pps(f, secs) >= MIN_RELAY_PACKETS_PER_SEC) {
+            log::debug!("released blocked {}:{} (quiet)", key.ip, key.port);
+            self.blocked = None;
+            return;
+        }
+        if busiest_flow(window, secs, relays, Some(key)).is_some() {
+            blocked.alone_ticks = 0;
+            return;
+        }
+        blocked.alone_ticks += 1;
+        if blocked.alone_ticks >= REUSE_TICKS {
+            log::debug!("released blocked {}:{} (reused)", key.ip, key.port);
+            self.blocked = None;
+        }
+    }
+}
 
 #[derive(Default)]
 struct Targets {
@@ -143,10 +255,25 @@ fn flow_pps(flow: &FlowAgg, secs: f32) -> f32 {
     (flow.pkts_in + flow.pkts_out) as f32 / secs
 }
 
-fn pick_game_flow(window: &HashMap<FlowKey, FlowAgg>, secs: f32) -> Option<(&FlowKey, &FlowAgg)> {
+fn pick_game_flow<'a>(
+    window: &'a HashMap<FlowKey, FlowAgg>,
+    secs: f32,
+    relays: &RelayMap,
+) -> Option<(&'a FlowKey, &'a FlowAgg)> {
+    busiest_flow(window, secs, relays, None)
+}
+
+fn busiest_flow<'a>(
+    window: &'a HashMap<FlowKey, FlowAgg>,
+    secs: f32,
+    relays: &RelayMap,
+    skip: Option<FlowKey>,
+) -> Option<(&'a FlowKey, &'a FlowAgg)> {
+    // An empty map (not fetched yet, or offline) falls back to the busiest flow so the card still works.
+    let is_candidate = |ip: &Ipv4Addr| !ip.is_loopback() && (relays.is_empty() || relays.contains_key(ip));
     window
         .iter()
-        .filter(|(k, f)| !k.ip.is_loopback() && flow_pps(f, secs) >= MIN_RELAY_PACKETS_PER_SEC)
+        .filter(|(k, f)| Some(**k) != skip && is_candidate(&k.ip) && flow_pps(f, secs) >= MIN_RELAY_PACKETS_PER_SEC)
         .max_by(|a, b| flow_pps(a.1, secs).total_cmp(&flow_pps(b.1, secs)))
 }
 
@@ -156,6 +283,7 @@ impl NetworkMonitor {
         &self,
         runtime: &tokio::runtime::Handle,
         relays: RelaySource,
+        engine: EngineSource,
         history_path: PathBuf,
         prompt: bool,
         source: Start,
@@ -177,7 +305,7 @@ impl NetworkMonitor {
         spawn_history_loader(shared.clone(), history_path);
         let stop_trace = spawn_trace(shared.clone(), prompt, source);
         spawn_relay_map_loader(runtime, shared.clone(), relays);
-        spawn_aggregator(shared.clone());
+        spawn_aggregator(shared.clone(), engine);
         spawn_sampler(shared.clone());
 
         *guard = Some(Running { shared, stop_trace });
@@ -412,12 +540,13 @@ fn can_skip_tick(game_pid: u32, window: &HashMap<FlowKey, FlowAgg>, idle_publish
     idle_published && game_pid == 0 && window.is_empty()
 }
 
-fn spawn_aggregator(shared: Arc<Shared>) {
+fn spawn_aggregator(shared: Arc<Shared>, engine: EngineSource) {
     thread::Builder::new()
         .name("network-aggregator".into())
         .spawn(move || {
             let mut last_tick = Instant::now();
             let mut idle_published = false;
+            let mut server_pick = ServerPick::default();
 
             while !shared.stop.load(Ordering::SeqCst) {
                 thread::sleep(Duration::from_secs(1));
@@ -434,14 +563,16 @@ fn spawn_aggregator(shared: Arc<Shared>) {
                 }
                 idle_published = game_pid == 0 && window.is_empty();
 
-                let game_flow = pick_game_flow(&window, secs);
+                let engine_link = engine();
+                let relay_map = shared.relay_map.read_or_recover();
+                let picked = server_pick.select(engine_link, &window, secs, &relay_map);
+                let game_flow = picked.and_then(|k| window.get_key_value(&k));
 
                 let relay_ip = game_flow.map(|(k, _)| k.ip);
 
                 let pings = shared.pings.lock_or_recover();
                 shared.targets.lock_or_recover().relay = relay_ip;
 
-                let relay_map = shared.relay_map.read_or_recover();
                 let relay = game_flow.map(|(k, f)| {
                     let pop = relay_map.get(&k.ip);
                     RelayInfo {
@@ -701,35 +832,170 @@ mod tests {
     #[test]
     fn game_flow_picks_the_busiest_flow_above_threshold() {
         let window = HashMap::from([(key(1), flow(10, 10)), (key(2), flow(50, 50)), (key(3), flow(5, 5))]);
-        let (k, _) = pick_game_flow(&window, 1.0).unwrap();
+        let (k, _) = pick_game_flow(&window, 1.0, &RelayMap::new()).unwrap();
         assert_eq!(k.ip, ip(2));
     }
 
     #[test]
     fn game_flow_ignores_quiet_flows() {
         let window = HashMap::from([(key(1), flow(5, 5))]);
-        assert!(pick_game_flow(&window, 1.0).is_none());
+        assert!(pick_game_flow(&window, 1.0, &RelayMap::new()).is_none());
     }
 
     #[test]
     fn game_flow_ignores_a_local_server_on_this_machine() {
         let local = FlowKey { ip: Ipv4Addr::LOCALHOST, port: 27015 };
         let window = HashMap::from([(local, flow(500, 500)), (key(2), flow(30, 30))]);
-        let (k, _) = pick_game_flow(&window, 1.0).unwrap();
+        let (k, _) = pick_game_flow(&window, 1.0, &RelayMap::new()).unwrap();
         assert_eq!(k.ip, ip(2));
         let only_local = HashMap::from([(local, flow(500, 500))]);
-        assert!(pick_game_flow(&only_local, 1.0).is_none());
+        assert!(pick_game_flow(&only_local, 1.0, &RelayMap::new()).is_none());
     }
 
     #[test]
     fn game_flow_threshold_scales_with_elapsed_seconds() {
         let window = HashMap::from([(key(1), flow(20, 20))]);
-        assert!(pick_game_flow(&window, 1.0).is_some());
-        assert!(pick_game_flow(&window, 4.0).is_none());
+        assert!(pick_game_flow(&window, 1.0, &RelayMap::new()).is_some());
+        assert!(pick_game_flow(&window, 4.0, &RelayMap::new()).is_none());
     }
 
     fn pop(code: &str) -> PopInfo {
         PopInfo { code: code.into(), description: format!("{code} pop"), country_code: None }
+    }
+
+    #[test]
+    fn game_flow_prefers_a_known_relay_over_a_busier_other_flow() {
+        let relays = RelayMap::from([(ip(2), pop("fra"))]);
+        let window = HashMap::from([(key(1), flow(200, 200)), (key(2), flow(30, 30))]);
+        let (k, _) = pick_game_flow(&window, 1.0, &relays).unwrap();
+        assert_eq!(k.ip, ip(2));
+    }
+
+    #[test]
+    fn game_flow_is_none_when_no_known_relay_is_over_the_bar() {
+        let relays = RelayMap::from([(ip(2), pop("fra"))]);
+        let window = HashMap::from([(key(1), flow(200, 200)), (key(2), flow(5, 5))]);
+        assert!(pick_game_flow(&window, 1.0, &relays).is_none());
+    }
+
+    #[test]
+    fn game_flow_falls_back_to_the_busiest_flow_without_a_relay_map() {
+        let window = HashMap::from([(key(1), flow(200, 200)), (key(2), flow(30, 30))]);
+        let (k, _) = pick_game_flow(&window, 1.0, &RelayMap::new()).unwrap();
+        assert_eq!(k.ip, ip(1));
+    }
+
+    #[test]
+    fn game_flow_ignores_loopback_even_when_the_relay_map_lists_it() {
+        let local = FlowKey { ip: Ipv4Addr::LOCALHOST, port: 27015 };
+        let relays = RelayMap::from([(Ipv4Addr::LOCALHOST, pop("lo")), (ip(2), pop("fra"))]);
+        let window = HashMap::from([(local, flow(500, 500)), (key(2), flow(30, 30))]);
+        let (k, _) = pick_game_flow(&window, 1.0, &relays).unwrap();
+        assert_eq!(k.ip, ip(2));
+    }
+
+    const A: Option<EngineLink> = Some(EngineLink::Connected(Some(EngineServer::Steam(1))));
+    const B: Option<EngineLink> = Some(EngineLink::Connected(Some(EngineServer::Steam(2))));
+    const LOADING: Option<EngineLink> = Some(EngineLink::NotConnected { signon: Some(2) });
+
+    fn two_relays() -> RelayMap {
+        RelayMap::from([(ip(1), pop("fra")), (ip(2), pop("ams"))])
+    }
+
+    fn tick(pick: &mut ServerPick, engine: Option<EngineLink>, flows: &[(u8, u32)]) -> Option<Ipv4Addr> {
+        let window: HashMap<FlowKey, FlowAgg> =
+            flows.iter().map(|&(last, pkts)| (key(last), flow(pkts, pkts))).collect();
+        pick.select(engine, &window, 1.0, &two_relays()).map(|k| k.ip)
+    }
+
+    #[test]
+    fn a_channel_counts_as_connected_only_at_full_signon() {
+        let server = Some(EngineServer::Steam(1));
+        assert_eq!(EngineLink::from_channel(Some(SIGNON_FULL), server), EngineLink::Connected(server));
+        assert_eq!(EngineLink::from_channel(Some(2), server), EngineLink::NotConnected { signon: Some(2) });
+        assert_eq!(EngineLink::from_channel(None, server), EngineLink::NotConnected { signon: None });
+    }
+
+    #[test]
+    fn not_connected_shows_no_server_even_with_a_busy_relay() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, LOADING, &[(1, 200)]), None);
+        assert_eq!(tick(&mut pick, Some(EngineLink::NotConnected { signon: None }), &[(1, 200)]), None);
+    }
+
+    #[test]
+    fn an_unknown_engine_keeps_the_busiest_pick() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, None, &[(1, 20), (2, 200)]), Some(ip(2)));
+    }
+
+    #[test]
+    fn a_connected_channel_with_an_unnamed_remote_keeps_the_busiest_pick() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, Some(EngineLink::Connected(None)), &[(1, 20), (2, 200)]), Some(ip(2)));
+    }
+
+    #[test]
+    fn a_server_change_takes_the_new_relay_at_once_even_when_the_old_one_is_busier() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, A, &[(1, 200)]), Some(ip(1)));
+        assert_eq!(tick(&mut pick, B, &[(1, 200), (2, 30)]), Some(ip(2)));
+    }
+
+    #[test]
+    fn after_a_change_the_old_relay_alone_is_reused_on_the_fifth_tick() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, A, &[(1, 200)]), Some(ip(1)));
+        for n in 1..REUSE_TICKS {
+            assert_eq!(tick(&mut pick, B, &[(1, 200)]), None, "tick {n}");
+        }
+        assert_eq!(tick(&mut pick, B, &[(1, 200)]), Some(ip(1)));
+    }
+
+    #[test]
+    fn a_blocked_relay_is_released_once_it_goes_quiet() {
+        let mut pick = ServerPick::default();
+        tick(&mut pick, A, &[(1, 200)]);
+        assert_eq!(tick(&mut pick, B, &[(1, 200), (2, 30)]), Some(ip(2)));
+        assert_eq!(tick(&mut pick, B, &[(1, 200), (2, 30)]), Some(ip(2)));
+        assert_eq!(tick(&mut pick, B, &[(1, 5), (2, 30)]), Some(ip(2)));
+        assert_eq!(tick(&mut pick, B, &[(1, 200), (2, 30)]), Some(ip(1)));
+    }
+
+    #[test]
+    fn a_change_across_a_loading_screen_still_blocks_the_old_relay() {
+        let mut pick = ServerPick::default();
+        tick(&mut pick, A, &[(1, 200)]);
+        assert_eq!(tick(&mut pick, LOADING, &[(1, 200)]), None);
+        assert_eq!(tick(&mut pick, B, &[(1, 200), (2, 30)]), Some(ip(2)));
+    }
+
+    #[test]
+    fn reconnecting_to_the_same_server_keeps_its_relay() {
+        let mut pick = ServerPick::default();
+        tick(&mut pick, A, &[(1, 200)]);
+        assert_eq!(tick(&mut pick, LOADING, &[(1, 200)]), None);
+        assert_eq!(tick(&mut pick, A, &[(1, 200), (2, 30)]), Some(ip(1)));
+    }
+
+    #[test]
+    fn a_loopback_server_shows_no_server() {
+        let mut pick = ServerPick::default();
+        assert_eq!(tick(&mut pick, Some(EngineLink::Connected(Some(EngineServer::Loopback))), &[(1, 200)]), None);
+    }
+
+    #[test]
+    fn an_ip_remote_off_the_relay_map_picks_its_own_flow() {
+        let mut pick = ServerPick::default();
+        let remote = Some(EngineLink::Connected(Some(EngineServer::Ip(SocketAddrV4::new(ip(3), 27015)))));
+        assert_eq!(tick(&mut pick, remote, &[(1, 200), (3, 20)]), Some(ip(3)));
+    }
+
+    #[test]
+    fn an_ip_remote_without_a_flow_falls_back_to_the_relays() {
+        let mut pick = ServerPick::default();
+        let remote = Some(EngineLink::Connected(Some(EngineServer::Ip(SocketAddrV4::new(ip(3), 27015)))));
+        assert_eq!(tick(&mut pick, remote, &[(1, 200)]), Some(ip(1)));
     }
 
     fn source_returning(result: Result<RelayMap, String>) -> RelaySource {

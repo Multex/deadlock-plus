@@ -1,4 +1,5 @@
 mod attach;
+mod connection;
 mod convert;
 mod engine_ping;
 mod feed;
@@ -9,6 +10,7 @@ mod probes;
 mod queue;
 
 pub use attach::{game_access_denied, game_runs_as_admin, ptrace_denied};
+pub use connection::{EngineConnection, EngineRemote};
 pub use convert::{board_from_snapshot, from_snapshot, hideout_party_size};
 pub use engine_ping::EnginePing;
 pub use link::{

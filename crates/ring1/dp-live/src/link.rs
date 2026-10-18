@@ -238,6 +238,12 @@ impl GameLink {
     pub fn engine_ping(&self) -> Option<crate::EnginePing> {
         self.reader().and_then(|reader| crate::engine_ping::read(&reader))
     }
+
+    /// What the game's net channel is connected to. `None` while detached or when the channel cannot be read, so
+    /// the connection is unknown; [`crate::EngineConnection::NO_CHANNEL`] when the game has no net channel.
+    pub fn connection(&self) -> Option<crate::EngineConnection> {
+        self.reader().and_then(|reader| crate::connection::read(&reader))
+    }
 }
 
 #[cfg(test)]

@@ -3,15 +3,17 @@ use std::net::Ipv4Addr;
 use std::sync::Arc;
 
 use dp_network::{
-    points_in_range_file, summarize_file, HistoryPoint, MatchPingSeries, MatchStore, NetworkMonitor, PingSummary,
-    PopInfo, RelayMap, RelaySource, Snapshot,
+    points_in_range_file, summarize_file, EngineSource, HistoryPoint, MatchPingSeries, MatchStore, NetworkMonitor,
+    PingSummary, PopInfo, RelayMap, RelaySource, Snapshot,
 };
 use dp_server_picker::definitions::find_definition;
 use dp_server_picker::sdr::fetch_server_data;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
+use super::engine_link::engine_link;
 use super::recording::{EnginePingView, MatchPingService};
+use crate::features::live::link::GameLinkService;
 use crate::http::Http;
 
 const HISTORY_FILE: &str = "connection-history.jsonl";
@@ -41,6 +43,11 @@ fn relay_source(http: reqwest::Client) -> RelaySource {
     })
 }
 
+fn engine_source(app: AppHandle) -> EngineSource {
+    // `handle` clones the link out of its lock, so the game read below runs unlocked.
+    Arc::new(move || app.state::<GameLinkService>().handle()?.connection().map(engine_link))
+}
+
 #[cfg(windows)]
 fn net_source() -> dp_connection::Start {
     dp_helper::routed::start_net
@@ -64,6 +71,7 @@ pub fn start_monitor(app: &AppHandle, prompt: bool) {
     app.state::<NetworkMonitor>().start(
         runtime.inner(),
         relay_source(http),
+        engine_source(app.clone()),
         dir.join(HISTORY_FILE),
         prompt,
         net_source(),
