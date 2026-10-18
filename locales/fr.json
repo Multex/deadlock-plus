@@ -24,10 +24,6 @@
             "info_unavailable": "Impossible d'obtenir les données de l'application. Vérifiez vos journaux (logs) pour plus d'info."
         },
         "autostart": {
-            "user_name_unavailable": "Impossible de lire le nom d'utilisateur.",
-            "program_data_missing": "",
-            "task_create_failed": "",
-            "task_delete_failed": "",
             "entry_write_failed": "",
             "entry_remove_failed": ""
         },

@@ -20,15 +20,15 @@ describe("autostartLine", () => {
     });
 
     it("shows one failure sentence over any status", () => {
-        const failure = { code: "autostart.task_create_failed", params: {} };
+        const failure = { code: "autostart.entry_write_failed", params: {} };
         expect(autostartLine({ supported: true, enabled: true, stale: true }, failure)).toBe(
             t("settings.autostart.failed"),
         );
     });
 
     it("shows a failure that names its cause on its own", () => {
-        const failure = { code: "autostart.user_name_unavailable", params: {} };
-        expect(autostartLine(null, failure)).toBe(catalog.errors.autostart.user_name_unavailable);
+        const failure = { code: "common.network", params: {} };
+        expect(autostartLine(null, failure)).toBe(catalog.errors.common.network);
     });
 });
 

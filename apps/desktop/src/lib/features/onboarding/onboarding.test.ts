@@ -67,7 +67,7 @@ describe("stepsFor", () => {
 
     it("titles the permissions step per platform", () => {
         const title = (p: "windows" | "macos" | "linux") => stepsFor(p).find((s) => s.id === "permissions")?.title;
-        expect(title("windows")).toBe("Why Windows asks for permission");
+        expect(title("windows")).toBe("Administrator access");
         expect(title("macos")).toBe("Running on macOS");
         expect(title("linux")).toBe("Running on Linux");
     });

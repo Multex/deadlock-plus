@@ -83,11 +83,11 @@ Everything runs locally except the following.
 
 On Windows and Linux, Deadlock+ reads match and status data from the running game on this PC. It stays on this PC.
 
-The maintenance reminder and tray use only the local clock and send nothing. The first-run welcome is three skippable steps covering game detection, why the UAC prompt and firewall rules are needed, and optional extras (all off by default).
+The maintenance reminder and tray use only the local clock and send nothing. The first-run welcome is three skippable steps covering game detection, administrator access for the features that need it, and optional extras (all off by default).
 
 ## Requirements
 
-Windows 10 or 11 and WebView2. The app asks for administrator rights on launch because Windows Firewall rules and network event tracing need them.
+Windows 10 or 11 and WebView2. Deadlock+ runs as a normal user. Server blocks, live connection stats and frame recording need administrator access, so Windows asks the first time you use one. Pick Always allow to be asked only once.
 
 The installer is not yet Windows code-signed, so SmartScreen may warn on first run. Updates are still verified. Every release is signed with the project's update key, and the app rejects anything that does not match.
 

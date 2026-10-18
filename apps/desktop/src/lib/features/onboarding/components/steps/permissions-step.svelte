@@ -30,7 +30,7 @@
     </ul>
 {:else if adminAccess.buttons.kind !== "hidden"}
     <AdminAccessChoice />
-{:else}
+{:else if elevated}
     <h1 class="font-heading text-2xl font-bold tracking-wide">{t("onboarding.permissions.windows_title")}</h1>
     <p class="text-muted-foreground">{t("onboarding.permissions.windows_body")}</p>
     <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
@@ -44,9 +44,7 @@
         </li>
         <li>{t("onboarding.permissions.nothing_else")}</li>
     </ul>
-    {#if !elevated}
-        <p class="text-sm text-muted-foreground">
-            {t("onboarding.permissions.not_elevated")}
-        </p>
-    {/if}
+{:else}
+    <h1 class="font-heading text-2xl font-bold tracking-wide">{t("onboarding.permissions.admin_title")}</h1>
+    <p class="text-muted-foreground">{t("onboarding.permissions.admin_body")}</p>
 {/if}

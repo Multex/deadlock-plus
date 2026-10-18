@@ -24,10 +24,6 @@
             "info_unavailable": "Uygulama bilgisi alınamadı. Detaylar için kayıtları kontrol edin."
         },
         "autostart": {
-            "user_name_unavailable": "Güncel kullanıcı adı alınamadı.",
-            "program_data_missing": "",
-            "task_create_failed": "Başlatma görevi oluşturulamadı. Detaylar için kayıtları kontrol edin.",
-            "task_delete_failed": "Başlatma görevi kaldırılamadı. Detaylar için kayıtları kontrol edin.",
             "entry_write_failed": "Başlatma girişi yazılamadı. Detaylar için kayıtları kontrol edin.",
             "entry_remove_failed": "Başlatma girişi kaldırılamadı. Detaylar için kayıtları kontrol edin."
         },

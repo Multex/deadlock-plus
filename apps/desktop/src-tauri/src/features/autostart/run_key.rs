@@ -1,6 +1,3 @@
-// Run entries skip exes with an admin manifest at logon, and this app still has one.
-#![allow(dead_code)]
-
 use super::AutostartError;
 use crate::features::error::AppError;
 use dp_autostart::{run_key, State};

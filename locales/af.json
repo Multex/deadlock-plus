@@ -24,10 +24,6 @@
             "info_unavailable": "Kon nie die toep informasie lees nie. Sien die logboeke na vir besonderhede."
         },
         "autostart": {
-            "user_name_unavailable": "Kon nie die huidige gebruikersnaam lees nie.",
-            "program_data_missing": "",
-            "task_create_failed": "Kon nie die opstarttaak maak nie. Sien die logboeke na vir besonderhede.",
-            "task_delete_failed": "Kon nie die opstarttaak verwyder nie. Sien die logboeke na vir besonderhede.",
             "entry_write_failed": "Kon nie die opstartinskrywing skryf nie. Sien die logboeke na vir besonderhede.",
             "entry_remove_failed": "Kon nie die opstartinskrywing verwyder nie. Sien die logboeke na vir besonderhede."
         },

@@ -24,10 +24,6 @@
             "info_unavailable": "Couldn't read the app information. Check the log for details."
         },
         "autostart": {
-            "user_name_unavailable": "Couldn't read the current user name.",
-            "program_data_missing": "Couldn't find a Windows system folder. Check the log for details.",
-            "task_create_failed": "Couldn't create the startup task. Check the log for details.",
-            "task_delete_failed": "Couldn't remove the startup task. Check the log for details.",
             "entry_write_failed": "Couldn't write the startup entry. Check the log for details.",
             "entry_remove_failed": "Couldn't remove the startup entry. Check the log for details."
         },
@@ -45,7 +41,7 @@
             "frame_layer_missing": "This build of Deadlock+ does not include the frame layer.",
             "frame_layer_install_failed": "Could not install the frame layer. Check the log for details.",
             "frame_layer_remove_failed": "Could not remove the frame layer. Check the log for details.",
-            "frame_trace_needs_admin": "Frame recording needs administrator rights. Restart Deadlock+ as administrator.",
+            "frame_trace_needs_admin": "Frame recording needs administrator access.",
             "frames_read_failed": "Couldn't read frames from the game. Restart Deadlock and try again.",
             "mod_unreadable": "Couldn't read this mod. The file may be damaged or in use."
         },
@@ -979,7 +975,7 @@
             "disabled": "Disabled"
         },
         "frame_capture": {
-            "note_windows": "Needs the app to run as administrator.",
+            "note_windows": "Needs administrator access, which Windows asks you to allow.",
             "note_linux": "On Linux this reads a Vulkan layer that runs inside Deadlock. Install it below, then add the launch option to Deadlock in Steam.",
             "note_macos": "Frame capture is not available on macOS, or under Wine."
         },
@@ -1220,7 +1216,7 @@
         },
         "toast": {
             "refresh_failed": "Couldn't refresh the server list. Showing the last saved one.",
-            "firewall_read_failed": "Couldn't read current firewall rules. Try running as administrator.",
+            "firewall_read_failed": "Couldn't read the current firewall rules.",
             "relays_moved": "Valve changed its servers. Updated blocks for {names}.",
             "blocks_update_failed": "Couldn't update blocks for {names}. Re-apply them.",
             "sync_failed": "Couldn't check your blocks against Valve's latest servers. Check the log for details.",
@@ -1764,14 +1760,13 @@
             "untested": "the Server Picker and the Live page. Both ask for your password.",
             "broken_label": "Something broken?",
             "broken": "Please report it on GitHub. A fix is a big plus.",
-            "windows_title": "Why Windows asks for permission",
-            "windows_body": "Deadlock+ runs as administrator, so Windows asks for permission each time it starts.",
+            "windows_title": "Running as administrator",
+            "windows_body": "You started Deadlock+ as administrator, so these features work without asking:",
             "firewall_label": "Firewall rules:",
             "firewall": "the Server Picker blocks the regions you pick by adding Windows Firewall rules named {rule}. Only administrators can do that.",
             "monitor_label": "Connection monitor:",
             "monitor": "live ping and loss for your match come from watching your network traffic, which is also admin-only.",
             "nothing_else": "Nothing else needs administrator rights.",
-            "not_elevated": "This copy runs without administrator rights, so the Server Picker and Live page won't work until you relaunch it as administrator.",
             "admin_title": "Administrator access",
             "admin_body": "A few features change Windows settings that only an administrator can change. Deadlock+ asks Windows for permission when one of them is used.",
             "always_note": "One Windows prompt now, then never again on this Windows account.",

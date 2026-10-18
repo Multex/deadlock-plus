@@ -102,7 +102,7 @@ export function gameStatus(gameDir: string | null | undefined): GameStatus {
 export function stepsFor(platform: Platform): Step[] {
     const permissions =
         platform === "windows"
-            ? t("onboarding.permissions.windows_title")
+            ? t("onboarding.permissions.admin_title")
             : t("onboarding.permissions.other_title", { platform: platformName(platform) });
     return [
         { id: "welcome", title: t("onboarding.welcome.step_title") },

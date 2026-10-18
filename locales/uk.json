@@ -24,10 +24,6 @@
             "info_unavailable": ""
         },
         "autostart": {
-            "user_name_unavailable": "",
-            "program_data_missing": "",
-            "task_create_failed": "",
-            "task_delete_failed": "",
             "entry_write_failed": "",
             "entry_remove_failed": ""
         },

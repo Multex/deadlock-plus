@@ -73,6 +73,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Linux builds now run on Ubuntu 22.04 and Debian 12.
 - Uninstalling Deadlock+ on Windows now lifts its server blocks.
 
+#### Administrator access
+
+- Deadlock+ no longer asks for administrator rights when it starts.
+- Windows asks for permission only when you use a feature that needs it: blocking servers, live connection stats or frame recording.
+- Allow gives access until you stop using those features for a few minutes.
+- Always allow asks once, then never again on this Windows account.
+- Settings > Startup and background switches between Ask each time and Always allow.
+- The welcome steps let you pick Always allow or Ask me later.
+- The admin access buttons wait until your match ends.
+- The Live page says when Deadlock itself runs as administrator, which stops Deadlock+ from reading it.
+- Start with Windows uses the Windows startup list instead of a scheduled task, and the update moves it for you.
+
 ### Fixed
 
 - Map positions and some hero and item images load again after Deadlock's October 16 patch.

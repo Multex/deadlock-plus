@@ -82,9 +82,10 @@ test.describe("unelevated", () => {
     });
 });
 
-test("an elevated app keeps the step as it was", async ({ page }) => {
+test("with no buttons to show the step explains administrator access without them", async ({ page }) => {
     await openPermissions(page);
-    await expect(heading(page)).toHaveText("Why Windows asks for permission");
+    await expect(heading(page)).toHaveText("Administrator access");
+    await expect(page.getByRole("main")).not.toContainText("work without asking");
     await expect(page.getByRole("main").getByRole("button", { name: /^Ask me later/ })).toHaveCount(0);
 });
 

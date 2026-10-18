@@ -1,9 +1,8 @@
 fn main() {
     #[cfg(windows)]
     {
-        // Blocking/unblocking Steam Datagram Relay IPs needs elevated access to the
-        // Windows Filtering Platform, so the app always requests admin on launch
-        // rather than failing firewall calls at runtime and asking the user to restart.
+        // The app runs as the user. Privileged work goes through the Deadlock+ helper, so the
+        // manifest only opts into Common-Controls v6 and the supported-OS list.
         let manifest = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="app.deadlockplus" type="win32"/>
@@ -15,7 +14,7 @@ fn main() {
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>
   </trustInfo>

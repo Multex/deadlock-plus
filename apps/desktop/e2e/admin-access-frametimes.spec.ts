@@ -21,7 +21,7 @@ test.describe("without administrator rights", () => {
         await expect(notice(page)).toBeVisible();
         await expect(notice(page).getByRole("button", { name: "Allow", exact: true })).toBeEnabled();
         await expect(notice(page).getByRole("button", { name: "Always allow", exact: true })).toBeEnabled();
-        await expect(page.getByText(/Restart Deadlock\+ as administrator/)).toHaveCount(0);
+        await expect(page.getByText("Frame recording needs administrator access.")).toHaveCount(0);
     });
 
     test("Allow restarts the capture and it records", async ({ page }) => {

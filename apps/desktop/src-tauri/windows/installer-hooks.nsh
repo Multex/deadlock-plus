@@ -1,3 +1,5 @@
+!include "${__FILEDIR__}\autostart-migration.nsh"
+
 !ifndef DEADLOCK_PLUS_SERVICE
   !define DEADLOCK_PLUS_SERVICE "DeadlockPlusHelper"
 !endif
@@ -195,7 +197,24 @@
   Pop $R0
 !macroend
 
+; The old app can restart the on-demand service before the template closes it. Disabled for the duration of the
+; install, then set back to on-demand by the post-install hook. Does nothing when the service is not installed.
+!macro DeadlockPlusSetServiceStart mode
+  Push $R0
+  Push $R1
+  nsExec::ExecToStack '"$SYSDIR\sc.exe" query ${DEADLOCK_PLUS_SERVICE}'
+  Pop $R0
+  Pop $R1
+  ${If} $R0 = 0
+    nsExec::Exec '"$SYSDIR\sc.exe" config ${DEADLOCK_PLUS_SERVICE} start= ${mode}'
+    Pop $R0
+  ${EndIf}
+  Pop $R1
+  Pop $R0
+!macroend
+
 !macro NSIS_HOOK_PREINSTALL
+  !insertmacro DeadlockPlusSetServiceStart disabled
   !insertmacro DeadlockPlusStopService
   Push $0
   !insertmacro DeadlockPlusDataDirPath $0
@@ -205,17 +224,23 @@
   Pop $0
 !macroend
 
-; The autostart task lives in Task Scheduler, outside the install dir, so the uninstaller won't
-; remove it. Left behind, it would point at a deleted exe and fail at every sign-in.
-; Skipped during updates so autostart survives an upgrade.
+!macro NSIS_HOOK_POSTINSTALL
+  !insertmacro DeadlockPlusSetServiceStart demand
+  !insertmacro DP_MIGRATE_AUTOSTART_TASK_TO_RUN "$INSTDIR\${MAINBINARYNAME}.exe"
+!macroend
+
+; A real uninstall removes everything the install put outside the install dir: autostart (Run value and any task
+; from an older install), the helper service, the firewall rules and the helper's data folder. An update skips
+; that, because the new version reuses all of it.
 !macro NSIS_HOOK_PREUNINSTALL
   ; Stopped even during updates: the template's running-app check comes next and would meet the service's
   ; SYSTEM process. Stopping keeps the approval.
   !insertmacro DeadlockPlusStopService
   ${If} $UpdateMode <> 1
-    nsExec::Exec 'schtasks.exe /end /tn "DeadlockPlus"'
+    !insertmacro DP_REMOVE_AUTOSTART_RUN
+    nsExec::Exec '"$SYSDIR\schtasks.exe" /end /tn "DeadlockPlus"'
     Pop $0
-    nsExec::Exec 'schtasks.exe /delete /tn "DeadlockPlus" /f'
+    nsExec::Exec '"$SYSDIR\schtasks.exe" /delete /tn "DeadlockPlus" /f'
     Pop $0
     nsExec::Exec '"$SYSDIR\sc.exe" delete ${DEADLOCK_PLUS_SERVICE}'
     Pop $0

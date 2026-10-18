@@ -6,6 +6,6 @@ export type AutostartStatus = {
  */
 supported: boolean, enabled: boolean, 
 /**
- * The task exists but launches a different exe than the running one (the app was moved or reinstalled).
+ * The entry exists but launches a different exe than the running one (the app was moved or reinstalled).
  */
 stale: boolean, };
