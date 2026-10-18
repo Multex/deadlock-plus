@@ -22,6 +22,8 @@ pub enum CaptureError {
     HomeFolderNotFound,
     #[serde(rename = "diagnostics.frames_read_failed")]
     ReadFailed,
+    #[serde(rename = "diagnostics.helper_out_of_date")]
+    HelperOutOfDate,
 }
 
 #[derive(Debug, Clone, Default, Serialize, TS)]
@@ -49,5 +51,10 @@ mod tests {
     fn an_admin_failure_serializes_as_an_error_code() {
         let status = CaptureStatus { error: Some(CaptureError::NeedsAdmin), ..CaptureStatus::default() };
         assert_eq!(serde_json::to_value(&status).unwrap()["error"], "diagnostics.frame_trace_needs_admin");
+    }
+
+    #[test]
+    fn an_out_of_date_helper_serializes_as_its_own_error_code() {
+        assert_eq!(serde_json::to_value(CaptureError::HelperOutOfDate).unwrap(), "diagnostics.helper_out_of_date");
     }
 }

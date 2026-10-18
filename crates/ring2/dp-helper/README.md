@@ -22,6 +22,7 @@ Server side:
 Shared rules:
 
 - `op::Op` and `op::Reply` are the wire format: one JSON object per line. Lines over `MAX_LINE_LEN`, embedded newlines, non-object JSON, unknown ops and unknown fields are refused. `Approve` and `Revoke` carry no SID and the trace ops carry no pid: the server takes the caller's SID from the pipe and finds `deadlock.exe` itself. `stream::classify` sorts incoming lines into replies, packets and frame lines.
+- Every connection opens with `Hello`. `serve` answers with its `PROTOCOL_VERSION` before any other check, in both modes. Any other answer fails the connection with `HELPER_OUT_OF_DATE`, including the error reply an older server sends for the unknown op. Bump `PROTOCOL_VERSION` on any wire change.
 - `op::validate(op, relays)` re-checks every group with `dp_firewall::validate`; every relay address must be in the relay list the server fetched itself. External rule names must match a known other tool's prefix. Lists are non-empty and capped.
 - `access` builds the pipe and service DACLs from validated SIDs and holds `ApprovedSids` (stored by `store` as REG_MULTI_SZ under the service's `Parameters` key). `access::server_is_expected` never accepts PID 0.
 - `idle::should_exit`: at once if the app the helper serves has exited, never while a capture runs, else after `IDLE_TIMEOUT` (5 minutes) without a request.

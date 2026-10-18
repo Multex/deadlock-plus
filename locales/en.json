@@ -43,7 +43,8 @@
             "frame_layer_remove_failed": "Could not remove the frame layer. Check the log for details.",
             "frame_trace_needs_admin": "Frame recording needs administrator access.",
             "frames_read_failed": "Couldn't read frames from the game. Restart Deadlock and try again.",
-            "mod_unreadable": "Couldn't read this mod. The file may be damaged or in use."
+            "mod_unreadable": "Couldn't read this mod. The file may be damaged or in use.",
+            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it."
         },
         "export": {
             "invalid_name": "That file name isn't allowed.",
@@ -85,7 +86,8 @@
             "sync_failed": "Couldn't update your blocked servers. Check the log for details.",
             "external_scan_failed": "Couldn't scan for existing firewall blocks. Check the log for details.",
             "external_import_failed": "Couldn't import the existing firewall blocks. Check the log for details.",
-            "needs_permission": "Deadlock+ needs administrator access to change firewall rules."
+            "needs_permission": "Deadlock+ needs administrator access to change firewall rules.",
+            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it."
         },
         "storage": {
             "location_missing": "That location doesn't exist.",
@@ -124,7 +126,8 @@
             "always_allow_blocked": "Always allow didn't work (blocked by security software?). You'll be asked each time.",
             "always_allow_needs_install": "Always allow only works with the installed Deadlock+ app. You'll be asked each time.",
             "remove_failed": "Couldn't turn off Always allow.",
-            "unsupported": "Administrator access is only needed on Windows."
+            "unsupported": "Administrator access is only needed on Windows.",
+            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it."
         },
         "ptrace": {
             "unavailable": "No fix is available for this system.",
@@ -2009,7 +2012,8 @@
             "allow": "Allow",
             "retry": "Retry",
             "admin_title": "Live monitoring needs admin access",
-            "admin_body": "Live monitoring needs to watch your network traffic while Deadlock runs."
+            "admin_body": "Live monitoring needs to watch your network traffic while Deadlock runs.",
+            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it."
         },
         "ping": {
             "no_data": "No data yet.",

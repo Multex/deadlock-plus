@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use crate::access::{self, ApprovedSids};
 use crate::args::{self, SERVICE_NAME};
-use crate::op::{Op, Reply, Trace, NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
+use crate::op::{Op, Reply, Trace, NEEDS_INSTALLED_APP, PROTOCOL_VERSION, SERVICE_INSTALL_FAILED};
 use crate::serve::{Mode, Out};
 use crate::{paths, scm, store, trace};
 
@@ -203,6 +203,7 @@ pub fn exec(ctx: &Ctx, op: Op) -> Reply {
         Op::Stop { trace } => stop(ctx, trace),
         Op::Approve {} => approve(ctx),
         Op::Revoke {} => revoke(ctx),
+        Op::Hello { .. } => Reply::Hello { protocol: PROTOCOL_VERSION },
     }
 }
 

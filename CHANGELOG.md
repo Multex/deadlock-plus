@@ -85,6 +85,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The admin access buttons wait until your match ends.
 - The Live page says when Deadlock itself runs as administrator, which stops Deadlock+ from reading it.
 - Start with Windows uses the Windows startup list instead of a scheduled task, and the update moves it for you.
+- If the admin helper is from another Deadlock+ version, Deadlock+ asks you to reinstall instead of failing quietly.
 
 ### Fixed
 

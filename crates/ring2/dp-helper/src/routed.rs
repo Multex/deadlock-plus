@@ -1,4 +1,3 @@
-use std::io;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -12,7 +11,7 @@ use dp_frames::line::FrameLine;
 use dp_privilege::Outcome;
 
 use crate::client::{NetEvent, Session};
-use crate::op::{Op, Reply, Trace};
+use crate::op::{Op, Reply, Trace, HELPER_OUT_OF_DATE};
 use crate::route::{self, Route};
 use crate::{args, helper_client, paths, pipe, service_client};
 
@@ -53,38 +52,46 @@ pub fn route_now() -> Route {
     route::route(false, service_client::approved(args::SERVICE_NAME), helper)
 }
 
-fn start_session(pipe: pipe::Pipe) -> io::Result<Arc<Session>> {
-    let reader = pipe.try_clone()?;
-    Ok(Session::start(reader, pipe))
+/// Both launch paths come through here, so no op reaches a server that speaks another protocol version. On a
+/// mismatch the error is `HELPER_OUT_OF_DATE` and the connection is closed; there is no other exe to try.
+fn start_session(pipe: pipe::Pipe) -> Result<Arc<Session>, String> {
+    let clone = || pipe.try_clone().map_err(|e| format!("Could not use the helper pipe: {e}"));
+    let (reader, waker) = (clone()?, clone()?);
+    let session = Session::start_with_wake(reader, pipe, move || waker.cancel_io());
+    session.hello(CALL_TIMEOUT)?;
+    Ok(session)
 }
 
-fn connect_service(slot: &mut Slot) -> io::Result<Arc<Session>> {
-    let pipe = service_client::connect(args::SERVICE_NAME, args::SERVICE_PIPE, CONNECT_TIMEOUT)?;
+fn connect_service(slot: &mut Slot) -> Result<Arc<Session>, String> {
+    let pipe = service_client::connect(args::SERVICE_NAME, args::SERVICE_PIPE, CONNECT_TIMEOUT)
+        .map_err(|e| format!("Could not reach the Deadlock+ service: {e}"))?;
     let session = start_session(pipe)?;
     *slot = Some((Route::Service, Arc::clone(&session)));
     Ok(session)
 }
 
-/// A session with the privileged server, or `None` when the user has not allowed one yet. Never prompts.
-fn remote() -> Option<Arc<Session>> {
+/// A session with the privileged server, or `None` when the user has not allowed one yet. Never prompts. The only
+/// error is `HELPER_OUT_OF_DATE` from the service; any other service failure falls back to the helper session.
+fn remote() -> Result<Option<Arc<Session>>, String> {
     let mut slot = lock(&SESSION);
     let current = live(&mut slot);
     if let Some((Route::Service, session)) = current {
-        return Some(session);
+        return Ok(Some(session));
     }
     let helper = current.map(|(_, session)| session);
     match route::route(false, service_client::approved(args::SERVICE_NAME), helper.is_some()) {
         Route::Service => match connect_service(&mut slot) {
-            Ok(session) => Some(session),
+            Ok(session) => Ok(Some(session)),
+            Err(e) if e == HELPER_OUT_OF_DATE => Err(e),
             // PermissionDenied: the user was approved after the service started, and Windows keeps a pipe's first
             // access list until the service restarts. Restarting it would end another user's trace.
             Err(e) => {
-                log::warn!("could not reach the Deadlock+ service: {e}");
-                helper
+                log::warn!("{e}");
+                Ok(helper)
             }
         },
-        Route::Helper => helper,
-        Route::InProcess | Route::NeedsPermission => None,
+        Route::Helper => Ok(helper),
+        Route::InProcess | Route::NeedsPermission => Ok(None),
     }
 }
 
@@ -96,7 +103,7 @@ fn session_or_launch() -> Result<(Route, Arc<Session>), Outcome> {
     }
     let exe = paths::helper_exe().map_err(|e| Outcome::Failed(format!("Could not find the Deadlock+ helper: {e}")))?;
     let pipe = helper_client::launch(&exe, CONNECT_TIMEOUT)?;
-    let session = start_session(pipe).map_err(|e| Outcome::Failed(format!("Could not use the helper pipe: {e}")))?;
+    let session = start_session(pipe).map_err(Outcome::Failed)?;
     *lock(&SESSION) = Some((Route::Helper, Arc::clone(&session)));
     Ok((Route::Helper, session))
 }
@@ -105,7 +112,7 @@ fn reply_unit(reply: Result<Reply, String>) -> Result<(), String> {
     match reply? {
         Reply::Ok {} => Ok(()),
         Reply::Error { message } => Err(message),
-        Reply::Refreshed { .. } => Err("the privileged helper sent an unexpected reply".into()),
+        Reply::Refreshed { .. } | Reply::Hello { .. } => Err("the privileged helper sent an unexpected reply".into()),
     }
 }
 
@@ -113,12 +120,12 @@ fn reply_report(reply: Result<Reply, String>) -> Result<RefreshReport, String> {
     match reply? {
         Reply::Refreshed { updated, failed } => Ok(RefreshReport { updated, failed }),
         Reply::Error { message } => Err(message),
-        Reply::Ok {} => Err("the privileged helper sent an unexpected reply".into()),
+        Reply::Ok {} | Reply::Hello { .. } => Err("the privileged helper sent an unexpected reply".into()),
     }
 }
 
 fn call_unit(op: Op) -> Result<(), Routed> {
-    let session = remote().ok_or(Routed::NeedsPermission)?;
+    let session = remote().map_err(Routed::Failed)?.ok_or(Routed::NeedsPermission)?;
     reply_unit(session.call(&op, CALL_TIMEOUT)).map_err(Routed::Failed)
 }
 
@@ -162,7 +169,7 @@ pub fn refresh_stale_groups(specs: &[FirewallRuleSpec], prompt: bool) -> Result<
     if specs.is_empty() {
         return Ok(RefreshReport::default());
     }
-    match remote() {
+    match remote()? {
         Some(session) => reply_report(session.call(&Op::RefreshStale { groups: specs.to_vec() }, CALL_TIMEOUT)),
         None => dp_firewall::stale_groups(specs).map(|failed| RefreshReport { updated: Vec::new(), failed }),
     }
@@ -206,6 +213,14 @@ fn capture_error(code: &str) -> CaptureError {
         .into_iter()
         .find(|error| serde_json::to_value(error).ok().as_ref().and_then(|v| v.as_str()) == Some(code))
         .unwrap_or(CaptureError::NeedsAdmin)
+}
+
+fn frames_start_error(error: &str) -> CaptureError {
+    if error == HELPER_OUT_OF_DATE {
+        CaptureError::HelperOutOfDate
+    } else {
+        capture_error(error)
+    }
 }
 
 fn frame_present(line: FrameLine) -> Result<Present, CaptureError> {
@@ -299,12 +314,13 @@ fn run_net(config: Config, stopped: Receiver<()>) {
     let Config { sink, on_status, prompt, .. } = config;
     let on_status = OneShot::new(on_status);
     let session = match remote() {
-        Some(session) => session,
-        None if prompt => match session_or_launch() {
+        Ok(Some(session)) => session,
+        Ok(None) if prompt => match session_or_launch() {
             Ok((_, session)) => session,
             Err(outcome) => return report_status(&on_status, launch_status(outcome)),
         },
-        None => return report_status(&on_status, Status::NeedsPermission),
+        Ok(None) => return report_status(&on_status, Status::NeedsPermission),
+        Err(e) => return report_status(&on_status, Status::Failed(e)),
     };
     let handler_status = Arc::clone(&on_status);
     let install = move |session: &Session| {
@@ -337,8 +353,10 @@ pub fn start_frames(sink: PresentSink, on_error: OnTraceError) -> Sender<()> {
 
 fn run_frames(sink: PresentSink, on_error: OnTraceError, stopped: Receiver<()>) {
     let on_error = OneShot::new(on_error);
-    let Some(session) = remote() else {
-        return report_error(&on_error, CaptureError::NeedsAdmin);
+    let session = match remote() {
+        Ok(Some(session)) => session,
+        Ok(None) => return report_error(&on_error, CaptureError::NeedsAdmin),
+        Err(e) => return report_error(&on_error, frames_start_error(&e)),
     };
     let handler_error = Arc::clone(&on_error);
     let install = move |session: &Session| {
@@ -352,7 +370,7 @@ fn run_frames(sink: PresentSink, on_error: OnTraceError, stopped: Receiver<()>) 
             let _ = stopped.recv();
             FRAMES.finish(id);
         }
-        Err(e) => report_error(&on_error, capture_error(&e)),
+        Err(e) => report_error(&on_error, frames_start_error(&e)),
     }
 }
 
@@ -383,9 +401,7 @@ pub fn revoke() -> Result<(), String> {
         let mut slot = lock(&SESSION);
         match live(&mut slot) {
             Some((Route::Service, session)) => session,
-            _ if service_client::approved(args::SERVICE_NAME) => {
-                connect_service(&mut slot).map_err(|e| format!("Could not reach the Deadlock+ service: {e}"))?
-            }
+            _ if service_client::approved(args::SERVICE_NAME) => connect_service(&mut slot)?,
             _ => return Err("Always allow is not turned on.".into()),
         }
     };
@@ -401,7 +417,7 @@ pub fn revoke() -> Result<(), String> {
 mod tests {
     use super::*;
     use dp_frames::line;
-    use std::io::{BufRead, BufReader, PipeReader, PipeWriter, Write};
+    use std::io::{self, BufRead, BufReader, PipeReader, PipeWriter, Write};
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::path::Path;
     use std::process::{Command, Stdio};
@@ -438,6 +454,13 @@ mod tests {
         }
         assert_eq!(capture_error("busy"), CaptureError::NeedsAdmin);
         assert_eq!(capture_error(""), CaptureError::NeedsAdmin);
+    }
+
+    #[test]
+    fn an_out_of_date_helper_fails_the_frame_trace_with_its_own_code() {
+        assert_eq!(frames_start_error(HELPER_OUT_OF_DATE), CaptureError::HelperOutOfDate);
+        assert_eq!(frames_start_error("diagnostics.frames_read_failed"), CaptureError::ReadFailed);
+        assert_eq!(frames_start_error("the privileged helper exited"), CaptureError::NeedsAdmin);
     }
 
     #[test]

@@ -39,3 +39,11 @@ export function historySeries(history: HistoryPoint[]) {
         ],
     };
 }
+
+// `dp_helper::op::HELPER_OUT_OF_DATE`: the helper exe speaks another protocol version.
+const HELPER_OUT_OF_DATE = "helper_out_of_date";
+
+/** The trace failure as shown to the player. Other failures are already English sentences. */
+export function traceErrorText(error: string): string {
+    return error === HELPER_OUT_OF_DATE ? t("connection.notices.helper_out_of_date") : error;
+}

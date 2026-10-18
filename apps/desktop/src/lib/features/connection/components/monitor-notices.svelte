@@ -6,6 +6,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
     import AdminButtons from "$lib/features/admin-access/admin-buttons.svelte";
+    import { traceErrorText } from "../connection";
     import type { NetworkSnapshot } from "../types";
 
     type Props = {
@@ -69,7 +70,9 @@
         role="alert"
         class="flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning"
     >
-        <span class="flex items-center gap-2"><TriangleAlert class="size-4 shrink-0" />{snap.traceError}</span>
+        <span class="flex items-center gap-2"
+            ><TriangleAlert class="size-4 shrink-0" />{traceErrorText(snap.traceError)}</span
+        >
         <Button size="sm" variant="outline" onclick={onretry}>{t("connection.notices.retry")}</Button>
     </div>
 {/if}

@@ -1,4 +1,5 @@
 use crate::features::error::{error_codes, AppError};
+use dp_helper::op::HELPER_OUT_OF_DATE;
 use dp_server_picker::sdr::SdrError;
 
 #[cfg(windows)]
@@ -18,6 +19,7 @@ error_codes! {
         ExternalScanFailed = "external_scan_failed",
         ExternalImportFailed = "external_import_failed",
         NeedsPermission = "needs_permission",
+        HelperOutOfDate = "helper_out_of_date",
     }
 }
 
@@ -38,10 +40,18 @@ pub fn invalid_request(reason: String) -> AppError {
     AppError::new(ServerPickerError::InvalidRequest).detail(reason)
 }
 
+pub fn sync_error(detail: String) -> AppError {
+    match detail.as_str() {
+        HELPER_OUT_OF_DATE => AppError::new(ServerPickerError::HelperOutOfDate),
+        _ => AppError::new(ServerPickerError::SyncFailed).detail(detail),
+    }
+}
+
 #[cfg(windows)]
 pub fn routed_error(error: Routed, failed: ServerPickerError) -> AppError {
     match error {
         Routed::NeedsPermission => AppError::new(ServerPickerError::NeedsPermission),
+        Routed::Failed(detail) if detail == HELPER_OUT_OF_DATE => AppError::new(ServerPickerError::HelperOutOfDate),
         Routed::Failed(detail) => AppError::new(failed).detail(detail),
     }
 }
@@ -82,6 +92,21 @@ mod tests {
         assert_eq!(err.to_string(), "server_picker.unblock_failed: rule add failed");
         let err = routed_error(Routed::Failed("x".into()), ServerPickerError::ExternalImportFailed);
         assert_eq!(err.code(), "server_picker.external_import_failed");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn an_out_of_date_helper_gets_its_own_code_on_every_routed_call() {
+        for failed in [ServerPickerError::BlockFailed, ServerPickerError::UnblockFailed] {
+            let err = routed_error(Routed::Failed(HELPER_OUT_OF_DATE.into()), failed);
+            assert_eq!(err.to_string(), "server_picker.helper_out_of_date");
+        }
+    }
+
+    #[test]
+    fn a_sync_failure_keeps_the_detail_unless_the_helper_is_out_of_date() {
+        assert_eq!(sync_error(HELPER_OUT_OF_DATE.into()).to_string(), "server_picker.helper_out_of_date");
+        assert_eq!(sync_error("timed out".into()).to_string(), "server_picker.sync_failed: timed out");
     }
 
     #[test]

@@ -5,7 +5,7 @@ use ts_rs::TS;
 
 #[cfg(windows)]
 use super::error::routed_error;
-use super::error::{invalid_request, unknown_game, ServerPickerError};
+use super::error::{invalid_request, sync_error, unknown_game, ServerPickerError};
 use super::state::ServerPickerState;
 use crate::features::error::AppError;
 use crate::http::Http;
@@ -110,9 +110,7 @@ pub async fn sync_server_blocks(
     if !firewall::SUPPORTED || !super::sync::is_enabled(&app) {
         return Ok(SyncOutcome::default());
     }
-    let outcome = sync_blocks(&state.sync_lock, &http.0, true, super::sync::REFRESH)
-        .await
-        .map_err(|e| AppError::new(ServerPickerError::SyncFailed).detail(e))?;
+    let outcome = sync_blocks(&state.sync_lock, &http.0, true, super::sync::REFRESH).await.map_err(sync_error)?;
     if !outcome.updated.is_empty() {
         log::info!("updated {} stale block(s): {}", outcome.updated.len(), outcome.updated.join(", "));
     }

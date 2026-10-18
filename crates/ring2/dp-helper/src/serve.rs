@@ -80,6 +80,10 @@ fn handle(
         Ok(op) => op,
         Err(message) => return error(message),
     };
+    // Answered before any gate: the client needs the version before it can trust any other reply.
+    if let Op::Hello { .. } = op {
+        return Reply::Hello { protocol: op::PROTOCOL_VERSION };
+    }
     if let Err(message) = allowed(&op, mode) {
         return error(message);
     }
@@ -304,6 +308,16 @@ mod tests {
         assert_eq!(r.replies.len(), 1);
         assert!(is_error(&r.replies[0]));
         assert!(r.executed.is_empty());
+    }
+
+    #[test]
+    fn hello_is_answered_with_the_protocol_version_in_both_modes() {
+        for mode in [Mode::Helper, Mode::Service] {
+            let r = run_with(b"{\"op\":\"hello\",\"protocol\":999}\n", mode, &|_| Err("offline".into()));
+            assert_eq!(r.replies, vec![Reply::Hello { protocol: op::PROTOCOL_VERSION }], "{mode:?}");
+            assert!(r.executed.is_empty(), "{mode:?}");
+            assert_eq!((r.fetches, r.touches), (0, 1), "{mode:?}");
+        }
     }
 
     #[test]

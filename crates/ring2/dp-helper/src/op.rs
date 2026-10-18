@@ -7,10 +7,14 @@ use dp_server_picker::external::is_external_rule_name;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_LINE_LEN: usize = 1 << 20;
+/// Bump on any change to `Op`, `Reply` or the trace lines.
+pub const PROTOCOL_VERSION: u32 = 1;
 /// Failure detail of an Always allow request from an app that is not in a protected install location.
 pub const NEEDS_INSTALLED_APP: &str = "always_allow_needs_installed_app";
 /// Failure detail prefix when the service could not be installed; the system error follows it.
 pub const SERVICE_INSTALL_FAILED: &str = "service_install_failed: ";
+/// Failure detail when the helper exe or service speaks another protocol version, usually an older install's copy.
+pub const HELPER_OUT_OF_DATE: &str = "helper_out_of_date";
 const MAX_GROUPS: usize = 128;
 const MAX_NAMES: usize = 64;
 const MAX_NAME_LEN: usize = 128;
@@ -36,6 +40,7 @@ pub enum Op {
     Stop { trace: Trace },
     Approve {},
     Revoke {},
+    Hello { protocol: u32 },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,6 +49,7 @@ pub enum Reply {
     Ok {},
     Error { message: String },
     Refreshed { updated: Vec<String>, failed: Vec<String> },
+    Hello { protocol: u32 },
 }
 
 fn encode_line<T: Serialize>(value: &T) -> String {
@@ -124,7 +130,12 @@ pub fn validate(op: &Op, relays: &HashSet<IpAddr>) -> Result<(), String> {
             group_ids.iter().try_for_each(|id| validate_group_id(id))
         }
         Op::RemoveExternal { names } => validate_external_names(names),
-        Op::StartNetTrace {} | Op::StartFrameTrace {} | Op::Stop { .. } | Op::Approve {} | Op::Revoke {} => Ok(()),
+        Op::StartNetTrace {}
+        | Op::StartFrameTrace {}
+        | Op::Stop { .. }
+        | Op::Approve {}
+        | Op::Revoke {}
+        | Op::Hello { .. } => Ok(()),
     }
 }
 
@@ -168,6 +179,7 @@ mod tests {
             Op::Stop { trace: Trace::Frames },
             Op::Approve {},
             Op::Revoke {},
+            Op::Hello { protocol: PROTOCOL_VERSION },
         ];
         for op in ops {
             let line = encode(&op);
@@ -182,6 +194,7 @@ mod tests {
             Reply::Ok {},
             Reply::Error { message: "no\nway".into() },
             Reply::Refreshed { updated: names(&["a"]), failed: names(&["b"]) },
+            Reply::Hello { protocol: PROTOCOL_VERSION },
         ];
         for reply in replies {
             let line = encode_reply(&reply);
@@ -195,6 +208,8 @@ mod tests {
         assert_eq!(encode(&Op::Approve {}), "{\"op\":\"approve\"}\n");
         assert_eq!(encode(&Op::Stop { trace: Trace::Net }), "{\"op\":\"stop\",\"trace\":\"net\"}\n");
         assert_eq!(encode_reply(&Reply::Ok {}), "{\"reply\":\"ok\"}\n");
+        assert_eq!(encode(&Op::Hello { protocol: 7 }), "{\"op\":\"hello\",\"protocol\":7}\n");
+        assert_eq!(encode_reply(&Reply::Hello { protocol: 7 }), "{\"reply\":\"hello\",\"protocol\":7}\n");
     }
 
     #[test]
@@ -218,6 +233,9 @@ mod tests {
             "{\"op\":\"unblock\",\n\"group_ids\":[\"a\"]}",
             "{\"op\":\"approve\"} trailing",
             "[\"approve\"]",
+            "{\"op\":\"hello\"}",
+            "{\"op\":\"hello\",\"protocol\":-1}",
+            "{\"op\":\"hello\",\"protocol\":\"1\"}",
         ];
         for line in bad {
             assert!(decode(line).is_err(), "{:?}", &line[..line.len().min(60)]);

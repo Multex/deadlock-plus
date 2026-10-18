@@ -43,6 +43,13 @@ impl Pipe {
         self.0.try_clone().map(Self)
     }
 
+    /// Cancels every read and write pending on this pipe, including ones started through a clone of this handle.
+    pub fn cancel_io(&self) {
+        // SAFETY: the handle is open; a null `OVERLAPPED` cancels all its pending operations, and a failure only
+        // means none was pending.
+        let _ = unsafe { CancelIoEx(self.raw(), None) };
+    }
+
     /// Runs one overlapped operation to completion. `start` must begin an operation on the given handle with the
     /// given `OVERLAPPED`, using buffers that outlive this call.
     fn complete(&self, start: impl FnOnce(HANDLE, *mut OVERLAPPED) -> windows::core::Result<()>) -> io::Result<u32> {
@@ -344,6 +351,27 @@ mod tests {
         let mut byte = [0u8; 1];
         (&client).read_exact(&mut byte).unwrap();
         assert_eq!(byte[0], b'x');
+    }
+
+    #[test]
+    fn cancel_io_ends_a_read_waiting_on_a_clone() {
+        let (_server, client) = connected_pair("cancel");
+        let reading = client.try_clone().unwrap();
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let mut byte = [0u8; 1];
+            let _ = tx.send((&reading).read(&mut byte).map_err(|e| e.raw_os_error()));
+        });
+        let started = Instant::now();
+        // The read may not have started when the first cancel lands, so cancel until it returns.
+        let result = loop {
+            client.cancel_io();
+            if let Ok(result) = rx.recv_timeout(Duration::from_millis(10)) {
+                break result;
+            }
+            assert!(started.elapsed() < LONG, "the read was never cancelled");
+        };
+        assert_eq!(result, Err(Some(ERROR_OPERATION_ABORTED.0 as i32)));
     }
 
     #[test]

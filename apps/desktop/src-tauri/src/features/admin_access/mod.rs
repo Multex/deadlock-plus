@@ -4,7 +4,7 @@
 
 pub mod commands;
 
-use dp_helper::op::{NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
+use dp_helper::op::{HELPER_OUT_OF_DATE, NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
 use dp_helper::route::Route;
 use dp_privilege::Outcome;
 use serde::Serialize;
@@ -25,6 +25,7 @@ error_codes! {
         // Always allow needs the installed app. The helper still runs and this session is allowed.
         AlwaysAllowNeedsInstall = "always_allow_needs_install",
         RemoveFailed = "remove_failed",
+        HelperOutOfDate = "helper_out_of_date",
         Unsupported = "unsupported",
     }
 }
@@ -117,6 +118,8 @@ pub fn outcome(outcome: Outcome) -> AdminAccessOutcome {
         Outcome::Failed(detail) => {
             let error = if detail == NEEDS_INSTALLED_APP {
                 AppError::new(AdminAccessError::AlwaysAllowNeedsInstall)
+            } else if detail == HELPER_OUT_OF_DATE {
+                AppError::new(AdminAccessError::HelperOutOfDate)
             } else if let Some(service) = detail.strip_prefix(SERVICE_INSTALL_FAILED) {
                 AppError::new(AdminAccessError::AlwaysAllowBlocked).detail(service)
             } else {
@@ -131,7 +134,10 @@ pub fn remove_result(elevated: bool, revoke: impl FnOnce() -> Result<(), String>
     if elevated {
         return Err(AppError::new(AdminAccessError::AlreadyElevated));
     }
-    revoke().map_err(|detail| AppError::new(AdminAccessError::RemoveFailed).detail(detail))
+    revoke().map_err(|detail| match detail.as_str() {
+        HELPER_OUT_OF_DATE => AppError::new(AdminAccessError::HelperOutOfDate),
+        _ => AppError::new(AdminAccessError::RemoveFailed).detail(detail),
+    })
 }
 
 #[cfg(test)]
@@ -254,6 +260,16 @@ mod tests {
             panic!("a failure was not reported");
         };
         assert_eq!(error.code(), "admin_access.allow_failed");
+    }
+
+    #[test]
+    fn an_out_of_date_helper_gets_its_own_code() {
+        let AdminAccessOutcome::Failed { error } = outcome(Outcome::Failed(HELPER_OUT_OF_DATE.into())) else {
+            panic!("a failure was not reported");
+        };
+        assert_eq!(error.to_string(), "admin_access.helper_out_of_date");
+        let err = remove_result(false, || Err(HELPER_OUT_OF_DATE.into())).unwrap_err();
+        assert_eq!(err.to_string(), "admin_access.helper_out_of_date");
     }
 
     #[test]

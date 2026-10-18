@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { appendPoint, gapVariant, historySeries, lossVariant, mergeTail, HISTORY_SHOWN } from "./connection";
+import { t } from "$lib/core/i18n.svelte";
+import {
+    appendPoint,
+    gapVariant,
+    historySeries,
+    lossVariant,
+    mergeTail,
+    traceErrorText,
+    HISTORY_SHOWN,
+} from "./connection";
 import type { HistoryPoint } from "./types";
 
 describe("gapVariant", () => {
@@ -63,5 +72,15 @@ describe("appendPoint", () => {
         expect(next).toHaveLength(HISTORY_SHOWN);
         expect(next[0].t).toBe(1);
         expect(next.at(-1)).toEqual({ t: HISTORY_SHOWN, raw: 9 });
+    });
+});
+
+describe("traceErrorText", () => {
+    it("explains an out-of-date helper", () => {
+        expect(traceErrorText("helper_out_of_date")).toBe(t("connection.notices.helper_out_of_date"));
+    });
+
+    it("shows any other failure as sent", () => {
+        expect(traceErrorText("Could not reach the Deadlock+ service.")).toBe("Could not reach the Deadlock+ service.");
     });
 });

@@ -3,4 +3,4 @@
 /**
  * Serializes as the app's error code; the UI shows `errors.<code>` from the catalog.
  */
-export type CaptureError = "diagnostics.frame_trace_needs_admin" | "diagnostics.home_folder_not_found" | "diagnostics.frames_read_failed";
+export type CaptureError = "diagnostics.frame_trace_needs_admin" | "diagnostics.home_folder_not_found" | "diagnostics.frames_read_failed" | "diagnostics.helper_out_of_date";

@@ -1,5 +1,6 @@
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::SocketAddrV4;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -10,6 +11,8 @@ use crate::op::{self, Op, Reply};
 use crate::stream::{self, Incoming};
 
 const EXITED: &str = "the privileged helper exited";
+const CLOSE_WAIT: Duration = Duration::from_secs(2);
+const WAKE_EVERY: Duration = Duration::from_millis(5);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NetEvent {
@@ -22,6 +25,8 @@ pub type FrameHandler = Arc<dyn Fn(FrameLine) + Send + Sync>;
 
 struct State {
     alive: bool,
+    /// The demux thread still holds the reader. The server sees end of file only once it lets go.
+    reading: bool,
     waiting: bool,
     reply: Option<Reply>,
     /// Replies still owed to calls that timed out. The server answers every request in order, so these arrive
@@ -36,9 +41,29 @@ struct Shared {
     frames: Mutex<Option<FrameHandler>>,
 }
 
+type Wake = Box<dyn Fn() + Send + Sync>;
+
 pub struct Session {
     shared: Arc<Shared>,
     writer: Mutex<Box<dyn Write + Send>>,
+    closed: Arc<AtomicBool>,
+    wake: Mutex<Option<Wake>>,
+}
+
+/// Reads as end of file once the session is closed, including a read that returns after the close.
+struct Closable<R> {
+    inner: R,
+    closed: Arc<AtomicBool>,
+}
+
+impl<R: Read> Read for Closable<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.closed.load(Ordering::SeqCst) {
+            return Ok(0);
+        }
+        let n = self.inner.read(buf)?;
+        Ok(if self.closed.load(Ordering::SeqCst) { 0 } else { n })
+    }
 }
 
 fn lock<T: ?Sized>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -83,18 +108,20 @@ fn skip_past_newline(input: &mut impl BufRead) -> io::Result<()> {
 }
 
 /// Marks the session dead even when a handler panics and ends the demux thread, so calls fail at once instead of
-/// waiting out their timeout.
+/// waiting out their timeout. Built outside `run`, so it drops after the reader does.
 struct DeadOnDrop<'a>(&'a Shared);
 
 impl Drop for DeadOnDrop<'_> {
     fn drop(&mut self) {
-        self.0.mark_dead();
+        let mut state = lock(&self.0.state);
+        state.alive = false;
+        state.reading = false;
+        self.0.changed.notify_all();
     }
 }
 
 impl Shared {
     fn run(&self, mut input: impl BufRead) {
-        let _dead = DeadOnDrop(self);
         loop {
             match read_line(&mut input) {
                 Ok(Line::Text(text)) => self.dispatch(&text),
@@ -150,19 +177,64 @@ impl Shared {
 
 impl Session {
     pub fn start(reader: impl Read + Send + 'static, writer: impl Write + Send + 'static) -> Arc<Session> {
+        Session::new(reader, writer, None)
+    }
+
+    /// `wake` must make a read blocked on `reader` return; `close` calls it until the demux thread has ended.
+    /// Without it, `close` cannot wait for the server to see end of file.
+    pub fn start_with_wake(
+        reader: impl Read + Send + 'static,
+        writer: impl Write + Send + 'static,
+        wake: impl Fn() + Send + Sync + 'static,
+    ) -> Arc<Session> {
+        Session::new(reader, writer, Some(Box::new(wake)))
+    }
+
+    fn new(
+        reader: impl Read + Send + 'static,
+        writer: impl Write + Send + 'static,
+        wake: Option<Wake>,
+    ) -> Arc<Session> {
         let shared = Arc::new(Shared {
-            state: Mutex::new(State { alive: true, waiting: false, reply: None, abandoned: 0 }),
+            state: Mutex::new(State { alive: true, reading: true, waiting: false, reply: None, abandoned: 0 }),
             changed: Condvar::new(),
             net: Mutex::new(None),
             frames: Mutex::new(None),
         });
+        let closed = Arc::new(AtomicBool::new(false));
+        let reader = Closable { inner: reader, closed: Arc::clone(&closed) };
         let demux = Arc::clone(&shared);
-        let spawned =
-            thread::Builder::new().name("dp-helper-client".into()).spawn(move || demux.run(BufReader::new(reader)));
+        let spawned = thread::Builder::new().name("dp-helper-client".into()).spawn(move || {
+            let _dead = DeadOnDrop(&demux);
+            demux.run(BufReader::new(reader));
+        });
         if spawned.is_err() {
-            shared.mark_dead();
+            drop(DeadOnDrop(&shared));
         }
-        Arc::new(Session { shared, writer: Mutex::new(Box::new(writer)) })
+        Arc::new(Session { shared, writer: Mutex::new(Box::new(writer)), closed, wake: Mutex::new(wake) })
+    }
+
+    /// Ends the connection so the server sees end of file. Waits up to `CLOSE_WAIT` for the demux thread to let go
+    /// of the reader; a read that was not yet waiting when `wake` ran is caught by the next wake.
+    pub fn close(&self) {
+        self.closed.store(true, Ordering::SeqCst);
+        self.shared.mark_dead();
+        *lock(&self.writer) = Box::new(io::sink());
+        let Some(wake) = lock(&self.wake).take() else {
+            return;
+        };
+        let deadline = Instant::now() + CLOSE_WAIT;
+        let mut state = lock(&self.shared.state);
+        while state.reading {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                log::warn!("the privileged helper connection did not close in time");
+                break;
+            }
+            wake();
+            state =
+                self.shared.changed.wait_timeout(state, left.min(WAKE_EVERY)).unwrap_or_else(PoisonError::into_inner).0;
+        }
     }
 
     /// One call at a time: a second caller waits for the first to finish before its own timeout starts.
@@ -202,6 +274,21 @@ impl Session {
             }
             state = self.shared.changed.wait_timeout(state, left).unwrap_or_else(PoisonError::into_inner).0;
         }
+    }
+
+    /// Fails with `HELPER_OUT_OF_DATE` unless the server answers with this build's protocol version. A server built
+    /// before `hello` existed answers it with an error reply and stays connected, which counts the same. Any
+    /// failure closes the session.
+    pub fn hello(&self, timeout: Duration) -> Result<(), String> {
+        let result = match self.call(&Op::Hello { protocol: op::PROTOCOL_VERSION }, timeout) {
+            Ok(Reply::Hello { protocol }) if protocol == op::PROTOCOL_VERSION => Ok(()),
+            Ok(_) => Err(op::HELPER_OUT_OF_DATE.into()),
+            Err(e) => Err(e),
+        };
+        if result.is_err() {
+            self.close();
+        }
+        result
     }
 
     pub fn set_net(&self, handler: Option<NetHandler>) {
@@ -296,6 +383,121 @@ mod tests {
         let (request, _server) = fake.join().unwrap();
         assert_eq!(request, op::encode(&Op::Approve {}));
         assert!(session.is_alive());
+    }
+
+    /// A session whose wake writes a byte, ending the demux's blocked read the way `CancelIoEx` does on a pipe.
+    fn connect_with_wake() -> (Arc<Session>, Server) {
+        let (requests, request_writer) = io::pipe().unwrap();
+        let (reply_reader, replies) = io::pipe().unwrap();
+        let waker = Mutex::new(replies.try_clone().unwrap());
+        let wake = move || {
+            let _ = lock(&waker).write_all(b"\n");
+        };
+        let session = Session::start_with_wake(reply_reader, request_writer, wake);
+        (session, Server { requests: BufReader::new(requests), replies })
+    }
+
+    /// The server sees end of file on its request side, and its replies find no reader.
+    fn assert_closed(session: &Session, mut server: Server) {
+        assert!(!session.is_alive());
+        let mut rest = String::new();
+        assert_eq!(server.requests.read_line(&mut rest).unwrap(), 0, "the request pipe is still open: {rest:?}");
+        let gone = server.replies.write_all(b"{\"reply\":\"ok\"}\n").and_then(|()| server.replies.flush());
+        assert!(gone.is_err(), "the demux thread still holds the reply pipe");
+    }
+
+    #[test]
+    fn a_failed_hello_closes_the_connection() {
+        let answers = [
+            Some(Reply::Hello { protocol: op::PROTOCOL_VERSION + 1 }),
+            Some(Reply::Error { message: "malformed message: unknown variant `hello`".into() }),
+            None,
+        ];
+        for answer in answers {
+            let (session, mut server) = connect_with_wake();
+            let timed_out = answer.is_none();
+            let fake = thread::spawn(move || {
+                server.read();
+                if let Some(answer) = answer {
+                    server.reply(&answer);
+                }
+                server
+            });
+            let timeout = if timed_out { Duration::from_millis(100) } else { LONG };
+            let started = Instant::now();
+            assert!(session.hello(timeout).is_err());
+            assert!(started.elapsed() < Duration::from_secs(5));
+            let server = fake.join().unwrap();
+            assert_eq!(session.call(&Op::Approve {}, LONG), Err(EXITED.to_string()));
+            assert_closed(&session, server);
+        }
+    }
+
+    #[test]
+    fn close_ends_a_live_session_while_a_trace_streams() {
+        let (session, mut server) = connect_with_wake();
+        let net = net_events(&session);
+        server.write(&wire::encode_packet(true, remote(), 1));
+        assert!(net.recv_timeout(LONG).is_ok());
+        session.close();
+        assert_closed(&session, server);
+    }
+
+    fn hello_then(answer: Reply) -> (Arc<Session>, thread::JoinHandle<(String, Server)>) {
+        let (session, mut server) = connect();
+        let fake = thread::spawn(move || {
+            let hello = server.read();
+            server.reply(&answer);
+            (hello, server)
+        });
+        (session, fake)
+    }
+
+    #[test]
+    fn a_matching_hello_goes_on_to_the_real_op() {
+        let (session, fake) = hello_then(Reply::Hello { protocol: op::PROTOCOL_VERSION });
+        assert_eq!(session.hello(LONG), Ok(()));
+        let (hello, mut server) = fake.join().unwrap();
+        assert_eq!(hello, op::encode(&Op::Hello { protocol: op::PROTOCOL_VERSION }));
+        let fake = thread::spawn(move || {
+            let request = server.read();
+            server.reply(&Reply::Ok {});
+            request
+        });
+        assert_eq!(session.call(&Op::Approve {}, LONG), Ok(Reply::Ok {}));
+        assert_eq!(fake.join().unwrap(), op::encode(&Op::Approve {}));
+    }
+
+    #[test]
+    fn a_server_on_another_protocol_version_is_out_of_date() {
+        for protocol in [op::PROTOCOL_VERSION + 1, op::PROTOCOL_VERSION - 1] {
+            let (session, fake) = hello_then(Reply::Hello { protocol });
+            assert_eq!(session.hello(LONG), Err(op::HELPER_OUT_OF_DATE.to_string()));
+            fake.join().unwrap();
+        }
+    }
+
+    #[test]
+    fn a_server_that_refuses_hello_is_out_of_date() {
+        // What a server without the hello op answers: `serve` refuses the unknown variant and keeps serving.
+        let refused = "malformed message: unknown variant `hello`, expected one of `block`, `unblock`";
+        let (session, fake) = hello_then(Reply::Error { message: refused.into() });
+        assert_eq!(session.hello(LONG), Err(op::HELPER_OUT_OF_DATE.to_string()));
+        let (_, _server) = fake.join().unwrap();
+        let (session, fake) = hello_then(Reply::Ok {});
+        assert_eq!(session.hello(LONG), Err(op::HELPER_OUT_OF_DATE.to_string()));
+        fake.join().unwrap();
+    }
+
+    #[test]
+    fn a_server_that_exits_during_hello_keeps_the_exit_message() {
+        let (session, mut server) = connect();
+        let fake = thread::spawn(move || {
+            server.read();
+            drop(server);
+        });
+        assert_eq!(session.hello(LONG), Err(EXITED.to_string()));
+        fake.join().unwrap();
     }
 
     #[test]
