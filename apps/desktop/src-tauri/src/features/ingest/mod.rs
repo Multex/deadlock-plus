@@ -21,6 +21,7 @@ use crate::features::error::AppError;
 use error::status_error;
 
 const ENDPOINT: &str = "https://api.deadlock-api.com/v1/matches/salts";
+const BATCH_SIZE: usize = 1000;
 const MAX_RETRIES: u32 = 10;
 const RETRY_DELAY: Duration = Duration::from_secs(3);
 const POLL: Duration = Duration::from_millis(500);
@@ -113,19 +114,29 @@ fn post(http: &reqwest::Client, salts: &[Salts], stop: &AtomicBool) -> Result<()
 }
 
 fn submit(http: &reqwest::Client, batch: &[Salts], seen: &mut Seen, status: &Mutex<IngestStatus>, stop: &AtomicBool) {
+    submit_with(batch, seen, status, |chunk| post(http, chunk, stop));
+}
+
+/// A failed chunk is skipped, not retried here, so the rest still go out; its salts stay unmarked and are
+/// offered again on the next scan.
+fn submit_with(
+    batch: &[Salts],
+    seen: &mut Seen,
+    status: &Mutex<IngestStatus>,
+    mut send: impl FnMut(&[Salts]) -> Result<(), AppError>,
+) {
     let fresh: Vec<Salts> = batch.iter().copied().filter(|s| s.is_plausible() && seen.is_new(s)).collect();
-    if fresh.is_empty() {
-        return;
-    }
-    match post(http, &fresh, stop) {
-        Ok(()) => {
-            log::info!("submitted {} match(es) to the Deadlock API", fresh.len());
-            fresh.iter().for_each(|s| seen.mark(s));
-            let mut st = status.lock_or_recover();
-            st.submitted += fresh.len() as u64;
-            st.last_error = None;
+    for chunk in fresh.chunks(BATCH_SIZE) {
+        match send(chunk) {
+            Ok(()) => {
+                log::info!("submitted {} match(es) to the Deadlock API", chunk.len());
+                chunk.iter().for_each(|s| seen.mark(s));
+                let mut st = status.lock_or_recover();
+                st.submitted += chunk.len() as u64;
+                st.last_error = None;
+            }
+            Err(e) => status.lock_or_recover().last_error = Some(e),
         }
-        Err(e) => status.lock_or_recover().last_error = Some(e),
     }
 }
 
@@ -196,6 +207,54 @@ fn run(stop: &AtomicBool, status: &Mutex<IngestStatus>, http: &reqwest::Client) 
                 .collect();
             submit(http, &batch, &mut seen, status, stop);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn salts(n: u64) -> Vec<Salts> {
+        (1..=n)
+            .map(|id| Salts {
+                match_id: id,
+                cluster_id: Some(1),
+                metadata_salt: Some(1),
+                replay_salt: None,
+                username: None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn splits_2500_salts_into_three_requests() {
+        let status = Mutex::new(IngestStatus::default());
+        let mut sizes = Vec::new();
+        submit_with(&salts(2500), &mut Seen::default(), &status, |c| {
+            sizes.push(c.len());
+            Ok(())
+        });
+        assert_eq!(sizes, vec![1000, 1000, 500]);
+        assert_eq!(status.lock().unwrap().submitted, 2500);
+    }
+
+    #[test]
+    fn a_failed_batch_does_not_drop_the_others() {
+        let status = Mutex::new(IngestStatus::default());
+        let mut seen = Seen::default();
+        let mut calls = 0;
+        submit_with(&salts(2500), &mut seen, &status, |_| {
+            calls += 1;
+            if calls == 2 {
+                Err(status_error(400))
+            } else {
+                Ok(())
+            }
+        });
+        assert_eq!(calls, 3);
+        assert_eq!(status.lock().unwrap().submitted, 1500);
+        assert!(seen.is_new(&salts(1500)[1400]));
+        assert!(!seen.is_new(&salts(1)[0]));
     }
 }
 
