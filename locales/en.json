@@ -61,7 +61,6 @@
         "gc": {
             "steam_not_found": "Steam wasn't found on this PC.",
             "no_login": "Couldn't use your saved Steam login. Sign in to Steam on this PC with Remember me ticked, then try again.",
-            "disabled": "Turn on replay key recovery first.",
             "game_running": "Close Deadlock first. Match recovery can't run while the game is open."
         },
         "ingest": {
@@ -506,10 +505,9 @@
             "ingest_description": "Gets your matches full details on stat sites and in Match History. Deadlock+ reads the replay links Steam saves on this PC and sends the match IDs, replay keys and your Steam account ID to api.deadlock-api.com. Nothing else is read or sent. Same as the open-source deadlock-api-ingest tool.",
             "gc_description": "Your login never leaves this PC. Deadlock+ uses your saved Steam login to sign in to Steam as you, and asks Deadlock's game servers for the replay keys of matches the community database is missing. Only the match IDs, replay keys and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same as the open-source deadlock-api-ingest tool.",
             "gc_own_label": "Recover my match history",
-            "gc_own_description": "Finds replay keys for every match in your history that the community database is missing. Not limited to 40 a day. Takes about 20 seconds per match and stops if Deadlock opens.",
-            "gc_own_start": "Start",
-            "gc_own_cancel": "Cancel",
-            "advanced": "Advanced"
+            "gc_own_description": "Fills in every match in your history that the Deadlock API is missing.",
+            "advanced": "Advanced",
+            "gc_own_open": "Open in Match History"
         },
         "about_page": {
             "copy": "Copy",
@@ -700,7 +698,14 @@
             "tasks": "{count} background tasks",
             "run_now": "Run now",
             "open_performance": "Open Performance",
-            "performance_issues": "Potential performance issues found"
+            "performance_issues": "Potential performance issues found",
+            "recovery": {
+                "running": "Recovering {done} / {total}",
+                "reading": "Recovering matches",
+                "paused": "Recovery paused",
+                "waiting_game": "Recovery waits for Deadlock to close",
+                "waiting_limit": "Recovery: Steam's daily limit"
+            }
         },
         "nav_description": {
             "home": "Overview",
@@ -2333,7 +2338,6 @@
         },
         "own": {
             "reading_history": "Reading your match history.",
-            "reading_history_count": "Reading your match history ({read} matches so far).",
             "progress": "{delivered} of {missing} missing matches submitted. About 20 seconds each.",
             "matches_one": "{count} match",
             "matches_other": "{count} matches",
@@ -2341,7 +2345,27 @@
             "done": "Done. {matches} submitted.",
             "incomplete": "{matches} submitted, {failed} couldn't be recovered. Run it again to retry.",
             "rate_limited": "{matches} submitted. Steam's daily limit was reached. Run it again tomorrow for the rest.",
-            "stopped": "Stopped after {matches}. Run it again to continue."
+            "stopped": "Stopped after {matches}. Run it again to continue.",
+            "paused": "Paused: {left} left",
+            "waiting_game": "{left} left. Continues when Deadlock closes.",
+            "waiting_limit": "Steam's daily limit reached. {continues}.",
+            "continues_at": "Continues at {time}",
+            "continues_tomorrow": "Continues tomorrow at {time}",
+            "continues_after_game": "Continues when Deadlock closes",
+            "last_run": "Last run {when}: {delivered} submitted, {left} left",
+            "last_run_nothing_left": "Last run {when}: {delivered} submitted, nothing left",
+            "last_run_limit": "Last run {when}: {delivered} submitted, {left} left (Steam's daily limit)",
+            "last_run_failed": "Last run {when} failed",
+            "ago": {
+                "now": "just now",
+                "minutes_one": "{count} minute ago",
+                "minutes_other": "{count} minutes ago",
+                "hours_one": "{count} hour ago",
+                "hours_other": "{count} hours ago",
+                "yesterday": "yesterday",
+                "days_one": "{count} day ago",
+                "days_other": "{count} days ago"
+            }
         }
     },
     "api_health": {},
@@ -2520,7 +2544,6 @@
             "title": "Match {id}",
             "back": "Back to match history",
             "loading": "Loading the match...",
-            "unavailable": "The Deadlock API does not have this match yet. The scoreboard appears here once it does.",
             "error": "Could not load this match. {error}",
             "invalid": "That isn't a valid match ID.",
             "summary": "Match summary",
@@ -2664,6 +2687,31 @@
                     "self_healing": "Self healing/min",
                     "support": "Ally healing/min"
                 }
+            },
+            "missing": {
+                "details": "Match details",
+                "replay": "Replay",
+                "lead": "The Deadlock API doesn't have this match yet, so there's no scoreboard.",
+                "badge_missing": "Missing",
+                "badge_recovering": "Recovering",
+                "eta_seconds": "About {count} s left",
+                "eta_minutes": "About {count} min left",
+                "paused": "Recovery is paused.",
+                "recover": "Recover this match",
+                "recover_time": "Takes about 20 seconds.",
+                "consent_note": "Just this match. Background recovery stays off.",
+                "open_in_game": "Open this match in Deadlock's Match History and Deadlock+ will pick it up.",
+                "sharing_off": "Turn on Share my matches and Deadlock+ will pick it up when you open this match in Deadlock's Match History.",
+                "sharing_link": "Open Match sharing settings",
+                "replay_available": "Available",
+                "replay_not_yet": "Not available yet",
+                "replay_expired": "Expired",
+                "replay_none": "Not available",
+                "replay_days_left_one": "Kept for {count} more day.",
+                "replay_days_left_other": "Kept for {count} more days.",
+                "replay_not_yet_note": "The Deadlock API has no replay for this match yet.",
+                "replay_expired_note": "Replays are kept for about 30 days.",
+                "replay_none_note": "The Deadlock API has no replay for this match."
             }
         },
         "ping": {
@@ -2679,6 +2727,39 @@
             "empty": "No ping data for this match.",
             "chart_aria": "Ping over the match",
             "hint": "Ping, measured once per second while Deadlock+ was running."
+        },
+        "coverage": {
+            "label": "Match coverage",
+            "details": "Full details",
+            "replays": "Replays, last 30 days",
+            "details_aria": "{full} of {total} matches have full details",
+            "replays_aria": "Replays: {replays} of {recent} recent matches",
+            "recover": "Recover {count} missing",
+            "recovering": "Recovering {done} / {total}",
+            "paused": "Paused {done} / {total}"
+        },
+        "recovery": {
+            "title": "Recover matches",
+            "close": "Close",
+            "missing": "missing",
+            "badge_paused": "Paused",
+            "badge_game": "Deadlock is open",
+            "badge_limit": "Steam's daily limit",
+            "eta_left": "About {time} left",
+            "eta_total": "About {time}",
+            "duration_minutes": "{count} min",
+            "duration_hours": "{count} h",
+            "duration_hours_minutes": "{hours} h {minutes} min",
+            "progress_label": "Recovery progress",
+            "accounts": "Steam accounts, today",
+            "start": "Recover {count}",
+            "pause": "Pause",
+            "resume": "Resume",
+            "limit_note": "Continues tomorrow on its own"
+        },
+        "row_state": {
+            "missing": "No details",
+            "recovering": "Recovering"
         }
     }
 }

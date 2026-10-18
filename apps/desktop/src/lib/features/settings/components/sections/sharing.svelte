@@ -1,15 +1,14 @@
 <script lang="ts">
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { toast } from "svelte-sonner";
-    import Button from "@deadlock-plus/ui/button.svelte";
+    import { History } from "@lucide/svelte";
+    import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { gcStatus } from "$lib/features/gc/status.svelte";
-    import { cancelOwnMatchRecovery, recoverOwnMatches } from "$lib/features/gc/api";
-    import { gcStatusLine, ownRecoveryLine } from "$lib/features/gc/status-line";
+    import { gcStatusLine, lastRunLine, ownRecoveryLine } from "$lib/features/gc/status-line";
     import { ingestStatus } from "$lib/features/ingest/status.svelte";
+    import { recoveryPanel } from "$lib/features/match-history/recovery-panel.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
@@ -24,19 +23,11 @@
         return t("settings.privacy.ingest_watching", { count: ingest.submitted });
     });
 
-    const ownRecovery = $derived(gcStatus.status?.ownRecovery ?? null);
-
-    function startOwnRecovery() {
-        recoverOwnMatches()
-            .then(() => gcStatus.refresh())
-            .catch((e) => toast.error(errorText(e)));
-    }
-
-    function cancelOwnRecovery() {
-        cancelOwnMatchRecovery()
-            .then(() => gcStatus.refresh())
-            .catch(() => {});
-    }
+    const recoveryHint = $derived.by(() => {
+        const own = gcStatus.status?.ownRecovery ?? null;
+        if (own?.running || own?.paused) return ownRecoveryLine(own);
+        return lastRunLine(gcStatus.status?.lastRun ?? null);
+    });
 </script>
 
 {#if show("match-ingest")}
@@ -66,24 +57,21 @@
         >
             <Switch id="gc-recovery" checked={settings.gcRecovery} onCheckedChange={(v) => settings.setGcRecovery(v)} />
         </SettingRow>
-        {#if settings.gcRecovery}
-            <SettingRow
-                class="mt-4"
-                size="sub"
-                label={t("settings.privacy.gc_own_label")}
-                description={t("settings.privacy.gc_own_description")}
-                hint={ownRecoveryLine(ownRecovery)}
+        <SettingRow
+            class="mt-4"
+            size="sub"
+            label={t("settings.privacy.gc_own_label")}
+            description={t("settings.privacy.gc_own_description")}
+            hint={recoveryHint}
+        >
+            <a
+                href="/match-history"
+                class={buttonVariants({ variant: "outline", size: "sm" })}
+                onclick={() => (recoveryPanel.open = true)}
             >
-                {#if ownRecovery?.running}
-                    <Button variant="outline" size="sm" onclick={cancelOwnRecovery}>
-                        {t("settings.privacy.gc_own_cancel")}
-                    </Button>
-                {:else}
-                    <Button variant="outline" size="sm" onclick={startOwnRecovery}>
-                        {t("settings.privacy.gc_own_start")}
-                    </Button>
-                {/if}
-            </SettingRow>
-        {/if}
+                <History />
+                {t("settings.privacy.gc_own_open")}
+            </a>
+        </SettingRow>
     </Card>
 {/if}

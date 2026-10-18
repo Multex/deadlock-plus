@@ -199,8 +199,9 @@ export const SERVICES: Service[] = [
 ];
 
 export { isActivePath } from "./home/home";
-export { apiHealth, ingestStatus, jobs, live, performanceScan, presenceStatus, settings };
+export { apiHealth, gcStatus, ingestStatus, jobs, live, performanceScan, presenceStatus, settings };
 export { jobPercent, jobStatusText } from "./jobs/jobs";
+export { recoveryBarItem } from "./gc/recovery-bar";
 export { discordBarState } from "./presence/presence";
 export { liveBarItem } from "./live/live";
 export { isLightTheme, resolveReducedMotion } from "./settings/themes";

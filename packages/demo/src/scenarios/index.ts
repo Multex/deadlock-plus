@@ -1,5 +1,6 @@
 import type { Scenario } from "../scenario";
-import { defaultScenario, type ScenarioOptions } from "./default";
+import { defaultScenario, recoveryScenario, type ScenarioOptions } from "./default";
+import { RECOVERY_PRESETS } from "./default/recovery";
 import { liveMatchScenario } from "./live-match";
 import { newUserScenario } from "./new-user";
 import { apiDownScenario, offlineScenario } from "./offline";
@@ -8,6 +9,8 @@ import { updateAvailableScenario } from "./update-available";
 
 export type { ScenarioOptions };
 export type ScenarioFactory = (options: ScenarioOptions) => Scenario;
+
+const RECOVERY_SCENARIO_IDS = Object.keys(RECOVERY_PRESETS).filter((id) => id !== "default");
 
 /** Every built-in scenario, by id. */
 export const scenarios: Record<string, ScenarioFactory> = {
@@ -19,6 +22,9 @@ export const scenarios: Record<string, ScenarioFactory> = {
     "update-available": updateAvailableScenario,
     unelevated: unelevatedScenario,
     "unelevated-game-admin": unelevatedGameAdminScenario,
+    ...Object.fromEntries(
+        RECOVERY_SCENARIO_IDS.map((id): [string, ScenarioFactory] => [id, (options) => recoveryScenario(id, options)]),
+    ),
 };
 
 /** The factory of scenario `id`. Throws on an id that is not registered. */

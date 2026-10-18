@@ -18,10 +18,13 @@ import type { Identity, Module } from "../../scenario";
 import { fakeAccountId, fakeName } from "./identity";
 import { demoGrade } from "./match-grades";
 import { historyRows, type HistoryRow } from "./progress";
+import { spreadStartTimes, type RecoverySession } from "./recovery";
 
 export interface MatchDetailOptions {
     /** The map table decoded from a real game build: `crates/ring2/dp-gamedata/fixtures/map_items.tsv`. */
     mapItemsTsv: string;
+    /** Where the shell module leaves this install's recovery state, so the matches it lacks answer 404. */
+    recoverySession?: RecoverySession;
 }
 
 type Rng = () => number;
@@ -1377,12 +1380,14 @@ function fixtureMapItems(tsv: string): MapItemsPayload {
 /** How long before the scenario's now the grading sample was fetched. */
 const GRADES_AGE_S = 2 * 24 * 3600;
 
-export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
+export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailOptions): Module {
     return {
         name: "match-detail",
         create(context) {
             const { identity } = context;
-            const history = historyRows(context);
+            const shared = recoverySession?.current;
+            const rows = historyRows(context);
+            const history = shared?.spreadTimes ? spreadStartTimes(rows, Math.floor(context.now / 1000)) : rows;
             const world: World = {
                 identity,
                 history,
@@ -1467,7 +1472,12 @@ export function matchDetailModule({ mapItemsTsv }: MatchDetailOptions): Module {
                         /^\/v1\/matches\/\d+\/metadata$/,
                         (url) => {
                             const matchId = Number(url.pathname.split("/")[3]);
-                            return world.rows.has(matchId) ? metadata(world, matchId) : null;
+                            const recorded = shared
+                                ? shared.recovery().coverage([matchId]).withDetails.includes(matchId)
+                                : true;
+                            return recorded && world.rows.has(matchId)
+                                ? metadata(world, matchId)
+                                : new Response(null, { status: 404 });
                         },
                     ],
                     [/^\/v1\/players\/steam$/, (url) => personaNames(identity, url)],

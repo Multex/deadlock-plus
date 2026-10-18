@@ -118,6 +118,13 @@ describe("default scenario", () => {
         expect(first.match_info.players).toHaveLength(12);
     });
 
+    it("answers a 404 for a match it does not know", async () => {
+        start();
+        const res = await fetch(`${API}/v1/matches/1/metadata`);
+        expect(res.status).toBe(404);
+        expect((await fetch(`${API}/v1/matches/${MATCH_IDS[0]}/metadata`)).status).toBe(200);
+    });
+
     it("keeps the background work switches and the autostart switch once they are set", () => {
         const handle = start();
         handle.invoke("set_job_enabled", { id: "addon-scan", enabled: false });

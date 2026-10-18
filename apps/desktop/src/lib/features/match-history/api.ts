@@ -12,6 +12,7 @@ export async function fetchMetadata(matchId: number, fetchFn: typeof fetch = fet
     try {
         return await createDeadlockApi({ fetch: fetchFn }).matchMetadata(matchId);
     } catch (e) {
+        if (e instanceof DeadlockApiError && e.status === 404) throw e;
         if (e instanceof DeadlockApiError) throw new Error(t("match_history.api_error", { status: e.status }));
         throw new Error(t("errors.common.network"));
     }
@@ -47,9 +48,13 @@ function parseBody(text: string | null, matchId: number): MatchDetail | null {
 
 /**
  * Cache first; a missing, unreadable or unparseable cache entry falls through to one fetch.
- * Rejects when the fetched body is not a usable match.
+ * Resolves null when the API answers 404 and no captured data fits; rejects on any other failure
+ * or when the fetched body is not a usable match.
  */
-export async function resolveDetail(matchId: number, source: DetailSource = liveDetailSource): Promise<MatchDetail> {
+export async function resolveDetail(
+    matchId: number,
+    source: DetailSource = liveDetailSource,
+): Promise<MatchDetail | null> {
     const cached = await source.read(matchId).catch(() => null);
     const hit = parseBody(cached, matchId);
     if (hit) return hit;
@@ -65,6 +70,7 @@ export async function resolveDetail(matchId: number, source: DetailSource = live
         const captured = await source.provisional?.(matchId).catch(() => null);
         const detail = captured ? parseApiDetail(captured, { source: "provisional" }) : null;
         if (detail?.matchId === matchId) return detail;
+        if (apiError instanceof DeadlockApiError && apiError.status === 404) return null;
         throw apiError;
     }
 }

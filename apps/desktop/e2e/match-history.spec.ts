@@ -18,7 +18,8 @@ const rows = (page: Page) =>
         .getByRole("listitem")
         .filter({ has: page.getByRole("link") });
 // The summary strip is a list of terms, each followed by its values.
-const matchTotal = (page: Page) => main(page).getByRole("definition").first();
+const matchTotal = (page: Page) =>
+    main(page).getByLabel("Summary of the matches in this list", { exact: true }).getByRole("definition").first();
 const pager = (page: Page) => page.getByRole("navigation", { name: "Match history pages" });
 const noResults = (page: Page) => main(page).getByText("No matches fit these filters.");
 

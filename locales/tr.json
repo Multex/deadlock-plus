@@ -60,7 +60,6 @@
         "gc": {
             "steam_not_found": "Bu bilgisayarda Steam bulunamadı.",
             "no_login": "",
-            "disabled": "",
             "game_running": ""
         },
         "ingest": {
@@ -437,8 +436,6 @@
             "gc_description": "",
             "gc_own_label": "",
             "gc_own_description": "",
-            "gc_own_start": "",
-            "gc_own_cancel": "",
             "advanced": ""
         },
         "about_page": {
@@ -2155,7 +2152,6 @@
         },
         "own": {
             "reading_history": "",
-            "reading_history_count": "",
             "progress": "",
             "nothing_missing": "",
             "done": "",
@@ -2342,7 +2338,6 @@
             "title": "",
             "back": "",
             "loading": "",
-            "unavailable": "",
             "error": "",
             "invalid": "",
             "summary": "",

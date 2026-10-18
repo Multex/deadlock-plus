@@ -20,13 +20,27 @@ import type { SteamAccount } from "@deadlock-plus/ipc-types/SteamAccount";
 
 import type { Handlers } from "../../backend";
 import type { Identity, Module } from "../../scenario";
+import { fakeAccountId, MATCH_IDS } from "./identity";
 import { PRESENCE_DEFAULTS, PRESENCE_LAYOUT, PRESENCE_PLACEHOLDERS, presencePreview } from "./presence";
+import {
+    createRecovery,
+    RECOVERY_PRESETS,
+    recoveryHandlers,
+    showsRecovery,
+    type Recovery,
+    type RecoveryConfig,
+    type RecoverySession,
+} from "./recovery";
 
 export interface ShellOptions {
     /** Version the app reports as its own. */
     appVersion: string;
     /** The app's changelog, as Markdown. */
     changelog: string;
+    /** What the player's recovery of missing match details looks like; nothing is missing when unset. */
+    recovery?: RecoveryConfig;
+    /** Hands this install's recovery state to the match detail module. */
+    recoverySession?: RecoverySession;
 }
 
 const HOUR_S = 3600;
@@ -66,7 +80,7 @@ const appInfo = (appVersion: string, { persona }: Identity): AppInfo => ({
 });
 
 const INGEST: IngestStatus = { running: true, steamFound: true, submitted: 1284, lastError: null };
-const GC: GcStatus = { running: true, accounts: 1, delivered: 37, lastError: null, ownRecovery: null };
+const GC_DELIVERED = 37;
 const AUTOSTART: AutostartStatus = { supported: true, enabled: true, stale: false };
 
 const PRESENCE: PresenceSettings = {
@@ -182,8 +196,6 @@ const SETTERS = [
     "set_telemetry_settings",
     "set_ingest_enabled",
     "set_gc_recovery_enabled",
-    "recover_own_matches",
-    "cancel_own_match_recovery",
     "set_close_to_tray",
     "set_open_on_game_start",
     "restart_app",
@@ -206,7 +218,12 @@ const SETTERS = [
 
 const HEALTH = { services: { clickhouse: true, postgres: true, redis: true } };
 
-export function shellModule({ appVersion, changelog }: ShellOptions): Module {
+export function shellModule({
+    appVersion,
+    changelog,
+    recovery: recoveryConfig,
+    recoverySession,
+}: ShellOptions): Module {
     return {
         name: "shell",
         create({ identity, now }) {
@@ -217,7 +234,29 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
             const nextMaintenance = nextMaintenanceS(now);
             let presenceConfig = PRESENCE_UNEDITED;
             let autostart = AUTOSTART;
-            let jobs = JOBS;
+            const config = recoveryConfig ?? RECOVERY_PRESETS.default!;
+            const gameOpen = config.gameOpen === true;
+            let jobs: JobsSnapshot = gameOpen ? { ...JOBS, gameRunning: true } : JOBS;
+            let recovery: Recovery | undefined;
+            // Built on first use: the scenario's clock starts after its modules are created.
+            const recoveryOf = () =>
+                (recovery ??= createRecovery(config, {
+                    now: () => Date.now(),
+                    accountIds: [identity.accountId, fakeAccountId(identity, 0), fakeAccountId(identity, 1)],
+                    matchIds: MATCH_IDS,
+                }));
+            if (recoverySession) recoverySession.current = { recovery: recoveryOf, spreadTimes: showsRecovery(config) };
+            const gcStatus = (): GcStatus => {
+                const { ownRecovery, lastRun } = recoveryOf().status();
+                return {
+                    running: config.gcRecovery !== false,
+                    accounts: config.accounts,
+                    delivered: GC_DELIVERED + (ownRecovery?.delivered ?? 0),
+                    lastError: null,
+                    ownRecovery,
+                    lastRun,
+                };
+            };
             const changeJob = (id: unknown, change: Partial<JobEntry>) => {
                 jobs = { ...jobs, catalog: jobs.catalog.map((job) => (job.id === id ? { ...job, ...change } : job)) };
                 return null;
@@ -230,7 +269,8 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                 current_steam_account: () => steamAccount,
                 pending_crash: () => null,
                 ingest_status: () => INGEST,
-                gc_status: () => GC,
+                gc_status: gcStatus,
+                ...recoveryHandlers(recoveryOf),
                 autostart_status: () => autostart,
                 set_autostart: (args): AutostartStatus =>
                     (autostart = { ...autostart, enabled: args.enabled === true }),
@@ -246,8 +286,8 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                     jobs = { ...jobs, allEnabled: enabled === true };
                     return null;
                 },
-                is_game_running: () => false,
-                overlay_status: (): OverlayStatus => ({ gameOpen: false, exclusiveFullscreen: false }),
+                is_game_running: () => gameOpen,
+                overlay_status: (): OverlayStatus => ({ gameOpen, exclusiveFullscreen: false }),
                 show_overlay_test: () => {
                     throw { code: "overlay.game_not_running", params: {} };
                 },
@@ -293,7 +333,7 @@ export function shellModule({ appVersion, changelog }: ShellOptions): Module {
                         onboardingVersion: 2,
                         lastSeenVersion: appVersion,
                         matchIngest: true,
-                        gcRecovery: true,
+                        gcRecovery: config.gcRecovery !== false,
                         telemetry: true,
                         telemetryNoticeShown: true,
                         closeToTray: true,

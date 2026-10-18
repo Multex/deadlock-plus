@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { DeadlockApiError } from "@deadlock-plus/deadlock-api";
 import { fetchMetadata, resolveDetail, type DetailSource } from "./api";
 import fixture from "@deadlock-plus/match/fixtures/api-ranked.json";
 
@@ -18,7 +19,7 @@ describe("resolveDetail", () => {
     it("serves a cache hit without fetching", async () => {
         const s = source({ read: vi.fn(async () => body) });
         const d = await resolveDetail(matchId, s);
-        expect(d.matchId).toBe(matchId);
+        expect(d?.matchId).toBe(matchId);
         expect(s.fetchText).not.toHaveBeenCalled();
         expect(s.write).not.toHaveBeenCalled();
     });
@@ -26,7 +27,7 @@ describe("resolveDetail", () => {
     it("fetches on a miss and writes the raw body to the cache", async () => {
         const s = source();
         const d = await resolveDetail(matchId, s);
-        expect(d.matchId).toBe(matchId);
+        expect(d?.matchId).toBe(matchId);
         expect(s.fetchText).toHaveBeenCalledWith(matchId);
         expect(s.write).toHaveBeenCalledWith(matchId, body);
     });
@@ -35,7 +36,7 @@ describe("resolveDetail", () => {
         for (const bad of ["not json", "{}", "[]", JSON.stringify({ match_info: { match_id: 1 } })]) {
             const s = source({ read: vi.fn(async () => bad) });
             const d = await resolveDetail(matchId, s);
-            expect(d.matchId).toBe(matchId);
+            expect(d?.matchId).toBe(matchId);
             expect(s.fetchText).toHaveBeenCalledTimes(1);
         }
     });
@@ -54,7 +55,7 @@ describe("resolveDetail", () => {
                 throw new Error("io");
             }),
         });
-        expect((await resolveDetail(matchId, s)).matchId).toBe(matchId);
+        expect((await resolveDetail(matchId, s))?.matchId).toBe(matchId);
     });
 
     it("still returns the detail when the cache write fails", async () => {
@@ -63,7 +64,7 @@ describe("resolveDetail", () => {
                 throw new Error("disk full");
             }),
         });
-        expect((await resolveDetail(matchId, s)).matchId).toBe(matchId);
+        expect((await resolveDetail(matchId, s))?.matchId).toBe(matchId);
     });
 
     it("rejects a fetched body that does not parse and does not cache it", async () => {
@@ -94,6 +95,11 @@ describe("fetchMetadata", () => {
         await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toThrow();
     });
 
+    it("keeps a 404 recognisable so the caller can tell a missing match from a failure", async () => {
+        const f = vi.fn(async () => new Response("", { status: 404 }));
+        await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toBeInstanceOf(DeadlockApiError);
+    });
+
     it("reports a dropped connection in the app's words, not the browser's", async () => {
         const f = vi.fn(async () => {
             throw new TypeError("Failed to fetch");
@@ -114,7 +120,7 @@ describe("resolveDetail provisional fallback", () => {
         const provisional = vi.fn(async () => structuredClone(fixture));
         const s = source({ fetchText: failFetch(), provisional });
         const d = await resolveDetail(matchId, s);
-        expect(d.source).toBe("provisional");
+        expect(d?.source).toBe("provisional");
         expect(provisional).toHaveBeenCalledWith(matchId);
         expect(s.write).not.toHaveBeenCalled();
     });
@@ -122,7 +128,7 @@ describe("resolveDetail provisional fallback", () => {
     it("prefers the API and never reads provisional data when the API answers", async () => {
         const provisional = vi.fn(async () => structuredClone(fixture));
         const d = await resolveDetail(matchId, source({ provisional }));
-        expect(d.source).toBe("api");
+        expect(d?.source).toBe("api");
         expect(provisional).not.toHaveBeenCalled();
     });
 
@@ -136,5 +142,43 @@ describe("resolveDetail provisional fallback", () => {
         other.match_info.match_id = matchId + 1;
         const s = source({ fetchText: failFetch(), provisional: vi.fn(async () => other) });
         await expect(resolveDetail(matchId, s)).rejects.toThrow("404");
+    });
+});
+
+describe("resolveDetail when the API does not have the match", () => {
+    const failWith = (error: Error) =>
+        vi.fn(async () => {
+            throw error;
+        });
+
+    it("resolves null on a 404 with no provisional detail", async () => {
+        const s = source({ fetchText: failWith(new DeadlockApiError(404)) });
+        expect(await resolveDetail(matchId, s)).toBeNull();
+        expect(s.write).not.toHaveBeenCalled();
+    });
+
+    it("resolves null on a 404 when provisional detail is for another match", async () => {
+        const other = structuredClone(fixture);
+        other.match_info.match_id = matchId + 1;
+        const s = source({ fetchText: failWith(new DeadlockApiError(404)), provisional: vi.fn(async () => other) });
+        expect(await resolveDetail(matchId, s)).toBeNull();
+    });
+
+    it("still prefers provisional detail on a 404", async () => {
+        const s = source({
+            fetchText: failWith(new DeadlockApiError(404)),
+            provisional: vi.fn(async () => structuredClone(fixture)),
+        });
+        expect((await resolveDetail(matchId, s))?.source).toBe("provisional");
+    });
+
+    it("still throws on a 500", async () => {
+        const s = source({ fetchText: failWith(new DeadlockApiError(500)) });
+        await expect(resolveDetail(matchId, s)).rejects.toThrow();
+    });
+
+    it("still throws on a network failure", async () => {
+        const s = source({ fetchText: failWith(new TypeError("Failed to fetch")) });
+        await expect(resolveDetail(matchId, s)).rejects.toThrow("Failed to fetch");
     });
 });

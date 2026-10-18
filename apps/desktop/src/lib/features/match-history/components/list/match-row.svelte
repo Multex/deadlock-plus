@@ -1,5 +1,17 @@
 <script lang="ts">
-    import { ChevronRight, CircleHelp, Clock, Coins, Flame, Gamepad2, Swords, Trophy, Users } from "@lucide/svelte";
+    import {
+        ChevronRight,
+        CircleDashed,
+        CircleHelp,
+        Clock,
+        Coins,
+        Flame,
+        Gamepad2,
+        LoaderCircle,
+        Swords,
+        Trophy,
+        Users,
+    } from "@lucide/svelte";
 
     import { formatDate, formatNumber, t } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
@@ -9,8 +21,11 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
     import { kdaRatio } from "@deadlock-plus/match/list-summary";
+    import { rowState } from "@deadlock-plus/match/coverage";
+    import { matchCoverage } from "../../coverage.svelte";
     import { rowGrades } from "../../row-grades.svelte";
     import RowGrade from "./row-grade.svelte";
+    import { rowStateBadge, showGrade } from "./row-state";
     import { deltaView, matchHref, modeLabelKey, outcomeLabelKey } from "./view-model";
 
     let { row, hero, tiers }: { row: MatchRow; hero: Hero | undefined; tiers: RankTier[] } = $props();
@@ -41,6 +56,8 @@
     const duration = $derived(formatClock(row.durationS) ?? "-");
     const time = $derived(formatDate(row.startTime * 1000, { hour: "2-digit", minute: "2-digit" }));
     const grade = $derived(rowGrades.own(row.matchId));
+    const state = $derived(rowState(row.matchId, matchCoverage.coverage, matchCoverage.queued));
+    const stateBadge = $derived(rowStateBadge(state));
     const outcomeVariant = $derived(
         row.outcome === "win" ? "success" : row.outcome === "loss" ? "destructive" : "outline",
     );
@@ -77,12 +94,25 @@
                         {t("match_history.list.provisional")}
                     </Badge>
                 {/if}
+                {#if stateBadge}
+                    <Badge variant={stateBadge.variant} class={state === "missing" ? "text-muted-foreground" : ""}>
+                        {#if state === "recovering"}
+                            <LoaderCircle
+                                class="animate-spin text-brass motion-reduce:animate-none"
+                                aria-hidden="true"
+                            />
+                        {:else}
+                            <CircleDashed aria-hidden="true" />
+                        {/if}
+                        {t(stateBadge.labelKey)}
+                    </Badge>
+                {/if}
             </p>
         </div>
 
         <div class="flex flex-col items-start gap-1.5">
             <Badge variant={outcomeVariant}>{t(outcomeLabelKey(row.outcome))}</Badge>
-            {#if grade}
+            {#if grade && showGrade(grade, state)}
                 <RowGrade {grade} class="pl-0.5" />
             {/if}
         </div>

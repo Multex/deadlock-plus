@@ -17,6 +17,7 @@
     import {
         apiHealth,
         discordBarState,
+        gcStatus,
         ingestStatus,
         jobPercent,
         jobStatusText,
@@ -25,6 +26,7 @@
         live,
         performanceScan,
         presenceStatus,
+        recoveryBarItem,
         settings,
         getAppInfo,
     } from "$lib/features/registry";
@@ -128,6 +130,8 @@
     });
     const ServiceIcon = $derived(service.icon);
 
+    const recovery = $derived(recoveryBarItem(gcStatus.status?.ownRecovery ?? null));
+
     const discord = $derived(discordBarState(settings.presence.level !== "off", presenceStatus.status));
 
     const liveItem = $derived(
@@ -190,10 +194,31 @@
         {/if}
     </a>
     <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
-    <span class="flex min-w-0 items-center gap-1.5 {service.tone}" title={service.title}>
-        <ServiceIcon class="size-3.5 shrink-0" />
-        {#if service.text}<span class="truncate">{service.text}</span>{/if}
-    </span>
+    {#if recovery}
+        <a
+            href="/match-history"
+            class="flex min-w-0 items-center gap-1.5 text-muted-foreground hover:text-foreground"
+            title={recovery.title}
+        >
+            <CloudUpload class="size-3.5 shrink-0 text-brass" />
+            <span class="truncate tabular-nums">{t(recovery.key, recovery.params)}</span>
+            {#if recovery.percent !== null}
+                <span class="ml-0.5 h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-muted-foreground/20">
+                    <span
+                        class="block h-full rounded-full bg-brass transition-[width] duration-300 {recovery.dim
+                            ? 'opacity-50'
+                            : ''}"
+                        style="width: {recovery.percent}%"
+                    ></span>
+                </span>
+            {/if}
+        </a>
+    {:else}
+        <span class="flex min-w-0 items-center gap-1.5 {service.tone}" title={service.title}>
+            <ServiceIcon class="size-3.5 shrink-0" />
+            {#if service.text}<span class="truncate">{service.text}</span>{/if}
+        </span>
+    {/if}
     {#if jobs.active.length > 1}
         <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
         <span

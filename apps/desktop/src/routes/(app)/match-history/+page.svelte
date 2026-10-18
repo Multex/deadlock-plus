@@ -9,7 +9,10 @@
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
+    import CoverageStrip from "$lib/features/match-history/components/list/coverage-strip.svelte";
+    import { matchCoverage } from "$lib/features/match-history/coverage.svelte";
     import FilterBar from "$lib/features/match-history/components/list/filter-bar.svelte";
+    import RecoveryPanel from "$lib/features/match-history/components/recovery/recovery-panel.svelte";
     import ListSkeleton from "$lib/features/match-history/components/list/list-skeleton.svelte";
     import MatchRow from "$lib/features/match-history/components/list/match-row.svelte";
     import Pager from "$lib/features/match-history/components/list/pager.svelte";
@@ -67,6 +70,8 @@
         <ListSkeleton />
     {:else}
         <CachedNote />
+        <CoverageStrip />
+        <RecoveryPanel missingIds={matchCoverage.summary?.missingIds ?? []} />
         <FilterBar
             filters={matchHistory.filters}
             heroes={options}

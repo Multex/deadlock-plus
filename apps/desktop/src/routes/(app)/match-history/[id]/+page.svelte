@@ -13,6 +13,7 @@
     import Scoreboard from "$lib/features/match-history/components/detail/scoreboard.svelte";
     import { headerSummary } from "@deadlock-plus/match/scoreboard";
     import Summary from "$lib/features/match-history/components/detail/summary.svelte";
+    import MissingMatch from "$lib/features/match-history/components/detail/missing-match.svelte";
     import { findPlayer } from "@deadlock-plus/match/detail";
     import { versusFor } from "@deadlock-plus/match/versus";
     import { matchHistory } from "$lib/features/match-history/history.svelte";
@@ -64,7 +65,7 @@
             {t("match_history.detail.error", { error: matchHistory.detailError ?? "" })}
         </EmptyState>
     {:else if matchHistory.detailStatus === "unavailable"}
-        <EmptyState size="base" spacing="xl" role="status">{t("match_history.detail.unavailable")}</EmptyState>
+        <MissingMatch {matchId} />
     {:else if detail}
         <Summary summary={headerSummary(detail, ownAccountId)} {versus}>
             {#snippet actions()}

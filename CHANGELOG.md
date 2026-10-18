@@ -61,6 +61,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The server block update job is listed in Jobs and can be turned off.
 - Support reports include the session type, desktop, Steam install type and package type.
 
+#### Match recovery
+
+- Match History shows how many of your matches have full details, and how many recent ones have replays.
+- Matches the Deadlock API is missing show a "No details" badge in Match History.
+- A Recover button in Match History fills in your missing matches.
+- The recovery panel shows progress, time left and each Steam account's use for the day.
+- You can pause, resume or cancel recovery.
+- Paused recovery stays paused after a restart.
+- Recovery continues on its own when Deadlock closes or the daily limit resets.
+- Recovery takes up to 40 matches per Steam account a day.
+- The status bar shows recovery progress and links to Match History.
+- A match the Deadlock API is missing shows what is known and how to recover it, instead of an error.
+- You can recover a single match from its page.
+- Settings > Privacy opens recovery in Match History.
+
 ### Changed
 
 - Matches Deadlock+ sends to the Deadlock API are labelled as coming from Deadlock+.
