@@ -69,16 +69,12 @@ pub fn interpret_salts_response(
         Some(r) if r == EResult::KEResultSuccess as i32 => {}
         r => return Err(GcError::GcUnavailable(format!("salts result {r:?}"))),
     }
-    if resp.metadata_salt.is_none() && resp.replay_salt.is_none() {
+    let metadata_salt = resp.metadata_salt.filter(|&s| s != 0);
+    let replay_salt = resp.replay_salt.filter(|&s| s != 0);
+    if metadata_salt.is_none() && replay_salt.is_none() {
         return Err(GcError::GcUnavailable("response has no salts".into()));
     }
-    Ok(RecoveredSalts {
-        match_id,
-        cluster_id: resp.replay_group_id,
-        metadata_salt: resp.metadata_salt,
-        replay_salt: resp.replay_salt,
-        account_id,
-    })
+    Ok(RecoveredSalts { match_id, cluster_id: resp.replay_group_id, metadata_salt, replay_salt, account_id })
 }
 
 /// Rate limits come back as `GcRateLimited` and private profiles as `HistoryPrivate`.
@@ -533,6 +529,19 @@ mod tests {
     #[test]
     fn success_without_salts_is_an_error() {
         let e = interpret_salts_response(42, 7, &response(EResult::KEResultSuccess, None, None)).unwrap_err();
+        assert!(matches!(e, GcError::GcUnavailable(_)));
+    }
+
+    #[test]
+    fn a_zero_salt_reads_as_absent() {
+        let got = interpret_salts_response(42, 7, &response(EResult::KEResultSuccess, Some(0), Some(2))).unwrap();
+        assert_eq!(got.metadata_salt, None);
+        assert_eq!(got.replay_salt, Some(2));
+    }
+
+    #[test]
+    fn all_zero_salts_are_an_error() {
+        let e = interpret_salts_response(42, 7, &response(EResult::KEResultSuccess, Some(0), Some(0))).unwrap_err();
         assert!(matches!(e, GcError::GcUnavailable(_)));
     }
 
