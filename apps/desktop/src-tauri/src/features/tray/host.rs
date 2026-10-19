@@ -62,11 +62,10 @@ mod linux {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "linux")))]
 mod tests {
     use super::*;
 
-    #[cfg(not(target_os = "linux"))]
     #[test]
     fn the_tray_always_has_a_host_off_linux() {
         assert_eq!(tray_host(), TrayHost::Present);
