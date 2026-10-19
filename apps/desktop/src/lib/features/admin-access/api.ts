@@ -13,3 +13,7 @@ export function allowAdminAccess(always: boolean) {
 export function removeAdminAccess() {
     return command<void>("remove_admin_access");
 }
+
+export function restartAsAdmin() {
+    return command<"launched" | "cancelled">("restart_as_admin");
+}

@@ -126,7 +126,8 @@
             "always_allow_needs_install": "Always allow only works with the installed Deadlock+ app. You'll be asked each time.",
             "remove_failed": "Couldn't turn off Always allow.",
             "unsupported": "Administrator access is only needed on Windows.",
-            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it."
+            "helper_out_of_date": "The Deadlock+ helper is out of date. Reinstall Deadlock+ to fix it.",
+            "restart_failed": "Couldn't restart Deadlock+ as administrator."
         },
         "ptrace": {
             "unavailable": "No fix is available for this system.",
@@ -635,7 +636,13 @@
         "allow": "Allow",
         "always_allow": "Always allow",
         "after_match": "Available after this match",
-        "nothing_changed": "Nothing changed."
+        "nothing_changed": "Nothing changed.",
+        "game_admin": {
+            "title": "Deadlock is running as admin",
+            "body": "Deadlock+ can't read the game, so live match data, Discord presence and Match found are off. Start Steam normally, or restart Deadlock+ as administrator.",
+            "restart": "Restart as administrator",
+            "restart_failed": "Couldn't restart as administrator."
+        }
     },
     "common": {
         "confirm": "Confirm",
@@ -2012,8 +2019,8 @@
             "failed": "Could not change the ptrace setting."
         },
         "game_admin": {
-            "title": "Deadlock runs as admin",
-            "body": "Start Steam normally to use live match data."
+            "title": "Deadlock is running as admin",
+            "body": "Start Steam normally, or restart Deadlock+ as administrator."
         }
     },
     "connection": {

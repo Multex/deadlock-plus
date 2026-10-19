@@ -109,6 +109,7 @@ export function adminAccessModule({ status = ELEVATED, allow = APPLIED }: AdminA
                             state = { ...state, route: always === true ? "service" : "helper" };
                         return allow;
                     },
+                    restart_as_admin: () => "cancelled",
                     remove_admin_access: () => {
                         if (state.elevated) refuse("admin_access.already_elevated");
                         state = { ...state, route: "needsPermission" };

@@ -9,17 +9,23 @@ use windows::Win32::Foundation::HANDLE;
 use windows::Win32::UI::Shell::{
     ShellExecuteExW, SEE_MASK_FLAG_NO_UI, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
 };
-use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
+use windows::Win32::UI::WindowsAndMessaging::{SHOW_WINDOW_CMD, SW_HIDE, SW_SHOWNORMAL};
 
 pub fn launch(exe: &Path, params: &str) -> Result<OwnedHandle, Outcome> {
-    launch_with("runas", exe, params)
+    launch_with("runas", exe, params, SW_HIDE)
+}
+
+/// For a program with a window: the elevated process takes `nShow` for its first window, so `launch` would keep
+/// it hidden.
+pub fn launch_shown(exe: &Path, params: &str) -> Result<OwnedHandle, Outcome> {
+    launch_with("runas", exe, params, SW_SHOWNORMAL)
 }
 
 fn wide(s: &OsStr) -> Vec<u16> {
     s.encode_wide().chain(std::iter::once(0)).collect()
 }
 
-fn launch_with(verb: &str, exe: &Path, params: &str) -> Result<OwnedHandle, Outcome> {
+fn launch_with(verb: &str, exe: &Path, params: &str, show: SHOW_WINDOW_CMD) -> Result<OwnedHandle, Outcome> {
     // Error boxes are only suppressed for non-elevating verbs so the UAC flow is left untouched.
     let no_ui = if verb == "runas" { 0 } else { SEE_MASK_FLAG_NO_UI };
     let verb = wide(OsStr::new(verb));
@@ -31,7 +37,7 @@ fn launch_with(verb: &str, exe: &Path, params: &str) -> Result<OwnedHandle, Outc
         lpVerb: PCWSTR(verb.as_ptr()),
         lpFile: PCWSTR(file.as_ptr()),
         lpParameters: PCWSTR(params.as_ptr()),
-        nShow: SW_HIDE.0,
+        nShow: show.0,
         ..Default::default()
     };
     // SAFETY: `info` is fully initialised, and the verb, file and parameter buffers are NUL-terminated
@@ -74,20 +80,20 @@ mod tests {
 
     #[test]
     fn open_returns_a_waitable_process_handle() {
-        let handle = launch_with("open", &cmd(), "/c exit 7").expect("launch");
+        let handle = launch_with("open", &cmd(), "/c exit 7", SW_HIDE).expect("launch");
         assert_eq!(exit_code(&handle), 7);
     }
 
     #[test]
     fn open_zero_exit() {
-        let handle = launch_with("open", &cmd(), "/c exit 0").expect("launch");
+        let handle = launch_with("open", &cmd(), "/c exit 0", SW_HIDE).expect("launch");
         assert_eq!(exit_code(&handle), 0);
     }
 
     #[test]
     fn missing_file_is_a_failure_with_the_windows_error() {
         let missing = Path::new(r"C:\definitely\not\here\nothing.exe");
-        match launch_with("open", missing, "") {
+        match launch_with("open", missing, "", SW_HIDE) {
             Err(Outcome::Failed(text)) => assert!(text.starts_with("Windows error "), "{text}"),
             other => panic!("unexpected {other:?}"),
         }

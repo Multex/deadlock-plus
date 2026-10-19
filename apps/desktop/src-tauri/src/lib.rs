@@ -30,6 +30,7 @@ pub fn privileged_argv_exit_code(argv: &[std::ffi::OsString]) -> Option<i32> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     features::logging::install_panic_hook();
+    features::admin_access::restart::wait_for_previous_instance();
     let builder = tauri::Builder::default();
     #[cfg(debug_assertions)]
     let builder =
@@ -259,6 +260,7 @@ pub fn run() {
             features::admin_access::commands::admin_access_status,
             features::admin_access::commands::allow_admin_access,
             features::admin_access::commands::remove_admin_access,
+            features::admin_access::commands::restart_as_admin,
             features::diagnostics::commands::start_addon_scan,
             features::diagnostics::commands::addon_scan_report,
             features::diagnostics::frames::commands::start_frame_capture,

@@ -3,7 +3,7 @@ import { open } from "./support/flows";
 import { expect, test } from "./support/test";
 
 const NEEDS_ADMIN = "Live monitoring needs admin access";
-const GAME_ADMIN = "Deadlock runs as admin";
+const GAME_ADMIN = "Deadlock is running as admin";
 
 const notice = (page: Page) => page.getByRole("alert").filter({ hasText: NEEDS_ADMIN });
 const button = (page: Page, name: string) => notice(page).getByRole("button", { name, exact: true });
@@ -37,7 +37,7 @@ test.describe("without administrator rights", () => {
     }
 });
 
-test.describe("when Deadlock runs as administrator", () => {
+test.describe("when Deadlock is running as administrator", () => {
     test.use({ scenario: "unelevated-game-admin" });
 
     test("the game card says to start Steam normally", async ({ page }) => {
@@ -45,8 +45,25 @@ test.describe("when Deadlock runs as administrator", () => {
 
         const card = page.getByRole("alert").filter({ hasText: GAME_ADMIN });
         await expect(card).toBeVisible();
-        await expect(card).toContainText("Start Steam normally to use live match data.");
+        await expect(card).toContainText("Start Steam normally, or restart Deadlock+ as administrator.");
         await expect(page.getByText("Deadlock is not running")).toHaveCount(0);
+        await expect(card.getByRole("button", { name: "Restart as administrator", exact: true })).toBeEnabled();
+    });
+
+    test("the banner shows on other pages, not on Live, and a cancelled restart leaves the button idle", async ({
+        page,
+    }) => {
+        await open(page, "/");
+
+        const banner = page.getByRole("alert").filter({ hasText: "Deadlock is running as admin" });
+        await expect(banner).toBeVisible();
+        const restart = banner.getByRole("button", { name: "Restart as administrator", exact: true });
+        await restart.click();
+        await expect(restart).toBeEnabled();
+        await expect(banner).not.toContainText("Couldn't restart");
+
+        await open(page, "/live");
+        await expect(page.getByRole("alert").filter({ hasText: "Deadlock+ can't read the game" })).toHaveCount(0);
     });
 });
 

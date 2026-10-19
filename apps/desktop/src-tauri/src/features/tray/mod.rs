@@ -178,7 +178,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
 
 /// `app.exit` tears the page down at once, so a save it still holds (a debounced edit) would be lost. The page
 /// gets the chance to save first.
-fn request_quit(app: &AppHandle) {
+pub(crate) fn request_quit(app: &AppHandle) {
     if let Err(e) = app.emit_to(MAIN_WINDOW, QUIT_REQUESTED_EVENT, ()) {
         log::warn!("could not ask the page to quit, exiting now: {e}");
         app.exit(0);

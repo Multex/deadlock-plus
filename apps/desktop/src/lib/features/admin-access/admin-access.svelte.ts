@@ -3,6 +3,7 @@ import type { AdminAccessOutcome } from "@deadlock-plus/ipc-types/AdminAccessOut
 import type { AdminAccessStatus } from "@deadlock-plus/ipc-types/AdminAccessStatus";
 import type { LiveState } from "@deadlock-plus/ipc-types/LiveState";
 import { failureText } from "$lib/core/errors";
+import { listen, type Unlisten } from "$lib/core/tauri";
 import { t } from "$lib/core/i18n.svelte";
 import { live } from "$lib/features/live/live.svelte";
 import { adminAccessStatus, allowAdminAccess, removeAdminAccess } from "./api";
@@ -25,7 +26,10 @@ export interface AdminAccessDeps {
     };
     /** Calls `onChange` with `read()` now and each time it changes. Returns the stop. */
     watch?: (read: () => string | null, onChange: (key: string | null) => void) => () => void;
+    listen?: (event: string, handler: () => void) => Promise<Unlisten>;
 }
+
+const CHANGED_EVENT = "admin-access-changed";
 
 function watchWithEffect(read: () => string | null, onChange: (key: string | null) => void): () => void {
     return $effect.root(() => {
@@ -95,13 +99,34 @@ export class AdminAccessStore {
         }
     }
 
-    /** Loads the status, then reloads it on each live phase change (prompts lock in pregame and in a match). */
+    /**
+     * Loads the status, then reloads it on each live phase change (prompts lock in pregame and in a match) and when
+     * the backend says the game's access changed (an elevated game leaves the phase at `gameClosed`).
+     */
     start(): () => void {
         const watch = this.deps.watch ?? watchWithEffect;
-        return watch(
+        const stopWatch = watch(
             () => this.deps.live.state?.phase ?? null,
             () => void this.refresh(),
         );
+        let stopped = false;
+        let unlisten: Unlisten | null = null;
+        (this.deps.listen ?? listen)(CHANGED_EVENT, () => void this.refresh()).then(
+            (off) => {
+                if (stopped) return off();
+                unlisten = off;
+                // A flip between the first load and the listener registering would otherwise be missed.
+                void this.refresh();
+            },
+            () => {
+                // Not running inside Tauri.
+            },
+        );
+        return () => {
+            stopped = true;
+            stopWatch();
+            unlisten?.();
+        };
     }
 }
 

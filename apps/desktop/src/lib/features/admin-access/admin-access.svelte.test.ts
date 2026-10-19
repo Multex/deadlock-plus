@@ -43,6 +43,17 @@ async function settle() {
     for (let i = 0; i < 10; i++) await Promise.resolve();
 }
 
+let events: Map<string, () => void>;
+let unlistened: string[];
+
+const fakeListen: AdminAccessDeps["listen"] = async (event, handler) => {
+    events.set(event, handler);
+    return () => {
+        events.delete(event);
+        unlistened.push(event);
+    };
+};
+
 let fake: FakeLive;
 let api: {
     status: ReturnType<typeof vi.fn<() => Promise<AdminAccessStatus>>>;
@@ -58,7 +69,9 @@ beforeEach(() => {
         allow: vi.fn(async (): Promise<AdminAccessOutcome> => ({ status: "applied" })),
         remove: vi.fn(async () => {}),
     };
-    store = new AdminAccessStore({ live: fake, api, watch: pollingWatch });
+    events = new Map();
+    unlistened = [];
+    store = new AdminAccessStore({ live: fake, api, watch: pollingWatch, listen: fakeListen });
     poll = () => {};
 });
 
@@ -71,7 +84,7 @@ describe("admin access status", () => {
     it("loads on start", async () => {
         store.start();
         await settle();
-        expect(api.status).toHaveBeenCalledTimes(1);
+        expect(api.status).toHaveBeenCalledTimes(2);
         expect(store.status).toEqual(status());
         expect(store.buttons).toEqual({ kind: "prompt", allow: true, disabled: null });
     });
@@ -82,18 +95,65 @@ describe("admin access status", () => {
         api.status.mockResolvedValue(status({ canPrompt: false }));
         fake.state = { phase: "pregame", matchPresent: true };
         await settle();
-        expect(api.status).toHaveBeenCalledTimes(2);
+        expect(api.status).toHaveBeenCalledTimes(3);
         expect(store.buttons).toEqual({ kind: "prompt", allow: true, disabled: "after_match" });
 
         fake.state = { phase: "pregame", matchPresent: false };
         await settle();
-        expect(api.status).toHaveBeenCalledTimes(2);
+        expect(api.status).toHaveBeenCalledTimes(3);
 
         api.status.mockResolvedValue(status());
         fake.state = { phase: "postMatch", matchPresent: true };
         await settle();
-        expect(api.status).toHaveBeenCalledTimes(3);
+        expect(api.status).toHaveBeenCalledTimes(4);
         expect(store.buttons).toEqual({ kind: "prompt", allow: true, disabled: null });
+    });
+
+    it("refreshes when the backend says the game's access changed, with no phase change", async () => {
+        store.start();
+        await settle();
+        expect(api.status).toHaveBeenCalledTimes(2);
+
+        api.status.mockResolvedValue(status({ gameRunsAsAdmin: true }));
+        events.get("admin-access-changed")?.();
+        await settle();
+        expect(api.status).toHaveBeenCalledTimes(3);
+        expect(store.status?.gameRunsAsAdmin).toBe(true);
+    });
+
+    it("re-checks once the listener is registered, so a flip during startup is not missed", async () => {
+        let register: () => void = () => {};
+        store = new AdminAccessStore({
+            live: fake,
+            api,
+            watch: pollingWatch,
+            listen: (event, handler) =>
+                new Promise((resolve) => {
+                    register = () => resolve(fakeListen(event, handler));
+                }),
+        });
+        store.start();
+        await settle();
+        expect(store.status?.gameRunsAsAdmin).toBe(false);
+
+        api.status.mockResolvedValue(status({ gameRunsAsAdmin: true }));
+        register();
+        await settle();
+        expect(store.status?.gameRunsAsAdmin).toBe(true);
+    });
+
+    it("stops listening when stopped, even before the listener was registered", async () => {
+        const stop = store.start();
+        stop();
+        await settle();
+        expect(events.has("admin-access-changed")).toBe(false);
+        expect(unlistened).toEqual(["admin-access-changed"]);
+
+        const again = store.start();
+        await settle();
+        again();
+        expect(events.size).toBe(0);
+        expect(unlistened).toEqual(["admin-access-changed", "admin-access-changed"]);
     });
 
     it("keeps the last status when the status command fails", async () => {

@@ -4,10 +4,11 @@ use std::time::Duration;
 use dp_live::{GameLink, Latest, Slot, Snapshot, TICK_INTERVAL};
 use dp_postgame::{Done, Worker};
 use dp_sync::LockExt;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use super::board::LiveMatch;
 use super::state::{derive, LivePhase, LiveService, LiveState};
+use crate::features::admin_access::{game_access_flipped, CHANGED_EVENT};
 use crate::features::network::recording::MatchPingService;
 
 const EXIT_WAIT: Duration = Duration::from_secs(3);
@@ -44,7 +45,13 @@ impl GameLinkService {
         let handle = app.clone();
         let source = Arc::clone(&started);
         match Worker::spawn("live-report", None, move |stop| {
+            let mut access_denied = false;
             while !stop.is_stopped() {
+                if game_access_flipped(&mut access_denied, dp_live::game_access_denied()) {
+                    if let Err(e) = handle.emit(CHANGED_EVENT, ()) {
+                        log::warn!("could not emit {CHANGED_EVENT}: {e}");
+                    }
+                }
                 let latest = source.snapshot();
                 let (state, board) = view(&latest);
                 let service = handle.state::<LiveService>();

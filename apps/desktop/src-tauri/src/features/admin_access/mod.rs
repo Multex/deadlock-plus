@@ -3,6 +3,7 @@
 #![cfg_attr(not(windows), allow(dead_code))]
 
 pub mod commands;
+pub mod restart;
 
 use dp_helper::op::{HELPER_OUT_OF_DATE, NEEDS_INSTALLED_APP, SERVICE_INSTALL_FAILED};
 use dp_helper::route::Route;
@@ -26,6 +27,7 @@ error_codes! {
         AlwaysAllowNeedsInstall = "always_allow_needs_install",
         RemoveFailed = "remove_failed",
         HelperOutOfDate = "helper_out_of_date",
+        RestartFailed = "restart_failed",
         Unsupported = "unsupported",
     }
 }
@@ -85,6 +87,15 @@ pub enum AdminAccessOutcome {
     Failed {
         error: AppError,
     },
+}
+
+/// Tells the frontend to re-read [`AdminAccessStatus`]. The live phase stays `GameClosed` while an attach is refused,
+/// so a phase change alone never shows the game going elevated or back.
+pub const CHANGED_EVENT: &str = "admin-access-changed";
+
+/// Whether `now` differs from the last seen value, which it then becomes.
+pub fn game_access_flipped(last: &mut bool, now: bool) -> bool {
+    std::mem::replace(last, now) != now
 }
 
 pub fn can_prompt(elevated: bool, phase: LivePhase) -> bool {
@@ -157,6 +168,16 @@ mod tests {
     #[test]
     fn every_admin_access_code_is_in_the_english_catalog() {
         assert_catalogued::<AdminAccessError>();
+    }
+
+    #[test]
+    fn only_a_flip_of_the_access_denial_is_reported() {
+        let mut last = false;
+        assert!(!game_access_flipped(&mut last, false));
+        assert!(game_access_flipped(&mut last, true));
+        assert!(!game_access_flipped(&mut last, true));
+        assert!(game_access_flipped(&mut last, false));
+        assert!(!game_access_flipped(&mut last, false));
     }
 
     #[test]

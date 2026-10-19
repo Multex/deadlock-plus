@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Manager};
 
+use super::restart::RestartAsAdminOutcome;
 use super::{AdminAccessOutcome, AdminAccessStatus};
 use crate::features::error::AppError;
 use crate::features::live::state::LivePhase;
@@ -9,7 +10,10 @@ use crate::features::live::LiveService;
 mod platform {
     use dp_helper::routed;
 
-    use super::super::{allow_refusal, outcome, remove_result, status, AdminAccessOutcome, AdminAccessStatus};
+    use super::super::restart::{relaunch_params, restart_outcome, RestartAsAdminOutcome};
+    use super::super::{
+        allow_refusal, outcome, remove_result, status, AdminAccessError, AdminAccessOutcome, AdminAccessStatus,
+    };
     use crate::features::error::AppError;
     use crate::features::live::state::LivePhase;
 
@@ -28,6 +32,15 @@ mod platform {
 
     pub fn remove() -> Result<(), AppError> {
         remove_result(dp_elevation::is_elevated(), routed::revoke)
+    }
+
+    /// Blocks while the UAC prompt is open.
+    pub fn restart_as_admin() -> Result<RestartAsAdminOutcome, AppError> {
+        if dp_elevation::is_elevated() {
+            return Err(AppError::new(AdminAccessError::AlreadyElevated));
+        }
+        let exe = std::env::current_exe().map_err(|e| AppError::new(AdminAccessError::RestartFailed).detail(e))?;
+        restart_outcome(dp_helper::runas::launch_shown(&exe, &relaunch_params(std::process::id())).map(drop))
     }
 }
 
@@ -50,6 +63,10 @@ mod platform {
     }
 
     pub fn remove() -> Result<(), AppError> {
+        Err(AppError::new(AdminAccessError::Unsupported))
+    }
+
+    pub fn restart_as_admin() -> Result<super::RestartAsAdminOutcome, AppError> {
         Err(AppError::new(AdminAccessError::Unsupported))
     }
 }
@@ -75,4 +92,16 @@ pub async fn allow_admin_access(app: AppHandle, always: bool) -> Result<AdminAcc
 #[tauri::command]
 pub async fn remove_admin_access() -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(platform::remove).await.map_err(AppError::internal)?
+}
+
+/// On `launched` this instance quits through the page, so its pending saves land before the elevated one starts.
+#[tauri::command]
+pub async fn restart_as_admin(app: AppHandle) -> Result<RestartAsAdminOutcome, AppError> {
+    let outcome =
+        tauri::async_runtime::spawn_blocking(platform::restart_as_admin).await.map_err(AppError::internal)??;
+    if outcome == RestartAsAdminOutcome::Launched {
+        log::info!("restarting as administrator");
+        crate::features::tray::request_quit(&app);
+    }
+    Ok(outcome)
 }

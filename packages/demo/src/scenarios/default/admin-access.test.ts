@@ -49,6 +49,11 @@ describe("admin access module", () => {
         expect(handle.invoke("network_snapshot", {})).toMatchObject({ needsPermission: false });
     });
 
+    it("answers a restart as administrator with cancelled", () => {
+        start();
+        expect(handle!.invoke("restart_as_admin", {})).toBe("cancelled");
+    });
+
     it("refuses to allow or remove while elevated", () => {
         start();
         expect(() => handle!.invoke("allow_admin_access", { always: false })).toThrow(

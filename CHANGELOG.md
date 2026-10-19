@@ -113,7 +113,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Settings > Startup and background switches between Ask each time and Always allow.
 - The welcome steps let you pick Always allow or Ask me later.
 - The admin access buttons wait until your match ends.
-- The Live page says when Deadlock itself runs as administrator, which stops Deadlock+ from reading it.
+- Every page says when Deadlock itself is running as administrator, which stops Deadlock+ from reading it, for example when Steam was started as administrator.
+- That notice has a button to restart Deadlock+ as administrator.
 - Start with Windows uses the Windows startup list instead of a scheduled task, and the update moves it for you.
 - If the admin helper is from another Deadlock+ version, Deadlock+ asks you to reinstall instead of failing quietly.
 
