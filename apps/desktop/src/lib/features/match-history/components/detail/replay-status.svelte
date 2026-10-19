@@ -126,7 +126,7 @@
         </div>
         {#if recover?.consent}
             <p class="max-w-[420px] text-right text-xs leading-relaxed text-muted-foreground">
-                {t("settings.privacy.gc_description")}
+                {t("match_history.recovery.consent")}
             </p>
         {/if}
     </div>

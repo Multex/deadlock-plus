@@ -6,7 +6,8 @@ const MATCHES = 60;
 const MISSING = 28;
 // Not in the scenario's history, so the API answers 404 for it.
 const UNKNOWN_MATCH = "/match-history/123456";
-const CONSENT = "Fills in matches the Deadlock API is missing, yours and other players'.";
+const CONSENT =
+    "Fills in matches the Deadlock API is missing, yours and other players'. Uses the Steam login saved on this PC.";
 // The newest match has a grade, and the missing-details presets leave it without details.
 const NEWEST = 990000060;
 
@@ -241,6 +242,14 @@ test.describe("background recovery off", () => {
         await expect(main(page).getByText(CONSENT)).toBeVisible();
         await expect(main(page).getByText("Background recovery stays off.")).toBeVisible();
         await expect(main(page).getByRole("button", { name: "Recover this match" })).toBeVisible();
+    });
+
+    test("the recovery panel shows what recovering means before the first run", async ({ page }) => {
+        await open(page, "/match-history");
+        await strip(page)
+            .getByRole("button", { name: `Recover ${MISSING} missing` })
+            .click();
+        await expect(panel(page).getByText(CONSENT)).toBeVisible();
     });
 });
 

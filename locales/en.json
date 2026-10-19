@@ -2783,6 +2783,7 @@
         "recovery": {
             "title": "Recover matches",
             "close": "Close",
+            "consent": "Fills in matches the Deadlock API is missing, yours and other players'. Uses the Steam login saved on this PC.",
             "missing": "missing",
             "badge_paused": "Paused",
             "badge_game": "Deadlock is open",

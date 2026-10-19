@@ -214,7 +214,7 @@
                             <p
                                 class="max-w-[560px] rounded-md border border-border bg-background/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
                             >
-                                {t("settings.privacy.gc_description")}
+                                {t("match_history.recovery.consent")}
                             </p>
                         {/if}
                         <div class="flex flex-wrap items-center gap-3">

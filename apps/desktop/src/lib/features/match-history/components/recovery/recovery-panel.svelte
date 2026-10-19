@@ -209,7 +209,7 @@
 
         {#if consentNote}
             <p class="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                {t("settings.privacy.gc_description")}
+                {t("match_history.recovery.consent")}
             </p>
         {/if}
 
