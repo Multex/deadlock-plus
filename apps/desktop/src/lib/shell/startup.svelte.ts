@@ -1,10 +1,10 @@
 import { onMount } from "svelte";
-import { afterNavigate } from "$app/navigation";
+import { afterNavigate, beforeNavigate } from "$app/navigation";
 import { initLanguage } from "$lib/core/i18n.svelte";
 import { command, listen } from "$lib/core/tauri";
 import { SERVICES, resolveReducedMotion, settings, updater } from "$lib/features/registry";
 import { useLastRoute } from "./last-route.svelte";
-import { overlays, skipFirst } from "./overlays";
+import { overlays } from "./overlays";
 
 /** Call once from the root layout's script. Owns service start-up, document attributes and overlay lifecycle. */
 export function useAppShell(options: { onboardingPending: () => Promise<boolean> }) {
@@ -30,8 +30,14 @@ export function useAppShell(options: { onboardingPending: () => Promise<boolean>
         command("set_update_badge", { available }).catch(() => {});
     });
 
-    // The first navigation is the app's own start-up; closing overlays then would close the ones it just opened.
-    afterNavigate(skipFirst(() => overlays.closeAll()));
+    // Closes only what was open when the switch began: the new page may mount a dialog already open, and
+    // closing in `beforeNavigate` would run before other handlers can mark the close as a page switch.
+    let closeLeftBehind: (() => void) | null = null;
+    beforeNavigate(() => (closeLeftBehind = overlays.snapshot()));
+    afterNavigate(() => {
+        closeLeftBehind?.();
+        closeLeftBehind = null;
+    });
 
     const lastRoute = useLastRoute(options.onboardingPending);
 

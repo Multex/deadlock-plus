@@ -40,6 +40,23 @@ async function openFirstMissing(page: Page): Promise<string> {
     return text;
 }
 
+/** Loads the list, then moves to Settings > Match sharing without a reload, so the stats stay in memory. */
+async function openSharingAfterList(page: Page): Promise<void> {
+    await open(page, "/match-history");
+    await expect(rows(page).first()).toBeVisible();
+    await page.getByRole("complementary").getByRole("link", { name: "Settings", exact: true }).click();
+    await page.getByRole("link", { name: "Match sharing", exact: true }).click();
+    await expect(page).toHaveURL(/\/settings\/sharing$/);
+}
+
+async function openPanelFromSharing(page: Page): Promise<void> {
+    await main(page).getByRole("link", { name: "Open in Match History" }).click();
+    await expect(page).toHaveURL(/\/match-history$/);
+    await settle(page);
+    await expect(rows(page).first()).toBeVisible();
+    await expect(panel(page)).toBeVisible();
+}
+
 test.describe("nothing missing", () => {
     test("the strip counts every match and offers no recovery", async ({ page }) => {
         await open(page, "/match-history");
@@ -131,6 +148,18 @@ test.describe("some matches missing", () => {
         await main(page).getByRole("link", { name: "Open in Match History" }).click();
         await expect(page).toHaveURL(/\/match-history$/);
         await expect(panel(page)).toBeVisible();
+    });
+
+    test("the panel opened from Settings stays open when the list was already loaded", async ({ page }) => {
+        await openSharingAfterList(page);
+        await openPanelFromSharing(page);
+    });
+
+    test("the panel opened from Settings stays open while stale stats reload", async ({ page }) => {
+        await page.clock.install();
+        await openSharingAfterList(page);
+        await page.clock.fastForward("06:00");
+        await openPanelFromSharing(page);
     });
 
     test("a match without details shows its summary and replay state", async ({ page }) => {

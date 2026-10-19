@@ -71,7 +71,6 @@
     {:else}
         <CachedNote />
         <CoverageStrip />
-        <RecoveryPanel missingIds={matchCoverage.summary?.missingIds ?? []} />
         <FilterBar
             filters={matchHistory.filters}
             heroes={options}
@@ -130,4 +129,7 @@
             <Results findings={insights.findings} baseline={insights.baseline} />
         {/if}
     {/if}
+
+    <!-- Outside the status branches: a stats reload shows the skeleton, and unmounting the panel closes it. -->
+    <RecoveryPanel missingIds={matchCoverage.summary?.missingIds ?? []} />
 </Page>

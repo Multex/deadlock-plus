@@ -12,6 +12,13 @@ export function createOverlays() {
         closeAll() {
             for (const entry of [...entries]) entry.close();
         },
+        /** Returns a function that closes the overlays open now and still open when it is called. */
+        snapshot(): () => void {
+            const open = [...entries];
+            return () => {
+                for (const entry of open) if (entries.has(entry)) entry.close();
+            };
+        },
         get size() {
             return entries.size;
         },
@@ -19,15 +26,3 @@ export function createOverlays() {
 }
 
 export const overlays = createOverlays();
-
-/** Wraps a callback so its first call is dropped. SvelteKit fires `afterNavigate` once on app start. */
-export function skipFirst<A extends unknown[]>(fn: (...args: A) => void): (...args: A) => void {
-    let first = true;
-    return (...args) => {
-        if (first) {
-            first = false;
-            return;
-        }
-        fn(...args);
-    };
-}

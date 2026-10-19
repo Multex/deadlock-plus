@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createOverlays, skipFirst } from "./overlays";
+import { createOverlays } from "./overlays";
 
 describe("overlays", () => {
     it("closeAll calls every registered close", () => {
@@ -52,14 +52,26 @@ describe("overlays", () => {
     });
 });
 
-describe("skipFirst", () => {
-    it("ignores the first call and forwards the rest", () => {
-        const fn = vi.fn();
-        const wrapped = skipFirst(fn);
-        wrapped("a");
-        expect(fn).not.toHaveBeenCalled();
-        wrapped("b");
-        wrapped("c");
-        expect(fn.mock.calls).toEqual([["b"], ["c"]]);
+describe("snapshot", () => {
+    it("closes only the overlays open when it was taken", () => {
+        const overlays = createOverlays();
+        const before = vi.fn();
+        const after = vi.fn();
+        overlays.register(before);
+        const closeOpen = overlays.snapshot();
+        overlays.register(after);
+        closeOpen();
+        expect(before).toHaveBeenCalledOnce();
+        expect(after).not.toHaveBeenCalled();
+    });
+
+    it("skips an overlay that closed in between", () => {
+        const overlays = createOverlays();
+        const a = vi.fn();
+        const stop = overlays.register(a);
+        const closeOpen = overlays.snapshot();
+        stop();
+        closeOpen();
+        expect(a).not.toHaveBeenCalled();
     });
 });
