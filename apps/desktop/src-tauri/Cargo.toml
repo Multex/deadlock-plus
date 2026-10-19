@@ -86,7 +86,8 @@ flate2 = "1.1.10"
 ab_glyph = "0.2"
 time = { version = "0.3", features = ["local-offset"] }
 tauri-plugin-window-state = "2"
-tauri-plugin-updater = "2"
+# No `zip` feature: releases ship the raw setup .exe, AppImage and .deb, so the archive extraction path is unused.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls", "system-proxy"] }
 ts-rs = "12"
 # Dev-only UI automation bridge. Pinned: 0.13.1 requires tauri 2.12.2 or later. Registered in debug builds only.
 tauri-plugin-mcp-bridge = "=0.13.0"
