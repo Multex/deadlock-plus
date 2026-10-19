@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-19
+
 ### Added
 
 - Deadlock+ reopens on the page you last had open, including match details.
