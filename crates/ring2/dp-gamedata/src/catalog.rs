@@ -9,6 +9,7 @@ use deadlock_data::{HeroCatalog, Item, ItemCatalog, LocalizationFile};
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::cc::CcSet;
 use crate::locale::game_language;
 
 pub trait Install: Send + Sync + 'static {
@@ -67,6 +68,7 @@ struct Loaded {
     stamp: Option<SystemTime>,
     heroes: HeroCatalog,
     items: Option<ItemCatalog>,
+    cc: Option<Arc<CcSet>>,
     hero_lists: HashMap<&'static str, Arc<Vec<HeroEntry>>>,
     item_lists: HashMap<&'static str, Arc<Vec<ItemEntry>>>,
     accolade_lists: HashMap<&'static str, Arc<Vec<AccoladeEntry>>>,
@@ -156,6 +158,14 @@ impl<I: Install> GameData<I> {
         list
     }
 
+    /// The installed game's hard-CC list replaces the bundled one: a patch can remove CC, so they are never merged.
+    pub fn cc_abilities(&self) -> Arc<CcSet> {
+        let mut guard = self.current();
+        let loaded = guard.as_mut().expect("current() fills the state");
+        let dir = loaded.dir.as_deref();
+        Arc::clone(loaded.cc.get_or_insert_with(|| Arc::new(CcSet::installed(dir))))
+    }
+
     fn current(&self) -> MutexGuard<'_, Option<Loaded>> {
         let mut guard = self.shared.state.lock().unwrap_or_else(|e| e.into_inner());
         let dir = self.shared.install.citadel_dir();
@@ -169,6 +179,7 @@ impl<I: Install> GameData<I> {
                 stamp,
                 heroes,
                 items: None,
+                cc: None,
                 hero_lists: HashMap::new(),
                 item_lists: HashMap::new(),
                 accolade_lists: HashMap::new(),
@@ -677,6 +688,39 @@ mod tests {
         let file = parse_escaped_bundle(text, "english");
         assert_eq!(file.get("Desc"), Some("<span class=\"StatValue\">{stat_value}</span> kills"));
         assert_eq!(file.get("Name"), Some("Zapper"));
+    }
+
+    #[test]
+    fn without_an_install_the_bundled_cc_set_answers() {
+        let data = GameData::new(FakeInstall::none());
+        let set = data.cc_abilities();
+        assert!(set.contains("ability_necro_gravestone"));
+        assert_eq!(set.fingerprint(), CcSet::bundled().fingerprint());
+    }
+
+    #[test]
+    fn an_install_that_cannot_be_read_keeps_the_bundled_cc_set() {
+        let dir = temp_dir("cc-unreadable");
+        fake_archive(&dir);
+        let data = GameData::new(FakeInstall::at(&dir));
+        assert_eq!(*data.cc_abilities(), CcSet::bundled());
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn the_cc_set_is_built_once_per_game_build() {
+        let data = GameData::new(FakeInstall::none());
+        let first = data.cc_abilities();
+        assert!(Arc::ptr_eq(&first, &data.cc_abilities()));
+    }
+
+    #[test]
+    #[ignore = "needs an installed game; set DEADLOCK_CITADEL_DIR"]
+    fn the_installed_cc_set_replaces_the_bundled_one() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("set DEADLOCK_CITADEL_DIR"));
+        let set = GameData::new(FakeInstall::at(&dir)).cc_abilities();
+        assert!(set.contains("ability_necro_gravestone"));
+        assert!(!set.contains("citadel_ability_tangotether"));
     }
 
     #[test]
