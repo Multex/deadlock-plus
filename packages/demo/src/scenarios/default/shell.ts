@@ -211,6 +211,7 @@ const SETTERS = [
     "set_close_to_tray",
     "set_open_on_game_start",
     "restart_app",
+    "quit_app",
     "set_ui_scale",
     "set_maintenance_schedule",
     "set_alerts_enabled",
