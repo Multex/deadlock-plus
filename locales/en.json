@@ -1805,6 +1805,8 @@
             "firewall": "the Server Picker blocks the regions you pick by adding Windows Firewall rules named {rule}. Only administrators can do that.",
             "monitor_label": "Connection monitor:",
             "monitor": "live ping and loss for your match come from watching your network traffic, which is also admin-only.",
+            "frametimes_label": "Frametimes:",
+            "frametimes": "frame times come from watching how the game draws each frame, which is also admin-only.",
             "nothing_else": "Nothing else needs administrator rights.",
             "admin_title": "Administrator access",
             "admin_body": "A few features change Windows settings that only an administrator can change. Deadlock+ asks Windows for permission when one of them is used.",

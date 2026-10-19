@@ -42,6 +42,10 @@
             <span class="text-foreground">{t("onboarding.permissions.monitor_label")}</span>
             {t("onboarding.permissions.monitor")}
         </li>
+        <li>
+            <span class="text-foreground">{t("onboarding.permissions.frametimes_label")}</span>
+            {t("onboarding.permissions.frametimes")}
+        </li>
         <li>{t("onboarding.permissions.nothing_else")}</li>
     </ul>
 {:else}
