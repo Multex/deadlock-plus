@@ -53,6 +53,7 @@ describe("new-user scenario", () => {
         expect(handle.invoke("storage_entry_stats", { id: "replays" })).toMatchObject({ bytes: 0, count: 0 });
         expect(handle.invoke("list_notifications", {})).toEqual([]);
         expect(handle.invoke("ingest_status", {})).toMatchObject({ running: false, submitted: 0 });
+        expect(handle.invoke("shared_matches", {})).toEqual([]);
         expect(handle.invoke("gc_status", {})).toMatchObject({ running: false, delivered: 0 });
         expect(handle.invoke("autostart_status", {})).toMatchObject({ supported: true, enabled: false });
     });

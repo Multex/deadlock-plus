@@ -73,6 +73,11 @@ describe("entry metadata", () => {
         });
     });
 
+    it("lists the shared matches as an uncounted Deadlock+ history file", () => {
+        expect(ENTRY_IDS).toContain("shared-matches");
+        expect(ENTRY_META["shared-matches"]).toEqual({ owner: "deadlock-plus", kind: "history" });
+    });
+
     it("has no broad app data entry", () => {
         expect(ENTRY_IDS).not.toContain("app-data" as never);
     });

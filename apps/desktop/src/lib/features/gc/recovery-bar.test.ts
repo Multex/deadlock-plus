@@ -17,6 +17,7 @@ const own = (over: Partial<OwnRecovery> = {}): OwnRecovery => ({
     accounts: [],
     outcome: null,
     error: null,
+    steps: [],
     ...over,
 });
 

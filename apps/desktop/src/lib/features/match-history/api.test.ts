@@ -182,3 +182,81 @@ describe("resolveDetail when the API does not have the match", () => {
         await expect(resolveDetail(matchId, s)).rejects.toThrow("Failed to fetch");
     });
 });
+
+describe("resolveDetail with details Deadlock+ decoded itself", () => {
+    const local = JSON.stringify({ ...fixture, deadlock_plus_source: "replay_cdn" });
+    const failWith = (error: Error) =>
+        vi.fn(async () => {
+            throw error;
+        });
+
+    it("still asks the API and caches the API copy over the local one", async () => {
+        const s = source({ read: vi.fn(async () => local) });
+        const d = await resolveDetail(matchId, s);
+        expect(d?.source).toBe("api");
+        expect(s.fetchText).toHaveBeenCalledWith(matchId);
+        expect(s.write).toHaveBeenCalledWith(matchId, body);
+    });
+
+    it("shows the local copy when the API does not have the match yet", async () => {
+        const provisional = vi.fn(async () => null);
+        const s = source({
+            read: vi.fn(async () => local),
+            fetchText: failWith(new DeadlockApiError(404)),
+            provisional,
+        });
+        const d = await resolveDetail(matchId, s);
+        expect(d?.matchId).toBe(matchId);
+        expect(d?.source).toBe("provisional");
+        expect(provisional).not.toHaveBeenCalled();
+        expect(s.write).not.toHaveBeenCalled();
+    });
+
+    it("shows the local copy when the API cannot be reached", async () => {
+        const s = source({ read: vi.fn(async () => local), fetchText: failWith(new TypeError("Failed to fetch")) });
+        expect((await resolveDetail(matchId, s))?.matchId).toBe(matchId);
+    });
+});
+
+describe("resolveDetail fetching from Valve as the last resort", () => {
+    const failWith = (error: Error) =>
+        vi.fn(async () => {
+            throw error;
+        });
+
+    it("shows details fetched from Valve when nothing else has the match", async () => {
+        const valve = vi.fn(async () => structuredClone(fixture));
+        const s = source({
+            fetchText: failWith(new DeadlockApiError(404)),
+            provisional: vi.fn(async () => null),
+            valve,
+        });
+        const d = await resolveDetail(matchId, s);
+        expect(d?.matchId).toBe(matchId);
+        expect(d?.source).toBe("provisional");
+        expect(valve).toHaveBeenCalledWith(matchId);
+    });
+
+    it("never asks Valve when the API answers or a capture fits", async () => {
+        const valve = vi.fn(async () => structuredClone(fixture));
+        await resolveDetail(matchId, source({ valve }));
+        await resolveDetail(
+            matchId,
+            source({
+                fetchText: failWith(new DeadlockApiError(404)),
+                provisional: vi.fn(async () => structuredClone(fixture)),
+                valve,
+            }),
+        );
+        expect(valve).not.toHaveBeenCalled();
+    });
+
+    it("resolves null on a 404 when Valve has nothing or another match", async () => {
+        const other = structuredClone(fixture);
+        other.match_info.match_id = matchId + 1;
+        for (const valve of [vi.fn(async () => null), vi.fn(async () => other), failWith(new Error("io"))]) {
+            const s = source({ fetchText: failWith(new DeadlockApiError(404)), valve });
+            expect(await resolveDetail(matchId, s)).toBeNull();
+        }
+    });
+});

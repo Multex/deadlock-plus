@@ -1387,7 +1387,9 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
             const { identity } = context;
             const shared = recoverySession?.current;
             const rows = historyRows(context);
-            const history = shared?.spreadTimes ? spreadStartTimes(rows, Math.floor(context.now / 1000)) : rows;
+            const history = shared?.spreadTimes
+                ? spreadStartTimes(rows, Math.floor(context.now / 1000), shared.agedRows)
+                : rows;
             const world: World = {
                 identity,
                 history,
@@ -1455,6 +1457,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 game_map_items: () => mapItems,
 
                 get_postgame_detail: () => null,
+                fetch_match_details: () => null,
                 get_postgame_matches: (): ProvisionalMatch[] => [],
                 reconcile_postgame_matches: () => 0,
                 match_detail_cache_read: () => null,

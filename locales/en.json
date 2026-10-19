@@ -502,12 +502,34 @@
             "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",
             "ingest_failed": "The last upload failed. Check the log for details.",
             "ingest_watching": "Watching for new matches. {count} shared this session.",
-            "ingest_description": "Gets your matches full details on stat sites and in Match History. Deadlock+ reads the replay links Steam saves on this PC and sends the match IDs, replay keys and your Steam account ID to api.deadlock-api.com. Nothing else is read or sent. Same as the open-source deadlock-api-ingest tool.",
-            "gc_description": "Your login never leaves this PC. Deadlock+ uses your saved Steam login to sign in to Steam as you, and asks Deadlock's game servers for the replay keys of matches the community database is missing. Only the match IDs, replay keys and your Steam account ID are sent to api.deadlock-api.com. Runs a few times an hour, never while Deadlock is open, and is limited to 40 matches per account per day. Same as the open-source deadlock-api-ingest tool.",
+            "ingest_description": "Gets your matches full details and replays on stat sites and in Match History.",
+            "gc_description": "Fills in matches the Deadlock API is missing, yours and other players'.",
+            "how_it_works": "How it works",
+            "ingest_how_find": "Deadlock+ finds what's needed to load each match, on this PC and in Deadlock while you play.",
+            "ingest_how_send": "It sends that, the match IDs and your Steam ID to the Deadlock API. Nothing else.",
+            "gc_how_login": "Signs in to Steam with the login saved on this PC. Your login never leaves this PC.",
+            "gc_how_limit": "Up to 40 matches per account a day.",
+            "gc_how_game": "While Deadlock is open, it picks up matches you look at in the game instead of signing in.",
+            "gc_how_send": "Sends only match IDs, Steam IDs and what's needed to load each match.",
             "gc_own_label": "Recover my match history",
             "gc_own_description": "Fills in every match in your history that the Deadlock API is missing.",
             "advanced": "Advanced",
-            "gc_own_open": "Open in Match History"
+            "gc_own_open": "Open in Match History",
+            "shared": {
+                "title": "Shared matches",
+                "source_steam": "Steam",
+                "source_deadlock": "Deadlock",
+                "source_login": "Steam login",
+                "with_replay": "{count} with replay",
+                "when": "When",
+                "match": "Match",
+                "from": "From",
+                "details": "Details",
+                "replay": "Replay",
+                "sent": "Sent",
+                "not_sent": "Not sent",
+                "empty": "Nothing shared yet."
+            }
         },
         "about_page": {
             "copy": "Copy",
@@ -1621,6 +1643,12 @@
                 "consequence": "Grades are worked out again on the next background run. Nothing else is lost.",
                 "units_one": "{count} match",
                 "units_other": "{count} matches"
+            },
+            "shared_matches": {
+                "label": "Shared matches",
+                "clear_name": "shared matches",
+                "description": "Matches Deadlock+ shared with the Deadlock API.",
+                "consequence": "Deadlock+ may share those matches again. Nothing else is lost."
             }
         }
     },
@@ -1794,7 +1822,7 @@
         "sharing": {
             "title": "Help the Deadlock community?",
             "intro": "The Deadlock API is a free, community-run database behind many stat and replay sites. Sharing your matches helps keep it complete for every player.",
-            "consent": "If you agree, Deadlock+ sends only the match IDs and replay keys Steam already stores on your PC, plus your Steam account ID. Nothing else leaves your computer.",
+            "consent": "If you agree, Deadlock+ sends what's needed to load your matches' details and replays, plus the match IDs and your Steam ID. Nothing else leaves your computer.",
             "optional": "Optional. You can change this any time in Settings.",
             "telemetry_title": "Anonymous usage data",
             "telemetry_body": "Deadlock+ also sends anonymous usage counts and error reports, so we know how many people use it and what breaks. It sends the app version, your system, which pages you open, when you open the Discord invite, when an update is offered or started, and error details. It uses a random ID and never sends paths, names, Steam IDs, IP addresses or match data.",
@@ -1815,8 +1843,8 @@
             "alerts_note": "A notification when a new patch note or announcement is posted.",
             "maintenance": "Steam maintenance reminder",
             "maintenance_note": "A notification before the usual weekly maintenance.",
-            "gc_recovery": "Recover missing replay keys through Steam",
-            "gc_recovery_note": "Uses your saved Steam login to fetch replay keys the community database is missing.",
+            "gc_recovery": "Fill in missing match details",
+            "gc_recovery_note": "Fills in matches the Deadlock API is missing. Uses the Steam login saved on this PC.",
             "footer": "Alerts and reminders only fire while the app runs, so they pair well with the tray option.",
             "presence": "Show on Discord",
             "presence_note": "Shows your hero, mode, rank and match timer on your Discord profile."
@@ -2342,7 +2370,7 @@
             "progress": "{delivered} of {missing} missing matches submitted. About 20 seconds each.",
             "matches_one": "{count} match",
             "matches_other": "{count} matches",
-            "nothing_missing": "Done. The community database already has all your matches.",
+            "nothing_missing": "Done. The Deadlock API already has all your matches.",
             "done": "Done. {matches} submitted.",
             "incomplete": "{matches} submitted, {failed} couldn't be recovered. Run it again to retry.",
             "rate_limited": "{matches} submitted. Steam's daily limit was reached. Run it again tomorrow for the rest.",
@@ -2705,14 +2733,27 @@
                 "sharing_off": "Turn on Share my matches and Deadlock+ will pick it up when you open this match in Deadlock's Match History.",
                 "sharing_link": "Open Match sharing settings",
                 "replay_available": "Available",
-                "replay_not_yet": "Not available yet",
                 "replay_expired": "Expired",
                 "replay_none": "Not available",
                 "replay_days_left_one": "Kept for {count} more day.",
                 "replay_days_left_other": "Kept for {count} more days.",
-                "replay_not_yet_note": "The Deadlock API has no replay for this match yet.",
                 "replay_expired_note": "Replays are kept for about 30 days.",
-                "replay_none_note": "The Deadlock API has no replay for this match."
+                "replay_none_note": "The Deadlock API has no replay for this match.",
+                "replay_recoverable": "Not available yet",
+                "replay_recoverable_note": "The Deadlock API has no replay for this match yet.",
+                "replay_unrecoverable": "Not available",
+                "replay_unrecoverable_note": "This replay can't be recovered anymore."
+            },
+            "replay_status": {
+                "available": "Replay available",
+                "recovering": "Recovering replay",
+                "recoverable": "No replay yet",
+                "unrecoverable": "Replay can't be recovered",
+                "expired": "Replay expired",
+                "none": "No replay",
+                "recover": "Recover replay",
+                "recover_note": "Counts toward the 40 matches a day.",
+                "consent_note": "Just this replay. Background recovery stays off."
             }
         },
         "ping": {
@@ -2756,7 +2797,9 @@
             "start": "Recover {count}",
             "pause": "Pause",
             "resume": "Resume",
-            "limit_note": "Continues tomorrow on its own"
+            "limit_note": "Continues tomorrow on its own",
+            "step_details": "Missing details",
+            "step_replays": "Recent replays"
         },
         "row_state": {
             "missing": "No details",

@@ -27,6 +27,7 @@ export function recoveryScenario(id: string, options: ScenarioOptions): Scenario
     const rows = spreadStartTimes(
         historyRows({ identity: IDENTITY, now: NOW_MS, seed: SEED }),
         Math.floor(NOW_MS / 1000),
+        recovery.agedNoReplay,
     );
     const history: ApiRoute = [
         /^\/v1\/players\/\d+\/match-history$/,

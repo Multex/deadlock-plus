@@ -16,6 +16,8 @@ import type { PresenceStateId } from "@deadlock-plus/ipc-types/PresenceStateId";
 import type { PresenceStatus } from "@deadlock-plus/ipc-types/PresenceStatus";
 import type { PresenceVariantId } from "@deadlock-plus/ipc-types/PresenceVariantId";
 import type { PtraceStatus } from "@deadlock-plus/ipc-types/PtraceStatus";
+import type { ShareSource } from "@deadlock-plus/ipc-types/ShareSource";
+import type { SharedMatch } from "@deadlock-plus/ipc-types/SharedMatch";
 import type { SteamAccount } from "@deadlock-plus/ipc-types/SteamAccount";
 
 import type { Handlers } from "../../backend";
@@ -81,6 +83,16 @@ const appInfo = (appVersion: string, { persona }: Identity): AppInfo => ({
 
 const INGEST: IngestStatus = { running: true, steamFound: true, submitted: 1284, lastError: null };
 const GC_DELIVERED = 37;
+const SHARE_SOURCES: readonly ShareSource[] = ["steam", "deadlock", "steam", "login", "steam", "deadlock", "login"];
+
+function sharedMatches(nowMs: number): SharedMatch[] {
+    let atS = Math.floor(nowMs / 1000) - 42 * 60;
+    return MATCH_IDS.slice(0, 24).map((matchId, i) => {
+        if (i > 0) atS -= (((i * 37) % 5) + 1) * HOUR_S + ((i * 13) % 50) * 60;
+        const source = SHARE_SOURCES[i % SHARE_SOURCES.length]!;
+        return { matchId, at: atS, source, details: true, replay: source === "login" ? i % 3 !== 0 : i % 7 !== 4 };
+    });
+}
 const AUTOSTART: AutostartStatus = { supported: true, enabled: true, stale: false };
 
 const PRESENCE: PresenceSettings = {
@@ -245,7 +257,12 @@ export function shellModule({
                     accountIds: [identity.accountId, fakeAccountId(identity, 0), fakeAccountId(identity, 1)],
                     matchIds: MATCH_IDS,
                 }));
-            if (recoverySession) recoverySession.current = { recovery: recoveryOf, spreadTimes: showsRecovery(config) };
+            if (recoverySession)
+                recoverySession.current = {
+                    recovery: recoveryOf,
+                    spreadTimes: showsRecovery(config),
+                    agedRows: config.agedNoReplay ?? 0,
+                };
             const gcStatus = (): GcStatus => {
                 const { ownRecovery, lastRun } = recoveryOf().status();
                 return {
@@ -269,6 +286,7 @@ export function shellModule({
                 current_steam_account: () => steamAccount,
                 pending_crash: () => null,
                 ingest_status: () => INGEST,
+                shared_matches: () => sharedMatches(Date.now()),
                 gc_status: gcStatus,
                 ...recoveryHandlers(recoveryOf),
                 autostart_status: () => autostart,

@@ -3,6 +3,7 @@ import type { DetailCoverage } from "@deadlock-plus/ipc-types/DetailCoverage";
 import type { LastRun } from "@deadlock-plus/ipc-types/LastRun";
 import type { OwnRecovery } from "@deadlock-plus/ipc-types/OwnRecovery";
 import type { OwnRecoveryOutcome } from "@deadlock-plus/ipc-types/OwnRecoveryOutcome";
+import type { StepProgress } from "@deadlock-plus/ipc-types/StepProgress";
 
 import type { Handlers } from "../../backend";
 
@@ -12,7 +13,9 @@ const SECONDS_PER_MATCH = 20;
 const DAILY_LIMIT = 40;
 const LIMIT_WAIT_S = 14 * 3600;
 const EXTRA_BASE = 980_000_000;
+const EXTRA_REPLAYS = 500_000;
 const DAY_S = 86_400;
+const AGED_DAYS = 25;
 /** How many of the newest history rows fall inside the 30 days the replay tile counts. */
 export const RECENT_ROWS = 12;
 
@@ -21,6 +24,8 @@ export interface SeededRun {
     /** Matches already finished; the run's first `done` matches. */
     done: number;
     total: number;
+    /** How many of `total` are replays, fetched after every details match. */
+    replays?: number;
     /** Fetches each account has spent today, in account order. */
     usedToday: readonly number[];
 }
@@ -28,8 +33,10 @@ export interface SeededRun {
 export interface RecoveryConfig {
     /** History rows that have no details on the API. */
     missing: number;
-    /** History rows with details that have no replay. */
+    /** Recent history rows with details that have no replay. */
     noReplay: number;
+    /** History rows 21 to 30 days old with details and no replay, too old for Steam to hand the replay out. */
+    agedNoReplay?: number;
     /** Saved Steam accounts that fetch. */
     accounts: number;
     gameOpen?: boolean;
@@ -44,17 +51,21 @@ export const showsRecovery = (config: RecoveryConfig) => config.missing > 0 || c
 
 /**
  * Pushes every row past the newest `RECENT_ROWS` out of the last 30 days, a few days apart, so the replay
- * tile counts a dozen matches. Rows stay newest first.
+ * tile counts a dozen matches. The first `aged` of those rows land 21 to 30 days back instead. Rows stay
+ * newest first.
  */
-export function spreadStartTimes<T extends { start_time: number }>(rows: readonly T[], nowS: number): T[] {
-    return rows.map((row, i) =>
-        i < RECENT_ROWS ? row : { ...row, start_time: nowS - 31 * DAY_S - (i - RECENT_ROWS) * 3.5 * DAY_S },
-    );
+export function spreadStartTimes<T extends { start_time: number }>(rows: readonly T[], nowS: number, aged = 0): T[] {
+    return rows.map((row, i) => {
+        if (i < RECENT_ROWS) return row;
+        const past = i - RECENT_ROWS;
+        if (past < aged) return { ...row, start_time: nowS - (AGED_DAYS + past) * DAY_S };
+        return { ...row, start_time: nowS - 31 * DAY_S - (past - aged) * 3.5 * DAY_S };
+    });
 }
 
 /** What the shell module shares with the match detail module of one install. */
 export interface RecoverySession {
-    current?: { recovery(): Recovery; spreadTimes: boolean };
+    current?: { recovery(): Recovery; spreadTimes: boolean; agedRows: number };
 }
 
 export interface RecoveryDeps {
@@ -67,7 +78,7 @@ export interface RecoveryDeps {
 export interface Recovery {
     status(): { ownRecovery: OwnRecovery | null; lastRun: LastRun | null };
     coverage(matchIds: readonly number[]): DetailCoverage;
-    recover(matchIds: readonly number[]): void;
+    recover(matchIds: readonly number[], replayIds?: readonly number[], withHistory?: boolean): void;
     pause(): void;
     resume(): void;
     cancel(): void;
@@ -83,26 +94,40 @@ const unique = (ids: readonly number[]) => [...new Set(ids)];
 /** `count` indices of `size`, spread evenly. */
 const spread = (size: number, count: number) => Array.from({ length: count }, (_, k) => Math.floor((k * size) / count));
 
+/** `ids` cut or padded with made-up ids after `base` to `count`. */
+const padded = (ids: readonly number[], count: number, base: number) =>
+    [...ids, ...Array.from({ length: Math.max(0, count - ids.length) }, (_, i) => base + 1 + i)].slice(0, count);
+
 export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Recovery {
     const { now, matchIds } = deps;
     const nowS = () => Math.floor(now() / 1000);
 
-    const missingIds = spread(matchIds.length, config.missing).map((i) => matchIds[i]!);
+    const aged = matchIds.slice(RECENT_ROWS, RECENT_ROWS + (config.agedNoReplay ?? 0));
+    const candidates = matchIds.filter((id) => !aged.includes(id));
+    const missingIds = spread(candidates.length, config.missing).map((i) => candidates[i]!);
     const noDetails = new Set(missingIds);
-    const withDetails = matchIds.filter((id) => !noDetails.has(id));
-    const recentWithDetails = withDetails.slice(0, RECENT_ROWS);
-    const noReplay = new Set(spread(recentWithDetails.length, config.noReplay).map((i) => recentWithDetails[i]!));
+    // The newest RECENT_ROWS rows are all under 21 days old, so Steam still hands out their replays.
+    const recentWithDetails = matchIds.slice(0, RECENT_ROWS).filter((id) => !noDetails.has(id));
+    const noReplay = new Set([
+        ...spread(recentWithDetails.length, config.noReplay).map((i) => recentWithDetails[i]!),
+        ...aged,
+    ]);
+    const historyDetails = () => matchIds.filter((id) => noDetails.has(id));
+    const historyReplays = () => recentWithDetails.filter((id) => noReplay.has(id));
 
     const accounts: Account[] = deps.accountIds.slice(0, config.accounts).map((accountId) => ({ accountId, used: 0 }));
     let started = false;
     let running = false;
     let paused = false;
     let limitUntil: number | null = null;
-    let queue: number[] = [];
-    let done = 0;
+    let details: number[] = [];
+    let replays: number[] = [];
+    let detailsDone = 0;
+    let replaysDone = 0;
     let delivered = 0;
     let outcome: OwnRecoveryOutcome | null = null;
-    let pending = new Set<number>();
+    // Fetched this run: their details and replays only show once it ends.
+    let finished = new Set<number>();
     let lastTick = now();
     let lastRun: LastRun | null = config.lastRun
         ? {
@@ -115,14 +140,17 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
 
     const seeded = config.run;
     if (seeded) {
-        const all = [
-            ...missingIds,
-            ...Array.from({ length: Math.max(0, seeded.total - missingIds.length) }, (_, i) => EXTRA_BASE + 1 + i),
-        ].slice(0, seeded.total);
-        done = Math.min(seeded.done, all.length);
+        const replayCount = Math.min(seeded.replays ?? 0, seeded.total);
+        const detailIds = padded(missingIds, seeded.total - replayCount, EXTRA_BASE);
+        const replayIds = padded(historyReplays(), replayCount, EXTRA_BASE + EXTRA_REPLAYS);
+        const all = [...detailIds, ...replayIds];
+        const done = Math.min(seeded.done, all.length);
+        detailsDone = Math.min(done, detailIds.length);
+        replaysDone = done - detailsDone;
+        details = detailIds.slice(detailsDone);
+        replays = replayIds.slice(replaysDone);
         delivered = done;
-        queue = all.slice(done);
-        pending = new Set(all.slice(0, done).filter((id) => noDetails.has(id)));
+        finished = new Set(all.slice(0, done));
         accounts.forEach((account, i) => (account.used = seeded.usedToday[i] ?? 0));
         started = true;
         running = true;
@@ -131,14 +159,39 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
     }
 
     const finish = (result: OwnRecoveryOutcome) => {
-        lastRun = { endedAt: nowS(), delivered, left: queue.length, outcome: result };
-        for (const id of pending) noDetails.delete(id);
-        pending = new Set();
-        queue = [];
+        lastRun = { endedAt: nowS(), delivered, left: details.length + replays.length, outcome: result };
+        for (const id of finished) {
+            noDetails.delete(id);
+            noReplay.delete(id);
+        }
+        finished = new Set();
+        details = [];
+        replays = [];
         running = false;
         paused = false;
         limitUntil = null;
         outcome = result;
+    };
+
+    /** Puts `ids` first among the details matches; one queued for its replay moves over. */
+    const enqueueFront = (ids: readonly number[]) => {
+        const front = new Set(ids);
+        details = [...front, ...details.filter((id) => !front.has(id))];
+        replays = replays.filter((id) => !front.has(id));
+    };
+
+    /** Adds `ids` last among the details matches, skipping any already queued for details or fetched this run. */
+    const enqueueBack = (ids: readonly number[]) => {
+        for (const id of ids) {
+            if (finished.has(id) || details.includes(id)) continue;
+            replays = replays.filter((other) => other !== id);
+            details.push(id);
+        }
+    };
+
+    /** Adds `ids` for their replays. A details fetch brings the replay with it, so those are skipped. */
+    const enqueueReplays = (ids: readonly number[]) => {
+        for (const id of ids) if (!finished.has(id) && !details.includes(id) && !replays.includes(id)) replays.push(id);
     };
 
     const step = (): boolean => {
@@ -147,12 +200,16 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
             limitUntil = nowS() + LIMIT_WAIT_S;
             return false;
         }
-        const id = queue.shift()!;
+        if (details.length > 0) {
+            finished.add(details.shift()!);
+            detailsDone++;
+        } else {
+            finished.add(replays.shift()!);
+            replaysDone++;
+        }
         account.used++;
-        done++;
         delivered++;
-        if (noDetails.has(id)) pending.add(id);
-        if (queue.length === 0) finish("done");
+        if (details.length + replays.length === 0) finish("done");
         return running;
     };
 
@@ -180,6 +237,14 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
             rateLimited: a.used >= DAILY_LIMIT,
         }));
 
+    const stepProgress = (): StepProgress[] => {
+        const steps: StepProgress[] = [
+            { step: "details", done: detailsDone, total: detailsDone + details.length },
+            { step: "replays", done: replaysDone, total: replaysDone + replays.length },
+        ];
+        return steps.filter((s) => s.total > 0);
+    };
+
     const idle = (): OwnRecovery => ({
         running: false,
         paused: false,
@@ -193,6 +258,7 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
         accounts: accountProgress(),
         outcome: null,
         error: null,
+        steps: [],
     });
 
     return {
@@ -204,20 +270,23 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
                 : limitUntil !== null
                   ? ({ reason: "daily_limit", until: limitUntil } as const)
                   : null;
+            const queued = [...details, ...replays];
+            const done = detailsDone + replaysDone;
             return {
                 ownRecovery: {
                     running,
                     paused,
                     waiting: running ? waiting : null,
                     done,
-                    total: done + queue.length,
+                    total: done + queued.length,
                     delivered,
                     failed: 0,
-                    queued: [...queue],
-                    etaSecs: queue.length * SECONDS_PER_MATCH,
+                    queued,
+                    etaSecs: queued.length * SECONDS_PER_MATCH,
                     accounts: accountProgress(),
                     outcome,
                     error: null,
+                    steps: stepProgress(),
                 },
                 lastRun,
             };
@@ -227,24 +296,29 @@ export function createRecovery(config: RecoveryConfig, deps: RecoveryDeps): Reco
             const have = ids.filter((id) => !noDetails.has(id));
             return { withDetails: have, withReplay: have.filter((id) => !noReplay.has(id)) };
         },
-        recover(ids) {
+        recover(ids, replayIds = [], withHistory = false) {
             advance();
             if (config.gameOpen && !running) throw { code: "gc.game_running", params: {} };
-            const front = unique(ids);
             if (!running) {
                 started = true;
                 running = true;
                 paused = false;
-                done = 0;
+                details = [];
+                replays = [];
+                detailsDone = 0;
+                replaysDone = 0;
                 delivered = 0;
                 outcome = null;
-                pending = new Set();
-                queue = front;
+                finished = new Set();
                 lastTick = now();
-                return;
             }
-            const first = new Set(front);
-            queue = [...front, ...queue.filter((id) => !first.has(id))];
+            enqueueFront(unique(ids));
+            enqueueReplays(replayIds);
+            if (withHistory) {
+                enqueueBack(historyDetails());
+                enqueueReplays(historyReplays());
+            }
+            if (details.length + replays.length === 0) finish("done");
         },
         pause() {
             advance();
@@ -266,8 +340,8 @@ export function recoveryHandlers(of: () => Recovery): Handlers {
     const idsOf = (value: unknown) => (Array.isArray(value) ? value.map(Number) : []);
     return {
         match_detail_coverage: ({ matchIds }) => of().coverage(idsOf(matchIds)),
-        recover_matches: ({ matchIds }) => {
-            of().recover(idsOf(matchIds));
+        recover_matches: ({ matchIds, replayIds, withHistory }) => {
+            of().recover(idsOf(matchIds), idsOf(replayIds), withHistory === true);
             return null;
         },
         pause_match_recovery: () => (of().pause(), null),
@@ -319,5 +393,12 @@ export const RECOVERY_PRESETS: Record<string, RecoveryConfig> = {
         accounts: 3,
         gameOpen: true,
         run: { state: "running", done: 12, total: 31, usedToday: [7, 5, 0] },
+    },
+    "recovery-replay-run": {
+        missing: 20,
+        noReplay: 3,
+        agedNoReplay: 1,
+        accounts: 3,
+        run: { state: "running", done: 8, total: 23, replays: 2, usedToday: [5, 3, 0] },
     },
 };

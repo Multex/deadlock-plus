@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { detailState, etaParts, replayState, type DetailInputs, type RecoveryRun } from "./detail-state";
+import {
+    detailState,
+    etaParts,
+    replayRecoverStep,
+    replayState,
+    type DetailInputs,
+    type RecoveryRun,
+    type ReplayInputs,
+} from "./detail-state";
 
 const ID = 42;
 const NOW_S = 1_000_000_000;
@@ -120,25 +128,100 @@ describe("detailState", () => {
 describe("replayState", () => {
     const started = (days: number) => NOW_S - days * DAY_S;
 
+    function replay(over: Partial<ReplayInputs> = {}): ReplayInputs {
+        return {
+            matchId: ID,
+            startTime: started(2),
+            withReplay: [],
+            nowS: NOW_S,
+            gameRunning: false,
+            gcRecovery: true,
+            matchIngest: true,
+            run: null,
+            ...over,
+        };
+    }
+
     it("is unknown until coverage loads", () => {
-        expect(replayState(ID, started(2), null, NOW_S)).toBeNull();
+        expect(replayState(replay({ withReplay: null }))).toBeNull();
     });
 
     it("is available with the days left when the API has it", () => {
-        expect(replayState(ID, started(2), [ID], NOW_S)).toEqual({ kind: "available", daysLeft: 28 });
+        expect(replayState(replay({ withReplay: [ID] }))).toEqual({ kind: "available", daysLeft: 28 });
     });
 
-    it("is not available yet for a recent match without one", () => {
-        expect(replayState(ID, started(2), [], NOW_S)).toEqual({ kind: "not_yet" });
+    it("offers to recover a replay missing under 21 days", () => {
+        expect(replayState(replay({ startTime: started(20.9) }))).toEqual({
+            kind: "recoverable",
+            next: { kind: "recover", consent: false },
+        });
+    });
+
+    it("asks for consent with the recover button when the toggle is off", () => {
+        expect(replayState(replay({ gcRecovery: false }))).toEqual({
+            kind: "recoverable",
+            next: { kind: "recover", consent: true },
+        });
+    });
+
+    it("points at the game while it is open, like the details row", () => {
+        expect(replayState(replay({ gameRunning: true }))).toMatchObject({ next: { kind: "open_in_game" } });
+        expect(replayState(replay({ gameRunning: true, matchIngest: false }))).toMatchObject({
+            next: { kind: "turn_on_sharing" },
+        });
+    });
+
+    it("is recovering while a run holds the match", () => {
+        expect(replayState(replay({ run: run() }))).toEqual({ kind: "recovering" });
+        expect(replayState(replay({ run: run({ running: false, paused: true }) }))).toEqual({ kind: "recovering" });
+    });
+
+    it("ignores a run that does not hold the match or has finished", () => {
+        const recoverable = { kind: "recoverable", next: { kind: "recover", consent: false } };
+        expect(replayState(replay({ run: run({ queued: [7] }) }))).toEqual(recoverable);
+        expect(replayState(replay({ run: run({ running: false }) }))).toEqual(recoverable);
+    });
+
+    it("keeps an available replay available while a run holds the match", () => {
+        expect(replayState(replay({ withReplay: [ID], run: run() }))).toMatchObject({ kind: "available" });
+    });
+
+    it("can't be recovered from 21 to 30 days", () => {
+        expect(replayState(replay({ startTime: started(21) }))).toEqual({ kind: "unrecoverable" });
+        expect(replayState(replay({ startTime: started(29.9) }))).toEqual({ kind: "unrecoverable" });
     });
 
     it("has expired after 30 days, even when the API has it", () => {
-        expect(replayState(ID, started(30), [ID], NOW_S)).toEqual({ kind: "expired" });
+        expect(replayState(replay({ startTime: started(30), withReplay: [ID] }))).toEqual({ kind: "expired" });
+        expect(replayState(replay({ startTime: started(30) }))).toEqual({ kind: "expired" });
     });
 
     it("has no days left when the match's age is unknown", () => {
-        expect(replayState(ID, null, [ID], NOW_S)).toEqual({ kind: "available", daysLeft: null });
-        expect(replayState(ID, null, [], NOW_S)).toEqual({ kind: "none" });
+        expect(replayState(replay({ startTime: null, withReplay: [ID] }))).toEqual({
+            kind: "available",
+            daysLeft: null,
+        });
+        expect(replayState(replay({ startTime: null }))).toEqual({ kind: "none" });
+    });
+});
+
+describe("replayRecoverStep", () => {
+    const recoverable = (consent: boolean) => ({ kind: "recoverable", next: { kind: "recover", consent } }) as const;
+
+    it("offers recovery on the player's own match, with its consent flag", () => {
+        expect(replayRecoverStep(recoverable(false), true)).toEqual({ kind: "recover", consent: false });
+        expect(replayRecoverStep(recoverable(true), true)).toEqual({ kind: "recover", consent: true });
+    });
+
+    it("offers nothing on another player's match", () => {
+        expect(replayRecoverStep(recoverable(false), false)).toBeNull();
+    });
+
+    it("offers nothing while the game is open or the replay can't be recovered", () => {
+        expect(replayRecoverStep({ kind: "recoverable", next: { kind: "open_in_game" } }, true)).toBeNull();
+        expect(replayRecoverStep({ kind: "unrecoverable" }, true)).toBeNull();
+        expect(replayRecoverStep({ kind: "recovering" }, true)).toBeNull();
+        expect(replayRecoverStep(null, true)).toBeNull();
     });
 });
 

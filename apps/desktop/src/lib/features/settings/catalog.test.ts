@@ -251,7 +251,7 @@ describe("catalog", () => {
     it("matches on the description text", () => {
         expect(matchingItems("atkinson hyperlegible")?.has("accessible-font")).toBe(true);
         expect(matchingItems("weekly maintenance")?.has("maintenance")).toBe(true);
-        expect(matchingItems("sign in to steam as you")?.has("gc-recovery")).toBe(true);
+        expect(matchingItems("yours and other players")?.has("gc-recovery")).toBe(true);
     });
 
     it("gives descriptions only where a description key exists", () => {

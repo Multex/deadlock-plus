@@ -1,6 +1,7 @@
 import type { LastRun } from "@deadlock-plus/ipc-types/LastRun";
 import type { OwnRecovery } from "@deadlock-plus/ipc-types/OwnRecovery";
 import type { OwnRecoveryOutcome } from "@deadlock-plus/ipc-types/OwnRecoveryOutcome";
+import type { StepProgress } from "@deadlock-plus/ipc-types/StepProgress";
 
 export const SECONDS_PER_MATCH = 20;
 export const DAILY_FETCH_LIMIT = 40;
@@ -18,9 +19,12 @@ export type AccountCard = {
 export type RecoveryView = {
     phase: RecoveryPhase;
     actions: RecoveryAction[];
+    /** Matches a new run would take on: missing details, then recent replays. */
+    pending: number;
     done: number;
     total: number;
     etaSecs: number;
+    segments: StepProgress[];
     accounts: AccountCard[];
     outcome: OwnRecoveryOutcome | null;
 };
@@ -59,17 +63,29 @@ function accountCards(own: OwnRecovery | null): AccountCard[] {
     }));
 }
 
-export function recoveryView(own: OwnRecovery | null, missing: number): RecoveryView {
+function segmentsOf(steps: StepProgress[], done: number, total: number): StepProgress[] {
+    const active = steps.filter((s) => s.total > 0);
+    return active.length > 0 ? active : [{ step: "details", done, total }];
+}
+
+export function recoveryView(own: OwnRecovery | null, missing: number, replays = 0): RecoveryView {
     const phase = phaseOf(own);
-    const actions = actionsFor(phase, missing);
+    const pending = missing + replays;
+    const actions = actionsFor(phase, pending);
     const accounts = accountCards(own);
     if (!own || phase === "idle") {
+        const steps: StepProgress[] = [
+            { step: "details", done: 0, total: missing },
+            { step: "replays", done: 0, total: replays },
+        ];
         return {
             phase,
             actions,
+            pending,
             done: 0,
-            total: missing,
-            etaSecs: missing * SECONDS_PER_MATCH,
+            total: pending,
+            etaSecs: pending * SECONDS_PER_MATCH,
+            segments: segmentsOf(steps, 0, pending),
             accounts,
             outcome: null,
         };
@@ -77,9 +93,11 @@ export function recoveryView(own: OwnRecovery | null, missing: number): Recovery
     return {
         phase,
         actions,
+        pending,
         done: own.done,
         total: own.total,
         etaSecs: own.etaSecs,
+        segments: segmentsOf(own.steps, own.done, own.total),
         accounts,
         outcome: own.outcome,
     };

@@ -14,6 +14,7 @@
     import { headerSummary } from "@deadlock-plus/match/scoreboard";
     import Summary from "$lib/features/match-history/components/detail/summary.svelte";
     import MissingMatch from "$lib/features/match-history/components/detail/missing-match.svelte";
+    import ReplayStatus from "$lib/features/match-history/components/detail/replay-status.svelte";
     import { findPlayer } from "@deadlock-plus/match/detail";
     import { versusFor } from "@deadlock-plus/match/versus";
     import { matchHistory } from "$lib/features/match-history/history.svelte";
@@ -25,6 +26,8 @@
     const ownAccountIds = $derived(ownAccountId === null ? [] : [ownAccountId]);
     let boardNode = $state<HTMLElement | null>(null);
     const detail = $derived(matchHistory.detailStatus === "ready" ? matchHistory.detail : null);
+
+    const own = $derived(!!detail && ownAccountId !== null && !!findPlayer(detail, [ownAccountId]));
 
     const versus = $derived.by(() => {
         const own = detail && ownAccountId !== null ? findPlayer(detail, [ownAccountId]) : undefined;
@@ -69,7 +72,10 @@
     {:else if detail}
         <Summary summary={headerSummary(detail, ownAccountId)} {versus}>
             {#snippet actions()}
-                <ExportControl node={boardNode} {detail} {ownAccountId} />
+                <div class="flex flex-wrap items-start justify-end gap-3">
+                    <ReplayStatus matchId={detail.matchId} startTime={detail.startTime} {own} />
+                    <ExportControl node={boardNode} {detail} {ownAccountId} />
+                </div>
             {/snippet}
         </Summary>
         <div bind:this={boardNode}>

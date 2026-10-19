@@ -10,6 +10,8 @@
     import { ingestStatus } from "$lib/features/ingest/status.svelte";
     import { recoveryPanel } from "$lib/features/match-history/recovery-panel.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
+    import HowItWorks from "$lib/features/settings/components/how-it-works.svelte";
+    import SharedMatches from "./shared-matches.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
 
@@ -22,6 +24,8 @@
         if (ingest.lastError) return ingest.lastError;
         return t("settings.privacy.ingest_watching", { count: ingest.submitted });
     });
+
+    const gcLine = $derived(gcStatusLine(settings.gcRecovery, gcStatus.status));
 
     const recoveryHint = $derived.by(() => {
         const own = gcStatus.status?.ownRecovery ?? null;
@@ -36,8 +40,12 @@
             label={t("settings.items.match_ingest")}
             for="match-ingest"
             description={t("settings.privacy.ingest_description")}
-            hint={ingestLine}
         >
+            {#snippet details()}
+                <HowItWorks points={[t("settings.privacy.ingest_how_find"), t("settings.privacy.ingest_how_send")]} />
+                {#if ingestLine}<p class="mt-1 text-xs text-muted-foreground/80">{ingestLine}</p>{/if}
+                <SharedMatches />
+            {/snippet}
             <Switch
                 id="match-ingest"
                 checked={settings.matchIngest}
@@ -53,8 +61,18 @@
             label={t("settings.items.gc_recovery")}
             for="gc-recovery"
             description={t("settings.privacy.gc_description")}
-            hint={gcStatusLine(settings.gcRecovery, gcStatus.status)}
         >
+            {#snippet details()}
+                <HowItWorks
+                    points={[
+                        t("settings.privacy.gc_how_login"),
+                        t("settings.privacy.gc_how_limit"),
+                        t("settings.privacy.gc_how_game"),
+                        t("settings.privacy.gc_how_send"),
+                    ]}
+                />
+                {#if gcLine}<p class="mt-1 text-xs text-muted-foreground/80">{gcLine}</p>{/if}
+            {/snippet}
             <Switch id="gc-recovery" checked={settings.gcRecovery} onCheckedChange={(v) => settings.setGcRecovery(v)} />
         </SettingRow>
         <SettingRow

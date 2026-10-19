@@ -17,6 +17,7 @@ const own = (over: Partial<OwnRecovery> = {}): OwnRecovery => ({
     accounts: [],
     outcome: null,
     error: null,
+    steps: [],
     ...over,
 });
 
@@ -32,6 +33,50 @@ describe("recoveryView", () => {
 
     it("has nothing to start when nothing is missing", () => {
         expect(recoveryView(null, 0).actions).toEqual([]);
+    });
+
+    it("counts recent replays after the missing details before any run", () => {
+        const view = recoveryView(null, 31, 5);
+        expect(view.pending).toBe(36);
+        expect(view.total).toBe(36);
+        expect(view.etaSecs).toBe(36 * 20);
+        expect(view.segments).toEqual([
+            { step: "details", done: 0, total: 31 },
+            { step: "replays", done: 0, total: 5 },
+        ]);
+    });
+
+    it("offers Start when only replays are missing", () => {
+        const view = recoveryView(null, 0, 3);
+        expect(view.actions).toEqual(["start"]);
+        expect(view.pending).toBe(3);
+        expect(view.segments).toEqual([{ step: "replays", done: 0, total: 3 }]);
+    });
+
+    it("splits the bar by the run's steps, details then replays", () => {
+        const steps: OwnRecovery["steps"] = [
+            { step: "details", done: 12, total: 12 },
+            { step: "replays", done: 3, total: 19 },
+        ];
+        expect(recoveryView(own({ done: 15, steps }), 31, 4).segments).toEqual(steps);
+    });
+
+    it("leaves out a step with nothing to do", () => {
+        const steps: OwnRecovery["steps"] = [
+            { step: "details", done: 0, total: 0 },
+            { step: "replays", done: 2, total: 9 },
+        ];
+        expect(recoveryView(own({ done: 2, total: 9, steps }), 0).segments).toEqual([steps[1]]);
+    });
+
+    it("shows one details bar while the run reports no steps", () => {
+        expect(recoveryView(own(), 31).segments).toEqual([{ step: "details", done: 12, total: 31 }]);
+        expect(recoveryView(null, 0).segments).toEqual([{ step: "details", done: 0, total: 0 }]);
+    });
+
+    it("offers to start what is still missing after a run", () => {
+        const ended = own({ running: false, done: 31, outcome: "done" });
+        expect(recoveryView(ended, 4, 2).pending).toBe(6);
     });
 
     it("counts a running run and lets it be paused or cancelled", () => {

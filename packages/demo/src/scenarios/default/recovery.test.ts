@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
-import { MATCH_IDS } from "./identity";
+import { IDENTITY, MATCH_IDS, NOW_MS } from "./identity";
 import { recoveryScenario } from "./index";
-import { NOW_MS } from "./identity";
-import { createRecovery, STEP_MS, type RecoveryConfig } from "./recovery";
+import { createRecovery, RECENT_ROWS, STEP_MS, type RecoveryConfig } from "./recovery";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const ACCOUNTS = [1, 2, 3];
@@ -155,6 +154,115 @@ describe("recovery state machine", () => {
         }
     });
 
+    it("lists only the details step while no replay is queued", () => {
+        const { recovery, wait } = engine();
+        recovery.recover(syntheticIds(5));
+        expect(recovery.status().ownRecovery!.steps).toEqual([{ step: "details", done: 0, total: 5 }]);
+        wait(2);
+        expect(recovery.status().ownRecovery!.steps).toEqual([{ step: "details", done: 2, total: 5 }]);
+    });
+
+    it("fetches replay ids after every details match and counts each step", () => {
+        const { recovery, wait } = engine();
+        const [a, b, c, r1, r2, r3] = syntheticIds(6);
+        recovery.recover([a!, b!], [r1!, r2!]);
+        let run = recovery.status().ownRecovery!;
+        expect(run.queued).toEqual([a, b, r1, r2]);
+        expect(run.steps).toEqual([
+            { step: "details", done: 0, total: 2 },
+            { step: "replays", done: 0, total: 2 },
+        ]);
+        wait(3);
+        recovery.recover([c!], [r3!, r2!]);
+        run = recovery.status().ownRecovery!;
+        expect(run.queued).toEqual([c, r2, r3]);
+        expect(run.steps).toEqual([
+            { step: "details", done: 2, total: 3 },
+            { step: "replays", done: 1, total: 3 },
+        ]);
+        expect(run).toMatchObject({ done: 3, total: 6 });
+    });
+
+    it("moves a match queued for its replay to the details step when asked for its details", () => {
+        const { recovery } = engine();
+        const [a, b] = syntheticIds(2);
+        recovery.recover([], [a!, b!]);
+        recovery.recover([a!], [a!]);
+        const run = recovery.status().ownRecovery!;
+        expect(run.queued).toEqual([a, b]);
+        expect(run.steps).toEqual([
+            { step: "details", done: 0, total: 1 },
+            { step: "replays", done: 0, total: 1 },
+        ]);
+    });
+
+    it("with the history, also queues the missing details and the recent matches without a replay", () => {
+        const { recovery } = engine({ missing: 4, noReplay: 3, agedNoReplay: 1 });
+        const ids = [...MATCH_IDS];
+        const { withDetails, withReplay } = recovery.coverage(ids);
+        const missing = ids.filter((id) => !withDetails.includes(id));
+        const gaps = ids.slice(0, RECENT_ROWS).filter((id) => withDetails.includes(id) && !withReplay.includes(id));
+        expect(missing).toHaveLength(4);
+        expect(gaps).toHaveLength(3);
+
+        recovery.recover([missing[2]!], [gaps[1]!], true);
+        const run = recovery.status().ownRecovery!;
+        expect(run.queued).toEqual([
+            missing[2],
+            ...missing.filter((id) => id !== missing[2]),
+            gaps[1],
+            gaps[0],
+            gaps[2],
+        ]);
+        expect(run.steps).toEqual([
+            { step: "details", done: 0, total: 4 },
+            { step: "replays", done: 0, total: 3 },
+        ]);
+    });
+
+    it("leaves a match 21 to 30 days old without a replay out of the history's replays", () => {
+        const { recovery } = engine({ missing: 4, noReplay: 0, agedNoReplay: 1 });
+        const aged = MATCH_IDS[RECENT_ROWS]!;
+        const coverage = recovery.coverage([aged]);
+        expect(coverage).toEqual({ withDetails: [aged], withReplay: [] });
+        recovery.recover([], [], true);
+        expect(recovery.status().ownRecovery!.queued).not.toContain(aged);
+    });
+
+    it("ends at once when there is nothing to fetch", () => {
+        const { recovery } = engine({ missing: 0 });
+        recovery.recover([], [], true);
+        expect(recovery.status().ownRecovery).toMatchObject({ running: false, outcome: "done", total: 0 });
+    });
+
+    it("shows a recovered replay in the coverage once the run ends", () => {
+        const { recovery, wait } = engine({ missing: 0, noReplay: 3 });
+        const ids = [...MATCH_IDS];
+        const gap = ids.find((id) => !recovery.coverage(ids).withReplay.includes(id))!;
+        recovery.recover([], [gap]);
+        expect(recovery.coverage([gap]).withReplay).toEqual([]);
+        wait(2);
+        expect(recovery.coverage([gap]).withReplay).toEqual([gap]);
+    });
+
+    it("seeds a run with both steps, the replays last", () => {
+        const { recovery } = engine({
+            missing: 20,
+            noReplay: 3,
+            run: { state: "running", done: 8, total: 23, replays: 2, usedToday: [5, 3, 0] },
+        });
+        const ids = [...MATCH_IDS];
+        const { withDetails, withReplay } = recovery.coverage(ids);
+        const gaps = ids.slice(0, RECENT_ROWS).filter((id) => withDetails.includes(id) && !withReplay.includes(id));
+        const run = recovery.status().ownRecovery!;
+        expect(run).toMatchObject({ running: true, done: 8, total: 23 });
+        expect(run.steps).toEqual([
+            { step: "details", done: 8, total: 21 },
+            { step: "replays", done: 0, total: 2 },
+        ]);
+        expect(run.queued.slice(-2)).toEqual(gaps.slice(0, 2));
+    });
+
     it("seeds a running, paused, limited or game-blocked run", () => {
         const running = engine({ run: RUNNING }).recovery.status();
         expect(running.ownRecovery).toMatchObject({ running: true, paused: false, done: 12, delivered: 12, total: 31 });
@@ -260,6 +368,14 @@ describe("recovery scenarios", () => {
         expect(status(handle).ownRecovery).toMatchObject({ total: 5, queued: missing.slice(0, 5) });
     });
 
+    it("recover_matches queues the replay ids after the match ids", () => {
+        const handle = start("recovery-missing");
+        const missing = [...MATCH_IDS].filter((id) => !coverage(handle).withDetails.includes(id));
+        const replays = coverage(handle).withDetails.slice(0, 2);
+        handle.invoke("recover_matches", { matchIds: missing.slice(0, 2), replayIds: replays, withHistory: false });
+        expect(status(handle).ownRecovery).toMatchObject({ queued: [...missing.slice(0, 2), ...replays] });
+    });
+
     const API = "https://api.deadlock-api.com";
     const metadataStatus = async (id: number) => (await fetch(`${API}/v1/matches/${id}/metadata`)).status;
     const history = async () =>
@@ -306,6 +422,70 @@ describe("recovery scenarios", () => {
         const rows = recent(await history()) as unknown as { match_id: number }[];
         expect(rows).toHaveLength(12);
         expect(rows.filter((row) => have.has(row.match_id))).toHaveLength(9);
+    });
+
+    const DAY_S = 86_400;
+    const ageDays = (row: { start_time: number }) => (NOW_MS / 1000 - row.start_time) / DAY_S;
+    const metadata = async (id: number) =>
+        (
+            (await (await fetch(`${API}/v1/matches/${id}/metadata`)).json()) as {
+                match_info: { start_time: number; players: { account_id: number }[] };
+            }
+        ).match_info;
+
+    it("recovery-replays leaves recent own matches with details and no replay to recover", async () => {
+        const handle = start("recovery-replays");
+        const { withDetails, withReplay } = coverage(handle);
+        const rows = await history();
+        const gaps = rows.filter((row) => withDetails.includes(row.match_id) && !withReplay.includes(row.match_id));
+        expect(gaps).toHaveLength(3);
+        for (const row of gaps) {
+            expect(ageDays(row)).toBeLessThan(21);
+            const detail = await metadata(row.match_id);
+            expect(ageDays(detail)).toBeLessThan(21);
+            expect(detail.players.map((p) => p.account_id)).toContain(IDENTITY.accountId);
+        }
+    });
+
+    it("recovery-replays recovers the recent replays from the panel's start", () => {
+        const handle = start("recovery-replays");
+        const { withReplay } = coverage(handle);
+        const gaps = [...MATCH_IDS].filter((id) => !withReplay.includes(id));
+        handle.invoke("recover_matches", { matchIds: [], replayIds: [], withHistory: true });
+        expect(status(handle).ownRecovery).toMatchObject({ running: true, queued: gaps });
+        expect(status(handle).ownRecovery.steps).toEqual([{ step: "replays", done: 0, total: 3 }]);
+    });
+
+    it("recovery-running counts its run as the details step", () => {
+        expect(status(start("recovery-running")).ownRecovery.steps).toEqual([{ step: "details", done: 12, total: 31 }]);
+    });
+
+    it("recovery-replay-run starts inside a run with both steps", () => {
+        const run = status(start("recovery-replay-run")).ownRecovery;
+        expect(run).toMatchObject({ running: true, paused: false, waiting: null });
+        expect(run.steps).toEqual([
+            { step: "details", done: expect.any(Number), total: expect.any(Number) },
+            { step: "replays", done: 0, total: 2 },
+        ]);
+        expect(run.steps[0].done).toBeLessThan(run.steps[0].total);
+    });
+
+    it("recovery-replay-run leaves one recent replay out of the run and has one too old to recover", async () => {
+        const handle = start("recovery-replay-run");
+        const { withDetails, withReplay } = coverage(handle);
+        const { queued } = status(handle).ownRecovery;
+        const rows = await history();
+        expect(rows.map((row) => row.match_id)).toEqual([...MATCH_IDS]);
+        const times = rows.map((row) => row.start_time);
+        expect(times).toEqual([...times].sort((a, b) => b - a));
+        const noReplay = rows.filter((row) => withDetails.includes(row.match_id) && !withReplay.includes(row.match_id));
+        const recent = noReplay.filter((row) => ageDays(row) < 21);
+        const aged = noReplay.filter((row) => ageDays(row) >= 21 && ageDays(row) < 30);
+        expect(recent).toHaveLength(3);
+        expect(recent.filter((row) => !queued.includes(row.match_id))).toHaveLength(1);
+        expect(aged).toHaveLength(1);
+        expect(ageDays(await metadata(aged[0]!.match_id))).toBeGreaterThanOrEqual(21);
+        expect(queued).not.toContain(aged[0]!.match_id);
     });
 
     it("the default scenario keeps its match times", async () => {

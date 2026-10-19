@@ -19,6 +19,7 @@ export async function fetchMetadata(matchId: number, fetchFn: typeof fetch = fet
 }
 
 export const readProvisionalDetail = (matchId: number) => command<unknown | null>("get_postgame_detail", { matchId });
+export const fetchValveDetail = (matchId: number) => command<unknown | null>("fetch_match_details", { matchId });
 export const notifyBreakReminder = (lossStreak: number) => command("notify_break_reminder", { lossStreak });
 
 export interface DetailSource {
@@ -27,6 +28,8 @@ export interface DetailSource {
     fetchText(matchId: number): Promise<string>;
     /** Captured post-game data, used only when the API has no usable match. */
     provisional?(matchId: number): Promise<unknown | null>;
+    /** Details loaded from Valve with what Deadlock+ recorded for the match, when nothing else has it. */
+    valve?(matchId: number): Promise<unknown | null>;
 }
 
 export const liveDetailSource: DetailSource = {
@@ -34,20 +37,32 @@ export const liveDetailSource: DetailSource = {
     write: writeDetailCache,
     fetchText: (matchId) => fetchMetadata(matchId),
     provisional: readProvisionalDetail,
+    valve: fetchValveDetail,
 };
 
-function parseBody(text: string | null, matchId: number): MatchDetail | null {
+/** Set on a cached body Deadlock+ decoded from Valve's file itself, before the Deadlock API had the match. */
+const LOCAL_MARK = "deadlock_plus_source";
+
+interface Cached {
+    detail: MatchDetail;
+    local: boolean;
+}
+
+function parseBody(text: string | null, matchId: number): Cached | null {
     if (text === null) return null;
     try {
-        const detail = parseApiDetail(JSON.parse(text));
-        return detail?.matchId === matchId ? detail : null;
+        const raw: unknown = JSON.parse(text);
+        const local = typeof raw === "object" && raw !== null && LOCAL_MARK in raw;
+        const detail = parseApiDetail(raw, local ? { source: "provisional" } : {});
+        return detail?.matchId === matchId ? { detail, local } : null;
     } catch {
         return null;
     }
 }
 
 /**
- * Cache first; a missing, unreadable or unparseable cache entry falls through to one fetch.
+ * Cache first; a missing, unreadable or unparseable cache entry falls through to one fetch, and so does an
+ * entry Deadlock+ decoded itself, which is shown only when the fetch fails.
  * Resolves null when the API answers 404 and no captured data fits; rejects on any other failure
  * or when the fetched body is not a usable match.
  */
@@ -57,19 +72,22 @@ export async function resolveDetail(
 ): Promise<MatchDetail | null> {
     const cached = await source.read(matchId).catch(() => null);
     const hit = parseBody(cached, matchId);
-    if (hit) return hit;
+    if (hit && !hit.local) return hit.detail;
 
     try {
         const text = await source.fetchText(matchId);
-        const detail = parseBody(text, matchId);
-        if (!detail) throw new Error(t("match_history.detail_invalid"));
+        const fetched = parseBody(text, matchId);
+        if (!fetched) throw new Error(t("match_history.detail_invalid"));
         // Best-effort: a failed write only costs a refetch next time.
         await source.write(matchId, text).catch(() => {});
-        return detail;
+        return fetched.detail;
     } catch (apiError) {
-        const captured = await source.provisional?.(matchId).catch(() => null);
-        const detail = captured ? parseApiDetail(captured, { source: "provisional" }) : null;
-        if (detail?.matchId === matchId) return detail;
+        if (hit) return hit.detail;
+        for (const fallback of [source.provisional, source.valve]) {
+            const raw = await fallback?.(matchId).catch(() => null);
+            const detail = raw ? parseApiDetail(raw, { source: "provisional" }) : null;
+            if (detail?.matchId === matchId) return detail;
+        }
         if (apiError instanceof DeadlockApiError && apiError.status === 404) return null;
         throw apiError;
     }

@@ -84,6 +84,7 @@ export function newUserScenario(options: ScenarioOptions): Scenario {
                 current_steam_account: () => null,
                 list_notifications: () => [],
                 ingest_status: () => INGEST,
+                shared_matches: () => [],
                 gc_status: () => GC,
                 autostart_status: () => autostart,
                 set_autostart: ({ enabled }) => (autostart = { ...autostart, enabled: enabled === true }),

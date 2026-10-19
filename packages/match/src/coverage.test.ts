@@ -48,7 +48,26 @@ describe("summarizeCoverage", () => {
             recent: 0,
             replays: 0,
             missingIds: [],
+            replayIds: [],
         });
+    });
+
+    it("lists matches under 21 days with details and no replay as replay ids, newest first", () => {
+        const rows = [
+            row(1, NOW - 3 * DAY),
+            row(2, NOW - DAY),
+            row(3, NOW - 2 * DAY),
+            row(4, NOW - 2 * DAY),
+            row(5, NOW - 5 * DAY),
+        ];
+        const s = summarizeCoverage(rows, { withDetails: [1, 2, 3, 5], withReplay: [5] }, NOW);
+        expect(s.replayIds).toEqual([2, 3, 1]);
+    });
+
+    it("leaves matches 21 days or older out of the replay ids", () => {
+        const rows = [row(1, NOW - 21 * DAY + 1), row(2, NOW - 21 * DAY), row(3, NOW - 25 * DAY)];
+        const s = summarizeCoverage(rows, { withDetails: [1, 2, 3], withReplay: [] }, NOW);
+        expect(s.replayIds).toEqual([1]);
     });
 
     it("ignores coverage ids that are not in the rows", () => {

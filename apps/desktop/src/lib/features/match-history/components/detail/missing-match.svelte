@@ -71,7 +71,17 @@
         return () => clearInterval(id);
     });
     const replay = $derived(
-        replayState(matchId, row?.startTime ?? null, coverage?.withReplay ?? null, Math.floor(Date.now() / 1000)),
+        replayState({
+            matchId,
+            startTime: row?.startTime ?? null,
+            withReplay: coverage?.withReplay ?? null,
+            nowS: Math.floor(Date.now() / 1000),
+            gameRunning: jobs.gameRunning,
+            gcRecovery: settings.gcRecovery,
+            matchIngest: settings.matchIngest,
+            // The details row shows the run; recovering this match brings its replay too.
+            run: null,
+        }),
     );
 
     const progressText = $derived.by(() => {
@@ -97,8 +107,10 @@
                 return replay.daysLeft === null
                     ? ""
                     : tn("match_history.detail.missing.replay_days_left", replay.daysLeft);
-            case "not_yet":
-                return t("match_history.detail.missing.replay_not_yet_note");
+            case "recoverable":
+                return t("match_history.detail.missing.replay_recoverable_note");
+            case "unrecoverable":
+                return t("match_history.detail.missing.replay_unrecoverable_note");
             case "expired":
                 return t("match_history.detail.missing.replay_expired_note");
             case "none":
@@ -132,7 +144,7 @@
     async function recover() {
         busy = true;
         try {
-            await recoverMatches([matchId], false);
+            await recoverMatches([matchId], [], false);
             await gcStatus.refresh();
         } catch (e) {
             toast.error(errorText(e));

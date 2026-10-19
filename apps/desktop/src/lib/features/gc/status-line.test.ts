@@ -64,6 +64,7 @@ const own = (over: Partial<OwnRecovery> = {}): OwnRecovery => ({
     accounts: [],
     outcome: null,
     error: null,
+    steps: [],
     ...over,
 });
 
@@ -83,9 +84,7 @@ describe("ownRecoveryLine", () => {
     });
 
     it("says when nothing was missing", () => {
-        expect(ownRecoveryLine(own({ outcome: "done" }))).toBe(
-            "Done. The community database already has all your matches.",
-        );
+        expect(ownRecoveryLine(own({ outcome: "done" }))).toBe("Done. The Deadlock API already has all your matches.");
     });
 
     it("reports each ending", () => {

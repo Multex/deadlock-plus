@@ -1,4 +1,5 @@
 import type { LogEntry } from "@deadlock-plus/ipc-types/LogEntry";
+import type { SharedMatch } from "@deadlock-plus/ipc-types/SharedMatch";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
 import { MATCH_IDS } from "./identity";
@@ -210,5 +211,22 @@ describe("default scenario", () => {
         expect(handle.invoke("save_binary_file", new Uint8Array([1, 2]) as unknown as Record<string, unknown>)).toBe(
             true,
         );
+    });
+
+    it("lists recently shared matches, newest first, from every source", () => {
+        const handle = start();
+        const shared = handle.invoke("shared_matches", {}) as SharedMatch[];
+        expect(shared.length).toBeGreaterThan(5);
+        expect(shared.length).toBeLessThanOrEqual(50);
+        expect(new Set(shared.map((m) => m.source))).toEqual(new Set(["steam", "deadlock", "login"]));
+        const nowS = Date.now() / 1000;
+        for (const m of shared) {
+            expect(MATCH_IDS).toContain(m.matchId);
+            expect(m.at).toBeLessThanOrEqual(nowS);
+            expect(m.at).toBeGreaterThan(nowS - 30 * 86_400);
+        }
+        const times = shared.map((m) => m.at);
+        expect(times).toEqual([...times].sort((a, b) => b - a));
+        expect(shared.some((m) => !m.replay)).toBe(true);
     });
 });

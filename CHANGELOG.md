@@ -77,10 +77,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A match the Deadlock API is missing shows what is known and how to recover it, instead of an error.
 - You can recover a single match from its page.
 - Settings > Privacy opens recovery in Match History.
+- Deadlock+ picks up your matches from Deadlock after each game, so their details and replays reach the Deadlock API within minutes.
+- With "Fill in missing match details" on, matches you open in Deadlock's Match History are picked up too, including other players'.
+- Matches the Deadlock API is missing show full details right away, loaded straight from Valve.
+- Recovery also fills in missing replays for your matches from the last 21 days.
+- A match's page shows whether its replay is available, with a button to recover it.
+- Settings > Privacy lists the matches Deadlock+ shared and where each came from.
+- Settings > Storage lists the shared matches, with a clear action.
+- The sharing settings explain what is sent under "How it works".
 
 ### Changed
 
 - Matches Deadlock+ sends to the Deadlock API are labelled as coming from Deadlock+.
+- Deadlock+ remembers which matches it shared, so it doesn't send them again after a restart.
 - The match time and mode now sit at the top of the Live page.
 - Server block updates no longer show a Windows notification while you're in the game.
 - When the game files can't be read, the replay map keeps the markers from the last game version it read.
@@ -116,6 +125,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Discord shows "Finding match" with the queue timer again when you queue as a party.
 - Sharing your matches no longer fails when Steam's cache holds more than 1,000 of them.
 - Every replay link in a Steam cache entry is shared, not just the first.
+- Replays found in Steam's cache are no longer sent without their match details, which kept stat sites from loading them.
 - Match recovery hands unfinished matches back to the Deadlock API after each run, so other helpers can pick them up.
 - Discord shows the mode you queued for when you queue as a party.
 - The Live page's current server ignores other traffic from the game, like voice chat.

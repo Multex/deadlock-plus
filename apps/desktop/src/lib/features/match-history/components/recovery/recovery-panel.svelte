@@ -14,15 +14,25 @@
     import { durationText } from "$lib/features/gc/recovery-bar";
     import { gcStatus } from "$lib/features/gc/status.svelte";
     import { lastRunLine, ownRecoveryLine } from "$lib/features/gc/status-line";
+    import { matchCoverage } from "$lib/features/match-history/coverage.svelte";
     import { playerNames } from "$lib/features/match-history/names";
     import { recoveryPanel } from "$lib/features/match-history/recovery-panel.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import ProgressBar from "./progress-bar.svelte";
 
+    import type { RecoveryStep } from "@deadlock-plus/ipc-types/RecoveryStep";
+
     let { missingIds }: { missingIds: number[] } = $props();
 
+    const replayIds = $derived(matchCoverage.summary?.replayIds ?? []);
     const own = $derived(gcStatus.status?.ownRecovery ?? null);
-    const view = $derived(recoveryView(own, missingIds.length));
+    const view = $derived(recoveryView(own, missingIds.length, replayIds.length));
+    const showSteps = $derived(view.segments.some((s) => s.step === "replays"));
+
+    const STEP_LABELS: Record<RecoveryStep, string> = {
+        details: "match_history.recovery.step_details",
+        replays: "match_history.recovery.step_replays",
+    };
     const dim = $derived(view.phase === "paused" || view.phase === "waiting_game" || view.phase === "waiting_limit");
     const lastRun = $derived(lastRunLine(gcStatus.status?.lastRun ?? null));
     const consentNote = $derived(view.actions.includes("start") && !settings.gcRecovery);
@@ -73,7 +83,7 @@
     });
 
     const BUTTONS: Record<RecoveryAction, { variant: "default" | "outline" | "ghost"; run: () => Promise<unknown> }> = {
-        start: { variant: "default", run: () => recoverMatches(missingIds, true) },
+        start: { variant: "default", run: () => recoverMatches(missingIds, replayIds, true) },
         pause: { variant: "outline", run: pauseMatchRecovery },
         resume: { variant: "default", run: resumeMatchRecovery },
         cancel: { variant: "ghost", run: cancelMatchRecovery },
@@ -82,7 +92,7 @@
     function label(action: RecoveryAction): string {
         switch (action) {
             case "start":
-                return t("match_history.recovery.start", { count: formatNumber(missingIds.length) });
+                return t("match_history.recovery.start", { count: formatNumber(view.pending) });
             case "pause":
                 return t("match_history.recovery.pause");
             case "resume":
@@ -143,7 +153,32 @@
                     <p class="max-w-[60%] pb-1 text-right text-xs text-muted-foreground">{side}</p>
                 {/if}
             </div>
-            <ProgressBar done={view.done} total={view.total} {dim} label={t("match_history.recovery.progress_label")} />
+            <div class="flex flex-col gap-2">
+                <div class="flex gap-1" role="group" aria-label={t("match_history.recovery.progress_label")}>
+                    {#each view.segments as segment (segment.step)}
+                        <div class="min-w-0" style="flex: {Math.max(1, segment.total)} 1 0">
+                            <ProgressBar
+                                done={segment.done}
+                                total={segment.total}
+                                {dim}
+                                label={t(STEP_LABELS[segment.step])}
+                            />
+                        </div>
+                    {/each}
+                </div>
+                {#if showSteps}
+                    <ol class="flex justify-between gap-4 text-xs text-muted-foreground">
+                        {#each view.segments as segment, i (segment.step)}
+                            <li class={i > 0 ? "text-right" : undefined}>
+                                {t(STEP_LABELS[segment.step])}
+                                <span class="ml-1 tabular-nums text-foreground"
+                                    >{formatNumber(segment.done)} / {formatNumber(segment.total)}</span
+                                >
+                            </li>
+                        {/each}
+                    </ol>
+                {/if}
+            </div>
         </div>
 
         {#if view.accounts.length > 0}
