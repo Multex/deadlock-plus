@@ -115,6 +115,22 @@ test("Storage: the clear question closes once it is confirmed", async ({ page })
     await noQuestion(page);
 });
 
+test("Storage: the shared matches record says what clearing it means, and clears", async ({ page }) => {
+    await open(page, "/settings/storage");
+    const entry = page.getByRole("main").getByRole("listitem").filter({ hasText: "Shared matches" });
+    await expect(entry).toContainText("Matches Deadlock+ shared with the Deadlock API.");
+    await expect(entry).toContainText("93.8 KB");
+
+    await entry.getByRole("button", { name: "Clear Shared matches", exact: true }).click();
+    const ask = question(page, "Clear shared matches?");
+    await expect(ask).toContainText("Frees 93.8 KB. Deadlock+ may share those matches again. Nothing else is lost.");
+    await ask.getByRole("button", { name: "Clear", exact: true }).click();
+
+    await expect(toast(page, "Freed 93.8 KB")).toBeVisible();
+    await noQuestion(page);
+    await expect(entry).toContainText("0 B");
+});
+
 test("Storage: a failed clear says so and puts the question away", async ({ page }) => {
     await open(page, "/settings/storage");
     await fail(page, "storage_clear", "access denied");

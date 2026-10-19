@@ -46,9 +46,11 @@ function keptOutsideKv(category: string, name: string): Kept | undefined {
     return OUTSIDE_KV[category]?.[name];
 }
 
-// Reloading or leaving Settings closes every disclosure, so this runs again after each.
+// Reloading or leaving Settings closes every disclosure, so this runs again after each. Each click takes one
+// disclosure out of the closed set, so the first closed one is always the next.
 async function openDisclosures(page: Page) {
-    for (const summary of await main(page).locator("details:not([open]) > summary").all()) await summary.click();
+    const closed = main(page).locator("details:not([open]) > summary");
+    for (let left = await closed.count(); left > 0; left--) await closed.first().click();
 }
 
 interface Control {
@@ -345,4 +347,64 @@ test("the bare /settings address opens the first category with nothing failing t
 
     await expect(page).toHaveURL(new RegExp(`/settings/${CATEGORIES[0]}$`));
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+test.describe("Match sharing", () => {
+    const sharedList = (page: Page) => main(page).locator("details").filter({ hasText: "Shared matches" });
+    const sharedSummary = (page: Page) => sharedList(page).locator("summary");
+
+    test("each switch explains how it works when asked", async ({ page }) => {
+        await open(page, "/settings/sharing");
+        const howItWorks = main(page).getByText("How it works", { exact: true });
+        await expect(howItWorks).toHaveCount(2);
+        const sendPoint = main(page).getByText(
+            "It sends that, the match IDs and your Steam ID to the Deadlock API. Nothing else.",
+        );
+        await expect(sendPoint).toBeHidden();
+
+        await howItWorks.first().click();
+        await expect(sendPoint).toBeVisible();
+        await expect(main(page).getByText("Up to 40 matches per account a day.")).toBeHidden();
+
+        await howItWorks.nth(1).click();
+        await expect(main(page).getByText("Up to 40 matches per account a day.")).toBeVisible();
+    });
+
+    test("the shared matches list counts each source and links every match", async ({ page }) => {
+        await open(page, "/settings/sharing");
+        await expect(sharedSummary(page)).toHaveText(
+            /Shared matches\s*Steam\s*11\s*Deadlock\s*7\s*Steam login\s*6\s*19 with replay/,
+        );
+        const rows = sharedList(page).getByRole("row");
+        await expect(rows).toHaveCount(0);
+
+        await sharedSummary(page).click();
+        // One header row and one row per shared match.
+        await expect(rows).toHaveCount(25);
+        await expect(sharedList(page).getByRole("img", { name: "Not sent" })).toHaveCount(5);
+        await expect(rows.nth(1)).toContainText("Steam");
+
+        await sharedList(page).getByRole("link", { name: "990000060" }).click();
+        await expect(page).toHaveURL(/\/match-history\/990000060$/);
+    });
+
+    test.describe("a new user", () => {
+        test.use({ scenario: "new-user" });
+
+        test("the shared matches list says nothing was shared yet", async ({ page }) => {
+            await page.goto("/");
+            await page.waitForURL("**/onboarding");
+            await page.getByRole("button", { name: "Skip" }).click();
+            await page.waitForURL((url) => url.pathname === "/");
+            await page.getByRole("complementary").getByRole("link", { name: "Settings", exact: true }).click();
+            await page.getByRole("link", { name: "Match sharing", exact: true }).click();
+            await expect(page).toHaveURL(/\/settings\/sharing$/);
+            await settle(page);
+
+            await expect(sharedSummary(page)).toHaveText("Shared matches");
+            await sharedSummary(page).click();
+            await expect(sharedList(page).getByText("Nothing shared yet.", { exact: true })).toBeVisible();
+            await expect(sharedList(page).getByRole("row")).toHaveCount(0);
+        });
+    });
 });

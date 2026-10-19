@@ -6,7 +6,7 @@ const MATCHES = 60;
 const MISSING = 28;
 // Not in the scenario's history, so the API answers 404 for it.
 const UNKNOWN_MATCH = "/match-history/123456";
-const CONSENT = "Your login never leaves this PC.";
+const CONSENT = "Fills in matches the Deadlock API is missing, yours and other players'.";
 // The newest match has a grade, and the missing-details presets leave it without details.
 const NEWEST = 990000060;
 
@@ -21,7 +21,10 @@ const rowsWith = (page: Page, text: string) => rows(page).filter({ hasText: text
 const rowOf = (page: Page, matchId: number) =>
     rows(page).filter({ has: page.locator(`a[href="/match-history/${matchId}"]`) });
 const panel = (page: Page) => page.getByRole("dialog", { name: "Recover matches" });
-const replayTile = (page: Page) => strip(page).getByRole("definition").filter({ hasText: /\/ 12$/ });
+const replayTile = (page: Page) =>
+    strip(page)
+        .getByRole("definition")
+        .filter({ hasText: /\/ 12$/ });
 const panelButton = (page: Page, name: string) => panel(page).getByRole("button", { name, exact: true });
 const statusBar = (page: Page) => page.getByRole("contentinfo");
 
@@ -235,6 +238,60 @@ test.describe("Deadlock open", () => {
         await main(page).getByRole("link", { name: "Open Match sharing settings" }).click();
         await expect(page).toHaveURL(/\/settings\/sharing$/);
         await expect(share).toBeVisible();
+    });
+});
+
+test.describe("a run with details and replays", () => {
+    test.use({ scenario: "recovery-replay-run" });
+
+    // The scenario's run takes the first two of the three recent matches that have details and no replay.
+    const QUEUED_REPLAY = 990000059;
+    const LEFT_OUT_REPLAY = 990000053;
+    // 25 days old: past the 21 days Steam hands replays out, still inside the 30 days they are kept.
+    const AGED_REPLAY = 990000048;
+
+    test("the panel shows the details step, then the replays step", async ({ page }) => {
+        await open(page, "/match-history");
+        await strip(page)
+            .getByRole("button", { name: /^Recovering \d+ \/ 23$/ })
+            .click();
+        const steps = panel(page).getByRole("group", { name: "Recovery progress" });
+        await expect(steps.getByRole("progressbar")).toHaveCount(2);
+        await expect(steps.getByRole("progressbar", { name: "Missing details" })).toHaveAttribute(
+            "aria-valuemax",
+            "21",
+        );
+        await expect(steps.getByRole("progressbar", { name: "Recent replays" })).toHaveAttribute("aria-valuenow", "0");
+        await expect(panel(page).getByRole("listitem").filter({ hasText: "Recent replays" })).toHaveText(
+            /^Recent replays\s*0 \/ 2$/,
+        );
+        await expect(panel(page).getByRole("listitem").filter({ hasText: "Missing details" })).toHaveText(
+            /^Missing details\s*\d+ \/ 21$/,
+        );
+    });
+
+    test("a recent match with no replay offers to recover it, and the run takes it on", async ({ page }) => {
+        await open(page, `/match-history/${LEFT_OUT_REPLAY}`);
+        await expect(main(page).getByText("No replay yet", { exact: true })).toBeVisible();
+        const recover = main(page).getByRole("button", { name: "Recover replay" });
+        await expect(recover).toHaveAttribute("title", "Counts toward the 40 matches a day.");
+
+        await recover.click();
+        await expect(main(page).getByText("Recovering replay", { exact: true })).toBeVisible();
+        await expect(recover).toHaveCount(0);
+        await expect(statusBar(page).getByRole("link", { name: /^Recovering \d+ \/ 24$/ })).toBeVisible();
+    });
+
+    test("a match whose replay is already in the run says so", async ({ page }) => {
+        await open(page, `/match-history/${QUEUED_REPLAY}`);
+        await expect(main(page).getByText("Recovering replay", { exact: true })).toBeVisible();
+        await expect(main(page).getByRole("button", { name: "Recover replay" })).toHaveCount(0);
+    });
+
+    test("a match past 21 days says its replay can't be recovered", async ({ page }) => {
+        await open(page, `/match-history/${AGED_REPLAY}`);
+        await expect(main(page).getByText("Replay can't be recovered", { exact: true })).toBeVisible();
+        await expect(main(page).getByRole("button", { name: "Recover replay" })).toHaveCount(0);
     });
 });
 
