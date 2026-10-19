@@ -1377,9 +1377,6 @@ function fixtureMapItems(tsv: string): MapItemsPayload {
     return { source: "game", installedBuild: null, table: { schema: 2, buildId: null, ventsCrc: 0, rows, lanes } };
 }
 
-/** How long before the scenario's now the grading sample was fetched. */
-const GRADES_AGE_S = 2 * 24 * 3600;
-
 export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailOptions): Module {
     return {
         name: "match-detail",
@@ -1398,13 +1395,12 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
             };
             const asset = assetLoader();
             const mapItems = fixtureMapItems(mapItemsTsv);
-            const gradesBuiltAt = Math.floor(context.now / 1000) - GRADES_AGE_S;
             const grades = new Map<number, MvpMatchGrade>();
             const gradeOf = (matchId: number): MvpMatchGrade | null => {
                 if (!world.rows.has(matchId)) return null;
                 let grade = grades.get(matchId);
                 if (!grade) {
-                    grade = demoGrade(metadata(world, matchId), gradesBuiltAt, identity.accountId);
+                    grade = demoGrade(metadata(world, matchId), identity.accountId);
                     grades.set(matchId, grade);
                 }
                 return grade;

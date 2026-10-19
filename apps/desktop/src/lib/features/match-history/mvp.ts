@@ -1,7 +1,9 @@
 import { command, listen } from "$lib/core/tauri";
 import type { Letter } from "@deadlock-plus/stats/grades";
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
+import type { MvpStatLine } from "@deadlock-plus/ipc-types/MvpStatLine";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+import type { MvpMetric } from "@deadlock-plus/ipc-types/MvpMetric";
 import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
 
 export const GRADED_EVENT = "mvp://graded";
@@ -12,28 +14,21 @@ export const readGrades = (matchIds: number[]) => command<MvpMatchGrade[]>("mvp_
 export const gradeMatch = (matchId: number) => command<MvpMatchGrade | null>("mvp_grade_match", { matchId });
 export const onGraded = (handler: (matchIds: number[]) => void) => listen<number[]>(GRADED_EVENT, handler);
 
-/** The stats behind a grade, in the order of `MvpPlayerGrade.percentiles`. */
-export const MVP_STATS = [
-    "kills",
-    "deaths",
-    "assists",
-    "souls",
-    "playerDamage",
-    "objectiveDamage",
-    "selfHealing",
-    "support",
-] as const;
-export type MvpStat = (typeof MVP_STATS)[number];
-
-export const STAT_LABEL: Record<MvpStat, string> = {
-    kills: "live.grades.label.kills",
-    deaths: "live.grades.label.deaths",
-    assists: "live.grades.label.assists",
-    souls: "live.grades.label.souls",
-    playerDamage: "live.grades.label.damage",
-    objectiveDamage: "live.grades.label.objective_damage",
-    selfHealing: "match_history.detail.grade.stat.self_healing",
-    support: "match_history.detail.grade.stat.support",
+export const METRIC_LABEL: Record<MvpMetric, string> = {
+    early_damage: "match_history.detail.grade.metric.early_damage",
+    late_damage: "match_history.detail.grade.metric.late_damage",
+    early_assists: "match_history.detail.grade.metric.early_assists",
+    late_assists: "match_history.detail.grade.metric.late_assists",
+    prebase_objective: "match_history.detail.grade.metric.prebase_objective",
+    base_objective: "match_history.detail.grade.metric.base_objective",
+    damage_absorbed: "match_history.detail.grade.metric.damage_absorbed",
+    ally_healing: "match_history.detail.grade.metric.ally_healing",
+    heal_prevented: "match_history.detail.grade.metric.heal_prevented",
+    barriers: "match_history.detail.grade.metric.barriers",
+    cs: "match_history.detail.grade.metric.cs",
+    kills: "match_history.detail.grade.metric.kills",
+    deaths: "match_history.detail.grade.metric.deaths",
+    cc: "match_history.detail.grade.metric.cc",
 };
 
 export function ordinalCategory(place: number, locale: string): Intl.LDMLPluralRule {
@@ -49,13 +44,32 @@ export function scoreText(s10: number, locale: string): string {
     return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(s10 / 10);
 }
 
-/** Share of players on the same hero this one beat in each stat; fewer deaths count as better. */
-export function statLines(grade: MvpPlayerGrade): { key: MvpStat; better: number }[] {
-    return MVP_STATS.flatMap((key, i) => {
-        const p = grade.percentiles[i];
-        if (p === null || p === undefined) return [];
-        return [{ key, better: Math.round(key === "deaths" ? 100 - p : p) }];
-    });
+/** Points with an explicit sign and a real minus; zero (after rounding) has none. */
+export function pointsText(points: number, locale: string): string {
+    const rounded = Math.round(points);
+    if (rounded === 0) return "0";
+    const digits = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.abs(rounded));
+    return `${rounded < 0 ? "−" : "+"}${digits}`;
+}
+
+/** "CC +2,688 · 1st". The rank stays when the whole lobby has zero. */
+export function statLineText(
+    line: MvpStatLine,
+    locale: string,
+    t: (key: string) => string,
+    ordinal: (place: number) => string,
+): string {
+    return `${t(METRIC_LABEL[line.metric])} ${statValueText(line, locale, ordinal)}`;
+}
+
+/** "+2,688 · 1st": the value half of a stat line. */
+export function statValueText(line: MvpStatLine, locale: string, ordinal: (place: number) => string): string {
+    return `${pointsText(line.points, locale)} · ${ordinal(line.rank)}`;
+}
+
+/** Lines in the order the backend sends them (`MvpMetric` order). */
+export function statLines(grade: MvpPlayerGrade): MvpStatLine[] {
+    return grade.stats;
 }
 
 export function gradeBySlot(grade: MvpMatchGrade | null): Map<number, MvpPlayerGrade> {

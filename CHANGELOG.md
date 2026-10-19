@@ -38,11 +38,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 #### Match grades
 
-- Deadlock+ grades your recent matches in the background, against a weekly sample of real matches.
+- Deadlock+ grades your recent matches in the background.
 - Each graded player gets a score from 0 to 100, a letter from S+ to F, and a place in the match.
-- Grades compare each player with others on the same hero, adjusted for the lobby's rank and the match length.
+- Grades add up points for what each player did, such as damage, assists, objectives, healing and CC.
+- Each player's points are compared with the rest of the lobby.
 - Each match in Match History shows your grade and place under the result.
-- The match detail shows every graded player's grade; hover one for a breakdown of each stat.
+- The match detail shows every graded player's grade; hover one for each stat's points and its rank in the lobby.
+- Players who left early get no grade.
 - Matches where someone left early are marked, since every grade in them is skewed.
 - Settings > Storage lists the match grades, with a clear action.
 

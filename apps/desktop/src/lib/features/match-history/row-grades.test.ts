@@ -13,12 +13,15 @@ function player(accountId: number, place: number): MvpPlayerGrade {
         s10: 900 - place * 10,
         letter: "A",
         place,
-        percentiles: [50, 50, 50, 50, 50, 50, null, null],
+        team: 0,
+        totalPoints: 0,
+        farmBonus: 0,
+        stats: [],
     };
 }
 
 function grade(matchId: number, players = [player(1, 1), player(ME, 2)]): MvpMatchGrade {
-    return { matchId, builtAt: 0, leaver: false, pathsChecked: true, players };
+    return { matchId, leaver: false, pathsChecked: true, provisional: false, players };
 }
 
 function setup(stored: MvpMatchGrade[] = []) {

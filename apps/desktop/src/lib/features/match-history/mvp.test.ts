@@ -1,7 +1,20 @@
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+import type { MvpMetric } from "@deadlock-plus/ipc-types/MvpMetric";
 import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
 import { describe, expect, it, vi } from "vitest";
-import { gradeBySlot, gradeTone, ordinalCategory, scoreText, statLines, watchMatchGrade, type GradeDeps } from "./mvp";
+import {
+    gradeBySlot,
+    gradeTone,
+    METRIC_LABEL,
+    ordinalCategory,
+    pointsText,
+    scoreText,
+    statLineText,
+    statValueText,
+    statLines,
+    watchMatchGrade,
+    type GradeDeps,
+} from "./mvp";
 
 const player = (over: Partial<MvpPlayerGrade> = {}): MvpPlayerGrade => ({
     accountId: 1,
@@ -10,15 +23,21 @@ const player = (over: Partial<MvpPlayerGrade> = {}): MvpPlayerGrade => ({
     s10: 724,
     letter: "A-",
     place: 2,
-    percentiles: [80, 30, 60, 75, 90, 40, null, 55],
+    totalPoints: 9000,
+    farmBonus: 0,
+    team: 1,
+    stats: [
+        { metric: "cc", points: 2688, rank: 1 },
+        { metric: "deaths", points: -1234, rank: 12 },
+    ],
     ...over,
 });
 
 const grade = (matchId: number, over: Partial<MvpMatchGrade> = {}): MvpMatchGrade => ({
     matchId,
-    builtAt: 0,
     leaver: false,
     pathsChecked: true,
+    provisional: false,
     players: [player()],
     ...over,
 });
@@ -73,25 +92,78 @@ describe("scoreText", () => {
     });
 });
 
-describe("statLines", () => {
-    it("lists the graded stats in order and skips the ones skipped for the hero", () => {
-        expect(statLines(player()).map((l) => l.key)).toEqual([
-            "kills",
-            "deaths",
-            "assists",
-            "souls",
-            "playerDamage",
-            "objectiveDamage",
-            "support",
-        ]);
+const ALL_METRICS: MvpMetric[] = [
+    "early_damage",
+    "late_damage",
+    "early_assists",
+    "late_assists",
+    "prebase_objective",
+    "base_objective",
+    "damage_absorbed",
+    "ally_healing",
+    "heal_prevented",
+    "barriers",
+    "cs",
+    "kills",
+    "deaths",
+    "cc",
+];
+
+describe("METRIC_LABEL", () => {
+    it("has a key for every metric", () => {
+        expect(Object.keys(METRIC_LABEL).sort()).toEqual([...ALL_METRICS].sort());
+        for (const m of ALL_METRICS) expect(METRIC_LABEL[m]).toBe(`match_history.detail.grade.metric.${m}`);
+    });
+});
+
+describe("pointsText", () => {
+    it("signs positive points and groups digits by locale", () => {
+        expect(pointsText(2688, "en")).toBe("+2,688");
+        expect(pointsText(2688, "de")).toBe("+2.688");
     });
 
-    it("turns deaths around so a higher share is always better", () => {
-        const lines = statLines(player({ percentiles: [80.4, 30, null, null, null, null, null, null] }));
-        expect(lines).toEqual([
-            { key: "kills", better: 80 },
-            { key: "deaths", better: 70 },
-        ]);
+    it("uses a real minus for negative points", () => {
+        expect(pointsText(-1234, "en")).toBe("−1,234");
+    });
+
+    it("shows zero without a sign", () => {
+        expect(pointsText(0, "en")).toBe("0");
+        expect(pointsText(-0.4, "en")).toBe("0");
+    });
+});
+
+describe("statLineText", () => {
+    const tr = (key: string) => key;
+    const ordinal = (place: number) => `#${place}`;
+
+    it("joins label, signed points and the lobby rank", () => {
+        expect(statLineText({ metric: "cc", points: 2688, rank: 1 }, "en", tr, ordinal)).toBe(
+            "match_history.detail.grade.metric.cc +2,688 · #1",
+        );
+    });
+
+    it("shows negative points and keeps the rank at zero", () => {
+        expect(statLineText({ metric: "deaths", points: -1234, rank: 12 }, "en", tr, ordinal)).toBe(
+            "match_history.detail.grade.metric.deaths −1,234 · #12",
+        );
+        expect(statLineText({ metric: "ally_healing", points: 0, rank: 1 }, "en", tr, ordinal)).toBe(
+            "match_history.detail.grade.metric.ally_healing 0 · #1",
+        );
+    });
+});
+
+describe("statValueText", () => {
+    it("joins signed points and the rank without the label", () => {
+        expect(statValueText({ metric: "cc", points: 278, rank: 11 }, "en", (n) => `#${n}`)).toBe("+278 · #11");
+        expect(statValueText({ metric: "deaths", points: 0, rank: 1 }, "en", (n) => `#${n}`)).toBe("0 · #1");
+    });
+});
+
+describe("statLines", () => {
+    it("returns the player's lines in the order the backend sent them", () => {
+        expect(statLines(player()).map((l) => l.metric)).toEqual(["cc", "deaths"]);
+        const reordered = player({ stats: [{ metric: "kills", points: 5, rank: 3 }, ...player().stats] });
+        expect(statLines(reordered).map((l) => l.metric)).toEqual(["kills", "cc", "deaths"]);
     });
 });
 

@@ -239,9 +239,9 @@ test.describe("a match", () => {
         await expect(scoreboard.getByRole("button", { name: /early/i })).toHaveCount(0);
 
         await grades.first().hover();
-        await expect(page.locator("[data-tooltip-content]")).toContainText(
-            "Better than this share of players on the same hero",
-        );
+        const tooltip = page.locator("[data-tooltip-content]");
+        await expect(tooltip).toContainText(/Last hits [+−]?[\d,]+ · \d+(st|nd|rd|th)/);
+        await expect(tooltip).toContainText("Team farm bonus");
     });
 
     test("a leaver match and a game-captured match flag their grades", async ({ page }) => {

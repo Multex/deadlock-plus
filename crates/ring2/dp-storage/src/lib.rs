@@ -22,7 +22,7 @@ pub const MATCH_PING_DIR: &str = "match-ping";
 const MATCH_PING_EXT: &str = "dpmp";
 const MATCH_PING_INDEX: &str = "index.json";
 
-/// The MVP model and its per-match grades; clearing it only costs a regrade on the next background run.
+/// The per-match MVP grades; clearing it only costs a regrade on the next background run.
 const MVP_DIR: &str = "mvp";
 const MVP_GRADES_DIR: &str = "grades";
 
@@ -475,7 +475,6 @@ mod tests {
         write(&appdata.join(MATCHES_DIR).join("100.json"), 40);
         write(&appdata.join(MATCHES_DIR).join("200.json"), 60);
         write(&appdata.join(postgame::POSTGAME_DIR).join("300.json"), 70);
-        write(&appdata.join(MVP_DIR).join("model.json"), 30);
         write(&appdata.join(MVP_DIR).join(MVP_GRADES_DIR).join("5.json"), 20);
         write(&appdata.join(MVP_DIR).join(MVP_GRADES_DIR).join("6.json"), 10);
         write(&appdata.join(MATCH_PING_DIR).join("m1-1.dpmp"), 16);
@@ -561,7 +560,7 @@ mod tests {
         assert_eq!(entry_size(EntryId::MatchCache, &roots), 100);
         assert_eq!(entry_size(EntryId::PostgameDetail, &roots), 70);
         assert_eq!(entry_size(EntryId::MatchPing, &roots), 44);
-        assert_eq!(entry_size(EntryId::MvpGrades, &roots), 60);
+        assert_eq!(entry_size(EntryId::MvpGrades, &roots), 30);
         assert_eq!(entry_size(EntryId::SharedMatches, &roots), 17);
         assert_eq!(entry_size(EntryId::OtherAppFiles, &roots), 29);
         assert_eq!(entry_size(EntryId::Logs, &roots), 55);
@@ -731,11 +730,11 @@ mod tests {
     }
 
     #[test]
-    fn clearing_the_mvp_entry_removes_the_model_and_grades_but_keeps_the_folder() {
+    fn clearing_the_mvp_entry_removes_the_grades_but_keeps_the_folder() {
         let (base, roots) = fixture("mvp-clear");
         let report = clear(EntryId::MvpGrades, &roots).unwrap();
         let dir = base.join("appdata").join(MVP_DIR);
-        assert_eq!((report.freed_bytes, report.removed), (60, 2));
+        assert_eq!((report.freed_bytes, report.removed), (30, 1));
         assert!(dir.is_dir());
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 0);
         assert!(base.join("appdata").join(postgame::POSTGAME_DIR).join("300.json").is_file());

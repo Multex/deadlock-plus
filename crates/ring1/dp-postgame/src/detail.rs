@@ -42,6 +42,8 @@ mod tests {
 
     const FIXTURE: &str = include_str!("../../../../packages/match/src/fixtures/api-ranked.json");
 
+    const LOBBY: &str = include_str!("../../dp-mvp/fixtures/lobby-119006587.json");
+
     const GOLDEN_LEAVER: &str = include_str!("../../../../packages/match/src/fixtures/golden/leaver-118343128.json");
 
     /// The keys `parseApiDetail` reads, per object level. Arrays are walked element by element.
@@ -69,6 +71,7 @@ mod tests {
             "mvp_rank",
             "abandon_match_time_s",
             "player_match_outcome",
+            "stats_type_stat",
         ],
         children: &[
             (
@@ -106,8 +109,21 @@ mod tests {
                         "boss_damage",
                         "teammate_healing",
                         "teammate_barriering",
+                        "player_damage_taken",
+                        "damage_mitigated",
+                        "damage_absorbed",
+                        "heal_prevented",
+                        "creep_kills",
+                        "gold_lane_creep",
+                        "gold_lane_creep_orbs",
+                        "gold_neutral_creep",
+                        "gold_neutral_creep_orbs",
+                        "gold_treasure",
                     ],
-                    children: &[],
+                    children: &[(
+                        "gold_sources",
+                        Read { leaves: &["source", "gold", "gold_orbs", "kills", "damage"], children: &[] },
+                    )],
                 },
             ),
             ("ability_stats", Read { leaves: &["ability_id", "ability_value"], children: &[] }),
@@ -217,6 +233,7 @@ mod tests {
                     same_leaf(&format!("{path}[{i}]"), a, b);
                 }
             }
+            (Value::Null, Value::Array(b)) => assert!(b.is_empty(), "{path}: absent in the API, {got} here"),
             _ => assert_eq!(want, got, "{path}"),
         }
     }
@@ -288,6 +305,18 @@ mod tests {
         assert!(players.len() >= 2 && !players[0]["stats"].as_array().unwrap().is_empty());
         same_shape("match_info", &fixture["match_info"], &got["match_info"], &MATCH_INFO);
         assert_eq!(got["banned_hero_ids"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn the_lobby_grading_keys_survive_with_their_paths() {
+        let fixture: Value = serde_json::from_str(LOBBY).unwrap();
+        let got = detail_json(&from_api(&fixture));
+
+        let info = &fixture["match_info"];
+        let last = info["players"][0]["stats"].as_array().unwrap().last().unwrap();
+        assert!(last["gold_sources"].as_array().is_some_and(|g| !g.is_empty()));
+        assert!(info["match_paths"]["paths"][0]["x_pos"].as_array().is_some_and(|x| !x.is_empty()));
+        same_shape("match_info", info, &got["match_info"], &MATCH_INFO);
     }
 
     #[test]

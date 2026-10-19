@@ -1,22 +1,38 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use dp_mvp::{MatchGrade, ModelCache, MODEL_VERSION};
+use dp_mvp::{LobbyGrade, LobbyTotals, LOBBY_TOTALS_VERSION};
 use serde::{Deserialize, Serialize};
 
-/// Folder under the app data directory: `model.json` and one `grades/<match id>.json` per checked match.
+/// Folder under the app data directory: one `grades/<match id>.json` per checked match.
 pub const MVP_DIR: &str = "mvp";
 const MODEL_FILE: &str = "model.json";
 const GRADES_DIR: &str = "grades";
 
-/// What a check of one match left behind. Kept for good: a later model refresh never re-grades it.
+/// Fetch runs that may fail for one match before its grade is dropped and it is no longer fetched.
+pub const MAX_FAILED_RUNS: u32 = 3;
+
+/// What a check of one match left behind. The totals are kept so a CC-list or points change re-grades locally.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StoredGrade {
+pub struct GradeRecord {
     pub match_id: u64,
     /// Graded from the game-captured detail; replaced once the API has the match.
     pub provisional: bool,
-    /// `None`: the match is not gradable (mode, outcome, length or player count).
-    pub grade: Option<MatchGrade>,
+    pub totals_version: u32,
+    pub grade_version: String,
+    /// `None`: the match is not gradable, or the record gave up. Stored so it is not fetched again.
+    pub totals: Option<LobbyTotals>,
+    pub grade: Option<LobbyGrade>,
+    pub failed_runs: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Freshness {
+    Fresh,
+    /// Totals are current; grade them again locally.
+    Regrade,
+    Refetch,
+    Missing,
 }
 
 /// One file per match, so each write is small and atomic however many matches are stored.
@@ -29,33 +45,40 @@ impl Store {
         Self { dir: dir.into() }
     }
 
-    /// A cache from an older model version is treated as missing: its tables do not fit the current math.
-    pub fn load_model(&self) -> Option<ModelCache> {
-        let bytes = std::fs::read(self.model_path()).ok()?;
-        match serde_json::from_slice::<ModelCache>(&bytes) {
-            Ok(model) => usable(&model).then_some(model),
-            Err(e) => {
-                log::warn!("match grade model is unreadable and will be rebuilt: {e}");
-                None
-            }
-        }
-    }
-
-    /// Replaces the model whole or not at all.
-    pub fn save_model(&self, model: &ModelCache) -> io::Result<()> {
-        std::fs::create_dir_all(&self.dir)?;
-        dp_atomic::write_atomic(&self.model_path(), &serde_json::to_vec(model).map_err(io::Error::other)?)
-    }
-
-    pub fn grade(&self, match_id: u64) -> Option<StoredGrade> {
+    /// A file in the older grade shape fails to parse and reads as missing.
+    pub fn record(&self, match_id: u64) -> Option<GradeRecord> {
         let bytes = std::fs::read(self.grade_path(match_id)).ok()?;
         serde_json::from_slice(&bytes).ok()
     }
 
-    pub fn save_grade(&self, stored: &StoredGrade) -> io::Result<()> {
+    pub fn save_record(&self, record: &GradeRecord) -> io::Result<()> {
         std::fs::create_dir_all(grades_dir(&self.dir))?;
-        let bytes = serde_json::to_vec(stored).map_err(io::Error::other)?;
-        dp_atomic::write_atomic(&self.grade_path(stored.match_id), &bytes)
+        let bytes = serde_json::to_vec(record).map_err(io::Error::other)?;
+        dp_atomic::write_atomic(&self.grade_path(record.match_id), &bytes)
+    }
+
+    /// Match ids that have a grade file, parsable or not.
+    pub fn stored_ids(&self) -> Vec<u64> {
+        let Ok(entries) = std::fs::read_dir(grades_dir(&self.dir)) else { return Vec::new() };
+        let mut ids: Vec<u64> = entries
+            .filter_map(|e| {
+                let path = e.ok()?.path();
+                if path.extension()? != "json" {
+                    return None;
+                }
+                path.file_stem()?.to_str()?.parse().ok()
+            })
+            .collect();
+        ids.sort_unstable();
+        ids
+    }
+
+    /// Deletes the pre-lobby-grading model cache; grades stay.
+    pub fn remove_legacy_model(&self) -> io::Result<()> {
+        match std::fs::remove_file(self.model_path()) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
+            _ => Ok(()),
+        }
     }
 
     fn model_path(&self) -> PathBuf {
@@ -71,13 +94,41 @@ fn grades_dir(dir: &Path) -> PathBuf {
     dir.join(GRADES_DIR)
 }
 
-/// Whether the background run still has work on a match: never checked, or only graded from the game's copy.
-pub fn needs_grade(stored: Option<&StoredGrade>) -> bool {
-    stored.is_none_or(|s| s.provisional)
+pub fn gave_up(record: Option<&GradeRecord>) -> bool {
+    record.is_some_and(|r| r.failed_runs >= MAX_FAILED_RUNS)
 }
 
-pub fn usable(model: &ModelCache) -> bool {
-    model.model_version == MODEL_VERSION
+pub fn freshness(record: Option<&GradeRecord>, grade_version: &str) -> Freshness {
+    let Some(r) = record else { return Freshness::Missing };
+    if gave_up(record) {
+        return Freshness::Fresh;
+    }
+    if r.totals_version != LOBBY_TOTALS_VERSION || r.provisional {
+        return Freshness::Refetch;
+    }
+    if r.totals.is_some() && r.grade_version != grade_version {
+        return Freshness::Regrade;
+    }
+    Freshness::Fresh
+}
+
+/// Counts one failed fetch run. The third drops the grade, so the match is no longer fetched.
+pub fn record_failure(previous: Option<GradeRecord>, match_id: u64) -> GradeRecord {
+    let mut r = previous.unwrap_or(GradeRecord {
+        match_id,
+        provisional: true,
+        totals_version: 0,
+        grade_version: String::new(),
+        totals: None,
+        grade: None,
+        failed_runs: 0,
+    });
+    r.failed_runs += 1;
+    if r.failed_runs >= MAX_FAILED_RUNS {
+        r.totals = None;
+        r.grade = None;
+    }
+    r
 }
 
 #[cfg(test)]
@@ -90,79 +141,98 @@ pub(crate) mod tests {
         dir
     }
 
-    const SAMPLE: &str = include_str!("../../../../../../crates/ring1/dp-mvp/fixtures/sample.json");
+    const LOBBY_META: &str = include_str!("../../../../../../crates/ring1/dp-mvp/fixtures/lobby-118862917.json");
 
-    /// A real model built from the pure crate's recorded sample.
-    pub(crate) fn model() -> ModelCache {
-        let sample = dp_mvp::Sample::from_matches(&dp_mvp::parse_matches(SAMPLE).unwrap()).unwrap();
-        dp_mvp::build(&sample, 1_792_196_050, sample.rows.len()).expect("fixture sample builds")
+    fn lobby_totals() -> LobbyTotals {
+        dp_mvp::lobby_totals(&dp_mvp::LobbyMetadata::from_slice(LOBBY_META.as_bytes()).unwrap().match_info)
     }
 
-    fn grade(match_id: u64) -> MatchGrade {
-        MatchGrade {
+    fn record(match_id: u64) -> GradeRecord {
+        let totals = lobby_totals();
+        let grade = dp_mvp::grade_lobby(&totals, &|name: &str| name.contains("stun"));
+        GradeRecord {
             match_id,
-            model_version: MODEL_VERSION,
-            built_at: 1,
-            leaver: false,
-            paths_checked: true,
-            players: Vec::new(),
+            provisional: false,
+            totals_version: LOBBY_TOTALS_VERSION,
+            grade_version: "1:abc".into(),
+            totals: Some(totals),
+            grade: Some(grade),
+            failed_runs: 0,
         }
     }
 
     #[test]
-    fn the_model_round_trips_and_a_missing_one_is_none() {
-        let store = Store::new(temp_dir("model"));
-        assert_eq!(store.load_model(), None);
-        let saved = model();
-        store.save_model(&saved).unwrap();
-        // JSON floats may move in the last bit, so compare the shape and the values within a tolerance.
-        let loaded = store.load_model().expect("saved model loads");
-        assert_eq!((loaded.built_at, &loaded.sample), (saved.built_at, &saved.sample));
-        assert_eq!(loaded.heroes.keys().collect::<Vec<_>>(), saved.heroes.keys().collect::<Vec<_>>());
-        assert_eq!(loaded.calibration.len(), saved.calibration.len());
-        assert!(loaded.calibration.iter().zip(&saved.calibration).all(|(a, b)| (a - b).abs() < 1e-9));
-    }
-
-    #[test]
-    fn a_corrupt_or_older_model_is_none() {
-        let dir = temp_dir("old-model");
-        let store = Store::new(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("model.json"), "{ not json").unwrap();
-        assert_eq!(store.load_model(), None);
-        let old = ModelCache { model_version: MODEL_VERSION + 1, ..model() };
-        store.save_model(&old).unwrap();
-        assert_eq!(store.load_model(), None);
-    }
-
-    #[test]
-    fn grades_land_one_file_per_match_and_read_back() {
-        let dir = temp_dir("grades");
-        let store = Store::new(&dir);
-        assert_eq!(store.grade(7), None);
-        let graded = StoredGrade { match_id: 7, provisional: false, grade: Some(grade(7)) };
-        let skipped = StoredGrade { match_id: 8, provisional: false, grade: None };
-        store.save_grade(&graded).unwrap();
-        store.save_grade(&skipped).unwrap();
-        assert_eq!(store.grade(7), Some(graded));
-        assert_eq!(store.grade(8), Some(skipped));
-        assert!(dir.join("grades").join("7.json").is_file());
-        assert_eq!(std::fs::read_dir(dir.join("grades")).unwrap().count(), 2);
-    }
-
-    #[test]
-    fn a_corrupt_grade_file_reads_as_unchecked() {
-        let dir = temp_dir("bad-grade");
+    fn a_missing_or_old_shape_file_is_missing() {
+        assert_eq!(freshness(None, "1:abc"), Freshness::Missing);
+        let dir = temp_dir("old-shape");
         std::fs::create_dir_all(dir.join("grades")).unwrap();
-        std::fs::write(dir.join("grades").join("9.json"), "[").unwrap();
-        assert_eq!(Store::new(&dir).grade(9), None);
+        std::fs::write(dir.join("grades").join("5.json"), r#"{"match_id":5,"provisional":false,"grade":null}"#)
+            .unwrap();
+        let store = Store::new(&dir);
+        assert_eq!(store.record(5), None);
+        assert_eq!(freshness(store.record(5).as_ref(), "1:abc"), Freshness::Missing);
     }
 
     #[test]
-    fn only_unchecked_or_provisional_matches_need_a_grade() {
-        assert!(needs_grade(None));
-        assert!(needs_grade(Some(&StoredGrade { match_id: 1, provisional: true, grade: Some(grade(1)) })));
-        assert!(!needs_grade(Some(&StoredGrade { match_id: 1, provisional: false, grade: Some(grade(1)) })));
-        assert!(!needs_grade(Some(&StoredGrade { match_id: 1, provisional: false, grade: None })));
+    fn a_totals_version_mismatch_or_provisional_record_is_refetched() {
+        let stale = GradeRecord { totals_version: LOBBY_TOTALS_VERSION + 1, ..record(1) };
+        assert_eq!(freshness(Some(&stale), "1:abc"), Freshness::Refetch);
+        let provisional = GradeRecord { provisional: true, ..record(1) };
+        assert_eq!(freshness(Some(&provisional), "1:abc"), Freshness::Refetch);
+    }
+
+    #[test]
+    fn a_grade_version_mismatch_regrades_and_a_match_is_fresh() {
+        assert_eq!(freshness(Some(&record(1)), "1:abc"), Freshness::Fresh);
+        assert_eq!(freshness(Some(&record(1)), "2:abc"), Freshness::Regrade);
+        assert_eq!(freshness(Some(&record(1)), "1:def"), Freshness::Regrade);
+    }
+
+    #[test]
+    fn an_ineligible_record_is_fresh_whatever_the_grade_version() {
+        let ineligible = GradeRecord { totals: None, grade: None, ..record(1) };
+        assert_eq!(freshness(Some(&ineligible), "9:zzz"), Freshness::Fresh);
+    }
+
+    #[test]
+    fn three_failed_runs_give_up_and_drop_the_grade() {
+        let mut r = record_failure(None, 3);
+        assert_eq!((r.failed_runs, gave_up(Some(&r))), (1, false));
+        assert_eq!(freshness(Some(&r), "1:abc"), Freshness::Refetch);
+        r = record_failure(Some(r), 3);
+        r = record_failure(Some(r), 3);
+        assert!(gave_up(Some(&r)));
+        assert_eq!(freshness(Some(&r), "1:abc"), Freshness::Fresh);
+        let held = record_failure(Some(GradeRecord { failed_runs: 2, ..record(4) }), 4);
+        assert!(gave_up(Some(&held)) && held.grade.is_none() && held.totals.is_none());
+        assert!(!gave_up(None));
+    }
+
+    #[test]
+    fn records_round_trip_and_ids_are_listed() {
+        let dir = temp_dir("records");
+        let store = Store::new(&dir);
+        assert!(store.stored_ids().is_empty());
+        let full = record(7);
+        let none = GradeRecord { totals: None, grade: None, ..record(8) };
+        store.save_record(&full).unwrap();
+        store.save_record(&none).unwrap();
+        assert_eq!(store.record(7).as_ref().map(|r| (r.match_id, r.totals.is_some())), Some((7, true)));
+        assert_eq!(store.record(8), Some(none));
+        assert_eq!(store.stored_ids(), vec![7, 8]);
+    }
+
+    #[test]
+    fn removing_the_legacy_model_keeps_the_grades() {
+        let dir = temp_dir("legacy");
+        let store = Store::new(&dir);
+        store.remove_legacy_model().unwrap();
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("model.json"), "{}").unwrap();
+        assert!(dir.join("model.json").exists());
+        store.save_record(&record(7)).unwrap();
+        store.remove_legacy_model().unwrap();
+        assert!(!dir.join("model.json").exists());
+        assert!(dir.join("grades").join("7.json").is_file());
     }
 }

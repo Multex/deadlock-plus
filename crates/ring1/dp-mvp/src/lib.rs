@@ -1,30 +1,27 @@
-mod grade;
-mod math;
-mod model;
-mod sample;
-mod skew;
-mod stat;
+mod lobby;
+mod metadata;
+mod points;
+mod totals;
 
-pub use grade::{letter_for, match_eligible, LastStats, MatchGrade, MatchInput, MvpLetter, PlayerGrade, PlayerInput};
-pub use model::{build, AllHeroes, HeroModel, ModelCache, MIN_HERO_ROWS, MODEL_VERSION};
-pub use sample::{parse_matches, Sample, SampleMatch, SamplePlayer, SampleRow, SampleSummary};
-pub use skew::{lobby_badge_from_ranks, TierSkew};
-pub use stat::{Percentiles, Stat, Totals, STATS, STAT_COUNT};
+pub use lobby::{
+    competition_ranks, grade_lobby, letter_for_score, lobby_z, score_from_z, LobbyGrade, LobbyLetter, LobbyPlayerGrade,
+    LobbyScore, CURVE_CENTRE, CURVE_SLOPE,
+};
+pub use metadata::{
+    LobbyDamageDealer, LobbyDamageMatrix, LobbyDamageSource, LobbyDamageTarget, LobbyDeath, LobbyGoldSource,
+    LobbyMatchInfo, LobbyMetadata, LobbyObjective, LobbyPath, LobbyPaths, LobbyPlayer, LobbySample, LobbySourceDetails,
+};
+pub use points::{
+    cc_points, death_points, farm_bonus, farm_dependency, kill_points, metric_points, Metrics, LOBBY_GRADE_VERSION,
+    METRIC_COUNT,
+};
+pub use totals::{
+    cc_damage_by_source, early_cut_s, farm_souls, kill_time_share_by_slot, left_early, lobby_eligible, lobby_totals,
+    prebase_cut_s_by_team, LobbyTotals, PlayerTotals, LOBBY_TOTALS_VERSION,
+};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum MvpError {
-    #[error("sample body is not the expected JSON: {0}")]
+    #[error("metadata body is not the expected JSON: {0}")]
     Json(String),
-    #[error("GraphQL error: {0}")]
-    GraphQl(String),
-    #[error("match {match_id} has a null stat")]
-    NullStat { match_id: u64 },
-    #[error("sample has {rows} usable rows, need {need}")]
-    TooFewRows { rows: usize, need: usize },
-    #[error("sample win rate {0} is outside 0.48-0.52")]
-    WinRate(f64),
-    #[error("{0:?} does not track winning across all heroes")]
-    Correlation(Stat),
-    #[error("weights for {0} are not finite or do not sum to 1")]
-    Weights(String),
 }

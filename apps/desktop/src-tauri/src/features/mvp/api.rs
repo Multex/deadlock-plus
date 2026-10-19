@@ -1,10 +1,9 @@
 use std::time::Duration;
 
-use reqwest::header::{CONTENT_TYPE, DATE, RETRY_AFTER};
+use reqwest::header::RETRY_AFTER;
 use reqwest::{Client, RequestBuilder};
 
 use super::retry::{classify, transport_failure, Reply};
-use super::sample::{http_date, GRAPHQL_URL};
 
 const API: &str = "https://api.deadlock-api.com/v1";
 const TIMEOUT: Duration = Duration::from_secs(30);
@@ -13,14 +12,12 @@ pub struct Response {
     pub reply: Reply,
     /// The body whatever the status: a rate-limited match history still carries the stored rows.
     pub body: Vec<u8>,
-    /// The server's clock, from the `Date` header.
-    pub date: Option<i64>,
 }
 
 async fn send(request: RequestBuilder, attempt: u32) -> Response {
     let failed = |e: reqwest::Error| {
         log::debug!("deadlock api request failed: {e}");
-        Response { reply: transport_failure(attempt), body: Vec::new(), date: None }
+        Response { reply: transport_failure(attempt), body: Vec::new() }
     };
     let res = match request.timeout(TIMEOUT).send().await {
         Ok(res) => res,
@@ -28,15 +25,11 @@ async fn send(request: RequestBuilder, attempt: u32) -> Response {
     };
     let status = res.status().as_u16();
     let header = |name| res.headers().get(name).and_then(|v| v.to_str().ok()).map(str::to_owned);
-    let (retry_after, date) = (header(RETRY_AFTER), header(DATE).as_deref().and_then(http_date));
+    let retry_after = header(RETRY_AFTER);
     match res.bytes().await {
-        Ok(body) => Response { reply: classify(status, retry_after.as_deref(), attempt), body: body.to_vec(), date },
+        Ok(body) => Response { reply: classify(status, retry_after.as_deref(), attempt), body: body.to_vec() },
         Err(e) => failed(e),
     }
-}
-
-pub async fn graphql(client: &Client, body: String, attempt: u32) -> Response {
-    send(client.post(GRAPHQL_URL).header(CONTENT_TYPE, "application/json").body(body), attempt).await
 }
 
 pub async fn match_history(client: &Client, account_id: u32) -> Response {
@@ -48,11 +41,6 @@ pub async fn metadata(client: &Client, match_id: u64) -> Response {
     send(client.get(format!("{API}/matches/{match_id}/metadata?disable_steam=true")), 0).await
 }
 
-pub async fn ranks(client: &Client, account_ids: &[u32]) -> Response {
-    let ids: Vec<String> = account_ids.iter().map(u32::to_string).collect();
-    send(client.get(format!("{API}/players/rank?account_ids={}", ids.join(","))), 0).await
-}
-
 #[cfg(test)]
 mod tests {
     use std::io::{BufRead, BufReader, Write};
@@ -60,8 +48,8 @@ mod tests {
 
     use crate::http::Http;
 
-    /// The sample is 13 MB a page as plain JSON and the API ignores gzip for it, so the app's shared client must
-    /// ask for brotli.
+    /// A match's metadata is up to about 1 MB decoded and the API ignores gzip for it, so the app's shared client
+    /// must ask for brotli.
     #[test]
     fn the_shared_client_asks_for_brotli() {
         let accept = accept_encoding(Http::default().0);

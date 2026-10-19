@@ -35,29 +35,6 @@ pub fn transport_failure(attempt: u32) -> Reply {
     Reply::Wait(backoff(attempt))
 }
 
-/// A sample page is retried in place this many times in all before the refresh gives up.
-const PAGE_ATTEMPTS: u32 = 3;
-/// A longer wait ends the refresh instead of holding it open; the next try comes after the wait.
-const MAX_INLINE_WAIT: Duration = Duration::from_secs(120);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Step {
-    Done,
-    Retry(Duration),
-    /// Give up the refresh; `Some` is how long the API asked to be left alone.
-    Stop(Option<Duration>),
-}
-
-/// What a sample refresh does after one page request.
-pub fn page_step(reply: Reply, attempt: u32) -> Step {
-    match reply {
-        Reply::Ok => Step::Done,
-        Reply::Wait(wait) if wait <= MAX_INLINE_WAIT && attempt + 1 < PAGE_ATTEMPTS => Step::Retry(wait),
-        Reply::Wait(wait) => Step::Stop(Some(wait)),
-        Reply::NotYet | Reply::Fail => Step::Stop(None),
-    }
-}
-
 pub fn backoff(attempt: u32) -> Duration {
     BASE_BACKOFF.saturating_mul(1u32.checked_shl(attempt).unwrap_or(u32::MAX)).min(MAX_BACKOFF)
 }
@@ -102,21 +79,6 @@ mod tests {
         assert_eq!(backoff(6), S(1800));
         assert_eq!(backoff(60), S(1800));
         assert_eq!(transport_failure(1), Reply::Wait(S(60)));
-    }
-
-    #[test]
-    fn a_page_retries_short_waits_in_place_twice() {
-        assert_eq!(page_step(Reply::Ok, 0), Step::Done);
-        assert_eq!(page_step(Reply::Wait(S(30)), 0), Step::Retry(S(30)));
-        assert_eq!(page_step(Reply::Wait(S(120)), 1), Step::Retry(S(120)));
-        assert_eq!(page_step(Reply::Wait(S(30)), 2), Step::Stop(Some(S(30))));
-    }
-
-    #[test]
-    fn a_long_wait_or_a_hard_failure_ends_the_refresh() {
-        assert_eq!(page_step(Reply::Wait(S(121)), 0), Step::Stop(Some(S(121))));
-        assert_eq!(page_step(Reply::Fail, 0), Step::Stop(None));
-        assert_eq!(page_step(Reply::NotYet, 0), Step::Stop(None));
     }
 
     #[test]

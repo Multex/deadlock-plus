@@ -1,22 +1,31 @@
 <script lang="ts">
     import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
-    import { formatNumber, i18n, t } from "$lib/core/i18n.svelte";
-    import GradeBar from "$lib/features/live/components/grade-bar.svelte";
+    import { i18n, t } from "$lib/core/i18n.svelte";
     import { LETTER_COLOR } from "$lib/features/live/grade-strip";
-    import { gradeTone, ordinalCategory, scoreText, STAT_LABEL, statLines } from "../../mvp";
+    import {
+        gradeTone,
+        METRIC_LABEL,
+        ordinalCategory,
+        pointsText,
+        scoreText,
+        statLines,
+        statValueText,
+    } from "../../mvp";
 
     let { grade }: { grade: MvpPlayerGrade } = $props();
 
     const color = $derived(LETTER_COLOR[gradeTone(grade.letter)]);
     const score = $derived(scoreText(grade.s10, i18n.locale));
-    const place = $derived(
-        t(`match_history.detail.grade.place_ordinal_${ordinalCategory(grade.place, i18n.locale)}`, {
-            place: grade.place,
-        }),
+    const ordinal = (n: number) =>
+        t(`match_history.detail.grade.place_ordinal_${ordinalCategory(n, i18n.locale)}`, { place: n });
+    const place = $derived(ordinal(grade.place));
+    const lines = $derived(
+        statLines(grade).map((line) => ({
+            metric: line.metric,
+            value: statValueText(line, i18n.locale, ordinal),
+        })),
     );
-    const lines = $derived(statLines(grade));
-    const percent = (n: number) => formatNumber(n / 100, { style: "percent" });
 </script>
 
 <Tooltip.Root delayDuration={100}>
@@ -43,14 +52,16 @@
                 <span class="font-semibold tabular-nums">{score}</span>
                 <span class="letter" style:color>{grade.letter}</span>
             </div>
-            <p class="text-[11px] text-muted-foreground">{t("match_history.detail.grade.better_than")}</p>
-            {#each lines as line (line.key)}
+            {#each lines as line (line.metric)}
                 <div class="line">
-                    <span class="truncate">{t(STAT_LABEL[line.key])}</span>
-                    <GradeBar score={line.better} mini />
-                    <span class="text-right tabular-nums">{percent(line.better)}</span>
+                    <span>{t(METRIC_LABEL[line.metric])}</span>
+                    <span class="tabular-nums">{line.value}</span>
                 </div>
             {/each}
+            <div class="line">
+                <span>{t("match_history.detail.grade.farm_bonus")}</span>
+                <span class="tabular-nums">{pointsText(grade.farmBonus, i18n.locale)}</span>
+            </div>
         </div>
     </Tooltip.Content>
 </Tooltip.Root>
@@ -96,9 +107,8 @@
         color: var(--muted-foreground);
     }
     .line {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 4.5rem 2.5rem;
-        align-items: center;
+        display: flex;
+        justify-content: space-between;
         gap: 8px;
         font-size: 11px;
     }

@@ -2,13 +2,9 @@
 import type { MvpPlayerGrade } from "./MvpPlayerGrade";
 
 /**
- * One match's stored grade, for the match list and detail.
+ * One match's grade, for the match list and detail.
  */
 export type MvpMatchGrade = { matchId: number, 
-/**
- * Unix seconds the weights were built at.
- */
-builtAt: number, 
 /**
  * Someone abandoned or left early; every score in the match is skewed.
  */
@@ -16,8 +12,8 @@ leaver: boolean,
 /**
  * False for a grade from the game-captured detail: early leavers without an abandon flag were not caught.
  */
-pathsChecked: boolean, 
+pathsChecked: boolean, provisional: boolean, 
 /**
- * Graded players by place, ties by slot. Players who left or could not be graded are absent.
+ * Graded players by lobby order. Players who left are absent.
  */
 players: Array<MvpPlayerGrade>, };

@@ -1639,7 +1639,7 @@
             "mvp_grades": {
                 "label": "Match grades",
                 "clear_name": "match grades",
-                "description": "The weekly grading sample and the grades Deadlock+ worked out for your matches.",
+                "description": "The grades Deadlock+ worked out for your matches.",
                 "consequence": "Grades are worked out again on the next background run. Nothing else is lost.",
                 "units_one": "{count} match",
                 "units_other": "{count} matches"
@@ -2341,7 +2341,7 @@
             },
             "match_grades": {
                 "title": "Updating match grades",
-                "description": "Downloads a weekly sample of recent matches and grades your matches against it."
+                "description": "Downloads your recent matches and grades every player in them."
             }
         },
         "policy": {
@@ -2709,12 +2709,24 @@
                 "place_ordinal_few": "{place}rd",
                 "place_ordinal_other": "{place}th",
                 "aria": "Grade {letter}, score {score}, {place}",
-                "better_than": "Better than this share of players on the same hero",
                 "leaver": "Someone left this match early, so every grade in it is skewed.",
                 "unchecked": "Early leavers not checked: this grade comes from the game's own match data.",
-                "stat": {
-                    "self_healing": "Self healing/min",
-                    "support": "Ally healing/min"
+                "farm_bonus": "Team farm bonus",
+                "metric": {
+                    "early_damage": "Early damage",
+                    "late_damage": "Late damage",
+                    "early_assists": "Early assists",
+                    "late_assists": "Late assists",
+                    "prebase_objective": "Objective damage",
+                    "base_objective": "Base damage",
+                    "damage_absorbed": "Damage absorbed",
+                    "ally_healing": "Ally healing",
+                    "heal_prevented": "Heal prevented",
+                    "barriers": "Barriers",
+                    "cs": "Last hits",
+                    "kills": "Kills",
+                    "deaths": "Deaths",
+                    "cc": "CC"
                 }
             },
             "missing": {
