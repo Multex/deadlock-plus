@@ -39,6 +39,16 @@ pub fn read(dir: &Path, id: &str, now: SystemTime) -> io::Result<Option<Vec<u8>>
     Ok(Some(bytes))
 }
 
+/// Returns the cached bytes without touching the entry's TTL clock, for background reads that must not keep an
+/// entry alive.
+pub fn peek(dir: &Path, id: &str) -> io::Result<Option<Vec<u8>>> {
+    match fs::read(entry_path(dir, id)?) {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
 /// Writes one entry atomically, then purges expired ones. Other entries are never rewritten.
 pub fn write(dir: &Path, id: &str, bytes: &[u8], now: SystemTime) -> io::Result<()> {
     let path = entry_path(dir, id)?;
@@ -150,6 +160,16 @@ mod tests {
         assert_eq!(opened_at(&dir, "9"), at(1_000 + ttl - 10));
         assert_eq!(purge(&dir, at(1_000 + ttl + 100)), 0);
         assert_eq!(purge(&dir, at(1_000 + ttl - 10 + ttl)), 1);
+    }
+
+    #[test]
+    fn peeking_returns_the_bytes_and_leaves_the_clock_alone() {
+        let dir = temp_dir("peek");
+        write(&dir, "11", b"body", at(1_000)).unwrap();
+        assert_eq!(peek(&dir, "11").unwrap(), Some(b"body".to_vec()));
+        assert_eq!(opened_at(&dir, "11"), at(1_000));
+        assert_eq!(peek(&dir, "12").unwrap(), None);
+        assert_eq!(peek(&dir, "../x").unwrap_err().kind(), io::ErrorKind::InvalidInput);
     }
 
     #[test]
