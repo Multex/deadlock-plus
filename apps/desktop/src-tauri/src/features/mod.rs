@@ -30,6 +30,7 @@ pub mod postgame;
 pub mod presence;
 pub mod ptrace;
 pub mod reveal;
+pub mod salts;
 pub mod server_picker;
 pub mod steam_account;
 pub mod stop;

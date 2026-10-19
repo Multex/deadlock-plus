@@ -89,6 +89,21 @@ pub fn interpret_history_response(
     }
 }
 
+/// One row of a player's own match history as Steam sends it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HistoryMatch {
+    pub match_id: u64,
+    /// Unix seconds. `None` when Steam left it out or sent 0.
+    pub start_time: Option<u32>,
+}
+
+pub fn history_matches(resp: &CMsgClientToGcGetMatchHistoryResponse) -> Vec<HistoryMatch> {
+    resp.matches
+        .iter()
+        .filter_map(|m| Some(HistoryMatch { match_id: m.match_id?, start_time: m.start_time.filter(|&t| t != 0) }))
+        .collect()
+}
+
 /// The cursor walks backwards in time. A missing, zero or non-decreasing cursor means there are
 /// no older pages.
 pub fn next_history_cursor(prev: Option<u64>, next: Option<u64>) -> Option<u64> {
@@ -456,43 +471,44 @@ impl GcSession {
     /// The match ids on the newest page of `account_id`'s history. One request.
     pub async fn fetch_recent_matches(&self, account_id: u32) -> Result<Vec<u64>, GcError> {
         let page = self.history_page(account_id, None).await?;
-        Ok(page.matches.iter().filter_map(|m| m.match_id).collect())
+        Ok(history_matches(&page).into_iter().map(|m| m.match_id).collect())
     }
 
-    /// Every match id in `account_id`'s history and whether it is complete. When Steam
-    /// rate-limits part way, the pages fetched so far come back with `false`. `on_page` gets the
-    /// number of matches on each page as it arrives.
-    pub async fn fetch_match_history(
+    /// Every match in `account_id`'s history and whether it is complete. When Steam rate-limits
+    /// part way, the pages fetched so far come back with `false`. `on_page` gets the number of
+    /// matches on each page as it arrives.
+    pub async fn fetch_history_matches(
         &self,
         account_id: u32,
         mut on_page: impl FnMut(usize),
-    ) -> Result<(Vec<u64>, bool), GcError> {
-        let mut match_ids = Vec::new();
+    ) -> Result<(Vec<HistoryMatch>, bool), GcError> {
+        let mut matches = Vec::new();
         let mut cursor = None;
         loop {
             let resp = match self.history_page(account_id, cursor).await {
                 Ok(resp) => resp,
-                Err(GcError::GcRateLimited) if !match_ids.is_empty() => return Ok((match_ids, false)),
+                Err(GcError::GcRateLimited) if !matches.is_empty() => return Ok((matches, false)),
                 Err(e) => return Err(e),
             };
             if resp.matches.is_empty() {
                 break;
             }
-            let before = match_ids.len();
-            match_ids.extend(resp.matches.iter().filter_map(|m| m.match_id));
-            on_page(match_ids.len() - before);
+            let before = matches.len();
+            matches.extend(history_matches(&resp));
+            on_page(matches.len() - before);
             match next_history_cursor(cursor, resp.continue_cursor) {
                 Some(next) => cursor = Some(next),
                 None => break,
             }
         }
-        Ok((match_ids, true))
+        Ok((matches, true))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use steam_vent::proto::steammessages_clientserver_friends::cmsg_client_friends_list::Friend;
+    use valveprotos::deadlock::c_msg_client_to_gc_get_match_history_response::Match as HistoryRowProto;
 
     use super::*;
 
@@ -574,6 +590,32 @@ mod tests {
         );
         let empty = CMsgClientToGcGetMatchHistoryResponse::default();
         assert!(matches!(interpret_history_response(empty), Err(GcError::GcUnavailable(_))));
+    }
+
+    #[test]
+    fn history_rows_carry_their_start_times() {
+        let row = |match_id: Option<u64>, start_time: Option<u32>| HistoryRowProto {
+            match_id,
+            start_time,
+            ..Default::default()
+        };
+        let resp = CMsgClientToGcGetMatchHistoryResponse {
+            matches: vec![
+                row(Some(30), Some(5_000)),
+                row(None, Some(4_000)),
+                row(Some(20), Some(0)),
+                row(Some(10), None),
+            ],
+            ..history(HistoryResult::KEResultSuccess)
+        };
+        assert_eq!(
+            history_matches(&resp),
+            [
+                HistoryMatch { match_id: 30, start_time: Some(5_000) },
+                HistoryMatch { match_id: 20, start_time: None },
+                HistoryMatch { match_id: 10, start_time: None },
+            ]
+        );
     }
 
     #[test]

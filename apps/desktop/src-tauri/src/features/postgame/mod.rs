@@ -119,6 +119,7 @@ impl PostgameService {
         };
         log::info!("post-game match {} captured", stored.game.match_id);
         app.state::<crate::features::network::recording::MatchPingService>().bind_match_id(stored.game.match_id);
+        app.state::<crate::features::salts::memory::MemorySaltsService>().notify();
         if let Err(e) = app.emit(EVENT, &stored) {
             log::warn!("could not emit {EVENT}: {e}");
         }

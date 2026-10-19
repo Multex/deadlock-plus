@@ -657,6 +657,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bzip2-rs"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beeb59e7e4c811ab37cc73680c798c7a5da77fc9989c62b09138e31ee740f735"
+dependencies = [
+ "crc32fast",
+ "tinyvec",
+]
+
+[[package]]
 name = "cairo-rs"
 version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1161,7 +1171,7 @@ dependencies = [
 [[package]]
 name = "deadlock-core"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "serde",
 ]
@@ -1169,7 +1179,7 @@ dependencies = [
 [[package]]
 name = "deadlock-data"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "deadlock-core",
  "png 0.18.1",
@@ -1181,7 +1191,7 @@ dependencies = [
 [[package]]
 name = "deadlock-events"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "deadlock-memory",
  "deadlock-reader",
@@ -1192,7 +1202,7 @@ dependencies = [
 [[package]]
 name = "deadlock-memory"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "libc",
  "memchr",
@@ -1274,7 +1284,7 @@ dependencies = [
 [[package]]
 name = "deadlock-reader"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "deadlock-core",
  "deadlock-memory",
@@ -1282,9 +1292,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "deadlock-replay"
+version = "0.1.0"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
+dependencies = [
+ "bzip2-rs",
+ "haste_core",
+ "prost 0.14.4",
+ "valveprotos",
+]
+
+[[package]]
 name = "deadlock-walker"
 version = "0.1.0"
-source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=142d9489e40225193089dbc831a57cf634e32c7c#142d9489e40225193089dbc831a57cf634e32c7c"
+source = "git+https://github.com/deadlock-plus/deadlock-rs?rev=9ccf05578e95fa3adcf52bffd8301af0b7ac9dba#9ccf05578e95fa3adcf52bffd8301af0b7ac9dba"
 dependencies = [
  "deadlock-memory",
  "memchr",
@@ -1790,6 +1811,7 @@ version = "0.12.0"
 dependencies = [
  "deadlock-events",
  "deadlock-reader",
+ "deadlock-replay",
  "log",
  "serde",
  "serde_json",
@@ -1941,6 +1963,39 @@ name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
+
+[[package]]
+name = "dungers"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+dependencies = [
+ "dungers_bitbuf",
+ "dungers_charsor",
+ "dungers_varint",
+]
+
+[[package]]
+name = "dungers_bitbuf"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+dependencies = [
+ "bytemuck",
+ "dungers_varint",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "dungers_charsor"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+
+[[package]]
+name = "dungers_varint"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+dependencies = [
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "dyn-clone"
@@ -2680,6 +2735,33 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "haste_core"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+dependencies = [
+ "anyhow",
+ "dungers",
+ "dyn-clone",
+ "hashbrown 0.17.1",
+ "haste_vartype",
+ "nohash",
+ "prost 0.14.4",
+ "snap",
+ "sync-unsafe-cell",
+ "thiserror 2.0.21",
+ "valveprotos",
+]
+
+[[package]]
+name = "haste_vartype"
+version = "0.0.0"
+source = "git+https://github.com/deadlock-api/deadlock-api?rev=19a34aa9cedabd3374cb4af5c2d714520784ce1f#19a34aa9cedabd3374cb4af5c2d714520784ce1f"
+dependencies = [
+ "dungers",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "heck"
@@ -3752,6 +3834,12 @@ dependencies = [
  "cfg_aliases",
  "libc",
 ]
+
+[[package]]
+name = "nohash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0f889fb66f7acdf83442c35775764b51fed3c606ab9cee51500dbde2cf528ca"
 
 [[package]]
 name = "nom"
@@ -6128,6 +6216,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
 
 [[package]]
+name = "snap"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886"
+
+[[package]]
 name = "socket2"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6461,6 +6555,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "sync-unsafe-cell"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8deaecba5382c095cb432cd1e21068dadb144208f057b13720e76bf89749beb4"
 
 [[package]]
 name = "sync_wrapper"

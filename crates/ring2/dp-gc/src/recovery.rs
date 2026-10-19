@@ -17,6 +17,19 @@ pub enum Attempt {
     Failed,
 }
 
+/// What a queued match is fetched for. Every details match comes before any replays match.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Step {
+    Details,
+    Replays,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StepCount {
+    pub done: u32,
+    pub total: u32,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RecoveryProgress {
     pub done: u32,
@@ -78,13 +91,23 @@ fn count(n: usize) -> u32 {
 /// limit. Account use outlives a run so a new run cannot spend the same day twice.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RecoveryQueue {
+    /// The details step.
     queued: VecDeque<u64>,
+    #[serde(default)]
+    replays: VecDeque<u64>,
     finished: BTreeSet<u64>,
+    /// The details step's total.
     total: u32,
+    #[serde(default)]
+    replay_total: u32,
     delivered: u32,
     failed: u32,
     paused: bool,
     accounts: BTreeMap<u32, AccountState>,
+}
+
+fn take(queue: &mut VecDeque<u64>, id: u64) -> bool {
+    queue.iter().position(|&q| q == id).and_then(|at| queue.remove(at)).is_some()
 }
 
 impl RecoveryQueue {
@@ -99,9 +122,8 @@ impl RecoveryQueue {
             if front.contains(&id) {
                 continue;
             }
-            if let Some(at) = self.queued.iter().position(|&q| q == id) {
-                self.queued.remove(at);
-            } else {
+            if !take(&mut self.queued, id) {
+                self.take_replay(id);
                 self.total += 1;
             }
             front.push(id);
@@ -111,15 +133,54 @@ impl RecoveryQueue {
         }
     }
 
-    /// Adds `ids` last, skipping any already queued or finished this run.
+    /// Adds `ids` last among the details matches, skipping any already queued for details or
+    /// finished this run.
     pub fn enqueue_back(&mut self, ids: &[u64]) {
         for &id in ids {
             if self.finished.contains(&id) || self.queued.contains(&id) {
                 continue;
             }
+            self.take_replay(id);
             self.queued.push_back(id);
             self.total += 1;
         }
+    }
+
+    /// Adds `ids` for their replays, after every details match. An id queued for details or
+    /// finished this run is skipped: a details fetch brings the replay with it.
+    pub fn enqueue_replays(&mut self, ids: &[u64]) {
+        for &id in ids {
+            if self.finished.contains(&id) || self.contains(id) {
+                continue;
+            }
+            self.replays.push_back(id);
+            self.replay_total += 1;
+        }
+    }
+
+    fn take_replay(&mut self, id: u64) {
+        if take(&mut self.replays, id) {
+            self.replay_total -= 1;
+        }
+    }
+
+    /// The step a queued match waits in.
+    pub fn step_of(&self, match_id: u64) -> Option<Step> {
+        if self.queued.contains(&match_id) {
+            Some(Step::Details)
+        } else if self.replays.contains(&match_id) {
+            Some(Step::Replays)
+        } else {
+            None
+        }
+    }
+
+    pub fn step_count(&self, step: Step) -> StepCount {
+        let (queue, total) = match step {
+            Step::Details => (&self.queued, self.total),
+            Step::Replays => (&self.replays, self.replay_total),
+        };
+        StepCount { done: total.saturating_sub(count(queue.len())), total }
     }
 
     /// The next match to fetch, or None while paused or done.
@@ -127,20 +188,21 @@ impl RecoveryQueue {
         if self.paused {
             return None;
         }
-        self.queued.front().copied()
+        self.ids().next()
     }
 
     pub fn contains(&self, match_id: u64) -> bool {
-        self.queued.contains(&match_id)
+        self.step_of(match_id).is_some()
     }
 
+    /// Every queued match in fetch order.
     pub fn ids(&self) -> impl Iterator<Item = u64> + '_ {
-        self.queued.iter().copied()
+        self.queued.iter().chain(&self.replays).copied()
     }
 
     pub fn record(&mut self, match_id: u64, account_id: u32, attempt: Attempt, now: i64) {
-        if let Some(at) = self.queued.iter().position(|&q| q == match_id) {
-            self.queued.remove(at);
+        if !take(&mut self.queued, match_id) {
+            take(&mut self.replays, match_id);
         }
         self.finished.insert(match_id);
         let account = self.accounts.entry(account_id).or_default();
@@ -203,10 +265,11 @@ impl RecoveryQueue {
     }
 
     pub fn progress(&self) -> RecoveryProgress {
-        let queued = count(self.queued.len());
+        let queued = count(self.queued.len() + self.replays.len());
+        let total = self.total + self.replay_total;
         RecoveryProgress {
-            done: self.total.saturating_sub(queued),
-            total: self.total,
+            done: total.saturating_sub(queued),
+            total,
             delivered: self.delivered,
             failed: self.failed,
             queued,
@@ -232,7 +295,7 @@ impl RecoveryQueue {
     }
 
     pub fn is_done(&self) -> bool {
-        self.queued.is_empty()
+        self.queued.is_empty() && self.replays.is_empty()
     }
 
     fn clear_run(&mut self) {
@@ -471,6 +534,110 @@ mod tests {
         q.set_quota(A, SaltQuota::default());
         assert_eq!(q.account_use(NOW)[0].delivered_today, 1);
         assert_eq!(q.account_use(NOW)[0].used_today, 0);
+    }
+
+    fn counts(q: &RecoveryQueue) -> (StepCount, StepCount) {
+        (q.step_count(Step::Details), q.step_count(Step::Replays))
+    }
+
+    #[test]
+    fn replay_ids_queue_after_every_details_id() {
+        let mut q = queue(&[1]);
+        q.enqueue_replays(&[9, 8]);
+        q.enqueue_back(&[2]);
+        q.enqueue_front(&[0]);
+        assert_eq!(q.ids().collect::<Vec<_>>(), [0, 1, 2, 9, 8]);
+        assert_eq!(q.step_of(2), Some(Step::Details));
+        assert_eq!(q.step_of(9), Some(Step::Replays));
+        assert_eq!(q.step_of(7), None);
+        for id in [0, 1, 2] {
+            q.record(id, A, Attempt::Delivered, NOW);
+        }
+        assert_eq!(q.next_id(), Some(9));
+        assert_eq!(q.progress().total, 5);
+    }
+
+    #[test]
+    fn a_replay_id_already_queued_for_details_is_not_added_twice() {
+        let mut q = queue(&[1, 2]);
+        q.enqueue_replays(&[2, 3, 3]);
+        assert_eq!(q.ids().collect::<Vec<_>>(), [1, 2, 3]);
+        assert_eq!(q.step_of(2), Some(Step::Details));
+        assert_eq!(counts(&q), (StepCount { done: 0, total: 2 }, StepCount { done: 0, total: 1 }));
+        assert_eq!(q.progress().total, 3);
+    }
+
+    #[test]
+    fn a_details_entry_takes_over_a_queued_replay() {
+        let mut q = queue(&[1]);
+        q.enqueue_replays(&[5, 6]);
+        q.enqueue_front(&[5]);
+        q.enqueue_back(&[6]);
+        assert_eq!(q.ids().collect::<Vec<_>>(), [5, 1, 6]);
+        assert_eq!(q.step_of(5), Some(Step::Details));
+        assert_eq!(q.step_of(6), Some(Step::Details));
+        assert_eq!(counts(&q), (StepCount { done: 0, total: 3 }, StepCount::default()));
+        assert_eq!(q.progress().total, 3);
+    }
+
+    #[test]
+    fn replays_skip_ids_finished_this_run() {
+        let mut q = queue(&[1, 2]);
+        q.record(1, A, Attempt::Delivered, NOW);
+        q.enqueue_replays(&[1, 4]);
+        assert_eq!(q.ids().collect::<Vec<_>>(), [2, 4]);
+        q.record(4, A, Attempt::Delivered, NOW);
+        q.enqueue_replays(&[4]);
+        assert_eq!(q.ids().collect::<Vec<_>>(), [2]);
+    }
+
+    #[test]
+    fn step_counts_track_done_and_total_per_step() {
+        let mut q = queue(&[1, 2]);
+        q.enqueue_replays(&[3, 4, 5]);
+        q.record(1, A, Attempt::Delivered, NOW);
+        q.record(2, A, Attempt::Failed, NOW);
+        q.record(3, A, Attempt::NotSent, NOW);
+        assert_eq!(counts(&q), (StepCount { done: 2, total: 2 }, StepCount { done: 1, total: 3 }));
+        let p = q.progress();
+        assert_eq!((p.done, p.total, p.delivered, p.failed, p.queued), (3, 5, 1, 2, 2));
+        assert_eq!(p.eta_secs, 2 * RECOVERY_SECS_PER_MATCH);
+    }
+
+    #[test]
+    fn a_paused_queue_holds_its_replays_too() {
+        let mut q = RecoveryQueue::default();
+        q.enqueue_replays(&[7]);
+        q.pause();
+        assert_eq!(q.next_id(), None);
+        q.resume();
+        assert_eq!(q.next_id(), Some(7));
+        assert!(!q.is_done());
+        assert!(q.contains(7));
+    }
+
+    #[test]
+    fn steps_survive_a_round_trip_and_cancel_clears_them() {
+        let mut q = queue(&[1]);
+        q.enqueue_replays(&[2, 3]);
+        q.record(2, A, Attempt::Delivered, NOW);
+        let mut back = round_trip(&q);
+        assert_eq!(back.ids().collect::<Vec<_>>(), [1, 3]);
+        assert_eq!(back.step_of(3), Some(Step::Replays));
+        assert_eq!(counts(&back), counts(&q));
+        back.cancel();
+        assert!(back.is_done());
+        assert_eq!(counts(&back), (StepCount::default(), StepCount::default()));
+    }
+
+    #[test]
+    fn a_queue_saved_before_steps_loads_as_details() {
+        let saved = r#"{"queued":[4,5],"finished":[3],"total":3,"delivered":1,"failed":0,"paused":true,"accounts":{}}"#;
+        let q: RecoveryQueue = serde_json::from_str(saved).unwrap();
+        assert_eq!(q.ids().collect::<Vec<_>>(), [4, 5]);
+        assert_eq!(q.step_of(4), Some(Step::Details));
+        assert_eq!(counts(&q), (StepCount { done: 1, total: 3 }, StepCount::default()));
+        assert!(q.is_paused());
     }
 
     #[test]

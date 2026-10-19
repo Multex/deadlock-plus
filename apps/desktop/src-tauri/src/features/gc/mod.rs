@@ -4,12 +4,13 @@ mod error;
 mod fake_api;
 mod own;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
-use serde::de::DeserializeOwned;
+use serde::de::{DeserializeOwned, IgnoredAny};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tokio::time::Instant;
@@ -23,10 +24,14 @@ use dp_gc::ledger::{FriendCooldowns, SaltAttempts};
 use dp_gc::pass::{fetch_loop, history_loop, with_release, AccountState, Host, GC_BACKOFF_SECS};
 use dp_gc::picks::fresh_newest_first;
 use dp_gc::quota::SaltQuota;
+use dp_ingest::record::{SaltRecord, Source};
 use dp_ingest::salts::Salts;
 use dp_kv::KvStore;
+use dp_storage::matches;
 use dp_sync::LockExt;
 
+use super::salts::details::LOCAL_MARK;
+use super::salts::record::SaltRecordService;
 use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
@@ -37,6 +42,7 @@ use own::{KvRunStore, Run, RunEnd, RunStore};
 
 const SALTS_URL: &str = "https://api.deadlock-api.com/v1/matches/salts";
 const STORE: &str = "gc-state";
+const CACHE_DIR: &str = "matches";
 const ACCOUNTS_KEY: &str = "accounts";
 const ATTEMPTS_KEY: &str = "salt_attempts";
 const COOLDOWNS_KEY: &str = "friend_cooldowns";
@@ -99,6 +105,10 @@ pub struct GcService {
 }
 
 impl GcService {
+    pub fn enabled(&self) -> bool {
+        self.stop.lock_or_recover().is_some()
+    }
+
     pub fn set_enabled(&self, enabled: bool, app: AppHandle, http: reqwest::Client) {
         let mut slot = self.stop.lock_or_recover();
         match toggle(enabled, slot.is_some()) {
@@ -144,8 +154,14 @@ impl GcService {
     }
 
     /// Needs no background toggle: asking for a run is consent for that run.
-    pub fn recover_matches(&self, app: &AppHandle, ids: &[u64], with_history: bool) -> Result<(), AppError> {
-        self.recovery(app).start(ids, with_history)
+    pub fn recover_matches(
+        &self,
+        app: &AppHandle,
+        ids: &[u64],
+        replay_ids: &[u64],
+        with_history: bool,
+    ) -> Result<(), AppError> {
+        self.recovery(app).start(ids, replay_ids, with_history)
     }
 
     pub fn pause_recovery(&self, app: &AppHandle) {
@@ -266,12 +282,12 @@ impl<D: Driver> Recovery<D> {
         Arc::new(Self { run, driver, stop: StopSignal::default(), timer: Mutex::new(None) })
     }
 
-    fn start(self: &Arc<Self>, ids: &[u64], with_history: bool) -> Result<(), AppError> {
+    fn start(self: &Arc<Self>, ids: &[u64], replay_ids: &[u64], with_history: bool) -> Result<(), AppError> {
         let under_way = self.status().is_some_and(|s| s.running || s.paused);
         if !under_way && self.driver.game_running() {
             return Err(GcError::GameRunning.into());
         }
-        if self.run.start(ids, with_history, &mut self.driver.store()) {
+        if self.run.start(ids, replay_ids, with_history, &mut self.driver.store()) {
             self.drive();
         }
         Ok(())
@@ -413,11 +429,11 @@ impl Ledger {
 }
 
 /// Posts one match's salts, retrying network failures. A 400 is final.
-async fn post_salts(http: &reqwest::Client, salts: RecoveredSalts, halted: &impl Fn() -> bool) -> bool {
-    let body = [to_ingest_salts(salts)];
+async fn post_salts(http: &reqwest::Client, url: &str, salts: Salts, halted: &impl Fn() -> bool) -> bool {
+    let body = [salts];
     let mut last = String::new();
     for attempt in 1..=MAX_POST_ATTEMPTS {
-        match http.post(SALTS_URL).timeout(HTTP_TIMEOUT).json(&body).send().await {
+        match http.post(url).timeout(HTTP_TIMEOUT).json(&body).send().await {
             Ok(r) if r.status().is_success() => {
                 log::debug!("gc: submitted match {}", salts.match_id);
                 return true;
@@ -438,15 +454,46 @@ async fn post_salts(http: &reqwest::Client, salts: RecoveredSalts, halted: &impl
     false
 }
 
-/// Paces GC requests, stops when told to or when Deadlock starts, and posts what comes back.
-struct GcHost<'a, H: Fn() -> bool, D: FnMut()> {
-    http: &'a reqwest::Client,
-    last_request: &'a mut Option<Instant>,
-    halted: H,
+/// Where salts the GC handed over go next.
+trait Sink {
+    /// Asked as each post is about to go out, so a toggle switched off mid-pass stops it.
+    fn may_post(&self) -> bool;
+    /// After the Deadlock API took `salts`.
+    fn posted(&mut self, salts: Salts);
+}
+
+struct AppSink<'a, C: Fn() -> bool, D: FnMut()> {
+    app: &'a AppHandle,
+    consented: C,
     on_delivered: D,
 }
 
-impl<H: Fn() -> bool, D: FnMut()> Host for GcHost<'_, H, D> {
+impl<C: Fn() -> bool, D: FnMut()> Sink for AppSink<'_, C, D> {
+    fn may_post(&self) -> bool {
+        (self.consented)()
+    }
+
+    fn posted(&mut self, salts: Salts) {
+        (self.on_delivered)();
+        let Ok(app_data) = self.app.path().app_data_dir() else { return };
+        mark_login(&self.app.state::<SaltRecordService>(), &app_data, &salts, now_secs());
+    }
+}
+
+fn mark_login(record: &SaltRecordService, app_data: &Path, salts: &Salts, now: i64) -> bool {
+    record.update(app_data, |r| r.mark(salts, Source::Login, now))
+}
+
+/// Paces GC requests, stops when told to or when Deadlock starts, and posts what comes back.
+struct GcHost<'a, H: Fn() -> bool, S: Sink> {
+    http: &'a reqwest::Client,
+    salts_url: &'a str,
+    last_request: &'a mut Option<Instant>,
+    halted: H,
+    sink: S,
+}
+
+impl<H: Fn() -> bool, S: Sink> Host for GcHost<'_, H, S> {
     async fn before_request(&mut self) -> bool {
         if let Some(prev) = *self.last_request {
             tokio::time::sleep_until(prev + MIN_REQUEST_INTERVAL).await;
@@ -457,9 +504,14 @@ impl<H: Fn() -> bool, D: FnMut()> Host for GcHost<'_, H, D> {
     }
 
     async fn deliver(&mut self, salts: RecoveredSalts) -> bool {
-        let ok = post_salts(self.http, salts, &self.halted).await;
+        if !self.sink.may_post() {
+            log::info!("gc: not sending match {}: sharing was switched off", salts.match_id);
+            return false;
+        }
+        let salts = to_ingest_salts(salts);
+        let ok = post_salts(self.http, self.salts_url, salts, &self.halted).await;
         if ok {
-            (self.on_delivered)();
+            self.sink.posted(salts);
         }
         ok
     }
@@ -651,9 +703,14 @@ async fn pass(stop: &AtomicBool, shared: &Shared, app: &AppHandle, http: &reqwes
         }
         let mut host = GcHost {
             http,
+            salts_url: SALTS_URL,
             last_request: &mut last_request,
             halted,
-            on_delivered: || shared.status.lock_or_recover().delivered += 1,
+            sink: AppSink {
+                app,
+                consented: || !stop.load(Ordering::Relaxed),
+                on_delivered: || shared.status.lock_or_recover().delivered += 1,
+            },
         };
         let flow = match run_account(ctx, &mut ledger, &shared.to_fetch, http, &mut host, &mut processed).await {
             Ok(flow) => {
@@ -691,7 +748,7 @@ fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Clie
 pub mod commands {
     use tauri::{AppHandle, State};
 
-    use super::{api, coverage, DetailCoverage, GcService, GcStatus};
+    use super::{api, coverage, local_coverage, DetailCoverage, GcService, GcStatus, LocalCoverage};
     use crate::features::error::AppError;
     use crate::http::Http;
 
@@ -706,21 +763,32 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub async fn match_detail_coverage(match_ids: Vec<u64>, http: State<'_, Http>) -> Result<DetailCoverage, AppError> {
+    pub async fn match_detail_coverage(
+        match_ids: Vec<u64>,
+        app: AppHandle,
+        http: State<'_, Http>,
+    ) -> Result<DetailCoverage, AppError> {
         let http = http.0.clone();
+        let ids = match_ids.clone();
+        let local = tauri::async_runtime::spawn_blocking(move || local_coverage(&app, &ids));
         let (known, replays) =
             futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
-        Ok(coverage(&match_ids, &known?, replays?))
+        let local = local.await.unwrap_or_else(|e| {
+            log::warn!("gc: could not read what Deadlock+ holds of these matches: {e}");
+            LocalCoverage::default()
+        });
+        Ok(coverage(&match_ids, &known?, &replays?, &local))
     }
 
     #[tauri::command]
     pub fn recover_matches(
         match_ids: Vec<u64>,
+        replay_ids: Vec<u64>,
         with_history: bool,
         app: AppHandle,
         gc: State<'_, GcService>,
     ) -> Result<(), AppError> {
-        gc.recover_matches(&app, &match_ids, with_history)
+        gc.recover_matches(&app, &match_ids, &replay_ids, with_history)
     }
 
     #[tauri::command]
@@ -739,9 +807,51 @@ pub mod commands {
     }
 }
 
-/// The `ids` the API has details for, in order, and the ones it has a replay for.
-fn coverage(ids: &[u64], known: &HashSet<u64>, with_replay: Vec<u64>) -> DetailCoverage {
-    DetailCoverage { with_details: ids.iter().copied().filter(|id| known.contains(id)).collect(), with_replay }
+/// What Deadlock+ itself holds of some matches: details it loaded from Valve, and salts it shared.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct LocalCoverage {
+    details: HashSet<u64>,
+    replay: HashSet<u64>,
+}
+
+/// Of `ids`, the ones the match cache at `dir` holds a copy of that Deadlock+ loaded itself.
+fn local_copies(dir: &Path, ids: &[u64], now: SystemTime) -> HashSet<u64> {
+    let marked = |id: u64| {
+        let Ok(Some(bytes)) = matches::read(dir, &id.to_string(), now) else { return false };
+        serde_json::from_slice::<HashMap<String, IgnoredAny>>(&bytes).is_ok_and(|top| top.contains_key(LOCAL_MARK))
+    };
+    ids.iter().copied().filter(|&id| marked(id)).collect()
+}
+
+/// Of `ids`, the ones the record holds a sent metadata salt or replay salt for.
+fn shared_salts(record: &SaltRecord, ids: &[u64]) -> LocalCoverage {
+    let ids: HashSet<u64> = ids.iter().copied().collect();
+    let mut shared = LocalCoverage::default();
+    for entry in record.recent(usize::MAX).into_iter().filter(|e| ids.contains(&e.match_id)) {
+        if entry.details_at.is_some() {
+            shared.details.insert(entry.match_id);
+        }
+        if entry.replay_at.is_some() {
+            shared.replay.insert(entry.match_id);
+        }
+    }
+    shared
+}
+
+fn local_coverage(app: &AppHandle, ids: &[u64]) -> LocalCoverage {
+    let Ok(app_data) = app.path().app_data_dir() else { return LocalCoverage::default() };
+    let mut local = app.state::<SaltRecordService>().read(&app_data, |record| shared_salts(record, ids));
+    local.details.extend(local_copies(&app_data.join(CACHE_DIR), ids, SystemTime::now()));
+    local
+}
+
+/// Of `ids`, in order, the ones with details in the API or held by Deadlock+, and the ones with a replay.
+fn coverage(ids: &[u64], known: &HashSet<u64>, with_replay: &[u64], local: &LocalCoverage) -> DetailCoverage {
+    let replays: HashSet<u64> = with_replay.iter().copied().collect();
+    DetailCoverage {
+        with_details: ids.iter().copied().filter(|id| known.contains(id) || local.details.contains(id)).collect(),
+        with_replay: ids.iter().copied().filter(|id| replays.contains(id) || local.replay.contains(id)).collect(),
+    }
 }
 
 #[cfg(test)]
@@ -852,6 +962,121 @@ Content-Length: 2
         assert_eq!(s.username, Some(7));
         assert_eq!((s.match_id, s.cluster_id, s.metadata_salt, s.replay_salt), (5, Some(404), Some(1), None));
         assert_eq!(serde_json::to_value(s).unwrap()["username"], "deadlockplus:7");
+    }
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("deadlock-plus-gc-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn recovered(match_id: u64) -> RecoveredSalts {
+        RecoveredSalts { match_id, cluster_id: Some(1), metadata_salt: Some(2), replay_salt: Some(3), account_id: 7 }
+    }
+
+    #[derive(Default)]
+    struct FakeSink {
+        refused: bool,
+        posted: Vec<Salts>,
+    }
+
+    impl Sink for FakeSink {
+        fn may_post(&self) -> bool {
+            !self.refused
+        }
+
+        fn posted(&mut self, salts: Salts) {
+            self.posted.push(salts);
+        }
+    }
+
+    fn deliver(api: &fake_api::FakeApi, sink: FakeSink) -> (bool, FakeSink) {
+        let http = reqwest::Client::new();
+        let url = format!("{}/v1/matches/salts", api.url);
+        let mut last_request = None;
+        let mut host = GcHost { http: &http, salts_url: &url, last_request: &mut last_request, halted: || false, sink };
+        let ok = block_on(host.deliver(recovered(5)));
+        (ok, host.sink)
+    }
+
+    #[test]
+    fn salts_the_api_took_are_handed_on() {
+        let api = fake_api::FakeApi::serve(vec![fake_api::Reply::json("{}")]);
+        let (ok, sink) = deliver(&api, FakeSink::default());
+        assert!(ok);
+        assert_eq!(sink.posted, [to_ingest_salts(recovered(5))]);
+        assert_eq!(api.requests()[0].route, "POST /v1/matches/salts");
+    }
+
+    #[test]
+    fn rejected_salts_are_not_handed_on() {
+        let api = fake_api::FakeApi::serve(vec![fake_api::Reply::status("400 Bad Request")]);
+        let (ok, sink) = deliver(&api, FakeSink::default());
+        assert!(!ok);
+        assert!(sink.posted.is_empty());
+    }
+
+    #[test]
+    fn nothing_is_posted_once_consent_is_gone() {
+        let api = fake_api::FakeApi::serve(vec![fake_api::Reply::json("{}")]);
+        let (ok, sink) = deliver(&api, FakeSink { refused: true, ..FakeSink::default() });
+        assert!(!ok);
+        assert!(sink.posted.is_empty());
+        assert!(api.requests().is_empty());
+    }
+
+    #[test]
+    fn delivered_salts_are_recorded_as_fetched_by_login() {
+        let dir = temp_dir("login");
+        let record = SaltRecordService::default();
+        let salts = to_ingest_salts(recovered(5));
+        assert!(mark_login(&record, &dir, &salts, 100));
+        let entries = record.read(&dir, |r| r.recent(usize::MAX));
+        assert_eq!(entries.len(), 1);
+        let entry = entries[0];
+        assert_eq!((entry.match_id, entry.source), (5, Source::Login));
+        assert_eq!((entry.details_at, entry.replay_at), (Some(100), Some(100)));
+        assert_eq!((entry.cluster_id, entry.metadata_salt, entry.replay_salt), (Some(1), Some(2), Some(3)));
+    }
+
+    #[test]
+    fn only_copies_deadlock_plus_loaded_itself_count_as_local() {
+        let dir = temp_dir("local");
+        let now = SystemTime::now();
+        let ours = format!(r#"{{"match_info":{{"match_id":1}},"{LOCAL_MARK}":"replay_cdn"}}"#);
+        matches::write(&dir, "1", ours.as_bytes(), now).unwrap();
+        matches::write(&dir, "2", br#"{"match_info":{"match_id":2}}"#, now).unwrap();
+        matches::write(&dir, "4", b"{not json", now).unwrap();
+        assert_eq!(local_copies(&dir, &[1, 2, 3, 4], now), HashSet::from([1]));
+        assert!(local_copies(&dir.join("missing"), &[1], now).is_empty());
+    }
+
+    #[test]
+    fn the_record_gives_the_details_and_replays_it_shared() {
+        let mut record = SaltRecord::default();
+        let salts = |match_id, replay_salt| Salts {
+            match_id,
+            cluster_id: Some(1),
+            metadata_salt: Some(2),
+            replay_salt,
+            username: None,
+        };
+        record.mark(&salts(1, None), Source::Steam, 10);
+        record.mark(&salts(2, Some(3)), Source::Login, 10);
+        record.mark(&salts(9, Some(3)), Source::Deadlock, 10);
+        record.hold(&Salts { metadata_salt: None, ..salts(3, Some(3)) }, 10);
+        assert_eq!(
+            shared_salts(&record, &[1, 2, 3, 4]),
+            LocalCoverage { details: HashSet::from([1, 2]), replay: HashSet::from([2]) }
+        );
+    }
+
+    #[test]
+    fn coverage_counts_a_local_copy_and_the_record() {
+        let local = LocalCoverage { details: HashSet::from([1, 4]), replay: HashSet::from([4]) };
+        let got = coverage(&[4, 3, 1, 2], &HashSet::from([2]), &[2], &local);
+        assert_eq!(got, DetailCoverage { with_details: vec![4, 1, 2], with_replay: vec![4, 2] });
     }
 
     mod recovery {
@@ -1044,7 +1269,7 @@ Content-Length: 2
         /// A run started with Deadlock closed that finds it open when the drive begins.
         fn waiting_for_the_game(r: &Arc<Recovery<FakeDriver>>) {
             r.driver.game_opens_on_drive.store(true, Ordering::SeqCst);
-            r.start(&[1, 2], false).unwrap();
+            r.start(&[1, 2], &[], false).unwrap();
             settle(r);
             assert_eq!(r.status().unwrap().waiting, Some(RecoveryWait::GameOpen));
         }
@@ -1089,7 +1314,7 @@ Content-Length: 2
         fn the_run_continues_when_the_daily_limit_reopens() {
             let r = recovery();
             spend_the_daily_limit(&r);
-            r.start(&[1, 2], false).unwrap();
+            r.start(&[1, 2], &[], false).unwrap();
             settle(&r);
             let until = T0 + FETCH_QUOTA_WINDOW_SECS;
             assert_eq!(*r.driver.sleeps.lock_or_recover(), [until]);
@@ -1102,7 +1327,7 @@ Content-Length: 2
         fn a_paused_run_never_continues_when_the_daily_limit_reopens() {
             let r = recovery();
             spend_the_daily_limit(&r);
-            r.start(&[1, 2], false).unwrap();
+            r.start(&[1, 2], &[], false).unwrap();
             let drive = r.driver.spawned.lock_or_recover().pop_front().unwrap();
             drive();
             r.pause();
@@ -1115,7 +1340,7 @@ Content-Length: 2
         fn starting_while_deadlock_runs_and_no_run_is_going_is_refused() {
             let r = recovery();
             r.driver.game.store(true, Ordering::SeqCst);
-            let err = r.start(&[1], false).unwrap_err();
+            let err = r.start(&[1], &[], false).unwrap_err();
             assert_eq!(err.code(), "gc.game_running");
             settle(&r);
             assert_eq!(r.driver.drives(), 0);
@@ -1126,7 +1351,7 @@ Content-Length: 2
         fn starting_while_deadlock_runs_adds_to_a_waiting_run() {
             let r = recovery();
             waiting_for_the_game(&r);
-            r.start(&[3], false).unwrap();
+            r.start(&[3], &[], false).unwrap();
             settle(&r);
             r.driver.game.store(false, Ordering::SeqCst);
             r.on_game_probe(Some(true), false);
@@ -1138,7 +1363,7 @@ Content-Length: 2
         #[test]
         fn a_run_starts_and_drives_without_the_background_worker() {
             let r = recovery();
-            r.start(&[4, 5], false).unwrap();
+            r.start(&[4, 5], &[], false).unwrap();
             settle(&r);
             assert_eq!(r.driver.delivered(), [4, 5]);
         }
@@ -1172,7 +1397,7 @@ Content-Length: 2
         fn after_a_run_the_daily_use_follows_the_ledger_and_keeps_the_runs_deliveries() {
             let r = recovery();
             *r.driver.saved.lock_or_recover() = vec![ACCOUNT, OTHER];
-            r.start(&[1, 2], false).unwrap();
+            r.start(&[1, 2], &[], false).unwrap();
             settle(&r);
             *r.driver.quota.lock_or_recover() = SaltQuota::from_hits(vec![T0; 5]);
             let s = r.status().unwrap();
@@ -1190,7 +1415,7 @@ Content-Length: 2
         fn an_account_no_longer_saved_drops_out() {
             let r = recovery();
             *r.driver.saved.lock_or_recover() = vec![ACCOUNT];
-            r.start(&[1], false).unwrap();
+            r.start(&[1], &[], false).unwrap();
             settle(&r);
             *r.driver.saved.lock_or_recover() = vec![OTHER];
             let ids: Vec<u32> = r.status().unwrap().accounts.iter().map(|a| a.account_id).collect();
@@ -1199,7 +1424,7 @@ Content-Length: 2
 
         #[test]
         fn coverage_keeps_the_asked_order() {
-            let got = coverage(&[3, 1, 2], &HashSet::from([2, 3]), vec![2]);
+            let got = coverage(&[3, 1, 2], &HashSet::from([2, 3]), &[2], &LocalCoverage::default());
             assert_eq!(got, DetailCoverage { with_details: vec![3, 2], with_replay: vec![2] });
         }
     }

@@ -7,15 +7,18 @@ use tauri::AppHandle;
 use ts_rs::TS;
 
 use dp_gc::auth::AuthContext;
-use dp_gc::client::{GcSession, RecoveredSalts};
+use dp_gc::client::{GcSession, HistoryMatch, RecoveredSalts};
 use dp_gc::error::GcError as SteamGcError;
 use dp_gc::ledger::SaltAttempts;
 use dp_gc::pass::{with_release, Host, Release, SaltFetcher};
 use dp_gc::quota::{SaltQuota, FETCH_QUOTA_LIMIT};
-use dp_gc::recovery::{AccountUse, Attempt, RecoveryQueue};
+use dp_gc::recovery::{AccountUse, Attempt, RecoveryQueue, Step};
 use dp_sync::LockExt;
 
-use super::{api, block_on, load, save, steam_accounts, GcHost, Shared, States, ACCOUNTS_KEY, ATTEMPTS_KEY};
+use super::{
+    api, block_on, load, local_coverage, save, steam_accounts, AppSink, GcHost, Shared, Sink, States, ACCOUNTS_KEY,
+    ATTEMPTS_KEY, SALTS_URL,
+};
 use crate::features::error::AppError;
 use crate::features::stop::StopSignal;
 
@@ -71,6 +74,33 @@ impl From<AccountUse> for AccountProgress {
     }
 }
 
+/// One kind of fetch a recovery run makes.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum RecoveryStep {
+    Details,
+    Replays,
+}
+
+impl From<Step> for RecoveryStep {
+    fn from(step: Step) -> Self {
+        match step {
+            Step::Details => Self::Details,
+            Step::Replays => Self::Replays,
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct StepProgress {
+    pub step: RecoveryStep,
+    pub done: u32,
+    pub total: u32,
+}
+
 /// A run that recovers missing match details.
 #[derive(Serialize, Clone, Default, Debug, TS)]
 #[ts(export)]
@@ -92,6 +122,8 @@ pub struct OwnRecovery {
     pub accounts: Vec<AccountProgress>,
     pub outcome: Option<OwnRecoveryOutcome>,
     pub error: Option<AppError>,
+    /// Each kind of fetch this run makes, in the order it runs them.
+    pub steps: Vec<StepProgress>,
 }
 
 /// How the last run ended, kept across restarts.
@@ -114,9 +146,23 @@ pub struct DetailCoverage {
     pub with_replay: Vec<u64>,
 }
 
-/// Matches in `history` deadlock-api has no metadata for and that are not given up on.
-fn missing_matches(history: &[u64], known: &HashSet<u64>, attempts: &SaltAttempts) -> Vec<u64> {
-    history.iter().copied().filter(|id| !known.contains(id) && !attempts.given_up(*id)).collect()
+/// Steam hands out a match's replay until this long after it started.
+const REPLAY_WINDOW_SECS: i64 = 21 * 24 * 60 * 60;
+
+/// Matches in `history` with no details anywhere and that are not given up on.
+fn missing_matches(history: &[u64], with_details: &HashSet<u64>, attempts: &SaltAttempts) -> Vec<u64> {
+    history.iter().copied().filter(|id| !with_details.contains(id) && !attempts.given_up(*id)).collect()
+}
+
+/// Matches in `history` Steam still has a replay for that have details but no replay anywhere.
+fn replay_gaps(history: &History, now: i64) -> Vec<u64> {
+    history
+        .matches
+        .iter()
+        .filter(|m| m.start_time.is_some_and(|start| i64::from(start) > now - REPLAY_WINDOW_SECS))
+        .map(|m| m.match_id)
+        .filter(|id| history.with_details.contains(id) && !history.with_replay.contains(id))
+        .collect()
 }
 
 /// A run as kept across restarts.
@@ -138,11 +184,20 @@ pub(super) trait RunStore {
     fn save_last_run(&mut self, last: LastRun);
 }
 
-/// One account's own match history and which of it deadlock-api already has.
+/// One account's own match history and which of it has details and a replay.
 #[derive(Debug, Default)]
 pub(super) struct History {
-    pub ids: Vec<u64>,
-    pub known: HashSet<u64>,
+    pub matches: Vec<HistoryMatch>,
+    /// In the Deadlock API, loaded by Deadlock+ itself, or already shared.
+    pub with_details: HashSet<u64>,
+    /// In the Deadlock API or already shared.
+    pub with_replay: HashSet<u64>,
+}
+
+impl History {
+    fn ids(&self) -> Vec<u64> {
+        self.matches.iter().map(|m| m.match_id).collect()
+    }
 }
 
 /// Everything a drive reaches beyond the run itself: Steam, deadlock-api and saved state.
@@ -223,10 +278,10 @@ impl Run {
         self.inner.lock_or_recover()
     }
 
-    /// Puts `ids` next and unpauses, starting a run when none is going. `with_history` adds every
-    /// saved account's own history after `ids`; a run that already takes it keeps it either way.
-    /// Returns true when the caller must drive the run.
-    pub(super) fn start(&self, ids: &[u64], with_history: bool, store: &mut impl RunStore) -> bool {
+    /// Puts `ids` next and `replay_ids` after every details match, and unpauses, starting a run
+    /// when none is going. `with_history` adds every saved account's own history after `ids`; a run
+    /// that already takes it keeps it either way. Returns true when the caller must drive the run.
+    pub(super) fn start(&self, ids: &[u64], replay_ids: &[u64], with_history: bool, store: &mut impl RunStore) -> bool {
         let mut inner = self.lock();
         let inner = &mut *inner;
         let saved = &mut inner.saved;
@@ -244,6 +299,7 @@ impl Run {
         } else {
             saved.queue.enqueue_front(ids);
         }
+        saved.queue.enqueue_replays(replay_ids);
         saved.with_history |= with_history;
         saved.queue.resume();
         inner.waiting = None;
@@ -324,6 +380,12 @@ impl Run {
             accounts,
             outcome: inner.outcome,
             error: inner.error.clone(),
+            steps: [Step::Details, Step::Replays]
+                .into_iter()
+                .map(|step| (step, queue.step_count(step)))
+                .filter(|(_, count)| count.total > 0)
+                .map(|(step, count)| StepProgress { step: step.into(), done: count.done, total: count.total })
+                .collect(),
         }
     }
 
@@ -485,9 +547,18 @@ impl Drive {
         inner.saved.queue.is_paused().then_some(RunEnd::Paused)
     }
 
+    /// An account whose history the run still has to read. Its missing details go before any replay.
+    fn unread_history(&self, saved: &SavedRun) -> Option<u32> {
+        let unread = |id: &&u32| saved.with_history && !saved.histories_read.contains(id) && !self.skipped.contains(id);
+        self.accounts.iter().find(unread).copied()
+    }
+
     fn pick(&self, inner: &RunInner, now: i64) -> Pick {
-        let queue = &inner.saved.queue;
-        if !queue.is_done() {
+        let saved = &inner.saved;
+        let queue = &saved.queue;
+        let unread = self.unread_history(saved);
+        let details = queue.step_count(Step::Details);
+        if details.done < details.total || (!queue.is_done() && unread.is_none()) {
             let usable: Vec<AccountUse> = queue
                 .account_use(now)
                 .into_iter()
@@ -501,13 +572,8 @@ impl Drive {
                 None => Pick::End(RunEnd::Unreachable),
             };
         }
-        let saved = &inner.saved;
-        let unread = self
-            .accounts
-            .iter()
-            .find(|id| saved.with_history && !saved.histories_read.contains(id) && !self.skipped.contains(id));
         match unread {
-            Some(&id) => Pick::Account(id),
+            Some(id) => Pick::Account(id),
             None => Pick::End(RunEnd::Done),
         }
     }
@@ -522,7 +588,13 @@ impl Drive {
         if queue.quota(account).is_some_and(|q| q.remaining(now) == 0) {
             return Ok(None);
         }
-        Ok(queue.next_id())
+        let next = queue.next_id();
+        if next.is_some_and(|id| queue.step_of(id) == Some(Step::Replays))
+            && self.unread_history(&inner.saved).is_some()
+        {
+            return Ok(None);
+        }
+        Ok(next)
     }
 
     async fn on_account<E: RunEnv>(
@@ -624,22 +696,34 @@ impl Drive {
         account: u32,
     ) -> Option<RunEnd> {
         self.worked = true;
-        let missing = match env.history(session, account).await {
-            Ok(History { ids, known }) => {
-                self.attempts.forget(&known);
-                let missing = missing_matches(&ids, &known, &self.attempts);
-                log::info!("gc: account {account} has {} match(es), {} missing details", ids.len(), missing.len());
-                missing
+        let (missing, replays) = match env.history(session, account).await {
+            Ok(history) => {
+                let gaps = replay_gaps(&history, env.now());
+                // A match still short of its replay keeps its attempts, so one Steam never answers
+                // with a replay is given up on like any other.
+                let done: HashSet<u64> = history.with_details.iter().copied().filter(|id| !gaps.contains(id)).collect();
+                self.attempts.forget(&done);
+                let ids = history.ids();
+                let missing = missing_matches(&ids, &history.with_details, &self.attempts);
+                let replays: Vec<u64> = gaps.into_iter().filter(|id| !self.attempts.given_up(*id)).collect();
+                log::info!(
+                    "gc: account {account} has {} match(es), {} missing details, {} missing a recent replay",
+                    ids.len(),
+                    missing.len(),
+                    replays.len()
+                );
+                (missing, replays)
             }
             Err(SteamGcError::Yielded) => return Some(RunEnd::GameOpen),
             Err(e) => {
                 log::warn!("gc: could not read the history of account {account}: {e}");
-                Vec::new()
+                (Vec::new(), Vec::new())
             }
         };
         let mut inner = run.lock();
         if inner.epoch == self.epoch {
             inner.saved.queue.enqueue_back(&missing);
+            inner.saved.queue.enqueue_replays(&replays);
             inner.saved.histories_read.insert(account);
             env.save_run(&inner.saved);
         }
@@ -689,20 +773,20 @@ impl RunStore for KvRunStore<'_> {
     }
 }
 
-struct AppEnv<'a, H: Fn() -> bool, D: FnMut()> {
-    host: GcHost<'a, H, D>,
+struct AppEnv<'a, H: Fn() -> bool, S: Sink> {
+    host: GcHost<'a, H, S>,
     store: KvRunStore<'a>,
     http: &'a reqwest::Client,
     contexts: Vec<AuthContext>,
 }
 
-impl<H: Fn() -> bool, D: FnMut()> AppEnv<'_, H, D> {
+impl<H: Fn() -> bool, S: Sink> AppEnv<'_, H, S> {
     fn steam_id(&self, account_id: u32) -> Option<u64> {
         self.contexts.iter().find(|c| c.account_id() == account_id).map(|c| c.steam_id64)
     }
 }
 
-impl<H: Fn() -> bool, D: FnMut()> Host for AppEnv<'_, H, D> {
+impl<H: Fn() -> bool, S: Sink> Host for AppEnv<'_, H, S> {
     async fn before_request(&mut self) -> bool {
         self.host.before_request().await
     }
@@ -716,7 +800,7 @@ impl<H: Fn() -> bool, D: FnMut()> Host for AppEnv<'_, H, D> {
     }
 }
 
-impl<H: Fn() -> bool, D: FnMut()> RunStore for AppEnv<'_, H, D> {
+impl<H: Fn() -> bool, S: Sink> RunStore for AppEnv<'_, H, S> {
     fn save_run(&mut self, run: &SavedRun) {
         self.store.save_run(run);
     }
@@ -726,7 +810,7 @@ impl<H: Fn() -> bool, D: FnMut()> RunStore for AppEnv<'_, H, D> {
     }
 }
 
-impl<H: Fn() -> bool, D: FnMut()> RunEnv for AppEnv<'_, H, D> {
+impl<H: Fn() -> bool, S: Sink> RunEnv for AppEnv<'_, H, S> {
     type Session = GcSession;
 
     fn game_running(&self) -> bool {
@@ -750,12 +834,26 @@ impl<H: Fn() -> bool, D: FnMut()> RunEnv for AppEnv<'_, H, D> {
     }
 
     async fn history(&mut self, session: &GcSession, account_id: u32) -> Result<History, SteamGcError> {
-        let (ids, complete) = session.fetch_match_history(account_id, |_| {}).await?;
+        let (matches, complete) = session.fetch_history_matches(account_id, |_| {}).await?;
         if !complete {
             log::info!("gc: Steam cut the history of account {account_id} short; the next run reads the rest");
         }
-        let known = api::known_match_ids(self.http, &ids).await.map_err(|e| SteamGcError::Api(e.to_string()))?;
-        Ok(History { ids, known })
+        let ids: Vec<u64> = matches.iter().map(|m| m.match_id).collect();
+        let (known, replays) =
+            futures::join!(api::known_match_ids(self.http, &ids), api::replay_match_ids(self.http, &ids));
+        let mut with_details = known.map_err(|e| SteamGcError::Api(e.to_string()))?;
+        let mut with_replay: HashSet<u64> = match replays {
+            Ok(replays) => replays.into_iter().collect(),
+            Err(e) => {
+                log::warn!("gc: could not check which matches of account {account_id} have a replay: {e}");
+                // Unknown reads as present, so no fetch is spent on a guess.
+                ids.iter().copied().collect()
+            }
+        };
+        let local = local_coverage(self.store.app, &ids);
+        with_details.extend(local.details);
+        with_replay.extend(local.replay);
+        Ok(History { matches, with_details, with_replay })
     }
 
     fn quota(&self, account_id: u32) -> SaltQuota {
@@ -798,9 +896,11 @@ pub(super) fn drive_blocking(
     let mut env = AppEnv {
         host: GcHost {
             http,
+            salts_url: SALTS_URL,
             last_request: &mut last_request,
             halted: || stop.is_stopped() || run.halted(),
-            on_delivered: || {},
+            // Asking for the run was consent for it, whatever the background toggle says.
+            sink: AppSink { app, consented: || true, on_delivered: || {} },
         },
         store: KvRunStore { app, shared },
         http,
@@ -821,7 +921,7 @@ mod tests {
 
     use super::*;
 
-    const NOW: i64 = 1_000_000;
+    const NOW: i64 = 1_800_000_000;
     const A: u32 = 11;
     const B: u32 = 22;
 
@@ -872,6 +972,8 @@ mod tests {
         last_runs: Vec<LastRun>,
         requests: usize,
         started_mid_run: Option<(usize, Vec<u64>, bool)>,
+        started_mid_run_replays: Vec<u64>,
+        attempts: SaltAttempts,
         started_mid_run_drives: Option<bool>,
         game_opens_at: Option<usize>,
         pause_on_deliver: Option<u64>,
@@ -897,8 +999,17 @@ mod tests {
         }
 
         fn history(&mut self, account: u32, ids: &[u64], known: &[u64]) {
-            self.histories
-                .insert(account, History { ids: ids.to_vec(), known: known.iter().copied().collect::<HashSet<u64>>() });
+            let rows: Vec<(u64, Option<u32>)> = ids.iter().map(|&id| (id, None)).collect();
+            self.timed_history(account, &rows, known, &[]);
+        }
+
+        fn timed_history(&mut self, account: u32, rows: &[(u64, Option<u32>)], details: &[u64], replay: &[u64]) {
+            let history = History {
+                matches: rows.iter().map(|&(match_id, start_time)| HistoryMatch { match_id, start_time }).collect(),
+                with_details: details.iter().copied().collect(),
+                with_replay: replay.iter().copied().collect(),
+            };
+            self.histories.insert(account, history);
         }
 
         fn spent(&mut self, account: u32, fetches: usize, at: i64) {
@@ -913,7 +1024,8 @@ mod tests {
             if let Some((at, ids, with_history)) = self.started_mid_run.clone() {
                 if at == n {
                     let run = self.run();
-                    self.started_mid_run_drives = Some(run.start(&ids, with_history, self));
+                    let replays = self.started_mid_run_replays.clone();
+                    self.started_mid_run_drives = Some(run.start(&ids, &replays, with_history, self));
                 }
             }
             if self.game_opens_at == Some(n) {
@@ -976,7 +1088,7 @@ mod tests {
         }
 
         fn attempts(&self) -> SaltAttempts {
-            SaltAttempts::default()
+            self.attempts.clone()
         }
 
         fn save_attempts(&mut self, _: &SaltAttempts) {}
@@ -991,9 +1103,18 @@ mod tests {
     }
 
     fn start_with(env: &mut FakeEnv<'_>, ids: &[u64], with_history: bool) -> RunEnd {
+        start_replays(env, ids, &[], with_history)
+    }
+
+    fn start_replays(env: &mut FakeEnv<'_>, ids: &[u64], replay_ids: &[u64], with_history: bool) -> RunEnd {
         let run = env.run();
-        assert!(run.start(ids, with_history, env), "a fresh start must hand over the drive");
+        assert!(run.start(ids, replay_ids, with_history, env), "a fresh start must hand over the drive");
         super::super::block_on(drive(run, env))
+    }
+
+    /// Unix seconds `days` days before `NOW`.
+    fn days_ago(days: i64) -> Option<u32> {
+        Some(u32::try_from(NOW - days * 24 * 60 * 60).unwrap())
     }
 
     fn resume_drive(env: &mut FakeEnv<'_>) -> RunEnd {
@@ -1215,6 +1336,81 @@ mod tests {
     }
 
     #[test]
+    fn the_replay_step_takes_own_recent_matches_with_details_and_no_replay() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        let rows = [(1, days_ago(2)), (2, days_ago(3)), (3, days_ago(4)), (4, days_ago(25)), (5, None)];
+        env.timed_history(A, &rows, &[1, 3, 4, 5], &[3]);
+        assert_eq!(start(&mut env, &[]), RunEnd::Done);
+        assert_eq!(env.fetched(), [2, 1]);
+    }
+
+    #[test]
+    fn the_replay_window_closes_21_days_after_the_start() {
+        let at = |secs: i64| u32::try_from(NOW - secs).ok();
+        let window = REPLAY_WINDOW_SECS;
+        let rows = [(1, at(window - 1)), (2, at(window)), (3, at(window + 1))];
+        let history = History {
+            matches: rows.iter().map(|&(match_id, start_time)| HistoryMatch { match_id, start_time }).collect(),
+            with_details: HashSet::from([1, 2, 3]),
+            with_replay: HashSet::new(),
+        };
+        assert_eq!(replay_gaps(&history, NOW), [1]);
+        assert_eq!(window, 21 * 24 * 60 * 60);
+    }
+
+    #[test]
+    fn given_replay_ids_go_after_every_details_match() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        env.started_mid_run = Some((2, vec![4], false));
+        env.started_mid_run_replays = vec![8];
+        assert_eq!(start_replays(&mut env, &[1, 2], &[9], false), RunEnd::Done);
+        assert_eq!(env.fetched(), [1, 4, 2, 9, 8]);
+    }
+
+    #[test]
+    fn a_later_accounts_missing_details_come_before_an_earlier_accounts_replays() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A, B]);
+        env.timed_history(A, &[(1, days_ago(1))], &[1], &[]);
+        env.timed_history(B, &[(2, days_ago(1))], &[], &[]);
+        assert_eq!(start(&mut env, &[]), RunEnd::Done);
+        assert_eq!(env.fetched(), [2, 1]);
+    }
+
+    #[test]
+    fn a_replay_steam_keeps_leaving_out_is_given_up_on() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        let mut attempts = SaltAttempts::default();
+        for _ in 0..dp_gc::ledger::MAX_SALT_ATTEMPTS {
+            attempts.record(1);
+        }
+        env.attempts = attempts;
+        env.timed_history(A, &[(1, days_ago(1)), (2, days_ago(1))], &[1, 2], &[]);
+        assert_eq!(start(&mut env, &[]), RunEnd::Done);
+        assert_eq!(env.fetched(), [2]);
+    }
+
+    #[test]
+    fn steps_list_each_kind_of_fetch_in_order_and_skip_empty_ones() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        assert!(run.start(&[1, 2], &[], false, &mut env));
+        let details = StepProgress { step: RecoveryStep::Details, done: 0, total: 2 };
+        assert_eq!(run.status(NOW).steps, [details]);
+
+        run.start(&[], &[7], false, &mut env);
+        let replays = StepProgress { step: RecoveryStep::Replays, done: 0, total: 1 };
+        assert_eq!(run.status(NOW).steps, [details, replays]);
+
+        assert_eq!(super::super::block_on(drive(&run, &mut env)), RunEnd::Done);
+        assert_eq!(run.status(NOW).steps, [StepProgress { done: 2, ..details }, StepProgress { done: 1, ..replays }]);
+        assert!(Run::default().status(NOW).steps.is_empty());
+    }
+
+    #[test]
     fn missing_skips_known_and_given_up_matches() {
         let mut attempts = SaltAttempts::default();
         for _ in 0..dp_gc::ledger::MAX_SALT_ATTEMPTS {
@@ -1261,6 +1457,7 @@ mod tests {
             "accounts",
             "outcome",
             "error",
+            "steps",
         ];
         want.sort_unstable();
         assert_eq!(keys, want);
@@ -1293,6 +1490,13 @@ mod tests {
     fn coverage_serializes_with_camel_case_keys() {
         let got = serde_json::to_value(DetailCoverage { with_details: vec![1], with_replay: vec![2] }).unwrap();
         assert_eq!(got, serde_json::json!({"withDetails": [1], "withReplay": [2]}));
+    }
+
+    #[test]
+    fn step_progress_serializes_with_a_lowercase_step() {
+        let got = serde_json::to_value(StepProgress { step: RecoveryStep::Replays, done: 1, total: 4 }).unwrap();
+        assert_eq!(got, serde_json::json!({"step": "replays", "done": 1, "total": 4}));
+        assert_eq!(serde_json::to_value(RecoveryStep::Details).unwrap(), "details");
     }
 
     #[test]

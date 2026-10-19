@@ -3,6 +3,7 @@ import type { AccountProgress } from "./AccountProgress";
 import type { AppError } from "./AppError";
 import type { OwnRecoveryOutcome } from "./OwnRecoveryOutcome";
 import type { RecoveryWait } from "./RecoveryWait";
+import type { StepProgress } from "./StepProgress";
 
 /**
  * A run that recovers missing match details.
@@ -23,4 +24,8 @@ total: number, delivered: number, failed: number,
 /**
  * Matches left, next first.
  */
-queued: Array<number>, etaSecs: number, accounts: Array<AccountProgress>, outcome: OwnRecoveryOutcome | null, error: AppError | null, };
+queued: Array<number>, etaSecs: number, accounts: Array<AccountProgress>, outcome: OwnRecoveryOutcome | null, error: AppError | null, 
+/**
+ * Each kind of fetch this run makes, in the order it runs them.
+ */
+steps: Array<StepProgress>, };

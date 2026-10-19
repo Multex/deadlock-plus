@@ -8,6 +8,7 @@ mod load_grace;
 mod party_policy;
 mod probes;
 mod queue;
+mod salts;
 
 pub use attach::{game_access_denied, game_runs_as_admin, ptrace_denied};
 pub use connection::{EngineConnection, EngineRemote};
@@ -17,6 +18,7 @@ pub use link::{
     Backend, FactsFeed, GameLink, Latest, Link, LiveRead, PlatformBackend, PlatformReader, ReadError, Slot, Snapshot,
     TICK_INTERVAL,
 };
+pub use salts::{may_read, MemoryMatch, MemoryReply, MemorySalts, Resident};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Context {

@@ -127,10 +127,16 @@ pub mod commands {
         let roots = current_roots(&app);
         let keep: Vec<String> =
             app.state::<crate::features::network::recording::MatchPingService>().recording_key().into_iter().collect();
-        tauri::async_runtime::spawn_blocking(move || clear_except(id, &roots, &keep))
-            .await
-            .map_err(AppError::internal)?
-            .map(ClearReport::from)
-            .map_err(AppError::internal)
+        tauri::async_runtime::spawn_blocking(move || {
+            let clear = || clear_except(id, &roots, &keep);
+            match app.try_state::<crate::features::salts::record::SaltRecordService>() {
+                Some(record) if id == EntryId::SharedMatches => record.clear_with(clear),
+                _ => clear(),
+            }
+        })
+        .await
+        .map_err(AppError::internal)?
+        .map(ClearReport::from)
+        .map_err(AppError::internal)
     }
 }

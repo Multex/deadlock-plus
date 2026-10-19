@@ -49,9 +49,11 @@ pub fn run() {
         .manage(features::network::recording::MatchPingService::default())
         .manage(IngestService::default())
         .manage(GcService::default())
+        .manage(features::salts::record::SaltRecordService::default())
         .manage(PostgameService::default())
         .manage(features::live::LiveService::default())
         .manage(features::live::link::GameLinkService::default())
+        .manage(features::salts::memory::MemorySaltsService::default())
         .manage(features::game_focus::GameFocusService::default())
         .manage(features::overlay::OverlayService::default())
         .manage(features::match_found::MatchFoundService::default())
@@ -96,6 +98,7 @@ pub fn run() {
             #[cfg(any(windows, target_os = "linux"))]
             features::context_menu::install(app.handle());
             app.state::<features::live::link::GameLinkService>().start(app.handle());
+            app.state::<features::salts::memory::MemorySaltsService>().start(app.handle());
             app.state::<features::overlay::OverlayService>().start(app.handle());
             app.state::<features::game_focus::GameFocusService>().start(app.handle());
             app.state::<features::match_found::MatchFoundService>().start(app.handle());
@@ -151,6 +154,8 @@ pub fn run() {
             features::gc::commands::pause_match_recovery,
             features::gc::commands::resume_match_recovery,
             features::gc::commands::cancel_match_recovery,
+            features::salts::commands::fetch_match_details,
+            features::salts::commands::shared_matches,
             features::live::commands::get_live_state,
             features::live::commands::get_live_match,
             features::postgame::commands::get_postgame_matches,
@@ -278,6 +283,7 @@ pub fn run() {
             handle.state::<PostgameService>().stop();
             handle.state::<PresenceService>().stop();
             handle.state::<features::match_found::MatchFoundService>().stop();
+            handle.state::<features::salts::memory::MemorySaltsService>().stop();
             handle.state::<features::live::link::GameLinkService>().stop();
             handle.state::<features::game_focus::GameFocusService>().stop();
             handle.state::<dp_frames::capture::FrameCapture>().stop();

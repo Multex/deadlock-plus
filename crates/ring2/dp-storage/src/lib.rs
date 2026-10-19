@@ -1,5 +1,6 @@
 pub mod matches;
 pub mod postgame;
+pub mod shared_matches;
 
 use std::path::{Component, Path, PathBuf};
 use ts_rs::TS;
@@ -42,6 +43,7 @@ const APP_FILES: &[(EntryId, &[&str])] = &[
     (EntryId::PostgameDetail, &[postgame::POSTGAME_DIR]),
     (EntryId::MatchPing, &[MATCH_PING_DIR]),
     (EntryId::MvpGrades, &[MVP_DIR]),
+    (EntryId::SharedMatches, &[shared_matches::SHARED_MATCHES_FILE]),
 ];
 
 fn app_files(id: EntryId) -> Option<&'static [&'static str]> {
@@ -75,11 +77,12 @@ pub enum EntryId {
     PostgameDetail,
     MatchPing,
     MvpGrades,
+    SharedMatches,
     OtherAppFiles,
     Logs,
 }
 
-pub const ALL_ENTRIES: [EntryId; 25] = [
+pub const ALL_ENTRIES: [EntryId; 26] = [
     EntryId::Replays,
     EntryId::Addons,
     EntryId::AddonsBackups,
@@ -103,6 +106,7 @@ pub const ALL_ENTRIES: [EntryId; 25] = [
     EntryId::PostgameDetail,
     EntryId::MatchPing,
     EntryId::MvpGrades,
+    EntryId::SharedMatches,
     EntryId::OtherAppFiles,
     EntryId::Logs,
 ];
@@ -156,6 +160,7 @@ pub fn is_clearable(id: EntryId) -> bool {
             | EntryId::PostgameDetail
             | EntryId::MatchPing
             | EntryId::MvpGrades
+            | EntryId::SharedMatches
             | EntryId::Logs
     )
 }
@@ -463,6 +468,7 @@ mod tests {
             ("maintenance.json", 14),
             ("demo-keep.json", 15),
             (FRAME_RUNS_FILE, 25),
+            (shared_matches::SHARED_MATCHES_FILE, 17),
         ] {
             write(&appdata.join(name), bytes);
         }
@@ -556,6 +562,7 @@ mod tests {
         assert_eq!(entry_size(EntryId::PostgameDetail, &roots), 70);
         assert_eq!(entry_size(EntryId::MatchPing, &roots), 44);
         assert_eq!(entry_size(EntryId::MvpGrades, &roots), 60);
+        assert_eq!(entry_size(EntryId::SharedMatches, &roots), 17);
         assert_eq!(entry_size(EntryId::OtherAppFiles, &roots), 29);
         assert_eq!(entry_size(EntryId::Logs, &roots), 55);
     }
@@ -612,6 +619,7 @@ mod tests {
                 EntryId::PostgameDetail,
                 EntryId::MatchPing,
                 EntryId::MvpGrades,
+                EntryId::SharedMatches,
                 EntryId::Logs
             ]
         );
@@ -731,6 +739,32 @@ mod tests {
         assert!(dir.is_dir());
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 0);
         assert!(base.join("appdata").join(postgame::POSTGAME_DIR).join("300.json").is_file());
+    }
+
+    #[test]
+    fn every_entry_is_listed_once_shared_matches_included() {
+        assert_eq!(ALL_ENTRIES.len(), 26);
+        assert_eq!(ALL_ENTRIES.iter().filter(|id| **id == EntryId::SharedMatches).count(), 1);
+    }
+
+    #[test]
+    fn the_shared_matches_entry_is_its_own_file_with_no_count() {
+        let (base, roots) = fixture("shared-list");
+        let file = base.join("appdata").join(shared_matches::SHARED_MATCHES_FILE);
+        assert_eq!(location(EntryId::SharedMatches, &roots), Some(file.clone()));
+        assert_eq!(shared_matches::path(&base.join("appdata")), file);
+        assert_eq!(entry_stats(EntryId::SharedMatches, &roots).count, None);
+    }
+
+    #[test]
+    fn clearing_the_shared_matches_entry_removes_only_its_file() {
+        let (base, roots) = fixture("shared-clear");
+        let report = clear(EntryId::SharedMatches, &roots).unwrap();
+        let appdata = base.join("appdata");
+        assert_eq!((report.freed_bytes, report.removed), (17, 1));
+        assert!(!appdata.join(shared_matches::SHARED_MATCHES_FILE).exists());
+        assert!(appdata.join(FRAME_RUNS_FILE).is_file());
+        assert!(appdata.join(postgame::POSTGAME_DIR).join("300.json").is_file());
     }
 
     #[test]
@@ -855,6 +889,7 @@ mod tests {
             EntryId::PostgameDetail,
             EntryId::MatchPing,
             EntryId::MvpGrades,
+            EntryId::SharedMatches,
             EntryId::OtherAppFiles,
         ];
         let sum: u64 = app_entries.iter().map(|id| entry_size(*id, &roots)).sum();
