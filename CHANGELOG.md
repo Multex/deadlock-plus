@@ -10,32 +10,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Deadlock+ reopens on the page you last had open, including match details.
 - Settings > Appearance has a UI scale slider, from 80 to 150%.
-- Hardware acceleration can be turned off on Windows and Linux, with a button to restart Deadlock+ and apply it.
+- Hardware acceleration can be turned off on Windows and Linux.
+- A button restarts Deadlock+ to apply the hardware acceleration setting.
 - Deadlock+ can open its window when Deadlock starts, even from the tray.
 - Clicking a Deadlock+ desktop notification opens the page it is about.
 - In unranked matches, the Live page shows each player's rank from their ranked matches.
 
-#### Game overlay
+#### Match recovery
 
-- Notifications show over the game instead of as Windows notifications while you play.
-- The overlay needs Borderless Window or Window mode; Settings says when Deadlock is in Full Screen.
-- The game overlay has its own Settings page, with a switch to turn it off.
-- You can pick where overlay notifications appear on screen.
-- You can choose how long overlay notifications stay up.
-- A Show test button shows a sample notification over the game.
-- The test notification waits 3 seconds, so you can click into the game first.
-- Overlay notifications move with you when you switch into or out of the game.
-- "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
-- "Match found" only shows while you are tabbed out, since Deadlock shows its own when it is in front.
-- Settings > Notifications has a switch to turn "Match found" off.
-- The Game overlay settings page has a button that takes you to the "Match found" switch.
-
-#### Notification settings
-
-- Settings > Notifications lists every notification type, each with its own switch.
-- Each type except "Match found" lets you choose how it shows: over the game, as a desktop notification, or only in the notification center.
-- Server block updates and out-of-date warnings can be turned off separately.
-- The break reminder switch is also in Settings > Notifications.
+- Deadlock+ picks up your matches from Deadlock after each game, so their details and replays reach the Deadlock API within minutes.
+- With "Fill in missing match details" on, matches you open in Deadlock's Match History are picked up too, including other players'.
+- Match History shows how many of your matches have full details, and how many recent ones have replays.
+- Matches the Deadlock API is missing show a "No details" badge in Match History.
+- Matches the Deadlock API is missing show full details right away, loaded straight from Valve.
+- A match neither the Deadlock API nor Valve can provide shows what is known and how to recover it, instead of an error.
+- A Recover button in Match History fills in your missing matches.
+- The recovery panel shows progress, time left and each Steam account's use for the day.
+- You can pause, resume or cancel recovery.
+- Paused recovery stays paused after a restart.
+- Recovery continues on its own when Deadlock closes or the daily limit resets.
+- Recovery takes up to 40 matches per Steam account a day.
+- The status bar shows recovery progress and links to Match History.
+- You can recover a single match from its page.
+- Recovery also fills in missing replays for your matches from the last 21 days.
+- A match's page shows whether its replay is available, with a button to recover it.
+- Settings > Privacy opens recovery in Match History.
+- Settings > Privacy lists the matches Deadlock+ shared and where each came from.
+- Settings > Storage lists the shared matches, with a clear action.
+- The sharing settings explain what is sent under "How it works".
 
 #### Match grades
 
@@ -44,7 +46,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Grades add up points for what each player did, such as damage, assists, objectives, healing and CC.
 - Each player's points are compared with the rest of the lobby.
 - Each match in Match History shows your grade and place under the result.
-- The match detail shows every graded player's grade; hover one for each stat's points and its rank in the lobby.
+- The match detail shows every graded player's grade.
+- Hover a player's grade for each stat's points and its rank in the lobby.
 - Players who left early get no grade.
 - Matches where someone left early are marked, since every grade in them is skewed.
 - Settings > Storage lists the match grades, with a clear action.
@@ -56,6 +59,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Kills, deaths, assists, souls, damage, objective damage and healing each get a grade, plus an overall grade.
 - Hover a grade to see the average and how many players you beat.
 
+#### Game overlay
+
+- Notifications show over the game instead of as Windows notifications while you play.
+- The overlay needs Borderless Window or Window mode.
+- Settings says when Deadlock is in Full Screen, where the overlay can't show.
+- The game overlay has its own Settings page, with a switch to turn it off.
+- You can pick where overlay notifications appear on screen.
+- You can choose how long overlay notifications stay up.
+- A Show test button shows a sample notification over the game.
+- The test notification waits 3 seconds, so you can click into the game first.
+- Overlay notifications move with you when you switch into or out of the game.
+- "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
+- "Match found" only shows while you are tabbed out, since Deadlock shows its own when it is in front.
+- "Match found" is never sent as a desktop notification or to the notification center.
+- Settings > Notifications has a switch to turn "Match found" off.
+- The Game overlay settings page has a button that takes you to the "Match found" switch.
+- The game overlay is Windows only, so Linux hides its settings.
+
+#### Notification settings
+
+- Settings > Notifications lists every notification type, each with its own switch.
+- Each type except "Match found" lets you choose how it shows: over the game, as a desktop notification, or only in the notification center.
+- Server block updates and out-of-date warnings can be turned off separately.
+- Server block updates no longer show a Windows notification while you're in the game.
+- The break reminder switch is also in Settings > Notifications.
+
 #### Linux
 
 - The Live page says when Linux blocks Deadlock+ from reading the game, with a button to allow it.
@@ -66,39 +95,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The server block update job is listed in Jobs and can be turned off.
 - Support reports include the session type, desktop, Steam install type and package type.
 
-#### Match recovery
-
-- Match History shows how many of your matches have full details, and how many recent ones have replays.
-- Matches the Deadlock API is missing show a "No details" badge in Match History.
-- A Recover button in Match History fills in your missing matches.
-- The recovery panel shows progress, time left and each Steam account's use for the day.
-- You can pause, resume or cancel recovery.
-- Paused recovery stays paused after a restart.
-- Recovery continues on its own when Deadlock closes or the daily limit resets.
-- Recovery takes up to 40 matches per Steam account a day.
-- The status bar shows recovery progress and links to Match History.
-- A match the Deadlock API is missing shows what is known and how to recover it, instead of an error.
-- You can recover a single match from its page.
-- Settings > Privacy opens recovery in Match History.
-- Deadlock+ picks up your matches from Deadlock after each game, so their details and replays reach the Deadlock API within minutes.
-- With "Fill in missing match details" on, matches you open in Deadlock's Match History are picked up too, including other players'.
-- Matches the Deadlock API is missing show full details right away, loaded straight from Valve.
-- Recovery also fills in missing replays for your matches from the last 21 days.
-- A match's page shows whether its replay is available, with a button to recover it.
-- Settings > Privacy lists the matches Deadlock+ shared and where each came from.
-- Settings > Storage lists the shared matches, with a clear action.
-- The sharing settings explain what is sent under "How it works".
-
 ### Changed
 
 - Matches Deadlock+ sends to the Deadlock API are labelled as coming from Deadlock+.
 - Deadlock+ remembers which matches it shared, so it doesn't send them again after a restart.
 - The match time and mode now sit at the top of the Live page.
-- Server block updates no longer show a Windows notification while you're in the game.
 - When the game files can't be read, the replay map keeps the markers from the last game version it read.
 - With no earlier map data, the replay map gets most of its markers from the Deadlock API, without lane lines.
-- "Match found" shows only over the game, never as a desktop notification or in the notification center.
-- On Linux, Settings hides the game overlay options, since the overlay is Windows only.
 - On Linux, background server block updates no longer ask for your password; Deadlock+ says the blocks are out of date instead.
 - Linux builds now run on Ubuntu 22.04 and Debian 12.
 - Uninstalling Deadlock+ on Windows now lifts its server blocks.
@@ -113,8 +116,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Settings > Startup and background switches between Ask each time and Always allow.
 - The welcome steps let you pick Always allow or Ask me later.
 - The admin access buttons wait until your match ends.
-- Every page says when Deadlock itself is running as administrator, which stops Deadlock+ from reading it, for example when Steam was started as administrator.
-- That notice has a button to restart Deadlock+ as administrator.
+- Every page says when Deadlock itself is running as administrator, which stops Deadlock+ from reading it.
+- Deadlock is usually running as administrator because Steam was started as administrator.
+- The administrator notice has a button to restart Deadlock+ as administrator.
 - Start with Windows uses the Windows startup list instead of a scheduled task, and the update moves it for you.
 - If the admin helper is from another Deadlock+ version, Deadlock+ asks you to reinstall instead of failing quietly.
 
@@ -125,26 +129,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Map positions and some hero and item images load again after Deadlock's October 16 patch.
 - Hero, item, ability, rank and minimap images no longer break when Deadlock updates while Deadlock+ is open.
 - A new hero's Discord art shows up within an hour of the Deadlock API publishing it, instead of up to a week later.
-- Pressing Play while match salts are being recovered no longer says Deadlock is being played on another computer.
 - Discord shows "Finding match" with the queue timer again when you queue as a party.
-- Sharing your matches no longer fails when Steam's cache holds more than 1,000 of them.
+- Discord shows the mode you queued for when you queue as a party.
 - A Discord presence edit made just before quitting Deadlock+ is no longer lost.
 - Closing the main window with "Keep running in the tray" off now always quits Deadlock+, instead of sometimes leaving it running with no window.
+- Sharing your matches no longer fails when Steam's cache holds more than 1,000 of them.
 - Every replay link in a Steam cache entry is shared, not just the first.
 - Replays found in Steam's cache are no longer sent without their match details, which kept stat sites from loading them.
-- Match recovery hands unfinished matches back to the Deadlock API after each run, so other helpers can pick them up.
-- Discord shows the mode you queued for when you queue as a party.
+- Pressing Play while matches are being recovered no longer says Deadlock is being played on another computer.
+- Match recovery no longer misses friends' online status when many answer at once.
 - The Live page's current server ignores other traffic from the game, like voice chat.
 - The Live page's current server clears when you leave a server, instead of showing the last one.
 - The Live page switches to your new server at once when you go from a match to the Hideout or the next match.
-- "Match found" over the game also shows when you queue as a party.
-- Match salt recovery no longer misses friends' online status when many answer at once.
+- A server's switch in the Server Picker goes back to its real state when blocking or unblocking fails.
 - On Linux, ping times no longer fail on systems set to a language other than English.
 - On NixOS, blocking servers finds the password prompt instead of failing.
 - On Linux, Deadlock+ picks the Steam install you last signed in to when there are several.
 - Discord presence works with Vesktop installed from Flatpak.
 - On Linux desktops without a tray, starting with your computer shows the window instead of hiding it.
-- A server's switch in the Server Picker goes back to its real state when blocking or unblocking fails.
 
 ## [0.12.0] - 2026-10-15
 
