@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
 import { open } from "./support/flows";
+import { WINDOWS_UA } from "./support/platform";
 import { expect, test } from "./support/test";
+
+// The game overlay is Windows only.
+test.use({ userAgent: WINDOWS_UA });
 
 interface DemoWindow {
     __DEADLOCK_PLUS_DEMO__: {

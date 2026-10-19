@@ -1,7 +1,11 @@
 import type { Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { WINDOWS_UA } from "./support/platform";
 import { isDynamic, routePatterns, settingsCategories } from "./support/routes";
 import { expect, settle, test } from "./support/test";
+
+// Linux hides the Windows-only settings pages.
+test.use({ userAgent: WINDOWS_UA });
 
 const STATIC_ROUTES = [
     ...routePatterns().filter((pattern) => !isDynamic(pattern)),

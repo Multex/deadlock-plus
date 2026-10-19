@@ -1,7 +1,11 @@
 import type { Locator, Page } from "@playwright/test";
 import { forgetKv, keepKvAcrossReloads, kvWrites, open } from "./support/flows";
+import { WINDOWS_UA } from "./support/platform";
 import { settingsCategories } from "./support/routes";
 import { expect, settle, test } from "./support/test";
+
+// The control counts below are the Windows pages.
+test.use({ userAgent: WINDOWS_UA });
 
 const CATEGORIES = settingsCategories();
 

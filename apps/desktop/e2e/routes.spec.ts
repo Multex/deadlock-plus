@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
+import { WINDOWS_UA } from "./support/platform";
 import { isDynamic, matches, routePatterns, settingsCategories } from "./support/routes";
 import { expect, settle, test } from "./support/test";
+
+// Linux hides the Windows-only settings pages.
+test.use({ userAgent: WINDOWS_UA });
 
 const MATCH_DETAIL = "/match-history/[id]";
 const SETTINGS = "/settings/[category=category]";

@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
 import { open } from "./support/flows";
+import { WINDOWS_UA } from "./support/platform";
 import { expect, test } from "./support/test";
+
+// Admin access is a Windows setting.
+test.use({ userAgent: WINDOWS_UA });
 
 const TITLE = "Admin access";
 
