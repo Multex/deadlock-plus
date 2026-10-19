@@ -10,6 +10,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 pub const DIR_NAME: &str = "Deadlock+";
 pub const FILE_NAME: &str = "helper.log";
 pub const MAX_LEN: u64 = 1024 * 1024;
+#[cfg_attr(not(windows), allow(dead_code))]
 const LEVEL: LevelFilter = LevelFilter::Info;
 
 /// `program_data` is `%ProgramData%`. Anything but an absolute path without `..` gives `None`.
@@ -146,17 +147,20 @@ impl<S: Store> Log for FileLogger<S> {
     }
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 fn now_millis() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
 /// One line per record: line breaks in the message become spaces so a client-supplied string cannot forge a
 /// second record.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn format_record(unix_millis: u64, level: Level, target: &str, message: &str) -> String {
     let message: String = message.chars().map(|c| if c == '\n' || c == '\r' { ' ' } else { c }).collect();
     format!("{} {:<5} {target}: {message}\n", utc(unix_millis), level.as_str())
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 fn utc(unix_millis: u64) -> String {
     let secs = unix_millis / 1000;
     let rem = secs % 86_400;
@@ -171,6 +175,7 @@ fn utc(unix_millis: u64) -> String {
 }
 
 // Howard Hinnant's `civil_from_days`: proleptic Gregorian date of a day count since 1970-01-01.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
