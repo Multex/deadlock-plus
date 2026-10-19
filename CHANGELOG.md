@@ -28,6 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - "Match found" shows in the middle of your screen when your queue pops, even over another window or a fullscreen video.
 - "Match found" only shows while you are tabbed out, since Deadlock shows its own when it is in front.
 - Settings > Notifications has a switch to turn "Match found" off.
+- The Game overlay settings page has a button that takes you to the "Match found" switch.
 
 #### Notification settings
 

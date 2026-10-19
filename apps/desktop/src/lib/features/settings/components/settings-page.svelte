@@ -5,7 +5,9 @@
     import { t } from "$lib/core/i18n.svelte";
     import { CATEGORIES, matchingCategories, matchingItems, type CategoryId } from "../catalog";
     import { hiddenNow } from "../hidden";
+    import { tick } from "svelte";
     import { settingsUi } from "../ui.svelte";
+    import { highlightStep } from "../jump";
     import Appearance from "./sections/appearance.svelte";
     import Language from "./sections/language.svelte";
     import Startup from "./sections/startup.svelte";
@@ -46,6 +48,41 @@
         category;
         settingsUi.query;
         root?.closest("main")?.scrollTo({ top: 0 });
+    });
+
+    const HIGHLIGHT_MS = 1800;
+    let highlighted: HTMLElement | null = null;
+    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function clearHighlight() {
+        clearTimeout(highlightTimer);
+        highlighted?.removeAttribute("data-jump-highlight");
+        highlighted = null;
+    }
+
+    $effect(() => {
+        const id = settingsUi.highlightId;
+        if (!id) return;
+        category;
+        void tick().then(() => {
+            if (settingsUi.highlightId !== id) return;
+            const step = highlightStep(id, category);
+            if (step === "wait") return;
+            settingsUi.takeHighlight();
+            if (step === "drop") return;
+            requestAnimationFrame(() => {
+                const control = root?.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+                const row = control?.closest<HTMLElement>("section") ?? control;
+                if (!row) return;
+                clearHighlight();
+                const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+                row.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+                row.setAttribute("data-jump-highlight", "");
+                highlighted = row;
+                highlightTimer = setTimeout(clearHighlight, HIGHLIGHT_MS);
+            });
+        });
+        return clearHighlight;
     });
 </script>
 
@@ -88,3 +125,19 @@
         {/each}
     {/if}
 </div>
+
+<style>
+    :global([data-jump-highlight]) {
+        animation: jump-highlight 1.8s ease-out;
+    }
+
+    @keyframes jump-highlight {
+        0%,
+        60% {
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+        100% {
+            box-shadow: 0 0 0 2px transparent;
+        }
+    }
+</style>

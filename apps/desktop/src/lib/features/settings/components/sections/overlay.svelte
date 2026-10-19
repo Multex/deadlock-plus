@@ -5,7 +5,9 @@
     import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
-    import { MonitorPlay, TriangleAlert } from "@lucide/svelte";
+    import { goto } from "$app/navigation";
+    import { jumpToSetting } from "$lib/features/settings/jump";
+    import { ArrowRight, MonitorPlay, TriangleAlert } from "@lucide/svelte";
     import PositionPicker from "@deadlock-plus/ui/position-picker.svelte";
     import Slider from "@deadlock-plus/ui/slider.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
@@ -23,7 +25,7 @@
 
     // Display only: the backend does the waiting, so the window can lose focus without the toast slipping.
     const TEST_DELAY_SECS = 3;
-    const OVERLAY_IDS = ["overlay", "overlay-position", "overlay-duration", "overlay-test"];
+    const OVERLAY_IDS = ["overlay", "overlay-position", "overlay-duration", "overlay-notifications", "overlay-test"];
 
     const positionLabels = $derived<Record<OverlayPosition, string>>({
         topLeft: t("settings.notifications.position.top_left"),
@@ -131,6 +133,18 @@
                         {seconds(settings.overlay.durationSecs)}
                     </span>
                 </div>
+            </SettingRow>
+        {/if}
+        {#if show("overlay-notifications")}
+            <SettingRow
+                label={t("settings.items.overlay_notifications")}
+                description={t("settings.notifications.overlay_notifications_description")}
+                size="sub"
+            >
+                <Button variant="outline" size="sm" class="shrink-0" onclick={() => jumpToSetting("match-found", goto)}>
+                    {t("settings.notifications.overlay_notifications_button")}
+                    <ArrowRight aria-hidden="true" />
+                </Button>
             </SettingRow>
         {/if}
         {#if show("overlay-test")}

@@ -334,6 +334,17 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "overlay duration seconds time how long stay visible",
     },
     {
+        id: "overlay-notifications",
+        category: "overlay",
+        get title() {
+            return t("settings.items.overlay_notifications");
+        },
+        get description() {
+            return t("settings.notifications.overlay_notifications_description");
+        },
+        keywords: "overlay match found queue pop notifications turn off disable switch which toasts",
+    },
+    {
         id: "overlay-test",
         category: "overlay",
         get title() {
