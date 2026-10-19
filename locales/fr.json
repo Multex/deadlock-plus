@@ -43,7 +43,8 @@
             "frame_layer_remove_failed": "",
             "frame_trace_needs_admin": "",
             "frames_read_failed": "",
-            "mod_unreadable": ""
+            "mod_unreadable": "",
+            "helper_out_of_date": ""
         },
         "export": {
             "invalid_name": "",
@@ -83,7 +84,9 @@
             "list_blocked_failed": "",
             "sync_failed": "",
             "external_scan_failed": "",
-            "external_import_failed": ""
+            "external_import_failed": "",
+            "needs_permission": "",
+            "helper_out_of_date": ""
         },
         "storage": {
             "location_missing": "Cet emplacement n'existe pas.",
@@ -111,6 +114,24 @@
         "presence": {
             "import_invalid": "",
             "save_failed": ""
+        },
+        "overlay": {
+            "game_not_running": ""
+        },
+        "admin_access": {
+            "already_elevated": "",
+            "in_match": "",
+            "allow_failed": "",
+            "always_allow_blocked": "",
+            "always_allow_needs_install": "",
+            "remove_failed": "",
+            "unsupported": "",
+            "helper_out_of_date": "",
+            "restart_failed": ""
+        },
+        "ptrace": {
+            "unavailable": "",
+            "failed": ""
         }
     },
     "settings": {
@@ -128,6 +149,7 @@
             "language": "Langue",
             "startup": "",
             "notifications": "Notifications",
+            "overlay": "",
             "privacy": "",
             "about": "",
             "diagnostics": "Diagnostiques",
@@ -154,7 +176,20 @@
             "thanks": "Remerciements",
             "diagnostics": "Diagnostiques",
             "licenses": "Licences",
-            "storage": ""
+            "storage": "",
+            "overlay": "",
+            "overlay_position": "",
+            "overlay_duration": "",
+            "overlay_test": "",
+            "overlay_notifications": "",
+            "overlay_match_found": "",
+            "server_blocks_updated": "",
+            "server_blocks_stale": "",
+            "break_reminder": "",
+            "ui_scale": "",
+            "hardware_acceleration": "",
+            "open_on_game_start": "",
+            "admin_access": ""
         },
         "nav": {
             "label": "",
@@ -168,7 +203,10 @@
             "motion_system": "",
             "motion_reduce": "",
             "motion_full": "",
-            "font_description": ""
+            "font_description": "",
+            "scale_description": "",
+            "hardware_acceleration_description": "",
+            "restart_app": ""
         },
         "themes": {
             "deadlock": {
@@ -215,7 +253,10 @@
             "tasks_description": "",
             "run_by_itself": "",
             "while_running": "",
-            "advanced": ""
+            "advanced": "",
+            "open_on_game_start_description": "",
+            "admin_access_ask": "",
+            "admin_access_description": ""
         },
         "notifications": {
             "alerts_description": "",
@@ -224,7 +265,42 @@
             "time": "Heure (UTC)",
             "remind": "",
             "lead_minutes": "{minutes} min avant",
-            "lead_hours": "{hours} h avant"
+            "lead_hours": "{hours} h avant",
+            "overlay_description": "",
+            "overlay_fullscreen": "",
+            "overlay_position_description": "",
+            "overlay_duration_description": "",
+            "overlay_test_description": "",
+            "overlay_notifications_description": "",
+            "overlay_notifications_button": "",
+            "overlay_test_button": "",
+            "overlay_test_countdown": "",
+            "overlay_seconds": "",
+            "position": {
+                "top_left": "",
+                "top_center": "",
+                "top_right": "",
+                "left": "",
+                "right": "",
+                "bottom_left": "",
+                "bottom_center": "",
+                "bottom_right": "",
+                "center": ""
+            },
+            "overlay_match_found_description": "",
+            "server_blocks_updated_description": "",
+            "server_blocks_stale_description": "",
+            "break_reminder_description": "",
+            "delivery_label": "",
+            "delivery": {
+                "both": "",
+                "overlay": "",
+                "os": "",
+                "quiet": "",
+                "center": ""
+            },
+            "overlay_off_fallback": "",
+            "overlay_off_hidden": ""
         },
         "weekdays": {
             "monday": "Lundi",
@@ -434,9 +510,32 @@
             "ingest_watching": "",
             "ingest_description": "",
             "gc_description": "",
+            "how_it_works": "",
+            "ingest_how_find": "",
+            "ingest_how_send": "",
+            "gc_how_login": "",
+            "gc_how_limit": "",
+            "gc_how_game": "",
+            "gc_how_send": "",
             "gc_own_label": "",
             "gc_own_description": "",
-            "advanced": ""
+            "advanced": "",
+            "gc_own_open": "",
+            "shared": {
+                "title": "",
+                "source_steam": "",
+                "source_deadlock": "",
+                "source_login": "",
+                "with_replay": "",
+                "when": "",
+                "match": "",
+                "from": "",
+                "details": "",
+                "replay": "",
+                "sent": "",
+                "not_sent": "",
+                "empty": ""
+            }
         },
         "about_page": {
             "copy": "Copier",
@@ -486,7 +585,9 @@
             "donators_description": "",
             "nobody_yet": "",
             "others_one": "",
-            "others_other": ""
+            "others_other": "",
+            "anonymous_one": "",
+            "anonymous_other": ""
         }
     },
     "tray": {
@@ -495,6 +596,7 @@
         "tooltip": ""
     },
     "notifications": {
+        "open_action": "",
         "alert_new": {
             "title": "",
             "body": ""
@@ -518,6 +620,30 @@
         "break_reminder": {
             "title": "",
             "body": ""
+        },
+        "overlay_test": {
+            "title": "",
+            "body": ""
+        },
+        "match_found": {
+            "title": "",
+            "body": ""
+        },
+        "match_found_unknown": {
+            "title": "",
+            "body": ""
+        }
+    },
+    "admin_access": {
+        "allow": "",
+        "always_allow": "",
+        "after_match": "",
+        "nothing_changed": "",
+        "game_admin": {
+            "title": "",
+            "body": "",
+            "restart": "",
+            "restart_failed": ""
         }
     },
     "common": {
@@ -606,7 +732,14 @@
             "tasks": "",
             "run_now": "",
             "open_performance": "",
-            "performance_issues": ""
+            "performance_issues": "",
+            "recovery": {
+                "running": "",
+                "reading": "",
+                "paused": "",
+                "waiting_game": "",
+                "waiting_limit": ""
+            }
         },
         "nav_description": {
             "home": "",
@@ -990,6 +1123,7 @@
             "save": "",
             "saved": "Enregistré",
             "spike_at": "",
+            "needs_admin": "",
             "save_hint_one": "",
             "save_hint_other": ""
         },
@@ -1147,6 +1281,15 @@
             "unblocked_rules_other": "",
             "imported_one": "",
             "imported_other": ""
+        },
+        "admin_needed": {
+            "block": "",
+            "unblock": "",
+            "siblings": "",
+            "unblock_all": "",
+            "preset": "",
+            "import": "",
+            "description": ""
         }
     },
     "demos": {
@@ -1506,6 +1649,20 @@
                 "consequence": "",
                 "units_one": "",
                 "units_other": ""
+            },
+            "mvp_grades": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "shared_matches": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
             }
         }
     },
@@ -1659,8 +1816,16 @@
             "firewall": "",
             "monitor_label": "",
             "monitor": "",
+            "frametimes_label": "",
+            "frametimes": "",
             "nothing_else": "",
-            "not_elevated": ""
+            "admin_title": "",
+            "admin_body": "",
+            "always_note": "",
+            "later": "",
+            "later_note": "",
+            "always_on": "",
+            "always_on_hint": ""
         },
         "steam": {
             "title": "",
@@ -1788,6 +1953,7 @@
             "objective_damage": "",
             "healing": ""
         },
+        "rank_from_history": "",
         "paused": "",
         "player": {
             "steam_profile": "",
@@ -1801,6 +1967,64 @@
             "line": "",
             "named": "",
             "dismiss": ""
+        },
+        "grades": {
+            "label": {
+                "overall": "",
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "damage": "",
+                "objective_damage": "",
+                "healing": ""
+            },
+            "name": {
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "damage": "",
+                "objective_damage": "",
+                "healing": ""
+            },
+            "too_early": "",
+            "too_early_long": "",
+            "after_first_minute": "",
+            "no_targets": "",
+            "frozen": "",
+            "loading": "",
+            "avg": "",
+            "average": "",
+            "better_than": "",
+            "fewer_deaths": "",
+            "self_heal": "",
+            "healing_teammates": "",
+            "group": {
+                "rank": "",
+                "range": "",
+                "all_ranks": "",
+                "street_brawl": ""
+            },
+            "reason": {
+                "offline": "",
+                "api_down": "",
+                "rate_limited": "",
+                "empty_data": ""
+            }
+        },
+        "ptrace": {
+            "title": "",
+            "body": "",
+            "fix": "",
+            "fix_restart": "",
+            "reboot": "",
+            "manual": "",
+            "failed": ""
+        },
+        "game_admin": {
+            "title": "",
+            "body": ""
         }
     },
     "connection": {
@@ -1836,7 +2060,10 @@
         "notices": {
             "permission": "",
             "allow": "",
-            "retry": ""
+            "retry": "",
+            "admin_title": "",
+            "admin_body": "",
+            "helper_out_of_date": ""
         },
         "ping": {
             "no_data": "",
@@ -2127,6 +2354,10 @@
             "server_block_sync": {
                 "title": "",
                 "description": ""
+            },
+            "match_grades": {
+                "title": "",
+                "description": ""
             }
         },
         "policy": {
@@ -2158,6 +2389,26 @@
             "incomplete": "",
             "rate_limited": "",
             "stopped": "",
+            "paused": "",
+            "waiting_game": "",
+            "waiting_limit": "",
+            "continues_at": "",
+            "continues_tomorrow": "",
+            "continues_after_game": "",
+            "last_run": "",
+            "last_run_nothing_left": "",
+            "last_run_limit": "",
+            "last_run_failed": "",
+            "ago": {
+                "now": "",
+                "yesterday": "",
+                "minutes_one": "",
+                "minutes_other": "",
+                "hours_one": "",
+                "hours_other": "",
+                "days_one": "",
+                "days_other": ""
+            },
             "matches_one": "",
             "matches_other": ""
         }
@@ -2466,6 +2717,69 @@
                 "death_map_player": "",
                 "death_count_one": "",
                 "death_count_other": ""
+            },
+            "grade": {
+                "label": "",
+                "aria": "",
+                "leaver": "",
+                "unchecked": "",
+                "farm_bonus": "",
+                "metric": {
+                    "early_damage": "",
+                    "late_damage": "",
+                    "early_assists": "",
+                    "late_assists": "",
+                    "prebase_objective": "",
+                    "base_objective": "",
+                    "damage_absorbed": "",
+                    "ally_healing": "",
+                    "heal_prevented": "",
+                    "barriers": "",
+                    "cs": "",
+                    "kills": "",
+                    "deaths": "",
+                    "cc": ""
+                },
+                "place_ordinal_one": "",
+                "place_ordinal_other": ""
+            },
+            "missing": {
+                "details": "",
+                "replay": "",
+                "lead": "",
+                "badge_missing": "",
+                "badge_recovering": "",
+                "eta_seconds": "",
+                "eta_minutes": "",
+                "paused": "",
+                "recover": "",
+                "recover_time": "",
+                "consent_note": "",
+                "open_in_game": "",
+                "sharing_off": "",
+                "sharing_link": "",
+                "replay_available": "",
+                "replay_expired": "",
+                "replay_none": "",
+                "replay_expired_note": "",
+                "replay_none_note": "",
+                "replay_recoverable": "",
+                "replay_recoverable_note": "",
+                "replay_unrecoverable": "",
+                "replay_unrecoverable_note": "",
+                "replay_days_left_one": "",
+                "replay_days_left_other": ""
+            },
+            "replay_status": {
+                "available": "",
+                "recovering": "",
+                "recoverable": "",
+                "unrecoverable": "",
+                "expired": "",
+                "none": "",
+                "recover": "",
+                "recover_note": "",
+                "consent_note": ""
             }
         },
         "ping": {
@@ -2481,6 +2795,42 @@
             "empty": "",
             "chart_aria": "",
             "hint": ""
+        },
+        "coverage": {
+            "label": "",
+            "details": "",
+            "replays": "",
+            "details_aria": "",
+            "replays_aria": "",
+            "recover": "",
+            "recovering": "",
+            "paused": ""
+        },
+        "recovery": {
+            "title": "",
+            "close": "",
+            "consent": "",
+            "missing": "",
+            "badge_paused": "",
+            "badge_game": "",
+            "badge_limit": "",
+            "eta_left": "",
+            "eta_total": "",
+            "duration_minutes": "",
+            "duration_hours": "",
+            "duration_hours_minutes": "",
+            "progress_label": "",
+            "accounts": "",
+            "start": "",
+            "pause": "",
+            "resume": "",
+            "limit_note": "",
+            "step_details": "",
+            "step_replays": ""
+        },
+        "row_state": {
+            "missing": "",
+            "recovering": ""
         }
     }
 }
