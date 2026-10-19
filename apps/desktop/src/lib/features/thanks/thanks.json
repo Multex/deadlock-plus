@@ -39,6 +39,13 @@
             ]
         },
         {
+            "name": "Multex",
+            "url": "https://crowdin.com/profile/Multex",
+            "languages": [
+                "es"
+            ]
+        },
+        {
             "name": "zeldash",
             "url": "https://crowdin.com/profile/zeldash",
             "languages": [
