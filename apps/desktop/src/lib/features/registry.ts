@@ -21,6 +21,7 @@ import { settings } from "./settings/settings.svelte";
 import { nudgeOnLaunch } from "./support/nudge";
 import { noticeOnLaunch } from "./telemetry/notice";
 import { steamAccount } from "./steam-account/account.svelte";
+import { listenForQuit } from "$lib/core/exit";
 import { t } from "$lib/core/i18n.svelte";
 import { checkOnLaunch, startBackgroundUpdateChecks } from "./updates/launch-check";
 import { whatsNew } from "./updates/whats-new.svelte";
@@ -167,6 +168,7 @@ export type Service = () => void | (() => void);
 
 export const SERVICES: Service[] = [
     installFrontendLogging,
+    listenForQuit,
     () => {
         void settings.init();
     },

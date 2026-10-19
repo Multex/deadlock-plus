@@ -217,6 +217,7 @@ pub fn run() {
             features::autostart::commands::set_autostart,
             features::i18n::commands::set_language,
             features::tray::commands::set_close_to_tray,
+            features::tray::commands::quit_app,
             features::app_window::commands::set_ui_scale,
             features::app_window::commands::set_open_on_game_start,
             features::app_window::commands::restart_app,

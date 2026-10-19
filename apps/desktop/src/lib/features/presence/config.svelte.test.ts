@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PresenceConfigStore, type PresenceConfigApi } from "./config.svelte";
+
+const { setPresenceConfig } = vi.hoisted(() => ({ setPresenceConfig: vi.fn(async () => {}) }));
+vi.mock("./api", () => ({ setPresenceConfig }));
+
+import { runBeforeExit } from "$lib/core/exit";
+import { PresenceConfigStore, presenceConfigStore, type PresenceConfigApi } from "./config.svelte";
 
 import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
 
@@ -165,5 +170,11 @@ describe("PresenceConfigStore", () => {
         await store.resetAll();
         expect(store.config).toEqual(empty());
         expect(api.setPresenceConfig).toHaveBeenLastCalledWith(empty());
+    });
+
+    it("saves a pending edit before the app exits", async () => {
+        presenceConfigStore.edit(withDetails("quit"));
+        await runBeforeExit();
+        expect(setPresenceConfig).toHaveBeenCalledWith(withDetails("quit"));
     });
 });

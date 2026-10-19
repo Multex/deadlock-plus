@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 pub mod badges;
 mod host;
@@ -12,6 +13,9 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 const MAIN_WINDOW: &str = "main";
 pub const WINDOW_HIDDEN_EVENT: &str = "window-hidden";
 pub const WINDOW_SHOWN_EVENT: &str = "window-shown";
+const QUIT_REQUESTED_EVENT: &str = "quit-requested";
+/// The page answers with `quit_app` once its pending saves land; this bounds the wait if it never does.
+const QUIT_GRACE: Duration = Duration::from_secs(2);
 const AUTOSTART_ARG: &str = "--autostart";
 const SHOW_ID: &str = "show";
 const QUIT_ID: &str = "quit";
@@ -150,7 +154,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
             SHOW_ID => show_main(app),
             QUIT_ID => {
                 log::info!("quit requested from the tray");
-                app.exit(0);
+                request_quit(app);
             }
             _ => {}
         })
@@ -172,20 +176,56 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-fn should_hide_to_tray(label: &str, close_to_tray: bool) -> bool {
-    label == MAIN_WINDOW && close_to_tray
+/// `app.exit` tears the page down at once, so a save it still holds (a debounced edit) would be lost. The page
+/// gets the chance to save first.
+fn request_quit(app: &AppHandle) {
+    if let Err(e) = app.emit_to(MAIN_WINDOW, QUIT_REQUESTED_EVENT, ()) {
+        log::warn!("could not ask the page to quit, exiting now: {e}");
+        app.exit(0);
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(QUIT_GRACE);
+        log::warn!("the page did not answer the quit request, exiting");
+        app.exit(0);
+    });
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum CloseAction {
+    Hide,
+    /// Quits through the page, as the tray's Quit does, instead of letting the window close under it.
+    Quit,
+    Close,
+}
+
+fn close_action(label: &str, close_to_tray: bool) -> CloseAction {
+    match (label == MAIN_WINDOW, close_to_tray) {
+        (true, true) => CloseAction::Hide,
+        (true, false) => CloseAction::Quit,
+        (false, _) => CloseAction::Close,
+    }
 }
 
 pub fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
     match event {
         WindowEvent::CloseRequested { api, .. } => {
-            if should_hide_to_tray(window.label(), window.state::<CloseToTray>().get()) {
-                api.prevent_close();
-                log::debug!("close requested, hiding to the tray");
-                if let Err(e) = window.hide() {
-                    log::warn!("could not hide the window: {e}");
+            match close_action(window.label(), window.state::<CloseToTray>().get()) {
+                CloseAction::Hide => {
+                    api.prevent_close();
+                    log::debug!("close requested, hiding to the tray");
+                    if let Err(e) = window.hide() {
+                        log::warn!("could not hide the window: {e}");
+                    }
+                    sync_main_visibility(window.app_handle());
                 }
-                sync_main_visibility(window.app_handle());
+                CloseAction::Quit => {
+                    api.prevent_close();
+                    log::info!("main window closed with close to tray off, quitting");
+                    request_quit(window.app_handle());
+                }
+                CloseAction::Close => {}
             }
         }
         // Minimize and restore from the taskbar arrive as `Resized`.
@@ -210,6 +250,13 @@ pub mod commands {
     pub fn set_close_to_tray(enabled: bool, state: tauri::State<'_, CloseToTray>) {
         state.set(enabled);
         log::info!("close to tray {}", if enabled { "enabled" } else { "disabled" });
+    }
+
+    /// The page's answer to `quit-requested`, sent once its pending saves have landed.
+    #[tauri::command]
+    pub fn quit_app(app: AppHandle) {
+        log::info!("the page is ready, quitting");
+        app.exit(0);
     }
 
     #[tauri::command]
@@ -285,10 +332,19 @@ mod tests {
     }
 
     #[test]
-    fn hides_only_main_window_with_close_to_tray_on() {
-        assert!(should_hide_to_tray("main", true));
-        assert!(!should_hide_to_tray("main", false));
-        assert!(!should_hide_to_tray("other", true));
+    fn closing_the_main_window_hides_it_with_close_to_tray_on() {
+        assert_eq!(close_action("main", true), CloseAction::Hide);
+    }
+
+    #[test]
+    fn closing_the_main_window_quits_through_the_page_with_close_to_tray_off() {
+        assert_eq!(close_action("main", false), CloseAction::Quit);
+    }
+
+    #[test]
+    fn other_windows_close_normally() {
+        assert_eq!(close_action("overlay", true), CloseAction::Close);
+        assert_eq!(close_action("overlay", false), CloseAction::Close);
     }
 
     #[test]

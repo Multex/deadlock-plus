@@ -126,6 +126,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pressing Play while match salts are being recovered no longer says Deadlock is being played on another computer.
 - Discord shows "Finding match" with the queue timer again when you queue as a party.
 - Sharing your matches no longer fails when Steam's cache holds more than 1,000 of them.
+- A Discord presence edit made just before quitting Deadlock+ is no longer lost.
+- Closing the main window with "Keep running in the tray" off now always quits Deadlock+, instead of sometimes leaving it running with no window.
 - Every replay link in a Steam cache entry is shared, not just the first.
 - Replays found in Steam's cache are no longer sent without their match details, which kept stat sites from loading them.
 - Match recovery hands unfinished matches back to the Deadlock API after each run, so other helpers can pick them up.

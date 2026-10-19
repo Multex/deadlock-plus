@@ -1,4 +1,5 @@
 import { errorText } from "$lib/core/errors";
+import { onBeforeExit } from "$lib/core/exit";
 import * as api from "./api";
 
 import type { PresenceConfig } from "@deadlock-plus/ipc-types/PresenceConfig";
@@ -101,3 +102,5 @@ export class PresenceConfigStore {
 }
 
 export const presenceConfigStore = new PresenceConfigStore();
+
+onBeforeExit(() => presenceConfigStore.flush());

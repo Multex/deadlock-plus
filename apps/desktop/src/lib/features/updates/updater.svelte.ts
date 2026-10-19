@@ -1,3 +1,4 @@
+import { runBeforeExit } from "$lib/core/exit";
 import { check, type Update } from "$lib/core/updater";
 
 export type UpdatePhase = "idle" | "checking" | "upToDate" | "available" | "downloading" | "error";
@@ -39,13 +40,15 @@ class Updater {
         let total = 0;
         let received = 0;
         try {
-            await update.downloadAndInstall((event) => {
+            await update.download((event) => {
                 if (event.event === "Started") total = event.data.contentLength ?? 0;
                 if (event.event === "Progress") {
                     received += event.data.chunkLength;
                     this.progress = total > 0 ? Math.min(received / total, 1) : null;
                 }
             });
+            await runBeforeExit();
+            await update.install();
         } catch (e) {
             console.warn("update download failed:", e);
             this.phase = "error";
