@@ -423,7 +423,8 @@ mod tests {
         let start = Instant::now();
         let error = accept(&server, Duration::from_millis(200)).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
-        assert!(start.elapsed() >= Duration::from_millis(200));
+        // The wait counts in timer ticks (15.6 ms by default), so it can return up to one tick before 200 ms.
+        assert!(start.elapsed() >= Duration::from_millis(180));
         assert!(start.elapsed() < Duration::from_secs(2));
     }
 
