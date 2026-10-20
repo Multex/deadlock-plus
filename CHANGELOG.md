@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-10-21
+
+### Fixed
+
+- Updates install again from inside Deadlock+.
+- If you have 0.13.0 or 0.13.1, download 0.13.2 from the website once. Updates work from the app after that.
+
 ## [0.13.1] - 2026-10-20
 
 ### Fixed
