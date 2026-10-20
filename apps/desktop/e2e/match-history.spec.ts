@@ -225,6 +225,35 @@ test.describe("a match", () => {
         }
     });
 
+    test("item slots stay square after artwork loads and when the board is resized", async ({ page }) => {
+        const items = page.getByRole("table", { name: "Scoreboard" }).getByRole("list", { name: "Items", exact: true });
+        await expect(items).toHaveCount(12);
+        await expect(items.getByRole("img").first()).toBeVisible();
+
+        for (const width of [1280, 1480, 1920]) {
+            await page.setViewportSize({ width, height: 900 });
+            const sizes = await items.evaluateAll((lists) =>
+                lists.flatMap((list) =>
+                    [...list.children].flatMap((tile) =>
+                        [tile, ...tile.querySelectorAll("img")].map((element) => {
+                            const { width, height } = element.getBoundingClientRect();
+                            return { width, height };
+                        }),
+                    ),
+                ),
+            );
+
+            expect(sizes.length).toBeGreaterThanOrEqual(12 * 12);
+            for (const size of sizes) {
+                expect(size.width).toBeGreaterThan(0);
+                expect(
+                    Math.abs(size.width - size.height),
+                    `item tile or artwork at viewport width ${width}`,
+                ).toBeLessThan(1);
+            }
+        }
+    });
+
     test("every graded player shows a grade with a score and a place, and a tie shares the place", async ({ page }) => {
         const scoreboard = page.getByRole("table", { name: "Scoreboard" });
         const grades = scoreboard.getByRole("button", {
