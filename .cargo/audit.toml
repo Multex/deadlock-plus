@@ -15,4 +15,8 @@ ignore = [
     # steam-vent, the only user (through dp-gc), builds RsaPublicKey values from Steam's fixed public
     # key to verify signatures and encrypt, and never holds a private key. Revisit when rsa ships a fix.
     "RUSTSEC-2023-0071",
+    # webpki-roots emSign roots. The audit flags 0.26.11 by version, but 0.26.11 only re-exports
+    # webpki-roots 1.x, which Cargo.lock holds at the fixed 1.0.10. It comes from steam-vent's
+    # tokio-tungstenite 0.27. Revisit when steam-vent moves to webpki-roots 1.x or 0.26.12 ships.
+    "RUSTSEC-2026-0381",
 ]
