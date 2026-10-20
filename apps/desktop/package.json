@@ -1,6 +1,6 @@
 {
   "name": "deadlock-plus",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Companion app for Deadlock: server picker, connection monitor, mutes, replays and storage",
   "type": "module",
   "scripts": {
