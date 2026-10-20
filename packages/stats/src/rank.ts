@@ -77,9 +77,12 @@ export interface Subrank extends BadgeParts {
 
 // Progress is one running total. Each tier is 7000 points: subranks 1-5 take 1000 each and the
 // sixth takes the last 2000. Checked against a real account's history; the API docs only say 1000.
+// Rebuilt progress can dip below zero, so the remainder is floored: `%` keeps the sign of `flat`,
+// and a negative unit would put `start` above `flat`.
 export function subrankAt(flat: number): Subrank {
-    const tier = Math.floor(flat / (UNIT * UNITS_PER_TIER)) + 1;
-    const unit = Math.floor((flat % (UNIT * UNITS_PER_TIER)) / UNIT);
+    const perTier = UNIT * UNITS_PER_TIER;
+    const tier = Math.floor(flat / perTier) + 1;
+    const unit = Math.floor((((flat % perTier) + perTier) % perTier) / UNIT);
     const sub = Math.min(unit + 1, SUBRANKS_PER_TIER);
     const last = sub === SUBRANKS_PER_TIER;
     return {

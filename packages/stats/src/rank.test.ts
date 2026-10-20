@@ -154,6 +154,14 @@ describe("subrankAt", () => {
         expect(subrankAt(62999)).toEqual({ tier: 9, sub: 6, start: 61000, span: 2000 });
         expect(subrankAt(63000).tier).toBe(10);
     });
+
+    it("keeps progress below zero inside its own subrank", () => {
+        for (const flat of [-1, -500, -6000, -7000, -7001, -20500]) {
+            const sr = subrankAt(flat);
+            expect(sr.start).toBeLessThanOrEqual(flat);
+            expect(sr.start + sr.span).toBeGreaterThan(flat);
+        }
+    });
 });
 
 describe("standing", () => {

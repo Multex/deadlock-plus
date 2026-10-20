@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - Item icons no longer stretch the Match History scoreboard on Linux.
+- The rank chart on Stats no longer breaks for accounts whose early rank history sits at the very bottom.
 
 ## [0.13.0] - 2026-10-19
 

@@ -57,6 +57,12 @@ describe("buildRankChart", () => {
         const chart = buildRankChart([point(1, 500), point(2, 2500)], 50, ranks)!;
         expect(chart.lines.map((l) => l.label)).toEqual(["Initiate 1", "Initiate 2", "Initiate 3", "Initiate 4"]);
     });
+
+    it("still draws when rebuilt progress dips below zero", () => {
+        const chart = buildRankChart([point(1, -500), point(2, 1500)], 50, ranks)!;
+        expect(chart.dots).toHaveLength(2);
+        expect(chart.lines.length).toBeGreaterThan(0);
+    });
 });
 
 describe("buildRankChart marks", () => {
