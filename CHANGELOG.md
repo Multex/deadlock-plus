@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- Item icons no longer stretch the Match History scoreboard on Linux.
+
 ## [0.13.0] - 2026-10-19
 
 ### Added
