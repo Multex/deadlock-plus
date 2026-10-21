@@ -82,6 +82,11 @@ pub enum SaveRequest {
         source: String,
         build: BuildView,
     },
+    /// `build` is a public build known only as a view (the API has no blob); it is both the source
+    /// and the draft.
+    CopyView {
+        build: BuildView,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]

@@ -126,6 +126,10 @@ pub fn plan_save(request: SaveRequest, ctx: &Ctx) -> Result<Planned, AppError> {
             let id = next_local_id(ctx.file, ctx.queued).ok_or(BuildsError::NoLocalId)?;
             created(model::new_local(id, ctx.account, build.hero_id, ctx.language, ctx.now), build, ctx)
         }
+        SaveRequest::CopyView { build } => {
+            let id = next_local_id(ctx.file, ctx.queued).ok_or(BuildsError::NoLocalId)?;
+            created(model::copy_from_view(&build, id, ctx.account, ctx.language, ctx.now), build, ctx)
+        }
         SaveRequest::Copy { source, build } => {
             let (_, source) = decode_base(&source)?;
             let id = next_local_id(ctx.file, ctx.queued).ok_or(BuildsError::NoLocalId)?;
@@ -564,6 +568,22 @@ mod tests {
         let written = decoded(&planned.ops[0]);
         assert_eq!((written.hero_build_id, written.origin_build_id), (1, Some(5000)));
         assert_eq!(written.name, "my copy");
+        assert!(!written.favorited);
+    }
+
+    #[test]
+    fn a_view_copy_points_at_its_public_source() {
+        let file = BuildsFile::empty();
+        let heroes = heroes();
+        let mut view = model::view(&build(5000, 1, "public"));
+        view.publish_timestamp = Some(1_700_000_000);
+        view.tags = vec![4];
+        let planned = plan_save(SaveRequest::CopyView { build: view }, &ctx(&file, &[], &heroes)).unwrap();
+        assert_eq!(planned.build_id, 1);
+        let written = decoded(&planned.ops[0]);
+        assert_eq!((written.hero_build_id, written.origin_build_id), (1, Some(5000)));
+        assert_eq!((written.author_account_id, written.version), (ACCOUNT, 0));
+        assert_eq!((written.publish_timestamp, written.tags), (Some(1_700_000_000), vec![4]));
         assert!(!written.favorited);
     }
 

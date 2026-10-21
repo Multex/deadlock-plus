@@ -2,4 +2,4 @@
 import type { BuildSection } from "./BuildSection";
 import type { BuildView } from "./BuildView";
 
-export type SaveRequest = { "kind": "edit", section: BuildSection, base: string, build: BuildView, } | { "kind": "new", build: BuildView, } | { "kind": "copy", source: string, build: BuildView, };
+export type SaveRequest = { "kind": "edit", section: BuildSection, base: string, build: BuildView, } | { "kind": "new", build: BuildView, } | { "kind": "copy", source: string, build: BuildView, } | { "kind": "copyView", build: BuildView, };

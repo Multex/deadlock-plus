@@ -293,6 +293,33 @@ pub fn copy_as_new(source: &HeroBuildResult, id: u32, author_account_id: u32, no
     }
 }
 
+/// [`copy_as_new`] for a public build that only exists as a view (the API has no blob). The copy
+/// points at the source's id and keeps its publish time, tags and contents; whatever only a blob
+/// carries (unknown bytes) is absent. A source language of 0 falls back to `language`.
+#[must_use]
+pub fn copy_from_view(
+    source: &BuildView,
+    id: u32,
+    author_account_id: u32,
+    language: u32,
+    now_unix: u32,
+) -> HeroBuildResult {
+    let mut out = apply(&HeroBuildResult::default(), source);
+    let h = out.hero_build.get_or_insert_with(Default::default);
+    h.hero_build_id = Some(id);
+    h.author_account_id = Some(author_account_id);
+    h.last_updated_timestamp = Some(now_unix);
+    h.version = Some(0);
+    h.origin_build_id =
+        if source.hero_build_id >= LOCAL_ID_LIMIT { Some(source.hero_build_id) } else { source.origin_build_id };
+    h.language = Some(if source.language == 0 { language } else { source.language });
+    h.hero_id = Some(source.hero_id);
+    h.name = Some(source.name.clone());
+    h.description = Some(source.description.clone());
+    out.preference = Some(Preference::default());
+    out
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AbilityOrderError {
     UnknownAbility { step: usize },
@@ -754,6 +781,56 @@ mod tests {
         assert_eq!(copy_as_new(&source, 58, ACCOUNT, 0).hero_build.unwrap().origin_build_id, Some(236_324));
         let fresh = new_local(57, ACCOUNT, 2, 0, 0);
         assert_eq!(copy_as_new(&fresh, 58, ACCOUNT, 0).hero_build.unwrap().origin_build_id, None);
+    }
+
+    fn strip_unknown(r: &mut HeroBuildResult) {
+        r.unknown.clear();
+        if let Some(p) = r.preference.as_mut() {
+            p.unknown.clear();
+        }
+        let Some(h) = r.hero_build.as_mut() else { return };
+        h.unknown.clear();
+        let Some(d) = h.details.as_mut() else { return };
+        d.unknown.clear();
+        for c in &mut d.mod_categories {
+            c.unknown.clear();
+            c.mods.iter_mut().for_each(|m| m.unknown.clear());
+        }
+        if let Some(a) = d.ability_order.as_mut() {
+            a.unknown.clear();
+            a.currency_changes.iter_mut().for_each(|c| c.unknown.clear());
+        }
+    }
+
+    #[test]
+    fn a_view_copy_matches_the_blob_copy_but_for_unknown_bytes() {
+        let mut source = public(398_750, Some(395_336));
+        {
+            let h = hb(&mut source);
+            h.language = Some(5);
+            h.publish_timestamp = Some(1_700_000_000);
+            h.tags = vec![3, 9];
+            h.development_build = None;
+            let d = h.details.as_mut().unwrap();
+            d.mod_categories[1].description = Some(String::new());
+            d.mod_categories[1].optional = None;
+        }
+        let from_blob = copy_as_new(&source, 61, ACCOUNT, 1_792_541_625);
+        let from_view = copy_from_view(&view(&source), 61, ACCOUNT, 7, 1_792_541_625);
+        assert_ne!(from_view, from_blob);
+        let mut expected = from_blob;
+        strip_unknown(&mut expected);
+        assert_eq!(from_view.encode(), expected.encode());
+        let h = from_view.hero_build.unwrap();
+        assert_eq!(h.origin_build_id, Some(398_750));
+        assert_eq!((h.publish_timestamp, h.tags, h.version), (Some(1_700_000_000), vec![3, 9], Some(0)));
+    }
+
+    #[test]
+    fn a_view_copy_without_a_language_takes_the_given_one() {
+        let mut v = view(&public(398_750, None));
+        v.language = 0;
+        assert_eq!(copy_from_view(&v, 61, ACCOUNT, 7, 0).hero_build.unwrap().language, Some(7));
     }
 
     const HERO: [u32; 4] = [11, 22, 33, 44];
