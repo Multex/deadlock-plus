@@ -136,6 +136,21 @@ describe("standardTags", () => {
         expect(tags.find((t) => t.key === "spirit")).toEqual({ id: 36498494, key: "spirit" });
     });
 
+    it("keeps the game's icon for a tag that has one", () => {
+        const tags = standardTags(game.map((g) => (g.key === "weapon" ? { ...g, icon: "asset://weapon.svg" } : g)));
+        expect(tags.find((t) => t.key === "weapon")).toEqual({
+            id: 47026193,
+            key: "weapon",
+            name: "Waffe",
+            icon: "asset://weapon.svg",
+        });
+        expect(tags.find((t) => t.key === "damage")).not.toHaveProperty("icon");
+        expect(describeTag(47026193, { standard: tags })).toMatchObject({
+            kind: "standard",
+            icon: "asset://weapon.svg",
+        });
+    });
+
     it("names a chosen standard tag from the game list", () => {
         expect(describeTag(999, { standard: standardTags(game) })).toEqual({
             id: 999,

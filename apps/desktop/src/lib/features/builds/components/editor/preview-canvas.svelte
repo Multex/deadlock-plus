@@ -6,6 +6,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import type { ChipItem } from "../../shop-view";
     import ShopCategory from "../shop/shop-category.svelte";
+    import { headerLinesFor } from "../../header-lines.svelte";
     import { previewView } from "./canvas/preview";
     import type { Zoom } from "./canvas/zoom";
 
@@ -25,7 +26,9 @@
     } = $props();
 
     let available = $state(0);
-    const layout = $derived(previewView(build.modCategories, screen, available, zoom));
+    const layout = $derived(
+        previewView(build.modCategories, screen, available, zoom, headerLinesFor(build.modCategories)),
+    );
     const view = $derived(layout.view);
     const items = $derived(build.modCategories.map((category) => category.mods.map((mod) => resolve(mod.abilityId))));
 
@@ -59,7 +62,6 @@
                         items={items[category.index]!}
                         unit={view.unit}
                         border={view.border}
-                        header={view.header}
                     />
                 {/each}
             </div>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
     MAX_COLUMNS_EVERYWHERE,
+    layoutBuild,
+    layoutPreview,
     minHeightForRowsEverywhere,
     minWidthForColumns,
     minWidthForColumnsEverywhere,
@@ -111,6 +113,95 @@ describe("layoutIssues", () => {
     it("lists one category's kinds in a fixed order", () => {
         const b = build(category(257.25, 162.75, 6));
         expect(layoutIssues(b)).toEqual([{ index: 0, kinds: ["columns", "height"] }]);
+    });
+});
+
+describe("layoutIssues, wrapped names", () => {
+    it("flags a name that wraps at 1440p and pushes a chip row past the stored height", () => {
+        const b = build(category(ew(3), 162.75, 3), category(ew(3), 162.75, 3));
+        expect(layoutIssues(b, { headerLines: [2, 1] })).toEqual([{ index: 0, kinds: ["title_wraps"] }]);
+    });
+
+    it("leaves a wrapped name alone while the stored height still shows every chip", () => {
+        expect(layoutIssues(build(category(ew(3), 200, 3)), { headerLines: [2] })).toEqual([]);
+    });
+
+    it("leaves one-line and unmeasured names alone", () => {
+        const b = build(category(ew(3), 162.75, 3));
+        expect(layoutIssues(b, { headerLines: [1] })).toEqual([]);
+        expect(layoutIssues(b)).toEqual([]);
+    });
+
+    it("leaves it to the height issue when the stored height already cuts off every row", () => {
+        expect(layoutIssues(build(category(ew(3), 100, 6)), { headerLines: [2] })).toEqual([
+            { index: 0, kinds: ["height"] },
+        ]);
+    });
+
+    it("lists it after the size issues", () => {
+        const b = build(category(257.25, 162.75, 6));
+        expect(layoutIssues(b, { headerLines: [2] })).toEqual([
+            { index: 0, kinds: ["columns", "height", "title_wraps"] },
+        ]);
+    });
+});
+
+const SCREENS: Screen[] = [FHD, { width: 2560, height: 1440 }, { width: 3840, height: 2160 }];
+
+/** Chip rows any scale of the shop or the Build Browser preview cuts off. */
+function clippedAnywhere(b: BuildView, headerLines: readonly number[]): number[] {
+    const categories = b.modCategories.map((c, i) => ({
+        width: c.width!,
+        height: c.height!,
+        items: c.mods.length,
+        headerLines: headerLines[i],
+    }));
+    return categories.map((_, i) =>
+        Math.max(
+            ...SCREENS.flatMap((screen) => [
+                layoutBuild(categories, screen).categories[i]!.clippedRows,
+                layoutPreview(categories, screen).categories[i]!.clippedRows,
+            ]),
+        ),
+    );
+}
+
+describe("repairLayout, wrapped names", () => {
+    it("grows the height by the worst-case extra header: 23 units for a second line, 45 for a third", () => {
+        const b = build(category(ew(3), 162.75, 3), category(ew(3), 162.75, 3));
+        expect(heights(repairLayout(b, { headerLines: [2, 1] }))).toEqual([eh(1) + 23, 162.75]);
+        expect(heights(repairLayout(b, { headerLines: [3, 1] }))).toEqual([eh(1) + 45, 162.75]);
+    });
+
+    it("shows every chip row under the wrapped header in the shop and the preview at every scale", () => {
+        const b = build(category(ew(3), 162.75, 3), category(ew(3), 282.75, 6));
+        const lines = [2, 3];
+        const fixed = repairLayout(b, { headerLines: lines });
+        expect(clippedAnywhere(fixed, lines)).toEqual([0, 0]);
+        expect(layoutIssues(fixed, { headerLines: lines })).toEqual([]);
+    });
+
+    it("keeps the name and the width", () => {
+        const b = build(category(ew(3), 162.75, 3, "Pick 1 after Spiritual Overflow"));
+        const fixed = repairLayout(b, { headerLines: [2] }).modCategories[0]!;
+        expect(fixed.name).toBe("Pick 1 after Spiritual Overflow");
+        expect(fixed.width).toBe(ew(3));
+    });
+
+    it("leaves a fixed build as it is", () => {
+        const b = build(category(ew(3), 162.75, 3), category(ew(2), 100, 4));
+        const once = repairLayout(b, { headerLines: [2, 2] });
+        expect(repairLayout(once, { headerLines: [2, 2] })).toBe(once);
+    });
+
+    it("counts the wrapped header when it grows a height that was too short or missing", () => {
+        const b = build(category(ew(3), 100, 6), category(ew(3), null, 3));
+        expect(heights(repairLayout(b, { headerLines: [2, 2] }))).toEqual([eh(2) + 23, eh(1) + 23]);
+    });
+
+    it("keeps a wrapped category whose height already shows its rows", () => {
+        const b = build(category(ew(3), 300, 3), category(257.25, 162.75, 6));
+        expect(heights(repairLayout(b, { headerLines: [2, 1] }))[0]).toBe(300);
     });
 });
 

@@ -145,6 +145,27 @@ export function orderSteps(order: readonly CurrencyChangeView[], levels: readonl
         .map((b) => ({ ...b, level: table.level(b) }));
 }
 
+/**
+ * A stored order as the game reads it, for showing a build as-is: up to the leftover tail, points on a
+ * locked ability skipped, nothing moved. Unlocks are read by currency, as some builds store them free.
+ */
+export function readSteps(order: readonly CurrencyChangeView[], levels: readonly Level[]): OrderStep[] {
+    const table = new Levels(levels);
+    const tiers = new Map<number, number>();
+    const steps: OrderStep[] = [];
+    for (const c of order.slice(0, tailStart(order))) {
+        const current = tiers.get(c.abilityId);
+        let tier: number;
+        if (c.currencyType === ABILITY_UNLOCK) tier = 0;
+        else if (c.currencyType === ABILITY_POINTS && current !== undefined) tier = current + 1;
+        else continue;
+        tiers.set(c.abilityId, tier);
+        const step = { abilityId: c.abilityId, tier };
+        steps.push({ ...step, level: table.level(step) });
+    }
+    return steps;
+}
+
 /** Per ability (in `abilities` order), its unlock slot then tiers 1-3. */
 export function slotState(
     order: readonly CurrencyChangeView[],
@@ -390,7 +411,10 @@ export interface PointsSummary {
 }
 
 export function pointsSummary(order: readonly CurrencyChangeView[], levels: readonly Level[]): PointsSummary {
-    const steps = orderSteps(order, levels);
+    return stepsSummary(orderSteps(order, levels), levels);
+}
+
+export function stepsSummary(steps: readonly OrderStep[], levels: readonly Level[]): PointsSummary {
     const spent = steps.reduce((sum, s) => sum + (s.tier > 0 ? TIER_COSTS[s.tier - 1]! : 0), 0);
     return { spent, available: levels.at(-1)?.ap ?? null, lastLevel: steps.at(-1)?.level ?? null };
 }

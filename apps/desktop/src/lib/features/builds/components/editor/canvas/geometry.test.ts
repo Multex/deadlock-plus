@@ -72,6 +72,20 @@ describe("slotBoxes", () => {
         expect(slots[4]!.y - slots[0]!.y).toBeGreaterThan(first.chips[0]!.height);
     });
 
+    it("moves the empty slots down with a wrapped name's header", () => {
+        const flat = canvasView(BUILD, QHD, AVAILABLE).view;
+        const { view } = canvasView(BUILD, QHD, AVAILABLE, "fit", [2, 2]);
+        const shift = 28 * view.scale;
+        expect(view.categories[0]!.header - flat.categories[0]!.header).toBeCloseTo(shift, 10);
+        const slots = slotBoxes(view, view.categories[0]!, 6, QHD);
+        const flatSlots = slotBoxes(flat, flat.categories[0]!, 6, QHD);
+        expect(slots[5]!.y - flatSlots[5]!.y).toBeCloseTo(shift, 10);
+        expect(slotBoxes(view, view.categories[1]!, 1, QHD)[0]!.y).toBeCloseTo(
+            slotBoxes(flat, flat.categories[1]!, 1, QHD)[0]!.y + shift,
+            10,
+        );
+    });
+
     it("starts an empty category's grid where its first chip would sit", () => {
         const { view } = canvasView(BUILD, QHD, AVAILABLE);
         const withItem = canvasView([BUILD[0]!, category(176, 1)], QHD, AVAILABLE).view;

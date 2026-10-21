@@ -30,7 +30,7 @@
 </script>
 
 <aside
-    class="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r border-border bg-card/40"
+    class="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r border-border bg-card"
     aria-label={t("builds.editor.inspector.label")}
     data-testid="inspector"
 >

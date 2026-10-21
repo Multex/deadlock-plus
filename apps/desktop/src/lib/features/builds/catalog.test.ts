@@ -35,6 +35,8 @@ function meta(over: Partial<ShopMetadata> & Pick<ShopMetadata, "id" | "className
         shopable: true,
         disabled: false,
         imbue: false,
+        shopFilters: [],
+        disabledShopFilters: [],
         componentIds: [],
         ...over,
     };
@@ -72,6 +74,8 @@ function game(over: Partial<GameShopItem> & Pick<GameShopItem, "id" | "className
         disabled: false,
         shopable: true,
         imbue: false,
+        shopFilters: [],
+        disabledShopFilters: [],
         ...over,
     };
 }
@@ -123,10 +127,36 @@ describe("shopMetadata", () => {
             shopable: true,
             disabled: false,
             imbue: false,
+            shopFilters: [],
+            disabledShopFilters: [],
             componentIds: [],
         });
         expect(rows[1]).toMatchObject({ tier: 2, cost: 1600, active: true, componentIds: [1], imbue: true });
         expect(rows[2]).toMatchObject({ disabled: true, shopable: false });
+    });
+
+    it("carries the game files' shop filter overrides", async () => {
+        answer({
+            game_shop_items: [
+                game({
+                    id: 1,
+                    className: "upgrade_absorbing_armor",
+                    shopFilters: ["EShopFilterSpiritCooldownAndCharges"],
+                    disabledShopFilters: ["EShopFilterSpiritDamage"],
+                }),
+            ],
+        });
+        expect(await shopMetadata()).toMatchObject([
+            {
+                shopFilters: ["EShopFilterSpiritCooldownAndCharges"],
+                disabledShopFilters: ["EShopFilterSpiritDamage"],
+            },
+        ]);
+    });
+
+    it("gives API items no shop filter overrides", async () => {
+        items.mockResolvedValue([asset({ id: 1, class_name: "upgrade_a" })]);
+        expect(await shopMetadata()).toMatchObject([{ shopFilters: [], disabledShopFilters: [] }]);
     });
 
     it("falls back to the API when the game files give no items", async () => {
@@ -211,6 +241,18 @@ describe("buildShopCatalog", () => {
     it("carries the imbue flag", () => {
         const flagged = buildShopCatalog([], [meta({ id: 1, className: "upgrade_a", imbue: true })], {});
         expect(flagged.byId.get(1)?.imbue).toBe(true);
+    });
+
+    it("carries the shop filter overrides", () => {
+        const row = meta({
+            id: 1,
+            className: "upgrade_a",
+            shopFilters: ["EShopFilterTeleport"],
+            disabledShopFilters: ["EShopFilterSpiritRange"],
+        });
+        const item = buildShopCatalog([], [row], {}).byId.get(1);
+        expect(item?.shopFilters).toEqual(["EShopFilterTeleport"]);
+        expect(item?.disabledShopFilters).toEqual(["EShopFilterSpiritRange"]);
     });
 
     it("attaches art when the game has it", () => {

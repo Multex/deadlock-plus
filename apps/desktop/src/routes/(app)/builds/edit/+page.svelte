@@ -18,6 +18,7 @@
     import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
     import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
+    import { provideItemTooltips } from "$lib/features/builds/components/item-tooltip/context";
     import { loadSnap, saveSnap } from "$lib/features/builds/components/editor/canvas/snap";
     import { loadZoom, saveZoom, stepZoom } from "$lib/features/builds/components/editor/canvas/zoom";
     import ShopRail from "$lib/features/builds/components/editor/shop/shop-rail.svelte";
@@ -25,6 +26,7 @@
     import { addCategory, type ItemRef } from "$lib/features/builds/editor/document";
     import { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
     import { loadEditSession, parseEditTarget, protoLanguage } from "$lib/features/builds/editor/load";
+    import { HeroPopularity } from "$lib/features/builds/editor/popularity.svelte";
     import { LOCAL_ID_LIMIT } from "$lib/features/builds/my-builds";
     import { MEASURED_RESOLUTION, SHOP_SCREENS, type ShopResolution } from "$lib/features/builds/shop-view";
     import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
@@ -46,6 +48,8 @@
     $effect(() => saveZoom(zoom));
     let snap = $state(loadSnap());
     $effect(() => saveSnap(snap));
+    const popularity = new HeroPopularity();
+    provideItemTooltips(() => (catalog ? { catalog, popularity } : null));
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 
@@ -82,6 +86,7 @@
                 editor = opened;
                 status = "ready";
                 const heroId = session.build.heroId;
+                void popularity.load(heroId);
                 void loadShopCatalog(i18n.locale).then(
                     (loaded) => live && (catalog = loaded),
                     () => live && (catalogFailed = true),
@@ -220,7 +225,7 @@
 {/snippet}
 
 <div class="flex h-full min-h-0 flex-col">
-    <header class="flex items-center gap-2.5 border-b border-border px-3 py-1.5" data-testid="editor-bar">
+    <header class="flex items-center gap-2.5 border-b border-border bg-card px-3 py-1.5" data-testid="editor-bar">
         <a
             href="/builds"
             class="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"

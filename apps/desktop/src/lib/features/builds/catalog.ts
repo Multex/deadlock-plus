@@ -26,6 +26,10 @@ export interface ShopItem {
     disabled: boolean;
     /** Applies its effect to an ability the player picks; absent means it does not. */
     imbue?: boolean;
+    /** `EShopFilter` tags the game files add to the item; absent means none. */
+    shopFilters?: readonly string[];
+    /** `EShopFilter` tags the game files take off the item; absent means none. */
+    disabledShopFilters?: readonly string[];
     art?: string;
 }
 
@@ -42,6 +46,9 @@ export interface ShopMetadata {
     shopable: boolean;
     disabled: boolean;
     imbue: boolean;
+    /** Empty from the Deadlock API, which does not carry the game files' filter overrides. */
+    shopFilters: string[];
+    disabledShopFilters: string[];
     componentIds: number[];
     image?: string;
 }
@@ -85,6 +92,8 @@ export async function shopMetadata(): Promise<ShopMetadata[]> {
                       shopable: i.shopable,
                       disabled: i.disabled,
                       imbue: i.imbue,
+                      shopFilters: i.shopFilters,
+                      disabledShopFilters: i.disabledShopFilters,
                       componentIds: i.components,
                   },
               ]
@@ -115,6 +124,8 @@ async function apiShopMetadata(): Promise<ShopMetadata[]> {
         shopable: i.shopable ?? false,
         disabled: i.disabled ?? false,
         imbue: typeof i.imbue === "string" && i.imbue !== "",
+        shopFilters: [],
+        disabledShopFilters: [],
         componentIds: (i.component_items ?? []).flatMap((c) => idByClass.get(c) ?? []),
         image: i.shop_image_webp,
     }));
@@ -145,6 +156,8 @@ export function buildShopCatalog(
             shopable: m.shopable,
             disabled: m.disabled,
             imbue: m.imbue,
+            shopFilters: m.shopFilters,
+            disabledShopFilters: m.disabledShopFilters,
         };
         const src = art[m.className] ?? m.image;
         if (src !== undefined) item.art = src;

@@ -91,6 +91,43 @@ test("an item added twice from the shop rail, a resize and its undo, then Save t
     expect(await itemsInFile(page)).toBe(inFile + 2);
 });
 
+test("the shop's Search tab shows the whole shop in the game's columns, and typing narrows it", async ({ page }) => {
+    await openEditor(page);
+    const before = await chips(page).count();
+    const shop = main(page).locator('[data-shop-tab="search"]');
+
+    await page.keyboard.press("/");
+    await expect(page.getByRole("searchbox", { name: "Search items" })).toBeFocused();
+    const firstRow = shop.locator("[data-row]").first();
+    await expect(firstRow.locator("[data-cell]")).toHaveCount(3);
+    expect(await firstRow.locator("[data-cell]").evaluateAll((cells) => cells.map((c) => c.dataset.cell))).toEqual([
+        "weapon",
+        "spirit",
+        "vitality",
+    ]);
+    const all = await shop.locator("button[data-tile]").count();
+    for (const slot of ["weapon", "spirit", "vitality"]) {
+        await expect(shop.locator(`[data-cell="${slot}"] button[data-tile]`).first()).toBeVisible();
+    }
+
+    const name = (await shop.locator('[data-cell="spirit"] button[data-tile] .name').first().textContent())!.trim();
+    await page.keyboard.type(name);
+    await expect(shop.locator("button[data-tile]").filter({ hasText: name }).first()).toBeVisible();
+    expect(await shop.locator("button[data-tile]").count()).toBeLessThan(all);
+    await page.keyboard.press("Enter");
+    await expect(chips(page)).toHaveCount(before + 1);
+
+    await page.keyboard.press("Escape");
+    await expect(shop.locator("button[data-tile]")).toHaveCount(all);
+    await shop.locator('[data-filter-category="misc"]').click();
+    const misc = await shop.locator("button[data-tile]").count();
+    expect(misc).toBeGreaterThan(0);
+    expect(misc).toBeLessThan(all);
+
+    await page.locator('[data-rail-tab="weapon"]').click();
+    await expect(main(page).locator('[data-shop-tab="weapon"] [data-cell]:not([data-cell="weapon"])')).toHaveCount(0);
+});
+
 test("widening the last category of a row stops at the row edge until it is pulled through", async ({ page }) => {
     await openEditor(page);
     const categories = canvas(page).locator("[data-category]");
@@ -186,6 +223,48 @@ test("the inspector edits the build, the selected category and the selected item
     await expect(sizeTag).toHaveText(compacted);
 });
 
+test("the item section's icon row duplicates, swaps, moves and removes the selected item", async ({ page }) => {
+    await openEditor(page);
+    // A new, empty category takes the moved item without hiding it past a full one's slots.
+    const added = await canvas(page).locator("[data-category]").count();
+    await page.getByTestId("toolbar-add-category").click();
+    const lane = canvas(page).locator('[data-category="0"] [data-item]');
+    const next = canvas(page).locator(`[data-category="${added}"] [data-item]`);
+    const laneCount = await lane.count();
+    const nextCount = await next.count();
+    const name = page.getByTestId("inspector-item-name");
+    const swap = page.getByTestId("item-swap");
+
+    // Not every item has an upgrade or a component in the shop; use the first that does.
+    let picked = -1;
+    for (let i = 0; i < laneCount && picked < 0; i++) {
+        await lane.nth(i).click();
+        await expect(name).toBeVisible();
+        if (await swap.isEnabled()) picked = i;
+    }
+    expect(picked).toBeGreaterThanOrEqual(0);
+
+    await page.getByTestId("item-duplicate").click();
+    await expect(lane).toHaveCount(laneCount + 1);
+
+    await swap.click();
+    const choice = page.getByRole("menuitem").first();
+    const swapped = (await choice.textContent())!.trim();
+    await choice.click();
+    await expect(name).toHaveText(swapped);
+
+    await page.getByTestId("item-move").click();
+    await page.getByRole("menuitem").last().click();
+    await expect(lane).toHaveCount(laneCount);
+    await expect(next).toHaveCount(nextCount + 1);
+
+    await next.last().click();
+    await expect(name).toHaveText(swapped);
+    await page.getByTestId("item-remove").click();
+    await expect(next).toHaveCount(nextCount);
+    await expect(name).toHaveCount(0);
+});
+
 test("the toolbar adds a category and previews other resolutions", async ({ page }) => {
     await openEditor(page);
     const categories = canvas(page).locator("[data-category]");
@@ -199,6 +278,18 @@ test("the toolbar adds a category and previews other resolutions", async ({ page
     await resolution.getByRole("button", { name: "4K" }).click();
     await expect(resolution.getByRole("button", { name: "4K" })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("ability-bar")).toBeVisible();
+});
+
+test("an ability icon's tooltip shows again on every hover", async ({ page }) => {
+    await openEditor(page);
+    const icon = page.getByTestId("ability-bar").locator('[data-ability-slot="1"]').getByRole("button");
+    const tip = page.locator("[data-tooltip-content]");
+    for (let hover = 0; hover < 2; hover++) {
+        await icon.hover();
+        await expect(tip).toBeVisible();
+        await page.mouse.move(0, 0);
+        await expect(tip).toBeHidden();
+    }
 });
 
 test("Preview shows the Build Browser's read-only layout and the shop canvas comes back after", async ({ page }) => {

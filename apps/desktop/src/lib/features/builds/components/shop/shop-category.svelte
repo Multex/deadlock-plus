@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { CircleDashed, Info, Monitor } from "@lucide/svelte";
-    import Badge from "@deadlock-plus/ui/badge.svelte";
+    import { Monitor } from "@lucide/svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-    import { t, tn } from "$lib/core/i18n.svelte";
+    import { tn } from "$lib/core/i18n.svelte";
     import type { ChipItem, ScreenDifference, ShopCategoryView } from "../../shop-view";
+    import CategoryTitle from "./category-title.svelte";
     import ItemChip from "./item-chip.svelte";
 
     let {
@@ -13,22 +13,22 @@
         items,
         unit,
         border,
-        header,
         difference,
+        lite = false,
     }: {
-        category: Pick<ModCategoryView, "name" | "description" | "optional">;
+        category: Pick<ModCategoryView, "name" | "description" | "optional" | "width" | "mods">;
         view: ShopCategoryView;
         /** One per chip; undefined for an item the game no longer has. */
         items: (ChipItem | undefined)[];
         /** CSS px per game unit. */
         unit: number;
         border: number;
-        header: number;
         /** How this category lays out differently on the user's own screen. */
         difference?: ScreenDifference;
+        /** Small previews: no tooltips, measuring or game textures. */
+        lite?: boolean;
     } = $props();
 
-    const description = $derived(category.description.trim());
     const differs = $derived(
         difference ? tn("builds.view.differs", difference.columns, { reference: difference.referenceColumns }) : null,
     );
@@ -46,29 +46,8 @@
     style:--u="{unit}px"
     style:--edge="{border}px"
 >
-    <header style:height="{header}px">
-        {#if description}
-            <Tooltip.Root delayDuration={100}>
-                <Tooltip.Trigger class="title described">
-                    <span class="name">{category.name}</span>
-                    <Info class="hint" aria-hidden="true" />
-                </Tooltip.Trigger>
-                <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
-            </Tooltip.Root>
-        {:else}
-            <span class="title"><span class="name">{category.name}</span></span>
-        {/if}
-        {#if category.optional && view.columns < 3}
-            <!-- Below three columns the header has room for the name only. -->
-            <Tooltip.Root delayDuration={100}>
-                <Tooltip.Trigger class="optional-pill compact" aria-label={t("builds.shop.optional")}>
-                    <CircleDashed aria-hidden="true" />
-                </Tooltip.Trigger>
-                <Tooltip.Content>{t("builds.shop.optional")}</Tooltip.Content>
-            </Tooltip.Root>
-        {:else if category.optional}
-            <Badge variant="outline" class="optional-pill">{t("builds.shop.optional")}</Badge>
-        {/if}
+    <header style:height="{view.header}px">
+        <CategoryTitle {category} {unit} {lite} />
         {#if difference && differs}
             <Tooltip.Root delayDuration={100}>
                 <Tooltip.Trigger
@@ -94,6 +73,7 @@
                 height: chip.height,
             }}
             scale={unit}
+            {lite}
         />
     {/each}
 </section>
@@ -102,6 +82,7 @@
     .category {
         position: absolute;
         box-sizing: border-box;
+        overflow: clip;
         border: var(--edge) solid var(--border);
         background: color-mix(in oklch, var(--card) 70%, transparent);
     }
@@ -109,78 +90,20 @@
         background: color-mix(in oklch, #365b92 28%, var(--card));
     }
     header {
-        display: flex;
-        align-items: center;
-        gap: calc(var(--u) * 6);
-        overflow: hidden;
-        padding: 0 calc(var(--u) * 6) 0 calc(var(--u) * 12);
+        position: relative;
         background: color-mix(in oklch, #10130d 70%, transparent);
     }
-    header :global(.title) {
-        display: inline-flex;
-        min-width: 0;
-        align-items: center;
-        gap: calc(var(--u) * 4);
-        padding: 0;
-        border: 0;
-        border-radius: 2px;
-        background: none;
-        color: var(--foreground);
-        font: inherit;
-        font-size: calc(var(--u) * 16);
-        font-weight: 700;
-    }
-    header :global(.title.described) {
-        cursor: help;
-    }
-    header :global(.title:focus-visible) {
-        outline: 2px solid var(--ring);
-        outline-offset: 1px;
-    }
-    .name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    header :global(.hint) {
-        flex-shrink: 0;
-        width: calc(var(--u) * 13);
-        height: calc(var(--u) * 13);
-        color: var(--muted-foreground);
-    }
-    header :global(.optional-pill) {
-        padding: 0 calc(var(--u) * 4);
-        border: 0;
-        border-radius: 2px;
-        background: #00000050;
-        color: color-mix(in oklch, #85b5ff 90%, transparent);
-        font-size: calc(var(--u) * 12);
-        font-weight: 700;
-        line-height: 1.4;
-        text-transform: uppercase;
-    }
-    header :global(.optional-pill.compact) {
-        display: inline-grid;
-        flex-shrink: 0;
-        place-items: center;
-        width: calc(var(--u) * 18);
-        height: calc(var(--u) * 18);
-        padding: 0;
-        cursor: help;
-    }
-    header :global(.optional-pill.compact svg) {
-        width: calc(var(--u) * 12);
-        height: calc(var(--u) * 12);
-    }
+    /* Over the name's first line, so the name keeps the game's width to wrap in. */
     header :global(.screen-flag) {
+        position: absolute;
+        top: calc(var(--u) * 6);
+        right: calc(var(--u) * 4);
         display: inline-flex;
-        flex-shrink: 0;
         align-items: center;
-        margin-left: auto;
         padding: calc(var(--u) * 2) calc(var(--u) * 4);
         border: 0;
         border-radius: 2px;
-        background: color-mix(in oklch, var(--warning) 22%, transparent);
+        background: color-mix(in oklch, var(--warning) 22%, #10130d);
         color: var(--warning);
         cursor: help;
     }

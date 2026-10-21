@@ -1,15 +1,18 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
-import {
-    isInShop,
-    type ItemMatcher,
-    type ShopCatalog,
-    type ShopItem,
-    type ShopSlot,
-    type ShopTier,
-} from "../../../catalog";
+import { Cross, Crosshair, Search, Sparkles, ThumbsUp } from "@lucide/svelte";
+import type { Component } from "svelte";
+import type { ItemMatcher, ShopCatalog, ShopItem, ShopSlot } from "../../../catalog";
 import { addCategory, addItems } from "../../../editor/document";
-import { pickerGroups } from "../../../editor/picker";
-import { PHASES, type GamePopular, type Phase } from "../../../editor/popularity";
+import {
+    GRID_SLOTS,
+    inCategories,
+    itemFilters,
+    searchHits,
+    shopGrid,
+    type FilterCategory,
+    type GridRow,
+} from "../../../editor/picker";
+import type { GamePopular, Phase } from "../../../editor/popularity";
 
 export type RailTab = "popular" | ShopSlot | "search";
 
@@ -24,16 +27,29 @@ export const RAIL_COLORS: Readonly<Record<RailTab, string>> = {
     search: "#8b9098",
 };
 
-export type FlyoutHeading =
-    | { kind: "tier"; tier: ShopTier; price: number | null }
-    | { kind: "phase"; phase: Phase }
-    | { kind: "slot"; slot: ShopSlot };
+export const RAIL_ICONS: Readonly<Record<RailTab, Component>> = {
+    popular: ThumbsUp,
+    weapon: Crosshair,
+    vitality: Cross,
+    spirit: Sparkles,
+    search: Search,
+};
 
-export interface FlyoutRow {
+export interface FlyoutRow extends GridRow {
     key: string;
-    heading: FlyoutHeading;
-    items: ShopItem[];
 }
+
+export interface FlyoutView {
+    query: string;
+    /** Popular tab only: one phase, or null for every phase like the game's page. */
+    phase: Phase | null;
+    /** Search tab only. */
+    categories: ReadonlySet<FilterCategory>;
+    /** The game's computed `EShopFilter` tags of an item, when known. */
+    filtersOf?: (item: ShopItem) => readonly string[];
+}
+
+const keyed = (rows: GridRow[]): FlyoutRow[] => rows.map((row) => ({ ...row, key: `tier-${row.tier}` }));
 
 /** Appends to the active category, else the last one, else a new one. */
 export function addToTarget(build: BuildView, active: number | null, abilityIds: readonly number[]): BuildView {
@@ -47,49 +63,39 @@ export function toggleTab(open: RailTab | null, tab: RailTab): RailTab | null {
     return open === tab ? null : tab;
 }
 
-/** The hero's Popular page: one row per phase, highest pick % first. */
-export function popularRows(catalog: ShopCatalog, game: ReadonlyMap<number, readonly GamePopular[]>): FlyoutRow[] {
-    return PHASES.flatMap((phase) => {
-        const picks: { item: ShopItem; pct: number }[] = [];
-        for (const [id, phases] of game) {
-            const item = catalog.byId.get(id);
-            const entry = phases.find((p) => p.phase === phase);
-            if (item && isInShop(item) && entry) picks.push({ item, pct: entry.pickPct });
-        }
-        picks.sort((a, b) => b.pct - a.pct);
-        return picks.length > 0
-            ? [{ key: `phase-${phase}`, heading: { kind: "phase", phase } as const, items: picks.map((p) => p.item) }]
-            : [];
-    });
+/** The hero's Popular page: the game's tier rows of Weapon, Spirit and Vitality, optionally one phase only. */
+export function popularRows(
+    catalog: ShopCatalog,
+    game: ReadonlyMap<number, readonly GamePopular[]>,
+    phase: Phase | null,
+): FlyoutRow[] {
+    return keyed(
+        shopGrid(catalog, GRID_SLOTS, (item) => {
+            const listed = game.get(item.id);
+            return listed !== undefined && (phase === null ? listed.length > 0 : listed.some((p) => p.phase === phase));
+        }),
+    );
 }
 
 export function flyoutRows(
     catalog: ShopCatalog,
     tab: RailTab,
-    query: string,
+    view: FlyoutView,
     game: ReadonlyMap<number, readonly GamePopular[]>,
     matchers?: readonly ItemMatcher[],
 ): FlyoutRow[] {
-    if (tab === "popular") return popularRows(catalog, game);
+    if (tab === "popular") return popularRows(catalog, game, view.phase);
     if (tab === "search") {
-        if (query.trim() === "") return [];
-        return pickerGroups(catalog, "weapon", query, matchers).map((group) => ({
-            key: `slot-${group.slot}`,
-            heading: { kind: "slot", slot: group.slot },
-            items: group.rows.flatMap((r) => r.items),
-        }));
+        const hits = searchHits(catalog, view.query, matchers);
+        return keyed(
+            shopGrid(
+                catalog,
+                GRID_SLOTS,
+                (item) =>
+                    (hits === null || hits.has(item.id)) &&
+                    inCategories(itemFilters(item, view.filtersOf?.(item)), view.categories),
+            ),
+        );
     }
-    return pickerGroups(catalog, tab, "", matchers).flatMap((group) =>
-        group.rows.flatMap((row) =>
-            row.tier !== null && row.items.length > 0
-                ? [
-                      {
-                          key: `tier-${row.tier}`,
-                          heading: { kind: "tier", tier: row.tier, price: row.price } as const,
-                          items: row.items,
-                      },
-                  ]
-                : [],
-        ),
-    );
+    return keyed(shopGrid(catalog, [tab]));
 }

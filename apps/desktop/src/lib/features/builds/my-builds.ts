@@ -12,6 +12,9 @@ export const LOCAL_ID_LIMIT = 1000;
 
 export type MineStatus = "draft" | "waiting" | "inGame" | "published";
 
+/** A row's place: a draft only the app holds, a build in the game's file, or one the game published. */
+export type RowStatus = "draft" | "local" | "public";
+
 /** A build being edited in the app that was not saved to the game yet. */
 export interface Draft {
     id: string;
@@ -21,6 +24,7 @@ export interface Draft {
     updatedAt: number;
     /** The saved build the draft edits, or `null` for a new build. */
     buildId: number | null;
+    build: BuildView;
 }
 
 export function toDraft(stored: DraftView): Draft {
@@ -30,6 +34,7 @@ export function toDraft(stored: DraftView): Draft {
         name: stored.build.name,
         updatedAt: stored.updatedAt,
         buildId: stored.source.kind === "new" ? null : stored.source.buildId,
+        build: stored.build,
     };
 }
 
@@ -53,10 +58,18 @@ export interface MineRow {
     /** `null` for a queued new build: the queue does not say which hero it is for. */
     heroId: number | null;
     name: string;
-    status: MineStatus;
+    status: RowStatus;
+    /** A save of this build is queued until Deadlock closes. */
+    waiting: boolean;
     /** Unix seconds. */
     updatedAt: number | null;
     published: boolean;
+    /** The version the game shows, for the shop preview; `null` for a queued new build. */
+    build: BuildView | null;
+    /** From the Deadlock API; `null` when it has no row for the build. */
+    favourites: number | null;
+    /** Only a published build's version means anything to the player. */
+    version: number | null;
     /** A published build with local edits in `SavedLastUsed`, uploaded only by pressing Publish in-game. */
     edited: boolean;
     favorited: boolean;
@@ -94,13 +107,6 @@ function newestApi(rows: readonly Build[], accountId: number): Map<number, Build
     return out;
 }
 
-function statusOf(row: Omit<MineRow, "status">): MineStatus {
-    if (row.queue.length > 0) return "waiting";
-    if (row.published) return "published";
-    if (row.local.length > 0) return "inGame";
-    return "draft";
-}
-
 function maxOf(values: (number | null | undefined)[]): number | null {
     const known = values.filter((v): v is number => typeof v === "number");
     return known.length > 0 ? Math.max(...known) : null;
@@ -110,17 +116,22 @@ function rowFor(buildId: number, local: LocalBuild[], api: Build | null, queue: 
     local.sort((a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section));
     const named = NAME_ORDER.map((s) => local.find((l) => l.section === s)).find(Boolean);
     const published = api !== null || buildId >= LOCAL_ID_LIMIT;
-    const partial = {
+    return {
         key: `build:${buildId}`,
         buildId,
         heroId: local[0]?.build.heroId ?? api?.hero_build.hero_id ?? null,
         name: named?.build.name ?? api?.hero_build.name ?? queue[0]?.label ?? "",
+        status: published ? "public" : "local",
+        waiting: queue.length > 0,
         updatedAt: maxOf([
             ...local.map((l) => l.build.lastUpdatedTimestamp),
             api?.hero_build.last_updated_timestamp,
             ...queue.map((q) => q.queuedAt),
         ]),
         published,
+        build: named?.build ?? (api ? viewOfPublished(api) : null),
+        favourites: api?.num_favorites ?? null,
+        version: published ? (api?.hero_build.version ?? named?.build.version ?? null) : null,
         edited: published && local.some((l) => l.section === "SavedLastUsed"),
         favorited: local.some((l) => l.section === "Favorites"),
         local,
@@ -129,7 +140,6 @@ function rowFor(buildId: number, local: LocalBuild[], api: Build | null, queue: 
         draft: null,
         draftOf: null,
     };
-    return { ...partial, status: statusOf(partial) };
 }
 
 /** One row per build across the file, the queue and the API, plus one per draft, grouped by hero. */
@@ -159,8 +169,12 @@ export function mergeMine(input: MineInput): MineGroup[] {
             heroId: d.heroId,
             name: d.name,
             status: "draft",
+            waiting: false,
             updatedAt: d.updatedAt,
             published: false,
+            build: d.build,
+            favourites: null,
+            version: null,
             edited: false,
             favorited: false,
             local: [],
@@ -183,6 +197,7 @@ export interface FavouriteRow {
     version: number;
     /** Unix seconds. */
     updatedAt: number | null;
+    build: BuildView;
 }
 
 /** The `Favorites` entries `mergeMine` leaves out, newest first. */
@@ -197,8 +212,20 @@ export function foreignFavourites(accountId: number, local: readonly LocalBuild[
             authorAccountId: build.authorAccountId,
             version: build.version,
             updatedAt: build.lastUpdatedTimestamp,
+            build,
         }))
         .sort(newestFirst);
+}
+
+/** Match stats key on the build id, which only a published build has to itself. */
+export function statsHeroes(groups: readonly MineGroup[]): number[] {
+    const heroes = groups.flatMap((g) => g.rows.filter((r) => r.published).map((r) => r.heroId));
+    return [...new Set(heroes.filter((id): id is number => id !== null))];
+}
+
+/** `null` keeps every hero. */
+export function filterGroups(groups: readonly MineGroup[], heroId: number | null): MineGroup[] {
+    return heroId === null ? [...groups] : groups.filter((g) => g.heroId === heroId);
 }
 
 export function favouriteViewHref(row: FavouriteRow): string {

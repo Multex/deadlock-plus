@@ -1,6 +1,37 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
-import { fitToItems } from "../../../editor/document";
+import { isInShop, type ShopItem } from "../../../catalog";
+import { fitToItems, moveItems, updateItem, type ItemRef } from "../../../editor/document";
 import { TAG_SLOTS } from "../../../editor/details";
+
+const byPlace = (a: ItemRef, b: ItemRef) => a.category - b.category || a.index - b.index;
+
+/** Copies go after the selection's last item in the earliest category it touches. */
+export function duplicateItems(build: BuildView, refs: readonly ItemRef[]): { build: BuildView; copies: ItemRef[] } {
+    const first = [...refs].sort(byPlace)[0];
+    if (!first) return { build, copies: [] };
+    const { category } = first;
+    const last = refs.filter((r) => r.category === category).reduce((m, r) => Math.max(m, r.index), first.index);
+    const next = moveItems(build, refs, { category, index: last + 1 }, true);
+    const added = (next.modCategories[category]?.mods.length ?? 0) - (build.modCategories[category]?.mods.length ?? 0);
+    return { build: next, copies: Array.from({ length: added }, (_, k) => ({ category, index: last + 1 + k })) };
+}
+
+export function swapChoices(
+    item: ShopItem | undefined,
+    byId: ReadonlyMap<number, ShopItem>,
+): { upgrades: ShopItem[]; components: ShopItem[] } {
+    if (!item) return { upgrades: [], components: [] };
+    const live = (i: ShopItem | undefined): i is ShopItem => !!i && isInShop(i);
+    return {
+        upgrades: [...byId.values()].filter((i) => live(i) && i.componentIds.includes(item.id)),
+        components: item.componentIds.map((id) => byId.get(id)).filter(live),
+    };
+}
+
+/** The note and sell priority stay; an imbue target only survives on an item that takes one. */
+export function swapItem(build: BuildView, ref: ItemRef, next: ShopItem): BuildView {
+    return updateItem(build, ref, { abilityId: next.id, ...(next.imbue ? {} : { imbueTargetAbilityId: null }) });
+}
 
 /** One build, so the editor records it as a single undo step; unchanged when every category already fits. */
 export function compactAll(build: BuildView): BuildView {

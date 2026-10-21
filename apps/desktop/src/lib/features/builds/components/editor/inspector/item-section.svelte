@@ -12,18 +12,18 @@
 </script>
 
 <script lang="ts">
-    import { FolderInput, Trash2 } from "@lucide/svelte";
+    import { ArrowLeftRight, Copy, FolderInput, Trash2 } from "@lucide/svelte";
     import { untrack } from "svelte";
-    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
-    import { cn } from "@deadlock-plus/ui/utils";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import type { ShopItem } from "$lib/features/builds/catalog";
     import { moveItems, removeItems, updateItem, type ItemRef } from "$lib/features/builds/editor/document";
     import type { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
-    import { parseCount } from "./actions";
+    import { duplicateItems, parseCount, swapChoices, swapItem } from "./actions";
+    import MenuAction from "./menu-action.svelte";
 
     let {
         editor,
@@ -43,6 +43,7 @@
     const ref = $derived<ItemRef | null>(selection.length === 1 ? selection[0]! : null);
     const entry = $derived(ref ? categories[ref.category]?.mods[ref.index] : undefined);
     const item = $derived(entry ? byId?.get(entry.abilityId) : undefined);
+    const swaps = $derived(byId ? swapChoices(item, byId) : { upgrades: [], components: [] });
 
     let sellText = $state("");
     let flexText = $state("");
@@ -87,7 +88,89 @@
         editor.apply(moveItems(editor.build, selection, { category, index: length }, false));
         editor.select([], "replace");
     }
+
+    function duplicate() {
+        const { build, copies } = duplicateItems(editor.build, selection);
+        editor.apply(build);
+        editor.select(copies, "replace");
+    }
+
+    function swap(next: ShopItem) {
+        const at = ref;
+        if (!at) return;
+        editor.apply(swapItem(editor.build, at, next));
+        editor.select([at], "replace");
+    }
 </script>
+
+{#snippet swapChoice(next: ShopItem)}
+    <DropdownMenu.Item onSelect={() => swap(next)}>
+        {#if next.art}
+            <img src={next.art} alt="" class="size-5 shrink-0 rounded-sm object-cover" />
+        {/if}
+        <span class="truncate">{next.name}</span>
+    </DropdownMenu.Item>
+{/snippet}
+
+{#snippet actions(single: ItemRef | null)}
+    <div
+        class="flex items-center gap-1 border-t border-border pt-3"
+        role="toolbar"
+        aria-label={t("builds.editor.inspector.item")}
+    >
+        <IconButton
+            label={t("builds.editor.menu.duplicate")}
+            tooltip
+            class="h-8 w-8"
+            data-testid="item-duplicate"
+            onclick={duplicate}
+        >
+            <Copy aria-hidden="true" />
+        </IconButton>
+        <MenuAction label={t("builds.editor.menu.move_to")} testid="item-move">
+            {#snippet icon()}<FolderInput aria-hidden="true" />{/snippet}
+            {#each categories as category, i (i)}
+                <DropdownMenu.Item disabled={single !== null && i === single.category} onSelect={() => moveTo(i)}>
+                    <span class="truncate">{category.name || t("builds.editor.menu.unnamed")}</span>
+                </DropdownMenu.Item>
+            {/each}
+        </MenuAction>
+        {#if single}
+            <MenuAction
+                label={t("builds.editor.menu.swap_with")}
+                disabled={swaps.upgrades.length === 0 && swaps.components.length === 0}
+                testid="item-swap"
+            >
+                {#snippet icon()}<ArrowLeftRight aria-hidden="true" />{/snippet}
+                {#if swaps.upgrades.length > 0}
+                    <DropdownMenu.Group>
+                        <DropdownMenu.GroupHeading>{t("builds.editor.menu.upgrades")}</DropdownMenu.GroupHeading>
+                        {#each swaps.upgrades as next (next.id)}
+                            {@render swapChoice(next)}
+                        {/each}
+                    </DropdownMenu.Group>
+                {/if}
+                {#if swaps.components.length > 0}
+                    <DropdownMenu.Group>
+                        <DropdownMenu.GroupHeading>{t("builds.editor.menu.components")}</DropdownMenu.GroupHeading>
+                        {#each swaps.components as next (next.id)}
+                            {@render swapChoice(next)}
+                        {/each}
+                    </DropdownMenu.Group>
+                {/if}
+            </MenuAction>
+        {/if}
+        <IconButton
+            label={t("builds.editor.menu.remove")}
+            tooltip
+            class="ml-auto h-8 w-8 text-destructive hover:text-destructive"
+            data-testid="item-remove"
+            onclick={remove}
+        >
+            <Trash2 aria-hidden="true" />
+        </IconButton>
+    </div>
+{/snippet}
 
 <section class="flex flex-col gap-3" aria-labelledby="{id}-title" data-testid="inspector-item">
     <h2 id="{id}-title" class="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
@@ -180,44 +263,11 @@
             <p role="alert" class="text-xs text-destructive">{t("builds.editor.menu.whole_number")}</p>
         {/if}
 
-        <Button
-            variant="outline"
-            size="sm"
-            class="self-start text-destructive hover:text-destructive"
-            data-testid="item-remove"
-            onclick={remove}
-        >
-            <Trash2 aria-hidden="true" />
-            {t("builds.editor.menu.remove")}
-        </Button>
+        {@render actions(ref)}
     {:else}
         <p class="text-sm font-semibold" data-testid="inspector-item-count">
             {tn("builds.editor.inspector.items_selected", selection.length, { count: selection.length })}
         </p>
-        <div class="flex flex-wrap gap-2">
-            <DropdownMenu.Root>
-                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-                    <FolderInput aria-hidden="true" />
-                    {t("builds.editor.menu.move_to")}
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="start" class="max-h-80 overflow-y-auto">
-                    {#each categories as category, i (i)}
-                        <DropdownMenu.Item onSelect={() => moveTo(i)}>
-                            <span class="truncate">{category.name || t("builds.editor.menu.unnamed")}</span>
-                        </DropdownMenu.Item>
-                    {/each}
-                </DropdownMenu.Content>
-            </DropdownMenu.Root>
-            <Button
-                variant="outline"
-                size="sm"
-                class="text-destructive hover:text-destructive"
-                data-testid="item-remove"
-                onclick={remove}
-            >
-                <Trash2 aria-hidden="true" />
-                {t("builds.editor.menu.remove")}
-            </Button>
-        </div>
+        {@render actions(null)}
     {/if}
 </section>

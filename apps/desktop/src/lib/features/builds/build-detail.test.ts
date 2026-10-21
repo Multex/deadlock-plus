@@ -147,13 +147,25 @@ describe("chipFor", () => {
         [1, item(1, 800, { active: true, tier: 2 })],
         [2, item(2, 800, { shopable: false })],
         [3, item(3, 800, { disabled: true })],
+        [4, item(4, 800, { imbue: true })],
     ]);
 
     it("draws a shop item and leaves out items the shop no longer sells", () => {
-        expect(chipFor(byId, 1)).toEqual({ name: "Item 1", slot: "spirit", tier: 2, active: true });
+        expect(chipFor(byId, 1)).toEqual({
+            id: 1,
+            name: "Item 1",
+            slot: "spirit",
+            tier: 2,
+            active: true,
+            imbue: false,
+        });
         expect(chipFor(byId, 2)).toBeUndefined();
         expect(chipFor(byId, 3)).toBeUndefined();
         expect(chipFor(byId, 99)).toBeUndefined();
+    });
+
+    it("marks imbue items, which the card labels on the art", () => {
+        expect(chipFor(byId, 4)?.imbue).toBe(true);
     });
 });
 

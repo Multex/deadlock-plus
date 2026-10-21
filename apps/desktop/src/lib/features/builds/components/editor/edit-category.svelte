@@ -3,12 +3,11 @@
 </script>
 
 <script lang="ts">
-    import { CircleDashed, TriangleAlert } from "@lucide/svelte";
+    import { TriangleAlert } from "@lucide/svelte";
     import type { Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import { widthPx } from "@deadlock-plus/build-layout/layout";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-    import Badge from "@deadlock-plus/ui/badge.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { t, tn } from "$lib/core/i18n.svelte";
@@ -19,6 +18,7 @@
     import { BREAK_THROUGH_PX, dragStop, edgeWidth, sizeTag, snapHeight, type RowEdge } from "../../editor/resize";
     import { rowLimit, rowOf } from "../../editor/row-ops";
     import type { ChipItem, ShopCategoryView, ShopView } from "../../shop-view";
+    import CategoryTitle from "../shop/category-title.svelte";
     import ItemChip from "../shop/item-chip.svelte";
     import { chipShifts, itemCaret, slotBoxes, storedSize } from "./canvas/geometry";
     import { freeResize } from "./canvas/snap";
@@ -88,10 +88,15 @@
     const shifts = $derived(chipShifts(view.chips, dropIndex, Math.max(3, 6 * shop.unit)));
     const active = $derived(editor.activeCategory === index);
     const warn = $derived(tag.unsafe || rowWraps);
-    // Below three columns the header has room for the name only, so the extras shrink or hide.
+    // Below three columns the header controls have room for the menu only.
     const narrow = $derived(tag.columns < 3);
     const selected = $derived(
         new Set(editor.selection.filter((ref) => ref.category === index).map((ref) => ref.index)),
+    );
+    // The game clips the chips at the category's inner edge, under the bottom border.
+    const innerHeight = $derived(view.box.height - 2 * shop.border);
+    const hidden = $derived(
+        view.chips.filter((chip) => chip.y - view.box.y - shop.border + chip.height > innerHeight + 0.5).length,
     );
 
     function local(box: { x: number; y: number; width: number; height: number }) {
@@ -307,7 +312,7 @@
     onclick={activate}
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <header style:height="{shop.header}px" onpointerdown={headerDown}>
+    <header class:renaming style:height="{view.header}px" onpointerdown={headerDown}>
         {#if renaming}
             <Input
                 class="rename"
@@ -319,57 +324,52 @@
                 {@attach focusInput}
             />
         {:else}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <span class="name" class:unnamed={!category.name} ondblclick={startRename}>
-                {category.name || t("builds.editor.unnamed")}
-            </span>
+            <CategoryTitle
+                {category}
+                label={category.name || t("builds.editor.unnamed")}
+                unnamed={!category.name}
+                unit={shop.unit}
+                ondblclick={startRename}
+            />
         {/if}
-        {#if !narrow || resizing}
-            <Tooltip.Root delayDuration={200}>
-                <Tooltip.Trigger class="size-tag {warn ? 'warn' : ''} {resizing ? 'live' : ''}">
-                    {t("builds.editor.size_tag", { columns: tag.columns, rows: tag.rows })}
-                </Tooltip.Trigger>
-                <Tooltip.Content>
-                    {#if tag.unsafe}
-                        {t("builds.editor.unsafe_width")}
-                    {:else if rowWraps}
-                        {t("builds.editor.row_wraps")}
-                    {:else}
-                        {t("builds.editor.size_hint")}
-                    {/if}
-                </Tooltip.Content>
-            </Tooltip.Root>
-        {/if}
-        {#if issues.length > 0}
-            <Tooltip.Root delayDuration={200}>
-                <Tooltip.Trigger
-                    class="layout-marker"
-                    aria-label={t("builds.editor.layout.marker")}
-                    data-testid="category-layout-issue"
-                >
-                    <TriangleAlert aria-hidden="true" />
-                </Tooltip.Trigger>
-                <Tooltip.Content>
-                    {#each issues as kind (kind)}
-                        <p>{t(`builds.editor.layout.kind_${kind}`)}</p>
-                    {/each}
-                </Tooltip.Content>
-            </Tooltip.Root>
-        {/if}
-        <!-- One column leaves room for the name and menu only; the tint still marks it optional. -->
-        {#if category.optional && narrow && tag.columns > 1}
-            <Tooltip.Root delayDuration={200}>
-                <Tooltip.Trigger class="optional-pill compact" aria-label={t("builds.shop.optional")}>
-                    <CircleDashed aria-hidden="true" />
-                </Tooltip.Trigger>
-                <Tooltip.Content>{t("builds.shop.optional")}</Tooltip.Content>
-            </Tooltip.Root>
-        {:else if category.optional && !narrow}
-            <Badge variant="outline" class="optional-pill">{t("builds.shop.optional")}</Badge>
-        {/if}
-        {#if categoryMenu}
-            <span class="menu">{@render categoryMenu(index)}</span>
-        {/if}
+        <!-- Over the name's first line like the game's edit controls, so the name keeps the game's width to wrap in. -->
+        <span class="controls" style:height="{shop.header}px">
+            {#if !narrow || resizing}
+                <Tooltip.Root delayDuration={200}>
+                    <Tooltip.Trigger class="size-tag {warn ? 'warn' : ''} {resizing ? 'live' : ''}">
+                        {t("builds.editor.size_tag", { columns: tag.columns, rows: tag.rows })}
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>
+                        {#if tag.unsafe}
+                            {t("builds.editor.unsafe_width")}
+                        {:else if rowWraps}
+                            {t("builds.editor.row_wraps")}
+                        {:else}
+                            {t("builds.editor.size_hint")}
+                        {/if}
+                    </Tooltip.Content>
+                </Tooltip.Root>
+            {/if}
+            {#if issues.length > 0}
+                <Tooltip.Root delayDuration={200}>
+                    <Tooltip.Trigger
+                        class="layout-marker"
+                        aria-label={t("builds.editor.layout.marker")}
+                        data-testid="category-layout-issue"
+                    >
+                        <TriangleAlert aria-hidden="true" />
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>
+                        {#each issues as kind (kind)}
+                            <p>{t(`builds.editor.layout.kind_${kind}`)}</p>
+                        {/each}
+                    </Tooltip.Content>
+                </Tooltip.Root>
+            {/if}
+            {#if categoryMenu}
+                <span class="menu">{@render categoryMenu(index)}</span>
+            {/if}
+        </span>
     </header>
 
     {#each slots.slice(category.mods.length, capacity) as slot, i (i)}
@@ -396,37 +396,49 @@
         ></div>
     {/if}
 
-    {#each view.chips as chip, i (i)}
-        {@const box = local(chip)}
-        {@const mod = category.mods[i]}
-        {@const copies = mod ? (counts.get(mod.abilityId) ?? 0) : 0}
-        <!-- Arrow keys, Delete and Escape for the chips live on the canvas, which holds the focus. -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div
-            class="item"
-            class:selected={selected.has(i)}
-            class:past={i >= capacity}
-            role="option"
-            aria-selected={selected.has(i)}
-            tabindex="-1"
-            data-item={i}
-            style:left="{box.x}px"
-            style:top="{box.y}px"
-            style:width="{box.width}px"
-            style:height="{box.height}px"
-            style:transform={shifts[i] ? `translateX(${shifts[i]}px)` : undefined}
-            onpointerdown={(event) => itemDown(i, event)}
-            onclick={(event) => itemClick(i, event)}
-            oncontextmenu={(event) => itemMenu(i, event)}
-        >
-            <ItemChip item={items[i]} box={{ x: 0, y: 0, width: box.width, height: box.height }} scale={shop.unit} />
-            {#if copies > 1}
-                <span class="copies" title={t("builds.editor.copies_hint", { count: copies })}>
-                    {t("builds.editor.copies", { count: copies })}
-                </span>
-            {/if}
+    <div class="chips" style:height="{Math.max(0, innerHeight)}px">
+        {#each view.chips as chip, i (i)}
+            {@const box = local(chip)}
+            {@const mod = category.mods[i]}
+            {@const copies = mod ? (counts.get(mod.abilityId) ?? 0) : 0}
+            <!-- Arrow keys, Delete and Escape for the chips live on the canvas, which holds the focus. -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div
+                class="item"
+                class:selected={selected.has(i)}
+                class:past={i >= capacity}
+                role="option"
+                aria-selected={selected.has(i)}
+                tabindex="-1"
+                data-item={i}
+                style:left="{box.x}px"
+                style:top="{box.y}px"
+                style:width="{box.width}px"
+                style:height="{box.height}px"
+                style:transform={shifts[i] ? `translateX(${shifts[i]}px)` : undefined}
+                onpointerdown={(event) => itemDown(i, event)}
+                onclick={(event) => itemClick(i, event)}
+                oncontextmenu={(event) => itemMenu(i, event)}
+            >
+                <ItemChip
+                    item={items[i]}
+                    box={{ x: 0, y: 0, width: box.width, height: box.height }}
+                    scale={shop.unit}
+                />
+                {#if copies > 1}
+                    <span class="copies" title={t("builds.editor.copies_hint", { count: copies })}>
+                        {t("builds.editor.copies", { count: copies })}
+                    </span>
+                {/if}
+            </div>
+        {/each}
+    </div>
+
+    {#if hidden > 0}
+        <div class="clipped" data-testid="hidden-items" data-count={hidden}>
+            <span>{tn("builds.editor.hidden_items", hidden)}</span>
         </div>
-    {/each}
+    {/if}
 
     {#if caret && dropIndex !== null && dropIndex < category.mods.length}
         {@const at = local({ ...caret, width: 0 })}
@@ -439,7 +451,7 @@
         ></div>
     {/if}
 
-    {#if tag.overflow}
+    {#if tag.overflow && hidden === 0}
         <span class="overflow">{t("builds.editor.overflow")}</span>
     {/if}
 
@@ -553,43 +565,48 @@
     }
 
     header {
+        position: relative;
         display: flex;
-        align-items: center;
-        gap: calc(var(--u) * 6);
-        overflow: hidden;
-        padding: 0 calc(var(--u) * 4) 0 calc(var(--u) * 12);
+        align-items: flex-start;
         background: color-mix(in oklch, #10130d 70%, transparent);
         cursor: grab;
         user-select: none;
+        --header-bg: color-mix(in oklch, #10130d 82%, var(--card));
     }
     header:active {
         cursor: grabbing;
     }
     .category.active header {
         background: color-mix(in oklch, var(--brass) 14%, #10130d);
+        --header-bg: color-mix(in oklch, var(--brass) 14%, #10130d);
     }
-    .name {
-        min-width: 0;
-        overflow: hidden;
-        color: var(--foreground);
-        font-size: calc(var(--u) * 16);
-        font-weight: 700;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    header :global(.name) {
         cursor: text;
-    }
-    .name.unnamed {
-        color: var(--muted-foreground);
-        font-style: italic;
-        font-weight: 600;
     }
     header :global(.rename) {
         height: calc(var(--u) * 24);
         min-width: 0;
         flex: 1;
+        margin: calc(var(--u) * 3.375) 0 0 calc(var(--u) * 6);
         padding: 0 calc(var(--u) * 6);
         font-size: calc(var(--u) * 15);
         font-weight: 700;
+    }
+    .controls {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        gap: calc(var(--u) * 6);
+        padding: 0 calc(var(--u) * 4) 0 calc(var(--u) * 10);
+        background: linear-gradient(to right, transparent, var(--header-bg) calc(var(--u) * 8));
+        cursor: default;
+    }
+    header.renaming .controls {
+        position: static;
+        flex-shrink: 0;
+        background: none;
     }
     header :global(.size-tag) {
         flex-shrink: 0;
@@ -630,36 +647,9 @@
         width: calc(var(--u) * 12);
         height: calc(var(--u) * 12);
     }
-    header :global(.optional-pill) {
-        padding: 0 calc(var(--u) * 4);
-        border: 0;
-        border-radius: 2px;
-        background: #00000050;
-        color: color-mix(in oklch, #85b5ff 90%, transparent);
-        font-size: calc(var(--u) * 12);
-        font-weight: 700;
-        line-height: 1.4;
-        text-transform: uppercase;
-    }
-    header :global(.optional-pill.compact) {
-        display: inline-grid;
-        flex-shrink: 0;
-        place-items: center;
-        width: calc(var(--u) * 18);
-        height: calc(var(--u) * 18);
-        padding: 0;
-        cursor: help;
-    }
-    header :global(.optional-pill.compact svg) {
-        width: calc(var(--u) * 12);
-        height: calc(var(--u) * 12);
-    }
-    .category.narrow header {
+    .category.narrow .controls {
         gap: calc(var(--u) * 3);
         padding-left: calc(var(--u) * 6);
-    }
-    .category.narrow .name {
-        font-size: calc(var(--u) * 14);
     }
     .category.narrow .menu :global(button) {
         width: calc(var(--u) * 20);
@@ -667,8 +657,6 @@
     }
     .menu {
         display: inline-flex;
-        margin-left: auto;
-        cursor: default;
     }
 
     .placeholder,
@@ -684,8 +672,42 @@
         background: color-mix(in oklch, var(--brass) 12%, transparent);
     }
 
+    /* Clips only downward, so selection outlines and drop shifts still show past the sides. */
+    .chips {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        overflow: visible clip;
+        pointer-events: none;
+    }
+    .clipped {
+        position: absolute;
+        z-index: 1;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        height: calc(var(--u) * 34);
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: calc(var(--u) * 4);
+        background: linear-gradient(to top, color-mix(in oklch, var(--warning) 24%, transparent), transparent);
+        pointer-events: none;
+    }
+    .clipped span {
+        padding: 0 calc(var(--u) * 5);
+        border-radius: 2px;
+        background: color-mix(in oklch, var(--warning) 22%, #000);
+        color: var(--warning);
+        font-size: calc(var(--u) * 11);
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
     .item {
         position: absolute;
+        pointer-events: auto;
         border-radius: calc(var(--u) * 2);
         outline: none;
         cursor: grab;

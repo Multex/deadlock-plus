@@ -205,8 +205,8 @@
 
 <section
     class={cn(
-        "my-1.5 rounded-lg border bg-card px-2 pb-1 transition-colors",
-        dragging ? "border-primary/60 bg-primary/5" : "border-border",
+        "border-t bg-card px-2 pb-1 transition-colors",
+        dragging ? "border-primary/60 bg-primary/5 shadow-[inset_0_0_0_1px_var(--primary)]" : "border-border",
     )}
     aria-label={t("builds.editor.timeline.label")}
     data-testid="souls-timeline"
@@ -248,12 +248,12 @@
     >
         {#if width > 0}
             <div
-                class="absolute inset-x-0 top-0 rounded-md bg-muted/30"
+                class="absolute inset-x-0 top-0 rounded-t-md bg-muted/30"
                 style:height="{layout.axisY}px"
                 aria-hidden="true"
             ></div>
             <div
-                class="absolute inset-x-0 rounded-md bg-brass/[0.05]"
+                class="absolute inset-x-0 rounded-b-md bg-brass/[0.05]"
                 style:top="{layout.axisY}px"
                 style:height="{layout.labelsY - layout.axisY - 2}px"
                 aria-hidden="true"

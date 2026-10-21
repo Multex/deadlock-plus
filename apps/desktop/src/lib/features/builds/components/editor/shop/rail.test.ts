@@ -8,7 +8,7 @@ vi.mock("$lib/features/gamedata/vdata", () => ({ loadShopItems, loadItemStats: v
 
 import { buildShopCatalog, shopMetadata, type ShopMetadata } from "../../../catalog";
 import type { GamePopular } from "../../../editor/popularity";
-import { addToTarget, flyoutRows, popularRows, RAIL_COLORS, RAIL_TABS, toggleTab } from "./rail";
+import { addToTarget, flyoutRows, popularRows, RAIL_COLORS, RAIL_TABS, toggleTab, type FlyoutView } from "./rail";
 
 const PRICES = { 1: 800, 2: 1600, 3: 3200, 4: 6400 } as const;
 
@@ -23,6 +23,8 @@ function meta(over: Partial<ShopMetadata> & Pick<ShopMetadata, "id" | "name">): 
         shopable: true,
         disabled: false,
         imbue: false,
+        shopFilters: [],
+        disabledShopFilters: [],
         componentIds: [],
         ...over,
     };
@@ -42,7 +44,16 @@ const catalog = buildShopCatalog(
     [],
 );
 
-const ids = (rows: ReturnType<typeof flyoutRows>) => rows.map((r) => r.items.map((i) => i.id));
+const ids = (rows: ReturnType<typeof flyoutRows>) =>
+    rows.flatMap((r) => r.cells.flatMap((c) => c.items.map((i) => i.id)));
+const cells = (rows: ReturnType<typeof flyoutRows>) =>
+    rows.map((r) => [r.tier, Object.fromEntries(r.cells.map((c) => [c.slot, c.items.map((i) => i.id)]))]);
+const view = (over: Partial<FlyoutView> = {}): FlyoutView => ({
+    query: "",
+    phase: null,
+    categories: new Set(),
+    ...over,
+});
 
 describe("toggleTab", () => {
     it("opens a closed rail on the clicked tab", () => {
@@ -83,67 +94,88 @@ describe("popularRows", () => {
             ],
         ],
         [5, [{ phase: "late", pickPct: 30 }]],
+        [3, [{ phase: "mid", pickPct: 10 }]],
         [99, [{ phase: "early", pickPct: 90 }]],
     ]);
 
-    it("groups the hero's popular items by phase, highest pick % first", () => {
-        const rows = popularRows(catalog, game);
-        expect(rows.map((r) => r.heading)).toEqual([
-            { kind: "phase", phase: "early" },
-            { kind: "phase", phase: "late" },
-        ]);
-        expect(ids(rows)).toEqual([
-            [4, 1],
-            [5, 4],
+    it("lays the hero's popular items out like the game's page: tier rows of Weapon, Spirit, Vitality", () => {
+        expect(cells(popularRows(catalog, game, null))).toEqual([
+            [1, { weapon: [1], spirit: [5], vitality: [4] }],
+            [2, { weapon: [3], spirit: [], vitality: [] }],
         ]);
     });
 
-    it("skips items the shop does not have and phases with nothing in them", () => {
-        const rows = popularRows(catalog, new Map([[99, [{ phase: "mid", pickPct: 50 }]]]));
-        expect(rows).toEqual([]);
+    it("lists each popular item once even when several phases list it", () => {
+        expect(ids(popularRows(catalog, game, null)).filter((id) => id === 4)).toHaveLength(1);
+    });
+
+    it("narrows to one phase", () => {
+        expect(cells(popularRows(catalog, game, "late"))).toEqual([[1, { weapon: [], spirit: [5], vitality: [4] }]]);
+        expect(ids(popularRows(catalog, game, "mid"))).toEqual([3]);
+    });
+
+    it("skips items the shop does not have", () => {
+        expect(popularRows(catalog, new Map([[99, [{ phase: "mid", pickPct: 50 }]]]), null)).toEqual([]);
     });
 
     it("skips disabled items", () => {
-        expect(popularRows(catalog, new Map([[8, [{ phase: "mid", pickPct: 50 }]]]))).toEqual([]);
+        expect(popularRows(catalog, new Map([[8, [{ phase: "mid", pickPct: 50 }]]]), null)).toEqual([]);
     });
 });
 
 describe("flyoutRows", () => {
     const game = new Map<number, GamePopular[]>([[3, [{ phase: "mid", pickPct: 10 }]]]);
 
-    it("lists a slot tab as its non-empty tier rows with the tier price", () => {
-        const rows = flyoutRows(catalog, "weapon", "", game);
-        expect(rows.map((r) => r.heading)).toEqual([
-            { kind: "tier", tier: 1, price: 800 },
-            { kind: "tier", tier: 2, price: 1600 },
+    it("keeps a slot tab to that slot's tier rows with the tier price", () => {
+        const rows = flyoutRows(catalog, "weapon", view(), game);
+        expect(rows.map((r) => [r.tier, r.price, r.cells.map((c) => c.slot)])).toEqual([
+            [1, 800, ["weapon"]],
+            [2, 1600, ["weapon"]],
         ]);
-        expect(ids(rows)).toEqual([[2, 1], [3]]);
+        expect(ids(rows)).toEqual([2, 1, 3]);
     });
 
-    it("ignores the query outside the search tab", () => {
-        expect(flyoutRows(catalog, "vitality", "rapid", game).flatMap((r) => r.items.map((i) => i.id))).toEqual([4]);
+    it("ignores the query and the categories outside the search tab", () => {
+        const narrowed = view({ query: "rapid", categories: new Set(["misc"]) });
+        expect(ids(flyoutRows(catalog, "vitality", narrowed, game))).toEqual([4]);
     });
 
-    it("shows nothing on the search tab until something is typed", () => {
-        expect(flyoutRows(catalog, "search", "  ", game)).toEqual([]);
-    });
-
-    it("lists search hits from every slot under a slot heading", () => {
-        const rows = flyoutRows(catalog, "search", "extra", game);
-        expect(rows.map((r) => r.heading)).toEqual([
-            { kind: "slot", slot: "vitality" },
-            { kind: "slot", slot: "spirit" },
+    it("shows the whole shop on the search tab before anything is typed", () => {
+        expect(cells(flyoutRows(catalog, "search", view({ query: "  " }), game))).toEqual([
+            [1, { weapon: [2, 1], spirit: [5], vitality: [4] }],
+            [2, { weapon: [3], spirit: [], vitality: [] }],
         ]);
-        expect(ids(rows)).toEqual([[4], [5]]);
     });
 
-    it("lists the popular tab by phase", () => {
-        expect(flyoutRows(catalog, "popular", "", game)).toEqual(popularRows(catalog, game));
+    it("filters the search grid by the query, keeping the grid's places", () => {
+        expect(cells(flyoutRows(catalog, "search", view({ query: "extra" }), game))).toEqual([
+            [1, { weapon: [], spirit: [5], vitality: [4] }],
+        ]);
+    });
+
+    it("filters the search grid by the picked categories", () => {
+        const tagged = (id: number) => (id === 1 ? ["EShopFilterWeaponFireRate"] : id === 4 ? ["EShopFilterHP"] : []);
+        const rows = flyoutRows(
+            catalog,
+            "search",
+            view({ categories: new Set(["physical"]), filtersOf: (item) => tagged(item.id) }),
+            game,
+        );
+        expect(ids(rows)).toEqual([1]);
+    });
+
+    it("applies the query and the categories together", () => {
+        const both = view({ query: "extra", categories: new Set(["misc"]), filtersOf: () => [] });
+        expect(flyoutRows(catalog, "search", both, game)).toEqual([]);
+    });
+
+    it("passes the phase to the popular tab", () => {
+        expect(flyoutRows(catalog, "popular", view({ phase: "mid" }), game)).toEqual(popularRows(catalog, game, "mid"));
     });
 
     it("gives every row a unique key", () => {
         for (const tab of ["popular", "weapon", "search"] as const) {
-            const keys = flyoutRows(catalog, tab, "s", game).map((r) => r.key);
+            const keys = flyoutRows(catalog, tab, view(), game).map((r) => r.key);
             expect(new Set(keys).size).toBe(keys.length);
         }
     });
@@ -215,6 +247,8 @@ describe("items the game's shop does not sell", () => {
             disabled: false,
             shopable: true,
             imbue: false,
+            shopFilters: [],
+            disabledShopFilters: [],
             ...over,
         };
     }
@@ -246,10 +280,11 @@ describe("items the game's shop does not sell", () => {
         popular: ReadonlyMap<number, readonly GamePopular[]>,
     ) =>
         [
-            ...(["weapon", "vitality", "spirit"] as const).flatMap((tab) => flyoutRows(catalog, tab, "", popular)),
-            ...flyoutRows(catalog, "search", "health", popular),
-            ...flyoutRows(catalog, "popular", "", popular),
-        ].flatMap((r) => r.items.map((i) => i.id));
+            ...(["weapon", "vitality", "spirit"] as const).flatMap((tab) => flyoutRows(catalog, tab, view(), popular)),
+            ...flyoutRows(catalog, "search", view(), popular),
+            ...flyoutRows(catalog, "search", view({ query: "health" }), popular),
+            ...flyoutRows(catalog, "popular", view(), popular),
+        ].flatMap((r) => r.cells.flatMap((c) => c.items.map((i) => i.id)));
 
     it("offers only the items the shop sells on every tab, in search and among popular items", async () => {
         const popular = new Map<number, GamePopular[]>(rows.map((r) => [r.id, [{ phase: "early", pickPct: r.id }]]));

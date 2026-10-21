@@ -4,36 +4,40 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { tick } from "svelte";
-    import { t, tn } from "$lib/core/i18n.svelte";
+    import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import type { HeroKit } from "../../../build-detail.svelte";
-    import type { BlockReason, OrderStep } from "../../../editor/ability-order";
+    import { TIER_COSTS, type BlockReason, type OrderStep } from "../../../editor/ability-order";
     import { pastThreshold } from "../../../editor/drag.svelte";
+    import { netWorthFor } from "../../../levels";
     import AbilityArt from "./ability-art.svelte";
     import TierPips from "./tier-pips.svelte";
 
     let {
         steps,
         kit,
-        total,
-        preview,
-        alsoRemoves,
-        check,
-        onmove,
-        onremove,
+        readonly = false,
+        total = 0,
+        preview = null,
+        alsoRemoves = () => [],
+        check = () => null,
+        onmove = () => false,
+        onremove = () => {},
     }: {
         steps: readonly OrderStep[];
         kit: HeroKit;
+        /** Shows the steps with a tooltip each; nothing moves or removes. */
+        readonly?: boolean;
         /** Every step a full order has; the ones not taken yet show as empty slots. */
-        total: number;
+        total?: number;
         /** The step a click on an ability would add, drawn in the first empty slot. */
-        preview: OrderStep | null;
+        preview?: OrderStep | null;
         /** 1-based numbers of the other steps removing `index` takes with it. */
-        alsoRemoves: (index: number) => number[];
+        alsoRemoves?: (index: number) => number[];
         /** Why moving `from` to end up at `to` is refused, or null when it is allowed. */
-        check: (from: number, to: number) => BlockReason | null;
+        check?: (from: number, to: number) => BlockReason | null;
         /** `to` is the index the step ends up at; false when the move was refused. */
-        onmove: (from: number, to: number) => boolean;
-        onremove: (index: number) => void;
+        onmove?: (from: number, to: number) => boolean;
+        onremove?: (index: number) => void;
     } = $props();
 
     const SHIFT = 4;
@@ -60,6 +64,26 @@
         if (others.length === 0) return line;
         return `${line} ${tn("builds.editor.abilities.also_removes", others.length, { steps: others.map((n) => `#${n}`).join(", ") })}`;
     }
+
+    function levelLine(step: OrderStep): string {
+        if (step.level === null) return t("builds.editor.abilities.step_level_unknown");
+        const reached = kit.levels.find((l) => l.level === step.level);
+        return reached
+            ? t("builds.editor.abilities.step_level", {
+                  level: step.level,
+                  souls: formatNumber(netWorthFor(reached.souls)),
+              })
+            : t("builds.editor.abilities.level", { level: step.level });
+    }
+
+    const costLine = (step: OrderStep) =>
+        step.tier === 0
+            ? t("builds.editor.abilities.cost_unlock")
+            : t("builds.editor.abilities.cost_points", { points: TIER_COSTS[step.tier - 1]! });
+
+    /** Calls the tooltip trigger's own handler that a handler of ours replaces. */
+    const forward = (handler: unknown, event: Event) =>
+        typeof handler === "function" ? (handler as (event: Event) => void)(event) : undefined;
 
     const chips = () => [...(list?.querySelectorAll<HTMLElement>("[data-step-chip]") ?? [])];
 
@@ -161,6 +185,50 @@
     {/if}
 {/snippet}
 
+{#snippet levelLabel(step: OrderStep)}
+    <span class="h-3 text-[10px] leading-3 text-muted-foreground tabular-nums">
+        {#if step.level !== null}{t("builds.editor.abilities.level", { level: step.level })}{/if}
+    </span>
+{/snippet}
+
+{#snippet readonlyChip(step: OrderStep, i: number)}
+    <li class="flex w-12 flex-col items-center gap-0.5">
+        <Tooltip.Root delayDuration={150}>
+            <Tooltip.Trigger>
+                {#snippet child({ props })}
+                    <span
+                        {...props}
+                        role="img"
+                        aria-label={chipLabel(step, i)}
+                        data-step-chip
+                        class={cn(
+                            "relative flex h-[50px] w-12 flex-col items-center justify-end gap-1 rounded-md border pb-1.5 transition-colors",
+                            step.tier === 0
+                                ? "border-brass/45 bg-brass/10 hover:border-brass/80"
+                                : "border-border bg-muted/30 hover:border-brass/50",
+                            step.abilityId === kit.ultimateId && "border-brass/70",
+                        )}
+                    >
+                        <span
+                            class="absolute top-0.5 left-1 text-[9px] leading-none text-muted-foreground tabular-nums"
+                        >
+                            {i + 1}
+                        </span>
+                        {@render face(step)}
+                    </span>
+                {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content side="top" class="max-w-64">
+                <p class="font-semibold">{kit.abilities.get(step.abilityId)?.name ?? "?"}</p>
+                <p>{t("builds.editor.abilities.step_kind", { step: i + 1, kind: kindText(step) })}</p>
+                <p>{levelLine(step)}</p>
+                <p class="text-muted-foreground">{costLine(step)}</p>
+            </Tooltip.Content>
+        </Tooltip.Root>
+        {@render levelLabel(step)}
+    </li>
+{/snippet}
+
 {#snippet caretBar(side: "before" | "after")}
     <span
         class={cn(
@@ -183,72 +251,80 @@
         data-testid="ability-sequence"
     >
         {#each steps as step, i (i)}
-            {@const side = caret(i)}
-            <li
-                class="relative flex w-12 flex-col items-center gap-0.5 transition-transform duration-100"
-                style:transform={shift(i) ? `translateX(${shift(i)}px)` : undefined}
-            >
-                {#if side}{@render caretBar(side)}{/if}
-                <div class="group relative">
-                    <Button
-                        variant="unstyled"
-                        data-step-chip
-                        aria-label={chipLabel(step, i)}
-                        onpointerdown={(e: PointerEvent) => pointerdown(e, i)}
-                        onpointermove={pointermove}
-                        onpointerup={pointerup}
-                        onpointercancel={cancel}
-                        onlostpointercapture={cancel}
-                        onkeydown={(e: KeyboardEvent) => keydown(e, i)}
-                        class={cn(
-                            "relative flex h-[50px] w-12 cursor-grab touch-none flex-col items-center justify-end gap-1 rounded-md border pb-1.5 transition-[border-color,background-color,opacity] select-none",
-                            "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-                            step.tier === 0
-                                ? "border-brass/45 bg-brass/10 hover:border-brass/80"
-                                : "border-border bg-muted/30 hover:border-brass/50",
-                            step.abilityId === kit.ultimateId && "border-brass/70",
-                            doomed.has(i) && "border-destructive/70 bg-destructive/15",
-                            dragging?.from === i && "opacity-35",
-                        )}
-                    >
-                        <span
-                            class="absolute top-0.5 left-1 text-[9px] leading-none text-muted-foreground tabular-nums"
+            {#if readonly}
+                {@render readonlyChip(step, i)}
+            {:else}
+                {@const side = caret(i)}
+                <li
+                    class="relative flex w-12 flex-col items-center gap-0.5 transition-transform duration-100"
+                    style:transform={shift(i) ? `translateX(${shift(i)}px)` : undefined}
+                >
+                    {#if side}{@render caretBar(side)}{/if}
+                    <div class="group relative">
+                        <Button
+                            variant="unstyled"
+                            data-step-chip
+                            aria-label={chipLabel(step, i)}
+                            onpointerdown={(e: PointerEvent) => pointerdown(e, i)}
+                            onpointermove={pointermove}
+                            onpointerup={pointerup}
+                            onpointercancel={cancel}
+                            onlostpointercapture={cancel}
+                            onkeydown={(e: KeyboardEvent) => keydown(e, i)}
+                            class={cn(
+                                "relative flex h-[50px] w-12 cursor-grab touch-none flex-col items-center justify-end gap-1 rounded-md border pb-1.5 transition-[border-color,background-color,opacity] select-none",
+                                "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                                step.tier === 0
+                                    ? "border-brass/45 bg-brass/10 hover:border-brass/80"
+                                    : "border-border bg-muted/30 hover:border-brass/50",
+                                step.abilityId === kit.ultimateId && "border-brass/70",
+                                doomed.has(i) && "border-destructive/70 bg-destructive/15",
+                                dragging?.from === i && "opacity-35",
+                            )}
                         >
-                            {i + 1}
-                        </span>
-                        {@render face(step)}
-                    </Button>
-                    {#if !dragging}
-                        <Tooltip.Root delayDuration={300}>
-                            <Tooltip.Trigger>
-                                {#snippet child({ props })}
-                                    <Button
-                                        {...props}
-                                        variant="unstyled"
-                                        aria-label={t("builds.editor.abilities.remove_step", { step: i + 1 })}
-                                        onpointerenter={() =>
-                                            (doomed = new Set([i, ...alsoRemoves(i).map((n) => n - 1)]))}
-                                        onpointerleave={() => (doomed = new Set())}
-                                        onclick={() => {
-                                            doomed = new Set();
-                                            onremove(i);
-                                        }}
-                                        class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:opacity-100"
-                                    >
-                                        <X class="size-2.5" />
-                                    </Button>
-                                {/snippet}
-                            </Tooltip.Trigger>
-                            <Tooltip.Content side="top">{removeHint(i)}</Tooltip.Content>
-                        </Tooltip.Root>
-                    {/if}
-                </div>
-                <span class="h-3 text-[10px] leading-3 text-muted-foreground tabular-nums">
-                    {#if step.level !== null}{t("builds.editor.abilities.level", { level: step.level })}{/if}
-                </span>
-            </li>
+                            <span
+                                class="absolute top-0.5 left-1 text-[9px] leading-none text-muted-foreground tabular-nums"
+                            >
+                                {i + 1}
+                            </span>
+                            {@render face(step)}
+                        </Button>
+                        {#if !dragging}
+                            <Tooltip.Root delayDuration={300}>
+                                <Tooltip.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                            {...props}
+                                            variant="unstyled"
+                                            aria-label={t("builds.editor.abilities.remove_step", { step: i + 1 })}
+                                            onpointerenter={(event: PointerEvent) => {
+                                                forward(props.onpointerenter, event);
+                                                doomed = new Set([i, ...alsoRemoves(i).map((n) => n - 1)]);
+                                            }}
+                                            onpointerleave={(event: PointerEvent) => {
+                                                forward(props.onpointerleave, event);
+                                                doomed = new Set();
+                                            }}
+                                            onclick={(event: MouseEvent) => {
+                                                forward(props.onclick, event);
+                                                doomed = new Set();
+                                                onremove(i);
+                                            }}
+                                            class="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:opacity-100"
+                                        >
+                                            <X class="size-2.5" />
+                                        </Button>
+                                    {/snippet}
+                                </Tooltip.Trigger>
+                                <Tooltip.Content side="top">{removeHint(i)}</Tooltip.Content>
+                            </Tooltip.Root>
+                        {/if}
+                    </div>
+                    {@render levelLabel(step)}
+                </li>
+            {/if}
         {/each}
-        {#each { length: Math.max(0, total - steps.length) } as _, k (k)}
+        {#each { length: readonly ? 0 : Math.max(0, total - steps.length) } as _, k (k)}
             {@const n = steps.length + k}
             {@const shown = k === 0 ? preview : null}
             <li class="flex w-12 flex-col items-center gap-0.5" aria-hidden="true">

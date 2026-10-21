@@ -17,6 +17,7 @@
     import { drag, type DragState } from "../../editor/drag.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { layoutIssues } from "../../editor/repair";
+    import { headerLinesFor } from "../../header-lines.svelte";
     import type { ChipItem } from "../../shop-view";
     import { canvasView, categoryBar, dropTarget, rowWarnings, storedSize, type DropTarget } from "./canvas/geometry";
     import { stepZoom, wheelSteps, type Zoom } from "./canvas/zoom";
@@ -59,7 +60,8 @@
     let menus = 0;
 
     const build = $derived(editor.build);
-    const layout = $derived(canvasView(build.modCategories, screen, available, zoom));
+    const headerLines = $derived(headerLinesFor(build.modCategories));
+    const layout = $derived(canvasView(build.modCategories, screen, available, zoom, headerLines));
     const view = $derived(layout.view);
 
     $effect(() => {
@@ -105,7 +107,7 @@
     });
     const items = $derived(build.modCategories.map((category) => category.mods.map((mod) => resolve(mod.abilityId))));
     const counts = $derived(occurrences(build));
-    const issues = $derived(new Map(layoutIssues(build).map((issue) => [issue.index, issue.kinds])));
+    const issues = $derived(new Map(layoutIssues(build, { headerLines }).map((issue) => [issue.index, issue.kinds])));
     const wraps = $derived(
         rowWarnings(
             view,

@@ -1769,7 +1769,8 @@
         "shop": {
             "optional": "Optional",
             "imbue": "Imbue",
-            "removed_item": "Removed item"
+            "removed_item": "Removed item",
+            "description": "Description"
         },
         "mine": {
             "title": "My builds",
@@ -1784,9 +1785,9 @@
             "unknown_hero": "Unknown hero",
             "status": {
                 "draft": "Draft",
-                "waiting": "Waiting for game to close",
-                "in_game": "In game",
-                "published": "Published"
+                "waiting": "Saves when Deadlock closes",
+                "local": "Local",
+                "public": "Public"
             },
             "updated": "Updated {date}",
             "edited": "Edited. Press Publish in-game to upload it.",
@@ -1825,7 +1826,12 @@
             "discard_title": "Discard {name}?",
             "discard_description": "Its unsaved changes are lost.",
             "favourites_title": "Favourites",
-            "favourite_version": "Version {version}"
+            "favourite_version": "Version {version}",
+            "all_heroes": "All heroes",
+            "show": "Show",
+            "empty_hero": "You have no {hero} builds yet.",
+            "favourites_empty": "You have no favourites yet.",
+            "favourites_empty_hero": "You have no {hero} favourites yet."
         },
         "browser": {
             "title": "Builds",
@@ -1834,21 +1840,45 @@
             "tab_mine": "Mine",
             "hero": "Hero",
             "sort": "Sort builds",
-            "sort_weekly": "This week",
-            "sort_all_time": "All time",
-            "sort_newest": "Newest",
+            "sort_weekly": "Top this week",
             "search": "Search by build name",
             "search_label": "Search builds",
             "loading": "Loading builds…",
             "empty": "No public builds for {hero} yet.",
-            "empty_search": "No builds match \"{query}\".",
             "error": "Could not load public builds.",
             "retry": "Try again",
             "by": "By {name}",
             "updated": "Updated {date}",
             "this_week": "{count} this week",
             "favorites_one": "{count} favourite",
-            "favorites_other": "{count} favourites"
+            "favorites_other": "{count} favourites",
+            "sort_popular": "Popular",
+            "sort_favorites": "Most favourited",
+            "sort_updated": "Recently updated",
+            "sort_published": "Recently published",
+            "sort_versions": "Most versions",
+            "updated_within": "Updated within",
+            "updated_day": "Today",
+            "updated_week": "7 days",
+            "updated_month": "30 days",
+            "updated_all": "All time",
+            "filters": "Build filters",
+            "tag": "Tag",
+            "tag_any": "Any tag",
+            "language": "Language",
+            "language_default": "Your language and English",
+            "language_any": "Any language",
+            "min_favorites": "Minimum favourites",
+            "favorites_any": "Any favourites",
+            "favorites_min": "{count}+ favourites",
+            "author": "Author name or Steam ID",
+            "author_label": "Filter by author",
+            "author_clear": "Show every author",
+            "author_none": "No players found.",
+            "clear_filters": "Clear filters",
+            "empty_filtered": "No builds match these filters.",
+            "win_rate": "{rate} win rate",
+            "win_rate_detail": "Won {wins} of {matches} matches in the last 30 days."
         },
         "view": {
             "back": "Builds",
@@ -1873,9 +1903,6 @@
             "unmeasured_hint": "Predicted from 1440p. Only 1440p is measured in the game.",
             "abilities": "Ability order",
             "no_abilities": "This build has no ability order.",
-            "step_unlock": "Unlock",
-            "step_tier": "Tier {tier}",
-            "step_souls": "{souls} souls",
             "warning_unknown_ability": "The ability order uses an ability this hero no longer has.",
             "warning_free_unlock": "Some unlocks are stored with no cost.",
             "warning_ultimate_early": "The ultimate unlocks before the other 3 abilities.",
@@ -1960,8 +1987,6 @@
                 "slot_vitality": "Vitality",
                 "slot_spirit": "Spirit",
                 "tier": "Tier {tier}",
-                "tier_slot": "Tier {tier} {slot}",
-                "active": "Active",
                 "count": "x{count}",
                 "in_build": "In this build: {count}",
                 "add": "Add {name}",
@@ -2013,7 +2038,15 @@
                 "right_click_removes": "Right-click removes step #{step}.",
                 "remove_step": "Remove step {step}",
                 "empty_bar": "Click an ability to start the order.",
-                "icons_label": "Abilities"
+                "icons_label": "Abilities",
+                "step_kind": "Step {step}: {kind}",
+                "step_level": "Affordable at Lv {level}, {souls} souls",
+                "step_level_unknown": "Past the end of the level table.",
+                "cost_unlock": "Costs 1 ability unlock.",
+                "cost_points": "Costs {points} AP.",
+                "final_locked": "Not unlocked in this order.",
+                "final_unlocked": "Unlocked at step {step}, no tiers.",
+                "final_tier": "Reaches Tier {tier} at step {step}."
             },
             "details": {
                 "name": "Name",
@@ -2103,9 +2136,18 @@
                 "popular": "Popular",
                 "search": "Search",
                 "close": "Close shop",
-                "search_hint": "Type an item name or a stat.",
                 "popular_loading": "Loading popular items…",
-                "popular_empty": "The game lists no popular items for this hero."
+                "popular_empty": "The game lists no popular items for this hero.",
+                "phase_all": "All",
+                "phase_label": "Game phase",
+                "filters_label": "Item filters",
+                "no_filter_results": "No items match these filters.",
+                "filter_physical": "Physical",
+                "filter_spirit": "Spirit",
+                "filter_defense": "Defense",
+                "filter_mobility": "Mobility",
+                "filter_disruption": "Disruption",
+                "filter_misc": "Misc"
             },
             "resize_label": "{columns} x {rows}",
             "columns_count_one": "{count} column",
@@ -2161,12 +2203,22 @@
                 "fix_hint": "Keeps the columns each category shows at 1440p.",
                 "marker": "Layout issues",
                 "kind_preview_columns": "Shows fewer columns in the Build Browser preview",
-                "kind_preview_row": "Its row wraps differently in the Build Browser preview"
+                "kind_preview_row": "Its row wraps differently in the Build Browser preview",
+                "kind_title_wraps": "Its name wraps in-game and hides items"
             },
             "preview": {
                 "label": "Build Browser preview",
                 "note": "How the Build Browser shows this build. Predicted from the game files."
-            }
+            },
+            "hidden_items_one": "{count} hidden",
+            "hidden_items_other": "{count} hidden"
+        },
+        "tooltip": {
+            "passive": "Passive",
+            "active": "Active",
+            "upgrades_to": "Upgrades to:",
+            "built_from": "Built from:",
+            "cooldown": "Cooldown"
         }
     },
     "alerts": {

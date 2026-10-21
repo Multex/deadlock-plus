@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
     builds: vi.fn(),
+    winRatesLoad: vi.fn(),
     buildsLocal: vi.fn(),
     buildsFlush: vi.fn(),
     buildsDelete: vi.fn(),
@@ -21,8 +22,10 @@ const mocks = vi.hoisted(() => ({
     buildsUnfavourite: vi.fn(),
     onFlushed: vi.fn(),
     resolveNames: vi.fn(),
+    loadShopCatalog: vi.fn(),
 }));
 vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: { builds: mocks.builds } }));
+vi.mock("./public-builds", () => ({ buildWinRates: { load: mocks.winRatesLoad } }));
 vi.mock("./api", () => ({
     buildsLocal: mocks.buildsLocal,
     buildsFlush: mocks.buildsFlush,
@@ -37,6 +40,10 @@ vi.mock("./api", () => ({
     buildsQueueCancel: vi.fn(),
 }));
 vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: mocks.resolveNames } }));
+vi.mock("./catalog", () => ({
+    loadShopCatalog: mocks.loadShopCatalog,
+    isInShop: (i: { shopable: boolean; disabled: boolean }) => i.shopable && !i.disabled,
+}));
 
 import { MyBuildsStore } from "./my-builds.svelte";
 
@@ -48,10 +55,12 @@ import {
     deleteTargets,
     favouriteAction,
     favouriteViewHref,
+    filterGroups,
     flushFailure,
     foreignFavourites,
     mergeMine,
     openHref,
+    statsHeroes,
     toDraft,
     viewOfPublished,
     waitingCount,
@@ -112,6 +121,19 @@ function queued(buildId: number, over: Partial<QueuedSaveView> = {}): QueuedSave
     return { id: `q-${buildId}`, queuedAt: 200, label: "Queued", buildId, ...over };
 }
 
+function draftRow(over: Partial<Draft> = {}): Draft {
+    const heroId = over.heroId ?? 1;
+    return {
+        id: "d1",
+        heroId,
+        name: "Idea",
+        updatedAt: 300,
+        buildId: null,
+        build: view({ heroBuildId: 0, heroId, name: "Idea" }),
+        ...over,
+    };
+}
+
 function input(over: Partial<MineInput>): MineInput {
     return { accountId: ME, local: [], queue: [], published: [], drafts: [], ...over };
 }
@@ -146,7 +168,7 @@ describe("foreignFavourites", () => {
                 lastUpdatedTimestamp: 20,
             }),
         ]);
-        expect(favourites).toEqual([
+        expect(favourites).toMatchObject([
             {
                 key: "favourite:6001",
                 buildId: 6001,
@@ -155,6 +177,7 @@ describe("foreignFavourites", () => {
                 authorAccountId: OTHER + 1,
                 version: 9,
                 updatedAt: 20,
+                build: { heroBuildId: 6001, name: "New" },
             },
             {
                 key: "favourite:6000",
@@ -164,6 +187,7 @@ describe("foreignFavourites", () => {
                 authorAccountId: OTHER,
                 version: 4,
                 updatedAt: 10,
+                build: { heroBuildId: 6000, name: "Old" },
             },
         ]);
     });
@@ -198,16 +222,17 @@ describe("foreignFavourites", () => {
 });
 
 describe("mergeMine status", () => {
-    it("shows an Unpublished build as in game", () => {
+    it("shows an Unpublished build as local", () => {
         const row = only({ local: [local("Unpublished")] });
-        expect(row.status).toBe("inGame");
+        expect(row.status).toBe("local");
+        expect(row.waiting).toBe(false);
         expect(row.published).toBe(false);
         expect(row.favorited).toBe(false);
     });
 
-    it("shows an own local build kept only in Favorites as in game and favourited", () => {
+    it("shows an own local build kept only in Favorites as local and favourited", () => {
         const row = only({ local: [local("Favorites", { heroBuildId: 8, favorited: true })] });
-        expect(row).toMatchObject({ status: "inGame", favorited: true, published: false, buildId: 8 });
+        expect(row).toMatchObject({ status: "local", favorited: true, published: false, buildId: 8 });
     });
 
     it("leaves out other players' favourites and last-used builds", () => {
@@ -221,9 +246,14 @@ describe("mergeMine status", () => {
         ).toEqual([]);
     });
 
-    it("shows an own build from the API as published", () => {
+    it("shows an own build from the API as public", () => {
         const row = only({ published: [api()] });
-        expect(row).toMatchObject({ status: "published", published: true, edited: false, buildId: 5000 });
+        expect(row).toMatchObject({ status: "public", published: true, edited: false, buildId: 5000 });
+    });
+
+    it("keeps a local copy of a published build local, though the copy keeps its source's publish time", () => {
+        const row = only({ local: [local("Unpublished", { heroBuildId: 7, publishTimestamp: 40 })] });
+        expect(row).toMatchObject({ status: "local", published: false });
     });
 
     it("ignores API rows by another author", () => {
@@ -235,20 +265,24 @@ describe("mergeMine status", () => {
             published: [api()],
             local: [local("SavedLastUsed", { heroBuildId: 5000, name: "Published, edited" })],
         });
-        expect(row).toMatchObject({ status: "published", edited: true, name: "Published, edited" });
+        expect(row).toMatchObject({ status: "public", edited: true, name: "Published, edited" });
     });
 
     it("still shows own published builds the file knows when the API has none", () => {
         const favourite = only({ local: [local("Favorites", { heroBuildId: 5000, favorited: true })] });
-        expect(favourite).toMatchObject({ status: "published", published: true, favorited: true, edited: false });
+        expect(favourite).toMatchObject({ status: "public", published: true, favorited: true, edited: false });
         const lastUsed = only({ local: [local("SavedLastUsed", { heroBuildId: 5001 })] });
-        expect(lastUsed).toMatchObject({ status: "published", edited: true });
+        expect(lastUsed).toMatchObject({ status: "public", edited: true });
     });
 
-    it("shows any build with a queued save as waiting for the game to close", () => {
-        expect(only({ local: [local("Unpublished")], queue: [queued(3)] }).status).toBe("waiting");
+    it("marks any build with a queued save as waiting for the game to close, beside Public or Local", () => {
+        expect(only({ local: [local("Unpublished")], queue: [queued(3)] })).toMatchObject({
+            status: "local",
+            waiting: true,
+        });
         expect(only({ published: [api()], queue: [queued(5000)] })).toMatchObject({
-            status: "waiting",
+            status: "public",
+            waiting: true,
             published: true,
         });
     });
@@ -257,7 +291,7 @@ describe("mergeMine status", () => {
         const groups = mergeMine(input({ queue: [queued(9, { label: "Fresh build" })] }));
         expect(groups).toHaveLength(1);
         expect(groups[0]!.heroId).toBeNull();
-        expect(groups[0]!.rows[0]).toMatchObject({ status: "waiting", name: "Fresh build", buildId: 9 });
+        expect(groups[0]!.rows[0]).toMatchObject({ status: "local", waiting: true, name: "Fresh build", buildId: 9 });
     });
 
     it("ignores a queued save of another player's build", () => {
@@ -265,20 +299,26 @@ describe("mergeMine status", () => {
     });
 
     it("shows a draft with no saved build as a draft", () => {
-        const draft: Draft = { id: "d1", heroId: 2, name: "Idea", updatedAt: 300, buildId: null };
-        expect(only({ drafts: [draft] })).toMatchObject({ status: "draft", heroId: 2, buildId: null, draft });
+        const draft = draftRow({ heroId: 2, buildId: null });
+        expect(only({ drafts: [draft] })).toMatchObject({
+            status: "draft",
+            waiting: false,
+            heroId: 2,
+            buildId: null,
+            draft,
+        });
     });
 
     it("shows a draft of a saved build on its own draft row, beside the build it edits", () => {
-        const draft: Draft = { id: "d1", heroId: 1, name: "Idea", updatedAt: 300, buildId: 3 };
+        const draft = draftRow({ buildId: 3 });
         const all = rows({ local: [local("Unpublished", { name: "Saved" })], drafts: [draft] });
         expect(all).toHaveLength(2);
         expect(all[0]).toMatchObject({ key: "draft:d1", status: "draft", buildId: null, draftOf: "Saved", draft });
-        expect(all[1]).toMatchObject({ buildId: 3, status: "inGame", draft: null, draftOf: null });
+        expect(all[1]).toMatchObject({ buildId: 3, status: "local", draft: null, draftOf: null });
     });
 
     it("names no saved build for a draft of a build that is not the player's", () => {
-        const draft: Draft = { id: "d1", heroId: 1, name: "Idea", updatedAt: 300, buildId: 381204 };
+        const draft = draftRow({ buildId: 381204 });
         expect(only({ drafts: [draft] })).toMatchObject({ status: "draft", draftOf: null });
     });
 
@@ -296,9 +336,93 @@ describe("mergeMine status", () => {
             name: "Idea",
             updatedAt: 300,
             buildId: null,
+            build: view({ heroId: 2, name: "Idea" }),
         });
         expect(toDraft(stored({ kind: "local", section: "Unpublished", buildId: 3, base: "ab" })).buildId).toBe(3);
         expect(toDraft(stored({ kind: "public", buildId: 381204 })).buildId).toBe(381204);
+    });
+});
+
+describe("mergeMine card data", () => {
+    const category = (name: string) => ({
+        name,
+        description: "",
+        width: null,
+        height: null,
+        optional: false,
+        mods: [],
+    });
+
+    it("previews the version the game shows: the local edit over the file's build over the published one", () => {
+        const edited = only({
+            published: [api({ details: { mod_categories: [{ name: "Published" }] } })],
+            local: [
+                local("Favorites", { heroBuildId: 5000, modCategories: [category("Favourite")] }),
+                local("SavedLastUsed", { heroBuildId: 5000, modCategories: [category("Edit")] }),
+            ],
+        });
+        expect(edited.build?.modCategories.map((c) => c.name)).toEqual(["Edit"]);
+        const apiOnly = only({ published: [api({ details: { mod_categories: [{ name: "Published" }] } })] });
+        expect(apiOnly.build?.modCategories.map((c) => c.name)).toEqual(["Published"]);
+    });
+
+    it("previews a draft from its own build and a queued new build not at all", () => {
+        const draft = draftRow({ build: view({ modCategories: [category("Draft")] }) });
+        expect(only({ drafts: [draft] }).build?.modCategories.map((c) => c.name)).toEqual(["Draft"]);
+        expect(only({ queue: [queued(9)] }).build).toBeNull();
+    });
+
+    it("takes a published build's favourites and version from the API", () => {
+        const row = only({ published: [{ ...api({ version: 6 }), num_favorites: 41 }] });
+        expect(row).toMatchObject({ favourites: 41, version: 6 });
+    });
+
+    it("leaves favourites unknown without an API row, and a local build without a version", () => {
+        const fileOnly = only({ local: [local("Favorites", { heroBuildId: 5000, version: 3 })] });
+        expect(fileOnly).toMatchObject({ favourites: null, version: 3 });
+        expect(only({ published: [api()] }).favourites).toBeNull();
+        expect(only({ local: [local("Unpublished", { version: 2 })] })).toMatchObject({
+            favourites: null,
+            version: null,
+        });
+    });
+});
+
+describe("win rates", () => {
+    it("asks only for the heroes of published builds, once each", () => {
+        const groups = mergeMine(
+            input({
+                local: [local("Unpublished", { heroBuildId: 3, heroId: 2 })],
+                published: [
+                    api({ hero_build_id: 5000, hero_id: 1 }),
+                    api({ hero_build_id: 5001, hero_id: 1 }),
+                    api({ hero_build_id: 5002, hero_id: 6 }),
+                ],
+            }),
+        );
+        expect(statsHeroes(groups).sort()).toEqual([1, 6]);
+    });
+});
+
+describe("filterGroups", () => {
+    const groups = () =>
+        mergeMine(
+            input({
+                local: [
+                    local("Unpublished", { heroBuildId: 1, heroId: 1 }),
+                    local("Unpublished", { heroBuildId: 2, heroId: 6 }),
+                ],
+                queue: [queued(9)],
+            }),
+        );
+
+    it("keeps every group for all heroes", () => {
+        expect(filterGroups(groups(), null).map((g) => g.heroId)).toEqual(groups().map((g) => g.heroId));
+    });
+
+    it("keeps only the picked hero's group, and none when the hero has no builds", () => {
+        expect(filterGroups(groups(), 6).map((g) => g.heroId)).toEqual([6]);
+        expect(filterGroups(groups(), 13)).toEqual([]);
     });
 });
 
@@ -320,7 +444,7 @@ describe("mergeMine de-duplication", () => {
             ],
             queue: [queued(5000, { id: "a" }), queued(5000, { id: "b" })],
         });
-        expect(row).toMatchObject({ status: "waiting", published: true, favorited: true, edited: true });
+        expect(row).toMatchObject({ status: "public", waiting: true, published: true, favorited: true, edited: true });
         expect(row.queue.map((q) => q.id)).toEqual(["a", "b"]);
         expect(row.api).not.toBeNull();
     });
@@ -371,7 +495,7 @@ describe("row actions", () => {
     it("opens local builds from the file, API-only builds as public, drafts as drafts", () => {
         expect(openHref(only({ local: [local("Unpublished")] }))).toBe("/builds/view?source=local&id=3");
         expect(openHref(only({ published: [api()] }))).toBe("/builds/view?source=public&id=5000");
-        expect(openHref(only({ drafts: [{ id: "d 1", heroId: 1, name: "x", updatedAt: 1, buildId: null }] }))).toBe(
+        expect(openHref(only({ drafts: [draftRow({ id: "d 1", buildId: null })] }))).toBe(
             "/builds/view?source=draft&id=d%201",
         );
         expect(openHref(only({ queue: [queued(9)] }))).toBeNull();
@@ -398,7 +522,7 @@ describe("row actions", () => {
             view: viewOfPublished(api()),
         });
         expect(favouriteAction(only({ queue: [queued(9)] }))).toBeNull();
-        const draft: Draft = { id: "d1", heroId: 1, name: "x", updatedAt: 1, buildId: null };
+        const draft = draftRow({ buildId: null });
         expect(favouriteAction(only({ drafts: [draft] }))).toBeNull();
     });
 
@@ -531,6 +655,40 @@ describe("MyBuildsStore", () => {
         mocks.onFlushed.mockResolvedValue(() => {});
         mocks.buildsDrafts.mockResolvedValue([]);
         mocks.resolveNames.mockResolvedValue(new Map());
+        mocks.loadShopCatalog.mockResolvedValue({ byId: new Map() });
+        mocks.winRatesLoad.mockResolvedValue(new Map());
+    });
+
+    it("resolves the previews' items from the shop catalog, leaving out items the shop no longer sells", async () => {
+        const item = (id: number, shopable: boolean) => ({
+            id,
+            name: `Item ${id}`,
+            slot: "spirit",
+            tier: 2,
+            active: false,
+            shopable,
+            disabled: false,
+            art: `art-${id}`,
+        });
+        mocks.loadShopCatalog.mockResolvedValue({
+            byId: new Map([
+                [11, item(11, true)],
+                [12, item(12, false)],
+            ]),
+        });
+        const store = new MyBuildsStore();
+        const stop = store.start();
+        await settle();
+        stop();
+        expect(store.resolveItem?.(11)).toEqual({
+            name: "Item 11",
+            slot: "spirit",
+            tier: 2,
+            active: false,
+            art: "art-11",
+        });
+        expect(store.resolveItem?.(12)).toBeUndefined();
+        expect(store.resolveItem?.(13)).toBeUndefined();
     });
 
     it("lists other players' favourites with their authors' names", async () => {
@@ -605,6 +763,17 @@ describe("MyBuildsStore", () => {
         const row = store.groups.flatMap((g) => g.rows).find((r) => r.buildId === 5000)!;
         expect(await store.toggleFavourite(row)).toBe("done");
         expect(mocks.buildsFavourite).toHaveBeenCalledWith({ view: viewOfPublished(api()) });
+    });
+
+    it("loads the win rates of published builds for their heroes only", async () => {
+        mocks.builds.mockResolvedValue([api({ hero_id: 6 })]);
+        mocks.winRatesLoad.mockResolvedValue(new Map([[5000, { wins: 120, matches: 200 }]]));
+        const store = new MyBuildsStore();
+        await store.refresh();
+        await settle();
+        expect(mocks.winRatesLoad).toHaveBeenCalledTimes(1);
+        expect(mocks.winRatesLoad).toHaveBeenCalledWith(6);
+        expect(store.winRates.get(5000)).toEqual({ wins: 120, matches: 200 });
     });
 
     it("merges the file with the player's own published builds", async () => {

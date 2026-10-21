@@ -123,6 +123,8 @@ export interface StandardTag {
     key: string;
     /** The game's name; without one, the UI names the tag from its own locale. */
     name?: string;
+    /** The game's tag picker icon as an asset url. */
+    icon?: string;
 }
 
 /** `game` is the installed game's list, which leaves out a tag it cannot name. */
@@ -130,7 +132,8 @@ export function standardTags(game: readonly BuildTag[]): StandardTag[] {
     const byKey = new Map(game.map((g) => [g.key, g]));
     return STANDARD_TAGS.map(({ id, key }) => {
         const own = byKey.get(key);
-        return own ? { id: own.id, key, name: own.name } : { id, key };
+        if (!own) return { id, key };
+        return own.icon ? { id: own.id, key, name: own.name, icon: own.icon } : { id: own.id, key, name: own.name };
     });
 }
 

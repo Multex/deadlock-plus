@@ -6,12 +6,14 @@
     import { t, tn } from "$lib/core/i18n.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { layoutIssues, repairLayout } from "../../editor/repair";
+    import { headerLinesFor } from "../../header-lines.svelte";
 
     let { editor }: { editor: BuildEditor } = $props();
 
     let open = $state(false);
 
-    const issues = $derived(layoutIssues(editor.build));
+    const headerLines = $derived(headerLinesFor(editor.build.modCategories));
+    const issues = $derived(layoutIssues(editor.build, { headerLines }));
     const count = $derived(issues.reduce((sum, issue) => sum + issue.kinds.length, 0));
 
     function name(index: number): string {
@@ -27,7 +29,7 @@
     }
 
     function fixAll() {
-        editor.apply(repairLayout(editor.build), "repair");
+        editor.apply(repairLayout(editor.build, { headerLines }), "repair");
     }
 </script>
 

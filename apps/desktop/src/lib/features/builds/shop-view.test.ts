@@ -108,6 +108,22 @@ describe("shopView", () => {
     });
 });
 
+describe("shopView, wrapped category names", () => {
+    it("grows each category's header by its name's lines and moves its chips down, scaled", () => {
+        const flat = shopView(BUILD, QHD, 713, "fit");
+        const view = shopView(BUILD, QHD, 713, "fit", [1, 2]);
+        expect(view.categories.map((c) => c.header)).toEqual([41, 69, 41, 41].map((px) => px * view.scale));
+        expect(view.categories[1]!.chips[0]!.y - flat.categories[1]!.chips[0]!.y).toBeCloseTo(28 * view.scale);
+        expect(view.categories[0]!.chips).toEqual(flat.categories[0]!.chips);
+        expect(view.categories.map((c) => c.box)).toEqual(flat.categories.map((c) => c.box));
+    });
+
+    it("reports the chip rows the stored height cuts off", () => {
+        const view = shopView([category(264, 3, 162.75)], QHD, 1, "native", [2]);
+        expect(view.categories[0]!.clippedRows).toBe(1);
+    });
+});
+
 describe("a stored width with no stored height (our rule, not the game's)", () => {
     it("sizes the height to the rows the stored width gives", () => {
         const narrow = shopView([category(176, 4, null)], QHD, 0, "native").categories[0];

@@ -37,10 +37,12 @@ export function canvasView(
     screen: Screen,
     available: number,
     zoom: Zoom = "fit",
+    /** Lines each category's name wraps to, as rendered; 1 when missing. */
+    headerLines: readonly (number | undefined)[] = [],
 ): { view: ShopView; tile: Box; bareHeight: number; fit: number } {
     const page = geometry(screen.height).contentWidth;
     const fit = available / page;
-    const withTile = shopView([...categories, TILE], screen, zoomScale(zoom, fit) * page, "fit");
+    const withTile = shopView([...categories, TILE], screen, zoomScale(zoom, fit) * page, "fit", headerLines);
     const tile = withTile.categories.pop()!;
     const margin = geometry(screen.height).margin * withTile.scale;
     const bottom = Math.max(0, ...withTile.categories.map(({ box }) => box.y + box.height + margin));
@@ -52,7 +54,7 @@ export function slotBoxes(view: ShopView, category: ShopCategoryView, count: num
     const g = geometry(screen.height);
     const s = view.scale;
     const left = category.box.x + (g.frame + g.chipMargin) * s;
-    const top = category.box.y + (g.frame + g.header + g.chipMargin) * s;
+    const top = category.box.y + (g.frame + g.chipMargin) * s + category.header;
     return Array.from(
         { length: count },
         (_, i) =>

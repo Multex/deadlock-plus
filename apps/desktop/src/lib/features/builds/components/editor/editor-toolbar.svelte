@@ -97,7 +97,7 @@
 </script>
 
 <div
-    class="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-3 py-2"
+    class="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2"
     role="toolbar"
     aria-label={t("builds.editor.toolbar.label")}
     data-testid="editor-toolbar"

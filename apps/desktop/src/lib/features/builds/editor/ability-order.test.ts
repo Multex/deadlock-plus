@@ -11,8 +11,10 @@ import {
     moveStep,
     orderSteps,
     pointsSummary,
+    readSteps,
     removeStep,
     slotState,
+    stepsSummary,
 } from "./ability-order";
 
 const ABILITIES = [10, 20, 30, 40] as const;
@@ -287,6 +289,11 @@ describe("pointsSummary", () => {
         expect(pointsSummary([], LEVELS)).toEqual({ spent: 0, available: 4, lastLevel: null });
         expect(pointsSummary([unlock(10)], [])).toEqual({ spent: 0, available: null, lastLevel: null });
     });
+
+    it("sums steps read as the game reads them", () => {
+        const steps = readSteps([ap(30, -1), unlock(10), ap(10, -1), ap(10, -2)], LEVELS);
+        expect(stepsSummary(steps, LEVELS)).toEqual({ spent: 3, available: 4, lastLevel: 6 });
+    });
 });
 
 describe("abilityProgress", () => {
@@ -310,5 +317,35 @@ describe("abilityProgress", () => {
             lastStep: 3,
             next: { kind: "blocked", reason: "maxed" },
         });
+    });
+});
+
+describe("readSteps", () => {
+    it("keeps a stored order as the game reads it, with each step's level", () => {
+        const steps = readSteps([unlock(10), ap(10, -1), unlock(20), ap(10, -2)], LEVELS);
+        expect(steps).toEqual([
+            { abilityId: 10, tier: 0, level: 1 },
+            { abilityId: 10, tier: 1, level: 2 },
+            { abilityId: 20, tier: 0, level: 3 },
+            { abilityId: 10, tier: 2, level: 6 },
+        ]);
+    });
+
+    it("leaves an early ultimate where it is", () => {
+        expect(readSteps([unlock(40), unlock(10)], LEVELS).map((s) => s.abilityId)).toEqual([40, 10]);
+    });
+
+    it("skips points on a locked ability and reads a free unlock as an unlock", () => {
+        const steps = readSteps([ap(30, -1), { ...unlock(10), delta: 0 }, ap(10, -1)], LEVELS);
+        expect(steps.map((s) => [s.abilityId, s.tier])).toEqual([
+            [10, 0],
+            [10, 1],
+        ]);
+    });
+
+    it("stops at the leftover tail: a repeated unlock or a tier past the last", () => {
+        expect(readSteps([unlock(10), unlock(20), unlock(10), unlock(30)], LEVELS)).toHaveLength(2);
+        const maxed = [unlock(10), ap(10, -1), ap(10, -2), ap(10, -5), ap(10, -1), unlock(20)];
+        expect(readSteps(maxed, LEVELS)).toHaveLength(4);
     });
 });

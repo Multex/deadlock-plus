@@ -131,9 +131,13 @@ describe("editHrefFor", () => {
         buildId: null,
         heroId: 7,
         name: "n",
-        status: "inGame",
+        status: "local",
+        waiting: false,
         updatedAt: null,
         published: false,
+        build: null,
+        favourites: null,
+        version: null,
         edited: false,
         favorited: false,
         local: [],
@@ -145,9 +149,9 @@ describe("editHrefFor", () => {
     });
 
     it("opens a draft row's draft, a file build by its local id, and an API-only build as public", () => {
-        expect(editHrefFor(row({ draft: { id: "d1", heroId: 7, name: "", updatedAt: 1, buildId: 5 } }))).toBe(
-            editHref({ source: "draft", id: "d1" }),
-        );
+        expect(
+            editHrefFor(row({ draft: { id: "d1", heroId: 7, name: "", updatedAt: 1, buildId: 5, build: build(5) } })),
+        ).toBe(editHref({ source: "draft", id: "d1" }));
         expect(editHrefFor(row({ buildId: 5, local: [entry("Unpublished", build(5))] }))).toBe(
             editHref({ source: "local", id: 5 }),
         );

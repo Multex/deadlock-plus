@@ -13,13 +13,17 @@ const CATEGORY_BORDER = 2;
  * Stored sizes with a missing width or height filled as the shop view fills them, so both views draw the same
  * build: our Fit size, or a stored width's Fit rows at its shop columns on this screen.
  */
-function storedSizes(categories: readonly ModCategoryView[], screen: Screen): BuildCategory[] {
+function storedSizes(
+    categories: readonly ModCategoryView[],
+    screen: Screen,
+    headerLines: readonly (number | undefined)[],
+): BuildCategory[] {
     const g = geometry(screen.height);
-    return categories.map((category) => {
+    return categories.map((category, i) => {
         const items = category.mods.length;
         if (category.width === null) {
             const fit = fitSize(items);
-            return { width: fit.width, height: category.height ?? fit.height, items };
+            return { width: fit.width, height: category.height ?? fit.height, items, headerLines: headerLines[i] };
         }
         const columns = columnsFor(Math.min(widthPx(category.width, screen.height), g.cap), g);
         const rows = Math.max(1, Math.ceil(items / columns));
@@ -27,6 +31,7 @@ function storedSizes(categories: readonly ModCategoryView[], screen: Screen): Bu
             width: category.width,
             height: category.height ?? FIT_ONE_ROW_HEIGHT + FIT_ROW_HEIGHT * (rows - 1),
             items,
+            headerLines: headerLines[i],
         };
     });
 }
@@ -41,8 +46,10 @@ export function previewView(
     screen: Screen,
     available: number,
     zoom: Zoom,
+    /** Lines each category's name wraps to, as rendered; 1 when missing. */
+    headerLines: readonly (number | undefined)[] = [],
 ): { view: ShopView; fit: number } {
-    const layout = layoutPreview(storedSizes(categories, screen), screen);
+    const layout = layoutPreview(storedSizes(categories, screen, headerLines), screen);
     const g = previewGeometry(screen.height);
     const fit = available / layout.contentWidth;
     const scale = zoomScale(zoom, fit);
@@ -62,6 +69,8 @@ export function previewView(
                 columns: category.columns,
                 rows: category.rows,
                 capped: category.capped,
+                header: category.header * scale,
+                clippedRows: category.clippedRows,
                 chips: category.chips.map((chip) => scaled(chip, scale)),
                 index,
             })),

@@ -9,13 +9,16 @@ import {
     type CategoryLayout,
     type Screen,
 } from "@deadlock-plus/build-layout";
+import { REFERENCE_HEIGHT, geometry } from "@deadlock-plus/build-layout/layout";
+import { previewGeometry } from "@deadlock-plus/build-layout/preview";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { MEASURED_RESOLUTION, SHOP_SCREENS, fitSize } from "../shop-view";
 import { losesPreviewColumns, sizeTag } from "./resize";
 import { heightForRows } from "./row-ops";
 
-export type LayoutIssueKind = "unsized" | "cap" | "columns" | "preview_columns" | "row" | "preview_row" | "height";
+export type LayoutIssueKind =
+    "unsized" | "cap" | "columns" | "preview_columns" | "row" | "preview_row" | "height" | "title_wraps";
 
 const KIND_ORDER: readonly LayoutIssueKind[] = [
     "unsized",
@@ -25,6 +28,7 @@ const KIND_ORDER: readonly LayoutIssueKind[] = [
     "row",
     "preview_row",
     "height",
+    "title_wraps",
 ];
 
 export interface CategoryIssues {
@@ -35,6 +39,8 @@ export interface CategoryIssues {
 export interface LayoutCheckOptions {
     /** The screen whose columns and rows count as what the build shows; the measured 1440p by default. */
     reference?: Screen;
+    /** Lines each category's name wraps to in its header at 1440p, as rendered; 1 when missing. */
+    headerLines?: readonly (number | undefined)[];
 }
 
 const SCREENS = Object.values(SHOP_SCREENS);
@@ -42,6 +48,27 @@ const SCREENS = Object.values(SHOP_SCREENS);
 const widthOf = (category: ModCategoryView) => category.width ?? fitSize(category.mods.length).width;
 
 type Layout = typeof layoutBuild;
+
+/** The Build Browser draws the shop's panel at `ui-scale: 63%`. */
+const UI_SCALE_PERCENT = 63;
+
+/**
+ * Units a name's extra lines add to the header, at the most any scale of the shop or the Build Browser preview
+ * draws them (the preview's rounding at its worst), rounded up to a whole unit.
+ */
+function extraHeaderHeight(lines: number | undefined): number {
+    const extra = Math.max(0, (lines ?? 1) - 1);
+    if (extra === 0) return 0;
+    return Math.ceil(
+        Math.max(
+            ...SCREENS.flatMap(({ height }) => [
+                (extra * geometry(height).headerLine * REFERENCE_HEIGHT) / height,
+                (extra * previewGeometry(height, true).headerLine * 100 * REFERENCE_HEIGHT) /
+                    (UI_SCALE_PERCENT * height),
+            ]),
+        ),
+    );
+}
 
 function layoutOf(
     categories: readonly ModCategoryView[],
@@ -102,6 +129,31 @@ function previewRowMismatches(categories: readonly ModCategoryView[], widths: re
     return mismatched;
 }
 
+/** Categories whose wrapped name pushes more chip rows past their stored height at 1440p than one line would. */
+function titleClips(
+    categories: readonly ModCategoryView[],
+    widths: readonly number[],
+    headerLines: readonly (number | undefined)[],
+): Set<number> {
+    const clippedRows = (lines: (i: number) => number | undefined) =>
+        layoutBuild(
+            categories.map((category, i) => ({
+                width: widths[i]!,
+                height: category.height ?? 0,
+                items: category.mods.length,
+                headerLines: lines(i),
+            })),
+            SHOP_SCREENS[MEASURED_RESOLUTION],
+        ).categories.map((placed) => placed.clippedRows);
+    const wrapped = clippedRows((i) => headerLines[i]);
+    const oneLine = clippedRows(() => 1);
+    const clipped = new Set<number>();
+    for (const [i, category] of categories.entries()) {
+        if (category.height !== null && wrapped[i]! > oneLine[i]!) clipped.add(i);
+    }
+    return clipped;
+}
+
 export function layoutIssues(build: BuildView, opts: LayoutCheckOptions = {}): CategoryIssues[] {
     const reference = opts.reference ?? SHOP_SCREENS[MEASURED_RESOLUTION];
     const categories = build.modCategories;
@@ -109,6 +161,9 @@ export function layoutIssues(build: BuildView, opts: LayoutCheckOptions = {}): C
     const drawn = SCREENS.map((screen) => layoutOf(categories, widths, screen));
     const rows = rowMismatches(categories, widths);
     const previewRows = previewRowMismatches(categories, widths);
+    const wrapped = opts.headerLines?.some((lines) => (lines ?? 1) > 1)
+        ? titleClips(categories, widths, opts.headerLines)
+        : new Set<number>();
     return categories.flatMap((category, index) => {
         const kinds = new Set<LayoutIssueKind>();
         if (category.width === null || category.height === null) kinds.add("unsized");
@@ -127,6 +182,7 @@ export function layoutIssues(build: BuildView, opts: LayoutCheckOptions = {}): C
             sizeTag(widths[index]!, category.height, category.mods.length, reference).overflow
         )
             kinds.add("height");
+        if (wrapped.has(index)) kinds.add("title_wraps");
         return kinds.size === 0 ? [] : [{ index, kinds: KIND_ORDER.filter((kind) => kinds.has(kind)) }];
     });
 }
@@ -152,7 +208,8 @@ export function fitRowColumns(columns: readonly number[]): number[] {
  * or none stored, becomes the everywhere-safe width of the columns it shows at the reference screen; a row that
  * wraps differently gets everywhere-safe widths for all its members, dropping columns by `fitRowColumns` when
  * they no longer share. Heights then grow to the everywhere-safe height of their items' rows, a missing height
- * is exactly that. Order never changes.
+ * is exactly that; under a wrapped name it is that height plus `extraHeaderHeight`, and a height its wrapped name
+ * clips at 1440p grows the same way. Names and order never change.
  */
 export function repairLayout(build: BuildView, opts: LayoutCheckOptions = {}): BuildView {
     const issues = layoutIssues(build, opts);
@@ -202,13 +259,18 @@ export function repairLayout(build: BuildView, opts: LayoutCheckOptions = {}): B
     }
 
     const shown = layoutOf(categories, widths, reference);
+    const headerLines = opts.headerLines ?? [];
+    const titleClipped = titleClips(categories, widths, headerLines);
     let touched = false;
     const modCategories = categories.map((category, i) => {
         const items = category.mods.length;
         const rows = Math.max(1, Math.ceil(items / shown[i]!.columns));
-        const tooShort = category.height === null || sizeTag(widths[i]!, category.height, items, reference).overflow;
+        const tooShort =
+            category.height === null ||
+            sizeTag(widths[i]!, category.height, items, reference).overflow ||
+            titleClipped.has(i);
         const width = widths[i]!;
-        const height = tooShort ? heightForRows(rows) : category.height!;
+        const height = tooShort ? heightForRows(rows) + extraHeaderHeight(headerLines[i]) : category.height!;
         if (width === category.width && height === category.height) return category;
         touched = true;
         return { ...category, width, height };

@@ -3,7 +3,19 @@ import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { describe, expect, it } from "vitest";
 import { buildShopCatalog, type ShopMetadata } from "../catalog";
-import { inBuildCounts, nearestCard, pickerGroups, sortByPopularity } from "./picker";
+import {
+    FILTER_CATEGORIES,
+    GRID_SLOTS,
+    inBuildCounts,
+    inCategories,
+    itemFilters,
+    nearestCard,
+    PROVIDES_FILTERS,
+    providedFilters,
+    searchHits,
+    shopGrid,
+    taggedCategories,
+} from "./picker";
 
 const PRICES = { 1: 800, 2: 1600, 3: 3200, 4: 6400 } as const;
 
@@ -18,6 +30,8 @@ function meta(over: Partial<ShopMetadata> & Pick<ShopMetadata, "id" | "name">): 
         shopable: true,
         disabled: false,
         imbue: false,
+        shopFilters: [],
+        disabledShopFilters: [],
         componentIds: [],
         ...over,
     };
@@ -53,52 +67,6 @@ const STATS: ItemStats[] = [
 ];
 
 const catalog = buildShopCatalog([], ITEMS, {}, STATS);
-
-describe("pickerGroups", () => {
-    it("lists the chosen slot as tier rows 1 to 4, each with its tier price", () => {
-        const groups = pickerGroups(catalog, "weapon", "");
-        expect(groups).toHaveLength(1);
-        expect(groups[0]!.slot).toBe("weapon");
-        expect(groups[0]!.rows.map((r) => [r.tier, r.price, r.items.map((i) => i.id)])).toEqual([
-            [1, 800, [2, 1]],
-            [2, 1600, [3, 9]],
-            [3, 3200, []],
-            [4, 6400, []],
-        ]);
-    });
-
-    it("leaves items the shop does not sell out", () => {
-        const ids = pickerGroups(catalog, "weapon", "").flatMap((g) => g.rows.flatMap((r) => r.items.map((i) => i.id)));
-        expect(ids).not.toContain(8);
-    });
-
-    it("searches every slot, ranked like the shop search, grouped by slot", () => {
-        const groups = pickerGroups(catalog, "vitality", "spirit");
-        expect(groups.map((g) => g.slot)).toEqual(["weapon", "vitality", "spirit"]);
-        const ids = Object.fromEntries(groups.map((g) => [g.slot, g.rows.flatMap((r) => r.items.map((i) => i.id))]));
-        expect(ids).toEqual({ weapon: [9], vitality: [4], spirit: [5, 7] });
-    });
-
-    it("keeps the shop search order inside a slot: name prefix first", () => {
-        const spirit = pickerGroups(catalog, "weapon", "spirit").find((g) => g.slot === "spirit")!;
-        expect(spirit.rows[0]!.items.map((i) => i.name)).toEqual(["Extra Spirit", "Boundless Spirit"]);
-        const prefixed = pickerGroups(catalog, "weapon", "b").find((g) => g.slot === "spirit")!;
-        expect(prefixed.rows[0]!.items.map((i) => i.name)).toEqual(["Boundless Spirit", "Mystic Burst"]);
-    });
-
-    it("drops slots without a hit and shows no tier header in search", () => {
-        const groups = pickerGroups(catalog, "weapon", "mystic");
-        expect(groups.map((g) => g.slot)).toEqual(["weapon", "spirit"]);
-        for (const g of groups) expect(g.rows.map((r) => [r.tier, r.price])).toEqual([[null, null]]);
-    });
-
-    it("finds an item by a stat label through the given matchers", () => {
-        const none = pickerGroups(catalog, "weapon", "spirit power", []);
-        expect(none).toEqual([]);
-        const groups = pickerGroups(catalog, "weapon", "spirit power");
-        expect(groups.map((g) => [g.slot, g.rows[0]!.items.map((i) => i.id)])).toEqual([["vitality", [4]]]);
-    });
-});
 
 function category(...ids: number[]): ModCategoryView {
     return {
@@ -154,22 +122,186 @@ describe("nearestCard", () => {
     });
 });
 
-describe("sortByPopularity", () => {
-    const score = (id: number) => (({ 1: 30, 3: 5, 9: 60 }) as Record<number, number>)[id];
+const gridIds = (rows: ReturnType<typeof shopGrid>) =>
+    rows.map((r) => [r.tier, r.price, r.cells.map((c) => [c.slot, c.items.map((i) => i.id)])]);
 
-    it("orders each tier row by pick %, items without data last in shop order", () => {
-        const groups = sortByPopularity(pickerGroups(catalog, "weapon", ""), score);
-        expect(groups[0]!.rows.map((r) => r.items.map((i) => i.id))).toEqual([[1, 2], [9, 3], [], []]);
+describe("shopGrid", () => {
+    it("lays the shop out like the game: Weapon, Spirit, Vitality columns", () => {
+        expect(GRID_SLOTS).toEqual(["weapon", "spirit", "vitality"]);
     });
 
-    it("keeps the search ranking while searching", () => {
-        const searched = pickerGroups(catalog, "weapon", "spirit");
-        expect(sortByPopularity(searched, score)).toEqual(searched);
+    it("rows the given slots by tier with the tier price, cells in column order", () => {
+        expect(gridIds(shopGrid(catalog, GRID_SLOTS))).toEqual([
+            [
+                1,
+                800,
+                [
+                    ["weapon", [2, 1]],
+                    ["spirit", [5]],
+                    ["vitality", [4]],
+                ],
+            ],
+            [
+                2,
+                1600,
+                [
+                    ["weapon", [3, 9]],
+                    ["spirit", [6]],
+                    ["vitality", []],
+                ],
+            ],
+            [
+                4,
+                6400,
+                [
+                    ["weapon", []],
+                    ["spirit", [7]],
+                    ["vitality", []],
+                ],
+            ],
+        ]);
     });
 
-    it("does not reorder the rows it was given", () => {
-        const groups = pickerGroups(catalog, "weapon", "");
-        sortByPopularity(groups, score);
-        expect(groups[0]!.rows[0]!.items.map((i) => i.id)).toEqual([2, 1]);
+    it("keeps only the items the filter lets through and drops rows left empty", () => {
+        expect(gridIds(shopGrid(catalog, ["weapon"], (i) => i.id !== 2 && i.tier === 1))).toEqual([
+            [1, 800, [["weapon", [1]]]],
+        ]);
+    });
+
+    it("never offers items the shop does not sell", () => {
+        const ids = shopGrid(catalog, GRID_SLOTS).flatMap((r) => r.cells.flatMap((c) => c.items.map((i) => i.id)));
+        expect(ids).not.toContain(8);
+    });
+});
+
+describe("searchHits", () => {
+    it("matches every shop item when the query is blank", () => {
+        expect(searchHits(catalog, "  ")).toBeNull();
+    });
+
+    it("matches names and stat labels", () => {
+        expect([...searchHits(catalog, "spirit")!].sort()).toEqual([4, 5, 7, 9]);
+        expect([...searchHits(catalog, "spirit power")!]).toEqual([4]);
+    });
+});
+
+describe("shop filter categories", () => {
+    const shop = [...catalog.byId.values()];
+    const item = (over: Partial<(typeof shop)[number]>) => ({ ...shop[0]!, ...over });
+
+    it("holds the game's six tabs and their filters", () => {
+        expect(Object.keys(FILTER_CATEGORIES)).toEqual([
+            "physical",
+            "spirit",
+            "defense",
+            "mobility",
+            "disruption",
+            "misc",
+        ]);
+        expect(FILTER_CATEGORIES.misc).toEqual(["EShopFilterActive", "EShopFilterImbue"]);
+        expect(FILTER_CATEGORIES.physical).toContain("EShopFilterWeaponFireRate");
+        expect(Object.values(FILTER_CATEGORIES).flat()).toHaveLength(46);
+    });
+
+    it("tags active and imbue items like the game's Misc tab", () => {
+        expect(itemFilters(item({ active: false, imbue: false }))).toEqual([]);
+        expect(itemFilters(item({ active: true, imbue: true }))).toEqual(["EShopFilterActive", "EShopFilterImbue"]);
+    });
+
+    it("adds the filters the game files give the item", () => {
+        expect(itemFilters(item({ active: true }), ["EShopFilterMoveSpeed"])).toEqual([
+            "EShopFilterActive",
+            "EShopFilterMoveSpeed",
+        ]);
+    });
+
+    it("adds the filters the item's vdata adds, each once", () => {
+        // upgrade_phantom_strike in build 6805 adds Teleport and Grounded.
+        const tagged = item({ shopFilters: ["EShopFilterTeleport", "EShopFilterStatus_Grounded"] });
+        expect(itemFilters(tagged, ["EShopFilterStatus_Grounded"])).toEqual([
+            "EShopFilterStatus_Grounded",
+            "EShopFilterTeleport",
+        ]);
+    });
+
+    it("drops the filters the item's vdata disables from the computed ones", () => {
+        // upgrade_melee_rebuttal in build 6805 disables Weapon Damage and Spirit Damage.
+        const tagged = item({
+            active: true,
+            disabledShopFilters: ["EShopFilterWeaponDamage", "EShopFilterSpiritDamage"],
+        });
+        expect(itemFilters(tagged, ["EShopFilterWeaponDamage", "EShopFilterMelee", "EShopFilterSpiritDamage"])).toEqual(
+            ["EShopFilterActive", "EShopFilterMelee"],
+        );
+    });
+
+    it("lets everything through with no category picked", () => {
+        expect(inCategories([], new Set())).toBe(true);
+    });
+
+    it("keeps an item with a filter in any picked category", () => {
+        const picked = new Set(["mobility", "misc"] as const);
+        expect(inCategories(["EShopFilterImbue"], picked)).toBe(true);
+        expect(inCategories(["EShopFilterSprint"], picked)).toBe(true);
+        expect(inCategories(["EShopFilterHP"], picked)).toBe(false);
+        expect(inCategories([], picked)).toBe(false);
+    });
+
+    it("lists only the categories some item is tagged with", () => {
+        const tagged = taggedCategories([["EShopFilterActive"], ["EShopFilterHP", "EShopFilterBarrier"], []]);
+        expect([...tagged]).toEqual(["defense", "misc"]);
+    });
+});
+
+describe("providedFilters", () => {
+    const stat = (provides: string | null, value: number) => ({
+        key: `${provides}-${value}`,
+        value,
+        unit: null,
+        label: "",
+        flat: true,
+        provides,
+        section: null,
+    });
+
+    it("tags a stat by what it provides", () => {
+        expect(providedFilters([stat("MODIFIER_VALUE_FIRE_RATE", 10)])).toEqual(["EShopFilterWeaponFireRate"]);
+        expect(providedFilters([stat("MODIFIER_VALUE_TECH_RESIST", 12)])).toEqual(["EShopFilterSpiritResist"]);
+    });
+
+    it("reads a penalty on the enemy as disruption, not a bonus", () => {
+        expect(providedFilters([stat("MODIFIER_VALUE_HEAL_AMP_RECEIVE_PERCENT", 20)])).toEqual(["EShopFilterHealing"]);
+        expect(providedFilters([stat("MODIFIER_VALUE_HEAL_AMP_RECEIVE_PERCENT", -35)])).toEqual([
+            "EShopFilterAntiHeal",
+        ]);
+        expect(providedFilters([stat("MODIFIER_VALUE_TECH_POWER", -30)])).toEqual(["EShopFilterSpiritDamageReduction"]);
+    });
+
+    it("ignores a cost the item puts on its owner", () => {
+        expect(providedFilters([stat("MODIFIER_VALUE_MOVEMENT_SPEED_MAX", -0.5)])).toEqual([]);
+    });
+
+    it("tags a reduction whatever its sign", () => {
+        expect(providedFilters([stat("MODIFIER_VALUE_BULLET_AND_MELEE_RESIST_REDUCTION", -10)])).toEqual([
+            "EShopFilterBulletVuln",
+        ]);
+    });
+
+    it("skips stats that provide nothing or something without a filter, and lists each filter once", () => {
+        expect(
+            providedFilters([
+                stat(null, 5),
+                stat("MODIFIER_VALUE_RESPAWN_TIME_PERCENTAGE", -70),
+                stat("MODIFIER_VALUE_HEALTH_MAX", 100),
+                stat("MODIFIER_VALUE_BASE_HEALTH_PERCENT", 5),
+            ]),
+        ).toEqual(["EShopFilterHP"]);
+    });
+
+    it("only names filters one of the game's tabs holds", () => {
+        const known = new Set<string>(Object.values(FILTER_CATEGORIES).flat());
+        for (const [up, down] of Object.values(PROVIDES_FILTERS)) {
+            for (const f of [...up, ...down]) expect(known).toContain(f);
+        }
     });
 });

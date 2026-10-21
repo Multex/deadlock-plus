@@ -5,7 +5,8 @@ import { expect, test } from "./support/test";
 const main = (page: Page) => page.getByRole("main");
 const publicTab = (page: Page) => main(page).getByRole("tabpanel", { name: "Public" });
 const cards = (page: Page) => publicTab(page).locator('a[href^="/builds/view"]');
-const heroSelect = (page: Page) => main(page).locator('button[aria-haspopup="listbox"]');
+const publicSelects = (page: Page) => publicTab(page).locator('button[aria-haspopup="listbox"]');
+const heroSelect = (page: Page) => publicSelects(page).first();
 const card = (page: Page, name: string) => publicTab(page).getByRole("link", { name, exact: true });
 const mineTab = (page: Page) => main(page).getByRole("tabpanel", { name: "Mine" });
 const mineRow = (page: Page, name: string) =>
@@ -13,9 +14,17 @@ const mineRow = (page: Page, name: string) =>
         .getByRole("listitem")
         .filter({ has: page.getByRole("link", { name, exact: true }) });
 
+const mineHeroSelect = (page: Page) => mineTab(page).locator('button[aria-haspopup="listbox"]');
+
 async function openMine(page: Page) {
     await main(page).getByRole("tab", { name: "Mine", exact: true }).click();
     await expect(mineTab(page).getByRole("listitem").first()).toBeVisible();
+}
+
+async function pickMineHero(page: Page, name: string) {
+    await mineHeroSelect(page).click();
+    await page.getByRole("option", { name, exact: true }).click();
+    await expect(mineHeroSelect(page)).toHaveText(name);
 }
 
 async function pickHero(page: Page, name: string) {
@@ -32,7 +41,7 @@ test("the page opens on the hero of the newest match", async ({ page }) => {
     await expect(heroSelect(page)).toHaveText("Kelvin");
 });
 
-test("switching the hero shows that hero's builds, this week's favourites first", async ({ page }) => {
+test("switching the hero shows that hero's builds, this week's top builds first", async ({ page }) => {
     await pickHero(page, "Haze");
     await expect(cards(page)).toHaveText(["Bullet Dance Crit", "Sleepy Spirit Haze"]);
 
@@ -60,9 +69,51 @@ test("a hero with no public builds shows the empty state", async ({ page }) => {
     await expect(cards(page)).toHaveCount(0);
 });
 
+test("heroes still in development are not offered", async ({ page }) => {
+    await heroSelect(page).click();
+    await expect(page.getByRole("option", { name: "Haze", exact: true })).toBeVisible();
+    await expect(page.getByRole("option", { name: "Skyrunner", exact: true })).toHaveCount(0);
+});
+
+test("picking a hero and a sort writes both to the URL", async ({ page }) => {
+    await pickHero(page, "Haze");
+    await expect(page).toHaveURL(/[?&]hero=13(&|$)/);
+    await pickHero(page, "Kelvin");
+    await expect(page).toHaveURL(/[?&]hero=12(&|$)/);
+    await publicSelects(page).nth(1).click();
+    // Sorts in order: popular, this week, favourites, recently updated.
+    await page.getByRole("option").nth(3).click();
+    await expect(page).toHaveURL(/[?&]sort=updated(&|$)/);
+    await expect(cards(page)).toHaveText(["Kelvin lane bully", "Absolute Zero", "Frost Wall", "Kelvin Cold Bullets"]);
+});
+
+test("?sort=updated lists the most recently updated builds first", async ({ page }) => {
+    await open(page, "/builds?hero=12&sort=updated");
+    await expect(cards(page)).toHaveText(["Kelvin lane bully", "Absolute Zero", "Frost Wall", "Kelvin Cold Bullets"]);
+});
+
+test("?min_fav= leaves out builds with fewer favourites", async ({ page }) => {
+    await open(page, "/builds?hero=12&min_fav=1000");
+    await expect(cards(page)).toHaveText(["Absolute Zero", "Frost Wall"]);
+});
+
+test("?lang=any also lists builds in other languages", async ({ page }) => {
+    await open(page, "/builds?hero=13&lang=any");
+    await expect(card(page, "Хейз через пушку")).toBeVisible();
+});
+
+test("filters stay after opening a build and going back", async ({ page }) => {
+    await open(page, "/builds?hero=12&sort=updated");
+    await card(page, "Frost Wall").click();
+    await expect(page).toHaveURL(/\/builds\/view\?source=public&id=384019$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/[?&]sort=updated(&|$)/);
+    await expect(cards(page)).toHaveText(["Kelvin lane bully", "Absolute Zero", "Frost Wall", "Kelvin Cold Bullets"]);
+});
+
 test("My builds lists a stored draft on its own Draft row, which opens the draft in the editor", async ({ page }) => {
     await openMine(page);
-    await expect(mineRow(page, "Infernus test")).toContainText("In game");
+    await expect(mineRow(page, "Infernus test")).toContainText("Local");
     const draft = mineRow(page, "Infernus burst");
     await expect(draft).toContainText("Draft");
     const link = draft.getByRole("link", { name: "Infernus burst", exact: true });
@@ -117,6 +168,9 @@ test("My builds lists another player's favourite with its author, edits a copy o
     page,
 }) => {
     await openMine(page);
+    await expect(mineTab(page).getByRole("link", { name: "Bullet Dance Crit", exact: true })).toHaveCount(0);
+    const showFavourites = mineTab(page).getByRole("button", { name: "Favourites", exact: true });
+    await showFavourites.click();
     const favourites = mineTab(page).getByTestId("favourites");
     const link = favourites.getByRole("link", { name: "Bullet Dance Crit", exact: true });
     const row = favourites
@@ -125,7 +179,6 @@ test("My builds lists another player's favourite with its author, edits a copy o
     await expect(row).toContainText("Haze");
     await expect(row).toContainText("By Brass Tack");
     await expect(link).toHaveAttribute("href", "/builds/view?source=local&id=381204");
-    await expect(mineTab(page).getByRole("link", { name: "Bullet Dance Crit", exact: true })).toHaveCount(1);
 
     const actions = row.getByRole("button", { name: "More actions for Bullet Dance Crit", exact: true });
     await actions.click();
@@ -135,10 +188,45 @@ test("My builds lists another player's favourite with its author, edits a copy o
 
     await open(page, "/builds");
     await openMine(page);
+    await showFavourites.click();
     await actions.click();
     await page.getByRole("menuitem", { name: "Unfavourite", exact: true }).click();
     await expect(favourites).toHaveCount(0);
+    await expect(mineTab(page)).toContainText("You have no favourites yet.");
+    await mineTab(page).getByRole("button", { name: "My builds", exact: true }).click();
     await expect(mineRow(page, "Infernus test")).toBeVisible();
+});
+
+test("My builds shows a published build as Public with its favourites and version", async ({ page }) => {
+    await openMine(page);
+    const published = mineRow(page, "Afterburn all day");
+    await expect(published).toContainText("Public");
+    await expect(published).toContainText("Version 4");
+    await expect(published.getByTestId("favourite-count")).toContainText("37");
+    await expect(mineRow(page, "Infernus test").getByTestId("favourite-count")).toHaveCount(0);
+    await expect(mineRow(page, "Infernus test")).not.toContainText("Version");
+    await expect(mineTab(page)).not.toContainText("In game");
+    await expect(mineTab(page)).not.toContainText("Published");
+});
+
+test("My builds and Favourites filter by hero, with New build for a hero that has none", async ({ page }) => {
+    await openMine(page);
+    await expect(mineHeroSelect(page)).toHaveText("All heroes");
+    await pickMineHero(page, "Haze");
+    await expect(mineRow(page, "Bullet Dance Crit (copy)")).toBeVisible();
+    await expect(mineRow(page, "Infernus test")).toHaveCount(0);
+    await mineTab(page).getByRole("button", { name: "Favourites", exact: true }).click();
+    await expect(mineTab(page).getByRole("link", { name: "Bullet Dance Crit", exact: true })).toBeVisible();
+
+    await pickMineHero(page, "Kelvin");
+    await expect(mineTab(page)).toContainText("You have no Kelvin favourites yet.");
+    await mineTab(page).getByRole("button", { name: "My builds", exact: true }).click();
+    await expect(mineTab(page)).toContainText("You have no Kelvin builds yet.");
+    await expect(mineTab(page).getByTestId("new-build")).toHaveAttribute("href", "/builds/edit?new=12");
+
+    await pickMineHero(page, "All heroes");
+    await expect(mineRow(page, "Infernus test")).toBeVisible();
+    await expect(mineRow(page, "Bullet Dance Crit (copy)")).toBeVisible();
 });
 
 test("?hero= opens the Public tab on that hero", async ({ page }) => {

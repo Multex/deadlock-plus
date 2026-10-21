@@ -20,6 +20,10 @@ export interface ShopCategoryView {
     columns: number;
     rows: number;
     capped: boolean;
+    /** Scaled px of this category's header bar, grown by its name's extra lines. */
+    header: number;
+    /** Chip rows the stored height cuts off. */
+    clippedRows: number;
     chips: Box[];
     index: number;
 }
@@ -30,7 +34,7 @@ export interface ShopView {
     contentHeight: number;
     /** CSS px per game unit. */
     unit: number;
-    /** Scaled px of the category border and the header bar inside it. */
+    /** Scaled px of the category border and a one-line header bar inside it. */
     border: number;
     header: number;
     categories: ShopCategoryView[];
@@ -89,16 +93,21 @@ function scaled(box: Box, scale: number): Box {
     return { x: box.x * scale, y: box.y * scale, width: box.width * scale, height: box.height * scale };
 }
 
-function layoutFor(categories: readonly ModCategoryView[], screen: Screen) {
+function layoutFor(
+    categories: readonly ModCategoryView[],
+    screen: Screen,
+    headerLines: readonly (number | undefined)[] = [],
+) {
     return layoutBuild(
-        categories.map((category) => {
+        categories.map((category, i) => {
             const items = category.mods.length;
+            const lines = headerLines[i];
             if (category.width === null) {
                 const fit = fitSize(items);
-                return { width: fit.width, height: category.height ?? fit.height, items };
+                return { width: fit.width, height: category.height ?? fit.height, items, headerLines: lines };
             }
             const height = category.height ?? heightForWidth(category.width, items, screen);
-            return { width: category.width, height, items };
+            return { width: category.width, height, items, headerLines: lines };
         }),
         screen,
     );
@@ -109,8 +118,10 @@ export function shopView(
     screen: Screen,
     available: number,
     mode: ShopMode,
+    /** Lines each category's name wraps to, as rendered; 1 when missing. */
+    headerLines: readonly (number | undefined)[] = [],
 ): ShopView {
-    const layout = layoutFor(categories, screen);
+    const layout = layoutFor(categories, screen, headerLines);
     const scale = mode === "native" ? 1 : available / layout.contentWidth;
     const g = geometry(screen.height);
     const bottom = Math.max(0, ...layout.categories.map(({ box }) => box.y + box.height + g.margin));
@@ -126,6 +137,8 @@ export function shopView(
             columns: category.columns,
             rows: category.rows,
             capped: category.capped,
+            header: category.header * scale,
+            clippedRows: category.clippedRows,
             chips: category.chips.map((chip) => scaled(chip, scale)),
             index,
         })),

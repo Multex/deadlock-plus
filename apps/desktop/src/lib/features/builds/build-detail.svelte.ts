@@ -15,7 +15,7 @@ import { buildsDraftDelete, buildsDrafts, buildsFavourite, buildsLocal, buildsSa
 import { chainCost, isInShop, loadShopCatalog, type ShopCatalog, type ShopItem } from "./catalog";
 import { loadLevelTable, netWorthFor, type Level } from "./levels";
 import { LOCAL_ID_LIMIT, viewOfPublished, type MineStatus } from "./my-builds";
-import type { ChipItem } from "./shop-view";
+import type { TooltipChip } from "./components/item-tooltip/context";
 
 const ABILITY_POINTS = 1;
 const ABILITY_UNLOCK = 2;
@@ -61,10 +61,17 @@ export function localStatus(
 const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && isInShop(item);
 
 /** Undefined for an item the shop no longer sells, which the grid flags as removed. */
-export function chipFor(byId: ReadonlyMap<number, ShopItem>, abilityId: number): ChipItem | undefined {
+export function chipFor(byId: ReadonlyMap<number, ShopItem>, abilityId: number): TooltipChip | undefined {
     const item = byId.get(abilityId);
     if (!inShop(item)) return undefined;
-    const chip: ChipItem = { name: item.name, slot: item.slot, tier: item.tier, active: item.active };
+    const chip: TooltipChip = {
+        id: item.id,
+        name: item.name,
+        slot: item.slot,
+        tier: item.tier,
+        active: item.active,
+        imbue: item.imbue ?? false,
+    };
     if (item.art !== undefined) chip.art = item.art;
     return chip;
 }

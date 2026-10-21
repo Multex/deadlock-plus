@@ -55,7 +55,7 @@
         }
     }
 
-    const art = (tag: TagInfo) => (tag.kind === "ability" || tag.kind === "item" ? tag.art : undefined);
+    const art = (tag: TagInfo) => (tag.kind === "standard" ? tag.icon : tag.kind === "unknown" ? undefined : tag.art);
 
     function place(slot: number, id: number) {
         const next = setTagSlot(editor.build.tags, slot, id);
@@ -63,12 +63,26 @@
     }
 </script>
 
-{#snippet option(slot: number, tag: TagInfo, current: TagInfo | null)}
+{#snippet glyph(tag: TagInfo, size: string)}
     {@const src = art(tag)}
+    {#if src}
+        <img {src} alt="" class={cn("shrink-0 object-contain", tag.kind !== "standard" && "rounded-sm", size)} />
+    {:else}
+        <!-- The letter is generated content so it stays out of the tag's accessible name and text. -->
+        <span
+            class={cn(
+                "grid shrink-0 place-items-center rounded-sm border border-border bg-muted text-[10px] leading-none font-semibold text-muted-foreground uppercase before:content-[attr(data-initial)]",
+                size,
+            )}
+            data-initial={label(tag).trim().charAt(0) || "?"}
+            aria-hidden="true"
+        ></span>
+    {/if}
+{/snippet}
+
+{#snippet option(slot: number, tag: TagInfo, current: TagInfo | null)}
     <DropdownMenu.Item onSelect={() => place(slot, tag.id)} disabled={current?.id === tag.id}>
-        {#if src}
-            <img {src} alt="" class="size-5 shrink-0 rounded-sm object-cover" />
-        {/if}
+        {@render glyph(tag, "size-5")}
         <span class="truncate">{label(tag)}</span>
         {#if taken.has(tag.id)}
             <Check class={cn("ml-auto", current?.id !== tag.id && "opacity-50")} aria-hidden="true" />
@@ -78,12 +92,11 @@
 
 <ul class="grid grid-cols-3 gap-2" aria-labelledby={labelledby} data-testid="tag-slots">
     {#each slots as current, slot (slot)}
-        {@const src = current ? art(current) : undefined}
         <li>
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger
                     class={cn(
-                        "group flex h-14 w-full flex-col items-center justify-center gap-1 rounded-md border px-1.5 text-center transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                        "group flex h-[68px] w-full flex-col items-center justify-center gap-1 rounded-md border px-1.5 text-center transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
                         current
                             ? "border-border bg-muted/40 hover:border-ring/60"
                             : "border-dashed border-border/80 text-muted-foreground hover:border-ring/60 hover:text-foreground",
@@ -94,10 +107,8 @@
                     data-slot={slot}
                 >
                     {#if current}
-                        {#if src}
-                            <img {src} alt="" class="size-6 rounded-sm object-cover" />
-                        {/if}
-                        <span class="line-clamp-2 text-[11px] leading-tight font-medium">{label(current)}</span>
+                        {@render glyph(current, "size-6")}
+                        <span class="line-clamp-3 text-[11px] leading-tight font-medium">{label(current)}</span>
                     {:else}
                         <span class="text-xl leading-none font-semibold" aria-hidden="true">?</span>
                     {/if}

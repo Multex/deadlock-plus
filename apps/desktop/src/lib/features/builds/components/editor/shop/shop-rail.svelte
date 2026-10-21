@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { Cross, Crosshair, Search, Sparkles, ThumbsUp } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
-    import type { Component } from "svelte";
     import { tick } from "svelte";
     import { t } from "$lib/core/i18n.svelte";
+    import { loadShopUiArt } from "$lib/features/gamedata/vdata";
+    import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
     import type { ShopCatalog } from "../../../catalog";
     import type { BuildEditor } from "../../../editor/editor.svelte";
     import { HeroPopularity } from "../../../editor/popularity.svelte";
     import type { StatsById } from "../../../stats";
-    import { RAIL_COLORS, RAIL_TABS, toggleTab, type RailTab } from "./rail";
+    import { RAIL_COLORS, RAIL_ICONS, RAIL_TABS, toggleTab, type RailTab } from "./rail";
     import ShopFlyout from "./shop-flyout.svelte";
 
     let {
@@ -25,17 +25,14 @@
 
     const SEARCH_ID = "build-editor-item-search";
 
-    const ICONS: Record<RailTab, Component> = {
-        popular: ThumbsUp,
-        weapon: Crosshair,
-        vitality: Cross,
-        spirit: Sparkles,
-        search: Search,
-    };
-
     let open = $state<RailTab | null>(null);
     let popularLoading = $state(true);
     const popularity = new HeroPopularity();
+    let uiArt = $state<Partial<Record<ShopUiImage, string>>>({});
+
+    $effect(() => {
+        loadShopUiArt().then((art) => (uiArt = art));
+    });
 
     $effect(() => {
         const id = heroId;
@@ -75,7 +72,7 @@
     aria-label={t("builds.editor.picker.label")}
 >
     {#each RAIL_TABS as tab (tab)}
-        {@const Icon = ICONS[tab]}
+        {@const Icon = RAIL_ICONS[tab]}
         <Button
             variant="unstyled"
             class="rail-tab"
@@ -99,6 +96,7 @@
         {statsById}
         {popularity}
         {popularLoading}
+        {uiArt}
         searchId={SEARCH_ID}
         onclose={() => (open = null)}
     />
