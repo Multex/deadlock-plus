@@ -259,6 +259,31 @@ describe("createDeadlockApi", () => {
         });
     });
 
+    describe("hero build stats", () => {
+        it("requests one hero's build stats with the API's defaults", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.heroBuildStats(13, {});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/hero-build-stats/13`);
+        });
+
+        it("sends the minimum match count", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.heroBuildStats(13, { minMatches: 200 });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/hero-build-stats/13?min_matches=200`);
+        });
+
+        it("returns the rows as they came and rejects a failed status", async () => {
+            const body = [
+                { hero_id: 13, hero_build_id: 381204, bucket: 0, wins: 6, losses: 4, matches: 10, players: 9 },
+            ];
+            expect(await setup(() => Response.json(body)).api.heroBuildStats(13, {})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.heroBuildStats(13, {})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
+        });
+    });
+
     describe("item stats", () => {
         it("requests item stats without a query by default", async () => {
             const { fetch, api } = setup(() => Response.json([]));

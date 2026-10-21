@@ -9,6 +9,8 @@ export type {
     BuildModCategory,
     BuildSortBy,
     BuildsQuery,
+    HeroBuildStats,
+    HeroBuildStatsQuery,
     ItemStats,
     ItemStatsBucket,
 } from "./builds";

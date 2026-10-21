@@ -1,4 +1,4 @@
-import type { Build, BuildsQuery, ItemStats, ItemStatsBucket } from "./builds";
+import type { Build, BuildsQuery, HeroBuildStats, HeroBuildStatsQuery, ItemStats, ItemStatsBucket } from "./builds";
 
 export const DEFAULT_BASE_URL = "https://api.deadlock-api.com/v1";
 
@@ -34,6 +34,11 @@ export interface AssetHero {
     /** Keyed by level number as a string. */
     level_info?: Record<string, AssetLevelInfo>;
     hideout_rich_presence?: string | null;
+    disabled?: boolean;
+    in_development?: boolean;
+    player_selectable?: boolean;
+    /** `release` or `pre_release`; absent for heroes the game has not released. */
+    development_state?: string | null;
     images?: {
         icon_image_small_webp?: string | null;
         icon_hero_card?: string | null;
@@ -316,6 +321,12 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
 
         /** Rate limit 100 req/s per IP. */
         builds: (query: BuildsQuery) => json<Build[]>(`/builds${buildsQuery(query)}`),
+
+        /** Cached by the API for 1 hour per parameter set. The analytics rate limit (200 req/min per IP) is shared. */
+        heroBuildStats: (heroId: number, query: HeroBuildStatsQuery) =>
+            json<HeroBuildStats[]>(
+                `/analytics/hero-build-stats/${heroId}${query.minMatches === undefined ? "" : `?min_matches=${query.minMatches}`}`,
+            ),
 
         /** Cached by the API for 1 hour per parameter set. The analytics rate limit (200 req/min per IP) is shared. */
         itemStats: (filter: ItemStatsFilter) =>

@@ -108,6 +108,22 @@ export interface Build {
     rollup_category?: number | null;
 }
 
+/** A row of `/analytics/hero-build-stats/{hero_id}`. The build is the one the player had selected when the match started. */
+export interface HeroBuildStats {
+    hero_id: number;
+    hero_build_id: number;
+    bucket: number;
+    wins: number;
+    losses: number;
+    matches: number;
+    players: number;
+}
+
+/** Query of `/analytics/hero-build-stats/{hero_id}`. The API counts ranked and unranked matches of the last 30 days. */
+export interface HeroBuildStatsQuery {
+    minMatches?: number;
+}
+
 export type ItemStatsBucket =
     | "no_bucket"
     | "hero"
