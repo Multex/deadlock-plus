@@ -3,6 +3,7 @@ import { geometry } from "@deadlock-plus/build-layout/layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { categoryInsertion, chipInsertion } from "../../../editor/resize";
 import { fitSize, shopView, type ShopCategoryView, type ShopView } from "../../../shop-view";
+import { zoomScale, type Zoom } from "./zoom";
 
 export type DropTarget =
     { kind: "items"; category: number; index: number } | { kind: "new-category" } | { kind: "category"; index: number };
@@ -26,19 +27,23 @@ const TILE: ModCategoryView = {
 };
 
 /**
- * The shop's fit view plus where the new-category drop tile sits: in the flow as a new empty category would.
- * `view.contentHeight` makes room for the tile; `bareHeight` is the build's own height.
+ * The shop's view at `zoom`, plus where the new-category drop tile sits: in the flow as a new empty category would.
+ * `view.contentHeight` makes room for the tile; `bareHeight` is the build's own height; `fit` is the scale that
+ * fills `available`.
  */
 export function canvasView(
     categories: readonly ModCategoryView[],
     screen: Screen,
     available: number,
-): { view: ShopView; tile: Box; bareHeight: number } {
-    const withTile = shopView([...categories, TILE], screen, available, "fit");
+    zoom: Zoom = "fit",
+): { view: ShopView; tile: Box; bareHeight: number; fit: number } {
+    const page = geometry(screen.height).contentWidth;
+    const fit = available / page;
+    const withTile = shopView([...categories, TILE], screen, zoomScale(zoom, fit) * page, "fit");
     const tile = withTile.categories.pop()!;
     const margin = geometry(screen.height).margin * withTile.scale;
     const bottom = Math.max(0, ...withTile.categories.map(({ box }) => box.y + box.height + margin));
-    return { view: withTile, tile: tile.box, bareHeight: bottom };
+    return { view: withTile, tile: tile.box, bareHeight: bottom, fit };
 }
 
 /** Chip boxes for `count` slots, continuing the category's grid past its last chip. */

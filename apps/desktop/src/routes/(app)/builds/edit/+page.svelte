@@ -17,6 +17,7 @@
     import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
     import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
+    import { loadZoom, saveZoom, stepZoom } from "$lib/features/builds/components/editor/canvas/zoom";
     import ShopRail from "$lib/features/builds/components/editor/shop/shop-rail.svelte";
     import SoulsTimeline from "$lib/features/builds/components/editor/souls-timeline.svelte";
     import { addCategory, type ItemRef } from "$lib/features/builds/editor/document";
@@ -37,6 +38,9 @@
     let hero = $state.raw<Hero | null>(null);
     let resolution = $state<ShopResolution>(MEASURED_RESOLUTION);
     const screen = $derived(SHOP_SCREENS[resolution]);
+    let zoom = $state(loadZoom());
+    let fit = $state(1);
+    $effect(() => saveZoom(zoom));
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 
@@ -174,6 +178,22 @@
             void save();
             return;
         }
+        // Matched by key and code so Ctrl+Shift+= and the numpad keys work on every layout.
+        if (key === "0" || event.code === "Numpad0") {
+            event.preventDefault();
+            zoom = "fit";
+            return;
+        }
+        if (key === "=" || key === "+" || event.code === "NumpadAdd") {
+            event.preventDefault();
+            zoom = stepZoom(zoom, fit, 1);
+            return;
+        }
+        if (key === "-" || key === "_" || event.code === "NumpadSubtract") {
+            event.preventDefault();
+            zoom = stepZoom(zoom, fit, -1);
+            return;
+        }
         // Text fields keep their own undo.
         if (editable(event.target)) return;
         if (key === "z" && !event.shiftKey) {
@@ -257,6 +277,8 @@
                     <EditorToolbar
                         {editor}
                         bind:resolution
+                        bind:zoom
+                        {fit}
                         resolve={catalog ? (id) => chipFor(catalog!.byId, id) : undefined}
                         onAddCategory={newCategory}
                         onSave={() => void save()}
@@ -265,7 +287,14 @@
                         {#if catalog}
                             {@const byId = catalog.byId}
                             {@const active = editor}
-                            <EditCanvas {editor} {screen} bind:renaming resolve={(id) => chipFor(byId, id)}>
+                            <EditCanvas
+                                {editor}
+                                {screen}
+                                bind:renaming
+                                bind:zoom
+                                bind:fit
+                                resolve={(id) => chipFor(byId, id)}
+                            >
                                 {#snippet categoryMenu(index: number)}
                                     <CategoryMenu
                                         editor={active}

@@ -2092,7 +2092,9 @@
                 "time": "About {time}",
                 "step_unlock": "Unlock {name}",
                 "step_tier": "{name} T{tier}",
-                "about": "About the souls timeline"
+                "about": "About the souls timeline",
+                "items": "Items",
+                "abilities": "Abilities"
             },
             "shop": {
                 "popular": "Popular",
@@ -2127,7 +2129,13 @@
                 "add_category": "Add category",
                 "compact_all": "Compact all",
                 "resolution": "Preview resolution",
-                "resolution_hint": "Only 1440p is measured; 1080p and 4K are predicted."
+                "resolution_hint": "Only 1440p is measured; 1080p and 4K are predicted.",
+                "zoom": "Zoom",
+                "zoom_fit": "Fit",
+                "zoom_in": "Zoom in",
+                "zoom_in_tooltip": "Zoom in (Ctrl+=)",
+                "zoom_out": "Zoom out",
+                "zoom_out_tooltip": "Zoom out (Ctrl+-)"
             }
         }
     },

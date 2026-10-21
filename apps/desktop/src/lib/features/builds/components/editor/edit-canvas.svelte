@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Plus } from "@lucide/svelte";
-    import type { Snippet } from "svelte";
+    import { tick, type Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
@@ -18,6 +18,7 @@
     import type { BuildEditor } from "../../editor/editor.svelte";
     import type { ChipItem } from "../../shop-view";
     import { canvasView, categoryBar, dropTarget, rowWarnings, storedSize, type DropTarget } from "./canvas/geometry";
+    import { stepZoom, wheelSteps, type Zoom } from "./canvas/zoom";
     import DragPreview from "./drag-preview.svelte";
     import EditCategory from "./edit-category.svelte";
 
@@ -28,6 +29,8 @@
         categoryMenu,
         itemMenu,
         renaming = $bindable(null),
+        zoom = $bindable("fit"),
+        fit = $bindable(1),
     }: {
         editor: BuildEditor;
         resolve: (abilityId: number) => ChipItem | undefined;
@@ -38,6 +41,10 @@
         itemMenu?: Snippet<[ItemRef, { x: number; y: number }]>;
         /** The category whose name is being edited inline; set it to start a rename. */
         renaming?: number | null;
+        /** Ctrl + mouse wheel over the canvas changes it. */
+        zoom?: Zoom;
+        /** Out: the scale that fills the column, which caps `zoom`. */
+        fit?: number;
     } = $props();
 
     let root = $state<HTMLDivElement>();
@@ -48,8 +55,50 @@
     let menus = 0;
 
     const build = $derived(editor.build);
-    const layout = $derived(canvasView(build.modCategories, screen, available));
+    const layout = $derived(canvasView(build.modCategories, screen, available, zoom));
     const view = $derived(layout.view);
+
+    $effect(() => {
+        if (available > 0) fit = layout.fit;
+    });
+
+    function scroller(from: HTMLElement): HTMLElement | null {
+        for (let node = from.parentElement; node; node = node.parentElement) {
+            const overflow = getComputedStyle(node).overflowY;
+            if (overflow === "auto" || overflow === "scroll") return node;
+        }
+        return null;
+    }
+
+    let wheelRest = 0;
+
+    // Registered by hand: the handler must be non-passive to stop WebView2 zooming the whole page.
+    $effect(() => {
+        const node = root;
+        if (!node) return;
+        const wheel = (event: WheelEvent) => {
+            if (!(event.ctrlKey || event.metaKey)) return;
+            event.preventDefault();
+            if (drag.current) return;
+            const turn = wheelSteps(wheelRest, event.deltaY);
+            wheelRest = turn.rest;
+            let next = zoom;
+            for (let i = 0; i < Math.abs(turn.steps); i++) next = stepZoom(next, layout.fit, turn.steps > 0 ? 1 : -1);
+            if (next === zoom || !content) return;
+            // Keep the row under the pointer in place; the page is anchored top-left, so only the scroll moves.
+            const before = view.scale;
+            const top = content.getBoundingClientRect().top;
+            const pointer = event.clientY - top;
+            zoom = next;
+            const box = scroller(node);
+            if (!box) return;
+            void tick().then(() => {
+                box.scrollTop += pointer * (view.scale / before - 1);
+            });
+        };
+        node.addEventListener("wheel", wheel, { passive: false });
+        return () => node.removeEventListener("wheel", wheel);
+    });
     const items = $derived(build.modCategories.map((category) => category.mods.map((mod) => resolve(mod.abilityId))));
     const counts = $derived(occurrences(build));
     const wraps = $derived(
