@@ -3,9 +3,10 @@ import { open } from "./support/flows";
 import { expect, test } from "./support/test";
 
 const main = (page: Page) => page.getByRole("main");
-const cards = (page: Page) => main(page).locator('a[href^="/builds/view"]');
+const publicTab = (page: Page) => main(page).getByRole("tabpanel", { name: "Public" });
+const cards = (page: Page) => publicTab(page).locator('a[href^="/builds/view"]');
 const heroSelect = (page: Page) => main(page).locator('button[aria-haspopup="listbox"]');
-const card = (page: Page, name: string) => main(page).getByRole("link", { name, exact: true });
+const card = (page: Page, name: string) => publicTab(page).getByRole("link", { name, exact: true });
 
 async function pickHero(page: Page, name: string) {
     await heroSelect(page).click();

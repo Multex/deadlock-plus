@@ -45,12 +45,14 @@ const HERO_CLASSES = new Map(
 
 const INFERNUS = 1;
 const ABRAMS = 6;
+const KELVIN = 12;
 const HAZE = 13;
 
 /** Each hero's four ability slots, ultimate last. */
 const ABILITIES: Record<number, readonly number[]> = {
     [INFERNUS]: [491391007, 3516947824, 1593133799, 1142270357],
     [ABRAMS]: [4072270083, 2824119765, 715762406, 509856396],
+    [KELVIN]: [18921423, 1963397252, 2351041382, 3826390464],
     [HAZE]: [2948410412, 2414191464, 1080948381, 731943444],
 };
 
@@ -207,6 +209,56 @@ const TEMPLATES = {
         ],
         abilityOrder: abilityOrder(HAZE, "u1 u2 1 u3 1 u4 1 2 4 2 4 3 4 2 3 3"),
     },
+    spiritKelvin: {
+        heroId: KELVIN,
+        modCategories: [
+            category("Lane", 3, [ITEM.extraSpirit, ITEM.extraCharge, ITEM.mysticRegeneration, ITEM.extraStamina]),
+            category("Mid game", 4, [
+                ITEM.improvedSpirit,
+                ITEM.mysticSlow,
+                [ITEM.compressCooldown, { annotation: "Before the first Ice Path fights" }],
+                ITEM.spiritLifesteal,
+            ]),
+            category("Late game", 3, [
+                ITEM.superiorCooldown,
+                ITEM.superiorDuration,
+                ITEM.escalatingExposure,
+                ITEM.boundlessSpirit,
+                ITEM.echoShard,
+            ]),
+            category("Situational", 3, [ITEM.counterspell, ITEM.unstoppable, ITEM.etherealShift], SITUATIONAL),
+        ],
+        abilityOrder: abilityOrder(KELVIN, "u1 u2 1 u3 1 u4 1 2 4 2 4 3 4 2 3 3"),
+    },
+    frostWallKelvin: {
+        heroId: KELVIN,
+        modCategories: [
+            category("Lane", 2, [ITEM.extraHealth, ITEM.extraRegen, ITEM.healingRite, ITEM.extraSpirit]),
+            category("Mid game", 4, [
+                ITEM.enduringSpeed,
+                ITEM.spiritShielding,
+                ITEM.spiritLifesteal,
+                ITEM.improvedSpirit,
+            ]),
+            category("Late game", 3, [ITEM.fortitude, ITEM.tankbuster, ITEM.leech, ITEM.superiorDuration]),
+        ],
+        abilityOrder: abilityOrder(KELVIN, "u2 u1 2 u3 2 u4 2 1 4 1 4 3 4 1 3 3"),
+    },
+    gunKelvin: {
+        heroId: KELVIN,
+        modCategories: [
+            category("Lane", 2, [ITEM.extendedMagazine, ITEM.headshotBooster, ITEM.extraHealth, ITEM.extraStamina]),
+            category("Mid game", 4, [
+                ITEM.swiftStriker,
+                ITEM.intensifyingMagazine,
+                ITEM.bulletLifesteal,
+                ITEM.kineticDash,
+            ]),
+            category("Late game", 3, [ITEM.toxicBullets, ITEM.berserker, ITEM.luckyShot, ITEM.ricochet, ITEM.silencer]),
+            category("Situational", 2, [ITEM.metalSkin, ITEM.counterspell], SITUATIONAL),
+        ],
+        abilityOrder: abilityOrder(KELVIN, "u3 u1 3 u2 3 u4 3 1 4 1 4 2 4 1 2 2"),
+    },
     brawlerAbrams: {
         heroId: ABRAMS,
         modCategories: [
@@ -360,7 +412,7 @@ interface Published {
     counts: Counts;
 }
 
-/** Published builds of three heroes; one is the player's own. Languages use Steam's numbers (0 English, 1 German, 8 Russian). */
+/** Published builds of four heroes; one is the player's own. Languages use Steam's numbers (0 English, 1 German, 8 Russian). */
 function publishedBuilds(identity: Identity, nowS: number): Published[] {
     const ago = (days: number) => nowS - days * DAY_S;
     const by = (index: number) => fakeAccountId(identity, index);
@@ -432,6 +484,36 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             [2, 30, 30],
             { favorites: 190, weekly: 21, ignores: 7, reports: 0 },
             { language: 1, originBuildId: 365990 },
+        ),
+        published(
+            TEMPLATES.spiritKelvin,
+            372846,
+            "Absolute Zero",
+            by(4),
+            [11, 75, 5],
+            { favorites: 7340, weekly: 318, ignores: 176, reports: 2 },
+            { description: "Slow everything, then Ice Dome the fight you want." },
+        ),
+        published(TEMPLATES.frostWallKelvin, 384019, "Frost Wall", by(6), [7, 55, 8], {
+            favorites: 2180,
+            weekly: 87,
+            ignores: 54,
+            reports: 1,
+        }),
+        published(TEMPLATES.gunKelvin, 392266, "Kelvin Cold Bullets", by(8), [4, 35, 14], {
+            favorites: 640,
+            weekly: 73,
+            ignores: 12,
+            reports: 0,
+        }),
+        published(
+            TEMPLATES.spiritKelvin,
+            397745,
+            "Kelvin lane bully",
+            by(10),
+            [2, 18, 1],
+            { favorites: 96, weekly: 31, ignores: 3, reports: 0 },
+            { originBuildId: 372846 },
         ),
         published(TEMPLATES.brawlerAbrams, 371112, "Brawler Abrams", by(2), [9, 90, 4], {
             favorites: 6022,

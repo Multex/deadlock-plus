@@ -13,6 +13,7 @@ import { newUserScenario } from "../new-user";
 import { offlineScenario } from "../offline";
 import { IDENTITY } from "./identity";
 import { defaultScenario } from "./index";
+import { historyRows } from "./progress";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const API = "https://api.deadlock-api.com/v1";
@@ -336,7 +337,7 @@ describe("public builds route", () => {
         start(defaultScenario(OPTIONS));
         const all = await publicBuilds("");
         expect(all.length).toBeGreaterThanOrEqual(6);
-        expect(all.length).toBeLessThanOrEqual(10);
+        expect(all.length).toBeLessThanOrEqual(14);
         expect(new Set(all.map((b) => b.hero_build.hero_id)).size).toBeGreaterThanOrEqual(2);
         for (const b of all) {
             expect(b.hero_build.hero_build_id).toBeGreaterThanOrEqual(1000);
@@ -369,6 +370,25 @@ describe("public builds route", () => {
         );
         expect(updated).toEqual([...updated].sort((a, b) => a - b));
         expect(await publicBuilds("?limit=2")).toHaveLength(2);
+    });
+
+    it("has at least three builds for the hero of the newest match, the one the Builds page opens on", async () => {
+        const scenario = defaultScenario(OPTIONS);
+        start(scenario);
+        const newest = historyRows(scenario)[0]!.hero_id;
+        const found = await publicBuilds(`?hero_id=${newest}`);
+        expect(found.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(found.map((b) => b.hero_build.name)).size).toBe(found.length);
+        expect(new Set(found.map((b) => b.num_favorites)).size).toBe(found.length);
+        for (const b of found) {
+            expect(b.hero_build.details.ability_order?.currency_changes?.length).toBeGreaterThan(0);
+            for (const c of b.hero_build.details.mod_categories as { width: number }[]) {
+                expect((c.width - 12) % 82).toBe(0);
+            }
+        }
+        expect(
+            found.some((b) => (b.hero_build.details.mod_categories as { optional: boolean }[]).some((c) => c.optional)),
+        ).toBe(true);
     });
 
     it("filters by build name, ignoring case", async () => {
