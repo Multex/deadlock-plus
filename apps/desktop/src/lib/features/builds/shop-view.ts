@@ -1,5 +1,5 @@
 import { SAFE_MAX_WIDTH, layoutBuild, minWidthForColumns, type Box, type Screen } from "@deadlock-plus/build-layout";
-import { REFERENCE_HEIGHT, geometry } from "@deadlock-plus/build-layout/layout";
+import { REFERENCE_HEIGHT, columnsFor, geometry, widthPx } from "@deadlock-plus/build-layout/layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 
 export type ShopMode = "fit" | "native";
@@ -61,10 +61,24 @@ export function fitSize(items: number): FitSize {
     const columns = Math.max(1, Math.ceil(items / rows));
     return {
         width: minWidthForColumns(columns),
-        height: FIT_ONE_ROW_HEIGHT + FIT_ROW_HEIGHT * (rows - 1),
+        height: fitHeight(rows),
         columns,
         rows,
     };
+}
+
+function fitHeight(rows: number): number {
+    return FIT_ONE_ROW_HEIGHT + FIT_ROW_HEIGHT * (rows - 1);
+}
+
+/**
+ * Our rule, not the game's: a stored width without a height gets as many rows as that width's columns at this
+ * screen need, each at the measured Fit height.
+ */
+function heightForWidth(width: number, items: number, screen: Screen): number {
+    const g = geometry(screen.height);
+    const columns = columnsFor(Math.min(widthPx(width, screen.height), g.cap), g);
+    return fitHeight(Math.max(1, Math.ceil(items / columns)));
 }
 
 function scaled(box: Box, scale: number): Box {
@@ -80,8 +94,12 @@ export function shopView(
     const layout = layoutBuild(
         categories.map((category) => {
             const items = category.mods.length;
-            const fit = category.width === null || category.height === null ? fitSize(items) : undefined;
-            return { width: category.width ?? fit!.width, height: category.height ?? fit!.height, items };
+            if (category.width === null) {
+                const fit = fitSize(items);
+                return { width: fit.width, height: category.height ?? fit.height, items };
+            }
+            const height = category.height ?? heightForWidth(category.width, items, screen);
+            return { width: category.width, height, items };
         }),
         screen,
     );

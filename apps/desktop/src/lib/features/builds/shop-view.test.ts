@@ -108,6 +108,32 @@ describe("shopView", () => {
     });
 });
 
+describe("a stored width with no stored height (our rule, not the game's)", () => {
+    it("sizes the height to the rows the stored width gives", () => {
+        const narrow = shopView([category(176, 4, null)], QHD, 0, "native").categories[0];
+        expect(narrow.columns).toBe(2);
+        expect(narrow.rows).toBe(2);
+        expect(narrow.box.height).toBe(Math.round(((162.75 + 120) * 1440) / 1080));
+    });
+
+    it("keeps every chip inside its box at widths 94 to 1059", () => {
+        for (const screen of [FHD, QHD, UHD]) {
+            for (let items = 1; items <= 30; items++) {
+                for (let width = 94; width <= 1059; width += 7) {
+                    const [drawn] = shopView([category(width, items, null)], screen, 0, "native").categories;
+                    const bottom = drawn.box.y + drawn.box.height;
+                    for (const chip of drawn.chips) {
+                        expect(
+                            chip.y + chip.height,
+                            `${items} items, width ${width}, ${screen.height}p`,
+                        ).toBeLessThanOrEqual(bottom);
+                    }
+                }
+            }
+        }
+    });
+});
+
 describe("fitSize (our rule, not the game's)", () => {
     it.each([
         [0, 94, 1],

@@ -475,6 +475,8 @@ function buildsRoute(rows: readonly ApiBuild[]): ApiRoute {
                 [number("tag"), (row) => row.hero_build.tags.includes(number("tag")!)],
                 [language, (row) => row.hero_build.language === language],
             ];
+            const search = q.get("search_name")?.toLowerCase();
+            if (search) filters.push([0, (row) => row.hero_build.name.toLowerCase().includes(search)]);
             const key = SORT_KEYS[q.get("sort_by") ?? "favorites"] ?? SORT_KEYS.favorites!;
             const direction = q.get("sort_direction") === "asc" ? 1 : -1;
             const start = number("start") ?? 0;

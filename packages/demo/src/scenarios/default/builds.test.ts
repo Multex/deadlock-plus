@@ -370,6 +370,16 @@ describe("public builds route", () => {
         expect(await publicBuilds("?limit=2")).toHaveLength(2);
     });
 
+    it("filters by build name, ignoring case", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        const found = await publicBuilds("?search_name=ABRAMS");
+        expect(found.length).toBeGreaterThan(0);
+        expect(found.length).toBeLessThan(all.length);
+        expect(found.every((b) => b.hero_build.name.toLowerCase().includes("abrams"))).toBe(true);
+        expect(await publicBuilds("?search_name=no%20such%20build")).toEqual([]);
+    });
+
     it("fails like every other Deadlock API path when offline", async () => {
         start(offlineScenario(OPTIONS));
         await expect(fetch(`${API}/builds?hero_id=${HAZE}`)).rejects.toThrow("Failed to fetch");
