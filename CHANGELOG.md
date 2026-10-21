@@ -29,6 +29,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Edit any build on a copy of the game's shop page, then save it to your game files.
 - Drag a category's edges to resize it; sizes snap to ones that keep their columns at 1080p, 1440p and 4K.
+- Snapped sizes also keep every column in the game's Build Browser preview.
+- Resizing stops at the edge of the row instead of pushing a category onto a new row by accident.
+- Turn snapping off for free sizes, or hold Alt for one drag.
+- A layout check lists categories that look different at another resolution or in the preview, and fixes them in one click.
+- Preview a build at 1080p, 1440p, 4K or as the Build Browser shows it.
+- Zoom the shop canvas from the toolbar or with Ctrl+mouse wheel.
 - Drag items in from the shop, between categories, or hold Ctrl to copy them.
 - An item can sit in a build more than once, which the game's own editor does not allow.
 - A souls timeline shows when each item and ability step becomes affordable, with the stats you have by then.
