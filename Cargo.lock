@@ -1681,6 +1681,7 @@ dependencies = [
  "dp-steam",
  "log",
  "serde",
+ "source2-kv3",
  "ts-rs",
 ]
 
