@@ -44,12 +44,16 @@ export interface FitSize {
 }
 
 /** Fit heights the game stores, measured at 1440p: 162.75 for one chip row, 120 more per row. */
-const FIT_ONE_ROW_HEIGHT = 162.75;
-const FIT_ROW_HEIGHT = 120;
+export const FIT_ONE_ROW_HEIGHT = 162.75;
+export const FIT_ROW_HEIGHT = 120;
 const CATEGORY_BORDER = 2;
 
-let maxColumns = 1;
-while (minWidthForColumns(maxColumns + 1) <= SAFE_MAX_WIDTH) maxColumns++;
+/** The most columns a width under `SAFE_MAX_WIDTH` keeps at every scale. */
+export const MAX_SAFE_COLUMNS = (() => {
+    let columns = 1;
+    while (minWidthForColumns(columns + 1) <= SAFE_MAX_WIDTH) columns++;
+    return columns;
+})();
 
 /**
  * Our Fit to items, not the game's: one row at the smallest width that keeps its columns at every scale
@@ -57,7 +61,7 @@ while (minWidthForColumns(maxColumns + 1) <= SAFE_MAX_WIDTH) maxColumns++;
  * Used for categories the file stores without a size.
  */
 export function fitSize(items: number): FitSize {
-    const rows = Math.max(1, Math.ceil(items / maxColumns));
+    const rows = Math.max(1, Math.ceil(items / MAX_SAFE_COLUMNS));
     const columns = Math.max(1, Math.ceil(items / rows));
     return {
         width: minWidthForColumns(columns),

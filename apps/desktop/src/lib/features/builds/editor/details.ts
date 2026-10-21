@@ -1,3 +1,4 @@
+import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 
 /** `maxchars` of `BuildNameTextEntry` / `BuildDescriptionTextEntry` in `citadel_hud_hero_builds.xml`. */
@@ -117,7 +118,21 @@ export const STANDARD_TAGS: readonly { id: number; key: string }[] = [
     "debuff",
 ].map((key) => ({ id: classId(`citadel_build_tag_${key}`), key }));
 
-const STANDARD_BY_ID = new Map(STANDARD_TAGS.map((s) => [s.id, s.key]));
+export interface StandardTag {
+    id: number;
+    key: string;
+    /** The game's name; without one, the UI names the tag from its own locale. */
+    name?: string;
+}
+
+/** `game` is the installed game's list, which leaves out a tag it cannot name. */
+export function standardTags(game: readonly BuildTag[]): StandardTag[] {
+    const byKey = new Map(game.map((g) => [g.key, g]));
+    return STANDARD_TAGS.map(({ id, key }) => {
+        const own = byKey.get(key);
+        return own ? { id: own.id, key, name: own.name } : { id, key };
+    });
+}
 
 export interface NamedThing {
     name: string;
@@ -125,19 +140,20 @@ export interface NamedThing {
 }
 
 export interface TagNames {
+    standard?: readonly StandardTag[];
     items?: ReadonlyMap<number, NamedThing>;
     abilities?: ReadonlyMap<number, NamedThing>;
 }
 
 export type TagInfo =
-    | { id: number; kind: "standard"; key: string }
+    | ({ kind: "standard" } & StandardTag)
     | ({ id: number; kind: "ability" | "item" } & NamedThing)
     | { id: number; kind: "unknown" };
 
 /** A tag that is not a standard tag is an ability or item id. */
 export function describeTag(id: number, names: TagNames): TagInfo {
-    const key = STANDARD_BY_ID.get(id);
-    if (key !== undefined) return { id, kind: "standard", key };
+    const standard = (names.standard ?? STANDARD_TAGS).find((s) => s.id === id);
+    if (standard) return { kind: "standard", ...standard };
     const ability = names.abilities?.get(id);
     if (ability) return { id, kind: "ability", ...ability };
     const item = names.items?.get(id);

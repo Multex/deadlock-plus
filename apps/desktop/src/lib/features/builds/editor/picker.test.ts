@@ -3,7 +3,7 @@ import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { describe, expect, it } from "vitest";
 import { buildShopCatalog, type ShopMetadata } from "../catalog";
-import { inBuildCounts, nearestCard, pickerGroups } from "./picker";
+import { inBuildCounts, nearestCard, pickerGroups, sortByPopularity } from "./picker";
 
 const PRICES = { 1: 800, 2: 1600, 3: 3200, 4: 6400 } as const;
 
@@ -151,5 +151,25 @@ describe("nearestCard", () => {
         expect(nearestCard(rects, 3, "ArrowUp")).toBe(0);
         expect(nearestCard(rects, 0, "ArrowUp")).toBe(0);
         expect(nearestCard(rects, 5, "ArrowDown")).toBe(5);
+    });
+});
+
+describe("sortByPopularity", () => {
+    const score = (id: number) => (({ 1: 30, 3: 5, 9: 60 }) as Record<number, number>)[id];
+
+    it("orders each tier row by pick %, items without data last in shop order", () => {
+        const groups = sortByPopularity(pickerGroups(catalog, "weapon", ""), score);
+        expect(groups[0]!.rows.map((r) => r.items.map((i) => i.id))).toEqual([[1, 2], [9, 3], [], []]);
+    });
+
+    it("keeps the search ranking while searching", () => {
+        const searched = pickerGroups(catalog, "weapon", "spirit");
+        expect(sortByPopularity(searched, score)).toEqual(searched);
+    });
+
+    it("does not reorder the rows it was given", () => {
+        const groups = pickerGroups(catalog, "weapon", "");
+        sortByPopularity(groups, score);
+        expect(groups[0]!.rows[0]!.items.map((i) => i.id)).toEqual([2, 1]);
     });
 });

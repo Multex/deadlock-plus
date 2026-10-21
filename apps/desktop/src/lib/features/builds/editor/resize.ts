@@ -6,14 +6,9 @@ import {
     type Screen,
 } from "@deadlock-plus/build-layout";
 import { REFERENCE_HEIGHT, columnsFor, geometry, widthPx } from "@deadlock-plus/build-layout/layout";
+import { FIT_ONE_ROW_HEIGHT, FIT_ROW_HEIGHT, MAX_SAFE_COLUMNS } from "../shop-view";
 
-/** Fit heights the game stores, measured at 1440p: 162.75 for one chip row, 120 more per row. */
-const ONE_ROW_HEIGHT = 162.75;
-const ROW_HEIGHT = 120;
 const COLUMN_WIDTH = minWidthForColumns(2) - minWidthForColumns(1);
-
-let maxColumns = 1;
-while (minWidthForColumns(maxColumns + 1) <= SAFE_MAX_WIDTH) maxColumns++;
 
 function quarter(raw: number): number {
     return Math.round(raw * 4) / 4;
@@ -27,14 +22,14 @@ function clamp(value: number, min: number, max: number): number {
 export function snapWidth(raw: number, free: boolean): number {
     if (free) return clamp(quarter(raw), minWidthForColumns(1), SAFE_MAX_WIDTH);
     const columns = Math.round((raw - minWidthForColumns(1)) / COLUMN_WIDTH) + 1;
-    return minWidthForColumns(clamp(columns, 1, maxColumns));
+    return minWidthForColumns(clamp(columns, 1, MAX_SAFE_COLUMNS));
 }
 
 /** Exact midpoints snap to the taller height. */
 export function snapHeight(raw: number, free: boolean): number {
-    if (free) return Math.max(ONE_ROW_HEIGHT, quarter(raw));
-    const rows = Math.max(1, Math.round((raw - ONE_ROW_HEIGHT) / ROW_HEIGHT) + 1);
-    return ONE_ROW_HEIGHT + ROW_HEIGHT * (rows - 1);
+    if (free) return Math.max(FIT_ONE_ROW_HEIGHT, quarter(raw));
+    const rows = Math.max(1, Math.round((raw - FIT_ONE_ROW_HEIGHT) / FIT_ROW_HEIGHT) + 1);
+    return FIT_ONE_ROW_HEIGHT + FIT_ROW_HEIGHT * (rows - 1);
 }
 
 export interface SizeTag {

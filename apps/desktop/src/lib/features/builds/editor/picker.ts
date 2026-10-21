@@ -68,6 +68,25 @@ export function pickerGroups(
     });
 }
 
+/**
+ * Each tier row ordered by `score` (pick %), highest first; items without a score keep shop order after
+ * the scored ones. Search hits keep the search ranking.
+ */
+export function sortByPopularity(
+    groups: readonly PickerGroup[],
+    score: (itemId: number) => number | undefined,
+): PickerGroup[] {
+    return groups.map((group) => ({
+        slot: group.slot,
+        rows: group.rows.map((row) => {
+            if (row.tier === null) return row;
+            const ranked = row.items.map((item, order) => ({ item, order, score: score(item.id) ?? -1 }));
+            ranked.sort((a, b) => b.score - a.score || a.order - b.order);
+            return { ...row, items: ranked.map((r) => r.item) };
+        }),
+    }));
+}
+
 export function inBuildCounts(build: BuildView): Map<number, number> {
     return occurrences(build);
 }

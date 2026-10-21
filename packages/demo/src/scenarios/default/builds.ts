@@ -710,6 +710,8 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
                 lastUsed.set("hero_inferno", OWN_PUBLISHED_ID).set("hero_haze", 5).set("hero_atlas", 7);
                 recordVersion(firstTry, firstTry.lastUpdatedTimestamp!);
                 recordVersion(entries.Unpublished[0]!, entries.Unpublished[0]!.lastUpdatedTimestamp!);
+                recordVersion(entries.Unpublished[2]!, entries.Unpublished[2]!.lastUpdatedTimestamp!);
+                recordVersion(entries.SavedLastUsed[0]!, entries.SavedLastUsed[0]!.lastUpdatedTimestamp!);
                 const edited = entries.Unpublished[0]!;
                 storeDraft(
                     {

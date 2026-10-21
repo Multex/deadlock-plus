@@ -172,6 +172,40 @@ export function slotState(
     );
 }
 
+export interface AbilityProgress {
+    /** Highest tier taken: null while locked, 0 unlocked only, 1-3 a tier. */
+    tier: number | null;
+    /** Index of this ability's latest step in the order. */
+    lastStep: number | null;
+    /** What appending to this ability adds next, or why it cannot. */
+    next: { kind: "next"; tier: number; level: number | null } | { kind: "blocked"; reason: BlockReason };
+}
+
+/** Per ability (in `abilities` order), as the game's ability bar shows it. */
+export function abilityProgress(
+    order: readonly CurrencyChangeView[],
+    abilities: readonly number[],
+    ultimateId: number | null,
+    levels: readonly Level[],
+): AbilityProgress[] {
+    return slotState(order, abilities, ultimateId, levels).map((slots) => {
+        let tier: number | null = null;
+        let lastStep: number | null = null;
+        for (const [i, slot] of slots.entries()) {
+            if (slot.kind !== "filled") continue;
+            tier = i;
+            lastStep = Math.max(lastStep ?? -1, slot.step);
+        }
+        const open = slots.findIndex((slot) => slot.kind !== "filled");
+        const slot = slots[open];
+        const next: AbilityProgress["next"] =
+            slot?.kind === "next"
+                ? { kind: "next", tier: open, level: slot.level }
+                : { kind: "blocked", reason: slot?.kind === "blocked" ? slot.reason : "maxed" };
+        return { tier, lastStep, next };
+    });
+}
+
 export function appendStep(
     order: readonly CurrencyChangeView[],
     abilityId: number,

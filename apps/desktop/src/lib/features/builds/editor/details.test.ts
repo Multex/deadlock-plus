@@ -12,6 +12,7 @@ import {
     describeTag,
     languageOptions,
     selectedTags,
+    standardTags,
     toggleTag,
 } from "./details";
 
@@ -114,6 +115,34 @@ describe("STANDARD_TAGS", () => {
         expect(id("damage")).toBe(2592289373);
         expect(id("debuff")).toBe(255841590);
         expect(STANDARD_TAGS).toHaveLength(14);
+    });
+});
+
+describe("standardTags", () => {
+    const game = [
+        { key: "weapon", id: 47026193, name: "Waffe" },
+        { key: "damage", id: 999, name: "Schaden" },
+    ];
+
+    it("is our fallback list, unnamed, without a game install", () => {
+        expect(standardTags([])).toEqual(STANDARD_TAGS.map(({ id, key }) => ({ id, key })));
+    });
+
+    it("takes the game's name and id for the tags the game lists, in our order", () => {
+        const tags = standardTags(game);
+        expect(tags.map((t) => t.key)).toEqual(STANDARD_TAGS.map((s) => s.key));
+        expect(tags.find((t) => t.key === "weapon")).toEqual({ id: 47026193, key: "weapon", name: "Waffe" });
+        expect(tags.find((t) => t.key === "damage")).toEqual({ id: 999, key: "damage", name: "Schaden" });
+        expect(tags.find((t) => t.key === "spirit")).toEqual({ id: 36498494, key: "spirit" });
+    });
+
+    it("names a chosen standard tag from the game list", () => {
+        expect(describeTag(999, { standard: standardTags(game) })).toEqual({
+            id: 999,
+            kind: "standard",
+            key: "damage",
+            name: "Schaden",
+        });
     });
 });
 

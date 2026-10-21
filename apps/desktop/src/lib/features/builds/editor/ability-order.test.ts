@@ -2,6 +2,7 @@ import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChange
 import { describe, expect, it } from "vitest";
 import type { Level } from "../levels";
 import {
+    abilityProgress,
     appendStep,
     dependents,
     fillRest,
@@ -285,5 +286,29 @@ describe("pointsSummary", () => {
     it("has no level for an empty order or a missing level table", () => {
         expect(pointsSummary([], LEVELS)).toEqual({ spent: 0, available: 4, lastLevel: null });
         expect(pointsSummary([unlock(10)], [])).toEqual({ spent: 0, available: null, lastLevel: null });
+    });
+});
+
+describe("abilityProgress", () => {
+    it("offers each unlock on an empty order and holds the ultimate back", () => {
+        const progress = abilityProgress([], ABILITIES, ULT, LEVELS);
+        expect(progress[0]).toEqual({ tier: null, lastStep: null, next: { kind: "next", tier: 0, level: 1 } });
+        expect(progress[3]).toEqual({ tier: null, lastStep: null, next: { kind: "blocked", reason: "ultimate" } });
+    });
+
+    it("gives the highest tier taken, the ability's latest step and its next tier", () => {
+        const order = [unlock(10), unlock(20), ap(10, -1), ap(20, -1)];
+        const progress = abilityProgress(order, ABILITIES, ULT, LEVELS);
+        expect(progress[0]).toEqual({ tier: 1, lastStep: 2, next: { kind: "next", tier: 2, level: 8 } });
+        expect(progress[1]).toEqual({ tier: 1, lastStep: 3, next: { kind: "next", tier: 2, level: 8 } });
+    });
+
+    it("says maxed once all three tiers are taken", () => {
+        const order = [unlock(10), ap(10, -1), ap(10, -2), ap(10, -5)];
+        expect(abilityProgress(order, ABILITIES, ULT, LEVELS)[0]).toEqual({
+            tier: 3,
+            lastStep: 3,
+            next: { kind: "blocked", reason: "maxed" },
+        });
     });
 });
