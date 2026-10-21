@@ -1,3 +1,5 @@
+import type { Build, BuildsQuery, ItemStats, ItemStatsBucket } from "./builds";
+
 export const DEFAULT_BASE_URL = "https://api.deadlock-api.com/v1";
 
 export interface DeadlockApiOptions {
@@ -93,7 +95,123 @@ export interface PlayerRank {
     last_match: { start_time: number; [key: string]: unknown } | null;
 }
 
-function analyticsQuery(filter: AnalyticsFilter, leading: [string, string][] = [], withHeroes = true): string {
+/** Filter of `/analytics/item-stats`. Undefined fields and empty lists are left out of the URL. */
+export interface ItemStatsFilter extends AnalyticsFilter {
+    bucket?: ItemStatsBucket;
+    /** Matches where any of these heroes was on the opposing team, unless `enemyHeroIdsAllMatch`. */
+    enemyHeroIds?: readonly number[];
+    enemyHeroIdsAllMatch?: boolean;
+    minEnemyNetworth?: number;
+    maxEnemyNetworth?: number;
+    sameLaneFilter?: boolean;
+    /** Match start time. The API defaults to 30 days ago. */
+    minUnixTimestamp?: number;
+    maxUnixTimestamp?: number;
+    minDurationS?: number;
+    maxDurationS?: number;
+    minNetworth?: number;
+    maxNetworth?: number;
+    minMatchId?: number;
+    maxMatchId?: number;
+    includeItemIds?: readonly number[];
+    excludeItemIds?: readonly number[];
+    abilityOrderPrefix?: readonly number[];
+    abilityUnlockOrderPrefix?: readonly number[];
+    heroBuildId?: number;
+    /** The API defaults to 20. */
+    minMatches?: number;
+    maxMatches?: number;
+    accountIds?: readonly (number | string)[];
+    minBoughtAtS?: number;
+    maxBoughtAtS?: number;
+    /** Each entry is one ordering of item ids, sent as its own `item_order` parameter. */
+    itemOrder?: readonly (readonly (number | string)[])[];
+    corruptedItems?: "exclude" | "include" | "only";
+    enhancedItems?: "include" | "exclude" | "only";
+}
+
+type Scalar = string | number | boolean | undefined;
+
+function pushScalars(pairs: [string, string][], fields: readonly (readonly [string, Scalar])[]) {
+    for (const [key, value] of fields) if (value !== undefined) pairs.push([key, String(value)]);
+}
+
+function pushList(pairs: [string, string][], key: string, list: readonly (number | string)[] | undefined) {
+    if (list !== undefined && list.length > 0) pairs.push([key, list.join(",")]);
+}
+
+function buildsQuery(q: BuildsQuery): string {
+    const pairs: [string, string][] = [];
+    pushScalars(pairs, [
+        ["min_unix_timestamp", q.minUnixTimestamp],
+        ["max_unix_timestamp", q.maxUnixTimestamp],
+        ["min_published_unix_timestamp", q.minPublishedUnixTimestamp],
+        ["max_published_unix_timestamp", q.maxPublishedUnixTimestamp],
+        ["sort_by", q.sortBy],
+        ["start", q.start],
+        ["limit", q.limit],
+        ["sort_direction", q.sortDirection],
+        ["search_name", q.searchName === undefined ? undefined : encodeURIComponent(q.searchName)],
+        ["search_description", q.searchDescription === undefined ? undefined : encodeURIComponent(q.searchDescription)],
+        ["only_latest", q.onlyLatest],
+        ["language", q.language],
+        ["build_language", q.buildLanguage],
+        ["build_id", q.buildId],
+        ["version", q.version],
+        ["hero_id", q.heroId],
+        ["tag", q.tag],
+        ["rollup_category", q.rollupCategory],
+        ["author_id", q.authorId],
+    ]);
+    return pairs.length === 0 ? "" : `?${pairs.map(([k, v]) => `${k}=${v}`).join("&")}`;
+}
+
+function itemStatsTrailing(f: ItemStatsFilter): [string, string][] {
+    const pairs: [string, string][] = [];
+    pushScalars(pairs, [["bucket", f.bucket]]);
+    pushList(pairs, "enemy_hero_ids", f.enemyHeroIds);
+    pushScalars(pairs, [
+        ["enemy_hero_ids_all_match", f.enemyHeroIdsAllMatch],
+        ["min_enemy_networth", f.minEnemyNetworth],
+        ["max_enemy_networth", f.maxEnemyNetworth],
+        ["same_lane_filter", f.sameLaneFilter],
+        ["min_unix_timestamp", f.minUnixTimestamp],
+        ["max_unix_timestamp", f.maxUnixTimestamp],
+        ["min_duration_s", f.minDurationS],
+        ["max_duration_s", f.maxDurationS],
+        ["min_networth", f.minNetworth],
+        ["max_networth", f.maxNetworth],
+        ["min_match_id", f.minMatchId],
+        ["max_match_id", f.maxMatchId],
+    ]);
+    pushList(pairs, "include_item_ids", f.includeItemIds);
+    pushList(pairs, "exclude_item_ids", f.excludeItemIds);
+    pushList(pairs, "ability_order_prefix", f.abilityOrderPrefix);
+    pushList(pairs, "ability_unlock_order_prefix", f.abilityUnlockOrderPrefix);
+    pushScalars(pairs, [
+        ["hero_build_id", f.heroBuildId],
+        ["min_matches", f.minMatches],
+        ["max_matches", f.maxMatches],
+    ]);
+    pushList(pairs, "account_ids", f.accountIds);
+    pushScalars(pairs, [
+        ["min_bought_at_s", f.minBoughtAtS],
+        ["max_bought_at_s", f.maxBoughtAtS],
+    ]);
+    for (const order of f.itemOrder ?? []) pushList(pairs, "item_order", order);
+    pushScalars(pairs, [
+        ["corrupted_items", f.corruptedItems],
+        ["enhanced_items", f.enhancedItems],
+    ]);
+    return pairs;
+}
+
+function analyticsQuery(
+    filter: AnalyticsFilter,
+    leading: [string, string][] = [],
+    withHeroes = true,
+    trailing: [string, string][] = [],
+): string {
     const pairs = [...leading];
     if (withHeroes && filter.heroIds !== undefined && filter.heroIds.length > 0) {
         pairs.push(["hero_ids", filter.heroIds.join(",")]);
@@ -104,6 +222,7 @@ function analyticsQuery(filter: AnalyticsFilter, leading: [string, string][] = [
     }
     if (filter.minAverageBadge !== undefined) pairs.push(["min_average_badge", String(filter.minAverageBadge)]);
     if (filter.maxAverageBadge !== undefined) pairs.push(["max_average_badge", String(filter.maxAverageBadge)]);
+    pairs.push(...trailing);
     return pairs.length === 0 ? "" : `?${pairs.map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
@@ -160,6 +279,13 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
         /** Every hero's row; `filter.heroIds` is never sent. */
         heroStats: (filter: AnalyticsFilter) =>
             json<HeroStatsRow[]>(`/analytics/hero-stats${analyticsQuery(filter, [], false)}`),
+
+        /** Rate limit 100 req/s per IP. */
+        builds: (query: BuildsQuery) => json<Build[]>(`/builds${buildsQuery(query)}`),
+
+        /** Cached by the API for 1 hour per parameter set. The analytics rate limit (200 req/min per IP) is shared. */
+        itemStats: (filter: ItemStatsFilter) =>
+            json<ItemStats[]>(`/analytics/item-stats${analyticsQuery(filter, [], true, itemStatsTrailing(filter))}`),
 
         /** Opted-out accounts are absent from the result. At most 1000 ids per call. */
         playerRanks: (accountIds: readonly (number | string)[]) =>

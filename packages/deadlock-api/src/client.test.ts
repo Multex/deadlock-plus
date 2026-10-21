@@ -169,4 +169,133 @@ describe("createDeadlockApi", () => {
             }
         });
     });
+
+    describe("builds", () => {
+        it("requests builds without a query by default", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/builds`);
+        });
+
+        it("sends each parameter under its spec name, in a fixed order", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({
+                minUnixTimestamp: 1,
+                maxUnixTimestamp: 2,
+                minPublishedUnixTimestamp: 3,
+                maxPublishedUnixTimestamp: 4,
+                sortBy: "weekly_favorites",
+                start: 5,
+                limit: 6,
+                sortDirection: "asc",
+                searchName: "a b&c",
+                searchDescription: "d e",
+                onlyLatest: true,
+                language: 0,
+                buildLanguage: "German",
+                buildId: 7,
+                version: 8,
+                heroId: 9,
+                tag: 10,
+                rollupCategory: 11,
+                authorId: 12,
+            });
+            expect(fetch).toHaveBeenCalledWith(
+                `${BASE}/builds?min_unix_timestamp=1&max_unix_timestamp=2&min_published_unix_timestamp=3` +
+                    "&max_published_unix_timestamp=4&sort_by=weekly_favorites&start=5&limit=6&sort_direction=asc" +
+                    "&search_name=a%20b%26c&search_description=d%20e&only_latest=true&language=0" +
+                    "&build_language=German&build_id=7&version=8&hero_id=9&tag=10&rollup_category=11&author_id=12",
+            );
+        });
+
+        it("keeps zero and false values and drops undefined ones", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({ heroId: 0, start: 0, onlyLatest: false, searchName: undefined });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/builds?start=0&only_latest=false&hero_id=0`);
+        });
+
+        it("returns the builds as they came and rejects a failed status", async () => {
+            const body = [{ hero_build: { hero_id: 1, details: { mod_categories: [] } }, num_favorites: null }];
+            expect(await setup(() => Response.json(body)).api.builds({})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.builds({})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
+        });
+    });
+
+    describe("item stats", () => {
+        it("requests item stats without a query by default", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/item-stats`);
+        });
+
+        it("sends the shared analytics filter first, then the item parameters", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({
+                heroIds: [7],
+                gameMode: "normal",
+                matchMode: ["ranked"],
+                minAverageBadge: 61,
+                maxAverageBadge: 100,
+                bucket: "game_time_min",
+                enemyHeroIds: [1, 2],
+                enemyHeroIdsAllMatch: true,
+                minEnemyNetworth: 10,
+                maxEnemyNetworth: 20,
+                sameLaneFilter: false,
+                minUnixTimestamp: 30,
+                maxUnixTimestamp: 40,
+                minDurationS: 50,
+                maxDurationS: 60,
+                minNetworth: 70,
+                maxNetworth: 80,
+                minMatchId: 90,
+                maxMatchId: 100,
+                includeItemIds: [3, 4],
+                excludeItemIds: [5],
+                abilityOrderPrefix: [6, 7],
+                abilityUnlockOrderPrefix: [8, 9],
+                heroBuildId: 110,
+                minMatches: 120,
+                maxMatches: 130,
+                accountIds: [140, 150],
+                minBoughtAtS: 160,
+                maxBoughtAtS: 170,
+                itemOrder: [
+                    [1, 2],
+                    [3, 4, 5],
+                ],
+                corruptedItems: "only",
+                enhancedItems: "exclude",
+            });
+            expect(fetch).toHaveBeenCalledWith(
+                `${BASE}/analytics/item-stats?hero_ids=7&game_mode=normal&match_mode=ranked` +
+                    "&min_average_badge=61&max_average_badge=100&bucket=game_time_min&enemy_hero_ids=1,2" +
+                    "&enemy_hero_ids_all_match=true&min_enemy_networth=10&max_enemy_networth=20" +
+                    "&same_lane_filter=false&min_unix_timestamp=30&max_unix_timestamp=40&min_duration_s=50" +
+                    "&max_duration_s=60&min_networth=70&max_networth=80&min_match_id=90&max_match_id=100" +
+                    "&include_item_ids=3,4&exclude_item_ids=5&ability_order_prefix=6,7" +
+                    "&ability_unlock_order_prefix=8,9&hero_build_id=110&min_matches=120&max_matches=130" +
+                    "&account_ids=140,150&min_bought_at_s=160&max_bought_at_s=170&item_order=1,2&item_order=3,4,5" +
+                    "&corrupted_items=only&enhanced_items=exclude",
+            );
+        });
+
+        it("drops empty lists and keeps zero values", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({ includeItemIds: [], itemOrder: [], minBoughtAtS: 0, minMatches: 1 });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/item-stats?min_matches=1&min_bought_at_s=0`);
+        });
+
+        it("returns the rows as they came and rejects a failed status", async () => {
+            const body = [{ item_id: 1, bucket: 0, wins: 2, losses: 1, matches: 3, players: 3 }];
+            expect(await setup(() => Response.json(body)).api.itemStats({})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 500 }))
+                .api.itemStats({})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(500);
+        });
+    });
 });

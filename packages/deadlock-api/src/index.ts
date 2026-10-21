@@ -1,3 +1,17 @@
+export type {
+    Build,
+    BuildAbilityOrder,
+    BuildAbilityOrderCurrencyChange,
+    BuildHero,
+    BuildHeroDetails,
+    BuildLanguage,
+    BuildModAbility,
+    BuildModCategory,
+    BuildSortBy,
+    BuildsQuery,
+    ItemStats,
+    ItemStatsBucket,
+} from "./builds";
 export {
     createDeadlockApi,
     DeadlockApiError,
@@ -8,6 +22,7 @@ export {
     type DeadlockApi,
     type DeadlockApiOptions,
     type HeroStatsRow,
+    type ItemStatsFilter,
     type MatchHistoryResponse,
     type PerformanceCurvePoint,
     type PlayerRank,
