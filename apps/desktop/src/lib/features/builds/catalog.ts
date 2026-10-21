@@ -1,9 +1,11 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { command } from "$lib/core/tauri";
 import { loadItemArt } from "$lib/features/gamedata/gamedata";
-import { loadShopItems } from "$lib/features/gamedata/vdata";
+import { loadItemStats, loadShopItems } from "$lib/features/gamedata/vdata";
 import type { AssetItem } from "@deadlock-plus/deadlock-api";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
+import { normaliseSearchText, statLabelMatchers, statsByItem, type StatsById } from "./stats";
 
 export type ShopSlot = "weapon" | "vitality" | "spirit";
 export type ShopTier = 1 | 2 | 3 | 4;
@@ -49,8 +51,12 @@ export type ItemsBySlotTier = Record<ShopSlot, Record<ShopTier, ShopItem[]>>;
 export interface ShopCatalog {
     /** Every known item, shop or not, so an item a build holds but the shop dropped can be flagged. */
     byId: ReadonlyMap<number, ShopItem>;
+    /** The stats each item's shop tooltip shows; empty while the game cannot be read. */
+    statsById: StatsById;
     /** Shopable, non-disabled items only. */
     itemsBySlotTier(): ItemsBySlotTier;
+    /** `searchItems` over `items` (the shop by default), also matching stat labels. */
+    search(query: string, items?: readonly ShopItem[]): ShopItem[];
 }
 
 const SLOTS = new Set<string>(SHOP_SLOTS);
@@ -119,6 +125,7 @@ export function buildShopCatalog(
     entries: readonly ItemEntry[],
     metadata: readonly ShopMetadata[],
     art: Readonly<Record<string, string>>,
+    stats: readonly ItemStats[] = [],
 ): ShopCatalog {
     const localised = new Map(entries.filter((e) => e.localised).map((e) => [e.id, e.name]));
     const named = new Map(entries.map((e) => [e.id, e.name]));
@@ -141,8 +148,12 @@ export function buildShopCatalog(
         if (src !== undefined) item.art = src;
         byId.set(m.id, item);
     }
+    const statsById = statsByItem(stats);
+    const matchers = statLabelMatchers(statsById);
     return {
         byId,
+        statsById,
+        search: (query, items = [...byId.values()].filter(isInShop)) => searchItems(items, query, matchers),
         itemsBySlotTier() {
             const out = {} as ItemsBySlotTier;
             for (const slot of SHOP_SLOTS) out[slot] = { 1: [], 2: [], 3: [], 4: [] };
@@ -158,15 +169,16 @@ export function buildShopCatalog(
 }
 
 export async function loadShopCatalog(locale: string): Promise<ShopCatalog> {
-    const [metadata, entries] = await Promise.all([
+    const [metadata, entries, stats] = await Promise.all([
         shopMetadata(),
         command<ItemEntry[]>("game_items", { locale }).catch((): ItemEntry[] => []),
+        loadItemStats(locale),
     ]);
     const art = await loadItemArt(
         metadata.filter((m) => m.shopable && !m.disabled).map((m) => m.className),
         "shop",
     );
-    return buildShopCatalog(entries, metadata, art);
+    return buildShopCatalog(entries, metadata, art, stats);
 }
 
 export interface ChainCost {
@@ -208,25 +220,17 @@ export function chainCost(byId: ReadonlyMap<number, ShopItem>, order: readonly n
 /** Extra reason an item matches a query, such as a stat it grants. */
 export type ItemMatcher = (item: ShopItem, normalizedQuery: string) => boolean;
 
-function normalise(text: string): string {
-    return text
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "")
-        .toLowerCase()
-        .trim();
-}
-
 export function searchItems(
     items: readonly ShopItem[],
     query: string,
     matchers: readonly ItemMatcher[] = [],
 ): ShopItem[] {
-    const q = normalise(query);
+    const q = normaliseSearchText(query);
     if (q === "") return [...items];
     const prefix: ShopItem[] = [];
     const rest: ShopItem[] = [];
     for (const item of items) {
-        const name = normalise(item.name);
+        const name = normaliseSearchText(item.name);
         if (name.startsWith(q)) prefix.push(item);
         else if (name.includes(q) || matchers.some((m) => m(item, q))) rest.push(item);
     }

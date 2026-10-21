@@ -1,5 +1,6 @@
 import type { AssetItem } from "@deadlock-plus/deadlock-api";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { ShopItem as GameShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -241,6 +242,56 @@ describe("buildShopCatalog", () => {
     });
 });
 
+describe("catalog stats", () => {
+    const stats: ItemStats[] = [
+        {
+            itemId: 1,
+            stats: [
+                {
+                    key: "TechPower",
+                    value: 10,
+                    unit: null,
+                    label: "Spirit Power",
+                    flat: true,
+                    provides: "MODIFIER_VALUE_TECH_POWER",
+                    section: "innate",
+                },
+            ],
+        },
+    ];
+    const metas = [
+        meta({ id: 1, className: "upgrade_a", name: "Extra Spirit" }),
+        meta({ id: 2, className: "upgrade_b", name: "Power Surge" }),
+        meta({ id: 3, className: "upgrade_old", name: "Old Spirit Power", disabled: true }),
+    ];
+
+    it("keeps each item's stats by id", () => {
+        const catalog = buildShopCatalog([], metas, {}, stats);
+        expect(catalog.statsById.get(1)).toEqual(stats[0]!.stats);
+        expect(buildShopCatalog([], metas, {}).statsById.size).toBe(0);
+    });
+
+    it("searches shop items by name and by stat label", () => {
+        const catalog = buildShopCatalog([], metas, {}, stats);
+        expect(catalog.search("power").map((i) => i.id)).toEqual([2, 1]);
+        expect(catalog.search("spirit power").map((i) => i.id)).toEqual([1]);
+    });
+
+    it("searches only by name without stats", () => {
+        expect(
+            buildShopCatalog([], metas, {})
+                .search("power")
+                .map((i) => i.id),
+        ).toEqual([2]);
+    });
+
+    it("searches the given items instead of the shop", () => {
+        const catalog = buildShopCatalog([], metas, {}, stats);
+        const old = catalog.byId.get(3)!;
+        expect(catalog.search("spirit", [old]).map((i) => i.id)).toEqual([3]);
+    });
+});
+
 describe("loadShopCatalog", () => {
     const upgrade = () => asset({ id: 1, class_name: "upgrade_a", name: "Alpha", shop_image_webp: "https://x/a.webp" });
 
@@ -254,6 +305,36 @@ describe("loadShopCatalog", () => {
         expect(items).not.toHaveBeenCalled();
         expect(command).toHaveBeenCalledWith("game_items", { locale: "german" });
         expect(catalog.byId.get(1)).toMatchObject({ name: "Alfa", art: "asset://a" });
+    });
+
+    it("loads the item stats for the locale", async () => {
+        const stats: ItemStats[] = [
+            {
+                itemId: 1,
+                stats: [
+                    {
+                        key: "BonusHealth",
+                        value: 210,
+                        unit: null,
+                        label: "Bonus Health",
+                        flat: true,
+                        provides: "MODIFIER_VALUE_BONUS_HEALTH",
+                        section: "innate",
+                    },
+                ],
+            },
+        ];
+        answer({ game_shop_items: [game({ id: 1, className: "upgrade_a" })], game_items: [], game_item_stats: stats });
+        loadItemArt.mockResolvedValue({});
+        const catalog = await loadShopCatalog("german");
+        expect(command).toHaveBeenCalledWith("game_item_stats", { locale: "german" });
+        expect(catalog.statsById.get(1)).toEqual(stats[0]!.stats);
+    });
+
+    it("has no stats when the game cannot give them", async () => {
+        answer({ game_shop_items: [game({ id: 1, className: "upgrade_a" })], game_items: [] });
+        loadItemArt.mockResolvedValue({});
+        expect((await loadShopCatalog("english")).statsById.size).toBe(0);
     });
 
     it("merges game names, API metadata and shop art when the game has no shop items", async () => {

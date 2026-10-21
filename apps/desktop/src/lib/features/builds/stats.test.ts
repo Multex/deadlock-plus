@@ -1,0 +1,121 @@
+import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
+import { describe, expect, it } from "vitest";
+import type { ShopItem } from "./catalog";
+import { searchItems } from "./catalog";
+import { statLabelMatchers, statsSoFar } from "./stats";
+
+const SPIRIT = "MODIFIER_VALUE_TECH_POWER";
+const HEALTH = "MODIFIER_VALUE_BONUS_HEALTH";
+
+function stat(over: Partial<ItemStat> & Pick<ItemStat, "key" | "value" | "label">): ItemStat {
+    return { unit: null, flat: true, provides: null, section: "innate", ...over };
+}
+
+const statsById = new Map<number, ItemStat[]>([
+    [1, [stat({ key: "TechPower", value: 10, label: "Spirit Power", provides: SPIRIT })]],
+    [
+        2,
+        [
+            stat({ key: "BonusHealth", value: 210, label: "Bonus Health", provides: HEALTH }),
+            stat({ key: "BonusSpirit", value: 6, label: "Bonus Spirit", provides: SPIRIT }),
+        ],
+    ],
+    [
+        3,
+        [
+            stat({
+                key: "TechPower",
+                value: 30,
+                label: "Spirit Power",
+                provides: SPIRIT,
+                flat: false,
+                section: "passive",
+            }),
+            stat({
+                key: "BonusFireRate",
+                value: 9,
+                unit: "%",
+                label: "Fire Rate",
+                provides: "MODIFIER_VALUE_FIRE_RATE",
+            }),
+        ],
+    ],
+    [4, [stat({ key: "WeirdHealth", value: 5, unit: "%", label: "Health %", provides: HEALTH })]],
+    [5, [stat({ key: "Range", value: 0.1, unit: "m", label: "Range", provides: "R" })]],
+    [6, [stat({ key: "Range", value: 0.2, unit: "m", label: "Range", provides: "R" })]],
+]);
+
+describe("statsSoFar", () => {
+    it("is empty with nothing bought", () => {
+        expect(statsSoFar([], statsById)).toEqual([]);
+    });
+
+    it("sums flat stats that provide the same thing, under the first stat's label, in first-bought order", () => {
+        expect(statsSoFar([2, 1], statsById)).toEqual([
+            { provides: HEALTH, label: "Bonus Health", unit: null, total: 210 },
+            { provides: SPIRIT, label: "Bonus Spirit", unit: null, total: 16 },
+        ]);
+    });
+
+    it("counts an item bought twice twice", () => {
+        expect(statsSoFar([1, 1], statsById)).toEqual([
+            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 20 },
+        ]);
+    });
+
+    it("leaves out stats that are not always on", () => {
+        expect(statsSoFar([1, 3], statsById)).toEqual([
+            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 10 },
+            { provides: "MODIFIER_VALUE_FIRE_RATE", label: "Fire Rate", unit: "%", total: 9 },
+        ]);
+    });
+
+    it("keeps a stat with another unit apart", () => {
+        expect(statsSoFar([2, 4], statsById).filter((s) => s.provides === HEALTH)).toEqual([
+            { provides: HEALTH, label: "Bonus Health", unit: null, total: 210 },
+            { provides: HEALTH, label: "Health %", unit: "%", total: 5 },
+        ]);
+    });
+
+    it("skips items without stats", () => {
+        expect(statsSoFar([99, 1], statsById)).toEqual([
+            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 10 },
+        ]);
+    });
+
+    it("does not show floating point noise", () => {
+        expect(statsSoFar([5, 6], statsById)[0]?.total).toBe(0.3);
+    });
+});
+
+describe("statLabelMatchers", () => {
+    const item = (id: number, name: string): ShopItem => ({
+        id,
+        className: `c${id}`,
+        name,
+        slot: "spirit",
+        tier: 1,
+        cost: 800,
+        active: false,
+        componentIds: [],
+        shopable: true,
+        disabled: false,
+        imbue: false,
+    });
+    const items = [item(1, "Extra Spirit"), item(2, "Extra Health"), item(3, "Mystic Burst"), item(7, "Fire Rate")];
+    const accented = new Map([[9, [stat({ key: "X", value: 1, label: "Énergie" })]]]);
+
+    it("matches an item by any of its stat labels, ignoring case", () => {
+        expect(searchItems(items, "FIRE RATE", statLabelMatchers(statsById)).map((i) => i.id)).toEqual([7, 3]);
+        expect(searchItems(items, "power", statLabelMatchers(statsById)).map((i) => i.id)).toEqual([1, 3]);
+    });
+
+    it("ignores accents like item names do", () => {
+        const [match] = statLabelMatchers(accented);
+        expect(match?.(item(9, "x"), "energie")).toBe(true);
+    });
+
+    it("matches no item without stats", () => {
+        expect(searchItems([item(8, "Plain")], "spirit", statLabelMatchers(statsById))).toEqual([]);
+    });
+});

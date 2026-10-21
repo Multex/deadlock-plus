@@ -4,6 +4,8 @@ import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
+import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { LaneLine } from "@deadlock-plus/ipc-types/LaneLine";
 import type { MapItem } from "@deadlock-plus/ipc-types/MapItem";
 import type { MapItemsPayload } from "@deadlock-plus/ipc-types/MapItemsPayload";
@@ -1318,7 +1320,32 @@ interface AssetItem {
     component_items?: string[];
     /** Set on items that imbue an ability: the kind of ability they target. */
     imbue?: string | null;
+    properties?: Record<string, AssetProperty>;
+    tooltip_sections?: AssetTooltipSection[];
 }
+
+interface AssetProperty {
+    value?: string | number;
+    label?: string;
+    postvalue_label?: string;
+    postfix?: string;
+    provided_property_type?: string;
+    usage_flags?: string[];
+    /** The game's apply filter, as the condition it names ("against NPCs"). */
+    conditional?: string;
+}
+
+interface AssetTooltipSection {
+    section_type?: string;
+    section_attributes?: Partial<Record<(typeof SHOWN_LISTS)[number], (string | { name: string })[]>>[];
+}
+
+const SHOWN_LISTS = [
+    "properties",
+    "elevated_properties",
+    "important_properties",
+    "important_properties_with_icon",
+] as const;
 
 interface AssetAccolade {
     id: number;
@@ -1409,6 +1436,57 @@ function shopItems(items: readonly AssetItem[]): ShopItem[] {
                 : [],
         )
         .sort((a, b) => a.id - b.id);
+}
+
+const STAT_SECTIONS = new Set<string>(["innate", "passive", "active"] satisfies ItemStat["section"][]);
+
+/**
+ * The game's tooltip stat rule applied to the asset's copy of the abilities file. The asset leaves out
+ * the intrinsic modifier list, so only stats a tooltip section shows are listed.
+ */
+function itemStats(items: readonly AssetItem[]): ItemStats[] {
+    return items
+        .flatMap((item): ItemStats[] => {
+            if (item.type !== "upgrade") return [];
+            const sections = (item.tooltip_sections ?? []).flatMap((section) =>
+                (section.section_attributes ?? []).flatMap((attributes) =>
+                    SHOWN_LISTS.flatMap((list) =>
+                        (attributes[list] ?? []).map((name) => ({
+                            kind: section.section_type ?? "",
+                            name: typeof name === "string" ? name : name.name,
+                        })),
+                    ),
+                ),
+            );
+            const stats = Object.entries(item.properties ?? {}).flatMap(([key, property]): ItemStat[] => {
+                const shownIn = sections.filter((s) => s.name === key).map((s) => s.kind);
+                const text = String(property.value ?? "").trim();
+                const metres = text.endsWith("m");
+                const value = Number(metres ? text.slice(0, -1) : text);
+                const label = property.label || property.postvalue_label;
+                if (shownIn.length === 0 || text === "" || !Number.isFinite(value) || value === 0 || !label) return [];
+                const provides = property.provided_property_type ?? null;
+                const flat =
+                    provides !== null &&
+                    shownIn.every((kind) => kind === "innate") &&
+                    !(property.usage_flags ?? []).some((flag) => flag.includes("Conditionally")) &&
+                    property.conditional === undefined;
+                const first = shownIn[0]!;
+                return [
+                    {
+                        key,
+                        value,
+                        unit: property.postfix || (metres ? "m" : null),
+                        label,
+                        flat,
+                        provides,
+                        section: STAT_SECTIONS.has(first) ? (first as ItemStat["section"]) : null,
+                    },
+                ];
+            });
+            return stats.length > 0 ? [{ itemId: item.id, stats }] : [];
+        })
+        .sort((a, b) => a.itemId - b.itemId);
 }
 
 /** Every hero shares one level table; the asset repeats it per hero. */
@@ -1550,6 +1628,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                     ),
                 game_ability_art: (args) => classArt(asset, args.names, (item) => item.image_webp ?? item.image),
                 game_shop_items: () => orNoGame(async () => shopItems(await asset<AssetItem[]>("items")), []),
+                game_item_stats: () => orNoGame(async () => itemStats(await asset<AssetItem[]>("items")), []),
                 game_hero_progression: () =>
                     orNoGame(async () => heroProgression(await asset<AssetHero[]>("heroes")), { levels: [] }),
                 game_hero_abilities: () => orNoGame(async () => heroAbilities(await asset<AssetHero[]>("heroes")), []),

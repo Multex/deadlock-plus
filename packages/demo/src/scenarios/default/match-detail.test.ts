@@ -17,6 +17,32 @@ const ITEMS = [
         is_active_item: false,
         shopable: true,
         disabled: false,
+        properties: {
+            AbilityCooldown: { value: "0", label: "Cooldown", postfix: "s" },
+            ChannelMoveSpeed: { value: "-1", postfix: "m" },
+            BonusClipSizePercent: {
+                value: "30",
+                provided_property_type: "MODIFIER_VALUE_AMMO_CLIP_SIZE_PERCENT",
+                label: "Max Ammo",
+                postfix: "%",
+                postvalue_label: "Max Ammo",
+            },
+            BaseAttackDamagePercent: {
+                value: "8",
+                provided_property_type: "MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE",
+                label: "Weapon Damage",
+                postfix: "%",
+                postvalue_label: "Weapon Damage",
+            },
+        },
+        tooltip_sections: [
+            {
+                section_type: "innate",
+                section_attributes: [
+                    { properties: ["BaseAttackDamagePercent"], elevated_properties: ["BonusClipSizePercent"] },
+                ],
+            },
+        ],
     },
     {
         id: 7,
@@ -30,6 +56,41 @@ const ITEMS = [
         shopable: true,
         component_items: ["upgrade_clip_size"],
         imbue: "imbue_modifier_value",
+        properties: {
+            Stamina: { value: "1", provided_property_type: "MODIFIER_VALUE_STAMINA", postvalue_label: "Stamina" },
+            BonusFireRate: {
+                value: "25",
+                provided_property_type: "MODIFIER_VALUE_FIRE_RATE",
+                usage_flags: ["ConditionallyApplied"],
+                label: "Fire Rate",
+                postfix: "%",
+            },
+            NonPlayerBonusWeaponPower: {
+                value: 15,
+                provided_property_type: "MODIFIER_VALUE_WEAPON_DAMAGE_TO_NPC_INCREASE",
+                conditional: "against NPCs",
+                label: "Weapon Damage",
+                postfix: "%",
+            },
+            AbilityCastRange: { value: "12m", label: "Cast Range", postfix: "" },
+            StatusEffectStun: { value: "1" },
+        },
+        tooltip_sections: [
+            { section_type: "innate", section_attributes: [{ properties: ["Stamina", "NonPlayerBonusWeaponPower"] }] },
+            {
+                section_type: "passive",
+                section_attributes: [{ important_properties: ["BonusFireRate"] }],
+            },
+            {
+                section_type: "active",
+                section_attributes: [
+                    {
+                        properties: ["AbilityCastRange"],
+                        important_properties_with_icon: [{ name: "StatusEffectStun" }],
+                    },
+                ],
+            },
+        ],
     },
     {
         id: 8,
@@ -42,7 +103,16 @@ const ITEMS = [
         shopable: false,
         disabled: true,
     },
-    { id: 9, class_name: "ability_x", name: "X", type: "ability" },
+    {
+        id: 9,
+        class_name: "ability_x",
+        name: "X",
+        type: "ability",
+        properties: {
+            BonusSpirit: { value: "5", label: "Spirit Power", provided_property_type: "MODIFIER_VALUE_TECH_POWER" },
+        },
+        tooltip_sections: [{ section_type: "innate", section_attributes: [{ properties: ["BonusSpirit"] }] }],
+    },
 ];
 
 const HEROES = [
@@ -159,6 +229,68 @@ describe("game files from the default scenario", () => {
         expect(await handle.invoke("game_popular_items", { heroId: 999 })).toBeNull();
     });
 
+    it("gives the stats each item's tooltip shows, flat only when always on", async () => {
+        const stat = (
+            key: string,
+            value: number,
+            unit: string | null,
+            label: string,
+            flat: boolean,
+            provides: string | null,
+            section: string,
+        ) => ({
+            key,
+            value,
+            unit,
+            label,
+            flat,
+            provides,
+            section,
+        });
+        expect(await start().invoke("game_item_stats", { locale: "english" })).toEqual([
+            {
+                itemId: 7,
+                stats: [
+                    stat("Stamina", 1, null, "Stamina", true, "MODIFIER_VALUE_STAMINA", "innate"),
+                    stat("BonusFireRate", 25, "%", "Fire Rate", false, "MODIFIER_VALUE_FIRE_RATE", "passive"),
+                    stat(
+                        "NonPlayerBonusWeaponPower",
+                        15,
+                        "%",
+                        "Weapon Damage",
+                        false,
+                        "MODIFIER_VALUE_WEAPON_DAMAGE_TO_NPC_INCREASE",
+                        "innate",
+                    ),
+                    stat("AbilityCastRange", 12, "m", "Cast Range", false, null, "active"),
+                ],
+            },
+            {
+                itemId: 1548066885,
+                stats: [
+                    stat(
+                        "BonusClipSizePercent",
+                        30,
+                        "%",
+                        "Max Ammo",
+                        true,
+                        "MODIFIER_VALUE_AMMO_CLIP_SIZE_PERCENT",
+                        "innate",
+                    ),
+                    stat(
+                        "BaseAttackDamagePercent",
+                        8,
+                        "%",
+                        "Weapon Damage",
+                        true,
+                        "MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE",
+                        "innate",
+                    ),
+                ],
+            },
+        ]);
+    });
+
     it("answers as an unreadable game does when the assets cannot be fetched", async () => {
         vi.stubGlobal("fetch", async () => {
             throw new TypeError("Failed to fetch");
@@ -169,5 +301,6 @@ describe("game files from the default scenario", () => {
         expect(await handle.invoke("game_hero_progression", {})).toEqual({ levels: [] });
         expect(await handle.invoke("game_hero_abilities", {})).toEqual([]);
         expect(await handle.invoke("game_popular_items", { heroId: 1 })).toBeNull();
+        expect(await handle.invoke("game_item_stats", { locale: "english" })).toEqual([]);
     });
 });

@@ -1,12 +1,18 @@
 import { command } from "$lib/core/tauri";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 
 /** Every shop item in the installed game, disabled ones included. Empty while the game cannot be read. */
 export function loadShopItems(): Promise<ShopItem[]> {
     return command<ShopItem[]>("game_shop_items").catch((): ShopItem[] => []);
+}
+
+/** The stats each item shows in its shop tooltip, labelled in `locale`. Empty while the game cannot be read. */
+export function loadItemStats(locale: string): Promise<ItemStats[]> {
+    return command<ItemStats[]>("game_item_stats", { locale }).catch((): ItemStats[] => []);
 }
 
 /** The installed game's level table. No levels while the game cannot be read. */

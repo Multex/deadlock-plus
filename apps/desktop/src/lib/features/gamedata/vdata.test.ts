@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
-import { loadHeroAbilities, loadHeroProgression, loadPopularItems, loadShopItems } from "./vdata";
+import { loadHeroAbilities, loadHeroProgression, loadItemStats, loadPopularItems, loadShopItems } from "./vdata";
 
 vi.mock("$lib/core/tauri", () => ({ command: vi.fn() }));
 
@@ -76,5 +76,34 @@ describe("loadPopularItems", () => {
     it("is null when the command fails", async () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadPopularItems(7)).toBeNull();
+    });
+});
+
+describe("loadItemStats", () => {
+    it("asks for the stats in one locale", async () => {
+        const stats = [
+            {
+                itemId: 1,
+                stats: [
+                    {
+                        key: "TechPower",
+                        value: 10,
+                        unit: null,
+                        label: "Spirit Power",
+                        flat: true,
+                        provides: "MODIFIER_VALUE_TECH_POWER",
+                        section: "innate",
+                    },
+                ],
+            },
+        ];
+        invoke.mockResolvedValue(stats);
+        expect(await loadItemStats("german")).toEqual(stats);
+        expect(invoke).toHaveBeenCalledWith("game_item_stats", { locale: "german" });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadItemStats("english")).toEqual([]);
     });
 });
