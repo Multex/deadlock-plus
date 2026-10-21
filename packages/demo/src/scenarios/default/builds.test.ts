@@ -23,6 +23,7 @@ interface PublicBuild {
         hero_id: number;
         hero_build_id: number;
         author_account_id: number;
+        name: string;
         language: number;
         last_updated_timestamp?: number | null;
         details: { mod_categories: unknown[]; ability_order?: { currency_changes?: unknown[] | null } | null };
