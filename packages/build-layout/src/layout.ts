@@ -75,7 +75,11 @@ export interface Geometry {
 
 export function geometry(screenHeight: number): Geometry {
     const px = (length: number) => cssPx(length, screenHeight);
-    const contentWidth = px(PAGE_WIDTH) - 2 * px(CONTAINER_PADDING);
+    return categoryGeometry(px(PAGE_WIDTH) - 2 * px(CONTAINER_PADDING), px);
+}
+
+/** The category rules in a content box of `contentWidth` px, each CSS length turned into px by `px`. */
+export function categoryGeometry(contentWidth: number, px: (length: number) => number): Geometry {
     const margin = px(CATEGORY_MARGIN);
     const chipMargin = px(CHIP_MARGIN);
     const chip = { width: px(CHIP_WIDTH), height: px(CHIP_HEIGHT) };
@@ -108,13 +112,27 @@ function chipBoxes(box: Box, items: number, columns: number, g: Geometry): Box[]
 
 /** Where the shop's build page draws each category and chip: a right-wrapping flow, rows as tall as their tallest. */
 export function layoutBuild(categories: readonly BuildCategory[], screen: Screen): BuildLayout {
-    const g = geometry(screen.height);
+    return flowLayout(
+        categories,
+        geometry(screen.height),
+        (width) => widthPx(width, screen.height),
+        (height) => cssPx(height, screen.height),
+    );
+}
+
+/** `widthPx` and `heightPx` turn a category's stored size into px. */
+export function flowLayout(
+    categories: readonly BuildCategory[],
+    g: Geometry,
+    widthPx: (width: number) => number,
+    heightPx: (height: number) => number,
+): BuildLayout {
     const placed: CategoryLayout[] = [];
     let x = 0;
     let y = 0;
     let rowHeight = 0;
     for (const { width, height, items } of categories) {
-        const stored = widthPx(width, screen.height);
+        const stored = widthPx(width);
         const drawn = Math.min(stored, g.cap);
         const outer = drawn + 2 * g.margin;
         if (x > 0 && x + outer > g.contentWidth) {
@@ -122,7 +140,7 @@ export function layoutBuild(categories: readonly BuildCategory[], screen: Screen
             x = 0;
             rowHeight = 0;
         }
-        const box = { x: x + g.margin, y: y + g.margin, width: drawn, height: cssPx(height, screen.height) };
+        const box = { x: x + g.margin, y: y + g.margin, width: drawn, height: heightPx(height) };
         const columns = columnsFor(drawn, g);
         placed.push({
             box,
