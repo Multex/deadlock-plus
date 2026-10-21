@@ -687,7 +687,8 @@
             "voice_bans": "Mutes",
             "demos": "Replays",
             "match_history": "Match History",
-            "presence": "Presence"
+            "presence": "Presence",
+            "builds": "Builds"
         },
         "sidebar": {
             "unread": "{count} unread",
@@ -768,7 +769,8 @@
             "voice_bans": "View, add, unmute, export and import your muted players",
             "demos": "Browse your saved match replays and see which are outdated",
             "match_history": "Every match the Deadlock API has, with a full scoreboard for each",
-            "presence": "Show your hero, mode and match timer on your Discord profile"
+            "presence": "Show your hero, mode and match timer on your Discord profile",
+            "builds": "Browse, copy and edit hero builds, saved straight to the game"
         }
     },
     "ui": {},
@@ -1765,6 +1767,78 @@
             "optional": "Optional",
             "imbue": "Imbue",
             "removed_item": "Removed item"
+        },
+        "mine": {
+            "title": "My builds",
+            "loading": "Loading your builds…",
+            "load_failed": "Your builds could not load.",
+            "retry": "Try again",
+            "empty": "You have no builds yet.",
+            "published_failed": "Your published builds could not load from the Deadlock API.",
+            "queue_banner_one": "Deadlock is running. {count} build saves when it closes.",
+            "queue_banner_other": "Deadlock is running. {count} builds save when it closes.",
+            "group_new": "New builds",
+            "unknown_hero": "Unknown hero",
+            "status": {
+                "draft": "Draft",
+                "waiting": "Waiting for game to close",
+                "in_game": "In game",
+                "published": "Published"
+            },
+            "updated": "Updated {date}",
+            "edited": "Edited. Press Publish in-game to upload it.",
+            "edited_hint": "The edit is lost if another build of this hero is used first.",
+            "actions": "More actions for {name}",
+            "open": "Open",
+            "copy": "Copy as new",
+            "copy_name": "{name} (copy)",
+            "copied": "Copied as a new build.",
+            "favourite": "Favourite",
+            "unfavourite": "Unfavourite",
+            "favourited": "Added to favourites.",
+            "unfavourited": "Removed from favourites.",
+            "cancel_queued": "Cancel queued save",
+            "delete": "Delete",
+            "delete_in_game": "Delete it in-game",
+            "delete_title": "Delete {name}?",
+            "delete_description": "This removes it from your builds in the game.",
+            "deleted": "Build deleted.",
+            "queued": "Saves when Deadlock closes.",
+            "changed_in_game": "This build changed in the game. Try again.",
+            "action_failed": "Could not change the build.",
+            "flush_failed": "Queued builds could not be saved.",
+            "conflict": {
+                "title": "Deadlock changed this build",
+                "description": "{name} changed in the game while your save waited. Pick the version to keep.",
+                "mine": "Yours",
+                "game": "The game's",
+                "deleted": "Deleted",
+                "keep_mine": "Keep mine",
+                "keep_game": "Keep the game's"
+            }
+        },
+        "browser": {
+            "title": "Builds",
+            "subtitle": "Browse public builds and manage your own.",
+            "tab_public": "Public",
+            "tab_mine": "Mine",
+            "hero": "Hero",
+            "sort": "Sort builds",
+            "sort_weekly": "This week",
+            "sort_all_time": "All time",
+            "sort_newest": "Newest",
+            "search": "Search by build name",
+            "search_label": "Search builds",
+            "loading": "Loading builds…",
+            "empty": "No public builds for {hero} yet.",
+            "empty_search": "No builds match \"{query}\".",
+            "error": "Could not load public builds.",
+            "retry": "Try again",
+            "by": "By {name}",
+            "updated": "Updated {date}",
+            "this_week": "{count} this week",
+            "favorites_one": "{count} favourite",
+            "favorites_other": "{count} favourites"
         }
     },
     "alerts": {
