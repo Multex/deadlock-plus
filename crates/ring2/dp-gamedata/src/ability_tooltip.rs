@@ -122,13 +122,17 @@ struct RawUpgrade {
     bonuses: Vec<(RawProperty, f64, UpgradeKind)>,
 }
 
-/// Every hero ability with a tooltip in `abilities.vdata`, keyed by ability id, before localisation.
+/// The ability types the hero's ability bar shows: signature slots 1 to 3, then the ultimate in slot 4.
+const ABILITY_BAR_TYPES: [&str; 2] = ["EAbilityType_Signature", "EAbilityType_Ultimate"];
+
+/// Every ability-bar ability with a tooltip in `abilities.vdata`, keyed by ability id, before localisation.
 pub(crate) fn raw_abilities(abilities: &Document) -> HashMap<u32, RawAbility> {
     let Some(root) = abilities.root.as_object() else { return HashMap::new() };
     root.iter()
         .filter_map(|(class_name, entry)| {
             let entry = entry.as_object()?;
-            if entry.get("m_eAbilityType").and_then(Value::as_str) != Some("EAbilityType_Signature") {
+            let kind = entry.get("m_eAbilityType").and_then(Value::as_str)?;
+            if !ABILITY_BAR_TYPES.contains(&kind) {
                 return None;
             }
             Some((ability_id(class_name), raw_ability(class_name, entry)?))
@@ -631,6 +635,27 @@ mod tests {
     }
 
     #[test]
+    fn ultimates_are_listed_but_innate_and_weapon_abilities_are_not() {
+        let with_type = |kind: &str| {
+            format!("m_eAbilityType = \"{kind}\" m_AbilityTooltipDetails = {{ m_vecAbilityInfoSections = [ ] }}")
+        };
+        let doc = abilities(&format!(
+            "ability_signature = {{ {} }}
+             ability_ultimate = {{ {} }}
+             ability_innate = {{ {} }}
+             ability_weapon = {{ {} }}",
+            with_type("EAbilityType_Signature"),
+            with_type("EAbilityType_Ultimate"),
+            with_type("EAbilityType_Innate"),
+            with_type("EAbilityType_Weapon"),
+        ));
+        let mut classes: Vec<String> =
+            localised_abilities(&raw_abilities(&doc), &[]).into_iter().map(|a| a.class_name).collect();
+        classes.sort();
+        assert_eq!(classes, ["ability_signature", "ability_ultimate"]);
+    }
+
+    #[test]
     fn an_earlier_language_wins_and_english_fills_its_gaps() {
         let german = LocalizationFile {
             language: "german".into(),
@@ -648,6 +673,7 @@ mod installed_tests {
 
     use super::*;
     use crate::catalog::{Install, SteamInstall};
+    use crate::progression::HeroesSource;
     use crate::shop::{ShopSource, ABILITIES_PATH};
     use crate::tooltip::bundle_localisation;
     use crate::vpk_source::VpkVdataSource;
@@ -700,6 +726,59 @@ mod installed_tests {
         assert_eq!(upgrades[2].values.get("ShockRadius"), Some(&1.75));
     }
 
+    fn installed_tooltips(dir: &std::path::Path) -> Vec<AbilityTooltip> {
+        let abilities = ShopSource::read(&VpkVdataSource, dir, ABILITIES_PATH).expect("abilities.vdata reads");
+        localised_abilities(&raw_abilities(&abilities), &bundle_localisation(dir, "english", &ABILITY_BUNDLES))
+    }
+
+    #[test]
+    fn every_released_heros_ability_bar_has_a_tooltip_with_three_tiers() {
+        let Some(dir) = installed() else { return };
+        let heroes = HeroesSource::read(&VpkVdataSource, &dir).expect("heroes.vdata reads");
+        let by_id: HashMap<u32, AbilityTooltip> =
+            installed_tooltips(&dir).into_iter().map(|a| (a.ability_id, a)).collect();
+        let released = heroes.root.as_object().expect("heroes root").iter().filter(|(_, hero)| {
+            hero.get("m_eHeroDevelopmentState").and_then(Value::as_str) == Some("EHeroDevState_Release")
+        });
+        let mut checked = 0;
+        let mut missing = Vec::new();
+        for (hero, data) in released {
+            for slot in 1..=4 {
+                let class = data
+                    .get("m_mapBoundAbilities")
+                    .and_then(|s| s.get(&format!("ESlot_Signature_{slot}")))
+                    .and_then(Value::as_str);
+                match class.and_then(|c| by_id.get(&ability_id(c))) {
+                    Some(tooltip) if tooltip.upgrades.len() == 3 => checked += 1,
+                    _ => missing.push(format!("{hero} slot {slot}: {class:?}")),
+                }
+            }
+        }
+        assert!(missing.is_empty(), "{missing:?}");
+        assert!(checked >= 4 * 30, "{checked} abilities checked");
+    }
+
+    // Read from `abilities.vdata_c` of game build 6805; not yet checked against an in-game capture.
+    #[test]
+    fn the_installed_storm_cloud_ultimate_has_its_tooltip() {
+        let Some(dir) = installed() else { return };
+        let all = installed_tooltips(&dir);
+        let cloud = all.iter().find(|a| a.ability_id == 2_061_574_352).expect("Seven's ultimate");
+        let shown = |p: &TooltipProperty| format!("{:?}{} {}", p.value, p.unit.as_deref().unwrap_or(""), p.label);
+
+        assert_eq!(cloud.name, "Storm Cloud");
+        assert_eq!(
+            cloud.header.iter().map(shown).collect::<Vec<_>>(),
+            ["Some(7.0)s Channel Duration", "Some(30.0)m Radius"]
+        );
+        assert_eq!(cloud.cooldown.as_ref().map(shown).as_deref(), Some("Some(205.0)s Cooldown"));
+        assert_eq!(cloud.charges, None);
+        let cells: Vec<String> = cloud.sections[0].groups[0].cells.iter().map(shown).collect();
+        assert_eq!(cells, ["Some(95.0) Damage Per Second", "Some(1.5)m Flight Speed"]);
+        assert_eq!(cloud.upgrades.iter().map(|u| u.cost).collect::<Vec<_>>(), [1, 2, 5]);
+        assert_eq!(cloud.upgrades[0].values.get("BulletResistOnActive"), Some(&55.0));
+    }
+
     #[test]
     fn every_installed_section_that_needs_an_upgrade_names_its_tier() {
         let Some(dir) = installed() else { return };
@@ -707,12 +786,6 @@ mod installed_tests {
         let all =
             localised_abilities(&raw_abilities(&abilities), &bundle_localisation(&dir, "english", &ABILITY_BUNDLES));
         assert!(all.len() > 150, "{} abilities", all.len());
-        let odd: Vec<(&str, usize)> = all
-            .iter()
-            .filter(|a| !matches!(a.upgrades.len(), 0 | 3))
-            .map(|a| (a.class_name.as_str(), a.upgrades.len()))
-            .collect();
-        assert!(odd.is_empty(), "{odd:?}");
         let gated = all.iter().flat_map(|a| &a.sections).filter(|s| s.required_tier.is_some()).count();
         assert!(gated >= 7, "{gated} gated sections");
     }
