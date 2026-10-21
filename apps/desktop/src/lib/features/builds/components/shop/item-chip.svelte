@@ -15,7 +15,6 @@
         box,
         scale,
         tooltip = true,
-        lite = false,
     }: {
         /** Undefined when the build holds an item the game no longer has. */
         item: ChipItem | undefined;
@@ -24,15 +23,13 @@
         scale: number;
         /** Shows the game-style item tooltip on hover when an ancestor provides the catalog. */
         tooltip?: boolean;
-        /** Small previews: no tooltip, game textures or shadow, which cost too much across many cards. */
-        lite?: boolean;
     } = $props();
 
     const source = itemTooltipSource();
     const id = $derived((item as TooltipChip | undefined)?.id);
-    const tipSource = $derived(!lite && tooltip && id !== undefined ? source() : null);
+    const tipSource = $derived(tooltip && id !== undefined ? source() : null);
 
-    const images = $derived(lite ? {} : cardArt());
+    const images = $derived(cardArt());
     // The game cycles its paper textures by the card's position; a name hash keeps each card's look stable.
     const variant = $derived([...(item?.name ?? "")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7));
     const backer = $derived(item ? images[`card_backer_${item.slot}_t${item.tier}`] : undefined);
@@ -76,7 +73,6 @@
         class:active={item?.active}
         class:removed={!item}
         class:textured={!!backer}
-        class:lite
         data-slot={item?.slot}
         data-tier={item?.tier}
         style:left="{box.x}px"
@@ -172,9 +168,6 @@
         background: var(--plate);
         box-shadow: 2px 2px 12px #0007;
         user-select: none;
-    }
-    .chip.lite {
-        box-shadow: none;
     }
     .chip[data-slot="weapon"] {
         --bright: #ec9719;

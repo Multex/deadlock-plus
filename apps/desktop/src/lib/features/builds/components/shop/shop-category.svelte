@@ -14,7 +14,6 @@
         unit,
         border,
         difference,
-        lite = false,
     }: {
         category: Pick<ModCategoryView, "name" | "description" | "optional" | "width" | "mods">;
         view: ShopCategoryView;
@@ -25,8 +24,6 @@
         border: number;
         /** How this category lays out differently on the user's own screen. */
         difference?: ScreenDifference;
-        /** Small previews: no tooltips, measuring or game textures. */
-        lite?: boolean;
     } = $props();
 
     const differs = $derived(
@@ -47,7 +44,7 @@
     style:--edge="{border}px"
 >
     <header style:height="{view.header}px">
-        <CategoryTitle {category} {unit} {lite} />
+        <CategoryTitle {category} {unit} />
         {#if difference && differs}
             <Tooltip.Root delayDuration={100}>
                 <Tooltip.Trigger
@@ -73,7 +70,6 @@
                 height: chip.height,
             }}
             scale={unit}
-            {lite}
         />
     {/each}
 </section>

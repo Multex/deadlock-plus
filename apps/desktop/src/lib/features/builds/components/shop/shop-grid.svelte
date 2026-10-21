@@ -12,7 +12,6 @@
         screen,
         mode,
         differences = [],
-        lite = false,
     }: {
         build: BuildView;
         resolve: (abilityId: number) => ChipItem | undefined;
@@ -21,8 +20,6 @@
         mode: ShopMode;
         /** Categories that lay out differently on the user's own screen. */
         differences?: readonly ScreenDifference[];
-        /** Small previews, many to a page: no tooltips, measuring or game textures. */
-        lite?: boolean;
     } = $props();
 
     let available = $state(0);
@@ -43,7 +40,6 @@
                         unit={view.unit}
                         border={view.border}
                         difference={differenceAt.get(category.index)}
-                        {lite}
                     />
                 {/each}
             </div>

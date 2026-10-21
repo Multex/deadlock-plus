@@ -10,7 +10,6 @@
         label = category.name,
         unnamed = false,
         unit,
-        lite = false,
         ondblclick,
     }: {
         category: Pick<ModCategoryView, "name" | "description" | "optional" | "width" | "mods">;
@@ -19,8 +18,6 @@
         unnamed?: boolean;
         /** CSS px per game unit. */
         unit: number;
-        /** Small previews: drawn once without the fit checks and tooltips. */
-        lite?: boolean;
         ondblclick?: (event: MouseEvent) => void;
     } = $props();
 
@@ -54,7 +51,7 @@
     }
 
     $effect(() => {
-        if (lite || !row || !name) return;
+        if (!row || !name) return;
         void category.name;
         void category.width;
         void category.mods.length;
@@ -75,44 +72,39 @@
 <div class="title" bind:this={row} style:--u="{unit}px">
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span class="name" class:unnamed bind:this={name} {ondblclick}>{label}</span>
-    {#if lite}
-        {#if category.optional}<span class="optional-pill">{t("builds.shop.optional")}</span>{/if}
-        {#if description}<span class="description">{description}</span>{/if}
-    {:else}
-        {#if category.optional}
-            <Tooltip.Root delayDuration={100}>
-                <Tooltip.Trigger class="optional-pill {pillFit}">
-                    {#snippet child({ props })}
-                        <span {...props} bind:this={pill}>{t("builds.shop.optional")}</span>
-                    {/snippet}
-                </Tooltip.Trigger>
-                <Tooltip.Content class="whitespace-pre-line">
-                    {t("builds.shop.optional")}{#if description && textFit === "gone"}<br />{description}{/if}
-                </Tooltip.Content>
-            </Tooltip.Root>
-        {/if}
-        {#if description}
-            <Tooltip.Root delayDuration={100} disabled={textFit !== "squished"}>
-                <Tooltip.Trigger class="description {textFit}">
-                    {#snippet child({ props })}
-                        <span {...props} bind:this={text}>{description}</span>
-                    {/snippet}
-                </Tooltip.Trigger>
-                <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
-            </Tooltip.Root>
-        {/if}
-        {#if fallback}
-            <Tooltip.Root delayDuration={100}>
-                <Tooltip.Trigger
-                    class="more"
-                    aria-label={t("builds.shop.description")}
-                    data-testid="category-description-more"
-                >
-                    …
-                </Tooltip.Trigger>
-                <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
-            </Tooltip.Root>
-        {/if}
+    {#if category.optional}
+        <Tooltip.Root delayDuration={100}>
+            <Tooltip.Trigger class="optional-pill {pillFit}">
+                {#snippet child({ props })}
+                    <span {...props} bind:this={pill}>{t("builds.shop.optional")}</span>
+                {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content class="whitespace-pre-line">
+                {t("builds.shop.optional")}{#if description && textFit === "gone"}<br />{description}{/if}
+            </Tooltip.Content>
+        </Tooltip.Root>
+    {/if}
+    {#if description}
+        <Tooltip.Root delayDuration={100} disabled={textFit !== "squished"}>
+            <Tooltip.Trigger class="description {textFit}">
+                {#snippet child({ props })}
+                    <span {...props} bind:this={text}>{description}</span>
+                {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
+        </Tooltip.Root>
+    {/if}
+    {#if fallback}
+        <Tooltip.Root delayDuration={100}>
+            <Tooltip.Trigger
+                class="more"
+                aria-label={t("builds.shop.description")}
+                data-testid="category-description-more"
+            >
+                …
+            </Tooltip.Trigger>
+            <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
+        </Tooltip.Root>
     {/if}
 </div>
 
