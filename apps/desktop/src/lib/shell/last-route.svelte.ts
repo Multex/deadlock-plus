@@ -2,7 +2,7 @@ import { afterNavigate, goto } from "$app/navigation";
 import { kvGet, kvSet } from "$lib/core/kv";
 import { command, listen } from "$lib/core/tauri";
 import { settings } from "$lib/features/registry";
-import { knownPaths, routeToRestore, routeToSave } from "./last-route";
+import { isLaunch, knownPaths, routeToRestore, routeToSave } from "./last-route";
 
 const STORE = "app-settings";
 const ROUTE_KEY = "lastRoute";
@@ -14,8 +14,10 @@ const pages = knownPaths(Object.keys(import.meta.glob("/src/routes/**/+page.svel
 
 /** Main window only. Saves where the user is and goes back there before the window is revealed (or at its first showing, for a hidden launch). */
 export function useLastRoute(onboardingPending: () => Promise<boolean>) {
-    // Saving starts after the restore decision, or the launch route would overwrite the saved one.
-    let armed = false;
+    // A reload or an HMR re-run keeps the page it is on; only a real launch goes back to the saved route.
+    const launch = isLaunch();
+    // On a launch, saving starts after the restore decision, or the launch route would overwrite the saved one.
+    let armed = !launch;
 
     afterNavigate(({ to }) => {
         if (!armed || !to) return;
@@ -54,6 +56,7 @@ export function useLastRoute(onboardingPending: () => Promise<boolean>) {
      * saved page. A hidden launch (autostart) has no one watching, so it restores at the first `window-shown`.
      */
     async function beforeReveal(): Promise<void> {
+        if (!launch) return;
         const hidden = await command<boolean>("launched_hidden").catch(() => false);
         if (!hidden) {
             await Promise.race([restore(), new Promise<void>((resolve) => setTimeout(resolve, REVEAL_WAIT_MS))]);

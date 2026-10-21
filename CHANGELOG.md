@@ -58,6 +58,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Fix all also grows a category whose wrapped name would hide items.
 - Undo and redo every change, and restore any of the last 20 saved versions.
 
+### Fixed
+
+- Reloading the app keeps you on the page you were on.
+
 ## [0.13.2] - 2026-10-21
 
 ### Fixed
