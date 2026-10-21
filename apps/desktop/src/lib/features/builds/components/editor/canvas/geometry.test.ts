@@ -4,7 +4,7 @@ import { geometry } from "@deadlock-plus/build-layout/layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { fitSize, shopView } from "../../../shop-view";
 import { sizeTag } from "../../../editor/resize";
-import { canvasView, categoryBar, dropTarget, itemCaret, slotBoxes, storedSize } from "./geometry";
+import { canvasView, categoryBar, chipShifts, dropTarget, itemCaret, slotBoxes, storedSize } from "./geometry";
 
 const QHD: Screen = { width: 2560, height: 1440 };
 const AVAILABLE = 713;
@@ -41,6 +41,19 @@ describe("canvasView", () => {
         const withTile = shopView([...BUILD, category(empty.width, 0, empty.height)], QHD, AVAILABLE, "fit");
         expect(tile).toEqual(withTile.categories.at(-1)!.box);
         expect(view.contentHeight).toBe(withTile.contentHeight);
+    });
+
+    it("also reports the height without the tile, for when no drag shows it", () => {
+        const wide = [category(1000, 3), category(1000, 2)];
+        const { view, bareHeight } = canvasView(wide, QHD, AVAILABLE);
+        expect(bareHeight).toBeCloseTo(shopView(wide, QHD, AVAILABLE, "fit").contentHeight, 6);
+        expect(bareHeight).toBeLessThan(view.contentHeight);
+    });
+
+    it("fills the available width at every resolution", () => {
+        for (const screen of [{ width: 1920, height: 1080 }, QHD, { width: 3840, height: 2160 }]) {
+            expect(canvasView(BUILD, screen, AVAILABLE).view.contentWidth).toBeCloseTo(AVAILABLE, 6);
+        }
     });
 });
 
@@ -105,6 +118,11 @@ describe("dropTarget", () => {
         expect(dropTarget(view, tile, "items", { x: -50, y: -50 })).toBeNull();
     });
 
+    it("makes a new category for items dropped anywhere on an empty canvas", () => {
+        const empty = canvasView([], QHD, AVAILABLE);
+        expect(dropTarget(empty.view, empty.tile, "items", { x: 600, y: 400 })).toEqual({ kind: "new-category" });
+    });
+
     it("reorders a category to the gap nearest the pointer", () => {
         const third = view.categories[2]!;
         const point = { x: third.box.x + 2, y: third.box.y + 2 };
@@ -137,5 +155,24 @@ describe("itemCaret", () => {
             y: slots[3]!.y,
             height: slots[3]!.height,
         });
+    });
+});
+
+describe("chipShifts", () => {
+    const row = (y: number, count: number) =>
+        Array.from({ length: count }, (_, i) => ({ x: i * 100, y, width: 90, height: 120 }));
+    const chips = [...row(0, 4), ...row(130, 2)];
+
+    it("opens a gap at the caret: the chip before it moves left, the rest of its row moves right", () => {
+        expect(chipShifts(chips, 2, 4)).toEqual([0, -4, 4, 4, 0, 0]);
+    });
+
+    it("moves only the caret's row", () => {
+        expect(chipShifts(chips, 4, 4)).toEqual([0, 0, 0, 0, 4, 4]);
+    });
+
+    it("moves nothing with no caret or when appending", () => {
+        expect(chipShifts(chips, null, 4)).toEqual([0, 0, 0, 0, 0, 0]);
+        expect(chipShifts(chips, 6, 4)).toEqual([0, 0, 0, 0, 0, 0]);
     });
 });

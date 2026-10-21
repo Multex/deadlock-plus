@@ -40,6 +40,7 @@
 
     const href = $derived(openHref(row));
     const edit = $derived(editHrefFor(row));
+    const link = $derived(row.draft ? edit : href);
     const favourite = $derived(favouriteAction(row));
     const copyable = $derived(copyRequest(row, row.name) !== null);
     const updated = $derived(
@@ -54,8 +55,8 @@
 <Card as="li" radius="md" padding="none" class="flex items-center gap-3 px-4 py-2">
     <div class="min-w-0 flex-1">
         <p class="truncate text-sm font-medium">
-            {#if href}
-                <a {href} class="hover:underline">{row.name}</a>
+            {#if link}
+                <a href={link} class="hover:underline">{row.name}</a>
             {:else}
                 {row.name}
             {/if}

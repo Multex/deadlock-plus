@@ -60,24 +60,26 @@ test("a hero with no public builds shows the empty state", async ({ page }) => {
     await expect(cards(page)).toHaveCount(0);
 });
 
-test("My builds lists a stored draft on its own Draft row, which opens the draft", async ({ page }) => {
+test("My builds lists a stored draft on its own Draft row, which opens the draft in the editor", async ({ page }) => {
     await openMine(page);
     await expect(mineRow(page, "Infernus test")).toContainText("In game");
     const draft = mineRow(page, "Infernus burst");
     await expect(draft).toContainText("Draft");
     const link = draft.getByRole("link", { name: "Infernus burst", exact: true });
-    await expect(link).toHaveAttribute("href", /^\/builds\/view\?source=draft&id=[^&]+$/);
+    await expect(link).toHaveAttribute("href", /^\/builds\/edit\?source=draft&id=[^&]+$/);
 
     await link.click();
-    const header = page.getByTestId("build-header");
-    await expect(header.getByRole("heading", { level: 1, name: "Infernus burst", exact: true })).toBeVisible();
-    await expect(header.locator("[data-status]")).toHaveAttribute("data-status", "draft");
-    await expect(page.getByTestId("copy-as-new")).toBeVisible();
+    await expect(page).toHaveURL(/\/builds\/edit\?source=draft&id=[^&]+$/);
+    await expect(page.getByTestId("build-name")).toHaveValue("Infernus burst");
 });
 
 test("discarding a draft from its view takes its row out of My builds", async ({ page }) => {
     await openMine(page);
-    await mineRow(page, "Infernus burst").getByRole("link", { name: "Infernus burst", exact: true }).click();
+    await mineRow(page, "Infernus burst")
+        .getByRole("button", { name: "More actions for Infernus burst", exact: true })
+        .click();
+    await page.getByRole("menuitem", { name: "Open", exact: true }).click();
+    await expect(page).toHaveURL(/\/builds\/view\?source=draft&id=[^&]+$/);
     await page.getByTestId("discard-draft").click();
     await expect(page).toHaveURL(/\/builds$/);
     await openMine(page);

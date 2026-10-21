@@ -21,30 +21,28 @@
         type ItemRef,
     } from "$lib/features/builds/editor/document";
     import type { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
-    import ItemDetailsDialog, { type EditorAbility, type ItemField } from "./item-details-dialog.svelte";
+    import type { ItemField } from "./inspector/item-section.svelte";
 
     let {
         editor,
         ref,
         byId,
-        abilities,
         open = $bindable(false),
         anchor = null,
+        onDetails,
         onSplit,
     }: {
         editor: BuildEditor;
         ref: ItemRef;
         byId: ReadonlyMap<number, ShopItem>;
-        abilities: readonly EditorAbility[];
         open?: boolean;
         /** Where the menu opens: the chip, or the pointer for a right-click. */
         anchor?: HTMLElement | { x: number; y: number } | null;
+        /** The item's fields are edited in the inspector. */
+        onDetails?: (field: ItemField) => void;
         /** The category Split category here made, for its rename. */
         onSplit?: (index: number) => void;
     } = $props();
-
-    let detailsOpen = $state(false);
-    let detailsField = $state<ItemField>("note");
 
     const categories = $derived(editor.build.modCategories);
     const entry = $derived(categories[ref.category]?.mods[ref.index]);
@@ -73,8 +71,7 @@
     });
 
     function details(field: ItemField) {
-        detailsField = field;
-        detailsOpen = true;
+        onDetails?.(field);
     }
 
     function swap(next: ShopItem) {
@@ -199,5 +196,3 @@
         </DropdownMenu.Item>
     </DropdownMenu.Content>
 </DropdownMenu.Root>
-
-<ItemDetailsDialog {editor} {ref} {byId} {abilities} bind:open={detailsOpen} focus={detailsField} />

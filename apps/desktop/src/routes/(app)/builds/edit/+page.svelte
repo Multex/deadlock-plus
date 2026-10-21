@@ -1,28 +1,29 @@
 <script lang="ts">
-    import { ArrowLeft, Check, Clock, Info, LoaderCircle, Redo2, Save, TriangleAlert, Undo2 } from "@lucide/svelte";
+    import { ArrowLeft, Info, LoaderCircle } from "@lucide/svelte";
+    import { tick } from "svelte";
     import { toast } from "svelte-sonner";
     import { beforeNavigate } from "$app/navigation";
     import { page } from "$app/state";
-    import Button from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
-    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
-    import Input from "@deadlock-plus/ui/input.svelte";
-    import * as Tabs from "@deadlock-plus/ui/tabs";
     import { failureText } from "$lib/core/errors";
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { buildsDrafts, buildsLocal } from "$lib/features/builds/api";
     import { chipFor, loadKit, loadPublic, type HeroKit } from "$lib/features/builds/build-detail.svelte";
     import { loadShopCatalog, type ShopCatalog } from "$lib/features/builds/catalog";
-    import AbilityEditor from "$lib/features/builds/components/editor/ability-editor.svelte";
+    import AbilityBar from "$lib/features/builds/components/editor/ability-bar.svelte";
     import CategoryMenu from "$lib/features/builds/components/editor/category-menu.svelte";
-    import DetailsPanel from "$lib/features/builds/components/editor/details-panel.svelte";
     import EditCanvas from "$lib/features/builds/components/editor/edit-canvas.svelte";
+    import EditorToolbar from "$lib/features/builds/components/editor/editor-toolbar.svelte";
+    import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
+    import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
-    import ItemPicker from "$lib/features/builds/components/editor/item-picker.svelte";
-    import { updateBuild, type ItemRef } from "$lib/features/builds/editor/document";
-    import { BuildEditor, type SaveStatus } from "$lib/features/builds/editor/editor.svelte";
+    import ShopRail from "$lib/features/builds/components/editor/shop/shop-rail.svelte";
+    import SoulsTimeline from "$lib/features/builds/components/editor/souls-timeline.svelte";
+    import { addCategory, type ItemRef } from "$lib/features/builds/editor/document";
+    import { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
     import { loadEditSession, parseEditTarget, protoLanguage } from "$lib/features/builds/editor/load";
     import { LOCAL_ID_LIMIT } from "$lib/features/builds/my-builds";
+    import { MEASURED_RESOLUTION, SHOP_SCREENS, type ShopResolution } from "$lib/features/builds/shop-view";
     import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
 
     const target = $derived(parseEditTarget(page.url.searchParams));
@@ -34,7 +35,8 @@
     let catalogFailed = $state(false);
     let kit = $state.raw<HeroKit | null>(null);
     let hero = $state.raw<Hero | null>(null);
-    let tab = $state("items");
+    let resolution = $state<ShopResolution>(MEASURED_RESOLUTION);
+    const screen = $derived(SHOP_SCREENS[resolution]);
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 
@@ -108,35 +110,11 @@
     );
     const nameMissing = $derived(build !== null && build.name.trim() === "");
 
-    type EditStatus = SaveStatus | "draft_failed";
-    const TONES: Record<EditStatus, "muted" | "warning" | "success"> = {
-        saving: "muted",
-        queued: "warning",
-        conflict: "warning",
-        saved: "success",
-        unsaved: "muted",
-        draft: "muted",
-        draft_failed: "warning",
-    };
-
-    const editStatus = $derived.by((): EditStatus | null => {
-        if (!editor) return null;
-        const status = editor.status;
-        return status === "unsaved" && editor.dirty && editor.draftError ? "draft_failed" : status;
-    });
-    const statusLine = $derived(
-        editStatus ? { text: t(`builds.editor.status_${editStatus}`), tone: TONES[editStatus] } : null,
-    );
-
     const focusName = () => document.getElementById(NAME_ID)?.focus();
 
     $effect(() => {
         if (status === "ready" && nameMissing) focusName();
     });
-
-    function rename(name: string) {
-        if (editor) editor.apply(updateBuild(editor.build, { name }), "build-name");
-    }
 
     async function save() {
         if (!editor || editor.saving) return;
@@ -153,12 +131,36 @@
         }
     }
 
-    const abilities = $derived(kit ? [...kit.abilities.values()] : []);
     let renaming = $state<number | null>(null);
 
     function startRename(index: number) {
         if (editor) editor.activeCategory = index;
         renaming = index;
+    }
+
+    function newCategory() {
+        if (!editor) return;
+        const index = editor.build.modCategories.length;
+        editor.apply(addCategory(editor.build, index, t("builds.editor.new_category")));
+        editor.select([], "replace");
+        startRename(index);
+    }
+
+    async function focusField(element: () => HTMLElement | null) {
+        await tick();
+        element()?.focus();
+    }
+
+    function describeCategory(index: number) {
+        if (!editor) return;
+        editor.activeCategory = index;
+        void focusField(() => document.querySelector<HTMLElement>('[data-testid="category-description"]'));
+    }
+
+    function itemDetails(ref: ItemRef, field: ItemField) {
+        if (!editor) return;
+        editor.select([ref], "replace");
+        void focusField(() => document.getElementById(itemFieldId(field)));
     }
 
     const editable = (el: EventTarget | null) =>
@@ -186,99 +188,30 @@
 
 <svelte:window onkeydown={onKey} />
 
+{#snippet loading()}
+    <EmptyState aria-busy="true">
+        <LoaderCircle class="mx-auto size-5 animate-spin" aria-label={t("builds.editor.loading")} />
+    </EmptyState>
+{/snippet}
+
 <div class="flex h-full min-h-0 flex-col">
-    <header class="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5" data-testid="editor-bar">
+    <header class="flex items-center gap-2.5 border-b border-border px-3 py-1.5" data-testid="editor-bar">
         <a
             href="/builds"
-            class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            class="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
             aria-label={t("builds.editor.back")}
         >
             <ArrowLeft class="size-4" aria-hidden="true" />
         </a>
-
         {#if editor && build}
-            <span class="size-9 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+            <span class="size-7 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                 {#if hero?.icon}
                     <img src={hero.icon} alt={hero.name} class="size-full object-cover" />
                 {/if}
             </span>
-            <div class="flex min-w-0 flex-1 flex-col">
-                <Input
-                    id={NAME_ID}
-                    value={build.name}
-                    class="h-8 max-w-md border-transparent bg-transparent px-1.5 text-base font-semibold shadow-none hover:border-input focus-visible:border-input"
-                    placeholder={t("builds.editor.name_placeholder")}
-                    aria-label={t("builds.editor.name_label")}
-                    aria-invalid={nameWanted && nameMissing}
-                    data-testid="build-name"
-                    oninput={(e) => rename(e.currentTarget.value)}
-                />
-                {#if nameWanted && nameMissing}
-                    <p class="px-1.5 text-xs text-destructive" role="alert">{t("builds.editor.name_needed")}</p>
-                {:else if statusLine}
-                    <p
-                        class={[
-                            "flex items-center gap-1 px-1.5 text-xs",
-                            statusLine.tone === "warning" && "text-warning",
-                            statusLine.tone === "success" && "text-success",
-                            statusLine.tone === "muted" && "text-muted-foreground",
-                        ]}
-                        role="status"
-                        data-testid="editor-status"
-                        data-state={editStatus}
-                    >
-                        {#if editor.saving}
-                            <LoaderCircle class="size-3 animate-spin" aria-hidden="true" />
-                        {:else if statusLine.tone === "warning"}
-                            {#if editStatus === "queued"}
-                                <Clock class="size-3" aria-hidden="true" />
-                            {:else}
-                                <TriangleAlert class="size-3" aria-hidden="true" />
-                            {/if}
-                        {:else if statusLine.tone === "success"}
-                            <Check class="size-3" aria-hidden="true" />
-                        {/if}
-                        {statusLine.text}
-                    </p>
-                {/if}
-            </div>
-
-            <div class="flex items-center gap-1">
-                <IconButton
-                    label={t("builds.editor.undo")}
-                    tooltip={t("builds.editor.undo_tooltip")}
-                    aria-keyshortcuts="Control+Z"
-                    disabled={!editor.canUndo}
-                    data-testid="editor-undo"
-                    onclick={() => editor?.undo()}
-                >
-                    <Undo2 aria-hidden="true" />
-                </IconButton>
-                <IconButton
-                    label={t("builds.editor.redo")}
-                    tooltip={t("builds.editor.redo_tooltip")}
-                    aria-keyshortcuts="Control+Shift+Z Control+Y"
-                    disabled={!editor.canRedo}
-                    data-testid="editor-redo"
-                    onclick={() => editor?.redo()}
-                >
-                    <Redo2 aria-hidden="true" />
-                </IconButton>
-                <Button
-                    class="ml-2"
-                    disabled={editor.saving}
-                    aria-keyshortcuts="Control+S"
-                    data-testid="save-to-game"
-                    onclick={() => void save()}
-                >
-                    {#if editor.saving}
-                        <LoaderCircle class="animate-spin" aria-hidden="true" />
-                    {:else}
-                        <Save aria-hidden="true" />
-                    {/if}
-                    {t("builds.editor.save")}
-                </Button>
-            </div>
+            <h1 class="min-w-0 truncate text-sm font-semibold" data-testid="editor-title">
+                {build.name.trim() || t("builds.editor.name_placeholder")}
+            </h1>
         {/if}
     </header>
 
@@ -304,67 +237,72 @@
             </p>
         {/if}
 
-        <Tabs.Root bind:value={tab} class="flex min-h-0 flex-1 flex-col">
-            <div class="px-4 pt-3">
-                <Tabs.List>
-                    <Tabs.Trigger value="items">{t("builds.editor.tab_items")}</Tabs.Trigger>
-                    <Tabs.Trigger value="abilities">{t("builds.editor.tab_abilities")}</Tabs.Trigger>
-                    <Tabs.Trigger value="details">{t("builds.editor.tab_details")}</Tabs.Trigger>
-                </Tabs.List>
-            </div>
-            <Tabs.Content value="items" class="mt-3 flex min-h-0 flex-1">
-                <div class="min-w-0 flex-1 overflow-auto px-4 pb-6">
-                    {#if catalog}
-                        {@const byId = catalog.byId}
-                        {@const active = editor}
-                        <EditCanvas {editor} bind:renaming resolve={(id) => chipFor(byId, id)}>
-                            {#snippet categoryMenu(index: number)}
-                                <CategoryMenu
-                                    editor={active}
-                                    {index}
-                                    {byId}
-                                    onRename={() => startRename(index)}
-                                    onSplit={startRename}
-                                />
-                            {/snippet}
-                            {#snippet itemMenu(ref: ItemRef, at: { x: number; y: number })}
-                                <ItemMenu
-                                    editor={active}
-                                    {ref}
-                                    {byId}
-                                    {abilities}
-                                    open
-                                    anchor={at}
-                                    onSplit={startRename}
-                                />
-                            {/snippet}
-                        </EditCanvas>
-                    {:else if catalogFailed}
-                        <EmptyState tone="destructive" role="alert">{t("builds.editor.catalog_failed")}</EmptyState>
-                    {:else}
-                        <EmptyState aria-busy="true">
-                            <LoaderCircle class="mx-auto size-5 animate-spin" aria-label={t("builds.editor.loading")} />
-                        </EmptyState>
+        <div class="flex min-h-0 flex-1">
+            <Inspector
+                {editor}
+                byId={catalog?.byId}
+                {kit}
+                {screen}
+                nameId={NAME_ID}
+                {nameWanted}
+                onSplit={startRename}
+            />
+
+            <!-- The rail's flyout is absolutely placed over the canvas column, so this box spans both. -->
+            <div class="relative flex min-w-0 flex-1">
+                {#if catalog}
+                    <ShopRail {editor} {catalog} statsById={catalog.statsById} heroId={build.heroId} />
+                {/if}
+                <div class="flex min-w-0 flex-1 flex-col">
+                    <EditorToolbar
+                        {editor}
+                        bind:resolution
+                        resolve={catalog ? (id) => chipFor(catalog!.byId, id) : undefined}
+                        onAddCategory={newCategory}
+                        onSave={() => void save()}
+                    />
+                    <div class="min-h-0 flex-1 overflow-auto p-4" data-testid="editor-canvas-scroll">
+                        {#if catalog}
+                            {@const byId = catalog.byId}
+                            {@const active = editor}
+                            <EditCanvas {editor} {screen} bind:renaming resolve={(id) => chipFor(byId, id)}>
+                                {#snippet categoryMenu(index: number)}
+                                    <CategoryMenu
+                                        editor={active}
+                                        {index}
+                                        {byId}
+                                        {screen}
+                                        onRename={() => startRename(index)}
+                                        onDescribe={() => describeCategory(index)}
+                                        onSplit={startRename}
+                                    />
+                                {/snippet}
+                                {#snippet itemMenu(ref: ItemRef, at: { x: number; y: number })}
+                                    <ItemMenu
+                                        editor={active}
+                                        {ref}
+                                        {byId}
+                                        open
+                                        anchor={at}
+                                        onDetails={(field) => itemDetails(ref, field)}
+                                        onSplit={startRename}
+                                    />
+                                {/snippet}
+                            </EditCanvas>
+                        {:else if catalogFailed}
+                            <EmptyState tone="destructive" role="alert">{t("builds.editor.catalog_failed")}</EmptyState>
+                        {:else}
+                            {@render loading()}
+                        {/if}
+                    </div>
+                    {#if catalog && kit}
+                        <SoulsTimeline {editor} {catalog} statsById={catalog.statsById} {kit} levels={kit.levels} />
+                    {/if}
+                    {#if kit}
+                        <AbilityBar {editor} {kit} />
                     {/if}
                 </div>
-                {#if catalog}
-                    <div class="sticky top-0 h-full shrink-0">
-                        <ItemPicker {editor} {catalog} statsById={catalog.statsById} />
-                    </div>
-                {/if}
-            </Tabs.Content>
-            <Tabs.Content value="abilities" class="mt-3 min-h-0 flex-1 overflow-auto px-4 pb-6">
-                {#if kit}
-                    <AbilityEditor {editor} {kit} />
-                {:else}
-                    <EmptyState aria-busy="true">
-                        <LoaderCircle class="mx-auto size-5 animate-spin" aria-label={t("builds.editor.loading")} />
-                    </EmptyState>
-                {/if}
-            </Tabs.Content>
-            <Tabs.Content value="details" class="mt-3 min-h-0 flex-1 overflow-auto px-4 pb-6">
-                <DetailsPanel {editor} items={catalog?.byId} abilities={kit?.abilities} />
-            </Tabs.Content>
-        </Tabs.Root>
+            </div>
+        </div>
     {/if}
 </div>

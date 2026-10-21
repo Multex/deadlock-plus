@@ -53,16 +53,17 @@ async function dragBy(page: Page, handle: Locator, dx: number) {
     await page.mouse.up();
 }
 
-test("an item added twice from the picker, a resize and its undo, then Save to game", async ({ page }) => {
+test("an item added twice from the shop rail, a resize and its undo, then Save to game", async ({ page }) => {
     await openEditor(page);
     const before = await chips(page).count();
     const pipsBefore = await pips(page).count();
     const inFile = await itemsInFile(page);
 
-    // A card that is not in the build yet carries no count.
-    const card = main(page).locator("button[data-card]:not(:has(.count))").first();
-    const name = await card.locator(".name").textContent();
-    const picked = main(page).locator("button[data-card]").filter({ hasText: name! }).first();
+    await page.locator('[data-rail-tab="weapon"]').click();
+    // A tile that is not in the build yet carries no count.
+    const tile = main(page).locator("button[data-tile]:not(:has(.count))").first();
+    const name = await tile.locator(".name").textContent();
+    const picked = main(page).locator("button[data-tile]").filter({ hasText: name! }).first();
     await picked.click();
     await expect(chips(page)).toHaveCount(before + 1);
     await expect(picked.locator(".count")).toBeVisible();
@@ -70,6 +71,7 @@ test("an item added twice from the picker, a resize and its undo, then Save to g
     await expect(chips(page)).toHaveCount(before + 2);
     await expect(pips(page)).toHaveCount(pipsBefore + 2);
     await expect(status(page)).not.toHaveAttribute("data-state", "saved");
+    await page.keyboard.press("Escape");
 
     const first = canvas(page).locator('[data-category="0"]');
     const tag = first.locator(".size-tag");
@@ -102,6 +104,64 @@ test("New build opens an unnamed build for the hero, and Save to game asks for a
     await page.getByTestId("save-to-game").click();
     await expect(name).toBeFocused();
     await expect(name).toHaveAttribute("aria-invalid", "true");
+});
+
+test("the inspector edits the build, the selected category and the selected item", async ({ page }) => {
+    await openEditor(page);
+    const inspector = page.getByTestId("inspector");
+    await expect(inspector.getByTestId("inspector-build")).toBeVisible();
+    await expect(page.getByTestId("category-name")).toHaveCount(0);
+
+    const slot = inspector.locator('[data-slot="0"]');
+    await slot.click();
+    const tag = page.getByRole("menuitem").nth(0);
+    const tagName = (await tag.textContent())!.trim();
+    await tag.click();
+    await expect(slot).toContainText(tagName);
+
+    await chips(page).first().click();
+    await expect(page.getByTestId("inspector-item-name")).toBeVisible();
+    await expect(page.getByTestId("category-name")).toBeVisible();
+    await page.locator("#inspector-item-note").fill("Buy first");
+    await expect(page.locator("#inspector-item-note")).toHaveValue("Buy first");
+
+    const first = canvas(page).locator('[data-category="0"]');
+    const sizeTag = first.locator(".size-tag");
+    const columns = page.getByTestId("category-columns");
+    const columnsBefore = Number(await columns.textContent());
+    const tagBefore = (await sizeTag.textContent())!.trim();
+    await page.getByTestId("category-columns-more").click();
+    await expect(columns).toHaveText(String(columnsBefore + 1));
+    await expect(sizeTag).not.toHaveText(tagBefore);
+
+    await page.getByTestId("category-optional").click();
+    await expect(page.getByTestId("category-optional")).toHaveAttribute("data-state", "checked");
+
+    // Compact all fits the widened category back, as one undo step.
+    const widened = (await sizeTag.textContent())!.trim();
+    await page.getByTestId("toolbar-compact-all").click();
+    await expect(sizeTag).not.toHaveText(widened);
+    const compacted = (await sizeTag.textContent())!.trim();
+    await page.getByTestId("editor-undo").click();
+    await expect(sizeTag).toHaveText(widened);
+    await expect(page.getByTestId("category-optional")).toHaveAttribute("data-state", "checked");
+    await page.getByTestId("editor-redo").click();
+    await expect(sizeTag).toHaveText(compacted);
+});
+
+test("the toolbar adds a category and previews other resolutions", async ({ page }) => {
+    await openEditor(page);
+    const categories = canvas(page).locator("[data-category]");
+    const count = await categories.count();
+    await page.getByTestId("toolbar-add-category").click();
+    await expect(categories).toHaveCount(count + 1);
+    await expect(page.getByTestId("category-name")).toBeVisible();
+
+    const resolution = page.getByTestId("toolbar-resolution");
+    await expect(resolution.getByRole("button", { name: "1440p" })).toHaveAttribute("aria-pressed", "true");
+    await resolution.getByRole("button", { name: "4K" }).click();
+    await expect(resolution.getByRole("button", { name: "4K" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("ability-bar")).toBeVisible();
 });
 
 test("editing an own published build says it is published in-game", async ({ page }) => {

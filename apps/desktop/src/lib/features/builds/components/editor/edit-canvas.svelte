@@ -80,6 +80,8 @@
     }
 
     const hover = $derived(drag.current ? targetFor(drag.current) : null);
+    const empty = $derived(build.modCategories.length === 0);
+    const draggingItems = $derived(!!drag.current && drag.current.payload.kind !== "category");
     const bar = $derived(hover?.kind === "category" ? categoryBar(view, hover.index, screen) : null);
 
     function sameItems(refs: readonly ItemRef[], to: ItemRef): boolean {
@@ -128,7 +130,7 @@
 
     $effect(() => drag.onDrop(drop));
 
-    function addTile() {
+    function addFirst() {
         const index = editor.build.modCategories.length;
         editor.apply(addCategory(editor.build, index, t("builds.editor.new_category")));
         editor.select([], "replace");
@@ -219,9 +221,10 @@
             <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
             <div
                 class="content"
+                class:empty
                 bind:this={content}
                 style:width="{view.contentWidth}px"
-                style:height="{view.contentHeight}px"
+                style:height="{draggingItems ? view.contentHeight : layout.bareHeight}px"
                 onclick={clickEmpty}
             >
                 {#each view.categories as category (category.index)}
@@ -250,16 +253,21 @@
                     />
                 {/each}
 
-                <Button
-                    variant="unstyled"
-                    class="new-category {hover?.kind === 'new-category' ? 'target' : ''}"
-                    style="left: {layout.tile.x}px; top: {layout.tile.y}px; width: {layout.tile
-                        .width}px; height: {layout.tile.height}px; --u: {view.unit}px"
-                    onclick={addTile}
-                >
-                    <Plus aria-hidden="true" />
-                    <span>{t("builds.editor.add_category")}</span>
-                </Button>
+                {#if draggingItems && !empty}
+                    <div
+                        class="new-category"
+                        class:target={hover?.kind === "new-category"}
+                        aria-hidden="true"
+                        style:left="{layout.tile.x}px"
+                        style:top="{layout.tile.y}px"
+                        style:width="{layout.tile.width}px"
+                        style:height="{layout.tile.height}px"
+                        style:--u="{view.unit}px"
+                    >
+                        <Plus />
+                        <span>{t("builds.editor.new_category")}</span>
+                    </div>
+                {/if}
 
                 {#if bar}
                     <div
@@ -269,6 +277,16 @@
                         style:top="{bar.y}px"
                         style:height="{bar.height}px"
                     ></div>
+                {/if}
+
+                {#if empty}
+                    <div class="call" class:target={hover?.kind === "new-category"}>
+                        <Button size="lg" onclick={addFirst}>
+                            <Plus aria-hidden="true" />
+                            {t("builds.editor.add_first_category")}
+                        </Button>
+                        <p>{t("builds.editor.empty_canvas")}</p>
+                    </div>
                 {/if}
             </div>
         </Tooltip.Provider>
@@ -298,7 +316,10 @@
     .content {
         position: relative;
     }
-    .content :global(.new-category) {
+    .content.empty {
+        min-height: 360px;
+    }
+    .new-category {
         position: absolute;
         display: flex;
         flex-direction: column;
@@ -308,29 +329,72 @@
         box-sizing: border-box;
         border: 2px dashed color-mix(in oklch, var(--muted-foreground) 35%, transparent);
         border-radius: 2px;
-        background: transparent;
         color: var(--muted-foreground);
         font-size: calc(var(--u) * 13);
         font-weight: 700;
+        pointer-events: none;
+        transition:
+            border-color 120ms,
+            background-color 120ms;
     }
-    .content :global(.new-category:hover),
-    .content :global(.new-category.target) {
+    .new-category.target {
         border-color: var(--brass);
         background: color-mix(in oklch, var(--brass) 10%, transparent);
         color: var(--foreground);
     }
-    .content :global(.new-category svg) {
+    .new-category :global(svg) {
         width: calc(var(--u) * 22);
         height: calc(var(--u) * 22);
     }
+    .call {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border: 2px dashed color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+        border-radius: 6px;
+        transition:
+            border-color 120ms,
+            background-color 120ms;
+    }
+    .call.target {
+        border-color: var(--brass);
+        background: color-mix(in oklch, var(--brass) 8%, transparent);
+    }
+    .call p {
+        margin: 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+    }
     .insert-bar {
         position: absolute;
-        width: 3px;
-        margin-left: -1.5px;
+        z-index: 3;
+        width: 4px;
+        margin-left: -2px;
         border-radius: 2px;
         background: var(--brass);
-        box-shadow: 0 0 8px var(--brass);
+        box-shadow: 0 0 10px var(--brass);
         pointer-events: none;
+    }
+    .insert-bar::before,
+    .insert-bar::after {
+        position: absolute;
+        left: 50%;
+        width: 14px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--brass);
+        content: "";
+        translate: -50% 0;
+    }
+    .insert-bar::before {
+        top: 0;
+    }
+    .insert-bar::after {
+        bottom: 0;
     }
     .item-menu {
         display: contents;

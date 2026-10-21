@@ -9,14 +9,14 @@
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
-    import { t } from "$lib/core/i18n.svelte";
+    import { t, tn } from "$lib/core/i18n.svelte";
     import { updateCategory, type ItemRef } from "../../editor/document";
     import { drag } from "../../editor/drag.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { sizeTag, snapHeight, snapWidth } from "../../editor/resize";
     import type { ChipItem, ShopCategoryView, ShopView } from "../../shop-view";
     import ItemChip from "../shop/item-chip.svelte";
-    import { itemCaret, slotBoxes, storedSize } from "./canvas/geometry";
+    import { chipShifts, itemCaret, slotBoxes, storedSize } from "./canvas/geometry";
 
     type Edge = "right" | "bottom" | "corner";
     const EDGES: { edge: Edge; label: string }[] = [
@@ -74,6 +74,7 @@
         slotBoxes(shop, view, Math.max(capacity, category.mods.length, (dropIndex ?? -1) + 1), screen),
     );
     const caret = $derived(dropIndex === null ? null : itemCaret(slots, dropIndex, shop, screen));
+    const shifts = $derived(chipShifts(view.chips, dropIndex, Math.max(3, 6 * shop.unit)));
     const active = $derived(editor.activeCategory === index);
     const warn = $derived(tag.unsafe || rowWraps);
     const selected = $derived(
@@ -174,6 +175,7 @@
         height: number;
         key: string;
         applied: boolean;
+        pointer: { x: number; y: number };
     } | null>(null);
 
     function resizeDown(edge: Edge, event: PointerEvent) {
@@ -189,11 +191,13 @@
             ...size,
             key: `resize:${index}:${++gestures}`,
             applied: false,
+            pointer: { x: event.clientX, y: event.clientY },
         };
     }
 
     function resizeMove(event: PointerEvent) {
         if (!resizing) return;
+        resizing.pointer = { x: event.clientX, y: event.clientY };
         const patch: { width?: number; height?: number } = {};
         if (resizing.edge !== "bottom") {
             patch.width = snapWidth(resizing.width + (event.clientX - resizing.x) / shop.unit, event.altKey);
@@ -228,6 +232,16 @@
         window.addEventListener("keydown", escape, true);
         return () => window.removeEventListener("keydown", escape, true);
     });
+
+    // The top layer keeps the label above the canvas's scroll clipping and any popover.
+    function topLayer(node: HTMLElement) {
+        node.showPopover?.();
+        return () => {
+            if (node.isConnected) node.hidePopover?.();
+        };
+    }
+
+    const LABEL_ROOM = 260;
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -334,6 +348,7 @@
             style:top="{box.y}px"
             style:width="{box.width}px"
             style:height="{box.height}px"
+            style:transform={shifts[i] ? `translateX(${shifts[i]}px)` : undefined}
             onpointerdown={(event) => itemDown(i, event)}
             onclick={(event) => itemClick(i, event)}
             oncontextmenu={(event) => itemMenu(i, event)}
@@ -374,38 +389,85 @@
             onpointerup={resizeEnd}
             onpointercancel={resizeEnd}
             onlostpointercapture={resizeEnd}
-        ></div>
+        >
+            {#if edge === "corner"}
+                <svg viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M11 1 1 11M11 5 5 11M11 9 9 11" />
+                </svg>
+            {/if}
+        </div>
     {/each}
 </div>
 
+{#if resizing}
+    {@const flip = resizing.pointer.x > window.innerWidth - LABEL_ROOM}
+    <div
+        class="resize-label"
+        class:warn
+        popover="manual"
+        aria-live="polite"
+        style:left="{resizing.pointer.x}px"
+        style:top="{resizing.pointer.y}px"
+        style:translate={flip ? "calc(-100% - 18px) 18px" : "18px 18px"}
+        {@attach topLayer}
+    >
+        <strong>
+            {t("builds.editor.resize_label", {
+                columns: tn("builds.editor.columns_count", tag.columns),
+                rows: tn("builds.editor.rows_count", tag.rows),
+            })}
+        </strong>
+        {#if tag.unsafe}<span>{t("builds.editor.unsafe_width")}</span>{/if}
+        {#if rowWraps}<span>{t("builds.editor.row_wraps")}</span>{/if}
+        {#if tag.overflow}<span>{t("builds.editor.overflow")}</span>{/if}
+    </div>
+{/if}
+
 <style>
+    /* Dashed frames as the game's edit mode; the width stays the shop's border so the chips keep their places. */
     .category {
         position: absolute;
         box-sizing: border-box;
-        border: var(--edge) solid var(--border);
+        border: max(1px, var(--edge)) dashed color-mix(in oklch, var(--muted-foreground) 55%, transparent);
         background: color-mix(in oklch, var(--card) 70%, transparent);
         outline: none;
-        transition: opacity 120ms;
+        transition:
+            opacity 120ms,
+            border-color 120ms,
+            box-shadow 120ms;
+    }
+    .category:hover {
+        border-color: color-mix(in oklch, var(--foreground) 70%, transparent);
     }
     .category.optional {
         background: color-mix(in oklch, #365b92 28%, var(--card));
     }
     .category.active {
-        border-color: color-mix(in oklch, var(--brass) 70%, var(--border));
+        border-style: solid;
+        border-color: var(--brass);
+        box-shadow:
+            0 0 0 1px color-mix(in oklch, var(--brass) 35%, transparent),
+            0 0 14px color-mix(in oklch, var(--brass) 28%, transparent);
     }
     .category.target {
+        border-style: solid;
         border-color: var(--brass);
         box-shadow: 0 0 0 1px color-mix(in oklch, var(--brass) 40%, transparent);
     }
     .category.resizing {
+        border-style: solid;
         border-color: var(--brass);
     }
     .category.warn {
         border-color: var(--warning);
         background: color-mix(in oklch, var(--warning) 10%, var(--card));
+        box-shadow: 0 0 14px color-mix(in oklch, var(--warning) 28%, transparent);
     }
     .category.dragged {
-        opacity: 0.4;
+        border-style: dashed;
+        border-color: var(--brass);
+        box-shadow: none;
+        opacity: 0.35;
     }
 
     header {
@@ -417,6 +479,12 @@
         background: color-mix(in oklch, #10130d 70%, transparent);
         cursor: grab;
         user-select: none;
+    }
+    header:active {
+        cursor: grabbing;
+    }
+    .category.active header {
+        background: color-mix(in oklch, var(--brass) 14%, #10130d);
     }
     .name {
         min-width: 0;
@@ -498,6 +566,7 @@
         border-radius: calc(var(--u) * 2);
         outline: none;
         cursor: grab;
+        transition: transform 120ms ease-out;
     }
     .item.selected {
         outline: 2px solid var(--brass);
@@ -526,12 +595,30 @@
 
     .caret {
         position: absolute;
-        width: 3px;
-        margin-left: -1.5px;
+        z-index: 1;
+        width: 4px;
+        margin-left: -2px;
         border-radius: 2px;
         background: var(--brass);
-        box-shadow: 0 0 6px var(--brass);
+        box-shadow: 0 0 8px var(--brass);
         pointer-events: none;
+    }
+    .caret::before,
+    .caret::after {
+        position: absolute;
+        left: 50%;
+        width: 12px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--brass);
+        content: "";
+        translate: -50% 0;
+    }
+    .caret::before {
+        top: 0;
+    }
+    .caret::after {
+        bottom: 0;
     }
 
     .overflow {
@@ -550,66 +637,110 @@
 
     .handle {
         position: absolute;
-        z-index: 1;
-        opacity: 0;
-        transition: opacity 120ms;
+        z-index: 2;
         touch-action: none;
-    }
-    .category:hover .handle,
-    .category.active .handle,
-    .category.resizing .handle {
-        opacity: 1;
     }
     .handle.right {
         top: 0;
-        right: -4px;
-        bottom: 8px;
-        width: 8px;
+        right: -5px;
+        bottom: 14px;
+        width: 10px;
         cursor: ew-resize;
     }
     .handle.bottom {
-        right: 8px;
-        bottom: -4px;
+        right: 14px;
+        bottom: -5px;
         left: 0;
-        height: 8px;
+        height: 10px;
         cursor: ns-resize;
-    }
-    .handle.corner {
-        right: -6px;
-        bottom: -6px;
-        width: 14px;
-        height: 14px;
-        cursor: nwse-resize;
     }
     .handle.right::after,
     .handle.bottom::after {
         position: absolute;
         border-radius: 2px;
-        background: color-mix(in oklch, var(--brass) 70%, transparent);
+        background: var(--brass);
+        box-shadow: 0 0 6px color-mix(in oklch, var(--brass) 60%, transparent);
         content: "";
+        opacity: 0;
+        transition: opacity 120ms;
     }
     .handle.right::after {
         top: 50%;
-        left: 3px;
-        width: 2px;
-        height: 24px;
+        left: 3.5px;
+        width: 3px;
+        height: min(40px, 50%);
         translate: 0 -50%;
     }
     .handle.bottom::after {
-        top: 3px;
+        top: 3.5px;
         left: 50%;
-        width: 24px;
-        height: 2px;
+        width: min(40px, 50%);
+        height: 3px;
         translate: -50% 0;
     }
-    .handle.corner::after {
-        position: absolute;
-        right: 4px;
-        bottom: 4px;
-        width: 6px;
-        height: 6px;
-        border-right: 2px solid var(--brass);
-        border-bottom: 2px solid var(--brass);
-        content: "";
+    .category:hover .handle::after,
+    .category.resizing .handle::after {
+        opacity: 0.55;
+    }
+    .category .handle:hover::after,
+    .category.resizing .handle::after {
+        opacity: 1;
+    }
+    .handle.corner {
+        right: -3px;
+        bottom: -3px;
+        display: grid;
+        width: 18px;
+        height: 18px;
+        place-items: center;
+        cursor: nwse-resize;
+    }
+    .handle.corner svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
+        stroke-linecap: round;
+        stroke-width: 1.5;
+        transition: stroke 120ms;
+    }
+    .category.active .handle.corner svg,
+    .handle.corner:hover svg,
+    .category.resizing .handle.corner svg {
+        stroke: var(--brass);
+    }
+
+    .resize-label {
+        position: fixed;
+        inset: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+        padding: 6px 10px;
+        border: 1px solid color-mix(in oklch, var(--brass) 60%, transparent);
+        border-radius: 6px;
+        background: color-mix(in oklch, var(--popover) 94%, transparent);
+        box-shadow: 0 8px 24px #000a;
+        color: var(--popover-foreground);
+        font-size: 12px;
+        line-height: 1.35;
+        pointer-events: none;
+        user-select: none;
+    }
+    .resize-label strong {
+        color: var(--brass);
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .resize-label span {
+        max-width: 240px;
+        color: var(--warning);
+        font-weight: 600;
+    }
+    .resize-label.warn {
+        border-color: color-mix(in oklch, var(--warning) 70%, transparent);
     }
 </style>

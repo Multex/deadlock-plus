@@ -25,15 +25,20 @@ const TILE: ModCategoryView = {
     optional: false,
 };
 
-/** The shop's fit view plus where the "+ Category" tile sits: in the flow as a new empty category would. */
+/**
+ * The shop's fit view plus where the new-category drop tile sits: in the flow as a new empty category would.
+ * `view.contentHeight` makes room for the tile; `bareHeight` is the build's own height.
+ */
 export function canvasView(
     categories: readonly ModCategoryView[],
     screen: Screen,
     available: number,
-): { view: ShopView; tile: Box } {
+): { view: ShopView; tile: Box; bareHeight: number } {
     const withTile = shopView([...categories, TILE], screen, available, "fit");
     const tile = withTile.categories.pop()!;
-    return { view: withTile, tile: tile.box };
+    const margin = geometry(screen.height).margin * withTile.scale;
+    const bottom = Math.max(0, ...withTile.categories.map(({ box }) => box.y + box.height + margin));
+    return { view: withTile, tile: tile.box, bareHeight: bottom };
 }
 
 /** Chip boxes for `count` slots, continuing the category's grid past its last chip. */
@@ -76,6 +81,7 @@ function inside(box: Box, point: Point, slack = 0): boolean {
 
 /** `point` is in canvas px, the same space as the view's boxes. */
 export function dropTarget(view: ShopView, tile: Box, kind: "items" | "category", point: Point): DropTarget | null {
+    if (view.categories.length === 0) return { kind: "new-category" };
     if (kind === "category") {
         return {
             kind: "category",
@@ -110,6 +116,19 @@ export function itemCaret(slots: readonly Box[], index: number, view: ShopView, 
     const margin = geometry(screen.height).chipMargin * view.scale;
     const slot = slots[index]!;
     return { x: slot.x - margin, y: slot.y, height: slot.height };
+}
+
+/**
+ * Horizontal px offsets that open a gap at an insertion caret: the chip before it moves left, the chips after it in
+ * the same row move right. Appending (no chip at `dropIndex`) moves nothing; the empty slot shows the drop instead.
+ */
+export function chipShifts(chips: readonly Box[], dropIndex: number | null, gap: number): number[] {
+    const at = dropIndex === null ? undefined : chips[dropIndex];
+    return chips.map((chip, i) => {
+        if (!at || chip.y !== at.y) return 0;
+        if (i >= dropIndex!) return gap;
+        return i === dropIndex! - 1 ? -gap : 0;
+    });
 }
 
 /** Categories whose flow row at this screen would wrap at another scale. */

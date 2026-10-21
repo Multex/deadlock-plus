@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Plus } from "@lucide/svelte";
+    import { GripVertical, Plus } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { drag } from "../../editor/drag.svelte";
 
@@ -24,6 +24,9 @@
         style:translate="{current.x + 12}px {current.y + 12}px"
         {@attach topLayer}
     >
+        {#if current.payload.kind === "category"}
+            <GripVertical class="grip" aria-hidden="true" />
+        {/if}
         {#if current.preview?.art}
             <img src={current.preview.art} alt="" draggable="false" />
         {/if}
@@ -58,8 +61,33 @@
         pointer-events: none;
         user-select: none;
     }
+    .ghost {
+        rotate: -1.5deg;
+    }
+    /* A lifted copy of the category header: what the insertion bar in the flow will place. */
     .ghost.category {
-        padding: 6px 12px;
+        min-width: 180px;
+        min-height: 56px;
+        align-items: flex-start;
+        padding: 8px 14px 8px 8px;
+        border: 2px solid var(--brass);
+        border-radius: 3px;
+        background:
+            linear-gradient(color-mix(in oklch, var(--brass) 16%, #10130d) 0 28px, transparent 28px),
+            color-mix(in oklch, var(--card) 92%, transparent);
+        box-shadow:
+            0 18px 40px #000c,
+            0 0 18px color-mix(in oklch, var(--brass) 30%, transparent);
+        font-size: 14px;
+        font-weight: 700;
+        rotate: -2deg;
+    }
+    .ghost.category :global(.grip) {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--brass);
     }
     img {
         width: 36px;

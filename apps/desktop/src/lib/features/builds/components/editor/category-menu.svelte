@@ -58,13 +58,13 @@
         sizeOf,
     } from "$lib/features/builds/editor/row-ops";
     import { MEASURED_RESOLUTION, SHOP_SCREENS } from "$lib/features/builds/shop-view";
-    import CategoryDetailsDialog from "./category-details-dialog.svelte";
 
     let {
         editor,
         index,
         byId,
         onRename,
+        onDescribe,
         onSplit,
         screen = SHOP_SCREENS[MEASURED_RESOLUTION],
         open = $bindable(false),
@@ -75,6 +75,8 @@
         byId: ReadonlyMap<number, ShopItem>;
         /** Rename is inline in the category header. */
         onRename: () => void;
+        /** Description is edited in the inspector. */
+        onDescribe?: () => void;
         /** The category Split in half made, for its rename. */
         onSplit?: (index: number) => void;
         /** The screen that decides which categories share a row. */
@@ -90,7 +92,6 @@
     const name = $derived(category?.name || t("builds.editor.menu.unnamed"));
 
     const id = $props.id();
-    let detailsOpen = $state(false);
     let removeOpen = $state(false);
     let sizeOpen = $state(false);
     let columnsText = $state("1");
@@ -186,7 +187,7 @@
             <Pencil />
             {t("builds.editor.menu.rename")}
         </DropdownMenu.Item>
-        <DropdownMenu.Item onSelect={() => (detailsOpen = true)}>
+        <DropdownMenu.Item disabled={!onDescribe} onSelect={() => onDescribe?.()}>
             <Text />
             {t("builds.editor.menu.description")}
         </DropdownMenu.Item>
@@ -270,8 +271,6 @@
         </DropdownMenu.Item>
     </DropdownMenu.Content>
 </DropdownMenu.Root>
-
-<CategoryDetailsDialog {editor} {index} bind:open={detailsOpen} focus="description" />
 
 <ConfirmDialog
     bind:open={removeOpen}
