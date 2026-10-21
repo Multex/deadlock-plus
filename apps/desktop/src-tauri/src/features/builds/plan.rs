@@ -149,9 +149,6 @@ fn created(fresh: HeroBuildResult, mut build: BuildView, ctx: &Ctx) -> Result<Pl
     build.publish_timestamp = base.publish_timestamp;
     build.last_updated_timestamp = base.last_updated_timestamp;
     build.favorited = false;
-    if build.language == 0 {
-        build.language = base.language;
-    }
     upsert(Section::Unpublished, None, &fresh, &base, build, ctx)
 }
 
@@ -632,13 +629,14 @@ mod tests {
     }
 
     #[test]
-    fn a_new_build_takes_the_next_local_id_and_the_game_language() {
+    fn a_new_build_takes_the_next_local_id_and_keeps_its_language() {
         let file = file_with(&[(Section::Unpublished, blob(4, 1, "a")), (Section::Favorites, blob(9, 1, "b"))]);
         let heroes = heroes();
         let mut view = model::view(&build(0, 1, "fresh"));
         view.author_account_id = 1;
         view.origin_build_id = Some(123);
         view.version = 7;
+        view.language = 0;
         let planned = plan_save(SaveRequest::New { build: view }, &ctx(&file, &[], &heroes)).unwrap();
         assert_eq!(planned.build_id, 10);
         let [op @ SaveOp::Upsert { section: Section::Unpublished, base: None, .. }] = planned.ops.as_slice() else {
@@ -648,7 +646,7 @@ mod tests {
         assert_eq!(written.hero_build_id, 10);
         assert_eq!(written.author_account_id, ACCOUNT);
         assert_eq!((written.version, written.origin_build_id), (0, None));
-        assert_eq!(written.language, 9);
+        assert_eq!(written.language, 0, "English chosen in another app locale stays English");
         assert_eq!(written.name, "fresh");
         assert_eq!(written.last_updated_timestamp, Some(NOW));
     }
