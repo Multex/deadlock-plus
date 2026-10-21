@@ -1,9 +1,9 @@
 {
     "errors": {
         "common": {
-            "io": "Kon nie 'n lêer lees of skryf nie. Sien die logboeke na vir besonderhere.",
+            "io": "Kon nie 'n lêer lees of skryf nie. Sien die logboeke na vir besonderhede.",
             "network": "'n Netwerkversoek het misluk. Kontroleer jou internetverbinding en probeer weer.",
-            "internal": "Iets het verkeerd geloop. Sien die log boeke na vir besonderhere."
+            "internal": "Iets het verkeerd geloop. Sien die logboeke na vir besonderhede."
         },
         "demos": {
             "replays_folder_not_found": "Herhalingsvouer nie gevind.",
@@ -11,17 +11,17 @@
             "replay_missing": "Hierdie herhaling bestaan nie meer nie.",
             "recycle_bin_full": "Die snippermandjie kan nie hierdie herhalings hou nie.",
             "reveal_failed": "Kon nie die lêerbestuurder oopmaak nie. Sien die logboeke na vir besonderhede.",
-            "pin_save_failed": "Kon nie die vasgemaakte herhaling stoor nie. Sien die logboeke na vir besonderhede.",
+            "pin_save_failed": "Kon nie die vasgemaakte herhalings stoor nie. Sien die logboeke na vir besonderhede.",
             "rules_save_failed": "Kon nie die opruimingsreëls stoor nie. Sien die logboeke na vir besonderhede.",
             "rules_duplicate_id": "",
             "rules_zero_days": "Die ouderdomsperk moet ten minste 1 dag wees.",
             "rules_zero_size": "Die groottebeperking moet meer as 0 wees.",
-            "not_a_replay": "Hierdie vouer is nie 'n herhaling nie.",
+            "not_a_replay": "Hierdie lêer is nie 'n herhaling nie.",
             "replay_pinned": "Vasgemaakte herhalings kan nie verwyder word nie. Ontpen hulle eers.",
             "delete_failed": "Kon nie hierdie herhaling verwyder nie. Sien die logboeke na vir besonderhede."
         },
         "about": {
-            "info_unavailable": "Kon nie die toep informasie lees nie. Sien die logboeke na vir besonderhede."
+            "info_unavailable": "Kon nie die toepinligting lees nie. Sien die logboeke na vir besonderhede."
         },
         "autostart": {
             "entry_write_failed": "Kon nie die opstartinskrywing skryf nie. Sien die logboeke na vir besonderhede.",
@@ -30,14 +30,14 @@
         "crash": {
             "unavailable": "Instortingsverslag is nie beskikbaar nie.",
             "bundle_write_failed": "Kon nie die instortingsverslag skryf nie. Sien die logboeke na vir besonderhede.",
-            "marker_read_failed": "Kon nie die instortingsverslag lees nie. Sien die logboeke na vir besonderhede.",
-            "marker_write_failed": "Kon nie die instortings besonderhede stoor nie. Sien die logboeke na vir besonderhede.",
-            "reveal_failed": "Kon nie die instortingsverslag wys in die lêerbestuurder nie. Sien die logboeke na vir besonderhede.",
-            "open_issue_failed": "Kon nie die kwessie bladsy oopmaak nie. Sien die logboeke na vir besonderhede."
+            "marker_read_failed": "Kon nie die instortingsbesonderhede lees nie. Sien die logboeke na vir besonderhede.",
+            "marker_write_failed": "Kon nie die instortingsbesonderhede stoor nie. Sien die logboeke na vir besonderhede.",
+            "reveal_failed": "Kon nie die instortingsverslag in die lêerbestuurder wys nie. Sien die logboeke na vir besonderhede.",
+            "open_issue_failed": "Kon nie die kwessiebladsy oopmaak nie. Sien die logboeke na vir besonderhede."
         },
         "diagnostics": {
             "frame_layer_linux_only": "Die raamlaag is net beskikbaar op Linux.",
-            "home_folder_not_found": "Kon nie jou tuis vouer vind nie.",
+            "home_folder_not_found": "Kon nie jou tuisvouer vind nie.",
             "frame_layer_missing": "Hierdie weergawe van Deadlock+ bevat nie die raamlaag nie.",
             "frame_layer_install_failed": "Kon nie die raamlaag installeer nie. Sien die logboeke na vir besonderhede.",
             "frame_layer_remove_failed": "Kon nie die raamlaag verwyder nie. Sien die logboeke na vir besonderhede.",
@@ -64,16 +64,16 @@
             "game_running": ""
         },
         "ingest": {
-            "rejected": "Die Deadlock API het die wedstryd inligting verwerp.",
+            "rejected": "Die Deadlock API het die wedstrydinligting verwerp.",
             "request_failed": ""
         },
         "logging": {
-            "log_folder_unavailable": "Kon nie die logboek vouer vind nie.",
-            "read_failed": "Kon nie die logboek lêer lees nie. Sien die logboeke na vir besonderhede.",
-            "reveal_failed": "Kon nie die logboeke vouer oopmaak nie. Sien die logboeke vir besonderhede."
+            "log_folder_unavailable": "Kon nie die logboekvouer vind nie.",
+            "read_failed": "Kon nie die logboeklêer lees nie. Sien die logboeke na vir besonderhede.",
+            "reveal_failed": "Kon nie die logboekvouer oopmaak nie. Sien die logboeke na vir besonderhede."
         },
         "patch_notes": {
-            "search_failed": "Padsoektog het misluk. Sien die logboeke na vir besonderhede."
+            "search_failed": "Opdateringsoektog het misluk. Sien die logboeke na vir besonderhede."
         },
         "server_picker": {
             "unknown_game": "",
@@ -100,7 +100,7 @@
             "no_userdata": "",
             "not_utf8": "",
             "read_failed": "",
-            "game_running": "Deadlock loop tans. Maak die speletjie toe voordat jy veranderinge maak.",
+            "game_running": "Deadlock loop tans. Maak die speletjie toe voordat jy dempings verander.",
             "not_a_mute_list": "",
             "file_missing": "",
             "no_backup_name": "",
@@ -137,7 +137,7 @@
     "settings": {
         "language": {
             "label": "Taal",
-            "description": "Kies die taal wat die toep. \"Volg stelsel\" gebruik jou bedryfstelsel se taal.",
+            "description": "Kies die taal wat die toep gebruik. \"Volg stelsel\" gebruik jou bedryfstelsel se taal.",
             "system": "Volg stelsel",
             "system_current": "Tans {language}",
             "completion_hint": "Die balk wys hoeveel van die toepassing vertaal is. Ontbrekende teks word in Engels vertoon.",
@@ -147,7 +147,7 @@
         "categories": {
             "appearance": "Voorkoms",
             "language": "Taal",
-            "startup": "Selfbegin en agtergrond",
+            "startup": "Opstart en agtergrond",
             "notifications": "Kennisgewings",
             "overlay": "",
             "privacy": "Privaatheid",
@@ -160,7 +160,7 @@
             "theme": "Tema",
             "reduced_motion": "Verminderde beweging",
             "accessible_font": "Toeganklike lettertipe",
-            "close_to_tray": "Hou aan loop in die stelselbalk",
+            "close_to_tray": "Bly in die stelselbalk loop",
             "background_jobs": "Agtergrondtake",
             "update_alerts": "Nuus- en opdateringskennisgewings",
             "maintenance": "Steam-instandhoudingsherhinnering",
@@ -193,7 +193,7 @@
         },
         "nav": {
             "label": "Instellingskategorieë",
-            "search": "Soekinstellings",
+            "search": "Soek in instellings",
             "back": "Terug",
             "no_matches": "Geen instellings pas \"{query}\" nie."
         },
@@ -263,7 +263,7 @@
             "maintenance_description": "",
             "day": "Dag",
             "time": "Tyd (UTC)",
-            "remind": "Herhinner my",
+            "remind": "Herinner my",
             "lead_minutes": "{minutes} min voor",
             "lead_hours": "{hours} h voor",
             "overlay_description": "",
@@ -447,8 +447,8 @@
                 "scoreSapphire": "",
                 "elapsed": "",
                 "queueTime": "",
-                "result": "Wen of verloor",
-                "matchId": "Hierdie spel-ID",
+                "result": "Gewen of verloor",
+                "matchId": "Die wedstryd se ID",
                 "heroPresence": ""
             },
             "preview_game": "Deadlock",
@@ -549,12 +549,12 @@
         },
         "diagnostics": {
             "description": "",
-            "collapse": "Verklein",
-            "expand": "Vergroot"
+            "collapse": "Vou toe",
+            "expand": "Vou oop"
         },
         "licenses": {
             "read_full": "",
-            "terms_link": "Lisensie voorwaardes",
+            "terms_link": "Lisensievoorwaardes",
             "copyright": "",
             "fonts_heading": "",
             "app_summary": "",
@@ -846,14 +846,14 @@
         "eta": {
             "not_climbing": "",
             "days_or_more": "{low} dae of meer",
-            "range": "{low} na {high} dae",
+            "range": "{low} tot {high} dae",
             "about_one": "",
             "about_other": ""
         },
         "form": {
-            "next_win": "Volgende wen",
+            "next_win": "Volgende oorwinning",
             "no_streak": "",
-            "next_loss": "Volgende verloor",
+            "next_loss": "Volgende verlies",
             "only_shield": "",
             "plus_shield": "",
             "drops_subrank": "",
@@ -889,7 +889,7 @@
         },
         "summary": {
             "top_tier": "",
-            "progress": "{within} / {span} na {next}.",
+            "progress": "{within} / {span} tot {next}.",
             "boundary": "",
             "placement_left": "",
             "estimated_one": "",
@@ -1093,7 +1093,7 @@
             "copy_report": "",
             "save_report": "",
             "legend": "",
-            "no_difference": "Geen sigbare verskil.",
+            "no_difference": "Geen duidelike verskil.",
             "mixed": "",
             "favours_a": "",
             "favours_b": "",
@@ -1309,7 +1309,7 @@
         "hero_id": "Held {id}",
         "status": {
             "complete": {
-                "label": "Reg",
+                "label": "Gereed",
                 "hint": ""
             },
             "partial": {
@@ -1343,8 +1343,8 @@
             "build": "",
             "not_in_api": "nog nie in die Deadlock API nie",
             "details_unavailable": "",
-            "win": "Wen",
-            "loss": "Verloor",
+            "win": "Oorwinning",
+            "loss": "Verlies",
             "pin": "",
             "pinned_hint": "",
             "unpinned_hint": "",
@@ -1414,7 +1414,7 @@
             "clear_regenerable": ""
         },
         "entry": {
-            "path_missing": "Nie gevind om hierdie rekenaar nie",
+            "path_missing": "Nie op hierdie rekenaar gevind nie",
             "not_found": "Nie gevind nie",
             "retry_aria": "",
             "retry": "",
@@ -1458,7 +1458,7 @@
             },
             "deadlock_plus": {
                 "label": "Deadlock+",
-                "blurb": "Wat die toup hou."
+                "blurb": "Wat die toep hou."
             },
             "mods": {
                 "label": "",
@@ -1808,7 +1808,7 @@
             "unavailable": "",
             "untested_label": "",
             "untested": "",
-            "broken_label": "Iets gebreek?",
+            "broken_label": "Is iets stukkend?",
             "broken": "",
             "windows_title": "",
             "windows_body": "",

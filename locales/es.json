@@ -1,24 +1,24 @@
 {
     "errors": {
         "common": {
-            "io": "",
-            "network": "",
-            "internal": ""
+            "io": "No se pudo leer o escribir un archivo. Revisa el registro para más detalles.",
+            "network": "No se pudo conectar. Revisa tu conexión y vuelve a intentarlo.",
+            "internal": "Algo salió mal. Revisa el registro para más detalles."
         },
         "demos": {
-            "replays_folder_not_found": "",
-            "invalid_match_id": "",
-            "replay_missing": "",
-            "recycle_bin_full": "",
-            "reveal_failed": "",
-            "pin_save_failed": "",
-            "rules_save_failed": "",
+            "replays_folder_not_found": "No se encontró la carpeta de repeticiones.",
+            "invalid_match_id": "ID de partida no válido.",
+            "replay_missing": "Esa repetición ya no existe.",
+            "recycle_bin_full": "La Papelera de reciclaje no puede almacenar estas repeticiones.",
+            "reveal_failed": "No se pudo abrir el explorador de archivos. Revisa el registro para más detalles.",
+            "pin_save_failed": "No se pudieron guardar las repeticiones fijadas. Revisa el registro para más detalles.",
+            "rules_save_failed": "No se pudieron guardar las reglas de limpieza. Revisa el registro para más detalles.",
             "rules_duplicate_id": "",
-            "rules_zero_days": "",
-            "rules_zero_size": "",
-            "not_a_replay": "",
-            "replay_pinned": "",
-            "delete_failed": ""
+            "rules_zero_days": "El límite de antigüedad debe ser de al menos 1 día.",
+            "rules_zero_size": "El límite de tamaño debe ser mayor que 0.",
+            "not_a_replay": "Ese archivo no es una repetición.",
+            "replay_pinned": "Las repeticiones fijadas no se pueden eliminar. Desfíjalas primero.",
+            "delete_failed": "No se pudo eliminar esta repetición. Revisa el registro para más detalles."
         },
         "about": {
             "info_unavailable": ""
@@ -28,7 +28,7 @@
             "entry_remove_failed": ""
         },
         "crash": {
-            "unavailable": "",
+            "unavailable": "El informe de fallos no está disponible.",
             "bundle_write_failed": "",
             "marker_read_failed": "",
             "marker_write_failed": "",
@@ -47,9 +47,9 @@
             "helper_out_of_date": ""
         },
         "export": {
-            "invalid_name": "",
+            "invalid_name": "Ese nombre de archivo no está permitido.",
             "invalid_extension": "",
-            "invalid_location": "",
+            "invalid_location": "Elige la ruta de un archivo, no una carpeta.",
             "save_failed": ""
         },
         "support": {

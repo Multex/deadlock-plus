@@ -8,36 +8,36 @@
         "demos": {
             "replays_folder_not_found": "Tekrarlar klasörü bulunamadı.",
             "invalid_match_id": "Geçersiz maç kimliği.",
-            "replay_missing": "Bu tekrar artık ulaşılabilir değil.",
-            "recycle_bin_full": "Geri dönüşüm kutusu bu tekrarları barındıramaz.",
+            "replay_missing": "Bu tekrar artık mevcut değil.",
+            "recycle_bin_full": "Geri Dönüşüm Kutusu bu tekrarları alamıyor.",
             "reveal_failed": "Dosya yöneticisi açılamadı. Detaylar için kayıtları kontrol edin.",
             "pin_save_failed": "Sabitlenmiş tekrarlar kaydedilemedi. Detaylar için kayıtları kontrol edin.",
             "rules_save_failed": "Temizleme kuralları kaydedilemedi. Detaylar için kayıtları kontrol edin.",
             "rules_duplicate_id": "",
-            "rules_zero_days": "Zaman sınırı en az 1 gün olmalı.",
+            "rules_zero_days": "Yaş sınırı en az 1 gün olmalı.",
             "rules_zero_size": "Boyut sınırı 0'dan fazla olmalı.",
             "not_a_replay": "Bu dosya bir tekrar değil.",
-            "replay_pinned": "Sabitlenmiş tekrarlar silinemez. Sabitlemeyi kaldırın.",
+            "replay_pinned": "Sabitlenmiş tekrarlar silinemez. Önce sabitlemelerini kaldırın.",
             "delete_failed": "Bu tekrar silinemedi. Detaylar için kayıtları kontrol edin."
         },
         "about": {
             "info_unavailable": "Uygulama bilgisi alınamadı. Detaylar için kayıtları kontrol edin."
         },
         "autostart": {
-            "entry_write_failed": "Başlatma girişi yazılamadı. Detaylar için kayıtları kontrol edin.",
-            "entry_remove_failed": "Başlatma girişi kaldırılamadı. Detaylar için kayıtları kontrol edin."
+            "entry_write_failed": "Başlangıç girişi yazılamadı. Detaylar için kayıtları kontrol edin.",
+            "entry_remove_failed": "Başlangıç girişi kaldırılamadı. Detaylar için kayıtları kontrol edin."
         },
         "crash": {
-            "unavailable": "Çökme raporu ulaşılabilir değil.",
+            "unavailable": "Çökme raporlama kullanılamıyor.",
             "bundle_write_failed": "Çökme raporu oluşturulamadı. Detaylar için kayıtları kontrol edin.",
             "marker_read_failed": "Çökme detayları alınamadı. Detaylar için kayıtları kontrol edin.",
             "marker_write_failed": "Çökme detayları kaydedilemedi. Detaylar için kayıtları kontrol edin.",
-            "reveal_failed": "Çökme raporu dosyalarda gösterilemedi. Detaylar için kayıtları kontrol edin.",
-            "open_issue_failed": "Sayfa açılamadı. Detaylar için kayıtları kontrol edin."
+            "reveal_failed": "Çökme raporu dosya yöneticisinde gösterilemedi. Detaylar için kayıtları kontrol edin.",
+            "open_issue_failed": "Sorun sayfası açılamadı. Detaylar için kayıtları kontrol edin."
         },
         "diagnostics": {
             "frame_layer_linux_only": "Kare katmanı yalnızca Linux'ta kullanılabilir.",
-            "home_folder_not_found": "Başlangıç klasörü bulunamadı.",
+            "home_folder_not_found": "Ana klasörünüz bulunamadı.",
             "frame_layer_missing": "Deadlock+'ın bu sürümü kare katmanı içermiyor.",
             "frame_layer_install_failed": "Kare katmanı kurulamadı. Detaylar için kayıtları kontrol edin.",
             "frame_layer_remove_failed": "Kare katmanı kaldırılamadı. Detaylar için kayıtları kontrol edin.",
@@ -73,7 +73,7 @@
             "reveal_failed": "Kayıt klasörü açılamadı. Detaylar için kayıtları kontrol edin."
         },
         "patch_notes": {
-            "search_failed": "Sürüm arama başarısız. Detaylar için kayıtları kontrol edin."
+            "search_failed": "Yama araması başarısız oldu. Detaylar için kayıtları kontrol edin."
         },
         "server_picker": {
             "unknown_game": "",
@@ -83,15 +83,15 @@
             "unblock_failed": "Sunucu engelleri kaldırılamadı. Detaylar için kayıtları kontrol edin.",
             "list_blocked_failed": "Engellenmiş sunucu bilgileri alınamadı. Detaylar için kayıtları kontrol edin.",
             "sync_failed": "Engellenmiş sunucular güncellenemedi. Detaylar için kayıtları kontrol edin.",
-            "external_scan_failed": "Varolan güvenlik duvarları kontrol edilemedi. Detaylar için kayıtları kontrol edin.",
-            "external_import_failed": "Varolan güvenlik duvarları içe aktarılamadı. Detaylar için kayıtları kontrol edin.",
+            "external_scan_failed": "Mevcut güvenlik duvarı engelleri taranamadı. Detaylar için kayıtları kontrol edin.",
+            "external_import_failed": "Mevcut güvenlik duvarı engelleri içe aktarılamadı. Detaylar için kayıtları kontrol edin.",
             "needs_permission": "",
             "helper_out_of_date": ""
         },
         "storage": {
             "location_missing": "Bu konum bulunmuyor.",
-            "not_clearable": "Buradan temizlenemedi.",
-            "game_running": "Deadlock çalışıyor. Dosyaları silmeden önce oyunu kapatın.",
+            "not_clearable": "Bu buradan temizlenemez.",
+            "game_running": "Deadlock çalışıyor. Dosyaları temizlemeden önce oyunu kapatın.",
             "reveal_failed": "Konum dosya yöneticisinde gösterilemedi. Detaylar için kayıtları kontrol edin.",
             "remove_failed": "{name} kaldırılamadı. Detaylar için kayıtları kontrol edin."
         },
@@ -141,18 +141,18 @@
             "system": "",
             "system_current": "",
             "completion_hint": "",
-            "translated": "% {percent} çevrildi",
+            "translated": "%{percent} çevrildi",
             "coming_soon": "Yakında"
         },
         "categories": {
             "appearance": "Görünüm",
             "language": "Dil",
-            "startup": "Başlangıç ve arkaplan",
+            "startup": "Başlangıç ve arka plan",
             "notifications": "Bildirimler",
             "overlay": "",
             "privacy": "Gizlilik",
             "about": "",
-            "diagnostics": "Tanılar",
+            "diagnostics": "Tanılama",
             "sharing": "",
             "storage": ""
         },
@@ -160,9 +160,9 @@
             "theme": "Tema",
             "reduced_motion": "Azaltılmış hareket",
             "accessible_font": "Erişilebilirlik fontu",
-            "close_to_tray": "Sistem tepsisinde çalıştır",
-            "background_jobs": "Arkaplanda çalışanlar",
-            "update_alerts": "Yama ve haberler bildirimleri",
+            "close_to_tray": "Sistem tepsisinde çalışmaya devam et",
+            "background_jobs": "Arka plan işleri",
+            "update_alerts": "Yama ve haber bildirimleri",
             "maintenance": "Steam bakım hatırlatması",
             "discord_presence": "Discord durumu",
             "discord_clients": "Discord uygulamaları",
@@ -171,10 +171,10 @@
             "telemetry": "Anonim kullanım verilerini ve hata raporlarını paylaş",
             "gc_recovery": "",
             "version": "Sürüm",
-            "whats_new": "Yeni",
+            "whats_new": "Yenilikler",
             "updates": "Uygulama güncellemeleri",
             "thanks": "Teşekkürler",
-            "diagnostics": "Tanılar",
+            "diagnostics": "Tanılama",
             "licenses": "Lisanslar",
             "storage": "",
             "overlay": "",
@@ -203,7 +203,7 @@
             "motion_system": "Sistem",
             "motion_reduce": "Azalt",
             "motion_full": "Tüm hareketler",
-            "font_description": "Oyun stili fontunu Atkinson Hyperlegible ile değiştir, kolay okunabilirlik için tasarlanmıştır.",
+            "font_description": "Oyun tarzı yazı tiplerini, az gören kullanıcılar için tasarlanmış ve okunması kolay Atkinson Hyperlegible ile değiştirin.",
             "scale_description": "",
             "hardware_acceleration_description": "",
             "restart_app": ""
@@ -215,18 +215,18 @@
             },
             "midnight": {
                 "label": "Gece yarısı",
-                "description": "Siyaha yakın mavi ve yumuşak gümüş."
+                "description": "Soğuk mavi-siyah, yumuşak gümüş vurgulu."
             },
             "daylight": {
-                "label": "Günışığı",
+                "label": "Gün ışığı",
                 "description": "Açık renk teması."
             },
             "contrast": {
                 "label": "Yüksek kontrast",
-                "description": "Saf siyah ve beyaz kenarlar."
+                "description": "Saf siyah ve beyaz, belirgin kenarlıklarla."
             },
             "nightshift": {
-                "label": "Gece",
+                "label": "Gece vardiyası",
                 "description": "Kehribar kenarlı camgöbeği."
             },
             "deadlock_api": {
@@ -236,11 +236,11 @@
         },
         "autostart": {
             "title_windows": "Windows ile başlat",
-            "title_macos": "MacOS ile başlat",
+            "title_macos": "macOS ile başlat",
             "title_linux": "Girişte başlat",
-            "description_windows": "Windows ile birlikte Deadlock+ çalışır.",
-            "description_macos": "MacOS ile birlikte Deadlock+ çalışır.",
-            "description_linux": "Masaüstü ile birlikte Deadlock+ çalışır.",
+            "description_windows": "Windows'ta oturum açtığınızda Deadlock+'ı başlatır.",
+            "description_macos": "macOS'ta oturum açtığınızda Deadlock+'ı başlatır.",
+            "description_linux": "Masaüstünde oturum açtığınızda Deadlock+'ı başlatır.",
             "failed": "",
             "stale": ""
         },
@@ -264,8 +264,8 @@
             "day": "Gün",
             "time": "Saat (UTC)",
             "remind": "Hatırlat",
-            "lead_minutes": "{minutes} d önce",
-            "lead_hours": "{hours} s önce",
+            "lead_minutes": "{minutes} dk önce",
+            "lead_hours": "{hours} sa önce",
             "overlay_description": "",
             "overlay_fullscreen": "",
             "overlay_position_description": "",
@@ -312,9 +312,9 @@
             "sunday": "Pazar"
         },
         "countdown": {
-            "days": "{days} g {hours} s",
-            "hours": "{hours} s {minutes} d",
-            "minutes": "{minutes} d",
+            "days": "{days} gün {hours} sa",
+            "hours": "{hours} sa {minutes} dk",
+            "minutes": "{minutes} dk",
             "soon": "bir dakikadan az"
         },
         "discord": {
@@ -326,11 +326,11 @@
             "level_basic_description": "Deadlock'ta olduğunu gösterir.",
             "level_detailed_description": "",
             "support_label": "Deadlock+'ı destekle",
-            "support_description": "Diğerlerinin görebilmesi için aktivitene \"Deadlock+ İndir\" ekler. Temel ve ayrıntılıda çalışır.",
+            "support_description": "Etkinliğinize \"Deadlock+ İndir\" düğmesi ekler, böylece diğerleri uygulamayı bulabilir. Temel ve Ayrıntılı seviyelerinde çalışır.",
             "client_running": "Çalışıyor",
             "client_not_running": "Çalışmıyor",
-            "client_other_hint": "Masaüstü ve diğer uygulamalar",
-            "clients_description": "Hangi Discord uygulamalarını kullanacağını seç.",
+            "client_other_hint": "Vesktop ve diğer uygulamalar",
+            "clients_description": "Durumunuzu hangi Discord uygulamalarının göstereceğini seçin.",
             "client_stable": "Discord",
             "client_ptb": "Discord PTB",
             "client_canary": "Discord Canary",
@@ -383,7 +383,7 @@
             "preview_small_text": "",
             "share": "Ön ayar paylaş",
             "share_description": "",
-            "import_label": "Ön ayar metin",
+            "import_label": "Ön ayar metni",
             "import": "İçeri aktar",
             "import_file": "Dosyadan içeri aktar",
             "export": "",
@@ -394,35 +394,35 @@
                 "playing": "Oynuyor",
                 "mainMenu": "Ana menü",
                 "hideout": "Sığınakta",
-                "findingMatch": "Oyun arıyor",
-                "matchFound": "Oyun bulundu",
+                "findingMatch": "Maç arıyor",
+                "matchFound": "Maç bulundu",
                 "preGame": "Oyun öncesi",
-                "inMatch": "Oyunda",
-                "streetBrawlRound": "Sokak Kavgası",
+                "inMatch": "Maçta",
+                "streetBrawlRound": "Sokak Kavgası turu",
                 "paused": "Durduruldu",
-                "spectating": "Oyun izliyor",
+                "spectating": "İzliyor",
                 "postGame": "Oyun sonrası",
                 "privateLobby": "Özel lobi",
                 "practice": "Pratik"
             },
             "variant": {
-                "solo": "Tek",
+                "solo": "Solo",
                 "party": "Parti",
                 "unranked": "Derecesiz",
                 "ranked": "Dereceli",
                 "bots": "Botlar",
-                "tutorial": "Öğretici",
+                "tutorial": "Eğitim",
                 "normal": "Normal",
                 "streetBrawl": "Sokak Kavgası",
                 "sandbox": "",
-                "exploreNyc": "NYC Keşfet",
+                "exploreNyc": "NYC'yi Keşfet",
                 "won": "Zafer",
-                "lost": "Mağlubiyet",
+                "lost": "Yenilgi",
                 "unscored": "Değerlendirilmedi"
             },
             "editing": "",
-            "editing_default_hint": "Buradaki değişiklikler her karakter için geçerlidir. Bir karaktere özel ayar için karakter seç.",
-            "editing_hero_hint": "Buradaki değişiklikler sadece {hero} için geçerli. Boş bıraktığın yerler varsayılan olacaktır.",
+            "editing_default_hint": "Buradaki değişiklikler her kahraman için geçerlidir. Yalnızca bir kahramanın satırlarını değiştirmek için o kahramanı seçin.",
+            "editing_hero_hint": "Buradaki değişiklikler yalnızca {hero} oynarken geçerlidir. Boş bıraktığınız alanlar Varsayılan'ı izler.",
             "no_hero_layer": "",
             "row_enabled": "",
             "no_top_line": "",
@@ -432,10 +432,10 @@
             "syntax_help": "",
             "variables_hint": "",
             "placeholder": {
-                "hero": "Karakterin",
+                "hero": "Kahramanınız",
                 "mode": "Maç modu, örneğin Dereceli",
                 "gameMode": "Oyun modu, örneğin Sokak Kavgası",
-                "rank": "Dereceli oyundaki derecen",
+                "rank": "Dereceli maçlardaki dereceniz",
                 "kills": "",
                 "deaths": "",
                 "assists": "",
@@ -662,7 +662,7 @@
     "shell": {
         "nav": {
             "home": "Ana Sayfa",
-            "server_picker": "Sunucu Seçme",
+            "server_picker": "Sunucu Seçici",
             "live": "Canlı",
             "stats": "İstatistikler",
             "alerts": "",
@@ -680,14 +680,14 @@
             "tools": ""
         },
         "titlebar": {
-            "expand_sidebar": "Kenarı büyüt",
-            "collapse_sidebar": "Kenarı küçült",
+            "expand_sidebar": "Kenar çubuğunu genişlet",
+            "collapse_sidebar": "Kenar çubuğunu daralt",
             "update_downloading": "Güncelleme indiriliyor",
             "downloading_update": "Güncelleme indiriliyor",
-            "update_available": "Güncelleme {version} mevcut",
+            "update_available": "{version} güncellemesi mevcut",
             "minimize": "Küçült",
             "maximize": "Büyüt",
-            "restore": "Onar",
+            "restore": "Geri Yükle",
             "close": "Kapat"
         },
         "statusbar": {
@@ -706,7 +706,7 @@
                 "degraded": "",
                 "degraded_title": "",
                 "offline": "Deadlock API çevrimdışı",
-                "offline_title": "Deadlock API ulaşılamıyor"
+                "offline_title": "Deadlock API'ye erişilemiyor"
             },
             "game": {
                 "running": "Deadlock çalışıyor",
