@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::SystemTime;
 
 use serde::Serialize;
@@ -7,6 +8,8 @@ use source2_kv3::{Document, Object, Value};
 use ts_rs::TS;
 
 use crate::catalog::{archive_stamp, Install, SteamInstall};
+use crate::item_stats::{labelled, raw_item_stats, stat_localisation, ItemStats, RawStat};
+use crate::locale::game_language;
 use crate::progression::ability_id;
 use crate::vpk_source::VpkVdataSource;
 
@@ -113,7 +116,13 @@ pub trait ShopSource: Send + Sync + 'static {
     fn read(&self, citadel_dir: &Path, path: &str) -> Result<Document, String>;
 }
 
-type Memo = (Option<PathBuf>, Option<SystemTime>, Option<Arc<Vec<ShopItem>>>);
+struct Memo {
+    dir: Option<PathBuf>,
+    stamp: Option<SystemTime>,
+    items: Option<Arc<Vec<ShopItem>>>,
+    stats: Option<HashMap<u32, Vec<RawStat>>>,
+    labelled: HashMap<&'static str, Arc<Vec<ItemStats>>>,
+}
 
 pub struct ShopVdata<I: Install = SteamInstall, S: ShopSource = VpkVdataSource> {
     install: I,
@@ -134,23 +143,49 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
     }
 
     pub fn items(&self) -> Option<Arc<Vec<ShopItem>>> {
+        self.current().as_ref().and_then(|m| m.items.clone())
+    }
+
+    /// The tooltip stats of every item, labelled in the game language for `locale`.
+    pub fn item_stats(&self, locale: &str) -> Option<Arc<Vec<ItemStats>>> {
+        let language = game_language(locale);
+        let mut guard = self.current();
+        let memo = guard.as_mut()?;
+        if let Some(list) = memo.labelled.get(language) {
+            return Some(Arc::clone(list));
+        }
+        let (dir, stats) = (memo.dir.as_deref()?, memo.stats.as_ref()?);
+        let list = Arc::new(labelled(stats, &stat_localisation(dir, language)));
+        memo.labelled.insert(language, Arc::clone(&list));
+        Some(list)
+    }
+
+    fn current(&self) -> MutexGuard<'_, Option<Memo>> {
         let dir = self.install.citadel_dir();
         let stamp = dir.as_deref().and_then(archive_stamp);
         let mut memo = self.memo.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some((d, s, items)) = memo.as_ref() {
-            if *d == dir && *s == stamp {
-                return items.clone();
-            }
+        if memo.as_ref().is_some_and(|m| m.dir == dir && m.stamp == stamp) {
+            return memo;
         }
-        let items = dir.as_deref().and_then(|dir| {
-            let abilities = self.source.read(dir, ABILITIES_PATH);
-            let read = abilities
-                .and_then(|abilities| Ok((abilities, self.source.read(dir, GENERIC_DATA_PATH)?)))
-                .and_then(|(abilities, generic)| shop_items(&abilities, &generic));
-            read.map_err(|e| log::warn!("shop items unavailable: {e}")).ok().map(Arc::new)
-        });
-        *memo = Some((dir, stamp, items.clone()));
-        items
+        let (items, stats) = match dir.as_deref().map(|dir| (dir, self.source.read(dir, ABILITIES_PATH))) {
+            None => (None, None),
+            Some((_, Err(e))) => {
+                log::warn!("shop items unavailable: {e}");
+                (None, None)
+            }
+            Some((dir, Ok(abilities))) => {
+                let items = self
+                    .source
+                    .read(dir, GENERIC_DATA_PATH)
+                    .and_then(|generic| shop_items(&abilities, &generic))
+                    .map_err(|e| log::warn!("shop items unavailable: {e}"))
+                    .ok()
+                    .map(Arc::new);
+                (items, Some(raw_item_stats(&abilities)))
+            }
+        };
+        *memo = Some(Memo { dir, stamp, items, stats, labelled: HashMap::new() });
+        memo
     }
 }
 
@@ -427,6 +462,49 @@ mod tests {
         assert_eq!(data.items(), None);
         assert_eq!(reads.load(Ordering::Relaxed), 1);
         fs::remove_dir_all(dir).ok();
+    }
+
+    fn stat_abilities() -> String {
+        format!(
+            "{{ upgrade_health = {} }}",
+            item(
+                "m_eItemSlotType = \"EItemSlotType_Armor\"\nm_iItemTier = \"EModTier_1\"\n\
+                 m_mapAbilityProperties = { BonusHealth = { m_strValue = \"210\"\n\
+                 m_eProvidedPropertyType = \"MODIFIER_VALUE_HEALTH_MAX\" } }\n\
+                 m_vecTooltipSectionInfo = [ { m_eAbilitySectionType = \"EArea_Innate\"\n\
+                 m_vecSectionAttributes = [ { m_vecElevatedAbilityProperties = [ \"BonusHealth\" ] } ] } ]",
+            )
+        )
+    }
+
+    fn write_labels(dir: &Path, language: &str, label: &str) {
+        let path = dir.join(deadlock_data::LocalizationFile::relative_path("citadel_attributes", language));
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, format!("\"lang\" {{ \"Tokens\" {{\n\"BonusHealth_label\" \"{label}\"\n}} }}")).unwrap();
+    }
+
+    #[test]
+    fn item_stats_are_labelled_in_the_game_language_from_one_read() {
+        let dir = temp_install("stats");
+        write_labels(&dir, "english", "Bonus Health");
+        write_labels(&dir, "german", "Bonuslebenspunkte");
+        let (data, reads) = vdata(Some(&dir), Some(stat_abilities()));
+        let german = data.item_stats("de").expect("the fake install has stats");
+        assert_eq!(german.len(), 1);
+        assert_eq!(german[0].item_id, ability_id("upgrade_health"));
+        assert_eq!((german[0].stats[0].value, german[0].stats[0].label.as_str()), (210.0, "Bonuslebenspunkte"));
+        assert_eq!(data.item_stats("en").unwrap()[0].stats[0].label, "Bonus Health");
+        assert!(Arc::ptr_eq(&german, &data.item_stats("de-AT").unwrap()));
+        assert!(data.items().is_some());
+        assert_eq!(reads.load(Ordering::Relaxed), 2);
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn without_an_install_there_are_no_item_stats() {
+        let (data, reads) = vdata(None, Some(stat_abilities()));
+        assert_eq!(data.item_stats("en"), None);
+        assert_eq!(reads.load(Ordering::Relaxed), 0);
     }
 
     #[test]

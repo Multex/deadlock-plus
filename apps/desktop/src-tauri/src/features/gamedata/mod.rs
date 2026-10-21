@@ -31,7 +31,7 @@ pub mod commands {
 
     use dp_gamedata::{
         AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry, HeroProgression,
-        ItemEntry, ItemImage, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, RankArt, ShopItem,
+        ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, RankArt, ShopItem,
     };
     use tauri::State;
 
@@ -137,6 +137,15 @@ pub mod commands {
         let shop = Arc::clone(&vdata.shop);
         let items = tauri::async_runtime::spawn_blocking(move || shop.items()).await.map_err(AppError::internal)?;
         Ok(items.map(|i| i.to_vec()).unwrap_or_default())
+    }
+
+    /// Empty while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_item_stats(vdata: State<'_, GameVdata>, locale: String) -> Result<Vec<ItemStats>, AppError> {
+        let shop = Arc::clone(&vdata.shop);
+        let stats =
+            tauri::async_runtime::spawn_blocking(move || shop.item_stats(&locale)).await.map_err(AppError::internal)?;
+        Ok(stats.map(|s| s.to_vec()).unwrap_or_default())
     }
 
     /// No levels while the installed game cannot be read.

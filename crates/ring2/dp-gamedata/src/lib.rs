@@ -1,6 +1,7 @@
 mod art;
 mod catalog;
 mod cc;
+mod item_stats;
 mod locale;
 mod map_items;
 mod progression;
@@ -13,6 +14,7 @@ pub use art::{
 };
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};
 pub use cc::{CcAbility, CcKind, CcOwner, CcSet};
+pub use item_stats::{item_stats, ItemStat, ItemStats, StatSection, STAT_BUNDLES};
 pub use locale::game_language;
 pub use map_items::{
     map_entities, map_lane_lines, table_from_assets_map, AssetsCamp, AssetsEntities, AssetsEntity, AssetsMap,

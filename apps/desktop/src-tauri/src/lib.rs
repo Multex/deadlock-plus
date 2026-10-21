@@ -166,6 +166,7 @@ pub fn run() {
             features::gamedata::commands::game_heroes,
             features::gamedata::commands::game_items,
             features::gamedata::commands::game_shop_items,
+            features::gamedata::commands::game_item_stats,
             features::gamedata::commands::game_hero_progression,
             features::gamedata::commands::game_hero_abilities,
             features::gamedata::commands::game_popular_items,
