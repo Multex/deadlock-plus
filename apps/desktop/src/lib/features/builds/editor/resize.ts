@@ -2,6 +2,7 @@ import {
     SAFE_MAX_WIDTH,
     columnsAtEveryScale,
     minWidthForColumns,
+    sharesRowAtEveryScale,
     type Box,
     type Screen,
 } from "@deadlock-plus/build-layout";
@@ -23,6 +24,67 @@ export function snapWidth(raw: number, free: boolean): number {
     if (free) return clamp(quarter(raw), minWidthForColumns(1), SAFE_MAX_WIDTH);
     const columns = Math.round((raw - minWidthForColumns(1)) / COLUMN_WIDTH) + 1;
     return minWidthForColumns(clamp(columns, 1, MAX_SAFE_COLUMNS));
+}
+
+/** How far past the row edge, in screen px, the pointer must pull before a category may wrap onto a new row. */
+export const BREAK_THROUGH_PX = 64;
+
+export type RowEdge = "inside" | "pulling" | "through";
+
+/** `overshoot` is how far the pointer is past the row edge, in screen px. */
+export function rowEdge(overshoot: number): RowEdge {
+    if (overshoot <= 0) return "inside";
+    return overshoot > BREAK_THROUGH_PX ? "through" : "pulling";
+}
+
+/**
+ * Widest quarter-unit width, from one column up to `SAFE_MAX_WIDTH`, that shares one flow row with `others` at
+ * every scale; null when not even one column fits.
+ */
+export function widestOnRow(others: readonly number[]): number | null {
+    const min = minWidthForColumns(1) * 4;
+    for (let quarters = SAFE_MAX_WIDTH * 4; quarters >= min; quarters--) {
+        if (sharesRowAtEveryScale([...others, quarters / 4])) return quarters / 4;
+    }
+    return null;
+}
+
+const quarterFloor = (width: number) => Math.floor(width * 4) / 4;
+
+function columnsUnder(limit: number): number {
+    let columns = 1;
+    while (columns < MAX_SAFE_COLUMNS && minWidthForColumns(columns + 1) <= limit) columns++;
+    return columns;
+}
+
+export function stopAtEdge(width: number, limit: number, free: boolean): number {
+    return Math.min(width, free ? quarterFloor(limit) : minWidthForColumns(columnsUnder(limit)));
+}
+
+/**
+ * The stop for a resize that starts at `width`, given the row's limit: none when the row already wraps at some
+ * scale, since there is no edge left to keep.
+ */
+export function dragStop(limit: number | null, width: number): number | null {
+    if (limit === null || limit < quarterFloor(width)) return null;
+    return Math.max(limit, width);
+}
+
+/** `raw` is the width under the pointer in game units; `unit` is screen px per game unit. */
+export function edgeWidth(
+    raw: number,
+    free: boolean,
+    limit: number | null,
+    unit: number,
+): { width: number; edge: RowEdge } {
+    const width = snapWidth(raw, free);
+    if (limit === null || limit >= SAFE_MAX_WIDTH) return { width, edge: "inside" };
+    const edge = rowEdge((raw - limit) * unit);
+    if (edge !== "through") return { width: stopAtEdge(width, limit, free), edge };
+    const past = free
+        ? quarterFloor(limit) + 0.25
+        : minWidthForColumns(Math.min(MAX_SAFE_COLUMNS, columnsUnder(limit) + 1));
+    return { width: Math.max(width, past), edge };
 }
 
 /** Exact midpoints snap to the taller height. */

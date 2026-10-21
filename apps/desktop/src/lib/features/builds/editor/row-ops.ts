@@ -7,7 +7,7 @@ import {
 } from "@deadlock-plus/build-layout";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import { fitSize, shopView } from "../shop-view";
-import { sizeTag } from "./resize";
+import { sizeTag, stopAtEdge, widestOnRow } from "./resize";
 
 /** Fit heights the game stores, measured at 1440p: 162.75 for one chip row, 120 more per row. */
 const ONE_ROW_HEIGHT = 162.75;
@@ -63,17 +63,22 @@ export function rowOf(build: BuildView, index: number, screen: Screen): number[]
 
 const fits = (columns: readonly number[]) => sharesRowAtEveryScale(columns.map(minWidthForColumns));
 
-export function fillRow(build: BuildView, index: number, screen: Screen): BuildView {
+/**
+ * Widest stored width `index` can take while every category of its flow row at `screen`, itself included, keeps
+ * that row at 1080p, 1440p and 2160p. Alone on its row it is `SAFE_MAX_WIDTH`; null when not even one column fits.
+ */
+export function rowLimit(build: BuildView, index: number, screen: Screen): number | null {
     const sizes = effectiveSizes(build, screen);
     const others = rowOf(build, index, screen)
         .filter((i) => i !== index)
         .map((i) => sizes[i]!.width);
-    let best: number | null = null;
-    for (let n = 1; n <= MAX_COLUMNS; n++) {
-        if (sharesRowAtEveryScale([...others, minWidthForColumns(n)])) best = n;
-    }
-    if (best === null) return build;
-    return withSizes(build, new Map([[index, { width: minWidthForColumns(best) }]]));
+    return widestOnRow(others);
+}
+
+export function fillRow(build: BuildView, index: number, screen: Screen): BuildView {
+    const limit = rowLimit(build, index, screen);
+    if (limit === null) return build;
+    return withSizes(build, new Map([[index, { width: stopAtEdge(SAFE_MAX_WIDTH, limit, false) }]]));
 }
 
 /** Rounds the row's average column count, then drops columns until the row still shares at every scale. */

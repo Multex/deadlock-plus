@@ -91,6 +91,40 @@ test("an item added twice from the shop rail, a resize and its undo, then Save t
     expect(await itemsInFile(page)).toBe(inFile + 2);
 });
 
+test("widening the last category of a row stops at the row edge until it is pulled through", async ({ page }) => {
+    await openEditor(page);
+    const categories = canvas(page).locator("[data-category]");
+    await canvas(page)
+        .locator('[data-category="2"] header')
+        .click({ position: { x: 30, y: 8 } });
+    await page.getByTestId("category-remove").click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Remove" }).click();
+    await expect(categories).toHaveCount(2);
+
+    const second = canvas(page).locator('[data-category="1"]');
+    const top = (await second.boundingBox())!.y;
+    await second.hover();
+    const handle = (await second.locator(".handle.right").boundingBox())!;
+    const x = handle.x + handle.width / 2;
+    const y = handle.y + handle.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 4, y);
+    const line = (await second.locator(".row-edge").boundingBox())!;
+    const edge = line.x + line.width / 2;
+
+    for (let step = 1; step <= 8; step++) await page.mouse.move(x + ((edge + 40 - x) * step) / 8, y);
+    const held = (await second.boundingBox())!;
+    expect(held.y).toBe(top);
+    expect(held.x + held.width).toBeLessThanOrEqual(edge + 1);
+    await expect(page.locator(".resize-label")).toHaveAttribute("data-row-edge", "pulling");
+
+    for (let step = 1; step <= 8; step++) await page.mouse.move(edge + 40 + (80 * step) / 8, y);
+    await expect(page.locator(".resize-label")).toHaveAttribute("data-row-edge", "through");
+    await page.mouse.up();
+    expect((await second.boundingBox())!.y).toBeGreaterThan(top);
+});
+
 test("New build opens an unnamed build for the hero, and Save to game asks for a name", async ({ page }) => {
     await open(page, "/builds");
     await main(page).getByRole("tab", { name: "Mine", exact: true }).click();

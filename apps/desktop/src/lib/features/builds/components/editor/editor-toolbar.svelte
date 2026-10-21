@@ -3,6 +3,7 @@
         Check,
         Clock,
         LoaderCircle,
+        Magnet,
         Plus,
         Redo2,
         Save,
@@ -28,6 +29,7 @@
         editor,
         resolution = $bindable(MEASURED_RESOLUTION),
         zoom = $bindable("fit"),
+        snap = $bindable(true),
         fit = 1,
         resolve,
         onAddCategory,
@@ -36,6 +38,8 @@
         editor: BuildEditor;
         resolution?: ShopResolution;
         zoom?: Zoom;
+        /** Resizes snap to sizes that keep their columns at every scale. */
+        snap?: boolean;
         /** The scale that fills the canvas column; a larger zoom draws at it. */
         fit?: number;
         /** Draws chips in the version history; it waits for the shop catalog. */
@@ -148,6 +152,18 @@
             <ZoomIn aria-hidden="true" />
         </IconButton>
     </div>
+
+    <IconButton
+        label={t("builds.editor.toolbar.snap")}
+        tooltip={t("builds.editor.toolbar.snap_tooltip")}
+        variant="toggle"
+        aria-pressed={snap}
+        class="h-8 w-8"
+        data-testid="toolbar-snap"
+        onclick={() => (snap = !snap)}
+    >
+        <Magnet aria-hidden="true" />
+    </IconButton>
 
     <div class="ml-auto flex items-center gap-1">
         <p

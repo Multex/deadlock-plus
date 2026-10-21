@@ -5,6 +5,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
+    import { widthPx } from "@deadlock-plus/build-layout/layout";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
@@ -13,10 +14,12 @@
     import { updateCategory, type ItemRef } from "../../editor/document";
     import { drag } from "../../editor/drag.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
-    import { sizeTag, snapHeight, snapWidth } from "../../editor/resize";
+    import { BREAK_THROUGH_PX, dragStop, edgeWidth, sizeTag, snapHeight, type RowEdge } from "../../editor/resize";
+    import { rowLimit, rowOf } from "../../editor/row-ops";
     import type { ChipItem, ShopCategoryView, ShopView } from "../../shop-view";
     import ItemChip from "../shop/item-chip.svelte";
     import { chipShifts, itemCaret, slotBoxes, storedSize } from "./canvas/geometry";
+    import { freeResize } from "./canvas/snap";
 
     type Edge = "right" | "bottom" | "corner";
     const EDGES: { edge: Edge; label: string }[] = [
@@ -32,6 +35,7 @@
         view,
         shop,
         screen,
+        snap = true,
         items,
         counts,
         rowWraps,
@@ -50,6 +54,8 @@
         view: ShopCategoryView;
         shop: ShopView;
         screen: Screen;
+        /** Resizes snap to safe sizes; Alt flips it for one drag. */
+        snap?: boolean;
         items: (ChipItem | undefined)[];
         /** How often each ability sits in the build. */
         counts: ReadonlyMap<number, number>;
@@ -176,6 +182,13 @@
         key: string;
         applied: boolean;
         pointer: { x: number; y: number };
+        /** The widest width that keeps the flow row, or null when there is no row edge to hold. */
+        stop: number | null;
+        /** The dragged category is the last on its row, so it is the one a break-through moves. */
+        last: boolean;
+        row: RowEdge;
+        /** Screen px the pointer is past the stop. */
+        pull: number;
     } | null>(null);
 
     function resizeDown(edge: Edge, event: PointerEvent) {
@@ -184,6 +197,7 @@
         event.stopPropagation();
         (event.currentTarget as Element).setPointerCapture(event.pointerId);
         activate();
+        const row = rowOf(editor.build, index, screen);
         resizing = {
             edge,
             x: event.clientX,
@@ -192,6 +206,10 @@
             key: `resize:${index}:${++gestures}`,
             applied: false,
             pointer: { x: event.clientX, y: event.clientY },
+            stop: edge === "bottom" ? null : dragStop(rowLimit(editor.build, index, screen), size.width),
+            last: row.at(-1) === index,
+            row: "inside",
+            pull: 0,
         };
     }
 
@@ -199,11 +217,16 @@
         if (!resizing) return;
         resizing.pointer = { x: event.clientX, y: event.clientY };
         const patch: { width?: number; height?: number } = {};
+        const free = freeResize(snap, event.altKey);
         if (resizing.edge !== "bottom") {
-            patch.width = snapWidth(resizing.width + (event.clientX - resizing.x) / shop.unit, event.altKey);
+            const raw = resizing.width + (event.clientX - resizing.x) / shop.unit;
+            const next = edgeWidth(raw, free, resizing.stop, shop.unit);
+            patch.width = next.width;
+            resizing.row = next.edge;
+            resizing.pull = resizing.stop === null ? 0 : Math.max(0, (raw - resizing.stop) * shop.unit);
         }
         if (resizing.edge !== "right") {
-            patch.height = snapHeight(resizing.height + (event.clientY - resizing.y) / shop.unit, event.altKey);
+            patch.height = snapHeight(resizing.height + (event.clientY - resizing.y) / shop.unit, free);
         }
         const current = editor.build.modCategories[index];
         if (!current) return;
@@ -242,6 +265,13 @@
     }
 
     const LABEL_ROOM = 260;
+
+    const strain = $derived(resizing ? Math.min(1, resizing.pull / BREAK_THROUGH_PX) : 0);
+    const edgeAt = $derived(
+        resizing?.stop != null && resizing.row !== "through"
+            ? widthPx(resizing.stop, screen.height) * shop.scale - shop.border
+            : null,
+    );
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -251,6 +281,7 @@
     class:active
     class:dragged
     class:resizing={!!resizing}
+    class:straining={resizing?.row === "pulling"}
     class:warn={warn && !!resizing}
     class:target={dropIndex !== null}
     role="listbox"
@@ -264,6 +295,7 @@
     style:height="{view.box.height}px"
     style:--u="{shop.unit}px"
     style:--edge="{shop.border}px"
+    style:--strain={strain}
     onclick={activate}
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -377,6 +409,12 @@
         <span class="overflow">{t("builds.editor.overflow")}</span>
     {/if}
 
+    {#if edgeAt !== null && resizing}
+        <div class="row-edge" class:pulling={resizing.row === "pulling"} aria-hidden="true" style:left="{edgeAt}px">
+            <span>{t("builds.editor.row_edge")}</span>
+        </div>
+    {/if}
+
     {#each EDGES as { edge, label } (edge)}
         <div
             class="handle {edge}"
@@ -404,6 +442,7 @@
     <div
         class="resize-label"
         class:warn
+        data-row-edge={resizing.row}
         popover="manual"
         aria-live="polite"
         style:left="{resizing.pointer.x}px"
@@ -417,8 +456,17 @@
                 rows: tn("builds.editor.rows_count", tag.rows),
             })}
         </strong>
+        {#if resizing.row === "pulling"}
+            <span class="edge-note">
+                {t(resizing.last ? "builds.editor.row_edge_pull" : "builds.editor.row_edge_pull_next")}
+            </span>
+        {:else if resizing.row === "through"}
+            <span class="edge-note">
+                {t(resizing.last ? "builds.editor.row_edge_release" : "builds.editor.row_edge_release_next")}
+            </span>
+        {/if}
         {#if tag.unsafe}<span>{t("builds.editor.unsafe_width")}</span>{/if}
-        {#if rowWraps}<span>{t("builds.editor.row_wraps")}</span>{/if}
+        {#if rowWraps && resizing.row !== "through"}<span>{t("builds.editor.row_wraps")}</span>{/if}
         {#if tag.overflow}<span>{t("builds.editor.overflow")}</span>{/if}
     </div>
 {/if}
@@ -710,6 +758,55 @@
         stroke: var(--brass);
     }
 
+    /* Sits on the outer right edge the category would have at its row limit. */
+    .row-edge {
+        position: absolute;
+        z-index: 3;
+        top: -10px;
+        bottom: -10px;
+        width: 2px;
+        margin-left: -1px;
+        border-radius: 1px;
+        background: var(--brass);
+        box-shadow: 0 0 8px color-mix(in oklch, var(--brass) 70%, transparent);
+        pointer-events: none;
+    }
+    /* Inside the line, on the category's side: past it the canvas would scroll sideways. */
+    .row-edge span {
+        position: absolute;
+        top: 14px;
+        right: 100%;
+        margin-right: 4px;
+        padding: 1px 6px;
+        border-radius: 3px;
+        background: var(--brass);
+        color: #10130d;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.4;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+    .row-edge.pulling {
+        width: calc(2px + 2px * var(--strain));
+        margin-left: calc(-1px - 1px * var(--strain));
+        box-shadow: 0 0 calc(8px + 10px * var(--strain)) color-mix(in oklch, var(--brass) 80%, transparent);
+    }
+    /* The resistance: the edge bar stretches toward the category's full height as the pull nears the break. */
+    .category.straining .handle.right::after {
+        left: calc(3.5px - 1.5px * var(--strain));
+        width: calc(3px + 3px * var(--strain));
+        height: calc(min(40px, 50%) + (100% - min(40px, 50%)) * var(--strain));
+        background: color-mix(in oklch, var(--foreground) calc(70% * var(--strain)), var(--brass));
+        box-shadow: 0 0 calc(6px + 10px * var(--strain)) var(--brass);
+        opacity: 1;
+        transition: none;
+    }
+    .category.straining .handle.corner svg {
+        stroke: var(--brass);
+    }
+
     .resize-label {
         position: fixed;
         inset: auto;
@@ -739,6 +836,9 @@
         max-width: 240px;
         color: var(--warning);
         font-weight: 600;
+    }
+    .resize-label .edge-note {
+        color: var(--foreground);
     }
     .resize-label.warn {
         border-color: color-mix(in oklch, var(--warning) 70%, transparent);

@@ -1889,7 +1889,7 @@
             "unnamed": "Unnamed",
             "rename": "Category name",
             "size_tag": "{columns} x {rows}",
-            "size_hint": "Columns x rows. Drag an edge to resize. Hold Alt for a free size.",
+            "size_hint": "Columns x rows. Drag an edge to resize. Hold Alt to switch snapping for one drag.",
             "unsafe_width": "This width loses a column at another resolution.",
             "row_wraps": "This row wraps at another resolution.",
             "copies": "x{count}",
@@ -2135,8 +2135,15 @@
                 "zoom_in": "Zoom in",
                 "zoom_in_tooltip": "Zoom in (Ctrl+=)",
                 "zoom_out": "Zoom out",
-                "zoom_out_tooltip": "Zoom out (Ctrl+-)"
-            }
+                "zoom_out_tooltip": "Zoom out (Ctrl+-)",
+                "snap": "Snap",
+                "snap_tooltip": "Snap to sizes that keep their columns at every resolution"
+            },
+            "row_edge": "Row edge",
+            "row_edge_pull": "Keep pulling to move to a new row",
+            "row_edge_release": "Release to move to a new row",
+            "row_edge_pull_next": "Keep pulling to move the next categories to a new row",
+            "row_edge_release_next": "Release to move the next categories to a new row"
         }
     },
     "alerts": {

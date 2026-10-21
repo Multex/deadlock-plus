@@ -17,6 +17,7 @@
     import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
     import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
+    import { loadSnap, saveSnap } from "$lib/features/builds/components/editor/canvas/snap";
     import { loadZoom, saveZoom, stepZoom } from "$lib/features/builds/components/editor/canvas/zoom";
     import ShopRail from "$lib/features/builds/components/editor/shop/shop-rail.svelte";
     import SoulsTimeline from "$lib/features/builds/components/editor/souls-timeline.svelte";
@@ -41,6 +42,8 @@
     let zoom = $state(loadZoom());
     let fit = $state(1);
     $effect(() => saveZoom(zoom));
+    let snap = $state(loadSnap());
+    $effect(() => saveSnap(snap));
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 
@@ -278,6 +281,7 @@
                         {editor}
                         bind:resolution
                         bind:zoom
+                        bind:snap
                         {fit}
                         resolve={catalog ? (id) => chipFor(catalog!.byId, id) : undefined}
                         onAddCategory={newCategory}
@@ -290,6 +294,7 @@
                             <EditCanvas
                                 {editor}
                                 {screen}
+                                {snap}
                                 bind:renaming
                                 bind:zoom
                                 bind:fit

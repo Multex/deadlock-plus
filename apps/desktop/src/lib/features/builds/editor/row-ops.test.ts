@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { SAFE_MAX_WIDTH, minWidthForColumns, sharesRowAtEveryScale, type Screen } from "@deadlock-plus/build-layout";
+import {
+    SAFE_MAX_WIDTH,
+    layoutBuild,
+    minWidthForColumns,
+    sharesRowAtEveryScale,
+    type Screen,
+} from "@deadlock-plus/build-layout";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import {
@@ -10,12 +16,15 @@ import {
     fillRowProportionally,
     heightForRows,
     pasteSize,
+    rowLimit,
     rowOf,
     setSize,
     sizeOf,
 } from "./row-ops";
 
+const FHD: Screen = { width: 1920, height: 1080 };
 const QHD: Screen = { width: 2560, height: 1440 };
+const UHD: Screen = { width: 3840, height: 2160 };
 
 function category(width: number | null, height: number | null = 162.75, items = 1): ModCategoryView {
     return {
@@ -74,7 +83,81 @@ describe("rowOf", () => {
     });
 });
 
+/** The flow row of every category at `screen`, as row numbers. */
+function rows(widths: readonly number[], screen: Screen): number[] {
+    const placed = layoutBuild(
+        widths.map((width) => ({ width, height: 162.75, items: 1 })),
+        screen,
+    ).categories;
+    const tops = [...new Set(placed.map((c) => c.box.y))];
+    return placed.map((c) => tops.indexOf(c.box.y));
+}
+
+function withWidth(b: BuildView, index: number, width: number): number[] {
+    return b.modCategories.map((c, i) => (i === index ? width : c.width!));
+}
+
+describe("rowLimit", () => {
+    it("stops the second of two categories at the row edge", () => {
+        const b = build(category(cols(3)), category(cols(4)));
+        expect(rowLimit(b, 1, QHD)).toBe(790.5);
+    });
+
+    it("keeps every row member on its row at 1080p, 1440p and 2160p, and one quarter more wraps", () => {
+        const cases: [BuildView, number][] = [
+            [build(category(cols(3)), category(cols(4))), 1],
+            [build(category(cols(3)), category(cols(4))), 0],
+            [build(category(cols(3)), category(cols(4)), category(cols(3))), 1],
+            [build(category(cols(3)), category(cols(4)), category(cols(3))), 2],
+            [build(category(257.75), category(cols(2)), category(175.5)), 1],
+        ];
+        for (const [b, index] of cases) {
+            const limit = rowLimit(b, index, QHD)!;
+            const before = b.modCategories.map((c) => c.width!);
+            for (const screen of [FHD, QHD, UHD]) {
+                expect(rows(withWidth(b, index, limit), screen)).toEqual(rows(before, screen));
+            }
+            const wider = withWidth(b, index, limit + 0.25);
+            expect([FHD, QHD, UHD].some((screen) => rows(wider, screen).join() !== rows(before, screen).join())).toBe(
+                true,
+            );
+        }
+    });
+
+    it("limits the first category by the ones it would push", () => {
+        const b = build(category(cols(3)), category(cols(4)), category(cols(3)));
+        const limit = rowLimit(b, 0, QHD)!;
+        expect(sharesRowAtEveryScale([limit, cols(4), cols(3)])).toBe(true);
+        expect(sharesRowAtEveryScale([limit + 0.25, cols(4), cols(3)])).toBe(false);
+    });
+
+    it("ignores the categories on other rows", () => {
+        const b = build(category(cols(3)), category(cols(3)), category(cols(3)), category(cols(3)), category(cols(4)));
+        expect(rowOf(b, 3, QHD)).toEqual([3, 4]);
+        expect(rowLimit(b, 3, QHD)).toBe(rowLimit(build(category(cols(3)), category(cols(4))), 0, QHD));
+    });
+
+    it("is the safe maximum for a category alone on its row", () => {
+        const b = build(category(cols(3)), category(cols(3)), category(cols(3)), category(cols(3)));
+        expect(rowLimit(b, 3, QHD)).toBe(SAFE_MAX_WIDTH);
+    });
+
+    it("counts a category without a stored width at its Fit width", () => {
+        const b = build(category(null, null, 3), category(cols(4)));
+        expect(rowLimit(b, 1, QHD)).toBe(rowLimit(build(category(cols(3)), category(cols(4))), 1, QHD));
+    });
+});
+
 describe("fillRow", () => {
+    it("takes the widest safe column width under the row limit", () => {
+        const b = build(category(cols(3)), category(cols(4)));
+        const width = fillRow(b, 1, QHD).modCategories[1]!.width!;
+        const limit = rowLimit(b, 1, QHD)!;
+        expect(width).toBe(cols(9));
+        expect(width).toBeLessThanOrEqual(limit);
+        expect(cols(10)).toBeGreaterThan(limit);
+    });
+
     it("widens a lone category to the widest safe width", () => {
         const b = build(category(cols(3)), category(cols(3)), category(cols(3)), category(cols(3)));
         const next = fillRow(b, 3, QHD);

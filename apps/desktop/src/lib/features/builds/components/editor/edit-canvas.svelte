@@ -26,6 +26,7 @@
         editor,
         resolve,
         screen = { width: 2560, height: 1440 },
+        snap = true,
         categoryMenu,
         itemMenu,
         renaming = $bindable(null),
@@ -35,6 +36,8 @@
         editor: BuildEditor;
         resolve: (abilityId: number) => ChipItem | undefined;
         screen?: Screen;
+        /** Resizes snap to safe sizes; Alt flips it for one drag. */
+        snap?: boolean;
         /** The category's `...` menu, trigger included. */
         categoryMenu?: Snippet<[number]>;
         /** The right-click menu: rendered after a right-click, to open at `at` (client px) with no trigger of its own. */
@@ -284,6 +287,7 @@
                         view={category}
                         shop={view}
                         {screen}
+                        {snap}
                         items={items[category.index]!}
                         {counts}
                         rowWraps={wraps.has(category.index)}

@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { layoutBuild, type Box, type Screen } from "@deadlock-plus/build-layout";
-import { categoryInsertion, chipInsertion, sizeTag, snapHeight, snapWidth } from "./resize";
+import {
+    SAFE_MAX_WIDTH,
+    layoutBuild,
+    minWidthForColumns,
+    sharesRowAtEveryScale,
+    type Box,
+    type Screen,
+} from "@deadlock-plus/build-layout";
+import {
+    BREAK_THROUGH_PX,
+    categoryInsertion,
+    chipInsertion,
+    dragStop,
+    edgeWidth,
+    rowEdge,
+    sizeTag,
+    snapHeight,
+    snapWidth,
+    stopAtEdge,
+    widestOnRow,
+} from "./resize";
 
 const FHD: Screen = { width: 1920, height: 1080 };
 const QHD: Screen = { width: 2560, height: 1440 };
@@ -248,5 +267,112 @@ describe("categoryInsertion", () => {
         expect(categoryInsertion(stacked, { x: 2000, y: centre(stacked[0]!).y })).toBe(1);
         expect(categoryInsertion(stacked, { x: 0, y: centre(stacked[1]!).y })).toBe(1);
         expect(categoryInsertion(stacked, { x: 2000, y: centre(stacked[2]!).y })).toBe(3);
+    });
+});
+
+const cols = (n: number) => minWidthForColumns(n);
+
+describe("widestOnRow", () => {
+    it("is the widest quarter width that still shares the row at every scale", () => {
+        const limit = widestOnRow([cols(3)])!;
+        expect(limit).toBe(790.5);
+        expect(sharesRowAtEveryScale([cols(3), limit])).toBe(true);
+        expect(sharesRowAtEveryScale([cols(3), limit + 0.25])).toBe(false);
+    });
+
+    it("counts fractional widths the way the game rounds them", () => {
+        const others = [257.75, 175.5];
+        const limit = widestOnRow(others)!;
+        expect(limit * 4).toBe(Math.round(limit * 4));
+        expect(sharesRowAtEveryScale([...others, limit])).toBe(true);
+        expect(sharesRowAtEveryScale([...others, limit + 0.25])).toBe(false);
+    });
+
+    it("is the safe maximum with nothing else on the row", () => {
+        expect(widestOnRow([])).toBe(SAFE_MAX_WIDTH);
+    });
+
+    it("is null when the others already fill the row", () => {
+        expect(widestOnRow([SAFE_MAX_WIDTH])).toBeNull();
+    });
+});
+
+describe("rowEdge", () => {
+    it("is inside until the pointer passes the edge", () => {
+        expect(rowEdge(-40)).toBe("inside");
+        expect(rowEdge(0)).toBe("inside");
+    });
+
+    it("holds the pull up to the break-through distance", () => {
+        expect(BREAK_THROUGH_PX).toBe(64);
+        expect(rowEdge(1)).toBe("pulling");
+        expect(rowEdge(BREAK_THROUGH_PX)).toBe("pulling");
+    });
+
+    it("breaks through past it, and pulling back re-engages the stop", () => {
+        expect(rowEdge(BREAK_THROUGH_PX + 0.5)).toBe("through");
+        expect(rowEdge(BREAK_THROUGH_PX - 0.5)).toBe("pulling");
+    });
+});
+
+describe("stopAtEdge", () => {
+    it("stops a free width exactly at the edge", () => {
+        expect(stopAtEdge(800, 790.5, true)).toBe(790.5);
+        expect(stopAtEdge(700, 790.5, true)).toBe(700);
+    });
+
+    it("stops a snapped width at the widest safe width under the edge", () => {
+        expect(stopAtEdge(cols(10), 790.5, false)).toBe(cols(9));
+        expect(stopAtEdge(cols(9), 790.5, false)).toBe(cols(9));
+        expect(stopAtEdge(cols(5), 790.5, false)).toBe(cols(5));
+    });
+});
+
+describe("edgeWidth", () => {
+    it("snaps as usual without a stop", () => {
+        expect(edgeWidth(900, false, null, 1)).toEqual({ width: snapWidth(900, false), edge: "inside" });
+    });
+
+    it("has no stop for a category alone on its row", () => {
+        expect(edgeWidth(1200, false, SAFE_MAX_WIDTH, 1)).toEqual({ width: cols(12), edge: "inside" });
+    });
+
+    it("follows the pointer inside the edge", () => {
+        expect(edgeWidth(600.3, true, 790.5, 1)).toEqual({ width: 600.25, edge: "inside" });
+    });
+
+    it("holds at the edge while the pull is short of the break-through distance", () => {
+        expect(edgeWidth(790.5 + 30, true, 790.5, 2)).toEqual({ width: 790.5, edge: "pulling" });
+        expect(edgeWidth(790.5 + 30, false, 790.5, 2)).toEqual({ width: cols(9), edge: "pulling" });
+    });
+
+    it("measures the pull in screen px", () => {
+        expect(edgeWidth(790.5 + 40, true, 790.5, 1).edge).toBe("pulling");
+        expect(edgeWidth(790.5 + 40, true, 790.5, 2).edge).toBe("through");
+    });
+
+    it("lets the width past the edge once through, so the category wraps", () => {
+        expect(edgeWidth(790.5 + 70, true, 790.5, 1)).toEqual({ width: 860.5, edge: "through" });
+        expect(edgeWidth(790.5 + 70, false, 790.5, 1)).toEqual({ width: snapWidth(860.5, false), edge: "through" });
+    });
+
+    it("never lands back under the edge once through", () => {
+        // 777 snaps down to 9 columns (750), which would still fit under a 760 edge.
+        expect(edgeWidth(777, false, 760, 4)).toEqual({ width: cols(10), edge: "through" });
+    });
+});
+
+describe("dragStop", () => {
+    it("is the row limit when the row shares at every scale", () => {
+        expect(dragStop(790.5, cols(4))).toBe(790.5);
+    });
+
+    it("is none when the row already wraps at some scale", () => {
+        expect(dragStop(null, cols(4))).toBeNull();
+        expect(dragStop(300, cols(4))).toBeNull();
+    });
+
+    it("never stops a stored width that sits between quarter units", () => {
+        expect(dragStop(277, 277.1)).toBe(277.1);
     });
 });
