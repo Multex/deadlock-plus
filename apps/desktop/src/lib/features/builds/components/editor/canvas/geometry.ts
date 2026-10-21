@@ -1,7 +1,8 @@
-import { sharesRowAtEveryScale, type Box, type Screen } from "@deadlock-plus/build-layout";
+import { sharesRowEverywhere, type Box, type Screen } from "@deadlock-plus/build-layout";
 import { geometry } from "@deadlock-plus/build-layout/layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { categoryInsertion, chipInsertion } from "../../../editor/resize";
+import { fitEverywhere } from "../../../editor/row-ops";
 import { fitSize, shopView, type ShopCategoryView, type ShopView } from "../../../shop-view";
 import { zoomScale, type Zoom } from "./zoom";
 
@@ -16,7 +17,7 @@ export interface Bar {
 
 type Point = { x: number; y: number };
 
-const EMPTY_FIT = fitSize(0);
+const EMPTY_FIT = fitEverywhere(0);
 const TILE: ModCategoryView = {
     mods: [],
     name: "",
@@ -146,7 +147,7 @@ export function rowWarnings(view: ShopView, widths: readonly number[]): Set<numb
     }
     const warned = new Set<number>();
     for (const row of rows.values()) {
-        if (!sharesRowAtEveryScale(row.map((i) => widths[i]!))) for (const i of row) warned.add(i);
+        if (!sharesRowEverywhere(row.map((i) => widths[i]!))) for (const i of row) warned.add(i);
     }
     return warned;
 }

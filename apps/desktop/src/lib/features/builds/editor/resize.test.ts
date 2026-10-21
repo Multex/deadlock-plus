@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-    SAFE_MAX_WIDTH,
+    SAFE_MAX_WIDTH_EVERYWHERE,
     layoutBuild,
-    minWidthForColumns,
-    sharesRowAtEveryScale,
+    minHeightForRowsEverywhere,
+    minWidthForColumnsEverywhere,
+    sharesRowEverywhere,
     type Box,
     type Screen,
 } from "@deadlock-plus/build-layout";
@@ -29,29 +30,33 @@ function centre(box: Box) {
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+const ew = (n: number) => minWidthForColumnsEverywhere(n);
+const eh = (r: number) => minHeightForRowsEverywhere(r);
+
 describe("snapWidth", () => {
-    it("snaps to the nearest width that keeps its columns at every scale", () => {
-        expect(snapWidth(300, false)).toBe(340);
-        expect(snapWidth(250, false)).toBe(258);
-        expect(snapWidth(176, false)).toBe(176);
+    it("snaps to the nearest width that keeps its columns in the shop and the Build Browser preview", () => {
+        expect(snapWidth(300, false)).toBe(264);
+        expect(snapWidth(320, false)).toBe(347);
+        expect(snapWidth(250, false)).toBe(264);
+        expect(snapWidth(176, false)).toBe(181);
     });
 
     it("never snaps below one column", () => {
-        expect(snapWidth(93, false)).toBe(94);
-        expect(snapWidth(10, false)).toBe(94);
-        expect(snapWidth(-50, false)).toBe(94);
+        expect(snapWidth(98, false)).toBe(99);
+        expect(snapWidth(10, false)).toBe(99);
+        expect(snapWidth(-50, false)).toBe(99);
     });
 
-    it("caps at the widest safe column width under the safe maximum", () => {
-        expect(snapWidth(996, false)).toBe(996);
-        expect(snapWidth(1037, false)).toBe(996);
-        expect(snapWidth(1059, false)).toBe(996);
-        expect(snapWidth(5000, false)).toBe(996);
+    it("caps at the widest everywhere-safe column width", () => {
+        expect(snapWidth(ew(12), false)).toBe(ew(12));
+        expect(snapWidth(1033, false)).toBe(ew(12));
+        expect(snapWidth(1059, false)).toBe(ew(12));
+        expect(snapWidth(5000, false)).toBe(ew(12));
     });
 
     it("breaks an exact midpoint toward the wider width", () => {
-        expect(snapWidth(135, false)).toBe(176);
-        expect(snapWidth(134.99, false)).toBe(94);
+        expect(snapWidth(140, false)).toBe(181);
+        expect(snapWidth(139.99, false)).toBe(99);
     });
 
     it("free mode rounds to quarter units", () => {
@@ -73,21 +78,21 @@ describe("snapWidth", () => {
 });
 
 describe("snapHeight", () => {
-    it("snaps to whole chip rows", () => {
-        expect(snapHeight(162.75, false)).toBe(162.75);
-        expect(snapHeight(200, false)).toBe(162.75);
-        expect(snapHeight(250, false)).toBe(282.75);
-        expect(snapHeight(1000, false)).toBe(1002.75);
+    it("snaps to the smallest heights that hold whole rows in the shop and the Build Browser preview", () => {
+        expect(snapHeight(169, false)).toBe(169);
+        expect(snapHeight(162.75, false)).toBe(169);
+        expect(snapHeight(250, false)).toBe(289);
+        expect(snapHeight(eh(8) - 10, false)).toBe(eh(8));
     });
 
     it("never snaps below one row", () => {
-        expect(snapHeight(10, false)).toBe(162.75);
-        expect(snapHeight(-100, false)).toBe(162.75);
+        expect(snapHeight(10, false)).toBe(169);
+        expect(snapHeight(-100, false)).toBe(169);
     });
 
     it("breaks an exact midpoint toward the taller height", () => {
-        expect(snapHeight(222.75, false)).toBe(282.75);
-        expect(snapHeight(222.7, false)).toBe(162.75);
+        expect(snapHeight(229, false)).toBe(289);
+        expect(snapHeight(228.9, false)).toBe(169);
     });
 
     it("free mode rounds to quarter units with a one-row floor", () => {
@@ -100,26 +105,34 @@ describe("snapHeight", () => {
 
 describe("sizeTag", () => {
     it("reads columns and the rows the height holds at 1440p", () => {
-        expect(sizeTag(340, 162.75, 4, QHD)).toEqual({ columns: 4, rows: 1, overflow: false, unsafe: false });
-        expect(sizeTag(340, 282.75, 5, QHD)).toEqual({ columns: 4, rows: 2, overflow: false, unsafe: false });
-        expect(sizeTag(340, 402.75, 12, QHD)).toEqual({ columns: 4, rows: 3, overflow: false, unsafe: false });
+        expect(sizeTag(347, 162.75, 4, QHD)).toEqual({ columns: 4, rows: 1, overflow: false, unsafe: false });
+        expect(sizeTag(347, 282.75, 5, QHD)).toEqual({ columns: 4, rows: 2, overflow: false, unsafe: false });
+        expect(sizeTag(347, 402.75, 12, QHD)).toEqual({ columns: 4, rows: 3, overflow: false, unsafe: false });
     });
 
     it("counts only whole rows the height holds", () => {
-        expect(sizeTag(340, 250, 4, QHD).rows).toBe(1);
-        expect(sizeTag(340, 282.25, 4, QHD).rows).toBe(1);
-        expect(sizeTag(340, 282.5, 4, QHD).rows).toBe(2);
+        expect(sizeTag(347, 250, 4, QHD).rows).toBe(1);
+        expect(sizeTag(347, 282.25, 4, QHD).rows).toBe(1);
+        expect(sizeTag(347, 282.5, 4, QHD).rows).toBe(2);
     });
 
     it("holds no row when the stored height is shorter than one", () => {
-        expect(sizeTag(340, 100, 1, QHD)).toEqual({ columns: 4, rows: 0, overflow: true, unsafe: false });
+        expect(sizeTag(347, 100, 1, QHD)).toEqual({ columns: 4, rows: 0, overflow: true, unsafe: false });
     });
 
     it("flags items that need more rows than the height holds", () => {
-        expect(sizeTag(340, 162.75, 5, QHD).overflow).toBe(true);
-        expect(sizeTag(340, 282.75, 9, QHD).overflow).toBe(true);
-        expect(sizeTag(340, 282.75, 8, QHD).overflow).toBe(false);
-        expect(sizeTag(340, 162.75, 0, QHD).overflow).toBe(false);
+        expect(sizeTag(347, 162.75, 5, QHD).overflow).toBe(true);
+        expect(sizeTag(347, 282.75, 9, QHD).overflow).toBe(true);
+        expect(sizeTag(347, 282.75, 8, QHD).overflow).toBe(false);
+        expect(sizeTag(347, 162.75, 0, QHD).overflow).toBe(false);
+    });
+
+    it("flags a shop-safe width that the Build Browser preview shows with fewer columns", () => {
+        expect(sizeTag(340, 162.75, 4, QHD)).toEqual({ columns: 4, rows: 1, overflow: false, unsafe: true });
+        expect(sizeTag(258, 162.75, 3, FHD).unsafe).toBe(true);
+        expect(sizeTag(347, 162.75, 4, QHD).unsafe).toBe(false);
+        expect(sizeTag(94, 162.75, 1, QHD).unsafe).toBe(true);
+        expect(sizeTag(99, 162.75, 1, QHD).unsafe).toBe(false);
     });
 
     it("flags a width whose columns differ at another scale", () => {
@@ -127,13 +140,13 @@ describe("sizeTag", () => {
     });
 
     it("reads 1080p", () => {
-        expect(sizeTag(340, 282.75, 8, FHD)).toEqual({ columns: 4, rows: 2, overflow: false, unsafe: false });
-        expect(sizeTag(258, 162.75, 4, FHD)).toEqual({ columns: 3, rows: 1, overflow: true, unsafe: false });
+        expect(sizeTag(347, 282.75, 8, FHD)).toEqual({ columns: 4, rows: 2, overflow: false, unsafe: false });
+        expect(sizeTag(264, 162.75, 4, FHD)).toEqual({ columns: 3, rows: 1, overflow: true, unsafe: false });
         expect(sizeTag(175.5, 162.75, 2, FHD)).toEqual({ columns: 2, rows: 1, overflow: false, unsafe: true });
     });
 
     it("reads 2160p", () => {
-        expect(sizeTag(340, 402.75, 12, UHD)).toEqual({ columns: 4, rows: 3, overflow: false, unsafe: false });
+        expect(sizeTag(347, 402.75, 12, UHD)).toEqual({ columns: 4, rows: 3, overflow: false, unsafe: false });
         expect(sizeTag(175.5, 162.75, 2, UHD)).toEqual({ columns: 1, rows: 1, overflow: true, unsafe: false });
     });
 
@@ -270,30 +283,28 @@ describe("categoryInsertion", () => {
     });
 });
 
-const cols = (n: number) => minWidthForColumns(n);
-
 describe("widestOnRow", () => {
-    it("is the widest quarter width that still shares the row at every scale", () => {
-        const limit = widestOnRow([cols(3)])!;
-        expect(limit).toBe(790.5);
-        expect(sharesRowAtEveryScale([cols(3), limit])).toBe(true);
-        expect(sharesRowAtEveryScale([cols(3), limit + 0.25])).toBe(false);
+    it("is the widest quarter width that still shares the row in the shop and the preview", () => {
+        const limit = widestOnRow([ew(3)])!;
+        expect(limit * 4).toBe(Math.round(limit * 4));
+        expect(sharesRowEverywhere([ew(3), limit])).toBe(true);
+        expect(sharesRowEverywhere([ew(3), limit + 0.25])).toBe(false);
     });
 
     it("counts fractional widths the way the game rounds them", () => {
         const others = [257.75, 175.5];
         const limit = widestOnRow(others)!;
         expect(limit * 4).toBe(Math.round(limit * 4));
-        expect(sharesRowAtEveryScale([...others, limit])).toBe(true);
-        expect(sharesRowAtEveryScale([...others, limit + 0.25])).toBe(false);
+        expect(sharesRowEverywhere([...others, limit])).toBe(true);
+        expect(sharesRowEverywhere([...others, limit + 0.25])).toBe(false);
     });
 
     it("is the safe maximum with nothing else on the row", () => {
-        expect(widestOnRow([])).toBe(SAFE_MAX_WIDTH);
+        expect(widestOnRow([])).toBe(SAFE_MAX_WIDTH_EVERYWHERE);
     });
 
     it("is null when the others already fill the row", () => {
-        expect(widestOnRow([SAFE_MAX_WIDTH])).toBeNull();
+        expect(widestOnRow([SAFE_MAX_WIDTH_EVERYWHERE])).toBeNull();
     });
 });
 
@@ -322,9 +333,11 @@ describe("stopAtEdge", () => {
     });
 
     it("stops a snapped width at the widest safe width under the edge", () => {
-        expect(stopAtEdge(cols(10), 790.5, false)).toBe(cols(9));
-        expect(stopAtEdge(cols(9), 790.5, false)).toBe(cols(9));
-        expect(stopAtEdge(cols(5), 790.5, false)).toBe(cols(5));
+        expect(ew(9)).toBeLessThanOrEqual(790.5);
+        expect(ew(10)).toBeGreaterThan(790.5);
+        expect(stopAtEdge(ew(10), 790.5, false)).toBe(ew(9));
+        expect(stopAtEdge(ew(9), 790.5, false)).toBe(ew(9));
+        expect(stopAtEdge(ew(5), 790.5, false)).toBe(ew(5));
     });
 });
 
@@ -334,7 +347,8 @@ describe("edgeWidth", () => {
     });
 
     it("has no stop for a category alone on its row", () => {
-        expect(edgeWidth(1200, false, SAFE_MAX_WIDTH, 1)).toEqual({ width: cols(12), edge: "inside" });
+        expect(edgeWidth(1200, false, SAFE_MAX_WIDTH_EVERYWHERE, 1)).toEqual({ width: ew(12), edge: "inside" });
+        expect(edgeWidth(1050, true, SAFE_MAX_WIDTH_EVERYWHERE, 1)).toEqual({ width: 1050, edge: "inside" });
     });
 
     it("follows the pointer inside the edge", () => {
@@ -343,7 +357,7 @@ describe("edgeWidth", () => {
 
     it("holds at the edge while the pull is short of the break-through distance", () => {
         expect(edgeWidth(790.5 + 30, true, 790.5, 2)).toEqual({ width: 790.5, edge: "pulling" });
-        expect(edgeWidth(790.5 + 30, false, 790.5, 2)).toEqual({ width: cols(9), edge: "pulling" });
+        expect(edgeWidth(790.5 + 30, false, 790.5, 2)).toEqual({ width: ew(9), edge: "pulling" });
     });
 
     it("measures the pull in screen px", () => {
@@ -357,19 +371,21 @@ describe("edgeWidth", () => {
     });
 
     it("never lands back under the edge once through", () => {
-        // 777 snaps down to 9 columns (750), which would still fit under a 760 edge.
-        expect(edgeWidth(777, false, 760, 4)).toEqual({ width: cols(10), edge: "through" });
+        // 777 snaps down to 9 columns, which would still fit under a 770 edge.
+        expect(snapWidth(777, false)).toBe(ew(9));
+        expect(ew(9)).toBeLessThanOrEqual(770);
+        expect(edgeWidth(777, false, 770, 10)).toEqual({ width: ew(10), edge: "through" });
     });
 });
 
 describe("dragStop", () => {
     it("is the row limit when the row shares at every scale", () => {
-        expect(dragStop(790.5, cols(4))).toBe(790.5);
+        expect(dragStop(790.5, ew(4))).toBe(790.5);
     });
 
     it("is none when the row already wraps at some scale", () => {
-        expect(dragStop(null, cols(4))).toBeNull();
-        expect(dragStop(300, cols(4))).toBeNull();
+        expect(dragStop(null, ew(4))).toBeNull();
+        expect(dragStop(300, ew(4))).toBeNull();
     });
 
     it("never stops a stored width that sits between quarter units", () => {

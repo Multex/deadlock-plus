@@ -1,7 +1,7 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { describe, expect, it } from "vitest";
-import { fitSize } from "../../../shop-view";
+import { fitEverywhere } from "../../../editor/row-ops";
 import { compactAll, parseCount, setTagSlot } from "./actions";
 
 function cat(items: number, width: number | null = 900, height: number | null = 600): ModCategoryView {
@@ -46,10 +46,11 @@ describe("compactAll", () => {
         const before = build(cat(2), cat(0, null, null), cat(9));
         const after = compactAll(before);
         after.modCategories.forEach((category, i) => {
-            const fit = fitSize(before.modCategories[i]!.mods.length);
+            const fit = fitEverywhere(before.modCategories[i]!.mods.length);
             expect([category.width, category.height]).toEqual([fit.width, fit.height]);
         });
         expect(before.modCategories[0]!.width).toBe(900);
+        expect(after.modCategories[0]).toMatchObject({ width: 181, height: 169 });
     });
 
     it("hands back the same build when nothing changes, so it costs no undo step", () => {

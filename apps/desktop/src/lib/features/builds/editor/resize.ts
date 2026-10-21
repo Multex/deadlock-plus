@@ -1,15 +1,26 @@
 import {
+    MAX_COLUMNS_EVERYWHERE,
     SAFE_MAX_WIDTH,
+    SAFE_MAX_WIDTH_EVERYWHERE,
     columnsAtEveryScale,
+    minHeightForRowsEverywhere,
     minWidthForColumns,
-    sharesRowAtEveryScale,
+    minWidthForColumnsEverywhere,
+    previewColumnsAtEveryScale,
+    sharesRowEverywhere,
     type Box,
     type Screen,
 } from "@deadlock-plus/build-layout";
 import { REFERENCE_HEIGHT, columnsFor, geometry, widthPx } from "@deadlock-plus/build-layout/layout";
-import { FIT_ONE_ROW_HEIGHT, FIT_ROW_HEIGHT, MAX_SAFE_COLUMNS } from "../shop-view";
+import { FIT_ONE_ROW_HEIGHT } from "../shop-view";
 
-const COLUMN_WIDTH = minWidthForColumns(2) - minWidthForColumns(1);
+/** The step `at(n)` nearest `raw`, n from 1 up to `max`; an exact midpoint takes the larger step. */
+function nearestStep(raw: number, at: (n: number) => number, max = Infinity): number {
+    let n = 1;
+    while (n < max && at(n + 1) <= raw) n++;
+    if (n < max && raw - at(n) >= at(n + 1) - raw) n++;
+    return at(n);
+}
 
 function quarter(raw: number): number {
     return Math.round(raw * 4) / 4;
@@ -19,11 +30,10 @@ function clamp(value: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, value));
 }
 
-/** Exact midpoints snap to the wider width. */
+/** Snapped widths keep their columns in the shop and the Build Browser preview; exact midpoints snap wider. */
 export function snapWidth(raw: number, free: boolean): number {
     if (free) return clamp(quarter(raw), minWidthForColumns(1), SAFE_MAX_WIDTH);
-    const columns = Math.round((raw - minWidthForColumns(1)) / COLUMN_WIDTH) + 1;
-    return minWidthForColumns(clamp(columns, 1, MAX_SAFE_COLUMNS));
+    return nearestStep(raw, minWidthForColumnsEverywhere, MAX_COLUMNS_EVERYWHERE);
 }
 
 /** How far past the row edge, in screen px, the pointer must pull before a category may wrap onto a new row. */
@@ -38,13 +48,13 @@ export function rowEdge(overshoot: number): RowEdge {
 }
 
 /**
- * Widest quarter-unit width, from one column up to `SAFE_MAX_WIDTH`, that shares one flow row with `others` at
- * every scale; null when not even one column fits.
+ * Widest quarter-unit width, from one column up to `SAFE_MAX_WIDTH_EVERYWHERE`, that shares one flow row with
+ * `others` in the shop and the Build Browser preview at every scale; null when not even one column fits.
  */
 export function widestOnRow(others: readonly number[]): number | null {
     const min = minWidthForColumns(1) * 4;
-    for (let quarters = SAFE_MAX_WIDTH * 4; quarters >= min; quarters--) {
-        if (sharesRowAtEveryScale([...others, quarters / 4])) return quarters / 4;
+    for (let quarters = SAFE_MAX_WIDTH_EVERYWHERE * 4; quarters >= min; quarters--) {
+        if (sharesRowEverywhere([...others, quarters / 4])) return quarters / 4;
     }
     return null;
 }
@@ -53,12 +63,12 @@ const quarterFloor = (width: number) => Math.floor(width * 4) / 4;
 
 function columnsUnder(limit: number): number {
     let columns = 1;
-    while (columns < MAX_SAFE_COLUMNS && minWidthForColumns(columns + 1) <= limit) columns++;
+    while (columns < MAX_COLUMNS_EVERYWHERE && minWidthForColumnsEverywhere(columns + 1) <= limit) columns++;
     return columns;
 }
 
 export function stopAtEdge(width: number, limit: number, free: boolean): number {
-    return Math.min(width, free ? quarterFloor(limit) : minWidthForColumns(columnsUnder(limit)));
+    return Math.min(width, free ? quarterFloor(limit) : minWidthForColumnsEverywhere(columnsUnder(limit)));
 }
 
 /**
@@ -78,20 +88,27 @@ export function edgeWidth(
     unit: number,
 ): { width: number; edge: RowEdge } {
     const width = snapWidth(raw, free);
-    if (limit === null || limit >= SAFE_MAX_WIDTH) return { width, edge: "inside" };
+    if (limit === null || limit >= SAFE_MAX_WIDTH_EVERYWHERE) return { width, edge: "inside" };
     const edge = rowEdge((raw - limit) * unit);
     if (edge !== "through") return { width: stopAtEdge(width, limit, free), edge };
     const past = free
         ? quarterFloor(limit) + 0.25
-        : minWidthForColumns(Math.min(MAX_SAFE_COLUMNS, columnsUnder(limit) + 1));
+        : minWidthForColumnsEverywhere(Math.min(MAX_COLUMNS_EVERYWHERE, columnsUnder(limit) + 1));
     return { width: Math.max(width, past), edge };
 }
 
-/** Exact midpoints snap to the taller height. */
+/** Snapped heights hold whole rows in the shop and the Build Browser preview; exact midpoints snap taller. */
 export function snapHeight(raw: number, free: boolean): number {
     if (free) return Math.max(FIT_ONE_ROW_HEIGHT, quarter(raw));
-    const rows = Math.max(1, Math.round((raw - FIT_ONE_ROW_HEIGHT) / FIT_ROW_HEIGHT) + 1);
-    return FIT_ONE_ROW_HEIGHT + FIT_ROW_HEIGHT * (rows - 1);
+    return nearestStep(raw, minHeightForRowsEverywhere);
+}
+
+/**
+ * The Build Browser preview shows `width` with fewer than `columns` columns at some scale, or clips the chip of
+ * a single column.
+ */
+export function losesPreviewColumns(width: number, columns: number): boolean {
+    return previewColumnsAtEveryScale(width) < columns || width < minWidthForColumnsEverywhere(1);
 }
 
 export interface SizeTag {
@@ -99,7 +116,7 @@ export interface SizeTag {
     rows: number;
     /** The items need more chip rows than the height holds. */
     overflow: boolean;
-    /** The width draws a different column count at another scale than at this screen. */
+    /** The width draws a different column count at another scale, or loses one in the Build Browser preview. */
     unsafe: boolean;
 }
 
@@ -112,7 +129,7 @@ export function sizeTag(width: number, height: number, items: number, screen: Sc
         columns,
         rows,
         overflow: Math.ceil(items / columns) > rows,
-        unsafe: columnsAtEveryScale(width) !== columns,
+        unsafe: columnsAtEveryScale(width) !== columns || losesPreviewColumns(width, columns),
     };
 }
 

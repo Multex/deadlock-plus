@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { minWidthForColumns, sharesRowAtEveryScale, type Screen } from "@deadlock-plus/build-layout";
+import {
+    MAX_COLUMNS_EVERYWHERE,
+    minHeightForRowsEverywhere,
+    minWidthForColumns,
+    minWidthForColumnsEverywhere,
+    sharesRowEverywhere,
+    type Screen,
+} from "@deadlock-plus/build-layout";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { fitRowColumns, layoutIssues, repairLayout } from "./repair";
@@ -44,19 +51,35 @@ function build(...modCategories: ModCategoryView[]): BuildView {
 }
 
 const cols = (n: number) => minWidthForColumns(n);
+const ew = (n: number) => minWidthForColumnsEverywhere(n);
+const eh = (r: number) => minHeightForRowsEverywhere(r);
 const widths = (b: BuildView) => b.modCategories.map((c) => c.width);
 const heights = (b: BuildView) => b.modCategories.map((c) => c.height);
 
 describe("layoutIssues", () => {
-    it("finds nothing in a build of safe widths whose heights hold their items", () => {
-        const b = build(category(cols(3), 162.75, 3), category(cols(2), 282.75, 4), category(cols(1)));
+    it("finds nothing in a build of everywhere-safe widths whose heights hold their items", () => {
+        const b = build(category(ew(3), 162.75, 3), category(ew(2), 282.75, 4), category(ew(1)));
         expect(layoutIssues(b)).toEqual([]);
     });
 
     it("flags a width whose columns differ between 1080p, 1440p and 4K", () => {
         // 1440p's Fit width for 3 items: 3 columns there, 2 at 1080p.
-        const b = build(category(257.25, 162.75, 3), category(cols(3), 162.75, 3));
+        const b = build(category(257.25, 162.75, 3), category(ew(3), 162.75, 3));
         expect(layoutIssues(b)).toEqual([{ index: 0, kinds: ["columns"] }]);
+    });
+
+    it("flags a shop-safe width that the Build Browser preview shows with fewer columns", () => {
+        const b = build(category(cols(3), 162.75, 3), category(ew(3), 162.75, 3));
+        expect(layoutIssues(b)).toEqual([{ index: 0, kinds: ["preview_columns"] }]);
+    });
+
+    it("flags every category of a row that wraps only in the Build Browser preview", () => {
+        // 520 keeps 6 columns in both views; two share a shop row at every scale but not the preview's.
+        const b = build(category(520), category(520));
+        expect(layoutIssues(b)).toEqual([
+            { index: 0, kinds: ["preview_row"] },
+            { index: 1, kinds: ["preview_row"] },
+        ]);
     });
 
     it("flags every category of a row that wraps differently at another scale", () => {
@@ -72,12 +95,12 @@ describe("layoutIssues", () => {
     });
 
     it("flags a height shorter than its items' rows", () => {
-        const b = build(category(cols(2), 162.75, 4));
+        const b = build(category(ew(2), 162.75, 4));
         expect(layoutIssues(b)).toEqual([{ index: 0, kinds: ["height"] }]);
     });
 
     it("flags a category stored without a width or a height", () => {
-        const b = build(category(null, null, 2), category(cols(2), null, 2), category(null, 162.75, 1));
+        const b = build(category(null, null, 2), category(ew(2), null, 2), category(null, 162.75, 1));
         expect(layoutIssues(b)).toEqual([
             { index: 0, kinds: ["unsized"] },
             { index: 1, kinds: ["unsized"] },
@@ -97,32 +120,50 @@ describe("fitRowColumns", () => {
     });
 
     it("drops a column from the widest member first, the later one on a tie", () => {
-        expect(fitRowColumns([10, 5])).toEqual([7, 5]);
-        expect(sharesRowAtEveryScale([8, 5].map(cols))).toBe(false);
-        expect(fitRowColumns([6, 6, 1])).toEqual([6, 5, 1]);
+        expect(fitRowColumns([10, 5])).toEqual([6, 5]);
+        expect(sharesRowEverywhere([7, 5].map(ew))).toBe(false);
+        expect(fitRowColumns([6, 6, 1])).toEqual([5, 5, 1]);
+        expect(sharesRowEverywhere([6, 5, 1].map(ew))).toBe(false);
     });
 });
 
 describe("repairLayout", () => {
     it("returns the same build when nothing needs repair", () => {
-        const b = build(category(cols(3), 162.75, 3), category(cols(1)));
+        const b = build(category(ew(3), 162.75, 3), category(ew(1)));
         expect(repairLayout(b)).toBe(b);
     });
 
-    it("gives an unsafe width the safe width of its 1440p columns", () => {
+    it("flags a one-column width whose chip the Build Browser preview clips", () => {
+        expect(layoutIssues(build(category(cols(1))))).toEqual([{ index: 0, kinds: ["preview_columns"] }]);
+    });
+
+    it("gives an unsafe width the everywhere-safe width of its 1440p columns", () => {
         const b = build(category(257.25, 162.75, 3));
-        expect(widths(repairLayout(b))).toEqual([cols(3)]);
+        expect(widths(repairLayout(b))).toEqual([ew(3)]);
     });
 
-    it("brings a width over the cap down to the safe width of the columns it shows", () => {
+    it("gives a shop-safe width the everywhere-safe width of the same columns", () => {
+        const b = build(category(cols(4), 162.75, 4), category(cols(1)));
+        expect(widths(repairLayout(b))).toEqual([347, 99]);
+    });
+
+    it("brings a width over the cap down to the everywhere-safe width of the columns it shows", () => {
         const b = build(category(1200, 162.75, 4));
-        expect(widths(repairLayout(b))).toEqual([cols(12)]);
+        expect(widths(repairLayout(b))).toEqual([ew(MAX_COLUMNS_EVERYWHERE)]);
     });
 
-    it("narrows a row that wraps differently to safe widths, so it lays out alike at every scale", () => {
+    it("narrows a row that wraps differently to everywhere-safe widths, so it lays out alike everywhere", () => {
         const b = build(category(600), category(449));
         const repaired = repairLayout(b);
-        expect(widths(repaired)).toEqual([cols(7), cols(5)]);
+        expect(widths(repaired)).toEqual([ew(7), ew(5)]);
+        expect(layoutIssues(repaired)).toEqual([]);
+    });
+
+    it("narrows a row that wraps only in the Build Browser preview by its everywhere-safe columns", () => {
+        const b = build(category(520), category(520));
+        const repaired = repairLayout(b);
+        expect(fitRowColumns([6, 6])).toEqual([6, 5]);
+        expect(widths(repaired)).toEqual([ew(6), ew(5)]);
         expect(layoutIssues(repaired)).toEqual([]);
     });
 
@@ -130,27 +171,27 @@ describe("repairLayout", () => {
         const b = build(category(300, 162.75, 3), category(257.25, 162.75, 3));
         const repaired = repairLayout(b);
         expect(repaired.modCategories[0]).toBe(b.modCategories[0]);
-        expect(widths(repaired)).toEqual([300, cols(3)]);
+        expect(widths(repaired)).toEqual([300, ew(3)]);
     });
 
-    it("grows a short height to hold its items' rows and keeps a taller one", () => {
-        const b = build(category(cols(2), 162.75, 4), category(cols(2), 600, 4));
-        expect(heights(repairLayout(b))).toEqual([282.75, 600]);
+    it("grows a short height to the everywhere-safe height of its items' rows and keeps a taller one", () => {
+        const b = build(category(ew(2), 162.75, 4), category(ew(2), 600, 4));
+        expect(heights(repairLayout(b))).toEqual([289, 600]);
     });
 
     it("sizes a height to the columns the repaired width keeps", () => {
         // 6 items at 257.25: 3 columns at 1440p, 2 rows needed.
         const b = build(category(257.25, 162.75, 6));
         const repaired = repairLayout(b);
-        expect(widths(repaired)).toEqual([cols(3)]);
-        expect(heights(repaired)).toEqual([282.75]);
+        expect(widths(repaired)).toEqual([ew(3)]);
+        expect(heights(repaired)).toEqual([eh(2)]);
     });
 
-    it("gives a missing width and height our Fit size", () => {
-        const b = build(category(null, null, 5), category(cols(2), null, 4));
+    it("gives a missing width and height the everywhere-safe size of the columns and rows it shows", () => {
+        const b = build(category(null, null, 5), category(ew(2), null, 4), category(null, 282.75, 1));
         const repaired = repairLayout(b);
-        expect(widths(repaired)).toEqual([cols(5), cols(2)]);
-        expect(heights(repaired)).toEqual([162.75, 282.75]);
+        expect(widths(repaired)).toEqual([ew(5), ew(2), ew(1)]);
+        expect(heights(repaired)).toEqual([169, 289, 282.75]);
     });
 
     it("never reorders categories or items", () => {
@@ -168,8 +209,8 @@ describe("repairLayout", () => {
     it("keeps the columns another reference resolution shows", () => {
         // 339 draws 4 columns at 1440p and 3 at 1080p.
         const b = build(category(339, 282.75, 4));
-        expect(widths(repairLayout(b))).toEqual([cols(4)]);
-        expect(widths(repairLayout(b, { reference: FHD }))).toEqual([cols(3)]);
+        expect(widths(repairLayout(b))).toEqual([ew(4)]);
+        expect(widths(repairLayout(b, { reference: FHD }))).toEqual([ew(3)]);
     });
 
     it("is idempotent and leaves no issue, over many random builds", () => {

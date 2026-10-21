@@ -2,7 +2,7 @@ import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import type { ModEntryView } from "@deadlock-plus/ipc-types/ModEntryView";
 import type { ShopItem } from "../catalog";
-import { fitSize } from "../shop-view";
+import { fitEverywhere } from "./row-ops";
 
 export interface ItemRef {
     category: number;
@@ -92,7 +92,7 @@ function insertCategory(build: BuildView, index: number, category: ModCategoryVi
 }
 
 export function addCategory(build: BuildView, index: number, name: string): BuildView {
-    const fit = fitSize(0);
+    const fit = fitEverywhere(0);
     return insertCategory(build, index, {
         mods: [],
         name,
@@ -166,7 +166,7 @@ export function sortItems(build: BuildView, index: number, byId: ReadonlyMap<num
 
 export function fitToItems(build: BuildView, index: number): BuildView {
     return mapCategory(build, index, (c) => {
-        const fit = fitSize(c.mods.length);
+        const fit = fitEverywhere(c.mods.length);
         return { ...c, width: fit.width, height: fit.height };
     });
 }

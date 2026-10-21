@@ -201,13 +201,40 @@ test("the toolbar adds a category and previews other resolutions", async ({ page
     await expect(page.getByTestId("ability-bar")).toBeVisible();
 });
 
-test("a width that loses a column at another resolution shows a layout issue that Fix all clears", async ({ page }) => {
+test("Preview shows the Build Browser's read-only layout and the shop canvas comes back after", async ({ page }) => {
+    await openEditor(page);
+    const count = await canvas(page).locator("[data-category]").count();
+    const resolution = page.getByTestId("toolbar-resolution");
+    await resolution.getByRole("button", { name: "Preview" }).click();
+    await expect(resolution.getByRole("button", { name: "Preview" })).toHaveAttribute("aria-pressed", "true");
+
+    const preview = page.getByTestId("preview-canvas");
+    await expect(preview).toBeVisible();
+    await expect(page.getByTestId("preview-note")).toBeVisible();
+    await expect(canvas(page)).toHaveCount(0);
+    await expect(preview.locator("section.category")).toHaveCount(count);
+    await expect(preview.locator(".handle")).toHaveCount(0);
+
+    await resolution.getByRole("button", { name: "1440p" }).click();
+    await expect(preview).toBeHidden();
+    await expect(canvas(page).locator("[data-category]")).toHaveCount(count);
+});
+
+test("a width the Build Browser preview shows with fewer columns is a layout issue that Fix all clears", async ({
+    page,
+}) => {
     await openEditor(page);
     const issues = page.getByTestId("layout-issues");
-    // The demo stores Lane and Late game without a height.
-    await expect(issues).toHaveAttribute("data-count", "2");
+    // The demo stores shop-safe widths, which the preview shows a column short, and Lane and Late without a height.
+    await expect(issues).toHaveAttribute("data-count", "5");
 
-    // Unsnapped, 1 px narrower stores 257 units: 3 columns at 1440p but 2 at 1080p and 4K.
+    await issues.click();
+    await expect(page.getByTestId("layout-issues-list")).toContainText("Build Browser preview");
+    await page.getByTestId("layout-fix-all").click();
+    await expect(issues).toBeHidden();
+    await expect(canvas(page).getByTestId("category-layout-issue")).toHaveCount(0);
+
+    // Unsnapped, 1 px narrower stores 263 units: 3 columns in the shop but 2 in the preview at 1080p.
     await page.getByTestId("toolbar-snap").click();
     const first = canvas(page).locator('[data-category="0"]');
     await first.hover();
@@ -218,16 +245,11 @@ test("a width that loses a column at another resolution shows a layout issue tha
     await page.mouse.down();
     await page.mouse.move(x - 1, y);
     await page.mouse.up();
-    await expect(issues).toHaveAttribute("data-count", "3");
+    await expect(issues).toHaveAttribute("data-count", "1");
     await expect(first.getByTestId("category-layout-issue")).toBeVisible();
 
-    await issues.click();
-    await page.getByTestId("layout-fix-all").click();
-    await expect(issues).toBeHidden();
-    await expect(canvas(page).getByTestId("category-layout-issue")).toHaveCount(0);
-
     await page.getByTestId("editor-undo").click();
-    await expect(issues).toHaveAttribute("data-count", "3");
+    await expect(issues).toBeHidden();
 });
 
 test("editing an own published build says it is published in-game", async ({ page }) => {

@@ -13,7 +13,6 @@ vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
 vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: vi.fn() } }));
 
 import type { MineRow } from "../my-builds";
-import { fitSize } from "../shop-view";
 import {
     editHref,
     editHrefFor,
@@ -192,8 +191,8 @@ describe("protoLanguage", () => {
 });
 
 describe("newBuild", () => {
-    it("is an unnamed build for the hero in the given language with one empty Fit-sized category", () => {
-        const fit = fitSize(0);
+    it("is an unnamed build for the hero in the given language with one empty category that keeps its column everywhere", () => {
+        const fit = { width: 99, height: 169 };
         const b = newBuild(12, 1, "Start");
         expect(b).toMatchObject({ heroId: 12, name: "", description: "", language: 1, heroBuildId: 0, version: 0 });
         expect(b.originBuildId).toBeNull();

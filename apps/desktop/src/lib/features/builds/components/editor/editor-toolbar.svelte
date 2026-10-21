@@ -29,6 +29,7 @@
     let {
         editor,
         resolution = $bindable(MEASURED_RESOLUTION),
+        preview = $bindable(false),
         zoom = $bindable("fit"),
         snap = $bindable(true),
         fit = 1,
@@ -38,6 +39,8 @@
     }: {
         editor: BuildEditor;
         resolution?: ShopResolution;
+        /** The canvas shows the Build Browser's read-only preview at 1440p instead of the shop. */
+        preview?: boolean;
         zoom?: Zoom;
         /** Resizes snap to sizes that keep their columns at every scale. */
         snap?: boolean;
@@ -49,11 +52,18 @@
         onSave: () => void;
     } = $props();
 
-    const RESOLUTIONS: readonly { value: ShopResolution; label: string }[] = [
+    type View = ShopResolution | "preview";
+    const views = $derived<readonly { value: View; label: string }[]>([
         { value: "1080", label: "1080p" },
         { value: "1440", label: "1440p" },
         { value: "2160", label: "4K" },
-    ];
+        { value: "preview", label: t("builds.editor.toolbar.preview") },
+    ]);
+
+    function selectView(value: View) {
+        preview = value === "preview";
+        resolution = value === "preview" ? MEASURED_RESOLUTION : value;
+    }
 
     type EditStatus = SaveStatus | "draft_failed";
     const TONES: Record<EditStatus, "muted" | "warning" | "success"> = {
@@ -107,10 +117,10 @@
                 {#snippet child({ props })}
                     <span {...props} class="inline-flex" data-testid="toolbar-resolution">
                         <Segmented
-                            options={RESOLUTIONS}
-                            value={resolution}
+                            options={views}
+                            value={preview ? "preview" : resolution}
                             label={t("builds.editor.toolbar.resolution")}
-                            onselect={(value) => (resolution = value)}
+                            onselect={selectView}
                         />
                     </span>
                 {/snippet}

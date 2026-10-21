@@ -5,6 +5,7 @@ import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { fitSize, shopView } from "../../../shop-view";
 import { sizeTag } from "../../../editor/resize";
 import { canvasView, categoryBar, chipShifts, dropTarget, itemCaret, slotBoxes, storedSize } from "./geometry";
+import { fitEverywhere } from "../../../editor/row-ops";
 
 const QHD: Screen = { width: 2560, height: 1440 };
 const AVAILABLE = 713;
@@ -37,7 +38,7 @@ describe("canvasView", () => {
         const { view, tile } = canvasView(BUILD, QHD, AVAILABLE);
         const shop = shopView(BUILD, QHD, AVAILABLE, "fit");
         expect(view.categories).toEqual(shop.categories);
-        const empty = fitSize(0);
+        const empty = fitEverywhere(0);
         const withTile = shopView([...BUILD, category(empty.width, 0, empty.height)], QHD, AVAILABLE, "fit");
         expect(tile).toEqual(withTile.categories.at(-1)!.box);
         expect(view.contentHeight).toBe(withTile.contentHeight);

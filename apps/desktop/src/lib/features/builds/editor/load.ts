@@ -5,7 +5,7 @@ import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
 import { parseTarget, pickLocal } from "../build-detail.svelte";
 import { LOCAL_ID_LIMIT, type MineRow } from "../my-builds";
-import { fitSize } from "../shop-view";
+import { fitEverywhere } from "./row-ops";
 import type { EditOrigin } from "./session";
 
 export type EditTarget =
@@ -85,7 +85,7 @@ export function protoLanguage(locale: string): number {
 
 /** The ids, author and timestamps are placeholders: the backend assigns them on the first save. */
 export function newBuild(heroId: number, language: number, categoryName: string): BuildView {
-    const fit = fitSize(0);
+    const fit = fitEverywhere(0);
     return {
         heroBuildId: 0,
         heroId,

@@ -3,7 +3,6 @@ import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import type { ModEntryView } from "@deadlock-plus/ipc-types/ModEntryView";
 import { describe, expect, it } from "vitest";
 import type { ShopItem } from "../catalog";
-import { fitSize } from "../shop-view";
 import {
     addCategory,
     addItems,
@@ -152,9 +151,9 @@ describe("updateItem", () => {
 });
 
 describe("categories", () => {
-    it("adds an empty category at the Fit size for no items", () => {
+    it("adds an empty category at the smallest size that is safe in the shop and the Build Browser preview", () => {
         const next = pure(BASE, (b) => addCategory(b, 1, "New"));
-        const fit = fitSize(0);
+        const fit = { width: 99, height: 169, columns: 1 };
         expect(next.modCategories.map((c) => c.name)).toEqual(["A", "New", "B", "C"]);
         expect(next.modCategories[1]).toEqual({
             mods: [],
@@ -214,10 +213,9 @@ describe("categories", () => {
         expect(pure(BASE, (b) => mergeWithNext(b, 2))).toEqual(BASE);
     });
 
-    it("fits a category to its items", () => {
+    it("fits a category to its items at everywhere-safe sizes", () => {
         const next = pure(BASE, (b) => fitToItems(b, 0));
-        const fit = fitSize(3);
-        expect(next.modCategories[0]).toMatchObject({ width: fit.width, height: fit.height });
+        expect(next.modCategories[0]).toMatchObject({ width: 264, height: 169 });
     });
 });
 

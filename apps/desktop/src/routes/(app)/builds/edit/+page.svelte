@@ -14,6 +14,7 @@
     import CategoryMenu from "$lib/features/builds/components/editor/category-menu.svelte";
     import EditCanvas from "$lib/features/builds/components/editor/edit-canvas.svelte";
     import EditorToolbar from "$lib/features/builds/components/editor/editor-toolbar.svelte";
+    import PreviewCanvas from "$lib/features/builds/components/editor/preview-canvas.svelte";
     import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
     import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
@@ -38,6 +39,7 @@
     let kit = $state.raw<HeroKit | null>(null);
     let hero = $state.raw<Hero | null>(null);
     let resolution = $state<ShopResolution>(MEASURED_RESOLUTION);
+    let preview = $state(false);
     const screen = $derived(SHOP_SCREENS[resolution]);
     let zoom = $state(loadZoom());
     let fit = $state(1);
@@ -280,6 +282,7 @@
                     <EditorToolbar
                         {editor}
                         bind:resolution
+                        bind:preview
                         bind:zoom
                         bind:snap
                         {fit}
@@ -288,7 +291,16 @@
                         onSave={() => void save()}
                     />
                     <div class="min-h-0 flex-1 overflow-auto p-4" data-testid="editor-canvas-scroll">
-                        {#if catalog}
+                        {#if catalog && preview}
+                            {@const byId = catalog.byId}
+                            <PreviewCanvas
+                                {build}
+                                screen={SHOP_SCREENS[MEASURED_RESOLUTION]}
+                                {zoom}
+                                bind:fit
+                                resolve={(id) => chipFor(byId, id)}
+                            />
+                        {:else if catalog}
                             {@const byId = catalog.byId}
                             {@const active = editor}
                             <EditCanvas
