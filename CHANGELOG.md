@@ -20,6 +20,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Builds you save while Deadlock is running are written when the game closes.
 - If the game changed a build while a save was waiting, you choose which version to keep.
 - Deadlock+ backs up your build file before every write and keeps the last 10 backups.
+- Unsaved changes to a build are kept as a draft until you save or discard them.
+- You can favourite any public build from its page, and it shows in your favourites in-game.
+- Shop items, prices and hero levels come from your Deadlock install.
 
 ## [0.13.2] - 2026-10-21
 
