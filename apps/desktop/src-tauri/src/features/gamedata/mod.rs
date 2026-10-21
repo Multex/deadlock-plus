@@ -30,9 +30,9 @@ pub mod commands {
     use std::sync::Arc;
 
     use dp_gamedata::{
-        AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry,
-        HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems,
-        RankArt, ShopItem, ShopUiArt,
+        AbilityTooltip, AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt,
+        HeroEntry, HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt,
+        PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
     };
     use tauri::State;
 
@@ -125,6 +125,14 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(move || art.shop_ui_art()).await.map_err(AppError::internal)
     }
 
+    /// The icons the game's tooltips draw beside properties, status cells and description keywords, by icon
+    /// class or keyword, as local files; empty without an install.
+    #[tauri::command]
+    pub async fn game_property_icon_art(art: State<'_, ArtCache>) -> Result<Vec<PropertyIconArt>, AppError> {
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || art.property_icon_art()).await.map_err(AppError::internal)
+    }
+
     #[tauri::command]
     pub async fn game_map_items(
         items: State<'_, Arc<GameMapItems>>,
@@ -168,6 +176,19 @@ pub mod commands {
         let stats =
             tauri::async_runtime::spawn_blocking(move || shop.item_stats(&locale)).await.map_err(AppError::internal)?;
         Ok(stats.map(|s| s.to_vec()).unwrap_or_default())
+    }
+
+    /// What each hero ability's tooltip shows, by ability id. Empty while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_ability_tooltips(
+        vdata: State<'_, GameVdata>,
+        locale: String,
+    ) -> Result<Vec<AbilityTooltip>, AppError> {
+        let shop = Arc::clone(&vdata.shop);
+        let list = tauri::async_runtime::spawn_blocking(move || shop.ability_tooltips(&locale))
+            .await
+            .map_err(AppError::internal)?;
+        Ok(list.map(|l| l.to_vec()).unwrap_or_default())
     }
 
     /// No levels while the installed game cannot be read.

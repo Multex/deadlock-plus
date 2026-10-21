@@ -10,6 +10,9 @@ use ts_rs::TS;
 
 use crate::build_tags::{self, BuildTag, BUILD_TAG_KEYS};
 use crate::catalog::{archive_stamp, HeroEntry, Install, SteamInstall};
+use crate::property_icons::{
+    icon_rules, inline_attribute_rules, resolve_washes, IconRule, PropertyIconArt, BASE_STYLESHEET, STYLESHEET,
+};
 use crate::ui_art;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -253,10 +256,83 @@ pub enum ShopUiImage {
     FilterMisc,
     /// `.top_filter_bg` of the hovered or open stat-category tab, washed with its colour.
     FilterTabFill,
+    /// `#ModTooltipContainer` paper per slot (`.WeaponMod|ArmorMod|TechMod`), stretched over the whole tooltip.
+    TooltipBackerWeapon,
+    TooltipBackerVitality,
+    TooltipBackerSpirit,
+    /// The paper's opacity mask (its torn edge).
+    TooltipBackerWeaponMask,
+    TooltipBackerVitalityMask,
+    TooltipBackerSpiritMask,
+    /// The paper of a corrupted item (`.IsCorrupted`).
+    TooltipBackerWeaponCorrupted,
+    TooltipBackerVitalityCorrupted,
+    TooltipBackerSpiritCorrupted,
+    /// `.HeaderContainer` painted band behind the item name and cost.
+    TooltipHeaderWeapon,
+    TooltipHeaderVitality,
+    TooltipHeaderSpirit,
+    /// The band of a corrupted weapon item; the game has no corrupted band for the other slots.
+    TooltipHeaderWeaponCorrupted,
+    /// `.AffectedAbilitiesHeader` band over the abilities an item modifies.
+    TooltipModifiesHeaderWeapon,
+    TooltipModifiesHeaderVitality,
+    TooltipModifiesHeaderSpirit,
+    /// The background behind the abilities an item modifies.
+    TooltipModifiesBgWeapon,
+    TooltipModifiesBgVitality,
+    TooltipModifiesBgSpirit,
+    /// `.CooldownImage` in a section header.
+    CooldownLarge,
+    /// `.ChargeUpImage` in a section header.
+    ChargeUpLarge,
+    /// The souls glyph beside a cost.
+    SoulIcon,
+    /// Key stat arrows; the game calls weapon `courage` and vitality `fortitude`.
+    KeystatArrowWeapon,
+    KeystatArrowVitality,
+    KeystatArrowSpirit,
+    KeystatArrowMelee,
+    KeystatArrowBoon,
+    /// Arrows beside a value an item changes, by how much it changes.
+    #[serde(rename = "modified_arrow_1")]
+    ModifiedArrow1,
+    #[serde(rename = "modified_arrow_2")]
+    ModifiedArrow2,
+    #[serde(rename = "modified_arrow_3")]
+    ModifiedArrow3,
+    ArrowDelta,
+    /// `.ModPurchasedCheck` on an owned item.
+    PurchasedCheck,
+    Checkmark,
+    /// The fifth `#mod_tier_label` digit.
+    #[serde(rename = "tier_number_5")]
+    TierNumber5,
+    /// Hero ability tooltip `.TexturePanel`.
+    AbilityTooltipBg,
+    /// The texture layered over the ability tooltip.
+    AbilityTooltipTexture,
+    /// Ability upgrade cards (`.abilityUpgradeContent`) by state.
+    AbilityUpgradeRectDefault,
+    AbilityUpgradeRectCantAfford,
+    AbilityUpgradeRectAvailable,
+    /// Ability upgrade cards in the radial ability details, by state.
+    AbilityUpgradeBackerDefault,
+    AbilityUpgradeBackerCantAfford,
+    AbilityUpgradeBackerAvailable,
+    AbilityUpgradeBackerOwned,
+    /// `.abilityPointBolt`, the ability point cost mark.
+    AbilityPoint,
+    /// The check on a bought ability upgrade.
+    AbilityUpgradeCheck,
+    /// Slot stat marks (`#TierBonusStatImage`, `.ScalingStatImage`), e.g. beside a value that scales with Spirit Power.
+    StatIconWeapon,
+    StatIconVitality,
+    StatIconSpirit,
 }
 
 impl ShopUiImage {
-    pub const ALL: [ShopUiImage; 45] = [
+    pub const ALL: [ShopUiImage; 93] = [
         ShopUiImage::CardBackerWeaponT1,
         ShopUiImage::CardBackerWeaponT2,
         ShopUiImage::CardBackerWeaponT3,
@@ -302,6 +378,54 @@ impl ShopUiImage {
         ShopUiImage::FilterDisruption,
         ShopUiImage::FilterMisc,
         ShopUiImage::FilterTabFill,
+        ShopUiImage::TooltipBackerWeapon,
+        ShopUiImage::TooltipBackerVitality,
+        ShopUiImage::TooltipBackerSpirit,
+        ShopUiImage::TooltipBackerWeaponMask,
+        ShopUiImage::TooltipBackerVitalityMask,
+        ShopUiImage::TooltipBackerSpiritMask,
+        ShopUiImage::TooltipBackerWeaponCorrupted,
+        ShopUiImage::TooltipBackerVitalityCorrupted,
+        ShopUiImage::TooltipBackerSpiritCorrupted,
+        ShopUiImage::TooltipHeaderWeapon,
+        ShopUiImage::TooltipHeaderVitality,
+        ShopUiImage::TooltipHeaderSpirit,
+        ShopUiImage::TooltipHeaderWeaponCorrupted,
+        ShopUiImage::TooltipModifiesHeaderWeapon,
+        ShopUiImage::TooltipModifiesHeaderVitality,
+        ShopUiImage::TooltipModifiesHeaderSpirit,
+        ShopUiImage::TooltipModifiesBgWeapon,
+        ShopUiImage::TooltipModifiesBgVitality,
+        ShopUiImage::TooltipModifiesBgSpirit,
+        ShopUiImage::CooldownLarge,
+        ShopUiImage::ChargeUpLarge,
+        ShopUiImage::SoulIcon,
+        ShopUiImage::KeystatArrowWeapon,
+        ShopUiImage::KeystatArrowVitality,
+        ShopUiImage::KeystatArrowSpirit,
+        ShopUiImage::KeystatArrowMelee,
+        ShopUiImage::KeystatArrowBoon,
+        ShopUiImage::ModifiedArrow1,
+        ShopUiImage::ModifiedArrow2,
+        ShopUiImage::ModifiedArrow3,
+        ShopUiImage::ArrowDelta,
+        ShopUiImage::PurchasedCheck,
+        ShopUiImage::Checkmark,
+        ShopUiImage::TierNumber5,
+        ShopUiImage::AbilityTooltipBg,
+        ShopUiImage::AbilityTooltipTexture,
+        ShopUiImage::AbilityUpgradeRectDefault,
+        ShopUiImage::AbilityUpgradeRectCantAfford,
+        ShopUiImage::AbilityUpgradeRectAvailable,
+        ShopUiImage::AbilityUpgradeBackerDefault,
+        ShopUiImage::AbilityUpgradeBackerCantAfford,
+        ShopUiImage::AbilityUpgradeBackerAvailable,
+        ShopUiImage::AbilityUpgradeBackerOwned,
+        ShopUiImage::AbilityPoint,
+        ShopUiImage::AbilityUpgradeCheck,
+        ShopUiImage::StatIconWeapon,
+        ShopUiImage::StatIconVitality,
+        ShopUiImage::StatIconSpirit,
     ];
 
     /// The wire name, also the cache file stem.
@@ -318,6 +442,11 @@ impl ShopUiImage {
         macro_rules! cards {
             ($file:literal) => {
                 concat!("panorama/images/shop/catalog/cards/", $file)
+            };
+        }
+        macro_rules! images {
+            ($file:literal) => {
+                concat!("panorama/images/", $file)
             };
         }
         macro_rules! filters {
@@ -383,6 +512,126 @@ impl ShopUiImage {
             ShopUiImage::FilterDisruption => ("filter_disruption", filters!("sigil_disruption_psd.vtex_c")),
             ShopUiImage::FilterMisc => ("filter_misc", filters!("sigil_misc_psd.vtex_c")),
             ShopUiImage::FilterTabFill => ("filter_tab_fill", filters!("top_level_filter_fill.vsvg_c")),
+            ShopUiImage::TooltipBackerWeapon => {
+                ("tooltip_backer_weapon", images!("tooltips/items/tooltip_backer_weapon_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerVitality => {
+                ("tooltip_backer_vitality", images!("tooltips/items/tooltip_backer_vitality_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerSpirit => {
+                ("tooltip_backer_spirit", images!("tooltips/items/tooltip_backer_spirit_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerWeaponMask => {
+                ("tooltip_backer_weapon_mask", images!("tooltips/items/tooltip_backer_weapon_mask_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerVitalityMask => {
+                ("tooltip_backer_vitality_mask", images!("tooltips/items/tooltip_backer_vitality_mask_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerSpiritMask => {
+                ("tooltip_backer_spirit_mask", images!("tooltips/items/tooltip_backer_spirit_mask_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipBackerWeaponCorrupted => (
+                "tooltip_backer_weapon_corrupted",
+                images!("tooltips/items/tooltip_backer_weapon_corrupted_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipBackerVitalityCorrupted => (
+                "tooltip_backer_vitality_corrupted",
+                images!("tooltips/items/tooltip_backer_vitality_corrupted_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipBackerSpiritCorrupted => (
+                "tooltip_backer_spirit_corrupted",
+                images!("tooltips/items/tooltip_backer_spirit_corrupted_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipHeaderWeapon => {
+                ("tooltip_header_weapon", images!("shop/catalog/catalog_tooltip_header_weapon_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipHeaderVitality => {
+                ("tooltip_header_vitality", images!("shop/catalog/catalog_tooltip_header_vitality_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipHeaderSpirit => {
+                ("tooltip_header_spirit", images!("shop/catalog/catalog_tooltip_header_spirit_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipHeaderWeaponCorrupted => (
+                "tooltip_header_weapon_corrupted",
+                images!("shop/catalog/catalog_tooltip_header_weapon_corrupted_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipModifiesHeaderWeapon => (
+                "tooltip_modifies_header_weapon",
+                images!("shop/catalog/catalog_tooltip_modifies_header_weapon_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipModifiesHeaderVitality => (
+                "tooltip_modifies_header_vitality",
+                images!("shop/catalog/catalog_tooltip_modifies_header_vitality_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipModifiesHeaderSpirit => (
+                "tooltip_modifies_header_spirit",
+                images!("shop/catalog/catalog_tooltip_modifies_header_spirit_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipModifiesBgWeapon => {
+                ("tooltip_modifies_bg_weapon", images!("shop/catalog/catalog_tooltip_bg_modifies_weapon_psd.vtex_c"))
+            }
+            ShopUiImage::TooltipModifiesBgVitality => (
+                "tooltip_modifies_bg_vitality",
+                images!("shop/catalog/catalog_tooltip_bg_modifies_vitality_psd.vtex_c"),
+            ),
+            ShopUiImage::TooltipModifiesBgSpirit => {
+                ("tooltip_modifies_bg_spirit", images!("shop/catalog/catalog_tooltip_bg_modifies_spirit_psd.vtex_c"))
+            }
+            ShopUiImage::CooldownLarge => ("cooldown_large", images!("upgrades/property_cooldown_large_psd.vtex_c")),
+            ShopUiImage::ChargeUpLarge => ("charge_up_large", images!("upgrades/property_chargeup_large_psd.vtex_c")),
+            ShopUiImage::SoulIcon => ("soul_icon", images!("hud/icons/icon_soul.vsvg_c")),
+            ShopUiImage::KeystatArrowWeapon => {
+                ("keystat_arrow_weapon", images!("shop/keystat_courage_arrow_png.vtex_c"))
+            }
+            ShopUiImage::KeystatArrowVitality => {
+                ("keystat_arrow_vitality", images!("shop/keystat_fortitude_arrow_png.vtex_c"))
+            }
+            ShopUiImage::KeystatArrowSpirit => {
+                ("keystat_arrow_spirit", images!("shop/keystat_spirit_arrow_png.vtex_c"))
+            }
+            ShopUiImage::KeystatArrowMelee => ("keystat_arrow_melee", images!("shop/keystat_melee_arrow_png.vtex_c")),
+            ShopUiImage::KeystatArrowBoon => ("keystat_arrow_boon", images!("shop/keystat_boon_arrow_png.vtex_c")),
+            ShopUiImage::ModifiedArrow1 => ("modified_arrow_1", images!("shop/tooltip_modified_arrow_1.vsvg_c")),
+            ShopUiImage::ModifiedArrow2 => ("modified_arrow_2", images!("shop/tooltip_modified_arrow_2.vsvg_c")),
+            ShopUiImage::ModifiedArrow3 => ("modified_arrow_3", images!("shop/tooltip_modified_arrow_3.vsvg_c")),
+            ShopUiImage::ArrowDelta => ("arrow_delta", images!("upgrades/arrow_delta_psd.vtex_c")),
+            ShopUiImage::PurchasedCheck => ("purchased_check", images!("shop/purchased_check_png.vtex_c")),
+            ShopUiImage::Checkmark => ("checkmark", images!("icons/icon_checkmark.vsvg_c")),
+            ShopUiImage::TierNumber5 => ("tier_number_5", images!("upgrades/tier_numbers_small_05.vsvg_c")),
+            ShopUiImage::AbilityTooltipBg => {
+                ("ability_tooltip_bg", images!("tooltips/ability/ability_tooltip_bg_png.vtex_c"))
+            }
+            ShopUiImage::AbilityTooltipTexture => {
+                ("ability_tooltip_texture", images!("tooltips/ability/ability_texture_layer_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeRectDefault => {
+                ("ability_upgrade_rect_default", images!("tooltips/ability/ap_rect_default_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeRectCantAfford => {
+                ("ability_upgrade_rect_cant_afford", images!("tooltips/ability/ap_rect_cant_afford_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeRectAvailable => {
+                ("ability_upgrade_rect_available", images!("tooltips/ability/ap_rect_available_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeBackerDefault => {
+                ("ability_upgrade_backer_default", images!("tooltips/ability/ap_backer_default_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeBackerCantAfford => {
+                ("ability_upgrade_backer_cant_afford", images!("tooltips/ability/ap_backer_cantafford_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeBackerAvailable => {
+                ("ability_upgrade_backer_available", images!("tooltips/ability/ap_backer_available_png.vtex_c"))
+            }
+            ShopUiImage::AbilityUpgradeBackerOwned => {
+                ("ability_upgrade_backer_owned", images!("tooltips/ability/ap_backer_owned_png.vtex_c"))
+            }
+            ShopUiImage::AbilityPoint => ("ability_point", images!("hud/ap_icon.vsvg_c")),
+            ShopUiImage::AbilityUpgradeCheck => {
+                ("ability_upgrade_check", images!("hud/ability_upgrade_check_psd.vtex_c"))
+            }
+            ShopUiImage::StatIconWeapon => ("stat_icon_weapon", images!("hud/core/icon_courage.vsvg_c")),
+            ShopUiImage::StatIconVitality => ("stat_icon_vitality", images!("hud/core/icon_fortitude.vsvg_c")),
+            ShopUiImage::StatIconSpirit => ("stat_icon_spirit", images!("hud/core/icon_spirit.vsvg_c")),
         }
     }
 }
@@ -410,6 +659,10 @@ pub trait ArtSource: Send + Sync + 'static {
     fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool;
     /// Writes the browser-ready form of a compiled Panorama image named by its archive path.
     fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool;
+    /// The CSS source of a compiled Panorama stylesheet; None when it is missing or will not decode.
+    fn ui_stylesheet(&self, _compiled_path: &str) -> Option<String> {
+        None
+    }
 }
 
 struct ArchiveSource {
@@ -420,6 +673,13 @@ struct ArchiveSource {
 }
 
 impl ArchiveSource {
+    fn read_ui(&self, compiled_path: &str) -> Option<Vec<u8>> {
+        let vpk = self
+            .vpk
+            .get_or_init(|| Vpk::open(&self.archive).map_err(|e| log::debug!("game UI art unavailable: {e}")).ok());
+        vpk.as_ref().and_then(|vpk| vpk.read_path(compiled_path).ok())
+    }
+
     fn write(&self, art: &Art<'_>, dest: &Path, what: &str) -> bool {
         if !self.art.contains(art) {
             return false;
@@ -474,13 +734,15 @@ impl ArtSource for ArchiveSource {
     }
 
     fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
-        let vpk = self
-            .vpk
-            .get_or_init(|| Vpk::open(&self.archive).map_err(|e| log::debug!("game UI art unavailable: {e}")).ok());
-        let Some(bytes) = vpk.as_ref().and_then(|vpk| vpk.read_path(compiled_path).ok()) else { return false };
+        let Some(bytes) = self.read_ui(compiled_path) else { return false };
         let written = ui_art::browser_image(compiled_path, &bytes)
             .and_then(|file| write_whole(dest, &file).map_err(|e| format!("{}: {e}", dest.display())));
         written.map_err(|e| log::debug!("no local UI art: {e}")).is_ok()
+    }
+
+    fn ui_stylesheet(&self, compiled_path: &str) -> Option<String> {
+        let bytes = self.read_ui(compiled_path)?;
+        ui_art::stylesheet(compiled_path, &bytes).map_err(|e| log::debug!("no game stylesheet: {e}")).ok()
     }
 }
 
@@ -533,6 +795,8 @@ struct Build {
     fingerprint: Option<String>,
     source: Option<Option<Arc<dyn ArtSource>>>,
     failed: HashSet<String>,
+    /// The icon stylesheet's rules then the base styles' inline attribute rules, read once per build.
+    icon_rules: Option<Vec<IconRule>>,
 }
 
 struct Shared<I> {
@@ -584,6 +848,14 @@ fn open_archive(citadel_dir: &Path) -> Option<Arc<dyn ArtSource>> {
 fn fingerprint(dir: &Path) -> Option<String> {
     let nanos = archive_stamp(dir)?.duration_since(UNIX_EPOCH).ok()?.as_nanos();
     Some(format!("{nanos:x}"))
+}
+
+/// `panorama/images/icons/properties/range.vsvg_c` is cached as `ui_prop_icons_properties_range.svg`.
+fn icon_file_name(compiled: &str) -> Option<String> {
+    let extension = if ui_art::is_vector(compiled) { "svg" } else { "png" };
+    let stem = compiled.strip_prefix("panorama/images/")?;
+    let stem = stem.strip_suffix(".vsvg_c").or_else(|| stem.strip_suffix(".vtex_c"))?.replace('/', "_");
+    file_safe(&stem).then(|| format!("ui_prop_{stem}.{extension}"))
 }
 
 fn file_safe(class_name: &str) -> bool {
@@ -723,6 +995,34 @@ impl<I: Install> ArtCache<I> {
         .unwrap_or_default()
     }
 
+    /// Local files for the icons the game's tooltips draw beside properties and status cells, by icon class,
+    /// then beside description keywords, by keyword, as the installed game's stylesheets assign them. Images
+    /// that will not decode are left out; this never fails.
+    pub fn property_icon_art(&self) -> Vec<PropertyIconArt> {
+        self.with_build(|build, build_dir| {
+            if build.icon_rules.is_none() {
+                let source = self.source(build);
+                let read = |path| source.as_ref().and_then(|s| s.ui_stylesheet(path));
+                let mut rules = read(STYLESHEET).as_deref().map(icon_rules).unwrap_or_default();
+                if let Some(base) = read(BASE_STYLESHEET) {
+                    resolve_washes(&mut rules, &base);
+                    rules.extend(inline_attribute_rules(&base));
+                }
+                build.icon_rules = Some(rules);
+            }
+            let rules = build.icon_rules.clone().unwrap_or_default();
+            rules
+                .into_iter()
+                .filter_map(|rule| {
+                    let name = icon_file_name(&rule.image)?;
+                    let path = self.ensure(build, build_dir, name, |s, p| s.write_ui(&rule.image, p))?;
+                    Some(PropertyIconArt { class: rule.class, path, wash: rule.wash, color: rule.color })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    }
+
     /// `tags` with `icon` set to a local SVG of each standard tag's picker icon, decoding what the cache
     /// lacks. A tag without an icon keeps `None`; this never fails.
     pub fn build_tag_icons(&self, tags: &[BuildTag]) -> Vec<BuildTag> {
@@ -792,7 +1092,7 @@ impl<I: Install> ArtCache<I> {
                 }
                 state.served = Some(new.clone());
             }
-            state.build = Some(Build { dir, fingerprint, source: None, failed: HashSet::new() });
+            state.build = Some(Build { dir, fingerprint, source: None, failed: HashSet::new(), icon_rules: None });
         }
         let build = state.build.as_mut().expect("set above");
         let out = build.fingerprint.as_ref().map(|f| self.shared.root.join(f)).map(|build_dir| f(build, &build_dir));
@@ -816,10 +1116,7 @@ impl<I: Install> ArtCache<I> {
         let path = build_dir.join(&name);
         let ready = path.is_file() || {
             !build.failed.contains(&name) && {
-                let citadel = build.dir.clone();
-                let source =
-                    build.source.get_or_insert_with(|| citadel.as_deref().and_then(|dir| (self.shared.opener)(dir)));
-                let written = source.as_deref().is_some_and(|s| write(s, &path));
+                let written = self.source(build).is_some_and(|s| write(s.as_ref(), &path));
                 if !written {
                     build.failed.insert(name);
                 }
@@ -827,6 +1124,11 @@ impl<I: Install> ArtCache<I> {
             }
         };
         ready.then(|| path.to_string_lossy().into_owned())
+    }
+
+    fn source(&self, build: &mut Build) -> Option<Arc<dyn ArtSource>> {
+        let citadel = build.dir.clone();
+        build.source.get_or_insert_with(|| citadel.as_deref().and_then(|dir| (self.shared.opener)(dir))).clone()
     }
 
     fn remove_entries(&self, remove: impl Fn(&std::fs::DirEntry) -> bool) {
@@ -869,6 +1171,9 @@ mod tests {
         failing: HashSet<&'static str>,
         failing_tiers: HashSet<u8>,
         ui_paths: Mutex<Vec<String>>,
+        stylesheet: Option<String>,
+        base_stylesheet: Option<String>,
+        stylesheet_reads: AtomicUsize,
     }
 
     impl ArtSource for FakeSource {
@@ -909,6 +1214,15 @@ mod tests {
         fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
             self.ui_paths.lock().unwrap().push(compiled_path.to_string());
             self.write_class(compiled_path, dest)
+        }
+
+        fn ui_stylesheet(&self, compiled_path: &str) -> Option<String> {
+            self.stylesheet_reads.fetch_add(1, Ordering::Relaxed);
+            match compiled_path {
+                crate::property_icons::STYLESHEET => self.stylesheet.clone(),
+                crate::property_icons::BASE_STYLESHEET => self.base_stylesheet.clone(),
+                other => panic!("unexpected stylesheet {other}"),
+            }
         }
     }
 
@@ -1650,6 +1964,49 @@ mod tests {
         assert_eq!(ShopUiImage::CardBackerWeaponT1.key(), "card_backer_weapon_t1");
     }
 
+    // Paths as `citadel_tooltip_mod_details.css`, `citadel_tooltip_ability_details.css`,
+    // `citadel_tooltip_ability_upgrade_button.css` and `citadel_modified_attribute_label.css` reference them.
+    #[test]
+    fn tooltip_images_name_the_files_the_tooltip_stylesheets_use() {
+        let images = "panorama/images";
+        for (image, path) in [
+            (ShopUiImage::TooltipBackerWeapon, "tooltips/items/tooltip_backer_weapon_psd.vtex_c"),
+            (ShopUiImage::TooltipBackerVitalityMask, "tooltips/items/tooltip_backer_vitality_mask_psd.vtex_c"),
+            (ShopUiImage::TooltipBackerSpiritCorrupted, "tooltips/items/tooltip_backer_spirit_corrupted_psd.vtex_c"),
+            (
+                ShopUiImage::TooltipHeaderWeaponCorrupted,
+                "shop/catalog/catalog_tooltip_header_weapon_corrupted_psd.vtex_c",
+            ),
+            (
+                ShopUiImage::TooltipModifiesHeaderSpirit,
+                "shop/catalog/catalog_tooltip_modifies_header_spirit_psd.vtex_c",
+            ),
+            (ShopUiImage::TooltipModifiesBgVitality, "shop/catalog/catalog_tooltip_bg_modifies_vitality_psd.vtex_c"),
+            (ShopUiImage::CooldownLarge, "upgrades/property_cooldown_large_psd.vtex_c"),
+            (ShopUiImage::ChargeUpLarge, "upgrades/property_chargeup_large_psd.vtex_c"),
+            (ShopUiImage::SoulIcon, "hud/icons/icon_soul.vsvg_c"),
+            (ShopUiImage::KeystatArrowWeapon, "shop/keystat_courage_arrow_png.vtex_c"),
+            (ShopUiImage::KeystatArrowVitality, "shop/keystat_fortitude_arrow_png.vtex_c"),
+            (ShopUiImage::ModifiedArrow2, "shop/tooltip_modified_arrow_2.vsvg_c"),
+            (ShopUiImage::ArrowDelta, "upgrades/arrow_delta_psd.vtex_c"),
+            (ShopUiImage::PurchasedCheck, "shop/purchased_check_png.vtex_c"),
+            (ShopUiImage::Checkmark, "icons/icon_checkmark.vsvg_c"),
+            (ShopUiImage::TierNumber5, "upgrades/tier_numbers_small_05.vsvg_c"),
+            (ShopUiImage::AbilityTooltipBg, "tooltips/ability/ability_tooltip_bg_png.vtex_c"),
+            (ShopUiImage::AbilityTooltipTexture, "tooltips/ability/ability_texture_layer_png.vtex_c"),
+            (ShopUiImage::AbilityUpgradeRectCantAfford, "tooltips/ability/ap_rect_cant_afford_png.vtex_c"),
+            (ShopUiImage::AbilityUpgradeBackerOwned, "tooltips/ability/ap_backer_owned_png.vtex_c"),
+            (ShopUiImage::AbilityPoint, "hud/ap_icon.vsvg_c"),
+            (ShopUiImage::AbilityUpgradeCheck, "hud/ability_upgrade_check_psd.vtex_c"),
+            (ShopUiImage::StatIconSpirit, "hud/core/icon_spirit.vsvg_c"),
+            (ShopUiImage::StatIconWeapon, "hud/core/icon_courage.vsvg_c"),
+        ] {
+            assert_eq!(image.compiled_path(), format!("{images}/{path}"));
+        }
+        assert_eq!(ShopUiImage::ModifiedArrow2.key(), "modified_arrow_2");
+        assert_eq!(ShopUiImage::TierNumber5.key(), "tier_number_5");
+    }
+
     #[test]
     fn shop_ui_art_is_one_file_per_image_beside_the_other_art() {
         let rig = Rig::new("ui-paths", &[]);
@@ -1680,6 +2037,125 @@ mod tests {
         assert_eq!(cache.shop_ui_art(), first);
         assert_eq!(rig.cache().shop_ui_art(), first);
         assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    const ICON_CSS: &str = concat!(
+        ".prop_distance.AbilityPropertyIcon,.prop_distance .ImportantStatImage{background-image: ",
+        "url(\"s2r://panorama/images/icons/properties/range.vsvg\");}",
+        ".prop_radius.AbilityPropertyIcon,.prop_radius .ImportantStatImage{background-image: ",
+        "url(\"s2r://panorama/images/icons/properties/range.vsvg\");}",
+        ".prop_cast .ImportantStatImage{background-image: url(\"s2r://panorama/images/upgrades/property_cast_psd.vtex\");",
+        "wash-color: none;}",
+        ".StatusEffectEMP .ImportantStatImage{background-image: ",
+        "url(\"s2r://panorama/images/icons/properties/condition_silence.vsvg\");wash-color: spiritBrightColor;}",
+    );
+
+    const BASE_CSS: &str = concat!(
+        "@define spiritBrightColor: #CE90FF;@define offWhite: #FFEFD7;",
+        ".InlineAttributeIcon{wash-color: offWhite;}",
+        ".InlineAttributeIcon.Stun{background-image: url(\"s2r://panorama/images/hud/modifiers/icon_stun.vsvg\");}",
+        ".InlineAttributeName.Stun{color: offWhite;}",
+    );
+
+    fn rig_with_stylesheet(name: &str, css: Option<&str>, failing: &[&'static str]) -> Rig {
+        rig_with_stylesheets(name, css, None, failing)
+    }
+
+    fn rig_with_stylesheets(name: &str, css: Option<&str>, base: Option<&str>, failing: &[&'static str]) -> Rig {
+        let mut rig = Rig::new(name, failing);
+        let source = Arc::get_mut(&mut rig.source).expect("not shared yet");
+        source.stylesheet = css.map(str::to_string);
+        source.base_stylesheet = base.map(str::to_string);
+        rig
+    }
+
+    #[test]
+    fn property_icon_art_is_one_file_per_image_the_stylesheet_names() {
+        let rig = rig_with_stylesheet("prop-icons", Some(ICON_CSS), &[]);
+        let cache = rig.cache();
+        let hero = cache.hero_art(&[hero(1, "hero_inferno")]);
+        let out = cache.property_icon_art();
+        let shown: Vec<(&str, String, Option<&str>)> =
+            out.iter().map(|a| (a.class.as_str(), file_name(&a.path), a.wash.as_deref())).collect();
+        assert_eq!(
+            shown,
+            [
+                ("distance", "ui_prop_icons_properties_range.svg".to_string(), None),
+                ("radius", "ui_prop_icons_properties_range.svg".to_string(), None),
+                ("cast", "ui_prop_upgrades_property_cast_psd.png".to_string(), Some("none")),
+                (
+                    "StatusEffectEMP",
+                    "ui_prop_icons_properties_condition_silence.svg".to_string(),
+                    Some("spiritBrightColor")
+                ),
+            ]
+        );
+        for art in &out {
+            assert_eq!(PathBuf::from(&art.path).parent(), PathBuf::from(hero[0].sm.as_ref().unwrap()).parent());
+        }
+        let asked = rig.source.ui_paths.lock().unwrap().clone();
+        assert_eq!(
+            asked,
+            [
+                "panorama/images/icons/properties/range.vsvg_c",
+                "panorama/images/upgrades/property_cast_psd.vtex_c",
+                "panorama/images/icons/properties/condition_silence.vsvg_c",
+            ]
+        );
+    }
+
+    #[test]
+    fn inline_attribute_keywords_follow_with_colours_resolved_by_the_base_styles() {
+        let rig = rig_with_stylesheets("prop-icons-inline", Some(ICON_CSS), Some(BASE_CSS), &[]);
+        let out = rig.cache().property_icon_art();
+        let shown: Vec<(&str, String, Option<&str>, Option<&str>)> =
+            out.iter().map(|a| (a.class.as_str(), file_name(&a.path), a.wash.as_deref(), a.color.as_deref())).collect();
+        assert_eq!(
+            shown,
+            [
+                ("distance", "ui_prop_icons_properties_range.svg".to_string(), None, None),
+                ("radius", "ui_prop_icons_properties_range.svg".to_string(), None, None),
+                ("cast", "ui_prop_upgrades_property_cast_psd.png".to_string(), Some("none"), None),
+                (
+                    "StatusEffectEMP",
+                    "ui_prop_icons_properties_condition_silence.svg".to_string(),
+                    Some("#ce90ff"),
+                    None
+                ),
+                ("Stun", "ui_prop_hud_modifiers_icon_stun.svg".to_string(), Some("#ffefd7"), Some("#ffefd7")),
+            ]
+        );
+    }
+
+    #[test]
+    fn without_the_base_styles_property_icons_keep_their_colour_names_and_no_keyword_has_art() {
+        let rig = rig_with_stylesheet("prop-icons-nobase", Some(ICON_CSS), &[]);
+        let out = rig.cache().property_icon_art();
+        assert_eq!(out.len(), 4);
+        assert_eq!(out[3].wash.as_deref(), Some("spiritBrightColor"));
+    }
+
+    #[test]
+    fn the_icon_stylesheet_is_read_once_per_build_and_a_failed_icon_is_left_out() {
+        let rig = rig_with_stylesheet(
+            "prop-icons-once",
+            Some(ICON_CSS),
+            &["panorama/images/icons/properties/condition_silence.vsvg_c"],
+        );
+        let cache = rig.cache();
+        let first = cache.property_icon_art();
+        assert_eq!(first.iter().map(|a| a.class.as_str()).collect::<Vec<_>>(), ["distance", "radius", "cast"]);
+        assert_eq!(cache.property_icon_art(), first);
+        assert_eq!(rig.source.stylesheet_reads.load(Ordering::Relaxed), 2, "each stylesheet once");
+    }
+
+    #[test]
+    fn without_the_icon_stylesheet_or_an_install_there_are_no_property_icons() {
+        let rig = rig_with_stylesheet("prop-icons-none", None, &[]);
+        assert!(rig.cache().property_icon_art().is_empty());
+        let cache =
+            ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
+        assert!(cache.property_icon_art().is_empty());
     }
 
     #[test]
@@ -1768,6 +2244,91 @@ mod tests {
         assert_eq!(&fs::read(&out[0].path).unwrap()[..4], b"\x89PNG");
         let tags = cache.build_tag_icons(&[tag("weapon")]);
         assert_eq!(fs::read_to_string(tags[0].icon.as_ref().unwrap()).unwrap(), svg);
+    }
+
+    #[test]
+    fn the_archive_source_reads_the_icon_stylesheet_from_a_real_vpk() {
+        use crate::ui_art::tests::vsvg;
+        let rig = Rig::new("prop-icons-vpk", &[]);
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0H1V1Z\"/></svg>";
+        let mut pack = Vpk::new(1);
+        // A compiled stylesheet's DATA block has the same layout as a vector image's.
+        pack.add(crate::property_icons::STYLESHEET, vsvg(&["panorama/images/icons/properties/range.vsvg"], ICON_CSS))
+            .unwrap();
+        pack.add("panorama/images/icons/properties/range.vsvg_c", vsvg(&[], svg)).unwrap();
+        pack.write(rig.citadel.join(deadlock_data::vdata::ARCHIVE)).unwrap();
+        let cache = ArtCache::with_opener(
+            FakeInstall(Mutex::new(Some(rig.citadel.clone()))),
+            rig.root.clone(),
+            Box::new(open_archive),
+        );
+        let out = cache.property_icon_art();
+        assert_eq!(out.iter().map(|a| a.class.as_str()).collect::<Vec<_>>(), ["distance", "radius"]);
+        assert_eq!(fs::read_to_string(&out[0].path).unwrap(), svg);
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_every_property_icon_the_stylesheet_names() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-prop-icons-real-{}", std::process::id()));
+        let css = open_archive(&dir).and_then(|s| s.ui_stylesheet(STYLESHEET)).expect("the stylesheet decodes");
+        let named: Vec<String> = icon_rules(&css).into_iter().map(|r| r.class).collect();
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        let classes: Vec<String> = cache.property_icon_art().into_iter().map(|a| a.class).collect();
+        fs::remove_dir_all(root).ok();
+        assert_eq!(classes[..named.len()], named, "every class the stylesheet names decodes, before the keywords");
+        for class in ["cooldown", "tech_damage", "duration", "souls", "StatusEffectEMP", "StatusEffectInvisible"] {
+            assert!(classes.iter().any(|c| c == class), "{class} missing from {classes:?}");
+        }
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_gives_every_item_description_keyword_its_image_or_has_none_for_it() {
+        use crate::tooltip::{bundle_localisation, INLINE_ATTRIBUTE};
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-inline-icons-real-{}", std::process::id()));
+        let source = open_archive(&dir).expect("the archive opens");
+        let base = source.ui_stylesheet(BASE_STYLESHEET).expect("the base styles decode");
+        let styled: Vec<String> = inline_attribute_rules(&base).into_iter().map(|r| r.class).collect();
+        let properties: Vec<String> =
+            icon_rules(&source.ui_stylesheet(STYLESHEET).expect("the icon stylesheet decodes"))
+                .into_iter()
+                .map(|r| r.class)
+                .collect();
+        assert!(styled.iter().all(|k| !properties.contains(k)), "a keyword shares a key with a property class");
+
+        let mut keywords = std::collections::BTreeSet::new();
+        for file in bundle_localisation(&dir, "english", &["citadel_mods"]) {
+            for text in file.tokens.values() {
+                for part in text.split(INLINE_ATTRIBUTE).skip(1) {
+                    if let Some((name, _)) = part.split_once("'}") {
+                        keywords.insert(name.to_string());
+                    }
+                }
+            }
+        }
+        assert!(keywords.len() > 10, "{keywords:?}");
+
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        let art = cache.property_icon_art();
+        let mut without = Vec::new();
+        for keyword in &keywords {
+            match art.iter().find(|a| &a.class == keyword) {
+                Some(a) => assert!(PathBuf::from(&a.path).is_file(), "{keyword}: {}", a.path),
+                None => {
+                    assert!(!styled.contains(keyword), "{keyword} has a game image that did not decode");
+                    without.push(keyword.as_str());
+                }
+            }
+        }
+        fs::remove_dir_all(root).ok();
+        eprintln!("keywords: {keywords:?}");
+        eprintln!("keywords the game draws without an image: {without:?}");
+        for a in art.iter().filter(|a| styled.contains(&a.class)) {
+            eprintln!("{} {} wash={:?} color={:?}", a.class, file_name(&a.path), a.wash, a.color);
+        }
     }
 
     #[test]

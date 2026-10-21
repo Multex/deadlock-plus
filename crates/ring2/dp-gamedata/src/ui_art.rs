@@ -20,9 +20,23 @@ pub(crate) fn is_vector(compiled_path: &str) -> bool {
     compiled_path.ends_with(".vsvg_c")
 }
 
-/// A `.vsvg_c` `DATA` block is a `u32` CRC, a `u16` count of referenced files (each a NUL-terminated
-/// name and two `u32`s), then the SVG source verbatim.
+/// The CSS source of a compiled Panorama stylesheet (`.vcss_c`).
+pub(crate) fn stylesheet(compiled_path: &str, bytes: &[u8]) -> Result<String, String> {
+    let resource = Resource::parse(bytes).map_err(|e| format!("{compiled_path}: {e}"))?;
+    let data = resource.data().ok_or_else(|| format!("{compiled_path}: no DATA block"))?;
+    let source = source_text(data).ok_or_else(|| format!("{compiled_path}: no stylesheet source"))?;
+    String::from_utf8(source.to_vec()).map_err(|e| format!("{compiled_path}: {e}"))
+}
+
 fn svg_source(data: &[u8]) -> Option<&[u8]> {
+    let source = source_text(data)?;
+    let text = source.trim_ascii_start();
+    (text.starts_with(b"<svg") || text.starts_with(b"<?xml")).then_some(source)
+}
+
+/// A `.vsvg_c` or `.vcss_c` `DATA` block is a `u32` CRC, a `u16` count of referenced files (each a
+/// NUL-terminated name and two `u32`s), then the source verbatim.
+fn source_text(data: &[u8]) -> Option<&[u8]> {
     let count = u16::from_le_bytes(data.get(4..6)?.try_into().ok()?);
     let mut at = 6;
     for _ in 0..count {
@@ -30,9 +44,7 @@ fn svg_source(data: &[u8]) -> Option<&[u8]> {
     }
     let source = data.get(at..)?;
     let end = source.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
-    let source = &source[..end];
-    let text = source.trim_ascii_start();
-    (text.starts_with(b"<svg") || text.starts_with(b"<?xml")).then_some(source)
+    Some(&source[..end])
 }
 
 #[cfg(test)]

@@ -7,10 +7,12 @@ use serde::Serialize;
 use source2_kv3::{Document, Object, Value};
 use ts_rs::TS;
 
+use crate::ability_tooltip::{localised_abilities, raw_abilities, AbilityTooltip, RawAbility, ABILITY_BUNDLES};
 use crate::catalog::{archive_stamp, Install, SteamInstall};
-use crate::item_stats::{labelled, raw_item_stats, stat_localisation, ItemStats, RawStat};
+use crate::item_stats::{labelled, raw_item_stats, stat_localisation, ItemStats, RawItem};
 use crate::locale::game_language;
 use crate::progression::ability_id;
+use crate::tooltip::bundle_localisation;
 use crate::vpk_source::VpkVdataSource;
 
 pub use deadlock_data::vdata::ABILITIES_PATH;
@@ -136,8 +138,10 @@ struct Memo {
     dir: Option<PathBuf>,
     stamp: Option<SystemTime>,
     items: Option<Arc<Vec<ShopItem>>>,
-    stats: Option<HashMap<u32, Vec<RawStat>>>,
+    stats: Option<HashMap<u32, RawItem>>,
     labelled: HashMap<&'static str, Arc<Vec<ItemStats>>>,
+    abilities: Option<HashMap<u32, RawAbility>>,
+    ability_tooltips: HashMap<&'static str, Arc<Vec<AbilityTooltip>>>,
 }
 
 pub struct ShopVdata<I: Install = SteamInstall, S: ShopSource = VpkVdataSource> {
@@ -176,6 +180,20 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
         Some(list)
     }
 
+    /// The hero ability tooltips, labelled in the game language for `locale`.
+    pub fn ability_tooltips(&self, locale: &str) -> Option<Arc<Vec<AbilityTooltip>>> {
+        let language = game_language(locale);
+        let mut guard = self.current();
+        let memo = guard.as_mut()?;
+        if let Some(list) = memo.ability_tooltips.get(language) {
+            return Some(Arc::clone(list));
+        }
+        let (dir, abilities) = (memo.dir.as_deref()?, memo.abilities.as_ref()?);
+        let list = Arc::new(localised_abilities(abilities, &bundle_localisation(dir, language, &ABILITY_BUNDLES)));
+        memo.ability_tooltips.insert(language, Arc::clone(&list));
+        Some(list)
+    }
+
     fn current(&self) -> MutexGuard<'_, Option<Memo>> {
         let dir = self.install.citadel_dir();
         let stamp = dir.as_deref().and_then(archive_stamp);
@@ -183,11 +201,11 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
         if memo.as_ref().is_some_and(|m| m.dir == dir && m.stamp == stamp) {
             return memo;
         }
-        let (items, stats) = match dir.as_deref().map(|dir| (dir, self.source.read(dir, ABILITIES_PATH))) {
-            None => (None, None),
+        let (items, stats, abilities) = match dir.as_deref().map(|dir| (dir, self.source.read(dir, ABILITIES_PATH))) {
+            None => (None, None, None),
             Some((_, Err(e))) => {
                 log::warn!("shop items unavailable: {e}");
-                (None, None)
+                (None, None, None)
             }
             Some((dir, Ok(abilities))) => {
                 let items = self
@@ -197,10 +215,18 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
                     .map_err(|e| log::warn!("shop items unavailable: {e}"))
                     .ok()
                     .map(Arc::new);
-                (items, Some(raw_item_stats(&abilities)))
+                (items, Some(raw_item_stats(&abilities)), Some(raw_abilities(&abilities)))
             }
         };
-        *memo = Some(Memo { dir, stamp, items, stats, labelled: HashMap::new() });
+        *memo = Some(Memo {
+            dir,
+            stamp,
+            items,
+            stats,
+            labelled: HashMap::new(),
+            abilities,
+            ability_tooltips: HashMap::new(),
+        });
         memo
     }
 }
@@ -557,6 +583,46 @@ mod tests {
     fn without_an_install_there_are_no_item_stats() {
         let (data, reads) = vdata(None, Some(stat_abilities()));
         assert_eq!(data.item_stats("en"), None);
+        assert_eq!(reads.load(Ordering::Relaxed), 0);
+    }
+
+    fn ability_abilities() -> String {
+        "{ citadel_ability_lightning_ball = { m_eAbilityType = \"EAbilityType_Signature\"
+            m_mapAbilityProperties = { AbilityCooldown = { m_strValue = \"26\" } }
+            m_AbilityTooltipDetails = { m_vecAbilityInfoSections = [ ] } } }"
+            .into()
+    }
+
+    fn write_hero_tokens(dir: &Path, language: &str, name: &str) {
+        let path = dir.join(deadlock_data::LocalizationFile::relative_path("citadel_heroes", language));
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, format!("\"lang\" {{ \"Tokens\" {{\n\"citadel_ability_lightning_ball\" \"{name}\"\n}} }}"))
+            .unwrap();
+    }
+
+    #[test]
+    fn ability_tooltips_are_named_in_the_game_language_from_the_same_read() {
+        let dir = temp_install("abilities");
+        write_hero_tokens(&dir, "english", "Lightning Ball");
+        write_hero_tokens(&dir, "german", "Blitzkugel");
+        let (data, reads) = vdata(Some(&dir), Some(ability_abilities()));
+        let german = data.ability_tooltips("de").expect("the fake install has abilities");
+        assert_eq!(german.len(), 1);
+        assert_eq!(
+            (german[0].ability_id, german[0].name.as_str()),
+            (ability_id("citadel_ability_lightning_ball"), "Blitzkugel")
+        );
+        assert_eq!(data.ability_tooltips("en").unwrap()[0].name, "Lightning Ball");
+        assert!(Arc::ptr_eq(&german, &data.ability_tooltips("de-AT").unwrap()));
+        data.item_stats("en");
+        assert_eq!(reads.load(Ordering::Relaxed), 2);
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn without_an_install_there_are_no_ability_tooltips() {
+        let (data, reads) = vdata(None, Some(ability_abilities()));
+        assert_eq!(data.ability_tooltips("en"), None);
         assert_eq!(reads.load(Ordering::Relaxed), 0);
     }
 

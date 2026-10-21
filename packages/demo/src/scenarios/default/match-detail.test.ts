@@ -334,6 +334,14 @@ describe("game files from the default scenario", () => {
         ]);
     });
 
+    it("has no property icons: their classes come from the installed game's stylesheet", async () => {
+        expect(await start().invoke("game_property_icon_art", {})).toEqual([]);
+    });
+
+    it("has no ability tooltips: their layout is read from the installed game", async () => {
+        expect(await start().invoke("game_ability_tooltips", { locale: "english" })).toEqual([]);
+    });
+
     it("answers as an unreadable game does when the assets cannot be fetched", async () => {
         vi.stubGlobal("fetch", async () => {
             throw new TypeError("Failed to fetch");

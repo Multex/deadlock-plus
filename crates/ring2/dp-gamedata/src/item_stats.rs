@@ -6,7 +6,9 @@ use serde::Serialize;
 use source2_kv3::{Document, Object, Value};
 use ts_rs::TS;
 
+use crate::item_tooltip::{localised, raw_sections, RawSection, TooltipSection};
 use crate::progression::ability_id;
+use crate::tooltip::{bundle_localisation, token_map};
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[ts(export)]
@@ -40,6 +42,10 @@ pub enum StatSection {
 pub struct ItemStats {
     pub item_id: u32,
     pub stats: Vec<ItemStat>,
+    /// What the game's tooltip shows, section by section, in its order.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sections: Option<Vec<TooltipSection>>,
 }
 
 /// The localisation bundles holding `<property>_label` and `<property>_postfix` tokens.
@@ -50,7 +56,14 @@ pub fn item_stats(abilities: &Document, localisation: &[LocalizationFile]) -> Ha
     labelled(&raw_item_stats(abilities), localisation).into_iter().map(|i| (i.item_id, i.stats)).collect()
 }
 
-/// A stat before localisation, so one read of the abilities file serves every language.
+/// An item before localisation, so one read of the abilities file serves every language.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct RawItem {
+    stats: Vec<RawStat>,
+    sections: Vec<RawSection>,
+    values: HashMap<String, f64>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RawStat {
     key: String,
@@ -62,7 +75,7 @@ pub(crate) struct RawStat {
     section: Option<StatSection>,
 }
 
-pub(crate) fn raw_item_stats(abilities: &Document) -> HashMap<u32, Vec<RawStat>> {
+pub(crate) fn raw_item_stats(abilities: &Document) -> HashMap<u32, RawItem> {
     let Some(root) = abilities.root.as_object() else { return HashMap::new() };
     root.iter()
         .filter_map(|(class_name, entry)| {
@@ -74,7 +87,9 @@ pub(crate) fn raw_item_stats(abilities: &Document) -> HashMap<u32, Vec<RawStat>>
                 return None;
             }
             let stats = raw_stats(entry);
-            (!stats.is_empty()).then(|| (ability_id(class_name), stats))
+            let (sections, values) = raw_sections(entry);
+            (!stats.is_empty() || !sections.is_empty())
+                .then(|| (ability_id(class_name), RawItem { stats, sections, values }))
         })
         .collect()
 }
@@ -156,7 +171,7 @@ fn intrinsic_properties(entry: &Object) -> Vec<&str> {
 }
 
 /// `m_strValue` is a string; distances carry an `m` suffix (`"2.0m"`).
-fn number(value: &Value) -> Option<(f64, bool)> {
+pub(crate) fn number(value: &Value) -> Option<(f64, bool)> {
     if let Some(n) = value.as_f64() {
         return Some((n, false));
     }
@@ -165,20 +180,17 @@ fn number(value: &Value) -> Option<(f64, bool)> {
     Some((digits.trim().parse().ok()?, metres))
 }
 
-pub(crate) fn labelled(raw: &HashMap<u32, Vec<RawStat>>, localisation: &[LocalizationFile]) -> Vec<ItemStats> {
-    // Token case is inconsistent in the game's own files (`TechArmorDamageReduction_Label`).
-    let mut tokens: HashMap<String, &str> = HashMap::new();
-    for file in localisation.iter().rev() {
-        tokens.extend(file.tokens.iter().map(|(k, v)| (k.to_ascii_lowercase(), v.as_str())));
-    }
-    let find = |token: &str, suffix: &str| {
-        tokens.get(&format!("{token}{suffix}").to_ascii_lowercase()).copied().filter(|t| !t.is_empty())
-    };
+pub(crate) fn labelled(raw: &HashMap<u32, RawItem>, localisation: &[LocalizationFile]) -> Vec<ItemStats> {
+    let tokens = token_map(localisation);
+    let lookup = |token: &str| tokens.get(&token.to_ascii_lowercase()).copied();
+    let find = |token: &str, suffix: &str| lookup(&format!("{token}{suffix}")).filter(|t| !t.is_empty());
     let mut list: Vec<ItemStats> = raw
         .iter()
-        .map(|(&item_id, stats)| ItemStats {
+        .map(|(&item_id, item)| ItemStats {
             item_id,
-            stats: stats
+            sections: Some(localised(&item.sections, &item.values, &lookup)),
+            stats: item
+                .stats
                 .iter()
                 .filter_map(|s| {
                     let label = find(&s.token, "_label").or_else(|| find(&s.token, "_postvalue_label"))?;
@@ -195,7 +207,7 @@ pub(crate) fn labelled(raw: &HashMap<u32, Vec<RawStat>>, localisation: &[Localiz
                 })
                 .collect(),
         })
-        .filter(|i| !i.stats.is_empty())
+        .filter(|i| !i.stats.is_empty() || i.sections.as_ref().is_some_and(|s| !s.is_empty()))
         .collect();
     list.sort_by_key(|i| i.item_id);
     list
@@ -203,19 +215,7 @@ pub(crate) fn labelled(raw: &HashMap<u32, Vec<RawStat>>, localisation: &[Localiz
 
 /// The stat bundles for `language`, then English to fill its gaps.
 pub(crate) fn stat_localisation(citadel_dir: &Path, language: &str) -> Vec<LocalizationFile> {
-    let mut languages = vec![language];
-    if language != deadlock_data::DEFAULT_LANGUAGE {
-        languages.push(deadlock_data::DEFAULT_LANGUAGE);
-    }
-    languages
-        .into_iter()
-        .flat_map(|language| STAT_BUNDLES.iter().map(move |bundle| (bundle, language)))
-        .filter_map(|(bundle, language)| {
-            LocalizationFile::load(citadel_dir, bundle, language)
-                .map_err(|e| log::debug!("{bundle} for {language} unavailable: {e}"))
-                .ok()
-        })
-        .collect()
+    bundle_localisation(citadel_dir, language, &STAT_BUNDLES)
 }
 
 #[cfg(test)]
@@ -619,5 +619,71 @@ mod installed_tests {
             (provides("MODIFIER_VALUE_STATUS_RESISTANCE"), Some(StatSection::Active))
         );
         assert_eq!(stat(blood_tribute, "BonusMoveSpeed").unit.as_deref(), Some("m"));
+    }
+
+    // Checked against in-game tooltips at 1440p (Spirit Burn, Silencer, Veil Walker), game build 6805.
+    #[test]
+    fn the_installed_items_carry_their_tooltip_sections() {
+        use crate::shop::GENERIC_DATA_PATH;
+        use crate::tooltip::TooltipProperty;
+        let Some(dir) = installed() else { return };
+        let abilities = ShopSource::read(&VpkVdataSource, &dir, ABILITIES_PATH).expect("abilities.vdata reads");
+        let _ = ShopSource::read(&VpkVdataSource, &dir, GENERIC_DATA_PATH);
+        let all = labelled(&raw_item_stats(&abilities), &stat_localisation(&dir, "english"));
+        let sections = |class: &str| {
+            all.iter().find(|i| i.item_id == ability_id(class)).and_then(|i| i.sections.clone()).expect(class)
+        };
+        let shown = |list: &[TooltipProperty]| -> Vec<String> {
+            list.iter().map(|p| format!("{:?}{} {}", p.value, p.unit.as_deref().unwrap_or(""), p.label)).collect()
+        };
+
+        let burn = sections("upgrade_spirit_burn");
+        assert_eq!(shown(&burn[0].blocks[0].properties), ["Some(6.0)% Ability Range"]);
+        let passive = &burn[1].blocks[0];
+        assert_eq!(
+            shown(&passive.important),
+            ["Some(500.0) Damage Threshold", "Some(50.0) Explosion Damage", "Some(24.0) Damage Per Second"]
+        );
+        assert_eq!(
+            shown(&passive.properties),
+            ["Some(20.0)s Immunity Duration", "Some(8.0)s Debuff Duration", "Some(-70.0)% Incoming Healing"]
+        );
+        let description = passive.description.as_deref().unwrap();
+        assert!(description.starts_with("Dealing significant <span class=\"inline-attribute-label SpiritDamage\">spirit damage</span> to an enemy within {s:DamageThresholdDuration}s"), "{description}");
+        assert!(description.contains("<span class=\"diminish\">The cooldown is per enemy"), "{description}");
+        assert_eq!(passive.values.get("DamageThresholdDuration"), Some(&5.0));
+
+        let silencer = sections("upgrade_proc_silence");
+        let kinds: Vec<StatSection> = silencer.iter().map(|s| s.kind).collect();
+        assert_eq!(kinds, [StatSection::Innate, StatSection::Passive, StatSection::Passive]);
+        assert_eq!(shown(&silencer[2].blocks[0].important), ["Some(2.5)s Silenced"]);
+        // The game rescales the base value per hero (14.1% on one), so only the base and its display type are fixed.
+        let buildup = &silencer[2].blocks[0].properties[1];
+        assert_eq!((buildup.key.as_str(), buildup.value), ("BuildUpPerShot", Some(1.04)));
+        assert_eq!(buildup.display_type.as_deref(), Some("EBuildUpRate"));
+        assert_eq!(buildup.scale.as_ref().map(|s| (s.stat.as_deref(), s.factor)), Some((Some("EBuildUpRate"), None)));
+
+        let warp = sections("upgrade_warp_stone");
+        assert_eq!((warp[0].kind, warp[0].cooldown), (StatSection::Active, Some(16.0)));
+        assert!(warp[0].blocks[0].properties.iter().all(|p| p.key != "AbilityCooldown"));
+
+        let veil = sections("upgrade_veil_walker");
+        let cells = &veil[1].blocks[0].important;
+        assert_eq!((cells[0].label.as_str(), cells[0].value, cells[0].status_effect), ("Invisible", None, true));
+        assert_eq!(cells[2].label, "Heal");
+
+        let find = |class: &str, key: &str| -> TooltipProperty {
+            let all = sections(class);
+            let mut shown = all
+                .iter()
+                .flat_map(|s| &s.blocks)
+                .flat_map(|b| b.elevated.iter().chain(&b.important).chain(&b.properties));
+            shown.find(|p| p.key == key).cloned().unwrap_or_else(|| panic!("{class} shows no {key}"))
+        };
+        let sash = find("upgrade_kinetic_sash", "BonusFireRate");
+        assert_eq!((sash.conditional, sash.negative), (true, false));
+        let glass = find("upgrade_glass_cannon", "MaxHealthLossPercent");
+        assert_eq!((glass.value, glass.negative), (Some(-13.0), true));
+        assert!(!find("upgrade_spirit_burn", "DPS").negative);
     }
 }

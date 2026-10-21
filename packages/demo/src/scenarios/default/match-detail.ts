@@ -1,3 +1,4 @@
+import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
@@ -17,6 +18,7 @@ import type { MinimapIconArt } from "@deadlock-plus/ipc-types/MinimapIconArt";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
 import type { PopularItem } from "@deadlock-plus/ipc-types/PopularItem";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
+import type { PropertyIconArt } from "@deadlock-plus/ipc-types/PropertyIconArt";
 import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import type { ShopSlot } from "@deadlock-plus/ipc-types/ShopSlot";
@@ -1693,6 +1695,9 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                         return file ? [{ image, path: file }] : [];
                     });
                 },
+                // Which icon each class or keyword gets is read from the installed game's stylesheets.
+                game_property_icon_art: async (): Promise<PropertyIconArt[]> => [],
+                game_ability_tooltips: async (): Promise<AbilityTooltip[]> => [],
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,
