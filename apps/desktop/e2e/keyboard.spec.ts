@@ -2,7 +2,8 @@ import type { Locator, Page } from "@playwright/test";
 import { focusIsVisible, open } from "./support/flows";
 import { expect, settle, test } from "./support/test";
 
-const MAIN_PAGES = 7;
+const MAIN_HREFS = ["/", "/server-picker", "/live", "/stats", "/match-history", "/builds", "/alerts", "/presence"];
+const MAIN_PAGES = MAIN_HREFS.length;
 
 const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });
 const search = (page: Page) => palette(page).getByRole("combobox", { name: "Search commands" });
@@ -183,7 +184,7 @@ test.describe("page shortcuts", () => {
             Promise.all((await links.all()).map((link) => link.getAttribute("href")));
         const toolHrefs = await hrefs(tools(page).getByRole("link"));
         const targets = (await hrefs(sidebar(page).getByRole("link"))).filter((href) => !toolHrefs.includes(href));
-        expect(targets).toHaveLength(MAIN_PAGES);
+        expect(targets).toEqual(MAIN_HREFS);
         expect(toolHrefs).toContain("/demos");
 
         // Backwards, so the first jump leaves the page the test opened and every jump changes the URL.
