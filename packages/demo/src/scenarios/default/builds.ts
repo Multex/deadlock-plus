@@ -4,6 +4,7 @@ import type { BuildVersionMeta } from "@deadlock-plus/ipc-types/BuildVersionMeta
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
@@ -647,6 +648,24 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
             let backups: BuildBackup[] = [];
             let queue: Queued[] = [];
             let exists = !empty;
+            // Oldest first, as the drafts file keeps them; listed newest first.
+            let drafts: DraftView[] = [];
+            let draftSeq = 0;
+            const storeDraft = (draft: DraftView, at: number): DraftView => {
+                const stored = {
+                    ...draft,
+                    id: draft.id || `draft-${++draftSeq}`,
+                    updatedAt: at,
+                    heroId: draft.build.heroId,
+                };
+                drafts = [...drafts.filter((d) => d.id !== stored.id), stored];
+                return stored;
+            };
+            const dropDrafts = (gone: (draft: DraftView) => boolean): number => {
+                const before = drafts.length;
+                drafts = drafts.filter((d) => !gone(d));
+                return before - drafts.length;
+            };
 
             const recordVersion = (build: BuildView, savedAt: number) => {
                 const versions = history.get(build.heroBuildId) ?? [];
@@ -691,6 +710,22 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
                 lastUsed.set("hero_inferno", OWN_PUBLISHED_ID).set("hero_haze", 5).set("hero_atlas", 7);
                 recordVersion(firstTry, firstTry.lastUpdatedTimestamp!);
                 recordVersion(entries.Unpublished[0]!, entries.Unpublished[0]!.lastUpdatedTimestamp!);
+                const edited = entries.Unpublished[0]!;
+                storeDraft(
+                    {
+                        id: "",
+                        updatedAt: 0,
+                        heroId: 0,
+                        source: {
+                            kind: "local",
+                            section: "Unpublished",
+                            buildId: edited.heroBuildId,
+                            base: baseOf(edited),
+                        },
+                        build: { ...edited, name: "Infernus burst" },
+                    },
+                    nowS - 3600,
+                );
                 backups = [1, 3, 8].map((days) => {
                     const timestamp = nowS - days * DAY_S;
                     return { path: `${backupDir}\\cached_hero_builds-${timestamp}.kv3`, timestamp };
@@ -889,7 +924,19 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
 
             const handlers: Handlers = {
                 builds_local: listed,
-                builds_save: ({ request }) => submit(planSave(request as SaveRequest)),
+                builds_save: ({ request, draftId }) => {
+                    const result = submit(planSave(request as SaveRequest));
+                    if (result.kind === "written" || result.kind === "queued") {
+                        dropDrafts(
+                            (d) =>
+                                d.id === draftId || (d.source.kind === "local" && d.source.buildId === result.buildId),
+                        );
+                    }
+                    return result;
+                },
+                builds_drafts: (): DraftView[] => [...drafts].reverse(),
+                builds_draft_save: ({ draft }) => storeDraft(draft as DraftView, clock()),
+                builds_draft_delete: ({ id }) => dropDrafts((d) => d.id === id) > 0,
                 builds_delete: ({ section, id, base }) => {
                     if (Number(id) >= LOCAL_ID_LIMIT) fail("published_delete_in_game");
                     const build = decode(String(base));
@@ -897,13 +944,18 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
                     const op: Op = { kind: "delete", section: section as BuildSection, id: Number(id), guard: build };
                     return submit({ label: build.name, buildId: build.heroBuildId, ops: [op] });
                 },
-                builds_favourite: ({ base, id }) => {
+                builds_favourite: ({ base, id, view }) => {
+                    const published = view as BuildView | null | undefined;
+                    if (typeof base !== "string" && published && published.heroBuildId < LOCAL_ID_LIMIT) {
+                        fail("bad_base");
+                    }
                     const source =
                         typeof base === "string"
                             ? decode(base)
-                            : (["Unpublished", "SavedLastUsed", "Favorites"] as const)
+                            : (published ??
+                              (["Unpublished", "SavedLastUsed", "Favorites"] as const)
                                   .map((section) => get(section, Number(id)))
-                                  .find(Boolean);
+                                  .find(Boolean));
                     if (!source) fail("build_not_found");
                     const build = { ...source, favorited: true };
                     return submit({

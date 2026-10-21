@@ -6,12 +6,14 @@ import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
 import { playerNames } from "$lib/features/match-history/names";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { QueuedSaveView } from "@deadlock-plus/ipc-types/QueuedSaveView";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
-import { buildsLocal, buildsSave } from "./api";
+import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
+import { buildsDraftDelete, buildsDrafts, buildsFavourite, buildsLocal, buildsSave, buildsUnfavourite } from "./api";
 import { chainCost, loadShopCatalog, type ShopCatalog, type ShopItem } from "./catalog";
-import { createLevelTable, netWorthFor, type Level } from "./levels";
+import { loadLevelTable, netWorthFor, type Level } from "./levels";
 import { LOCAL_ID_LIMIT, viewOfPublished, type MineStatus } from "./my-builds";
 import type { ChipItem } from "./shop-view";
 
@@ -20,16 +22,14 @@ const ABILITY_UNLOCK = 2;
 const ABILITY_SLOTS = 4;
 const MAX_TIER = 3;
 
-export type DetailSource = "public" | "local";
+export type DetailSource = "public" | "local" | "draft";
 
-export interface DetailTarget {
-    source: DetailSource;
-    id: number;
-}
+export type DetailTarget = { source: "public" | "local"; id: number } | { source: "draft"; id: string };
 
 export function parseTarget(params: URLSearchParams): DetailTarget | null {
     const source = params.get("source");
     const raw = params.get("id");
+    if (source === "draft") return raw ? { source, id: raw } : null;
     if (source !== "public" && source !== "local") return null;
     if (raw === null || !/^\d+$/.test(raw)) return null;
     const id = Number(raw);
@@ -182,6 +182,7 @@ export interface HeroKit {
 async function loadKit(heroId: number): Promise<HeroKit> {
     const [heroes, items] = await Promise.all([deadlockApi.heroes(), deadlockApi.items()]);
     const hero = heroes.find((h) => h.id === heroId);
+    const levels = await loadLevelTable(hero?.level_info);
     const slots = Array.from({ length: ABILITY_SLOTS }, (_, i) => hero?.items?.[`signature${i + 1}`]);
     const classes = slots.filter((c): c is string => !!c);
     const art = await loadAbilityArt(classes).catch((): Record<string, string> => ({}));
@@ -195,7 +196,7 @@ async function loadKit(heroId: number): Promise<HeroKit> {
     return {
         abilities,
         ultimateId: ultimate ? (byClass.get(ultimate)?.id ?? null) : null,
-        levels: hero?.level_info ? createLevelTable(hero.level_info).levels : [],
+        levels: levels?.levels ?? [],
     };
 }
 
@@ -206,6 +207,16 @@ async function loadPublic(id: number): Promise<{ build: BuildView; favourites: n
         .sort((a, b) => b.hero_build.version - a.hero_build.version)[0];
     return newest ? { build: viewOfPublished(newest), favourites: newest.num_favorites ?? null } : null;
 }
+
+const isFavourite = (builds: readonly LocalBuild[], id: number) =>
+    builds.some((b) => b.section === "Favorites" && b.build.heroBuildId === id);
+
+export type FavouriteState =
+    | { kind: "idle" }
+    | { kind: "saving" }
+    | { kind: "queued" }
+    | { kind: "conflict" }
+    | { kind: "failed"; message: string };
 
 export type CopyState =
     | { kind: "idle" }
@@ -221,6 +232,10 @@ export class BuildDetail {
     build = $state.raw<BuildView | null>(null);
     local = $state.raw<LocalBuild | null>(null);
     localStatus = $state<LocalStatus | null>(null);
+    draft = $state.raw<DraftView | null>(null);
+    /** Whether the build file holds this build in `Favorites`. */
+    favourited = $state(false);
+    favourite = $state.raw<FavouriteState>({ kind: "idle" });
     favourites = $state<number | null>(null);
     catalog = $state.raw<ShopCatalog | null>(null);
     catalogFailed = $state(false);
@@ -231,21 +246,40 @@ export class BuildDetail {
 
     constructor(readonly target: DetailTarget) {}
 
+    get badge(): MineStatus | null {
+        return this.draft ? "draft" : this.localStatus;
+    }
+
+    /** Only a published build: the game's favourite of a local build is a copy of it. */
+    get canFavourite(): boolean {
+        return !this.draft && !!this.build && this.build.heroBuildId >= LOCAL_ID_LIMIT;
+    }
+
     async load(): Promise<void> {
         try {
-            if (this.target.source === "public") {
-                const found = await loadPublic(this.target.id);
+            const target = this.target;
+            if (target.source === "draft") {
+                const draft = (await buildsDrafts()).find((d) => d.id === target.id);
+                if (draft) {
+                    this.draft = draft;
+                    this.build = draft.build;
+                }
+            } else if (target.source === "public") {
+                // The file only says whether the build is a favourite, so a failed read leaves it shown as not one.
+                const [found, listed] = await Promise.all([loadPublic(target.id), buildsLocal().catch(() => null)]);
                 if (found) {
                     this.build = found.build;
                     this.favourites = found.favourites;
+                    this.favourited = !!listed && isFavourite(listed.builds, target.id);
                 }
             } else {
                 const listed = await buildsLocal();
-                const local = pickLocal(listed.builds, this.target.id);
+                const local = pickLocal(listed.builds, target.id);
                 if (local) {
                     this.local = local;
                     this.build = local.build;
                     this.localStatus = localStatus(local, listed.queue);
+                    this.favourited = isFavourite(listed.builds, target.id);
                 }
             }
         } catch (e) {
@@ -282,9 +316,10 @@ export class BuildDetail {
         const build = this.build;
         if (!build || this.copy.kind === "saving") return;
         const copy = { ...build, name: t("builds.mine.copy_name", { name: build.name }) };
-        const request: SaveRequest = this.local
-            ? { kind: "copy", source: this.local.base, build: copy }
-            : { kind: "copyView", build: copy };
+        const source = this.draft?.source;
+        const base = this.local?.base ?? (source?.kind === "local" ? source.base : null);
+        const request: SaveRequest =
+            base !== null ? { kind: "copy", source: base, build: copy } : { kind: "copyView", build: copy };
         this.copy = { kind: "saving" };
         try {
             const result = await buildsSave(request);
@@ -298,5 +333,29 @@ export class BuildDetail {
         } catch (e) {
             this.copy = { kind: "failed", message: failureText(e, t("builds.view.copy_failed")) };
         }
+    }
+
+    async toggleFavourite(): Promise<void> {
+        const build = this.build;
+        if (!build || !this.canFavourite || this.favourite.kind === "saving") return;
+        const adding = !this.favourited;
+        this.favourite = { kind: "saving" };
+        try {
+            let result: SaveResult;
+            if (!adding) result = await buildsUnfavourite(build.heroBuildId);
+            else result = await buildsFavourite(this.local ? { base: this.local.base } : { view: build });
+            if (result.kind === "written" || result.kind === "unchanged") {
+                this.favourited = adding;
+                this.favourite = { kind: "idle" };
+            } else {
+                this.favourite = { kind: result.kind };
+            }
+        } catch (e) {
+            this.favourite = { kind: "failed", message: failureText(e, t("builds.mine.action_failed")) };
+        }
+    }
+
+    async discardDraft(): Promise<void> {
+        if (this.draft) await buildsDraftDelete(this.draft.id);
     }
 }

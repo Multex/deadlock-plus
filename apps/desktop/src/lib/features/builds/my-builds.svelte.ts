@@ -8,6 +8,8 @@ import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 
 import {
     buildsDelete,
+    buildsDraftDelete,
+    buildsDrafts,
     buildsFavourite,
     buildsFlush,
     buildsLocal,
@@ -24,11 +26,18 @@ import {
     favouriteAction,
     flushFailure,
     mergeMine,
-    noDrafts,
+    toDraft,
     type DraftSource,
     type MineGroup,
     type MineRow,
 } from "./my-builds";
+
+export const storedDrafts: DraftSource = {
+    list: async () => (await buildsDrafts()).map(toDraft),
+    remove: async (id) => {
+        await buildsDraftDelete(id);
+    },
+};
 
 /** What an action ended in, for the page to tell the player. */
 export type ActionOutcome = "done" | "queued" | "conflict";
@@ -50,7 +59,7 @@ export class MyBuildsStore {
     #checkedLeftovers = false;
     readonly #drafts: DraftSource;
 
-    constructor(drafts: DraftSource = noDrafts) {
+    constructor(drafts: DraftSource = storedDrafts) {
         this.#drafts = drafts;
     }
 
@@ -153,9 +162,21 @@ export class MyBuildsStore {
     toggleFavourite(row: MineRow): Promise<ActionOutcome> {
         const action = favouriteAction(row);
         if (!action) return Promise.resolve("done");
-        return this.#act(() =>
-            action.kind === "favourite" ? buildsFavourite({ id: action.id }) : buildsUnfavourite(action.id),
-        );
+        return this.#act(() => {
+            if (action.kind === "unfavourite") return buildsUnfavourite(action.id);
+            return buildsFavourite("view" in action ? { view: action.view } : { id: action.id });
+        });
+    }
+
+    async discard(row: MineRow) {
+        if (!row.draft) return;
+        this.busy = true;
+        try {
+            await this.#drafts.remove(row.draft.id);
+        } finally {
+            this.busy = false;
+            await this.refresh();
+        }
     }
 
     async cancelQueued(row: MineRow) {

@@ -4,6 +4,7 @@ import type { BuildBackup } from "@deadlock-plus/ipc-types/BuildBackup";
 import type { BuildSection } from "@deadlock-plus/ipc-types/BuildSection";
 import type { BuildVersionMeta } from "@deadlock-plus/ipc-types/BuildVersionMeta";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
 import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
@@ -16,8 +17,9 @@ export function buildsLocal() {
     return command<LocalBuilds>("builds_local");
 }
 
-export function buildsSave(request: SaveRequest) {
-    return command<SaveResult>("builds_save", { request });
+/** A written or queued save also drops the draft `draftId` and every draft of the saved build. */
+export function buildsSave(request: SaveRequest, draftId?: string) {
+    return command<SaveResult>("builds_save", draftId === undefined ? { request } : { request, draftId });
 }
 
 /** `base` is the build's `base` hex as `buildsLocal` listed it; a stale one comes back as a conflict. */
@@ -25,11 +27,12 @@ export function buildsDelete(section: BuildSection, id: number, base: string) {
     return command<SaveResult>("builds_delete", { section, id, base });
 }
 
-/** Favourites a build from its hex blob, or a build already in the file by id. */
-export function buildsFavourite(target: { base: string } | { id: number }) {
+/** Favourites a build from its hex blob, a build already in the file by id, or a published build (id >= 1000) by its view. */
+export function buildsFavourite(target: { base: string } | { id: number } | { view: BuildView }) {
     const base = "base" in target ? target.base : null;
     const id = "id" in target ? target.id : null;
-    return command<SaveResult>("builds_favourite", { base, id });
+    const view = "view" in target ? target.view : null;
+    return command<SaveResult>("builds_favourite", { base, id, view });
 }
 
 export function buildsUnfavourite(id: number) {
@@ -61,6 +64,21 @@ export function buildsHistoryGet(buildId: number, versionId: string) {
 /** Newest first. */
 export function buildsBackups() {
     return command<BuildBackup[]>("builds_backups");
+}
+
+/** Newest first. */
+export function buildsDrafts() {
+    return command<DraftView[]>("builds_drafts");
+}
+
+/** Stores the draft under its id, or under a new one when `id` is empty. */
+export function buildsDraftSave(draft: DraftView) {
+    return command<DraftView>("builds_draft_save", { draft });
+}
+
+/** Resolves to whether a draft with that id was there to remove. */
+export function buildsDraftDelete(id: string) {
+    return command<boolean>("builds_draft_delete", { id });
 }
 
 /** Fires when saves queued while the game ran were written, or could not be, after it closed. */

@@ -16,6 +16,7 @@
         ondelete,
         onfavourite,
         oncancel,
+        ondiscard,
     }: {
         row: MineRow;
         busy: boolean;
@@ -23,6 +24,7 @@
         ondelete: () => void;
         onfavourite: () => void;
         oncancel: () => void;
+        ondiscard: () => void;
     } = $props();
 
     const href = $derived(openHref(row));
@@ -46,6 +48,9 @@
                 {row.name}
             {/if}
         </p>
+        {#if row.draftOf}
+            <p class="truncate text-xs text-muted-foreground">{t("builds.mine.draft_of", { name: row.draftOf })}</p>
+        {/if}
         {#if updated}
             <p class="text-xs text-muted-foreground">{updated}</p>
         {/if}
@@ -56,6 +61,14 @@
             </p>
         {/if}
     </div>
+    {#if row.favorited}
+        <Star
+            class="size-4 shrink-0 fill-current text-brass"
+            role="img"
+            aria-label={t("builds.view.favourited")}
+            data-testid="favourited"
+        />
+    {/if}
     <StatusBadge status={row.status} />
     <DropdownMenu.Root>
         <DropdownMenu.Trigger
@@ -87,6 +100,12 @@
                         <StarOff />
                         {t("builds.mine.unfavourite")}
                     {/if}
+                </DropdownMenu.Item>
+            {/if}
+            {#if row.draft}
+                <DropdownMenu.Item class="text-destructive data-[highlighted]:text-destructive" onSelect={ondiscard}>
+                    <Trash2 />
+                    {t("builds.mine.discard_draft")}
                 </DropdownMenu.Item>
             {/if}
             {#if row.queue.length > 0}

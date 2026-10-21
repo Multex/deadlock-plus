@@ -8,16 +8,13 @@
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import { MyBuildsStore, type ActionOutcome } from "$lib/features/builds/my-builds.svelte";
-    import { noDrafts, waitingCount, type DraftSource, type MineRow } from "$lib/features/builds/my-builds";
+    import { waitingCount, type MineRow } from "$lib/features/builds/my-builds";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import BuildRow from "./build-row.svelte";
     import ConflictDialog from "./conflict-dialog.svelte";
 
-    let { drafts = noDrafts }: { drafts?: DraftSource } = $props();
-
-    // svelte-ignore state_referenced_locally
-    const store = new MyBuildsStore(drafts);
+    const store = new MyBuildsStore();
     let heroes = $state<Record<number, Hero>>({});
     let deleting = $state<MineRow | null>(null);
     let confirmOpen = $state(false);
@@ -61,6 +58,15 @@
     async function cancelQueued(row: MineRow) {
         try {
             await store.cancelQueued(row);
+        } catch (e) {
+            toast.error(failureText(e, t("builds.mine.action_failed")));
+        }
+    }
+
+    async function discard(row: MineRow) {
+        try {
+            await store.discard(row);
+            toast.success(t("builds.mine.draft_discarded"));
         } catch (e) {
             toast.error(failureText(e, t("builds.mine.action_failed")));
         }
@@ -144,6 +150,7 @@
                                         row.favorited ? t("builds.mine.unfavourited") : t("builds.mine.favourited"),
                                     )}
                                 oncancel={() => void cancelQueued(row)}
+                                ondiscard={() => void discard(row)}
                             />
                         {/each}
                     </ul>

@@ -7,6 +7,7 @@ import { expect, test } from "./support/test";
 const QHD = { width: 2560, height: 1440 };
 const LOCAL_ID = 3;
 const PUBLIC_ID = 381204;
+const OWN_PUBLISHED_ID = 402117;
 
 const shop = (page: Page) => page.getByTestId("shop");
 const categories = (page: Page) => shop(page).locator("section.category");
@@ -149,4 +150,23 @@ test("Copy as new writes a local copy of a public build and links to it", async 
 
     await link.click();
     await expect(page.getByTestId("build-header").locator("[data-status]")).toHaveAttribute("data-status", "inGame");
+});
+
+test("favouriting a published build from its view shows it as a favourite in My builds", async ({ page }) => {
+    await open(page, `/builds/view?source=public&id=${OWN_PUBLISHED_ID}`);
+    const favourite = page.getByTestId("favourite");
+    await expect(favourite).toHaveAttribute("aria-pressed", "false");
+    await favourite.click();
+    await expect(favourite).toHaveAttribute("aria-pressed", "true");
+    const favourites = (await localBuilds(page)).builds.filter((b) => b.section === "Favorites");
+    expect(favourites.map((b) => b.build.heroBuildId)).toContain(OWN_PUBLISHED_ID);
+
+    const main = page.getByRole("main");
+    await main.getByRole("link", { name: "Builds", exact: true }).click();
+    await main.getByRole("tab", { name: "Mine", exact: true }).click();
+    const row = main
+        .getByRole("tabpanel", { name: "Mine" })
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("link", { name: "Afterburn all day", exact: true }) });
+    await expect(row.getByTestId("favourited")).toBeVisible();
 });

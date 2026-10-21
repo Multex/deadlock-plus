@@ -1816,7 +1816,10 @@
                 "deleted": "Deleted",
                 "keep_mine": "Keep mine",
                 "keep_game": "Keep the game's"
-            }
+            },
+            "draft_of": "Unsaved changes to {name}",
+            "discard_draft": "Discard draft",
+            "draft_discarded": "Draft discarded."
         },
         "browser": {
             "title": "Builds",

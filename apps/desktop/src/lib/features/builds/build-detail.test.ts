@@ -1,20 +1,32 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
+import type { LevelInfo } from "@deadlock-plus/ipc-types/LevelInfo";
+import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ShopItem } from "./catalog";
 import type { Level } from "./levels";
 
-vi.mock("$lib/core/tauri", () => ({ command: vi.fn(), listen: vi.fn(), fileSrc: (p: string) => p }));
-vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: {} }));
+const mocks = vi.hoisted(() => ({
+    command: vi.fn(),
+    heroes: vi.fn(),
+    items: vi.fn(),
+    builds: vi.fn(),
+}));
+vi.mock("$lib/core/tauri", () => ({ command: mocks.command, listen: vi.fn(), fileSrc: (p: string) => p }));
+vi.mock("$lib/core/deadlock-api", () => ({
+    deadlockApi: { heroes: mocks.heroes, items: mocks.items, builds: mocks.builds },
+}));
 vi.mock("$lib/core/i18n.svelte", () => ({ i18n: { locale: "en" }, t: (key: string) => key }));
 vi.mock("$lib/core/errors", () => ({ failureText: (_e: unknown, fallback: string) => fallback }));
-vi.mock("$lib/features/gamedata/gamedata", () => ({ loadAbilityArt: vi.fn(), loadItemArt: vi.fn() }));
-vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
-vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: vi.fn() } }));
+vi.mock("$lib/features/gamedata/gamedata", () => ({ loadAbilityArt: vi.fn(async () => ({})), loadItemArt: vi.fn() }));
+vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn(async () => ({})) }));
+vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: vi.fn(async () => new Map()) } }));
 
 import {
+    BuildDetail,
     abilitySteps,
     chipFor,
     costLine,
@@ -86,6 +98,12 @@ describe("parseTarget", () => {
     it("reads the source and a positive whole id", () => {
         expect(parseTarget(new URLSearchParams("source=public&id=381204"))).toEqual({ source: "public", id: 381204 });
         expect(parseTarget(new URLSearchParams("source=local&id=3"))).toEqual({ source: "local", id: 3 });
+    });
+
+    it("reads a draft's id as text, and needs one", () => {
+        expect(parseTarget(new URLSearchParams("source=draft&id=d%201"))).toEqual({ source: "draft", id: "d 1" });
+        expect(parseTarget(new URLSearchParams("source=draft&id="))).toBeNull();
+        expect(parseTarget(new URLSearchParams("source=draft"))).toBeNull();
     });
 
     it("gives null for a bare URL, an unknown source or a bad id", () => {
@@ -233,5 +251,146 @@ describe("knownWarnings", () => {
             "leftover",
             "free_unlock",
         ]);
+    });
+});
+
+describe("BuildDetail", () => {
+    const PUBLISHED = 381204;
+    const gameLevels: LevelInfo[] = [
+        { level: 1, souls: 0, ap: 0, unlocks: 1 },
+        { level: 2, souls: 321, ap: 1, unlocks: 0 },
+    ];
+    let answers: Record<string, unknown>;
+
+    function stored(source: DraftView["source"]): DraftView {
+        return { id: "d1", updatedAt: 300, heroId: 1, source, build: view({ name: "Renamed" }) };
+    }
+
+    function listed(builds: LocalBuild[] = []): LocalBuilds {
+        return { accountId: 7, exists: true, gameRunning: false, builds, lastUsed: [], queue: [], nextLocalId: 4 };
+    }
+
+    function apiRow(id: number) {
+        return {
+            hero_build: {
+                hero_id: 1,
+                hero_build_id: id,
+                author_account_id: 9,
+                name: "Published",
+                language: 0,
+                version: 2,
+                origin_build_id: 0,
+                details: { mod_categories: [] },
+            },
+            num_favorites: 12,
+        };
+    }
+
+    async function loaded(target: ConstructorParameters<typeof BuildDetail>[0]): Promise<BuildDetail> {
+        const detail = new BuildDetail(target);
+        await detail.load();
+        return detail;
+    }
+
+    const sent = (name: string) => mocks.command.mock.calls.filter(([n]) => n === name).map(([, args]) => args);
+
+    beforeEach(() => {
+        answers = {
+            builds_drafts: [stored({ kind: "local", section: "Unpublished", buildId: 3, base: "Unpublished-3" })],
+            builds_local: listed(),
+            builds_save: { kind: "written", buildId: 4, backup: null },
+            builds_favourite: { kind: "written", buildId: PUBLISHED, backup: null },
+            builds_unfavourite: { kind: "written", buildId: PUBLISHED, backup: null },
+            builds_draft_delete: true,
+            game_hero_progression: { levels: gameLevels },
+        };
+        mocks.command.mockReset().mockImplementation(async (name: string) => {
+            if (name in answers) return answers[name];
+            throw new Error(`unexpected ${name}`);
+        });
+        mocks.heroes
+            .mockReset()
+            .mockResolvedValue([
+                { id: 1, items: {}, level_info: { "1": { required_gold: 0, bonus_currencies: ["EAbilityUnlocks"] } } },
+            ]);
+        mocks.items.mockReset().mockResolvedValue([]);
+        mocks.builds.mockReset().mockResolvedValue([apiRow(PUBLISHED)]);
+    });
+
+    it("shows a stored draft's build with a Draft badge", async () => {
+        const detail = await loaded({ source: "draft", id: "d1" });
+        expect(detail.status).toBe("ready");
+        expect(detail.build?.name).toBe("Renamed");
+        expect(detail.badge).toBe("draft");
+        expect(detail.canFavourite).toBe(false);
+    });
+
+    it("says an unknown draft is missing", async () => {
+        expect((await loaded({ source: "draft", id: "gone" })).status).toBe("missing");
+    });
+
+    it("copies a draft of a saved build from that build's base, with the draft's changes", async () => {
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await detail.copyAsNew();
+        expect(sent("builds_save")).toEqual([
+            { request: { kind: "copy", source: "Unpublished-3", build: view({ name: "builds.mine.copy_name" }) } },
+        ]);
+        expect(detail.copy).toEqual({ kind: "written", buildId: 4 });
+    });
+
+    it("copies a draft of a new build from its view", async () => {
+        answers.builds_drafts = [stored({ kind: "new" })];
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await detail.copyAsNew();
+        expect(sent("builds_save")).toMatchObject([{ request: { kind: "copyView" } }]);
+    });
+
+    it("discards the draft by its id", async () => {
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await detail.discardDraft();
+        expect(sent("builds_draft_delete")).toEqual([{ id: "d1" }]);
+    });
+
+    it("takes the hero's levels from the game files before the Deadlock API", async () => {
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await vi.waitFor(() => expect(detail.kit).not.toBeNull());
+        expect(detail.kit!.levels.map((l) => l.souls)).toEqual([0, 321]);
+    });
+
+    it("favourites a public build by its view, then unfavourites it by id", async () => {
+        const detail = await loaded({ source: "public", id: PUBLISHED });
+        expect(detail.badge).toBeNull();
+        expect(detail.canFavourite).toBe(true);
+        expect(detail.favourited).toBe(false);
+
+        await detail.toggleFavourite();
+        expect(sent("builds_favourite")).toEqual([{ base: null, id: null, view: detail.build }]);
+        expect(detail.favourited).toBe(true);
+
+        await detail.toggleFavourite();
+        expect(sent("builds_unfavourite")).toEqual([{ id: PUBLISHED }]);
+        expect(detail.favourited).toBe(false);
+    });
+
+    it("knows a public build the file already holds as a favourite", async () => {
+        answers.builds_local = listed([local("Favorites", PUBLISHED)]);
+        expect((await loaded({ source: "public", id: PUBLISHED })).favourited).toBe(true);
+    });
+
+    it("says a queued favourite saves when the game closes and leaves it unfavourited", async () => {
+        answers.builds_favourite = { kind: "queued", id: "q", buildId: PUBLISHED };
+        const detail = await loaded({ source: "public", id: PUBLISHED });
+        await detail.toggleFavourite();
+        expect(detail.favourite).toEqual({ kind: "queued" });
+        expect(detail.favourited).toBe(false);
+    });
+
+    it("favourites a local published build from its base, and offers no favourite for a local-only build", async () => {
+        answers.builds_local = listed([local("SavedLastUsed", 402117), local("Unpublished", 3)]);
+        const published = await loaded({ source: "local", id: 402117 });
+        expect(published.canFavourite).toBe(true);
+        await published.toggleFavourite();
+        expect(sent("builds_favourite")).toEqual([{ base: "SavedLastUsed-402117", id: null, view: null }]);
+        expect((await loaded({ source: "local", id: 3 })).canFavourite).toBe(false);
     });
 });

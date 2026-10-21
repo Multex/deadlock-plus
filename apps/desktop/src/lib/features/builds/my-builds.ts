@@ -1,6 +1,7 @@
 import type { Build } from "@deadlock-plus/deadlock-api";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { QueuedSaveView } from "@deadlock-plus/ipc-types/QueuedSaveView";
@@ -22,15 +23,20 @@ export interface Draft {
     buildId: number | null;
 }
 
+export function toDraft(stored: DraftView): Draft {
+    return {
+        id: stored.id,
+        heroId: stored.heroId,
+        name: stored.build.name,
+        updatedAt: stored.updatedAt,
+        buildId: stored.source.kind === "new" ? null : stored.source.buildId,
+    };
+}
+
 export interface DraftSource {
     list(): Promise<Draft[]>;
     remove(id: string): Promise<void>;
 }
-
-export const noDrafts: DraftSource = {
-    list: async () => [],
-    remove: async () => {},
-};
 
 export interface MineInput {
     accountId: number;
@@ -58,7 +64,10 @@ export interface MineRow {
     local: LocalBuild[];
     api: Build | null;
     queue: QueuedSaveView[];
+    /** Set on a draft row only: a draft never merges into the saved build it edits. */
     draft: Draft | null;
+    /** On a draft row, the name of the player's saved build the draft edits. */
+    draftOf: string | null;
 }
 
 export interface MineGroup {
@@ -97,26 +106,19 @@ function maxOf(values: (number | null | undefined)[]): number | null {
     return known.length > 0 ? Math.max(...known) : null;
 }
 
-function rowFor(
-    buildId: number,
-    local: LocalBuild[],
-    api: Build | null,
-    queue: QueuedSaveView[],
-    draft: Draft | null,
-): MineRow {
+function rowFor(buildId: number, local: LocalBuild[], api: Build | null, queue: QueuedSaveView[]): MineRow {
     local.sort((a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section));
     const named = NAME_ORDER.map((s) => local.find((l) => l.section === s)).find(Boolean);
     const published = api !== null || buildId >= LOCAL_ID_LIMIT;
     const partial = {
         key: `build:${buildId}`,
         buildId,
-        heroId: local[0]?.build.heroId ?? api?.hero_build.hero_id ?? draft?.heroId ?? null,
-        name: named?.build.name ?? api?.hero_build.name ?? draft?.name ?? queue[0]?.label ?? "",
+        heroId: local[0]?.build.heroId ?? api?.hero_build.hero_id ?? null,
+        name: named?.build.name ?? api?.hero_build.name ?? queue[0]?.label ?? "",
         updatedAt: maxOf([
             ...local.map((l) => l.build.lastUpdatedTimestamp),
             api?.hero_build.last_updated_timestamp,
             ...queue.map((q) => q.queuedAt),
-            draft?.updatedAt,
         ]),
         published,
         edited: published && local.some((l) => l.section === "SavedLastUsed"),
@@ -124,12 +126,13 @@ function rowFor(
         local,
         api,
         queue,
-        draft,
+        draft: null,
+        draftOf: null,
     };
     return { ...partial, status: statusOf(partial) };
 }
 
-/** One row per build across the file, the queue, the API and drafts, grouped by hero. */
+/** One row per build across the file, the queue and the API, plus one per draft, grouped by hero. */
 export function mergeMine(input: MineInput): MineGroup[] {
     const local = new Map<number, LocalBuild[]>();
     for (const entry of input.local) {
@@ -140,24 +143,16 @@ export function mergeMine(input: MineInput): MineGroup[] {
     const api = newestApi(input.published, input.accountId);
     const queue = new Map<number, QueuedSaveView[]>();
     for (const save of input.queue) queue.set(save.buildId, [...(queue.get(save.buildId) ?? []), save]);
-    const drafts = new Map<number, Draft>();
-    const looseDrafts: Draft[] = [];
-    for (const d of input.drafts) {
-        if (d.buildId === null) looseDrafts.push(d);
-        else drafts.set(d.buildId, d);
-    }
 
     const ids = new Set<number>([...local.keys(), ...api.keys()]);
     // A queued save with no row is a new local build; a high id with no row is another player's build.
     for (const id of queue.keys()) if (id < LOCAL_ID_LIMIT) ids.add(id);
 
     const rows: MineRow[] = [...ids].map((id) =>
-        rowFor(id, local.get(id) ?? [], api.get(id) ?? null, queue.get(id) ?? [], drafts.get(id) ?? null),
+        rowFor(id, local.get(id) ?? [], api.get(id) ?? null, queue.get(id) ?? []),
     );
-    for (const d of drafts.values()) {
-        if (d.buildId !== null && !ids.has(d.buildId)) looseDrafts.push(d);
-    }
-    for (const d of looseDrafts) {
+    const names = new Map(rows.map((r) => [r.buildId, r.name]));
+    for (const d of input.drafts) {
         rows.push({
             key: `draft:${d.id}`,
             buildId: null,
@@ -172,6 +167,7 @@ export function mergeMine(input: MineInput): MineGroup[] {
             api: null,
             queue: [],
             draft: d,
+            draftOf: d.buildId === null ? null : (names.get(d.buildId) ?? null),
         });
     }
     return groupRows(rows);
@@ -209,12 +205,16 @@ export function deleteTargets(row: MineRow): LocalBuild[] {
     return row.published ? [] : row.local;
 }
 
-export type FavouriteAction = { kind: "favourite"; id: number } | { kind: "unfavourite"; id: number };
+export type FavouriteAction =
+    { kind: "favourite"; id: number } | { kind: "favourite"; view: BuildView } | { kind: "unfavourite"; id: number };
 
-/** `null` when the build is not in the file: favouriting needs the build's blob, which the API does not carry. */
+/** A build in the file is favourited by id; one only the API lists, by its published view. */
 export function favouriteAction(row: MineRow): FavouriteAction | null {
-    if (row.buildId === null || row.local.length === 0) return null;
-    return { kind: row.favorited ? "unfavourite" : "favourite", id: row.buildId };
+    if (row.buildId === null) return null;
+    if (row.local.length > 0) {
+        return row.favorited ? { kind: "unfavourite", id: row.buildId } : { kind: "favourite", id: row.buildId };
+    }
+    return row.api ? { kind: "favourite", view: viewOfPublished(row.api) } : null;
 }
 
 /** Copies the version the game would show: the local edit of a published build over the published one. */

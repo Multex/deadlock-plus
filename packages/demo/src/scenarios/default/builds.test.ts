@@ -2,6 +2,7 @@ import type { BuildBackup } from "@deadlock-plus/ipc-types/BuildBackup";
 import type { BuildVersionMeta } from "@deadlock-plus/ipc-types/BuildVersionMeta";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
@@ -291,6 +292,120 @@ describe("builds in the default scenario", () => {
         first.invoke("builds_save", { request: { kind: "new", build: draft(HAZE, "Only here") } });
         const second = start(defaultScenario(OPTIONS));
         expect(local(second).builds.map((b) => b.build.name)).not.toContain("Only here");
+    });
+});
+
+describe("drafts in the default scenario", () => {
+    const drafts = (handle: DemoHandle) => handle.invoke("builds_drafts", {}) as DraftView[];
+    const store = (handle: DemoHandle, draft: Partial<DraftView> & Pick<DraftView, "build">) =>
+        handle.invoke("builds_draft_save", {
+            draft: { id: "", updatedAt: 0, heroId: 0, source: { kind: "new" }, ...draft },
+        }) as DraftView;
+
+    it("has one draft: a renamed edit of local build 3, made from its current base", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const listed = drafts(handle);
+        expect(listed).toHaveLength(1);
+        const saved = find(local(handle), 3)!;
+        const [seeded] = listed;
+        expect(seeded).toMatchObject({
+            id: expect.stringMatching(/.+/),
+            heroId: saved.build.heroId,
+            source: { kind: "local", section: "Unpublished", buildId: 3, base: saved.base },
+            build: { heroBuildId: 3, heroId: saved.build.heroId },
+        });
+        expect(seeded!.build.name).not.toBe(saved.build.name);
+        expect(seeded!.updatedAt).toBeGreaterThan(saved.build.lastUpdatedTimestamp!);
+    });
+
+    it("stores a new draft under a fresh id, replaces it by id, lists newest first and deletes it", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const first = store(handle, { build: draft(HAZE, "Idea") });
+        expect(first).toMatchObject({ heroId: HAZE, source: { kind: "new" }, build: { name: "Idea" } });
+        expect(first.id).not.toBe("");
+        const second = store(handle, { build: draft(HAZE, "Other") });
+        expect(second.id).not.toBe(first.id);
+        store(handle, { ...first, build: draft(HAZE, "Idea 2") });
+        expect(
+            drafts(handle)
+                .map((d) => d.build.name)
+                .slice(0, 2),
+        ).toEqual(["Idea 2", "Other"]);
+
+        expect(handle.invoke("builds_draft_delete", { id: first.id })).toBe(true);
+        expect(handle.invoke("builds_draft_delete", { id: first.id })).toBe(false);
+        expect(drafts(handle).map((d) => d.id)).not.toContain(first.id);
+    });
+
+    it("drops the saved draft and the build's own drafts after a written save, and keeps them after a conflict", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const [seeded] = drafts(handle);
+        const other = store(handle, { build: draft(HAZE, "Other") });
+        const stale = find(local(handle), 3)!.base;
+        const edit = (base: string, name: string, draftId?: string) =>
+            handle.invoke("builds_save", {
+                request: { kind: "edit", section: "Unpublished", base, build: { ...seeded!.build, name } },
+                draftId,
+            }) as SaveResult;
+
+        expect(edit(stale, "Saved")).toMatchObject({ kind: "written", buildId: 3 });
+        expect(drafts(handle).map((d) => d.id)).toEqual([other.id]);
+
+        const again = store(handle, { source: seeded!.source, build: { ...seeded!.build, name: "Again" } });
+        expect(edit(stale, "Lost", again.id)).toMatchObject({ kind: "conflict" });
+        expect(drafts(handle).map((d) => d.id)).toEqual([again.id, other.id]);
+
+        const fresh = handle.invoke("builds_save", {
+            request: { kind: "new", build: other.build },
+            draftId: other.id,
+        }) as SaveResult;
+        expect(fresh).toMatchObject({ kind: "written" });
+        expect(drafts(handle).map((d) => d.id)).toEqual([again.id]);
+    });
+
+    it("keeps each install's drafts to itself", () => {
+        const first = start(defaultScenario(OPTIONS));
+        store(first, { build: draft(HAZE, "Only here") });
+        const second = start(defaultScenario(OPTIONS));
+        expect(drafts(second).map((d) => d.build.name)).not.toContain("Only here");
+    });
+
+    it("favourites a published build known only as a view, and refuses a local id", async () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const row = (await publicBuilds(`?hero_id=${HAZE}&sort_by=favorites`)).find(
+            (b) => !find(local(handle), b.hero_build.hero_build_id),
+        )!.hero_build;
+        const view = { ...draft(HAZE, row.name), heroBuildId: row.hero_build_id, authorAccountId: 1 };
+        expect(handle.invoke("builds_favourite", { base: null, id: null, view })).toMatchObject({
+            kind: "written",
+            buildId: row.hero_build_id,
+        });
+        expect(find(local(handle), row.hero_build_id)).toMatchObject({
+            section: "Favorites",
+            build: { name: row.name, favorited: true },
+        });
+        expect(() => handle.invoke("builds_favourite", { view: { ...view, heroBuildId: 3 } })).toThrow(
+            expect.objectContaining({ code: "builds.bad_base" }),
+        );
+    });
+});
+
+describe("drafts in other scenarios", () => {
+    it("drops a draft once its save is queued while the game runs", () => {
+        const handle = start(liveMatchScenario(OPTIONS));
+        const stored = handle.invoke("builds_draft_save", {
+            draft: { id: "", updatedAt: 0, heroId: 0, source: { kind: "new" }, build: draft(HAZE, "Later") },
+        }) as DraftView;
+        const result = handle.invoke("builds_save", {
+            request: { kind: "new", build: stored.build },
+            draftId: stored.id,
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "queued" });
+        expect((handle.invoke("builds_drafts", {}) as DraftView[]).map((d) => d.id)).not.toContain(stored.id);
+    });
+
+    it("has no drafts for a new user", () => {
+        expect(start(newUserScenario(OPTIONS)).invoke("builds_drafts", {})).toEqual([]);
     });
 });
 

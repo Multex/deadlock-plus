@@ -2,6 +2,7 @@ import type { Build } from "@deadlock-plus/deadlock-api";
 import type { BuildSection } from "@deadlock-plus/ipc-types/BuildSection";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { QueuedSaveView } from "@deadlock-plus/ipc-types/QueuedSaveView";
@@ -14,6 +15,9 @@ const mocks = vi.hoisted(() => ({
     buildsFlush: vi.fn(),
     buildsDelete: vi.fn(),
     buildsQueueResolve: vi.fn(),
+    buildsFavourite: vi.fn(),
+    buildsDrafts: vi.fn(),
+    buildsDraftDelete: vi.fn(),
     onFlushed: vi.fn(),
 }));
 vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: { builds: mocks.builds } }));
@@ -23,8 +27,10 @@ vi.mock("./api", () => ({
     buildsDelete: mocks.buildsDelete,
     buildsQueueResolve: mocks.buildsQueueResolve,
     onFlushed: mocks.onFlushed,
+    buildsFavourite: mocks.buildsFavourite,
+    buildsDrafts: mocks.buildsDrafts,
+    buildsDraftDelete: mocks.buildsDraftDelete,
     buildsSave: vi.fn(),
-    buildsFavourite: vi.fn(),
     buildsUnfavourite: vi.fn(),
     buildsQueueCancel: vi.fn(),
 }));
@@ -40,8 +46,8 @@ import {
     favouriteAction,
     flushFailure,
     mergeMine,
-    noDrafts,
     openHref,
+    toDraft,
     viewOfPublished,
     waitingCount,
     type Draft,
@@ -187,14 +193,36 @@ describe("mergeMine status", () => {
         expect(only({ drafts: [draft] })).toMatchObject({ status: "draft", heroId: 2, buildId: null, draft });
     });
 
-    it("attaches a draft of a saved build to that build's row", () => {
+    it("shows a draft of a saved build on its own draft row, beside the build it edits", () => {
         const draft: Draft = { id: "d1", heroId: 1, name: "Idea", updatedAt: 300, buildId: 3 };
-        const row = only({ local: [local("Unpublished")], drafts: [draft] });
-        expect(row).toMatchObject({ status: "inGame", draft });
+        const all = rows({ local: [local("Unpublished", { name: "Saved" })], drafts: [draft] });
+        expect(all).toHaveLength(2);
+        expect(all[0]).toMatchObject({ key: "draft:d1", status: "draft", buildId: null, draftOf: "Saved", draft });
+        expect(all[1]).toMatchObject({ buildId: 3, status: "inGame", draft: null, draftOf: null });
     });
 
-    it("has no drafts from the placeholder source", async () => {
-        expect(await noDrafts.list()).toEqual([]);
+    it("names no saved build for a draft of a build that is not the player's", () => {
+        const draft: Draft = { id: "d1", heroId: 1, name: "Idea", updatedAt: 300, buildId: 381204 };
+        expect(only({ drafts: [draft] })).toMatchObject({ status: "draft", draftOf: null });
+    });
+
+    it("reads a stored draft's name, hero, time and the build it edits", () => {
+        const stored = (source: DraftView["source"]): DraftView => ({
+            id: "d1",
+            updatedAt: 300,
+            heroId: 2,
+            source,
+            build: view({ heroId: 2, name: "Idea" }),
+        });
+        expect(toDraft(stored({ kind: "new" }))).toEqual({
+            id: "d1",
+            heroId: 2,
+            name: "Idea",
+            updatedAt: 300,
+            buildId: null,
+        });
+        expect(toDraft(stored({ kind: "local", section: "Unpublished", buildId: 3, base: "ab" })).buildId).toBe(3);
+        expect(toDraft(stored({ kind: "public", buildId: 381204 })).buildId).toBe(381204);
     });
 });
 
@@ -283,14 +311,19 @@ describe("row actions", () => {
         expect(canDelete(only({ queue: [queued(9)] }))).toBe(false);
     });
 
-    it("favourites from the file by id, unfavourites a favourite, and cannot favourite an API-only build", () => {
+    it("favourites from the file by id, an API-only build by its view, and unfavourites a favourite", () => {
         expect(favouriteAction(only({ local: [local("Unpublished")] }))).toEqual({ kind: "favourite", id: 3 });
         expect(favouriteAction(only({ local: [local("Favorites", { favorited: true })] }))).toEqual({
             kind: "unfavourite",
             id: 3,
         });
-        expect(favouriteAction(only({ published: [api()] }))).toBeNull();
+        expect(favouriteAction(only({ published: [api()] }))).toEqual({
+            kind: "favourite",
+            view: viewOfPublished(api()),
+        });
         expect(favouriteAction(only({ queue: [queued(9)] }))).toBeNull();
+        const draft: Draft = { id: "d1", heroId: 1, name: "x", updatedAt: 1, buildId: null };
+        expect(favouriteAction(only({ drafts: [draft] }))).toBeNull();
     });
 
     it("copies a file build from its blob and an API-only build from its view", () => {
@@ -420,6 +453,46 @@ describe("MyBuildsStore", () => {
         mocks.buildsLocal.mockResolvedValue(file());
         mocks.builds.mockResolvedValue([api()]);
         mocks.onFlushed.mockResolvedValue(() => {});
+        mocks.buildsDrafts.mockResolvedValue([]);
+    });
+
+    function storedDraft(): DraftView {
+        return {
+            id: "d1",
+            updatedAt: 300,
+            heroId: 1,
+            source: { kind: "local", section: "Unpublished", buildId: 3, base: "Unpublished-3" },
+            build: view({ name: "Idea" }),
+        };
+    }
+
+    it("lists the drafts the app stored as draft rows", async () => {
+        mocks.buildsDrafts.mockResolvedValue([storedDraft()]);
+        const store = new MyBuildsStore();
+        await store.refresh();
+        const draftRow = store.groups.flatMap((g) => g.rows).find((r) => r.status === "draft");
+        expect(draftRow).toMatchObject({ key: "draft:d1", name: "Idea", draftOf: "Build" });
+    });
+
+    it("discards a draft by its id and reloads", async () => {
+        mocks.buildsDrafts.mockResolvedValue([storedDraft()]);
+        mocks.buildsDraftDelete.mockResolvedValue(true);
+        const store = new MyBuildsStore();
+        await store.refresh();
+        const draftRow = store.groups.flatMap((g) => g.rows).find((r) => r.status === "draft")!;
+        mocks.buildsDrafts.mockResolvedValue([]);
+        await store.discard(draftRow);
+        expect(mocks.buildsDraftDelete).toHaveBeenCalledWith("d1");
+        expect(store.groups.flatMap((g) => g.rows).some((r) => r.status === "draft")).toBe(false);
+    });
+
+    it("favourites an API-only build by its view", async () => {
+        mocks.buildsFavourite.mockResolvedValue({ kind: "written", buildId: 5000, backup: null });
+        const store = new MyBuildsStore();
+        await store.refresh();
+        const row = store.groups.flatMap((g) => g.rows).find((r) => r.buildId === 5000)!;
+        expect(await store.toggleFavourite(row)).toBe("done");
+        expect(mocks.buildsFavourite).toHaveBeenCalledWith({ view: viewOfPublished(api()) });
     });
 
     it("merges the file with the player's own published builds", async () => {
