@@ -1,8 +1,5 @@
 <script lang="ts">
-    import { Info } from "@lucide/svelte";
-    import Button from "@deadlock-plus/ui/button.svelte";
-    import * as Tooltip from "@deadlock-plus/ui/tooltip";
-    import { formatNumber, t } from "$lib/core/i18n.svelte";
+    import { formatNumber } from "$lib/core/i18n.svelte";
 
     let {
         ticks,
@@ -26,14 +23,14 @@
         timeAt: (netWorth: number) => string | null;
     } = $props();
 
-    // Labels are at most about 28 px wide: clamping their centre this far in keeps both edges inside.
-    const LABEL_HALF = 16;
+    // Labels are at most about 36 px wide ("17:30" at 11 px): clamping their centre this far in keeps both edges inside.
+    const LABEL_HALF = 20;
     const labelLeft = (netWorth: number) => Math.min(width - LABEL_HALF, Math.max(LABEL_HALF, x(netWorth)));
 </script>
 
 {#each ticks as tick (tick)}
     <span
-        class="absolute top-0 w-px bg-border/45"
+        class="absolute top-0 w-px bg-border/60"
         style:left="{x(tick)}px"
         style:height="{gridBottom}px"
         aria-hidden="true"
@@ -45,7 +42,7 @@
 
 {#each apTicks as tick (tick)}
     <span
-        class="absolute h-[5px] w-px -translate-y-1/2 bg-muted-foreground/30"
+        class="absolute h-[7px] w-px -translate-y-1/2 bg-muted-foreground/35"
         style:left="{x(tick)}px"
         style:top="{axisY}px"
         aria-hidden="true"
@@ -55,36 +52,16 @@
 {#each ticks as tick (tick)}
     {@const time = timeAt(tick)}
     <span
-        class="absolute flex -translate-x-1/2 flex-col items-center text-[10px] leading-[11px] tabular-nums"
+        class="absolute flex -translate-x-1/2 flex-col items-center tabular-nums"
         style:left="{labelLeft(tick)}px"
         style:top="{labelsY}px"
         data-testid="timeline-tick"
     >
-        <span class="font-medium text-muted-foreground">{formatNumber(tick, { notation: "compact" })}</span>
+        <span class="text-xs leading-[14px] font-semibold text-muted-foreground">
+            {formatNumber(tick, { notation: "compact" })}
+        </span>
         {#if time !== null}
-            <span class="text-muted-foreground/60">{time}</span>
+            <span class="text-[11px] leading-[13px] text-muted-foreground/60">{time}</span>
         {/if}
     </span>
 {/each}
-
-<Tooltip.Provider>
-    <Tooltip.Root delayDuration={150}>
-        <Tooltip.Trigger>
-            {#snippet child({ props })}
-                <Button
-                    {...props}
-                    variant="unstyled"
-                    aria-label={t("builds.editor.timeline.about")}
-                    data-timeline-info
-                    class="absolute left-1 grid size-4 place-items-center rounded-full text-muted-foreground/60 hover:text-foreground focus-visible:text-foreground"
-                    style="top: {labelsY}px"
-                >
-                    <Info class="size-3.5" />
-                </Button>
-            {/snippet}
-        </Tooltip.Trigger>
-        <Tooltip.Content side="top" align="start" class="max-w-64">
-            {t("builds.editor.timeline.assumption")}
-        </Tooltip.Content>
-    </Tooltip.Root>
-</Tooltip.Provider>

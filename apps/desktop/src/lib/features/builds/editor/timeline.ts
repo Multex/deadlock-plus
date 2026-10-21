@@ -189,6 +189,51 @@ export function packLane(xs: readonly number[], { size, gap, width, rows }: Lane
     return out;
 }
 
+export interface TimelineSize {
+    /** Item icon edge in px. */
+    item: number;
+    /** Ability step disc in px. */
+    mark: number;
+    gap: number;
+    /** Item rows kept free before icons slide along a row. */
+    rows: number;
+}
+
+// Below this the canvas above needs the room more than the strip does.
+const TALL_WINDOW = 1000;
+
+export function timelineSize(windowHeight: number): TimelineSize {
+    return windowHeight >= TALL_WINDOW
+        ? { item: 38, mark: 30, gap: 3, rows: 2 }
+        : { item: 30, mark: 26, gap: 2, rows: 2 };
+}
+
+export interface TimelineLayout {
+    itemsTop: number;
+    itemsBottom: number;
+    axisY: number;
+    marksTop: number;
+    labelsY: number;
+    height: number;
+}
+
+const LANE_TOP = 6;
+const PIPS = 10;
+const LABELS_GAP = 4;
+// Two label lines: the soul count at 12 px and the time at 11 px.
+const LABELS_H = 28;
+
+/** Vertical layout of the strip; every item row is reserved so the height stays put as items come and go. */
+export function timelineLayout({ item, mark, gap, rows }: TimelineSize): TimelineLayout {
+    const leader = Math.round(item / 6);
+    const itemsTop = LANE_TOP;
+    const itemsBottom = itemsTop + rows * item + (rows - 1) * gap;
+    const axisY = itemsBottom + leader;
+    const marksTop = axisY + leader;
+    const labelsY = marksTop + mark + PIPS + LABELS_GAP;
+    return { itemsTop, itemsBottom, axisY, marksTop, labelsY, height: labelsY + LABELS_H };
+}
+
 export function itemsBoughtBy(entries: readonly TimelineEntry[], netWorth: number): number[] {
     return entries.filter((e) => e.netWorth <= netWorth).map((e) => e.abilityId);
 }

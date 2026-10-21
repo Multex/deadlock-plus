@@ -1,4 +1,7 @@
 <script lang="ts">
+    import { Info } from "@lucide/svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { deadlockApi } from "$lib/core/deadlock-api";
     import { t } from "$lib/core/i18n.svelte";
@@ -22,6 +25,8 @@
         statsAt,
         timeFor,
         timelineEnd,
+        timelineLayout,
+        timelineSize,
         type NetWorthCurve,
     } from "../../editor/timeline";
     import type { Level } from "../../levels";
@@ -48,17 +53,14 @@
         badge?: number | null;
     } = $props();
 
-    const PAD = 14;
-    const ITEM = 24;
-    const ITEM_GAP = 2;
-    const ITEM_ROWS = 3;
-    const MARK = 20;
-    const MARK_SLOT = 24;
-    const TOP = 6;
-    const LEADER = 7;
-    const MARK_H = MARK + 8;
-    const LABELS_H = 24;
-    const TICK_GAP = 56;
+    // The left gutter holds the lane labels; the scale starts after it.
+    const GUTTER = 80;
+    const PAD = 20;
+    const TICK_GAP = 64;
+
+    let windowHeight = $state(1080);
+    const size = $derived(timelineSize(windowHeight));
+    const layout = $derived(timelineLayout(size));
 
     const entries = $derived(placeItems(editor.build, catalog.byId));
     const marks = $derived(breakpoints(editor.build.abilityOrder, levels));
@@ -66,14 +68,14 @@
     const scale = $derived(soulScale(end));
 
     let width = $state(0);
-    const inner = $derived(Math.max(0, width - 2 * PAD));
-    const x = (netWorth: number) => PAD + scale.at(netWorth) * inner;
+    const inner = $derived(Math.max(0, width - GUTTER - PAD));
+    const x = (netWorth: number) => GUTTER + scale.at(netWorth) * inner;
 
     const items = $derived.by(() => {
         if (width <= 0) return [];
         const packed = packLane(
             entries.map((e) => x(e.netWorth)),
-            { size: ITEM, gap: ITEM_GAP, width, rows: ITEM_ROWS },
+            { size: size.item, gap: size.gap, width, rows: size.rows },
         );
         return entries.map((entry, i) => ({
             entry,
@@ -82,23 +84,16 @@
             item: catalog.byId.get(entry.abilityId),
         }));
     });
-    const rows = $derived(Math.max(1, ...items.map((i) => i.row + 1)));
-
     const steps = $derived.by(() => {
         if (width <= 0) return [];
         const packed = packLane(
             marks.map((m) => x(m.netWorth)),
-            { size: MARK_SLOT, gap: 2, width, rows: 1 },
+            { size: size.mark, gap: size.gap, width, rows: 1 },
         );
         return marks.map((mark, i) => ({ mark, at: x(mark.netWorth), x: packed[i]!.x }));
     });
 
-    const itemsBottom = $derived(TOP + rows * (ITEM + ITEM_GAP) - ITEM_GAP);
-    const axisY = $derived(itemsBottom + LEADER);
-    const marksTop = $derived(axisY + LEADER);
-    const labelsY = $derived(marksTop + MARK_H + 2);
-    const height = $derived(labelsY + LABELS_H);
-    const itemTop = (row: number) => itemsBottom - ITEM - row * (ITEM + ITEM_GAP);
+    const itemTop = (row: number) => layout.itemsBottom - size.item - row * (size.item + size.gap);
 
     const ticks = $derived(inner > 0 ? soulTicks(end, inner, TICK_GAP) : []);
     const apMarks = $derived(apTicks(levels, end));
@@ -137,7 +132,7 @@
     function netWorthAt(clientX: number): number | null {
         if (!track || inner <= 0) return null;
         const rect = track.getBoundingClientRect();
-        return Math.round(scale.netWorthAt((clientX - rect.left - PAD) / inner));
+        return Math.round(scale.netWorthAt((clientX - rect.left - GUTTER) / inner));
     }
 
     function over(state: { x: number; y: number }): boolean {
@@ -200,36 +195,95 @@
     }
 
     $effect(() => drag.onDrop(drop));
+
+    const label = "text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase";
+    const laneLabel =
+        "pointer-events-none absolute left-2.5 max-w-[66px] -translate-y-1/2 truncate text-[10px] font-semibold tracking-[0.08em] text-muted-foreground/70 uppercase";
 </script>
 
-<section class="my-1.5" aria-label={t("builds.editor.timeline.label")} data-testid="souls-timeline">
+<svelte:window bind:innerHeight={windowHeight} />
+
+<section
+    class={cn(
+        "my-1.5 rounded-lg border bg-card px-2 pb-1 transition-colors",
+        dragging ? "border-primary/60 bg-primary/5" : "border-border",
+    )}
+    aria-label={t("builds.editor.timeline.label")}
+    data-testid="souls-timeline"
+>
+    <header class="flex h-7 items-center gap-1.5 px-2 pt-1">
+        <h3 class={label}>{t("builds.editor.timeline.label")}</h3>
+        <Tooltip.Provider>
+            <Tooltip.Root delayDuration={150}>
+                <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                        <Button
+                            {...props}
+                            variant="unstyled"
+                            aria-label={t("builds.editor.timeline.about")}
+                            class="grid size-4 place-items-center rounded-full text-muted-foreground/60 hover:text-foreground focus-visible:text-foreground"
+                        >
+                            <Info class="size-3.5" />
+                        </Button>
+                    {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Content side="top" align="start" class="max-w-64">
+                    {t("builds.editor.timeline.assumption")}
+                </Tooltip.Content>
+            </Tooltip.Root>
+        </Tooltip.Provider>
+    </header>
+
     <div
         bind:this={track}
         bind:clientWidth={width}
-        class={cn(
-            "relative rounded-md border bg-muted/25 transition-colors",
-            dragging ? "border-primary/60 bg-primary/5" : "border-border",
-        )}
-        style:height="{height}px"
+        class="relative"
+        style:height="{layout.height}px"
         role="presentation"
-        onpointermove={(e) =>
-            (hover = (e.target as Element).closest("[data-timeline-info]") ? null : netWorthAt(e.clientX))}
+        onpointermove={(e) => (hover = netWorthAt(e.clientX))}
         onpointerleave={() => {
             hover = null;
             focus = null;
         }}
     >
         {#if width > 0}
-            <TimelineAxis {ticks} apTicks={apMarks} {x} {width} {axisY} gridBottom={labelsY - 2} {labelsY} {timeAt} />
+            <div
+                class="absolute inset-x-0 top-0 rounded-md bg-muted/30"
+                style:height="{layout.axisY}px"
+                aria-hidden="true"
+            ></div>
+            <div
+                class="absolute inset-x-0 rounded-md bg-brass/[0.05]"
+                style:top="{layout.axisY}px"
+                style:height="{layout.labelsY - layout.axisY - 2}px"
+                aria-hidden="true"
+            ></div>
+            <span class={laneLabel} style:top="{(layout.itemsTop + layout.itemsBottom) / 2}px">
+                {t("builds.editor.timeline.items")}
+            </span>
+            <span class={laneLabel} style:top="{layout.marksTop + size.mark / 2}px">
+                {t("builds.editor.timeline.abilities")}
+            </span>
+
+            <TimelineAxis
+                {ticks}
+                apTicks={apMarks}
+                {x}
+                {width}
+                axisY={layout.axisY}
+                gridBottom={layout.labelsY - 2}
+                labelsY={layout.labelsY}
+                {timeAt}
+            />
 
             <svg class="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden="true">
                 {#each items as it, i (i)}
                     {#if Math.abs(it.x - it.at) > 0.5 || it.row > 0}
                         <line
                             x1={it.x}
-                            y1={itemTop(it.row) + ITEM}
+                            y1={itemTop(it.row) + size.item}
                             x2={it.at}
-                            y2={axisY}
+                            y2={layout.axisY}
                             class="stroke-muted-foreground/40"
                             stroke-width="1"
                         />
@@ -239,9 +293,9 @@
                     {#if Math.abs(step.x - step.at) > 0.5}
                         <line
                             x1={step.x}
-                            y1={marksTop}
+                            y1={layout.marksTop}
                             x2={step.at}
-                            y2={axisY}
+                            y2={layout.axisY}
                             class="stroke-brass/45"
                             stroke-width="1"
                         />
@@ -251,17 +305,17 @@
 
             {#each items as it (`${it.entry.ref.category}:${it.entry.ref.index}`)}
                 <span
-                    class="absolute h-1 w-0.5 -translate-x-1/2 rounded-full bg-muted-foreground/70"
+                    class="absolute h-1.5 w-0.5 -translate-x-1/2 rounded-full bg-muted-foreground/70"
                     style:left="{it.at}px"
-                    style:top="{axisY - 4}px"
+                    style:top="{layout.axisY - 6}px"
                     aria-hidden="true"
                 ></span>
             {/each}
             {#each steps as step, i (i)}
                 <span
-                    class="absolute h-1 w-0.5 -translate-x-1/2 rounded-full bg-brass/80"
+                    class="absolute h-1.5 w-0.5 -translate-x-1/2 rounded-full bg-brass/80"
                     style:left="{step.at}px"
-                    style:top="{axisY + 1}px"
+                    style:top="{layout.axisY + 1}px"
                     aria-hidden="true"
                 ></span>
             {/each}
@@ -269,14 +323,16 @@
             {#each items as it, i (`${it.entry.ref.category}:${it.entry.ref.index}`)}
                 <span
                     class={cn(
-                        "timeline-item absolute overflow-hidden rounded-[3px] bg-card shadow-sm ring-1 ring-black/40 transition-transform duration-100",
-                        focus?.kind === "item" && focus.index === i && "z-10 scale-125",
+                        "timeline-item absolute overflow-hidden rounded-[4px] shadow-md ring-1 ring-black/50 transition-transform duration-100",
+                        focus?.kind === "item" && focus.index === i && "z-10 scale-110",
                     )}
-                    style:left="{it.x - ITEM / 2}px"
+                    style:left="{it.x - size.item / 2}px"
                     style:top="{itemTop(it.row)}px"
-                    style:width="{ITEM}px"
-                    style:height="{ITEM}px"
+                    style:width="{size.item}px"
+                    style:height="{size.item}px"
+                    style:--s="{size.item}px"
                     data-slot={it.item?.slot}
+                    data-tier={it.item?.tier}
                     data-testid="timeline-item"
                     role="presentation"
                     onpointerenter={() => (focus = { kind: "item", index: i })}
@@ -285,18 +341,21 @@
                     {#if it.item?.art}
                         <img src={it.item.art} alt={it.item.name} class="size-full object-cover" draggable="false" />
                     {/if}
+                    {#if it.item}
+                        <span class="tier" aria-hidden="true">{it.item.tier}</span>
+                    {/if}
                 </span>
             {/each}
 
             {#each steps as step, i (i)}
                 <span
                     class={cn(
-                        "absolute flex flex-col items-center gap-0.5 transition-transform duration-100",
-                        focus?.kind === "mark" && focus.index === i && "z-10 scale-125",
+                        "absolute flex flex-col items-center gap-1 transition-transform duration-100",
+                        focus?.kind === "mark" && focus.index === i && "z-10 scale-110",
                     )}
-                    style:left="{step.x - MARK_SLOT / 2}px"
-                    style:top="{marksTop}px"
-                    style:width="{MARK_SLOT}px"
+                    style:left="{step.x - size.mark / 2}px"
+                    style:top="{layout.marksTop}px"
+                    style:width="{size.mark}px"
                     data-testid="timeline-breakpoint"
                     role="presentation"
                     onpointerenter={() => (focus = { kind: "mark", index: i })}
@@ -304,15 +363,16 @@
                 >
                     <span
                         class={cn(
-                            "grid place-items-center rounded-full border bg-muted/80",
-                            step.mark.tier === 0 ? "border-border" : "border-brass/60",
+                            "grid shrink-0 place-items-center rounded-full border bg-muted shadow-sm",
+                            step.mark.tier === 0 ? "border-border" : "border-brass/70",
                         )}
-                        style:width="{MARK}px"
-                        style:height="{MARK}px"
+                        style:width="{size.mark}px"
+                        style:height="{size.mark}px"
+                        style:--art="{Math.round(size.mark * 0.68)}px"
                     >
-                        <AbilityArt ability={kit.abilities.get(step.mark.abilityId)} class="size-4" />
+                        <AbilityArt ability={kit.abilities.get(step.mark.abilityId)} class="size-(--art)" />
                     </span>
-                    <TierPips taken={step.mark.tier} class="gap-[2px] [&>span]:size-1" />
+                    <TierPips taken={step.mark.tier} />
                 </span>
             {/each}
 
@@ -320,7 +380,7 @@
                 <span
                     class={cn("pointer-events-none absolute top-0 w-px", dragging ? "bg-primary" : "bg-foreground/45")}
                     style:left="{focused?.at ?? x(point)}px"
-                    style:height="{labelsY - 2}px"
+                    style:height="{layout.labelsY - 2}px"
                     aria-hidden="true"
                 ></span>
             {/if}
@@ -358,15 +418,40 @@
 
 <style>
     .timeline-item {
-        border-bottom: 2px solid var(--muted-foreground);
+        --bright: var(--muted-foreground);
+        background: var(--muted);
+        border-bottom: 3px solid var(--bright);
     }
     .timeline-item[data-slot="weapon"] {
-        border-bottom-color: #ec9719;
+        --bright: #ec9719;
+        background: #302306;
     }
     .timeline-item[data-slot="vitality"] {
-        border-bottom-color: #7bba1d;
+        --bright: #7bba1d;
+        background: #1f3400;
     }
     .timeline-item[data-slot="spirit"] {
-        border-bottom-color: #ce90ff;
+        --bright: #ce90ff;
+        background: #362147;
+    }
+    .timeline-item[data-tier="4"] {
+        outline: 1px solid var(--bright);
+        outline-offset: -1px;
+    }
+    .tier {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: calc(var(--s) * 0.4);
+        height: calc(var(--s) * 0.4);
+        padding: 1px 2px 0 0;
+        clip-path: polygon(0 0, 100% 0, 100% 100%);
+        background: var(--bright);
+        color: #10130d;
+        font-family: var(--font-heading);
+        font-size: calc(var(--s) * 0.24);
+        font-weight: 700;
+        line-height: 1;
+        text-align: right;
     }
 </style>

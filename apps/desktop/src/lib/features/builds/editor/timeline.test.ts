@@ -28,6 +28,8 @@ import {
     statsAt,
     timeFor,
     timelineEnd,
+    timelineLayout,
+    timelineSize,
     type CurveApi,
 } from "./timeline";
 
@@ -487,5 +489,54 @@ describe("packLane", () => {
     it("returns the icons in the order given", () => {
         const packed = packLane([200, 10], { ...opts, rows: 1 });
         expect(packed.map((p) => p.x)).toEqual([200, 12]);
+    });
+});
+
+describe("timelineSize", () => {
+    it("uses big item icons and ability discs on a 1080 px tall window", () => {
+        const size = timelineSize(1080);
+        expect(size.item).toBeGreaterThanOrEqual(36);
+        expect(size.item).toBeLessThanOrEqual(40);
+        expect(size.mark).toBeGreaterThanOrEqual(28);
+        expect(size.mark).toBeLessThanOrEqual(32);
+    });
+
+    it("shrinks both on a 900 px tall window", () => {
+        const full = timelineSize(1080);
+        const small = timelineSize(900);
+        expect(small.item).toBeLessThan(full.item);
+        expect(small.mark).toBeLessThan(full.mark);
+        expect(small.mark).toBeGreaterThanOrEqual(24);
+    });
+});
+
+describe("timelineLayout", () => {
+    it("stacks the item lane, the axis, the ability lane and the labels top to bottom", () => {
+        const l = timelineLayout(timelineSize(1080));
+        expect(l.itemsTop).toBeGreaterThan(0);
+        expect(l.itemsTop).toBeLessThan(l.itemsBottom);
+        expect(l.itemsBottom).toBeLessThan(l.axisY);
+        expect(l.axisY).toBeLessThan(l.marksTop);
+        expect(l.marksTop).toBeLessThan(l.labelsY);
+        expect(l.labelsY).toBeLessThan(l.height);
+    });
+
+    it("reserves every item row, so adding items never changes the height", () => {
+        const size = timelineSize(1080);
+        const l = timelineLayout(size);
+        expect(l.itemsBottom - l.itemsTop).toBe(size.rows * size.item + (size.rows - 1) * size.gap);
+    });
+
+    it("leaves room under each disc for its tier pips before the labels", () => {
+        const size = timelineSize(1080);
+        const l = timelineLayout(size);
+        expect(l.labelsY - (l.marksTop + size.mark)).toBeGreaterThanOrEqual(10);
+    });
+
+    it("keeps the plot near 170 px at 1080 px and shorter on a 900 px window", () => {
+        const full = timelineLayout(timelineSize(1080)).height;
+        expect(full).toBeGreaterThanOrEqual(150);
+        expect(full).toBeLessThanOrEqual(175);
+        expect(timelineLayout(timelineSize(900)).height).toBeLessThan(full);
     });
 });
