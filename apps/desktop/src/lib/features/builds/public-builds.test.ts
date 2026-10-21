@@ -65,6 +65,13 @@ describe("buildLanguageFor", () => {
         expect(buildLanguageFor("en")).toBe("English");
     });
 
+    it("maps Latin American Spanish locales to SpanishLatinAmerica", () => {
+        expect(buildLanguageFor("es-419")).toBe("SpanishLatinAmerica");
+        expect(buildLanguageFor("es-MX")).toBe("SpanishLatinAmerica");
+        expect(buildLanguageFor("es-AR")).toBe("SpanishLatinAmerica");
+        expect(buildLanguageFor("es-ES")).toBe("SpanishSpain");
+    });
+
     it("has no build language for a locale the game does not publish in", () => {
         expect(buildLanguageFor("af")).toBeNull();
         expect(buildLanguageFor("zh-TW")).toBeNull();

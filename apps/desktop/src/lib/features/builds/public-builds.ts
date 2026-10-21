@@ -54,6 +54,7 @@ const LANGUAGES: Record<string, BuildLanguage> = {
 export function buildLanguageFor(locale: string): BuildLanguage | null {
     if (locale in LANGUAGES) return LANGUAGES[locale]!;
     const base = locale.split("-")[0]!;
+    if (base === "es") return locale === "es-ES" ? "SpanishSpain" : "SpanishLatinAmerica";
     return base !== "zh" && base in LANGUAGES ? LANGUAGES[base]! : null;
 }
 
