@@ -33,6 +33,15 @@ pub struct BuildTag {
     /// The id a build stores in its `tags`.
     pub id: u32,
     pub name: String,
+    /// A local SVG of the tag picker's icon; absent when the game has none or it will not decode.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub icon: Option<String>,
+}
+
+/// The compiled icon the tag picker shows for a standard tag (`panorama/images/builds/`).
+pub(crate) fn icon_compiled_path(key: &str) -> String {
+    format!("panorama/images/builds/citadel_build_tag_{key}.vsvg_c")
 }
 
 /// The game's standard build tags, named in `language` with English filling its gaps. A tag named in neither is left out.
@@ -54,7 +63,7 @@ pub fn build_tags(citadel_dir: &Path, language: &str) -> Vec<BuildTag> {
         .filter_map(|key| {
             let token = format!("citadel_build_tag_{key}");
             let name = bundles.iter().find_map(|b| b.get(&token).filter(|n| !n.is_empty()))?;
-            Some(BuildTag { key: (*key).to_string(), id: ability_id(&token), name: name.to_string() })
+            Some(BuildTag { key: (*key).to_string(), id: ability_id(&token), name: name.to_string(), icon: None })
         })
         .collect()
 }
@@ -90,7 +99,10 @@ mod tests {
         let tags = build_tags(&dir, "english");
         let keys: Vec<&str> = tags.iter().map(|t| t.key.as_str()).collect();
         assert_eq!(keys, BUILD_TAG_KEYS);
-        assert_eq!(tag(&tags, "weapon"), &BuildTag { key: "weapon".into(), id: 47_026_193, name: "Weapon".into() });
+        assert_eq!(
+            tag(&tags, "weapon"),
+            &BuildTag { key: "weapon".into(), id: 47_026_193, name: "Weapon".into(), icon: None }
+        );
         assert_eq!(tag(&tags, "complexity_1").id, 1_052_421_347);
         assert_eq!(tag(&tags, "complexity_1").name, "For New Players");
         assert_eq!(tag(&tags, "crowd_control").id, 4_216_803_923);

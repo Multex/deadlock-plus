@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
-import { loadHeroAbilities, loadHeroProgression, loadItemStats, loadPopularItems, loadShopItems } from "./vdata";
+import {
+    loadBuildTags,
+    loadHeroAbilities,
+    loadHeroProgression,
+    loadItemStats,
+    loadPopularItems,
+    loadShopItems,
+    loadShopUiArt,
+} from "./vdata";
 
-vi.mock("$lib/core/tauri", () => ({ command: vi.fn() }));
+vi.mock("$lib/core/tauri", () => ({ command: vi.fn(), fileSrc: (path: string) => `asset://${path}` }));
 
 const invoke = vi.mocked(command);
 
@@ -105,5 +113,43 @@ describe("loadItemStats", () => {
     it("is empty when the command fails", async () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadItemStats("english")).toEqual([]);
+    });
+});
+
+describe("loadBuildTags", () => {
+    it("turns each tag's local icon into an asset url", async () => {
+        invoke.mockResolvedValue([
+            { key: "weapon", id: 47026193, name: "Waffe", icon: "C:/art/build_tag_weapon.svg" },
+            { key: "debuff", id: 255841590, name: "Debuff" },
+        ]);
+        expect(await loadBuildTags("german")).toEqual([
+            { key: "weapon", id: 47026193, name: "Waffe", icon: "asset://C:/art/build_tag_weapon.svg" },
+            { key: "debuff", id: 255841590, name: "Debuff" },
+        ]);
+        expect(invoke).toHaveBeenCalledWith("game_build_tags", { locale: "german" });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadBuildTags("english")).toEqual([]);
+    });
+});
+
+describe("loadShopUiArt", () => {
+    it("keys each image's asset url by its name", async () => {
+        invoke.mockResolvedValue([
+            { image: "tier_corner", path: "C:/art/ui_tier_corner.svg" },
+            { image: "card_backer_weapon_t1", path: "C:/art/ui_card_backer_weapon_t1.png" },
+        ]);
+        expect(await loadShopUiArt()).toEqual({
+            tier_corner: "asset://C:/art/ui_tier_corner.svg",
+            card_backer_weapon_t1: "asset://C:/art/ui_card_backer_weapon_t1.png",
+        });
+        expect(invoke).toHaveBeenCalledWith("game_shop_ui_art");
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadShopUiArt()).toEqual({});
     });
 });

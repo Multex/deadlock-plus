@@ -4,4 +4,8 @@ export type BuildTag = { key: string,
 /**
  * The id a build stores in its `tags`.
  */
-id: number, name: string, };
+id: number, name: string, 
+/**
+ * A local SVG of the tag picker's icon; absent when the game has none or it will not decode.
+ */
+icon?: string, };

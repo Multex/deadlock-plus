@@ -7,11 +7,12 @@ mod locale;
 mod map_items;
 mod progression;
 mod shop;
+mod ui_art;
 mod vpk_source;
 
 pub use art::{
     ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,
-    RankImage, MINIMAP_RADIUS,
+    RankImage, ShopUiArt, ShopUiImage, MINIMAP_RADIUS,
 };
 pub use build_tags::{build_tags, BuildTag, BUILD_TAG_KEYS};
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};

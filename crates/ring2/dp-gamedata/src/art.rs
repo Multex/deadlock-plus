@@ -5,9 +5,12 @@ use std::time::UNIX_EPOCH;
 
 use deadlock_data::art::{Art, ArtArchive, HeroArtKind, ItemArtKind, MinimapArtKind, RankArtKind};
 use serde::{Deserialize, Serialize};
+use source2::vpk::Vpk;
 use ts_rs::TS;
 
+use crate::build_tags::{self, BuildTag, BUILD_TAG_KEYS};
 use crate::catalog::{archive_stamp, HeroEntry, Install, SteamInstall};
+use crate::ui_art;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HeroImage {
@@ -170,6 +173,229 @@ pub enum MinimapError {
     ExtractFailed,
 }
 
+/// A fixed image the game's shop draws around and beside item cards. The set is closed on purpose: the
+/// frontend names images by variant, so no free-form path reaches the archive or the file system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum ShopUiImage {
+    /// `#CardBacker` per slot and tier (`.ModTier<n>.isWeapon|isArmor|isTech`); tier 4 is the dark one.
+    CardBackerWeaponT1,
+    CardBackerWeaponT2,
+    CardBackerWeaponT3,
+    CardBackerWeaponT4,
+    CardBackerVitalityT1,
+    CardBackerVitalityT2,
+    CardBackerVitalityT3,
+    CardBackerVitalityT4,
+    CardBackerSpiritT1,
+    CardBackerSpiritT2,
+    CardBackerSpiritT3,
+    CardBackerSpiritT4,
+    /// `#ModCard` background, drawn under the slot backer.
+    CardBase,
+    /// `#ModCard` opacity mask.
+    CardBaseMask,
+    /// `.paperTexture`, multiplied over the card; the game cycles 1-3 by child index (`3n+k`).
+    #[serde(rename = "paper_texture_1")]
+    PaperTexture1,
+    #[serde(rename = "paper_texture_2")]
+    PaperTexture2,
+    #[serde(rename = "paper_texture_3")]
+    PaperTexture3,
+    /// `.paperWear` over the card; the game cycles 1-4 by child index (`4n+k`).
+    #[serde(rename = "paper_wear_1")]
+    PaperWear1,
+    #[serde(rename = "paper_wear_2")]
+    PaperWear2,
+    #[serde(rename = "paper_wear_3")]
+    PaperWear3,
+    #[serde(rename = "paper_wear_4")]
+    PaperWear4,
+    /// `#ModIconImage` opacity masks on passive items in the shop lists (`#ShopModsContainer`, `3n+k`).
+    #[serde(rename = "icon_mask_1")]
+    IconMask1,
+    #[serde(rename = "icon_mask_2")]
+    IconMask2,
+    #[serde(rename = "icon_mask_3")]
+    IconMask3,
+    /// `.tier_bg`, a white corner washed with the slot's bright colour.
+    TierCorner,
+    /// `#mod_tier_label` digits, washed `offBlack`.
+    #[serde(rename = "tier_number_1")]
+    TierNumber1,
+    #[serde(rename = "tier_number_2")]
+    TierNumber2,
+    #[serde(rename = "tier_number_3")]
+    TierNumber3,
+    #[serde(rename = "tier_number_4")]
+    TierNumber4,
+    /// `.PopularityContainer .thumb_icon`, washed `armorColor`.
+    PopularThumb,
+    /// `.PopularityContainer .recommendatations_hero_bg`.
+    PopularBacker,
+    /// `.PopularItemPhase.Early|Mid|Late`.
+    PhaseEarly,
+    PhaseMid,
+    PhaseLate,
+    /// `.modStatusCol .recommended_icon`.
+    RecommendedStar,
+    /// The shop's item-type filter buttons (`#ItemCategoryFilters .Weapon|Spirit|Vitality .CategoryIcon`).
+    SlotWeapon,
+    SlotSpirit,
+    SlotVitality,
+    /// The six stat-category tabs (`.FilterCategory.<Name> .top_filter_img`).
+    FilterPhysical,
+    FilterSpirit,
+    FilterDefense,
+    FilterMobility,
+    FilterDisruption,
+    FilterMisc,
+    /// `.top_filter_bg` of the hovered or open stat-category tab, washed with its colour.
+    FilterTabFill,
+}
+
+impl ShopUiImage {
+    pub const ALL: [ShopUiImage; 45] = [
+        ShopUiImage::CardBackerWeaponT1,
+        ShopUiImage::CardBackerWeaponT2,
+        ShopUiImage::CardBackerWeaponT3,
+        ShopUiImage::CardBackerWeaponT4,
+        ShopUiImage::CardBackerVitalityT1,
+        ShopUiImage::CardBackerVitalityT2,
+        ShopUiImage::CardBackerVitalityT3,
+        ShopUiImage::CardBackerVitalityT4,
+        ShopUiImage::CardBackerSpiritT1,
+        ShopUiImage::CardBackerSpiritT2,
+        ShopUiImage::CardBackerSpiritT3,
+        ShopUiImage::CardBackerSpiritT4,
+        ShopUiImage::CardBase,
+        ShopUiImage::CardBaseMask,
+        ShopUiImage::PaperTexture1,
+        ShopUiImage::PaperTexture2,
+        ShopUiImage::PaperTexture3,
+        ShopUiImage::PaperWear1,
+        ShopUiImage::PaperWear2,
+        ShopUiImage::PaperWear3,
+        ShopUiImage::PaperWear4,
+        ShopUiImage::IconMask1,
+        ShopUiImage::IconMask2,
+        ShopUiImage::IconMask3,
+        ShopUiImage::TierCorner,
+        ShopUiImage::TierNumber1,
+        ShopUiImage::TierNumber2,
+        ShopUiImage::TierNumber3,
+        ShopUiImage::TierNumber4,
+        ShopUiImage::PopularThumb,
+        ShopUiImage::PopularBacker,
+        ShopUiImage::PhaseEarly,
+        ShopUiImage::PhaseMid,
+        ShopUiImage::PhaseLate,
+        ShopUiImage::RecommendedStar,
+        ShopUiImage::SlotWeapon,
+        ShopUiImage::SlotSpirit,
+        ShopUiImage::SlotVitality,
+        ShopUiImage::FilterPhysical,
+        ShopUiImage::FilterSpirit,
+        ShopUiImage::FilterDefense,
+        ShopUiImage::FilterMobility,
+        ShopUiImage::FilterDisruption,
+        ShopUiImage::FilterMisc,
+        ShopUiImage::FilterTabFill,
+    ];
+
+    /// The wire name, also the cache file stem.
+    pub fn key(self) -> &'static str {
+        self.entry().0
+    }
+
+    /// The compiled file in `pak01_dir.vpk`, as the shop's stylesheets reference it.
+    pub fn compiled_path(self) -> &'static str {
+        self.entry().1
+    }
+
+    fn entry(self) -> (&'static str, &'static str) {
+        macro_rules! cards {
+            ($file:literal) => {
+                concat!("panorama/images/shop/catalog/cards/", $file)
+            };
+        }
+        macro_rules! filters {
+            ($file:literal) => {
+                concat!("panorama/images/shop/catalog/filters/", $file)
+            };
+        }
+        match self {
+            ShopUiImage::CardBackerWeaponT1 => ("card_backer_weapon_t1", cards!("card_backer_weapon_t1_psd.vtex_c")),
+            ShopUiImage::CardBackerWeaponT2 => ("card_backer_weapon_t2", cards!("card_backer_weapon_t2_psd.vtex_c")),
+            ShopUiImage::CardBackerWeaponT3 => ("card_backer_weapon_t3", cards!("card_backer_weapon_t3_psd.vtex_c")),
+            ShopUiImage::CardBackerWeaponT4 => ("card_backer_weapon_t4", cards!("card_backer_weapon_t4_psd.vtex_c")),
+            ShopUiImage::CardBackerVitalityT1 => {
+                ("card_backer_vitality_t1", cards!("card_backer_vitality_t1_psd.vtex_c"))
+            }
+            ShopUiImage::CardBackerVitalityT2 => {
+                ("card_backer_vitality_t2", cards!("card_backer_vitality_t2_psd.vtex_c"))
+            }
+            ShopUiImage::CardBackerVitalityT3 => {
+                ("card_backer_vitality_t3", cards!("card_backer_vitality_t3_psd.vtex_c"))
+            }
+            ShopUiImage::CardBackerVitalityT4 => {
+                ("card_backer_vitality_t4", cards!("card_backer_vitality_t4_psd.vtex_c"))
+            }
+            ShopUiImage::CardBackerSpiritT1 => ("card_backer_spirit_t1", cards!("card_backer_spirit_t1_psd.vtex_c")),
+            ShopUiImage::CardBackerSpiritT2 => ("card_backer_spirit_t2", cards!("card_backer_spirit_t2_psd.vtex_c")),
+            ShopUiImage::CardBackerSpiritT3 => ("card_backer_spirit_t3", cards!("card_backer_spirit_t3_psd.vtex_c")),
+            ShopUiImage::CardBackerSpiritT4 => ("card_backer_spirit_t4", cards!("card_backer_spirit_t4_psd.vtex_c")),
+            ShopUiImage::CardBase => ("card_base", "panorama/images/shop/card_backer_psd.vtex_c"),
+            ShopUiImage::CardBaseMask => ("card_base_mask", "panorama/images/shop/card_backer_png.vtex_c"),
+            ShopUiImage::PaperTexture1 => ("paper_texture_1", cards!("shopitem_papertexture01_psd.vtex_c")),
+            ShopUiImage::PaperTexture2 => ("paper_texture_2", cards!("shopitem_papertexture02_psd.vtex_c")),
+            ShopUiImage::PaperTexture3 => ("paper_texture_3", cards!("shopitem_papertexture03_psd.vtex_c")),
+            ShopUiImage::PaperWear1 => ("paper_wear_1", cards!("shopitem_paperwear01_psd.vtex_c")),
+            ShopUiImage::PaperWear2 => ("paper_wear_2", cards!("shopitem_paperwear02_psd.vtex_c")),
+            ShopUiImage::PaperWear3 => ("paper_wear_3", cards!("shopitem_paperwear03_psd.vtex_c")),
+            ShopUiImage::PaperWear4 => ("paper_wear_4", cards!("shopitem_paperwear04_psd.vtex_c")),
+            ShopUiImage::IconMask1 => ("icon_mask_1", cards!("icon_mask01_psd.vtex_c")),
+            ShopUiImage::IconMask2 => ("icon_mask_2", cards!("icon_mask02_psd.vtex_c")),
+            ShopUiImage::IconMask3 => ("icon_mask_3", cards!("icon_mask03_psd.vtex_c")),
+            ShopUiImage::TierCorner => ("tier_corner", "panorama/images/shop/tier_corner_cap.vsvg_c"),
+            ShopUiImage::TierNumber1 => ("tier_number_1", "panorama/images/upgrades/tier_numbers_small_01.vsvg_c"),
+            ShopUiImage::TierNumber2 => ("tier_number_2", "panorama/images/upgrades/tier_numbers_small_02.vsvg_c"),
+            ShopUiImage::TierNumber3 => ("tier_number_3", "panorama/images/upgrades/tier_numbers_small_03.vsvg_c"),
+            ShopUiImage::TierNumber4 => ("tier_number_4", "panorama/images/upgrades/tier_numbers_small_04.vsvg_c"),
+            ShopUiImage::PopularThumb => ("popular_thumb", filters!("icon_recommend_up.vsvg_c")),
+            ShopUiImage::PopularBacker => {
+                ("popular_backer", "panorama/images/shop/catalog/backer_star_test_png.vtex_c")
+            }
+            ShopUiImage::PhaseEarly => ("phase_early", filters!("icon_early_game_png.vtex_c")),
+            ShopUiImage::PhaseMid => ("phase_mid", filters!("icon_mid_game_png.vtex_c")),
+            ShopUiImage::PhaseLate => ("phase_late", filters!("icon_late_game_png.vtex_c")),
+            ShopUiImage::RecommendedStar => {
+                ("recommended_star", "panorama/images/upgrades/recommended_star_psd.vtex_c")
+            }
+            ShopUiImage::SlotWeapon => ("slot_weapon", "panorama/images/hud/core/core_weapon_icon_psd.vtex_c"),
+            ShopUiImage::SlotSpirit => ("slot_spirit", "panorama/images/hud/core/core_spirit_icon_psd.vtex_c"),
+            ShopUiImage::SlotVitality => ("slot_vitality", "panorama/images/hud/core/core_armor_icon_psd.vtex_c"),
+            ShopUiImage::FilterPhysical => ("filter_physical", filters!("sigil_physical_psd.vtex_c")),
+            ShopUiImage::FilterSpirit => ("filter_spirit", filters!("sigil_magic_psd.vtex_c")),
+            ShopUiImage::FilterDefense => ("filter_defense", filters!("sigil_defense_psd.vtex_c")),
+            ShopUiImage::FilterMobility => ("filter_mobility", filters!("sigil_mobility_psd.vtex_c")),
+            ShopUiImage::FilterDisruption => ("filter_disruption", filters!("sigil_disruption_psd.vtex_c")),
+            ShopUiImage::FilterMisc => ("filter_misc", filters!("sigil_misc_psd.vtex_c")),
+            ShopUiImage::FilterTabFill => ("filter_tab_fill", filters!("top_level_filter_fill.vsvg_c")),
+        }
+    }
+}
+
+/// A local file for a shop UI image: PNG for a texture, SVG for a vector image.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ShopUiArt {
+    pub image: ShopUiImage,
+    pub path: String,
+}
+
 /// Most class names one `ability_art` / `item_art` call decodes; the rest are ignored.
 pub const MAX_CLASS_BATCH: usize = 200;
 
@@ -182,16 +408,23 @@ pub trait ArtSource: Send + Sync + 'static {
     fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool;
     fn write_minimap(&self, dest: &Path) -> bool;
     fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool;
+    /// Writes the browser-ready form of a compiled Panorama image named by its archive path.
+    fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool;
 }
 
-struct ArchiveSource(ArtArchive);
+struct ArchiveSource {
+    art: ArtArchive,
+    archive: PathBuf,
+    /// `ArtArchive` keeps its own archive handle private, so UI images need a second one.
+    vpk: OnceLock<Option<Vpk>>,
+}
 
 impl ArchiveSource {
     fn write(&self, art: &Art<'_>, dest: &Path, what: &str) -> bool {
-        if !self.0.contains(art) {
+        if !self.art.contains(art) {
             return false;
         }
-        match self.0.write_png(art, dest) {
+        match self.art.write_png(art, dest) {
             Ok(()) => true,
             Err(e) => {
                 log::debug!("no local art for {what}: {e}");
@@ -239,6 +472,29 @@ impl ArtSource for ArchiveSource {
         let Ok(kind) = MinimapArtKind::icon(icon.stem()) else { return false };
         self.write(&Art::minimap(kind), dest, icon.stem())
     }
+
+    fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+        let vpk = self
+            .vpk
+            .get_or_init(|| Vpk::open(&self.archive).map_err(|e| log::debug!("game UI art unavailable: {e}")).ok());
+        let Some(bytes) = vpk.as_ref().and_then(|vpk| vpk.read_path(compiled_path).ok()) else { return false };
+        let written = ui_art::browser_image(compiled_path, &bytes)
+            .and_then(|file| write_whole(dest, &file).map_err(|e| format!("{}: {e}", dest.display())));
+        written.map_err(|e| log::debug!("no local UI art: {e}")).is_ok()
+    }
+}
+
+/// Writes beside `dest` and renames, so a file that exists is always complete.
+fn write_whole(dest: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut partial = dest.as_os_str().to_owned();
+    partial.push(".part");
+    let partial = PathBuf::from(partial);
+    std::fs::write(&partial, bytes).and_then(|()| std::fs::rename(&partial, dest)).inspect_err(|_| {
+        let _ = std::fs::remove_file(&partial);
+    })
 }
 
 type Opener = Box<dyn Fn(&Path) -> Option<Arc<dyn ArtSource>> + Send + Sync>;
@@ -313,7 +569,11 @@ impl ArtCache {
 
 fn open_archive(citadel_dir: &Path) -> Option<Arc<dyn ArtSource>> {
     match ArtArchive::open(citadel_dir) {
-        Ok(archive) => Some(Arc::new(ArchiveSource(archive))),
+        Ok(art) => Some(Arc::new(ArchiveSource {
+            art,
+            archive: citadel_dir.join(deadlock_data::vdata::ARCHIVE),
+            vpk: OnceLock::new(),
+        })),
         Err(e) => {
             log::debug!("game art unavailable: {e}");
             None
@@ -445,6 +705,44 @@ impl<I: Install> ArtCache<I> {
         .unwrap_or_default()
     }
 
+    /// Local files for every shop UI image, decoding what the cache lacks. Images the game does not have or
+    /// that will not decode are left out; this never fails.
+    pub fn shop_ui_art(&self) -> Vec<ShopUiArt> {
+        self.with_build(|build, build_dir| {
+            ShopUiImage::ALL
+                .into_iter()
+                .filter_map(|image| {
+                    let compiled = image.compiled_path();
+                    let extension = if ui_art::is_vector(compiled) { "svg" } else { "png" };
+                    let name = format!("ui_{}.{extension}", image.key());
+                    let path = self.ensure(build, build_dir, name, |s, p| s.write_ui(compiled, p))?;
+                    Some(ShopUiArt { image, path })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    }
+
+    /// `tags` with `icon` set to a local SVG of each standard tag's picker icon, decoding what the cache
+    /// lacks. A tag without an icon keeps `None`; this never fails.
+    pub fn build_tag_icons(&self, tags: &[BuildTag]) -> Vec<BuildTag> {
+        let icons = self
+            .with_build(|build, build_dir| {
+                tags.iter()
+                    .map(|tag| {
+                        let key = BUILD_TAG_KEYS.iter().find(|k| **k == tag.key)?;
+                        let compiled = build_tags::icon_compiled_path(key);
+                        self.ensure(build, build_dir, format!("build_tag_{key}.svg"), |s, p| s.write_ui(&compiled, p))
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        tags.iter()
+            .enumerate()
+            .map(|(i, tag)| BuildTag { icon: icons.get(i).cloned().flatten(), ..tag.clone() })
+            .collect()
+    }
+
     /// Where a minimap downloaded because the local one is unavailable is kept. It sits in the store
     /// root, so it is removed whenever a game build takes over the store.
     pub fn remote_minimap_path(&self) -> PathBuf {
@@ -570,6 +868,7 @@ mod tests {
         writes: AtomicUsize,
         failing: HashSet<&'static str>,
         failing_tiers: HashSet<u8>,
+        ui_paths: Mutex<Vec<String>>,
     }
 
     impl ArtSource for FakeSource {
@@ -605,6 +904,11 @@ mod tests {
 
         fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
             self.write_class(icon.stem(), dest)
+        }
+
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+            self.ui_paths.lock().unwrap().push(compiled_path.to_string());
+            self.write_class(compiled_path, dest)
         }
     }
 
@@ -777,6 +1081,10 @@ mod tests {
         fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
             self.0.write_minimap_icon(icon, dest)
         }
+
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+            self.0.write_ui(compiled_path, dest)
+        }
     }
 
     #[test]
@@ -820,6 +1128,10 @@ mod tests {
         fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
             self.0.write_minimap_icon(icon, dest)
         }
+
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+            self.0.write_ui(compiled_path, dest)
+        }
     }
 
     struct ChalkOnly(Arc<FakeSource>);
@@ -847,6 +1159,10 @@ mod tests {
 
         fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
             self.0.write_minimap_icon(icon, dest)
+        }
+
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+            self.0.write_ui(compiled_path, dest)
         }
     }
 
@@ -1272,6 +1588,205 @@ mod tests {
         let cache =
             ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
         assert!(cache.minimap_icons(&[MinimapIcon::BossHealth]).is_empty());
+    }
+
+    fn ui_from_wire(value: &str) -> Option<ShopUiImage> {
+        use serde::de::value::{Error, StrDeserializer};
+        ShopUiImage::deserialize(StrDeserializer::<Error>::new(value)).ok()
+    }
+
+    fn file_name(path: &str) -> String {
+        PathBuf::from(path).file_name().unwrap().to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn every_shop_ui_image_has_its_own_wire_name_and_compiled_file() {
+        let images: HashSet<ShopUiImage> = ShopUiImage::ALL.into_iter().collect();
+        assert_eq!(images.len(), ShopUiImage::ALL.len(), "ALL has no repeats");
+        let keys: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.key()).collect();
+        let paths: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.compiled_path()).collect();
+        assert_eq!(keys.len(), ShopUiImage::ALL.len());
+        assert_eq!(paths.len(), ShopUiImage::ALL.len());
+        for image in ShopUiImage::ALL {
+            assert_eq!(ui_from_wire(image.key()), Some(image), "{}", image.key());
+            assert!(file_safe(image.key()), "{}", image.key());
+            let path = image.compiled_path();
+            assert!(path.starts_with("panorama/images/"), "{path}");
+            assert!(
+                path.ends_with("_psd.vtex_c") || path.ends_with("_png.vtex_c") || path.ends_with(".vsvg_c"),
+                "{path}"
+            );
+        }
+    }
+
+    // Paths as `citadel_shop_mod_view.css` and `citadel_ui_shop_filters.css` (build 6805) reference them.
+    #[test]
+    fn shop_ui_images_name_the_files_the_shop_stylesheets_use() {
+        let cards = "panorama/images/shop/catalog/cards";
+        let filters = "panorama/images/shop/catalog/filters";
+        for (image, path) in [
+            (ShopUiImage::CardBackerWeaponT1, format!("{cards}/card_backer_weapon_t1_psd.vtex_c")),
+            (ShopUiImage::CardBackerVitalityT3, format!("{cards}/card_backer_vitality_t3_psd.vtex_c")),
+            (ShopUiImage::CardBackerSpiritT4, format!("{cards}/card_backer_spirit_t4_psd.vtex_c")),
+            (ShopUiImage::CardBase, "panorama/images/shop/card_backer_psd.vtex_c".into()),
+            (ShopUiImage::CardBaseMask, "panorama/images/shop/card_backer_png.vtex_c".into()),
+            (ShopUiImage::PaperTexture2, format!("{cards}/shopitem_papertexture02_psd.vtex_c")),
+            (ShopUiImage::PaperWear4, format!("{cards}/shopitem_paperwear04_psd.vtex_c")),
+            (ShopUiImage::IconMask1, format!("{cards}/icon_mask01_psd.vtex_c")),
+            (ShopUiImage::TierCorner, "panorama/images/shop/tier_corner_cap.vsvg_c".into()),
+            (ShopUiImage::TierNumber3, "panorama/images/upgrades/tier_numbers_small_03.vsvg_c".into()),
+            (ShopUiImage::PopularThumb, format!("{filters}/icon_recommend_up.vsvg_c")),
+            (ShopUiImage::PopularBacker, "panorama/images/shop/catalog/backer_star_test_png.vtex_c".into()),
+            (ShopUiImage::PhaseLate, format!("{filters}/icon_late_game_png.vtex_c")),
+            (ShopUiImage::RecommendedStar, "panorama/images/upgrades/recommended_star_psd.vtex_c".into()),
+            (ShopUiImage::SlotVitality, "panorama/images/hud/core/core_armor_icon_psd.vtex_c".into()),
+            (ShopUiImage::FilterSpirit, format!("{filters}/sigil_magic_psd.vtex_c")),
+            (ShopUiImage::FilterMisc, format!("{filters}/sigil_misc_psd.vtex_c")),
+            (ShopUiImage::FilterTabFill, format!("{filters}/top_level_filter_fill.vsvg_c")),
+        ] {
+            assert_eq!(image.compiled_path(), path);
+        }
+        assert_eq!(ShopUiImage::PaperTexture1.key(), "paper_texture_1");
+        assert_eq!(ShopUiImage::CardBackerWeaponT1.key(), "card_backer_weapon_t1");
+    }
+
+    #[test]
+    fn shop_ui_art_is_one_file_per_image_beside_the_other_art() {
+        let rig = Rig::new("ui-paths", &[]);
+        let cache = rig.cache();
+        let hero = cache.hero_art(&[hero(1, "hero_inferno")]);
+        let out = cache.shop_ui_art();
+        assert_eq!(out.iter().map(|a| a.image).collect::<Vec<_>>(), ShopUiImage::ALL);
+        let find = |image: ShopUiImage| out.iter().find(|a| a.image == image).unwrap().path.clone();
+        assert_eq!(file_name(&find(ShopUiImage::TierCorner)), "ui_tier_corner.svg");
+        assert_eq!(file_name(&find(ShopUiImage::CardBackerWeaponT1)), "ui_card_backer_weapon_t1.png");
+        for art in &out {
+            let path = PathBuf::from(&art.path);
+            assert!(path.is_file());
+            assert_eq!(path.parent(), PathBuf::from(hero[0].sm.as_ref().unwrap()).parent());
+        }
+        let asked: HashSet<String> = rig.source.ui_paths.lock().unwrap().iter().cloned().collect();
+        let expected: HashSet<String> = ShopUiImage::ALL.iter().map(|i| i.compiled_path().to_string()).collect();
+        assert_eq!(asked, expected);
+    }
+
+    #[test]
+    fn shop_ui_art_is_decoded_once_per_build() {
+        let rig = Rig::new("ui-once", &[]);
+        let cache = rig.cache();
+        let first = cache.shop_ui_art();
+        let writes = rig.source.writes.load(Ordering::Relaxed);
+        assert_eq!(writes, ShopUiImage::ALL.len());
+        assert_eq!(cache.shop_ui_art(), first);
+        assert_eq!(rig.cache().shop_ui_art(), first);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn a_shop_ui_image_that_will_not_decode_is_left_out_and_not_retried() {
+        let rig = Rig::new("ui-missing", &["panorama/images/shop/tier_corner_cap.vsvg_c"]);
+        let cache = rig.cache();
+        let out = cache.shop_ui_art();
+        assert_eq!(out.len(), ShopUiImage::ALL.len() - 1);
+        assert!(out.iter().all(|a| a.image != ShopUiImage::TierCorner));
+        let writes = rig.source.writes.load(Ordering::Relaxed);
+        cache.shop_ui_art();
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn without_an_install_there_is_no_shop_ui_art() {
+        let rig = Rig::new("ui-noinstall", &[]);
+        let cache =
+            ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
+        assert!(cache.shop_ui_art().is_empty());
+    }
+
+    fn tag(key: &str) -> BuildTag {
+        BuildTag { key: key.to_string(), id: 1, name: key.to_uppercase(), icon: None }
+    }
+
+    #[test]
+    fn standard_tags_get_their_picker_icon_as_an_svg_file() {
+        let rig = Rig::new("tag-icons", &[]);
+        let cache = rig.cache();
+        let out = cache.build_tag_icons(&[tag("weapon"), tag("crowd_control")]);
+        assert_eq!(out.iter().map(|t| t.key.as_str()).collect::<Vec<_>>(), vec!["weapon", "crowd_control"]);
+        assert_eq!(out[0].name, "WEAPON");
+        let icon = out[0].icon.as_ref().unwrap();
+        assert_eq!(file_name(icon), "build_tag_weapon.svg");
+        assert!(PathBuf::from(icon).is_file());
+        assert_eq!(file_name(out[1].icon.as_ref().unwrap()), "build_tag_crowd_control.svg");
+        assert_eq!(
+            *rig.source.ui_paths.lock().unwrap(),
+            vec![
+                "panorama/images/builds/citadel_build_tag_weapon.vsvg_c",
+                "panorama/images/builds/citadel_build_tag_crowd_control.vsvg_c"
+            ]
+        );
+        cache.build_tag_icons(&[tag("weapon")]);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn a_tag_outside_the_standard_set_or_without_an_icon_keeps_none() {
+        let rig = Rig::new("tag-none", &["panorama/images/builds/citadel_build_tag_debuff.vsvg_c"]);
+        let out = rig.cache().build_tag_icons(&[tag("../evil"), tag("made_up"), tag("debuff"), tag("melee")]);
+        assert_eq!(out.len(), 4);
+        assert_eq!(out.iter().map(|t| t.icon.is_some()).collect::<Vec<_>>(), vec![false, false, false, true]);
+        assert_eq!(out[2].name, "DEBUFF");
+        assert_eq!(rig.source.ui_paths.lock().unwrap().len(), 2, "only standard keys reach the archive");
+    }
+
+    #[test]
+    fn without_an_install_tags_come_back_without_icons() {
+        let rig = Rig::new("tag-noinstall", &[]);
+        let cache =
+            ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
+        assert_eq!(cache.build_tag_icons(&[tag("weapon")]), vec![tag("weapon")]);
+    }
+
+    #[test]
+    fn the_archive_source_writes_svg_and_png_files_from_a_real_vpk() {
+        use crate::ui_art::tests::{vsvg, vtex_2x2};
+        let rig = Rig::new("ui-vpk", &[]);
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0H1V1Z\"/></svg>";
+        let mut pack = Vpk::new(1);
+        pack.add(ShopUiImage::TierCorner.compiled_path(), vsvg(&[], svg)).unwrap();
+        pack.add(ShopUiImage::CardBackerWeaponT1.compiled_path(), vtex_2x2()).unwrap();
+        pack.add(crate::build_tags::icon_compiled_path("weapon"), vsvg(&[], svg)).unwrap();
+        pack.write(rig.citadel.join(deadlock_data::vdata::ARCHIVE)).unwrap();
+        let cache = ArtCache::with_opener(
+            FakeInstall(Mutex::new(Some(rig.citadel.clone()))),
+            rig.root.clone(),
+            Box::new(open_archive),
+        );
+        let out = cache.shop_ui_art();
+        let images: Vec<ShopUiImage> = out.iter().map(|a| a.image).collect();
+        assert_eq!(images, [ShopUiImage::CardBackerWeaponT1, ShopUiImage::TierCorner]);
+        assert_eq!(fs::read_to_string(&out[1].path).unwrap(), svg);
+        assert_eq!(&fs::read(&out[0].path).unwrap()[..4], b"\x89PNG");
+        let tags = cache.build_tag_icons(&[tag("weapon")]);
+        assert_eq!(fs::read_to_string(tags[0].icon.as_ref().unwrap()).unwrap(), svg);
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_every_shop_ui_image_and_tag_icon() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-ui-real-{}", std::process::id()));
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        let art = cache.shop_ui_art();
+        let missing: Vec<&str> =
+            ShopUiImage::ALL.iter().filter(|i| art.iter().all(|a| a.image != **i)).map(|i| i.key()).collect();
+        assert!(missing.is_empty(), "did not decode: {missing:?}");
+        let tags: Vec<BuildTag> = crate::BUILD_TAG_KEYS.iter().map(|k| tag(k)).collect();
+        let iconless: Vec<String> =
+            cache.build_tag_icons(&tags).into_iter().filter(|t| t.icon.is_none()).map(|t| t.key).collect();
+        assert!(iconless.is_empty(), "tags without an icon: {iconless:?}");
+        if std::env::var_os("KEEP_UI_ART").is_none() {
+            fs::remove_dir_all(root).ok();
+        }
     }
 
     #[test]

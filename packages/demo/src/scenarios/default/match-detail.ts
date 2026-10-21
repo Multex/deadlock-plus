@@ -20,6 +20,8 @@ import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import type { ShopSlot } from "@deadlock-plus/ipc-types/ShopSlot";
+import type { ShopUiArt } from "@deadlock-plus/ipc-types/ShopUiArt";
+import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
 
 import type { Handlers } from "../../backend";
 import { seeded } from "../../random";
@@ -1398,9 +1400,31 @@ interface AssetMap {
     images?: { minimap?: string | null };
 }
 
-interface AssetIcons {
+interface IconTree {
+    [name: string]: string | IconTree | undefined;
+}
+
+interface AssetIcons extends IconTree {
     minimap?: Record<string, string>;
 }
+
+/** The url at `path` in the icons asset's folder tree, or null. */
+function iconAt(icons: IconTree, path: readonly string[]): string | null {
+    let at: string | IconTree | undefined = icons;
+    for (const name of path) at = typeof at === "object" ? at[name] : undefined;
+    return typeof at === "string" ? at : null;
+}
+
+/** The shop UI images the public icon set also has: only the vector ones. The textures are the game's own. */
+const SHOP_UI_ICONS: readonly (readonly [ShopUiImage, readonly string[]])[] = [
+    ["tier_corner", ["shop", "tier_corner_cap.svg"]],
+    ["tier_number_1", ["upgrades", "tier_numbers_small_01.svg"]],
+    ["tier_number_2", ["upgrades", "tier_numbers_small_02.svg"]],
+    ["tier_number_3", ["upgrades", "tier_numbers_small_03.svg"]],
+    ["tier_number_4", ["upgrades", "tier_numbers_small_04.svg"]],
+    ["popular_thumb", ["shop", "catalog", "filters", "icon_recommend_up.svg"]],
+    ["filter_tab_fill", ["shop", "catalog", "filters", "top_level_filter_fill.svg"]],
+];
 
 /** The id Source 2 gives a class name: MurmurHash2, seed 0x31415926, over the ASCII-lowercased name. */
 function abilityId(className: string): number {
@@ -1653,7 +1677,20 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 game_hero_abilities: () => orNoGame(async () => heroAbilities(await asset<AssetHero[]>("heroes")), []),
                 game_popular_items: (args) =>
                     orNoGame(async () => popularItems(await asset<AssetHero[]>("heroes"), args.heroId), null),
-                game_build_tags: () => BUILD_TAGS.map((tag) => ({ ...tag })),
+                game_build_tags: async (): Promise<BuildTag[]> => {
+                    const icons = await orNoGame(() => asset<AssetIcons>("icons"), {});
+                    return BUILD_TAGS.map((tag) => {
+                        const icon = iconAt(icons, ["builds", `citadel_build_tag_${tag.key}.svg`]);
+                        return icon ? { ...tag, icon } : { ...tag };
+                    });
+                },
+                game_shop_ui_art: async (): Promise<ShopUiArt[]> => {
+                    const icons = await orNoGame(() => asset<AssetIcons>("icons"), {});
+                    return SHOP_UI_ICONS.flatMap(([image, path]) => {
+                        const file = iconAt(icons, path);
+                        return file ? [{ image, path: file }] : [];
+                    });
+                },
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,

@@ -32,7 +32,7 @@ pub mod commands {
     use dp_gamedata::{
         AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry,
         HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems,
-        RankArt, ShopItem,
+        RankArt, ShopItem, ShopUiArt,
     };
     use tauri::State;
 
@@ -68,13 +68,18 @@ pub mod commands {
         Ok(list.to_vec())
     }
 
-    /// Empty while the installed game cannot be read.
+    /// Empty while the installed game cannot be read. `icon` is a local SVG file when the game has one.
     #[tauri::command]
-    pub async fn game_build_tags(data: State<'_, GameData>, locale: String) -> Result<Vec<BuildTag>, AppError> {
+    pub async fn game_build_tags(
+        data: State<'_, GameData>,
+        art: State<'_, ArtCache>,
+        locale: String,
+    ) -> Result<Vec<BuildTag>, AppError> {
         let data = data.inner().clone();
-        let list =
-            tauri::async_runtime::spawn_blocking(move || data.build_tags(&locale)).await.map_err(AppError::internal)?;
-        Ok(list.to_vec())
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || art.build_tag_icons(&data.build_tags(&locale)))
+            .await
+            .map_err(AppError::internal)
     }
 
     #[tauri::command]
@@ -111,6 +116,13 @@ pub mod commands {
     ) -> Result<Vec<MinimapIconArt>, AppError> {
         let art = art.inner().clone();
         tauri::async_runtime::spawn_blocking(move || art.minimap_icons(&icons)).await.map_err(AppError::internal)
+    }
+
+    /// Every shop UI image the installed game has, as local files; empty without an install.
+    #[tauri::command]
+    pub async fn game_shop_ui_art(art: State<'_, ArtCache>) -> Result<Vec<ShopUiArt>, AppError> {
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || art.shop_ui_art()).await.map_err(AppError::internal)
     }
 
     #[tauri::command]

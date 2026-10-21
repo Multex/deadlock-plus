@@ -178,6 +178,7 @@ pub fn run() {
             features::gamedata::commands::game_item_art,
             features::gamedata::commands::game_minimap_art,
             features::gamedata::commands::game_minimap_icons,
+            features::gamedata::commands::game_shop_ui_art,
             features::gamedata::commands::release_old_game_art,
             features::gamedata::commands::game_map_items,
             features::steam_account::commands::current_steam_account,

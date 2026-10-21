@@ -5,6 +5,16 @@ import { defaultScenario } from "./index";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const ASSETS = "https://api.deadlock-api.com/v1/assets";
+const ICON_FILES = "https://assets-bucket.deadlock-api.com/assets-api-res/icons";
+
+const ICONS = {
+    builds: { "citadel_build_tag_weapon.svg": `${ICON_FILES}/builds/citadel_build_tag_weapon.svg` },
+    shop: {
+        "tier_corner_cap.svg": `${ICON_FILES}/shop/tier_corner_cap.svg`,
+        catalog: { filters: { "icon_recommend_up.svg": `${ICON_FILES}/shop/catalog/filters/icon_recommend_up.svg` } },
+    },
+    upgrades: { "tier_numbers_small_02.svg": `${ICON_FILES}/upgrades/tier_numbers_small_02.svg` },
+};
 
 const ITEMS = [
     {
@@ -150,6 +160,7 @@ describe("game files from the default scenario", () => {
             const url = String(input);
             if (url === `${ASSETS}/items`) return Response.json(ITEMS);
             if (url === `${ASSETS}/heroes`) return Response.json(HEROES);
+            if (url === `${ASSETS}/icons`) return Response.json(ICONS);
             return new Response("not found", { status: 404 });
         });
         const handle = install(defaultScenario(OPTIONS));
@@ -295,13 +306,26 @@ describe("game files from the default scenario", () => {
     it("names the game's standard build tags with the ids builds store", async () => {
         const tags = (await start().invoke("game_build_tags", { locale: "en" })) as BuildTag[];
         expect(tags).toHaveLength(14);
-        expect(tags[0]).toEqual({ key: "weapon", id: 47026193, name: "Weapon" });
+        expect(tags[0]).toEqual({
+            key: "weapon",
+            id: 47026193,
+            name: "Weapon",
+            icon: `${ICON_FILES}/builds/citadel_build_tag_weapon.svg`,
+        });
         expect(tags.find((t) => t.key === "complexity_1")).toEqual({
             key: "complexity_1",
             id: 1052421347,
             name: "For New Players",
         });
         expect(tags.at(-1)).toEqual({ key: "debuff", id: 255841590, name: "Debuff" });
+    });
+
+    it("draws the shop UI images the public icon set has, and leaves the rest out", async () => {
+        expect(await start().invoke("game_shop_ui_art", {})).toEqual([
+            { image: "tier_corner", path: `${ICON_FILES}/shop/tier_corner_cap.svg` },
+            { image: "tier_number_2", path: `${ICON_FILES}/upgrades/tier_numbers_small_02.svg` },
+            { image: "popular_thumb", path: `${ICON_FILES}/shop/catalog/filters/icon_recommend_up.svg` },
+        ]);
     });
 
     it("answers as an unreadable game does when the assets cannot be fetched", async () => {
@@ -315,5 +339,9 @@ describe("game files from the default scenario", () => {
         expect(await handle.invoke("game_hero_abilities", {})).toEqual([]);
         expect(await handle.invoke("game_popular_items", { heroId: 1 })).toBeNull();
         expect(await handle.invoke("game_item_stats", { locale: "english" })).toEqual([]);
+        expect(await handle.invoke("game_shop_ui_art", {})).toEqual([]);
+        const tags = (await handle.invoke("game_build_tags", { locale: "en" })) as BuildTag[];
+        expect(tags).toHaveLength(14);
+        expect(tags.every((t) => t.icon === undefined)).toBe(true);
     });
 });
