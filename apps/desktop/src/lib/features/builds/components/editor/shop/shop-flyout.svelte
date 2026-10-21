@@ -199,11 +199,14 @@
 <style>
     .flyout {
         box-shadow: 12px 0 32px #0008;
-        transition: opacity 120ms ease-out;
+        transition:
+            opacity 140ms ease-out,
+            transform 140ms ease-out;
     }
-    /* Stays open while a tile is dragged out, but lets the canvas underneath take the drop. */
+    /* Slides aside while a tile is dragged out so the whole canvas can take the drop; it comes back after. */
     .flyout.dragging {
-        opacity: 0.35;
+        opacity: 0;
+        transform: translateX(-24px);
         pointer-events: none;
     }
     .flyout[data-shop-tab="weapon"] {
