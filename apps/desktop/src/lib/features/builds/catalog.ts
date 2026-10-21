@@ -188,29 +188,36 @@ export interface ChainCost {
 }
 
 /**
- * Souls to buy `order` one item after another. Owning a component discounts the upgrade by that
- * component's full price, and the component is used up. A missing component is bought with the
- * upgrade, so only owned parts further down its chain discount it.
+ * Uses up the owned parts an upgrade is built from and returns their combined price. `take` removes
+ * one owned copy of an id and says whether there was one. A missing component is bought with the
+ * upgrade, so only owned parts further down its chain are used up.
  */
-export function chainCost(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): ChainCost {
-    const owned = new Set<number>();
-
-    const discount = (item: ShopItem, seen: Set<number>): number => {
+export function consumeComponents(
+    byId: ReadonlyMap<number, ShopItem>,
+    item: ShopItem,
+    take: (id: number) => boolean,
+): number {
+    const walk = (current: ShopItem, seen: Set<number>): number => {
         let total = 0;
-        for (const componentId of item.componentIds) {
+        for (const componentId of current.componentIds) {
             if (seen.has(componentId)) continue;
             seen.add(componentId);
             const component = byId.get(componentId);
-            if (owned.delete(componentId)) total += component?.cost ?? 0;
-            else if (component !== undefined) total += discount(component, seen);
+            if (take(componentId)) total += component?.cost ?? 0;
+            else if (component !== undefined) total += walk(component, seen);
         }
         return total;
     };
+    return walk(item, new Set([item.id]));
+}
 
+/** Souls to buy `order` one item after another. Owning a component discounts the upgrade by its full price. */
+export function chainCost(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): ChainCost {
+    const owned = new Set<number>();
     const costs = order.map((id) => {
         const item = byId.get(id);
         if (item === undefined) return 0;
-        const cost = Math.max(0, item.cost - discount(item, new Set([id])));
+        const cost = Math.max(0, item.cost - consumeComponents(byId, item, (c) => owned.delete(c)));
         owned.add(id);
         return cost;
     });

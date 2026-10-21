@@ -1,6 +1,6 @@
 import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
-import type { ItemMatcher } from "./catalog";
+import { consumeComponents, type ItemMatcher, type ShopItem } from "./catalog";
 
 export type StatsById = ReadonlyMap<number, readonly ItemStat[]>;
 
@@ -24,13 +24,35 @@ export function normaliseSearchText(text: string): string {
         .trim();
 }
 
+/** The items of `order` still owned at the end, once each upgrade has used up its components. */
+function itemsStillOwned(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): number[] {
+    const owned: { id: number; at: number }[] = [];
+    const take = (id: number) => {
+        const at = owned.findIndex((o) => o.id === id);
+        if (at === -1) return false;
+        owned.splice(at, 1);
+        return true;
+    };
+    order.forEach((id, at) => {
+        const item = byId.get(id);
+        if (item !== undefined) consumeComponents(byId, item, take);
+        owned.push({ id, at });
+    });
+    return owned.map((o) => o.id);
+}
+
 /**
- * The always-on stats of `itemIds` summed by what they provide, so different keys that grant the
- * same thing (TechPower, BonusSpirit) add up. Conditional, active and imbue stats are left out.
+ * The always-on stats of the items still owned after buying `itemIds` in order, summed by what they
+ * provide, so different keys that grant the same thing (TechPower, BonusSpirit) add up. Conditional,
+ * active and imbue stats are left out.
  */
-export function statsSoFar(itemIds: readonly number[], statsById: StatsById): StatTotal[] {
+export function statsSoFar(
+    itemIds: readonly number[],
+    statsById: StatsById,
+    byId: ReadonlyMap<number, ShopItem>,
+): StatTotal[] {
     const groups = new Map<string, StatTotal>();
-    for (const id of itemIds) {
+    for (const id of itemsStillOwned(byId, itemIds)) {
         for (const stat of statsById.get(id) ?? []) {
             if (!stat.flat || stat.provides === null) continue;
             const key = `${stat.provides}\u0000${stat.unit ?? ""}`;
