@@ -1,15 +1,18 @@
 <script lang="ts">
     import { X } from "@lucide/svelte";
+    import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { tick } from "svelte";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
+    import { abilityTooltipAt, recommendedAfter } from "../../../ability-tooltip";
     import type { HeroKit } from "../../../build-detail.svelte";
     import { TIER_COSTS, type BlockReason, type OrderStep } from "../../../editor/ability-order";
     import { pastThreshold } from "../../../editor/drag.svelte";
     import { netWorthFor } from "../../../levels";
     import AbilityArt from "./ability-art.svelte";
+    import AbilityHover from "./ability-hover.svelte";
     import TierPips from "./tier-pips.svelte";
     import { dragScroll, edgeSpeed, reveal, sidewaysWheel } from "./track-scroll";
 
@@ -17,6 +20,7 @@
         steps,
         kit,
         readonly = false,
+        tooltips = new Map(),
         total = 0,
         preview = null,
         alsoRemoves = () => [],
@@ -28,6 +32,8 @@
         kit: HeroKit;
         /** Shows the steps with a tooltip each and wraps; nothing moves or removes. Editing keeps one scrolling row. */
         readonly?: boolean;
+        /** The game's ability tooltips by ability id, for the read-only steps' hovers. */
+        tooltips?: ReadonlyMap<number, AbilityTooltip>;
         /** Every step a full order has; the ones not taken yet show as empty slots. */
         total?: number;
         /** The step a click on an ability would add, drawn in the first empty slot. */
@@ -75,6 +81,11 @@
                   souls: formatNumber(netWorthFor(reached.souls)),
               })
             : t("builds.editor.abilities.level", { level: step.level });
+    }
+
+    function stepTooltip(step: OrderStep, i: number) {
+        const tooltip = tooltips.get(step.abilityId);
+        return tooltip ? abilityTooltipAt(tooltip, step.tier, recommendedAfter(steps, i)) : null;
     }
 
     const costLine = (step: OrderStep) =>
@@ -266,12 +277,11 @@
                     </span>
                 {/snippet}
             </Tooltip.Trigger>
-            <Tooltip.Content side="top" class="max-w-64">
-                <p class="font-semibold">{kit.abilities.get(step.abilityId)?.name ?? "?"}</p>
+            <AbilityHover model={stepTooltip(step, i)} name={kit.abilities.get(step.abilityId)?.name ?? "?"}>
                 <p>{t("builds.editor.abilities.step_kind", { step: i + 1, kind: kindText(step) })}</p>
                 <p>{levelLine(step)}</p>
                 <p class="text-muted-foreground">{costLine(step)}</p>
-            </Tooltip.Content>
+            </AbilityHover>
         </Tooltip.Root>
         {@render levelLabel(step)}
     </li>

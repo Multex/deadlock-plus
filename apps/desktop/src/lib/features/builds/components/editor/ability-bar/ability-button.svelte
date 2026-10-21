@@ -1,16 +1,20 @@
 <script lang="ts">
     import { Lock, Star } from "@lucide/svelte";
+    import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { t, tn } from "$lib/core/i18n.svelte";
     import type { AbilityInfo } from "../../../build-detail.svelte";
+    import { abilityTooltipAt } from "../../../ability-tooltip";
     import type { AbilityProgress } from "../../../editor/ability-order";
     import AbilityArt from "./ability-art.svelte";
+    import AbilityHover from "./ability-hover.svelte";
     import TierPips from "./tier-pips.svelte";
 
     let {
         ability,
+        tooltip,
         slot,
         ultimate,
         progress,
@@ -22,6 +26,8 @@
         onpreview,
     }: {
         ability: AbilityInfo | undefined;
+        /** The game's tooltip for this ability; the hover falls back to its name without one. */
+        tooltip?: AbilityTooltip;
         /** 1-based slot number, as the game's keys 1-4. */
         slot: number;
         ultimate: boolean;
@@ -42,6 +48,8 @@
     const maxed = $derived(progress.tier === 3);
     const blocked = $derived(!readonly && progress.next?.kind === "blocked");
     const nextTier = $derived(!readonly && progress.next?.kind === "next" ? progress.next.tier : null);
+
+    const model = $derived(tooltip ? abilityTooltipAt(tooltip, progress.tier) : null);
 
     const kindText = (tier: number) =>
         tier === 0 ? t("builds.editor.abilities.unlock") : t("builds.editor.abilities.tier", { tier });
@@ -171,15 +179,14 @@
                     {/if}
                 {/snippet}
             </Tooltip.Trigger>
-            <Tooltip.Content side="top" class="max-w-64">
-                <p class="font-semibold">{ability?.name ?? "?"}</p>
+            <AbilityHover {model} name={ability?.name ?? "?"}>
                 {#if readonly}
                     <p>{finalLine}</p>
                 {:else}
                     <p class={cn(blocked && "text-warning")}>{addLine}</p>
                     {#if removeLine}<p class="text-muted-foreground">{removeLine}</p>{/if}
                 {/if}
-            </Tooltip.Content>
+            </AbilityHover>
         </Tooltip.Root>
     </Tooltip.Provider>
     <TierPips {taken} next={nextTier} />

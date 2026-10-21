@@ -1,6 +1,8 @@
 <script lang="ts">
+    import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
     import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
-    import { t } from "$lib/core/i18n.svelte";
+    import { i18n, t } from "$lib/core/i18n.svelte";
+    import { heroAbilityTooltips } from "../../ability-tooltip";
     import type { HeroKit } from "../../build-detail.svelte";
     import { readSteps, stepsSummary } from "../../editor/ability-order";
     import AbilityButton from "../editor/ability-bar/ability-button.svelte";
@@ -13,6 +15,18 @@
     const levels = $derived(kit?.levels ?? []);
     const steps = $derived(readSteps(order, levels));
     const points = $derived(stepsSummary(steps, levels));
+
+    let tooltips = $state.raw<ReadonlyMap<number, AbilityTooltip>>(new Map());
+
+    $effect(() => {
+        let live = true;
+        void heroAbilityTooltips(i18n.locale).then((read) => {
+            if (live) tooltips = read;
+        });
+        return () => {
+            live = false;
+        };
+    });
 
     function progress(abilityId: number) {
         let tier: number | null = null;
@@ -31,7 +45,7 @@
         {#if steps.length === 0}
             <p class="my-auto text-sm text-muted-foreground">{t("builds.view.no_abilities")}</p>
         {:else}
-            <SequenceTrack {steps} {kit} readonly />
+            <SequenceTrack {steps} {kit} {tooltips} readonly />
         {/if}
     {/snippet}
 
@@ -43,6 +57,7 @@
         {#each [...kit.abilities.keys()] as abilityId, column (abilityId)}
             <AbilityButton
                 ability={kit.abilities.get(abilityId)}
+                tooltip={tooltips.get(abilityId)}
                 slot={column + 1}
                 ultimate={abilityId === kit.ultimateId}
                 progress={progress(abilityId)}

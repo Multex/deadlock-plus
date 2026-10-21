@@ -1,10 +1,12 @@
 <script lang="ts">
     import { TriangleAlert } from "@lucide/svelte";
+    import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
     import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
-    import { t, tn } from "$lib/core/i18n.svelte";
+    import { i18n, t, tn } from "$lib/core/i18n.svelte";
+    import { heroAbilityTooltips } from "../../ability-tooltip";
     import type { HeroKit } from "../../build-detail.svelte";
     import {
         abilityProgress,
@@ -32,6 +34,17 @@
 
     let refusal = $state<BlockReason | null>(null);
     let hovered = $state<number | null>(null);
+    let tooltips = $state.raw<ReadonlyMap<number, AbilityTooltip>>(new Map());
+
+    $effect(() => {
+        let live = true;
+        void heroAbilityTooltips(i18n.locale).then((read) => {
+            if (live) tooltips = read;
+        });
+        return () => {
+            live = false;
+        };
+    });
 
     const abilities = $derived(kit ? [...kit.abilities.keys()] : []);
     const ultimateId = $derived(kit?.ultimateId ?? null);
@@ -144,6 +157,7 @@
         {#each abilities as abilityId, column (abilityId)}
             <AbilityButton
                 ability={kit.abilities.get(abilityId)}
+                tooltip={tooltips.get(abilityId)}
                 slot={column + 1}
                 ultimate={abilityId === ultimateId}
                 progress={progress[column]!}
