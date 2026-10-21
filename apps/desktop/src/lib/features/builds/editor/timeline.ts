@@ -9,7 +9,7 @@ import {
     type ComparisonGroup,
     type GroupLabel,
 } from "@deadlock-plus/stats/lobby-badge";
-import { chainCost, type ShopItem } from "../catalog";
+import { chainCost, isInShop, type ShopItem } from "../catalog";
 import { STARTING_SOULS, netWorthFor, type Level } from "../levels";
 import { statsSoFar, type StatsById, type StatTotal } from "../stats";
 import { orderSteps } from "./ability-order";
@@ -47,7 +47,7 @@ export interface NetWorthCurve {
 
 export type CurveApi = Pick<DeadlockApi, "heroStats" | "performanceCurve">;
 
-const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && item.shopable && !item.disabled;
+const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && isInShop(item);
 
 const sameRef = (a: ItemRef, b: ItemRef) => a.category === b.category && a.index === b.index;
 

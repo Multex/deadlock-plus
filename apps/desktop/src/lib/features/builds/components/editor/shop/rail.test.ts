@@ -1,7 +1,12 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-import { describe, expect, it } from "vitest";
-import { buildShopCatalog, type ShopMetadata } from "../../../catalog";
+import type { ShopItem as GameShopItem } from "@deadlock-plus/ipc-types/ShopItem";
+import { describe, expect, it, vi } from "vitest";
+
+const { loadShopItems } = vi.hoisted(() => ({ loadShopItems: vi.fn() }));
+vi.mock("$lib/features/gamedata/vdata", () => ({ loadShopItems, loadItemStats: vi.fn() }));
+
+import { buildShopCatalog, shopMetadata, type ShopMetadata } from "../../../catalog";
 import type { GamePopular } from "../../../editor/popularity";
 import { addToTarget, flyoutRows, popularRows, RAIL_COLORS, RAIL_TABS, toggleTab } from "./rail";
 
@@ -196,5 +201,66 @@ describe("addToTarget", () => {
 
     it("adds an item the build already holds again", () => {
         expect(items(addToTarget(build(cat("A", [9])), 0, [9]))).toEqual([[9, 9]]);
+    });
+});
+
+describe("items the game's shop does not sell", () => {
+    function game(over: Partial<GameShopItem> & Pick<GameShopItem, "id" | "className">): GameShopItem {
+        return {
+            slot: "vitality",
+            tier: 1,
+            cost: 800,
+            active: false,
+            components: [],
+            disabled: false,
+            shopable: true,
+            imbue: false,
+            ...over,
+        };
+    }
+
+    // Shaped like `abilities.vdata` of build 6805: every tier 5 row is a Street Brawl item priced 9999, most of
+    // them with a shop icon and not disabled.
+    const rows = [
+        game({ id: 1, className: "upgrade_extra_health" }),
+        game({ id: 2, className: "upgrade_infinite_rounds", slot: "weapon", tier: 5, cost: 9999 }),
+        game({ id: 3, className: "upgrade_shadow_step", tier: 5, cost: 9999, disabled: true, shopable: false }),
+        game({ id: 4, className: "upgrade_old_health", disabled: true, shopable: false }),
+        game({ id: 5, className: "upgrade_iconless_health", shopable: false }),
+    ];
+    const names = rows.map((r) => ({
+        id: r.id,
+        className: r.className,
+        name: `Health ${r.id}`,
+        localised: true,
+        kind: "upgrade" as const,
+    }));
+
+    async function gameCatalog() {
+        loadShopItems.mockResolvedValue(rows);
+        return buildShopCatalog(names, await shopMetadata(), {});
+    }
+
+    const offered = (
+        catalog: Awaited<ReturnType<typeof gameCatalog>>,
+        popular: ReadonlyMap<number, readonly GamePopular[]>,
+    ) =>
+        [
+            ...(["weapon", "vitality", "spirit"] as const).flatMap((tab) => flyoutRows(catalog, tab, "", popular)),
+            ...flyoutRows(catalog, "search", "health", popular),
+            ...flyoutRows(catalog, "popular", "", popular),
+        ].flatMap((r) => r.items.map((i) => i.id));
+
+    it("offers only the items the shop sells on every tab, in search and among popular items", async () => {
+        const popular = new Map<number, GamePopular[]>(rows.map((r) => [r.id, [{ phase: "early", pickPct: r.id }]]));
+        const ids = offered(await gameCatalog(), popular);
+        expect(ids.length).toBeGreaterThan(0);
+        expect(new Set(ids)).toEqual(new Set([1]));
+    });
+
+    it("leaves Street Brawl items out of the catalog, so a build holding one shows it as removed", async () => {
+        const catalog = await gameCatalog();
+        expect(catalog.byId.has(2)).toBe(false);
+        expect(catalog.byId.has(4)).toBe(true);
     });
 });

@@ -1,5 +1,12 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
-import type { ItemMatcher, ShopCatalog, ShopItem, ShopSlot, ShopTier } from "../../../catalog";
+import {
+    isInShop,
+    type ItemMatcher,
+    type ShopCatalog,
+    type ShopItem,
+    type ShopSlot,
+    type ShopTier,
+} from "../../../catalog";
 import { addCategory, addItems } from "../../../editor/document";
 import { pickerGroups } from "../../../editor/picker";
 import { PHASES, type GamePopular, type Phase } from "../../../editor/popularity";
@@ -47,7 +54,7 @@ export function popularRows(catalog: ShopCatalog, game: ReadonlyMap<number, read
         for (const [id, phases] of game) {
             const item = catalog.byId.get(id);
             const entry = phases.find((p) => p.phase === phase);
-            if (item && !item.disabled && entry) picks.push({ item, pct: entry.pickPct });
+            if (item && isInShop(item) && entry) picks.push({ item, pct: entry.pickPct });
         }
         picks.sort((a, b) => b.pct - a.pct);
         return picks.length > 0

@@ -12,7 +12,7 @@
     } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
-    import type { ShopItem } from "$lib/features/builds/catalog";
+    import { isInShop, type ShopItem } from "$lib/features/builds/catalog";
     import {
         moveItems,
         removeItems,
@@ -63,7 +63,7 @@
 
     const swaps = $derived.by(() => {
         if (!item) return { components: [], upgrades: [] };
-        const live = (i: ShopItem | undefined): i is ShopItem => !!i && i.shopable && !i.disabled;
+        const live = (i: ShopItem | undefined): i is ShopItem => !!i && isInShop(i);
         return {
             components: item.componentIds.map((id) => byId.get(id)).filter(live),
             upgrades: [...byId.values()].filter((i) => live(i) && i.componentIds.includes(item.id)),

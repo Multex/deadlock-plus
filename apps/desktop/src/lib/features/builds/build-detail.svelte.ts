@@ -12,7 +12,7 @@ import type { QueuedSaveView } from "@deadlock-plus/ipc-types/QueuedSaveView";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 import { buildsDraftDelete, buildsDrafts, buildsFavourite, buildsLocal, buildsSave, buildsUnfavourite } from "./api";
-import { chainCost, loadShopCatalog, type ShopCatalog, type ShopItem } from "./catalog";
+import { chainCost, isInShop, loadShopCatalog, type ShopCatalog, type ShopItem } from "./catalog";
 import { loadLevelTable, netWorthFor, type Level } from "./levels";
 import { LOCAL_ID_LIMIT, viewOfPublished, type MineStatus } from "./my-builds";
 import type { ChipItem } from "./shop-view";
@@ -58,7 +58,7 @@ export function localStatus(
     return local.section === "Unpublished" || id < LOCAL_ID_LIMIT ? "inGame" : "published";
 }
 
-const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && item.shopable && !item.disabled;
+const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && isInShop(item);
 
 /** Undefined for an item the shop no longer sells, which the grid flags as removed. */
 export function chipFor(byId: ReadonlyMap<number, ShopItem>, abilityId: number): ChipItem | undefined {

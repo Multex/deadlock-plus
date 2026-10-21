@@ -64,7 +64,8 @@ const SLOTS = new Set<string>(SHOP_SLOTS);
 const isShopTier = (tier: number | undefined): tier is ShopTier => tier !== undefined && tier >= 1 && tier <= 4;
 
 /**
- * Shop facts from the installed game's files. Tier 5 rows are unreleased items priced 9999 and are left out.
+ * Shop facts from the installed game's files. Tier 5 rows (price 9999) are Street Brawl items
+ * (`ERequirementStreetBrawl`), which the normal shop does not sell, so they are left out.
  * This is the only function that knows the source.
  */
 export async function shopMetadata(): Promise<ShopMetadata[]> {
@@ -119,7 +120,8 @@ async function apiShopMetadata(): Promise<ShopMetadata[]> {
     }));
 }
 
-const isInShop = (i: ShopItem) => i.shopable && !i.disabled;
+/** The game's shop sells it: not disabled and with a shop icon. */
+export const isInShop = (i: ShopItem) => i.shopable && !i.disabled;
 
 export function buildShopCatalog(
     entries: readonly ItemEntry[],
