@@ -1542,8 +1542,10 @@ dependencies = [
  "dp-game",
  "dp-steam",
  "dp-sync",
+ "dp-versioned",
  "log",
  "serde",
+ "serde_json",
  "source2-kv3",
  "ts-rs",
 ]

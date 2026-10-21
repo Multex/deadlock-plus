@@ -1,6 +1,10 @@
 pub mod backup;
 pub mod file;
+pub mod history;
+pub mod model;
 pub mod paths;
+pub mod queue;
+pub mod save;
 pub mod wire;
 
 #[cfg(test)]

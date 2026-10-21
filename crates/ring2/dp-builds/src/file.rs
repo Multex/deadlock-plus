@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use source2_kv3::{Compression, Document, Kind, Object, Value, Version, WriteOptions};
 
 /// Ids below this are local builds; the GC hands out the ones above.
@@ -5,8 +6,8 @@ pub const LOCAL_ID_LIMIT: u32 = 1000;
 
 const LAST_USED: &str = "LastUsedBuilds";
 
-/// One of the build arrays in the file, each sorted by `hero_build_id`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// One of the build arrays in the file, each sorted by `hero_build_id`. Serializes as its `key()`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Section {
     Favorites,
     Unpublished,
