@@ -3,7 +3,7 @@ import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 import { describe, expect, it } from "vitest";
 import { buildShopCatalog, type ShopMetadata } from "../../../catalog";
 import type { GamePopular } from "../../../editor/popularity";
-import { addToTarget, flyoutRows, popularRows, toggleTab } from "./rail";
+import { addToTarget, flyoutRows, popularRows, RAIL_COLORS, RAIL_TABS, toggleTab } from "./rail";
 
 const PRICES = { 1: 800, 2: 1600, 3: 3200, 4: 6400 } as const;
 
@@ -50,6 +50,20 @@ describe("toggleTab", () => {
 
     it("closes when the open tab is clicked again", () => {
         expect(toggleTab("vitality", "vitality")).toBeNull();
+    });
+});
+
+describe("RAIL_COLORS", () => {
+    it("paints the slot tabs in the shop's slot colours", () => {
+        expect([RAIL_COLORS.weapon, RAIL_COLORS.vitality, RAIL_COLORS.spirit]).toEqual([
+            "#ec9719",
+            "#7bba1d",
+            "#ce90ff",
+        ]);
+    });
+
+    it("gives every tab its own colour", () => {
+        expect(new Set(RAIL_TABS.map((tab) => RAIL_COLORS[tab])).size).toBe(RAIL_TABS.length);
     });
 });
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Cross, Crosshair, Search, Sparkles, Star } from "@lucide/svelte";
-    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
+    import { Cross, Crosshair, Search, Sparkles, ThumbsUp } from "@lucide/svelte";
+    import Button from "@deadlock-plus/ui/button.svelte";
     import type { Component } from "svelte";
     import { tick } from "svelte";
     import { t } from "$lib/core/i18n.svelte";
@@ -8,7 +8,7 @@
     import type { BuildEditor } from "../../../editor/editor.svelte";
     import { HeroPopularity } from "../../../editor/popularity.svelte";
     import type { StatsById } from "../../../stats";
-    import { RAIL_TABS, toggleTab, type RailTab } from "./rail";
+    import { RAIL_COLORS, RAIL_TABS, toggleTab, type RailTab } from "./rail";
     import ShopFlyout from "./shop-flyout.svelte";
 
     let {
@@ -26,7 +26,7 @@
     const SEARCH_ID = "build-editor-item-search";
 
     const ICONS: Record<RailTab, Component> = {
-        popular: Star,
+        popular: ThumbsUp,
         weapon: Crosshair,
         vitality: Cross,
         spirit: Sparkles,
@@ -71,26 +71,23 @@
 <svelte:window onkeydown={windowKey} />
 
 <nav
-    class="rail flex w-14 shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2"
+    class="rail relative z-30 flex w-[84px] shrink-0 flex-col items-end gap-1.5 border-r border-border bg-card py-2"
     aria-label={t("builds.editor.picker.label")}
 >
     {#each RAIL_TABS as tab (tab)}
         {@const Icon = ICONS[tab]}
-        <IconButton
-            label={label(tab)}
-            tooltip
-            variant="toggle"
-            class="rail-tab size-10"
+        <Button
+            variant="unstyled"
+            class="rail-tab"
+            style="--slot: {RAIL_COLORS[tab]}"
             data-rail-tab={tab}
             aria-pressed={open === tab}
             aria-keyshortcuts={tab === "search" ? "/" : undefined}
             onclick={() => (open = toggleTab(open, tab))}
         >
-            <Icon />
-        </IconButton>
-        {#if tab === "popular" || tab === "spirit"}
-            <span class="my-1 h-px w-6 bg-border" aria-hidden="true"></span>
-        {/if}
+            <Icon aria-hidden="true" />
+            <span class="rail-label">{label(tab)}</span>
+        </Button>
     {/each}
 </nav>
 
@@ -108,26 +105,73 @@
 {/if}
 
 <style>
+    /* Tabs sit flush against the flyout's edge like the game's: the open one fills in and points into the shop. */
+    .rail :global(.rail-tab) {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 72px;
+        height: 72px;
+        margin-right: -1px;
+        border-radius: 10px 0 0 10px;
+        background: color-mix(in oklch, var(--slot) 32%, var(--card));
+        box-shadow: inset 3px 0 0 color-mix(in oklch, var(--slot) 55%, transparent);
+        color: #fffc;
+        transition:
+            background-color 120ms ease-out,
+            box-shadow 120ms ease-out,
+            translate 120ms ease-out,
+            color 120ms ease-out;
+    }
     .rail :global(.rail-tab[data-rail-tab="popular"]) {
-        --slot: #6fd36f;
+        margin-bottom: 8px;
     }
-    .rail :global(.rail-tab[data-rail-tab="weapon"]) {
-        --slot: #ec9719;
+    .rail :global(.rail-tab[data-rail-tab="search"]) {
+        margin-top: 8px;
     }
-    .rail :global(.rail-tab[data-rail-tab="vitality"]) {
-        --slot: #7bba1d;
-    }
-    .rail :global(.rail-tab[data-rail-tab="spirit"]) {
-        --slot: #ce90ff;
-    }
-    .rail :global(.rail-tab svg) {
-        width: 1.25rem;
-        height: 1.25rem;
-        color: var(--slot, currentColor);
+    .rail :global(.rail-tab:hover) {
+        translate: 0 -2px;
+        background: color-mix(in oklch, var(--slot) 50%, var(--card));
+        box-shadow:
+            inset 3px 0 0 var(--slot),
+            0 4px 10px #0007;
+        color: #fff;
     }
     .rail :global(.rail-tab[aria-pressed="true"]) {
-        border-color: var(--slot, var(--brass));
-        background: color-mix(in oklch, var(--slot, var(--brass)) 16%, transparent);
-        box-shadow: inset 3px 0 0 var(--slot, var(--brass));
+        translate: none;
+        background: color-mix(in oklch, var(--slot) 82%, black);
+        box-shadow: inset 0 1px 0 #fff4;
+        color: #fff;
+    }
+    .rail :global(.rail-tab[aria-pressed="true"]::after) {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -9px;
+        border-block: 9px solid transparent;
+        border-left: 9px solid color-mix(in oklch, var(--slot) 82%, black);
+        translate: 0 -50%;
+    }
+    .rail :global(.rail-tab:focus-visible) {
+        box-shadow:
+            0 0 0 2px var(--card),
+            0 0 0 4px var(--slot);
+    }
+    .rail :global(.rail-tab svg) {
+        width: 30px;
+        height: 30px;
+        filter: drop-shadow(0 1px 1px #0009);
+    }
+    .rail-label {
+        font-family: var(--font-heading);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-shadow: 0 1px 2px #000a;
     }
 </style>

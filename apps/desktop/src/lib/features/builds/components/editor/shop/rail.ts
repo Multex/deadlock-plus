@@ -8,6 +8,15 @@ export type RailTab = "popular" | ShopSlot | "search";
 
 export const RAIL_TABS: readonly RailTab[] = ["popular", "weapon", "vitality", "spirit", "search"];
 
+/** The game's tab colours: slot tabs match the item cards, Popular is its red-orange, Search its grey "All" tab. */
+export const RAIL_COLORS: Readonly<Record<RailTab, string>> = {
+    popular: "#e2603f",
+    weapon: "#ec9719",
+    vitality: "#7bba1d",
+    spirit: "#ce90ff",
+    search: "#8b9098",
+};
+
 export type FlyoutHeading =
     | { kind: "tier"; tier: ShopTier; price: number | null }
     | { kind: "phase"; phase: Phase }

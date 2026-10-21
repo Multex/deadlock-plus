@@ -12,7 +12,7 @@
     import { inBuildCounts, nearestCard, type ArrowKey } from "../../../editor/picker";
     import type { HeroPopularity } from "../../../editor/popularity.svelte";
     import { statLabelMatchers, type StatsById } from "../../../stats";
-    import { addToTarget, flyoutRows, type FlyoutHeading, type RailTab } from "./rail";
+    import { addToTarget, flyoutRows, RAIL_COLORS, type FlyoutHeading, type RailTab } from "./rail";
     import ShopTile from "./shop-tile.svelte";
 
     let {
@@ -128,9 +128,10 @@
 </script>
 
 <section
-    class="flyout absolute top-0 bottom-0 left-14 z-20 flex w-[420px] flex-col border-r border-border bg-card"
+    class="flyout absolute top-0 bottom-0 left-[84px] z-20 flex w-[420px] flex-col border-r border-border bg-card"
     class:dragging
     data-shop-tab={tab}
+    style="--accent-slot: {RAIL_COLORS[tab]}"
     aria-label={t("builds.editor.picker.label")}
 >
     <header class="flex flex-col gap-2 border-b border-border px-3 pt-2 pb-2">
@@ -209,23 +210,12 @@
         transform: translateX(-24px);
         pointer-events: none;
     }
-    .flyout[data-shop-tab="weapon"] {
-        --accent-slot: #ec9719;
-    }
-    .flyout[data-shop-tab="vitality"] {
-        --accent-slot: #7bba1d;
-    }
-    .flyout[data-shop-tab="spirit"] {
-        --accent-slot: #ce90ff;
-    }
-    .flyout[data-shop-tab="popular"] {
-        --accent-slot: #6fd36f;
-    }
     .flyout {
-        border-top: 2px solid var(--accent-slot, var(--brass));
+        border-top: 2px solid var(--accent-slot);
+        border-left: 3px solid var(--accent-slot);
     }
     .title {
-        color: var(--accent-slot, var(--foreground));
+        color: var(--accent-slot);
         font-family: var(--font-heading);
         font-size: 0.875rem;
         font-weight: 600;
