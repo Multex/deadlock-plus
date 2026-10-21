@@ -1,5 +1,6 @@
 import type { AssetItem } from "@deadlock-plus/deadlock-api";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
+import type { ShopItem as GameShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,6 +33,7 @@ function meta(over: Partial<ShopMetadata> & Pick<ShopMetadata, "id" | "className
         active: false,
         shopable: true,
         disabled: false,
+        imbue: false,
         componentIds: [],
         ...over,
     };
@@ -59,14 +61,95 @@ function asset(over: Partial<AssetItem> & Pick<AssetItem, "id" | "class_name">):
     };
 }
 
+function game(over: Partial<GameShopItem> & Pick<GameShopItem, "id" | "className">): GameShopItem {
+    return {
+        slot: "spirit",
+        tier: 1,
+        cost: 800,
+        active: false,
+        components: [],
+        disabled: false,
+        shopable: true,
+        imbue: false,
+        ...over,
+    };
+}
+
+/** Answers each command by name; a missing or `Error` answer rejects. */
+function answer(replies: Record<string, unknown>) {
+    command.mockImplementation(async (name: string) => {
+        const reply = replies[name];
+        if (reply === undefined || reply instanceof Error) throw reply ?? new Error(`unexpected ${name}`);
+        return reply;
+    });
+}
+
 beforeEach(() => {
     items.mockReset();
     command.mockReset();
     loadItemArt.mockReset();
+    answer({ game_shop_items: [] });
 });
 
 describe("shopMetadata", () => {
-    it("keeps shop tiers 1 to 4 of upgrades and resolves component class names to ids", async () => {
+    it("reads the game files and leaves the API alone", async () => {
+        answer({
+            game_shop_items: [
+                game({ id: 1, className: "upgrade_a", slot: "weapon" }),
+                game({
+                    id: 2,
+                    className: "upgrade_b",
+                    tier: 2,
+                    cost: 1600,
+                    active: true,
+                    components: [1],
+                    imbue: true,
+                }),
+                game({ id: 3, className: "upgrade_old", disabled: true, shopable: false }),
+                game({ id: 4, className: "upgrade_unreleased", tier: 5, cost: 9999 }),
+            ],
+        });
+        const rows = await shopMetadata();
+        expect(items).not.toHaveBeenCalled();
+        expect(rows.map((r) => r.id)).toEqual([1, 2, 3]);
+        expect(rows[0]).toEqual({
+            id: 1,
+            className: "upgrade_a",
+            slot: "weapon",
+            tier: 1,
+            cost: 800,
+            active: false,
+            shopable: true,
+            disabled: false,
+            imbue: false,
+            componentIds: [],
+        });
+        expect(rows[1]).toMatchObject({ tier: 2, cost: 1600, active: true, componentIds: [1], imbue: true });
+        expect(rows[2]).toMatchObject({ disabled: true, shopable: false });
+    });
+
+    it("falls back to the API when the game files give no items", async () => {
+        items.mockResolvedValue([asset({ id: 1, class_name: "upgrade_a" })]);
+        const rows = await shopMetadata();
+        expect(command).toHaveBeenCalledWith("game_shop_items");
+        expect(rows.map((r) => r.id)).toEqual([1]);
+    });
+
+    it("falls back to the API when the game files cannot be asked", async () => {
+        answer({ game_shop_items: new Error("no backend") });
+        items.mockResolvedValue([asset({ id: 1, class_name: "upgrade_a" })]);
+        expect((await shopMetadata()).map((r) => r.id)).toEqual([1]);
+    });
+
+    it("marks API items that imbue an ability", async () => {
+        items.mockResolvedValue([
+            { ...asset({ id: 1, class_name: "upgrade_a" }), imbue: "imbue_modifier_value" },
+            asset({ id: 2, class_name: "upgrade_b" }),
+        ]);
+        expect((await shopMetadata()).map((r) => r.imbue)).toEqual([true, false]);
+    });
+
+    it("keeps shop tiers 1 to 4 of API upgrades and resolves component class names to ids", async () => {
         items.mockResolvedValue([
             asset({ id: 1, class_name: "upgrade_a" }),
             asset({
@@ -114,6 +197,21 @@ describe("buildShopCatalog", () => {
         expect(catalog.byId.get(3)?.name).toBe("Gamma");
     });
 
+    it("names a game row without a localised name after its game entry, else its class name", () => {
+        const rows = [
+            { ...meta({ id: 1, className: "upgrade_a" }), name: undefined },
+            { ...meta({ id: 2, className: "upgrade_b" }), name: undefined },
+        ];
+        const named = buildShopCatalog([entry(1, "upgrade_a", "Alpha", false)], rows, {});
+        expect(named.byId.get(1)?.name).toBe("Alpha");
+        expect(named.byId.get(2)?.name).toBe("upgrade_b");
+    });
+
+    it("carries the imbue flag", () => {
+        const flagged = buildShopCatalog([], [meta({ id: 1, className: "upgrade_a", imbue: true })], {});
+        expect(flagged.byId.get(1)?.imbue).toBe(true);
+    });
+
     it("attaches art when the game has it", () => {
         expect(catalog.byId.get(1)?.art).toBe("asset://a");
         expect(catalog.byId.get(2)?.art).toBeUndefined();
@@ -146,9 +244,21 @@ describe("buildShopCatalog", () => {
 describe("loadShopCatalog", () => {
     const upgrade = () => asset({ id: 1, class_name: "upgrade_a", name: "Alpha", shop_image_webp: "https://x/a.webp" });
 
-    it("merges game names, API metadata and shop art for the locale", async () => {
+    it("merges game names, game metadata and shop art for the locale", async () => {
+        answer({
+            game_shop_items: [game({ id: 1, className: "upgrade_a" })],
+            game_items: [entry(1, "upgrade_a", "Alfa")],
+        });
+        loadItemArt.mockResolvedValue({ upgrade_a: "asset://a" });
+        const catalog = await loadShopCatalog("german");
+        expect(items).not.toHaveBeenCalled();
+        expect(command).toHaveBeenCalledWith("game_items", { locale: "german" });
+        expect(catalog.byId.get(1)).toMatchObject({ name: "Alfa", art: "asset://a" });
+    });
+
+    it("merges game names, API metadata and shop art when the game has no shop items", async () => {
         items.mockResolvedValue([upgrade()]);
-        command.mockResolvedValue([entry(1, "upgrade_a", "Alfa")]);
+        answer({ game_shop_items: [], game_items: [entry(1, "upgrade_a", "Alfa")] });
         loadItemArt.mockResolvedValue({ upgrade_a: "asset://a" });
         const catalog = await loadShopCatalog("german");
         expect(command).toHaveBeenCalledWith("game_items", { locale: "german" });
@@ -158,7 +268,7 @@ describe("loadShopCatalog", () => {
 
     it("falls back to the API name and image when the game files are unavailable", async () => {
         items.mockResolvedValue([upgrade()]);
-        command.mockRejectedValue(new Error("no game"));
+        answer({});
         loadItemArt.mockResolvedValue({});
         const catalog = await loadShopCatalog("english");
         expect(catalog.byId.get(1)).toMatchObject({ name: "Alpha", art: "https://x/a.webp" });
@@ -179,6 +289,7 @@ describe("chainCost", () => {
             componentIds,
             shopable: true,
             disabled: false,
+            imbue: false,
         },
     ];
     const byId = new Map([
@@ -234,6 +345,7 @@ describe("searchItems", () => {
         componentIds: [],
         shopable: true,
         disabled: false,
+        imbue: false,
     });
     const list = [mk(1, "Mystic Burst"), mk(2, "Extra Spirit"), mk(3, "Spirit Strike"), mk(4, "Éclair")];
 

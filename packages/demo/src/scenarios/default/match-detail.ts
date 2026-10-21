@@ -1,6 +1,8 @@
 import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
 import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
+import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
+import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 import type { LaneLine } from "@deadlock-plus/ipc-types/LaneLine";
 import type { MapItem } from "@deadlock-plus/ipc-types/MapItem";
@@ -10,7 +12,11 @@ import type { MinimapArtResult } from "@deadlock-plus/ipc-types/MinimapArtResult
 import type { MinimapIcon } from "@deadlock-plus/ipc-types/MinimapIcon";
 import type { MinimapIconArt } from "@deadlock-plus/ipc-types/MinimapIconArt";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+import type { PopularItem } from "@deadlock-plus/ipc-types/PopularItem";
+import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
+import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
+import type { ShopSlot } from "@deadlock-plus/ipc-types/ShopSlot";
 
 import type { Handlers } from "../../backend";
 import { seeded } from "../../random";
@@ -1303,6 +1309,15 @@ interface AssetItem {
     image_webp?: string | null;
     shop_image?: string | null;
     shop_image_webp?: string | null;
+    item_slot_type?: string;
+    item_tier?: number;
+    cost?: number;
+    is_active_item?: boolean;
+    shopable?: boolean;
+    disabled?: boolean;
+    component_items?: string[];
+    /** Set on items that imbue an ability: the kind of ability they target. */
+    imbue?: string | null;
 }
 
 interface AssetAccolade {
@@ -1315,6 +1330,21 @@ interface AssetAccolade {
 interface AssetHero {
     id: number;
     images?: { minimap_image_webp?: string | null };
+    items?: Record<string, string>;
+    level_info?: Record<string, { required_gold: number; bonus_currencies?: string[] }>;
+    popular_items?: {
+        timestamp: number;
+        early_game?: AssetPopularItem[];
+        mid_game?: AssetPopularItem[];
+        late_game?: AssetPopularItem[];
+    } | null;
+}
+
+interface AssetPopularItem {
+    item_id: number;
+    class_name: string;
+    pick_pct: number;
+    winrate_pct: number;
 }
 
 interface AssetMap {
@@ -1324,6 +1354,103 @@ interface AssetMap {
 
 interface AssetIcons {
     minimap?: Record<string, string>;
+}
+
+/** The id Source 2 gives a class name: MurmurHash2, seed 0x31415926, over the ASCII-lowercased name. */
+function abilityId(className: string): number {
+    const M = 0x5bd1e995;
+    const data = Array.from(className, (c) => c.toLowerCase().charCodeAt(0) & 0xff);
+    let h = (0x31415926 ^ data.length) >>> 0;
+    let i = 0;
+    for (; i + 4 <= data.length; i += 4) {
+        let k = data[i]! | (data[i + 1]! << 8) | (data[i + 2]! << 16) | (data[i + 3]! << 24);
+        k = Math.imul(k, M);
+        k ^= k >>> 24;
+        h = Math.imul(h, M) ^ Math.imul(k, M);
+    }
+    if (i < data.length) {
+        for (let j = 0; i + j < data.length; j++) h ^= data[i + j]! << (8 * j);
+        h = Math.imul(h, M);
+    }
+    h ^= h >>> 13;
+    h = Math.imul(h, M);
+    return (h ^ (h >>> 15)) >>> 0;
+}
+
+const SHOP_SLOTS = new Set<string>(["weapon", "vitality", "spirit"] satisfies ShopSlot[]);
+
+/** The installed game's answers come from the public assets; when those cannot be fetched, as with no game. */
+async function orNoGame<T>(read: () => Promise<T>, none: T): Promise<T> {
+    try {
+        return await read();
+    } catch {
+        return none;
+    }
+}
+
+function shopItems(items: readonly AssetItem[]): ShopItem[] {
+    return items
+        .flatMap((item): ShopItem[] =>
+            item.type === "upgrade" && SHOP_SLOTS.has(item.item_slot_type ?? "") && item.item_tier !== undefined
+                ? [
+                      {
+                          id: item.id,
+                          className: item.class_name,
+                          slot: item.item_slot_type as ShopSlot,
+                          tier: item.item_tier,
+                          cost: item.cost ?? 0,
+                          active: item.is_active_item ?? false,
+                          components: (item.component_items ?? []).map(abilityId),
+                          disabled: item.disabled ?? false,
+                          shopable: item.shopable ?? false,
+                          imbue: typeof item.imbue === "string" && item.imbue !== "",
+                      },
+                  ]
+                : [],
+        )
+        .sort((a, b) => a.id - b.id);
+}
+
+/** Every hero shares one level table; the asset repeats it per hero. */
+function heroProgression(heroes: readonly AssetHero[]): HeroProgression {
+    const info = heroes.find((hero) => hero.level_info)?.level_info ?? {};
+    const levels = Object.entries(info).map(([level, row]) => ({
+        level: Number(level),
+        souls: row.required_gold,
+        ap: row.bonus_currencies?.includes("EAbilityPoints") ? 1 : 0,
+        unlocks: row.bonus_currencies?.includes("EAbilityUnlocks") ? 1 : 0,
+    }));
+    return { levels: levels.sort((a, b) => a.level - b.level) };
+}
+
+function heroAbilities(heroes: readonly AssetHero[]): HeroAbilities[] {
+    return heroes
+        .flatMap((hero): HeroAbilities[] => {
+            const slots = [1, 2, 3, 4].map((n) => hero.items?.[`signature${n}`]);
+            if (slots.some((slot) => slot === undefined)) return [];
+            const [a, b, c, d] = (slots as string[]).map(abilityId);
+            return [{ heroId: hero.id, abilityIds: [a!, b!, c!, d!] }];
+        })
+        .sort((a, b) => a.heroId - b.heroId);
+}
+
+function popularItems(heroes: readonly AssetHero[], heroId: unknown): PopularItems | null {
+    const popular = heroes.find((hero) => hero.id === heroId)?.popular_items;
+    if (!popular) return null;
+    const phase = (items: AssetPopularItem[] | undefined): PopularItem[] =>
+        (items ?? []).map((item) => ({
+            id: item.item_id,
+            className: item.class_name,
+            pickPct: item.pick_pct,
+            winPct: item.winrate_pct,
+        }));
+    const out = {
+        timestamp: popular.timestamp,
+        earlyGame: phase(popular.early_game),
+        midGame: phase(popular.mid_game),
+        lateGame: phase(popular.late_game),
+    };
+    return out.earlyGame.length + out.midGame.length + out.lateGame.length > 0 ? out : null;
 }
 
 async function classArt(
@@ -1422,6 +1549,12 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                             : (item.image_webp ?? item.image),
                     ),
                 game_ability_art: (args) => classArt(asset, args.names, (item) => item.image_webp ?? item.image),
+                game_shop_items: () => orNoGame(async () => shopItems(await asset<AssetItem[]>("items")), []),
+                game_hero_progression: () =>
+                    orNoGame(async () => heroProgression(await asset<AssetHero[]>("heroes")), { levels: [] }),
+                game_hero_abilities: () => orNoGame(async () => heroAbilities(await asset<AssetHero[]>("heroes")), []),
+                game_popular_items: (args) =>
+                    orNoGame(async () => popularItems(await asset<AssetHero[]>("heroes"), args.heroId), null),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,

@@ -1,6 +1,8 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { command } from "$lib/core/tauri";
 import { loadItemArt } from "$lib/features/gamedata/gamedata";
+import { loadShopItems } from "$lib/features/gamedata/vdata";
+import type { AssetItem } from "@deadlock-plus/deadlock-api";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 
 export type ShopSlot = "weapon" | "vitality" | "spirit";
@@ -20,20 +22,24 @@ export interface ShopItem {
     componentIds: number[];
     shopable: boolean;
     disabled: boolean;
+    /** Applies its effect to an ability the player picks; absent means it does not. */
+    imbue?: boolean;
     art?: string;
 }
 
-/** The per-item facts the game files do not give us yet. */
+/** The per-item shop facts, before localised names and art are merged in. */
 export interface ShopMetadata {
     id: number;
     className: string;
-    name: string;
+    /** The API's English name; game rows carry none. */
+    name?: string;
     slot: ShopSlot;
     tier: ShopTier;
     cost: number;
     active: boolean;
     shopable: boolean;
     disabled: boolean;
+    imbue: boolean;
     componentIds: number[];
     image?: string;
 }
@@ -49,20 +55,46 @@ export interface ShopCatalog {
 
 const SLOTS = new Set<string>(SHOP_SLOTS);
 
+const isShopTier = (tier: number | undefined): tier is ShopTier => tier !== undefined && tier >= 1 && tier <= 4;
+
 /**
- * Slot, tier, cost, active flag and components come from the Deadlock API until the Tauri game-files
- * command exposes them; this is the only function that knows the source.
- * Tier 5 rows are unreleased items priced 9999 and are left out.
+ * Shop facts from the installed game's files. Tier 5 rows are unreleased items priced 9999 and are left out.
+ * This is the only function that knows the source.
  */
 export async function shopMetadata(): Promise<ShopMetadata[]> {
-    const rows = (await deadlockApi.items()).filter(
+    const game = await loadShopItems();
+    // An empty list means the game is not installed or cannot be read, so the Deadlock API stands in.
+    if (game.length === 0) return apiShopMetadata();
+    return game.flatMap((i) =>
+        isShopTier(i.tier)
+            ? [
+                  {
+                      id: i.id,
+                      className: i.className,
+                      slot: i.slot,
+                      tier: i.tier,
+                      cost: i.cost,
+                      active: i.active,
+                      shopable: i.shopable,
+                      disabled: i.disabled,
+                      imbue: i.imbue,
+                      componentIds: i.components,
+                  },
+              ]
+            : [],
+    );
+}
+
+/** `/assets/items` marks imbue items with the kind of ability they target. */
+type ApiItem = AssetItem & { imbue?: string | null };
+
+async function apiShopMetadata(): Promise<ShopMetadata[]> {
+    const rows = ((await deadlockApi.items()) as ApiItem[]).filter(
         (i) =>
             i.type === "upgrade" &&
             i.item_slot_type !== undefined &&
             SLOTS.has(i.item_slot_type) &&
-            i.item_tier !== undefined &&
-            i.item_tier >= 1 &&
-            i.item_tier <= 4,
+            isShopTier(i.item_tier),
     );
     const idByClass = new Map(rows.map((i) => [i.class_name, i.id]));
     return rows.map((i) => ({
@@ -75,6 +107,7 @@ export async function shopMetadata(): Promise<ShopMetadata[]> {
         active: i.is_active_item ?? false,
         shopable: i.shopable ?? false,
         disabled: i.disabled ?? false,
+        imbue: typeof i.imbue === "string" && i.imbue !== "",
         componentIds: (i.component_items ?? []).flatMap((c) => idByClass.get(c) ?? []),
         image: i.shop_image_webp,
     }));
@@ -88,12 +121,13 @@ export function buildShopCatalog(
     art: Readonly<Record<string, string>>,
 ): ShopCatalog {
     const localised = new Map(entries.filter((e) => e.localised).map((e) => [e.id, e.name]));
+    const named = new Map(entries.map((e) => [e.id, e.name]));
     const byId = new Map<number, ShopItem>();
     for (const m of metadata) {
         const item: ShopItem = {
             id: m.id,
             className: m.className,
-            name: localised.get(m.id) ?? m.name,
+            name: localised.get(m.id) ?? m.name ?? named.get(m.id) ?? m.className,
             slot: m.slot,
             tier: m.tier,
             cost: m.cost,
@@ -101,6 +135,7 @@ export function buildShopCatalog(
             componentIds: m.componentIds,
             shopable: m.shopable,
             disabled: m.disabled,
+            imbue: m.imbue,
         };
         const src = art[m.className] ?? m.image;
         if (src !== undefined) item.art = src;
