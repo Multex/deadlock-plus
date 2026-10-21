@@ -3,23 +3,15 @@ import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import { loadAbilityTooltips } from "$lib/features/gamedata/vdata";
 import { TIER_COSTS, type OrderStep } from "./editor/ability-order";
 
-/**
- * The game draws the tooltip 560 Panorama px wide; full size would cover most of the ability bar, so the
- * Builds pages show it smaller.
- */
-export const ABILITY_TOOLTIP_SCALE = 0.7;
+/** Same scale as the Builds item tooltips, so both read as one set. */
+export const ABILITY_TOOLTIP_SCALE = 1;
 
 /**
- * Each tier's card for an ability at `tier` (null while locked, 0 unlocked only): trained tiers are had and
- * the tier after them is on offer. A build buys its points as it levels, so the next tier never shows as
- * unaffordable.
+ * Each tier's card for an ability at `tier` (null while locked, 0 unlocked only): trained tiers are had, the
+ * rest look as the game draws them with no ability points to spend.
  */
 export function upgradeStates(tier: number | null): UpgradeState[] {
-    return TIER_COSTS.map((_, i): UpgradeState => {
-        if (tier === null) return "notTrained";
-        if (i + 1 <= tier) return "has";
-        return i === tier ? "available" : "notTrained";
-    });
+    return TIER_COSTS.map((_, i): UpgradeState => (tier !== null && i + 1 <= tier ? "has" : "cantAfford"));
 }
 
 /** The tier the build's step after `index` buys, when that step upgrades the same ability. */

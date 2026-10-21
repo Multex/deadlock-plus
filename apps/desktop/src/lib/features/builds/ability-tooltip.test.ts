@@ -42,19 +42,19 @@ function ability(abilityId: number, name: string): AbilityTooltip {
 const step = (abilityId: number, tier: number): OrderStep => ({ abilityId, tier, level: null });
 
 describe("upgradeStates", () => {
-    it("shows every card untrained while the ability is locked", async () => {
+    it("draws every card unaffordable while the ability is locked", async () => {
         const { upgradeStates } = await adapter();
-        expect(upgradeStates(null)).toEqual(["notTrained", "notTrained", "notTrained"]);
+        expect(upgradeStates(null)).toEqual(["cantAfford", "cantAfford", "cantAfford"]);
     });
 
-    it("offers tier 1 once the ability is unlocked", async () => {
+    it("draws unbought tiers as the game does with no points to spend", async () => {
         const { upgradeStates } = await adapter();
-        expect(upgradeStates(0)).toEqual(["available", "notTrained", "notTrained"]);
+        expect(upgradeStates(0)).toEqual(["cantAfford", "cantAfford", "cantAfford"]);
     });
 
-    it("marks trained tiers and offers the next one", async () => {
+    it("marks trained tiers as had", async () => {
         const { upgradeStates } = await adapter();
-        expect(upgradeStates(2)).toEqual(["has", "has", "available"]);
+        expect(upgradeStates(2)).toEqual(["has", "has", "cantAfford"]);
         expect(upgradeStates(3)).toEqual(["has", "has", "has"]);
     });
 });
@@ -83,15 +83,15 @@ describe("abilityTooltipAt", () => {
         expect(model.name).toBe("Lightning Ball");
         expect(model.upgrades.map((u) => [u.tier, u.state, u.recommended])).toEqual([
             [1, "has", false],
-            [2, "available", true],
-            [3, "notTrained", false],
+            [2, "cantAfford", true],
+            [3, "cantAfford", false],
         ]);
     });
 
     it("recommends nothing by default", async () => {
         const { abilityTooltipAt } = await adapter();
         const model = abilityTooltipAt(ability(7, "Lightning Ball"), null);
-        expect(model.upgrades.every((u) => !u.recommended && u.state === "notTrained")).toBe(true);
+        expect(model.upgrades.every((u) => !u.recommended && u.state === "cantAfford")).toBe(true);
     });
 });
 
