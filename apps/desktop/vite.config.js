@@ -23,6 +23,7 @@ export default defineConfig(() => ({
         include: [
             "src/**/*.{test,spec}.{js,ts}",
             "../../scripts/**/*.test.mjs",
+            "../../packages/build-layout/src/**/*.test.ts",
             "../../packages/deadlock-api/src/**/*.test.ts",
             "../../packages/demo/src/**/*.test.ts",
             "../../packages/match/src/**/*.test.ts",
