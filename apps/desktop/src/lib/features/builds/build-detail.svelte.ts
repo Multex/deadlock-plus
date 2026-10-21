@@ -179,7 +179,7 @@ export interface HeroKit {
     levels: readonly Level[];
 }
 
-async function loadKit(heroId: number): Promise<HeroKit> {
+export async function loadKit(heroId: number): Promise<HeroKit> {
     const [heroes, items] = await Promise.all([deadlockApi.heroes(), deadlockApi.items()]);
     const hero = heroes.find((h) => h.id === heroId);
     const levels = await loadLevelTable(hero?.level_info);
@@ -200,7 +200,7 @@ async function loadKit(heroId: number): Promise<HeroKit> {
     };
 }
 
-async function loadPublic(id: number): Promise<{ build: BuildView; favourites: number | null } | null> {
+export async function loadPublic(id: number): Promise<{ build: BuildView; favourites: number | null } | null> {
     const rows = await deadlockApi.builds({ buildId: id, onlyLatest: true });
     const newest = rows
         .filter((r) => r.hero_build.hero_build_id === id)

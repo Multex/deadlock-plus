@@ -1,5 +1,15 @@
 <script lang="ts">
-    import { CircleX, Copy, Ellipsis, ExternalLink, Star, StarOff, Trash2, TriangleAlert } from "@lucide/svelte";
+    import {
+        CircleX,
+        Copy,
+        Ellipsis,
+        ExternalLink,
+        Pencil,
+        Star,
+        StarOff,
+        Trash2,
+        TriangleAlert,
+    } from "@lucide/svelte";
     import { goto } from "$app/navigation";
 
     import { formatDate, t } from "$lib/core/i18n.svelte";
@@ -7,6 +17,7 @@
     import Card from "@deadlock-plus/ui/card.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import { canDelete, copyRequest, favouriteAction, openHref, type MineRow } from "$lib/features/builds/my-builds";
+    import { editHrefFor } from "$lib/features/builds/editor/load";
     import StatusBadge from "./status-badge.svelte";
 
     let {
@@ -28,6 +39,7 @@
     } = $props();
 
     const href = $derived(openHref(row));
+    const edit = $derived(editHrefFor(row));
     const favourite = $derived(favouriteAction(row));
     const copyable = $derived(copyRequest(row, row.name) !== null);
     const updated = $derived(
@@ -79,6 +91,12 @@
             <Ellipsis />
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
+            {#if edit}
+                <DropdownMenu.Item data-testid="edit-build" onSelect={() => void goto(edit)}>
+                    <Pencil />
+                    {t("builds.editor.edit")}
+                </DropdownMenu.Item>
+            {/if}
             {#if href}
                 <DropdownMenu.Item onSelect={() => void goto(href)}>
                     <ExternalLink />

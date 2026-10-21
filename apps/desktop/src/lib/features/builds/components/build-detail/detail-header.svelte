@@ -1,12 +1,13 @@
 <script lang="ts">
-    import { Check, Clock, Copy, Heart, LoaderCircle, Star, Trash2, TriangleAlert } from "@lucide/svelte";
+    import { Check, Clock, Copy, Heart, LoaderCircle, Pencil, Star, Trash2, TriangleAlert } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
-    import Button from "@deadlock-plus/ui/button.svelte";
+    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import { failureText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import type { BuildDetail } from "../../build-detail.svelte";
+    import { editHref, editsInPlace } from "../../editor/load";
     import StatusBadge from "../my-builds/status-badge.svelte";
 
     let { detail, ownAccountId }: { detail: BuildDetail; ownAccountId: number | null } = $props();
@@ -33,6 +34,15 @@
     const copy = $derived(detail.copy);
     const favourite = $derived(detail.favourite);
     let discarding = $state(false);
+
+    const edit = $derived.by(() => {
+        const draft = detail.draft;
+        if (draft) return { href: editHref({ source: "draft", id: draft.id }), own: true };
+        const own = detail.local
+            ? editsInPlace(detail.local, ownAccountId)
+            : ownAccountId !== null && build.authorAccountId === ownAccountId;
+        return { href: editHref(detail.target), own };
+    });
 
     async function discard() {
         discarding = true;
@@ -102,6 +112,14 @@
         </div>
 
         <div class="flex w-56 shrink-0 flex-col items-end gap-2 border-l border-border pl-5">
+            <a
+                class={buttonVariants({ variant: "outline", class: "w-full" })}
+                href={edit.href}
+                data-testid="edit-build"
+            >
+                <Pencil aria-hidden="true" />
+                {edit.own ? t("builds.editor.edit") : t("builds.editor.edit_copy")}
+            </a>
             <Button
                 class="w-full"
                 variant="outline"

@@ -1,14 +1,15 @@
 <script lang="ts">
-    import { CircleHelp, Clock, TriangleAlert } from "@lucide/svelte";
+    import { CircleHelp, Clock, Plus, TriangleAlert } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
 
     import { failureText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
-    import Button from "@deadlock-plus/ui/button.svelte";
+    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import { MyBuildsStore, type ActionOutcome } from "$lib/features/builds/my-builds.svelte";
     import { waitingCount, type MineRow } from "$lib/features/builds/my-builds";
+    import { editHref } from "$lib/features/builds/editor/load";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import BuildRow from "./build-row.svelte";
@@ -112,27 +113,39 @@
             {#each store.groups as group (group.heroId)}
                 {@const hero = group.heroId === null ? undefined : heroes[group.heroId]}
                 <div class="flex flex-col gap-2">
-                    <h3 class="flex items-center gap-2 text-sm font-semibold">
-                        {#if group.heroId === null}
-                            <span
-                                class="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                    <div class="flex items-center gap-2">
+                        <h3 class="flex items-center gap-2 text-sm font-semibold">
+                            {#if group.heroId === null}
+                                <span
+                                    class="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                                >
+                                    <Clock class="size-4" aria-hidden="true" />
+                                </span>
+                                {t("builds.mine.group_new")}
+                            {:else}
+                                <span
+                                    class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted"
+                                >
+                                    {#if hero?.icon}
+                                        <img src={hero.icon} alt="" class="size-full object-cover" />
+                                    {:else}
+                                        <CircleHelp class="size-4 text-muted-foreground" aria-hidden="true" />
+                                    {/if}
+                                </span>
+                                {hero?.name ?? t("builds.mine.unknown_hero")}
+                            {/if}
+                        </h3>
+                        {#if group.heroId !== null}
+                            <a
+                                class={buttonVariants({ variant: "ghost", size: "sm", class: "ml-auto" })}
+                                href={editHref({ source: "new", heroId: group.heroId })}
+                                data-testid="new-build"
                             >
-                                <Clock class="size-4" aria-hidden="true" />
-                            </span>
-                            {t("builds.mine.group_new")}
-                        {:else}
-                            <span
-                                class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted"
-                            >
-                                {#if hero?.icon}
-                                    <img src={hero.icon} alt="" class="size-full object-cover" />
-                                {:else}
-                                    <CircleHelp class="size-4 text-muted-foreground" aria-hidden="true" />
-                                {/if}
-                            </span>
-                            {hero?.name ?? t("builds.mine.unknown_hero")}
+                                <Plus aria-hidden="true" />
+                                {t("builds.editor.new_build")}
+                            </a>
                         {/if}
-                    </h3>
+                    </div>
                     <ul class="flex flex-col gap-1.5">
                         {#each group.rows as row (row.key)}
                             <BuildRow
