@@ -85,13 +85,8 @@ function scaled(box: Box, scale: number): Box {
     return { x: box.x * scale, y: box.y * scale, width: box.width * scale, height: box.height * scale };
 }
 
-export function shopView(
-    categories: readonly ModCategoryView[],
-    screen: Screen,
-    available: number,
-    mode: ShopMode,
-): ShopView {
-    const layout = layoutBuild(
+function layoutFor(categories: readonly ModCategoryView[], screen: Screen) {
+    return layoutBuild(
         categories.map((category) => {
             const items = category.mods.length;
             if (category.width === null) {
@@ -103,6 +98,15 @@ export function shopView(
         }),
         screen,
     );
+}
+
+export function shopView(
+    categories: readonly ModCategoryView[],
+    screen: Screen,
+    available: number,
+    mode: ShopMode,
+): ShopView {
+    const layout = layoutFor(categories, screen);
     const scale = mode === "native" ? 1 : available / layout.contentWidth;
     const g = geometry(screen.height);
     const bottom = Math.max(0, ...layout.categories.map(({ box }) => box.y + box.height + g.margin));
@@ -122,4 +126,52 @@ export function shopView(
             index,
         })),
     };
+}
+
+export type ShopResolution = "1080" | "1440" | "2160";
+
+export const SHOP_SCREENS: Readonly<Record<ShopResolution, Screen>> = {
+    "1080": { width: 1920, height: 1080 },
+    "1440": { width: 2560, height: 1440 },
+    "2160": { width: 3840, height: 2160 },
+};
+
+/** The one resolution the shop layout is measured at. */
+export const MEASURED_RESOLUTION: ShopResolution = "1440";
+
+export function deviceScreen(screen: { width: number; height: number; devicePixelRatio: number }): Screen {
+    return {
+        width: Math.round(screen.width * screen.devicePixelRatio),
+        height: Math.round(screen.height * screen.devicePixelRatio),
+    };
+}
+
+export function closestResolution(height: number): ShopResolution {
+    let best: ShopResolution = "1080";
+    for (const resolution of Object.keys(SHOP_SCREENS) as ShopResolution[]) {
+        if (Math.abs(SHOP_SCREENS[resolution].height - height) < Math.abs(SHOP_SCREENS[best].height - height))
+            best = resolution;
+    }
+    return best;
+}
+
+export interface ScreenDifference {
+    index: number;
+    /** Columns on the user's screen. */
+    columns: number;
+    /** Columns at the measured 1440p. */
+    referenceColumns: number;
+}
+
+export function screenDifferences(
+    categories: readonly ModCategoryView[],
+    screen: Screen,
+    reference: Screen = SHOP_SCREENS[MEASURED_RESOLUTION],
+): ScreenDifference[] {
+    const mine = layoutFor(categories, screen).categories;
+    const measured = layoutFor(categories, reference).categories;
+    return mine.flatMap((category, index) => {
+        const referenceColumns = measured[index]!.columns;
+        return category.columns === referenceColumns ? [] : [{ index, columns: category.columns, referenceColumns }];
+    });
 }

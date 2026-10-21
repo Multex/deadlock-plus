@@ -84,3 +84,33 @@ test("discarding a draft from its view takes its row out of My builds", async ({
     await expect(mineRow(page, "Infernus test")).toBeVisible();
     await expect(mineRow(page, "Infernus burst")).toHaveCount(0);
 });
+
+test("?hero= opens the Public tab on that hero", async ({ page }) => {
+    await open(page, "/builds?hero=13");
+    await expect(main(page).getByRole("tab", { name: "Public", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(heroSelect(page)).toHaveText("Haze");
+    await expect(card(page, "Bullet Dance Crit")).toBeVisible();
+});
+
+test("a hero row on Stats links to that hero's public builds", async ({ page }) => {
+    await open(page, "/stats");
+    const row = main(page)
+        .getByRole("listitem")
+        .filter({ has: page.locator('a[href^="/builds?hero="]') })
+        .nth(1);
+    const hero = (await row.locator("p.font-heading").textContent())!.trim();
+    const link = row.locator('a[href^="/builds?hero="]');
+    const href = (await link.getAttribute("href"))!;
+    expect(href).toMatch(/^\/builds\?hero=\d+$/);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${href.replace("?", "\\?")}$`));
+    await expect(heroSelect(page)).toHaveText(hero);
+});
+
+test.describe("during a live match", () => {
+    test.use({ scenario: "live-match" });
+
+    test("the page opens on the player's own hero in the match", async ({ page }) => {
+        await expect(heroSelect(page)).toHaveText("Lash");
+    });
+});

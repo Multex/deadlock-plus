@@ -1,16 +1,22 @@
 import type { Page } from "@playwright/test";
 import { layoutBuild } from "@deadlock-plus/build-layout";
+import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
+import { screenDifferences } from "../src/lib/features/builds/shop-view";
 import { open } from "./support/flows";
 import { expect, test } from "./support/test";
 
 const QHD = { width: 2560, height: 1440 };
+const FHD = { width: 1920, height: 1080 };
 const LOCAL_ID = 3;
 const PUBLIC_ID = 381204;
 const OWN_PUBLISHED_ID = 402117;
 
 const shop = (page: Page) => page.getByTestId("shop");
 const categories = (page: Page) => shop(page).locator("section.category");
+
+// The resolution control starts on the user's own screen; most tests read the measured 1440p.
+test.use({ screen: QHD });
 
 function localBuilds(page: Page): Promise<LocalBuilds> {
     return page.evaluate(async () => {
@@ -169,4 +175,75 @@ test("favouriting a published build from its view shows it as a favourite in My 
         .getByRole("listitem")
         .filter({ has: page.getByRole("link", { name: "Afterburn all day", exact: true }) });
     await expect(row.getByTestId("favourited")).toBeVisible();
+});
+
+/** The demo's build 3 lays out the same at 1080p and 1440p; this width gives 3 columns at 1080p, 4 at 1440p. */
+async function widenFirstCategory(page: Page): Promise<void> {
+    await page.addInitScript((width) => {
+        type Invoke = (command: string, args: object) => unknown;
+        const host = window as unknown as Record<string, { handle?: { invoke: Invoke } } | undefined>;
+        let demo = host.__DEADLOCK_PLUS_DEMO__;
+        Object.defineProperty(window, "__DEADLOCK_PLUS_DEMO__", {
+            configurable: true,
+            get: () => demo,
+            set(next: typeof demo) {
+                demo = next;
+                const handle = next?.handle;
+                if (!handle) return;
+                const invoke = handle.invoke;
+                handle.invoke = (command, args) => {
+                    const result = invoke(command, args);
+                    if (command !== "builds_local") return result;
+                    return Promise.resolve(result).then((listed) => {
+                        const local = listed as LocalBuilds;
+                        for (const { build } of local.builds) {
+                            const first = build.modCategories[0];
+                            if (first && first.mods.length >= 4) first.width = width;
+                        }
+                        return local;
+                    });
+                };
+            },
+        });
+    }, 339);
+}
+
+const differences = (page: Page) => page.getByTestId("screen-differences");
+
+test("on a 1440p screen the shop starts at 1440p and flags nothing", async ({ page }) => {
+    await open(page, `/builds/view?source=local&id=${LOCAL_ID}`);
+    await expect(shop(page)).toHaveAttribute("data-resolution", "1440");
+    await expect(page.getByRole("button", { name: "1440p", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(categories(page).first()).toBeVisible();
+    await expect(differences(page)).toHaveCount(0);
+});
+
+test.describe("on a 1080p screen", () => {
+    test.use({ screen: FHD });
+
+    test("the shop starts at 1080p", async ({ page }) => {
+        await open(page, `/builds/view?source=local&id=${LOCAL_ID}`);
+        await expect(shop(page)).toHaveAttribute("data-resolution", "1080");
+        await expect(page.getByRole("button", { name: "1080p", exact: true })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    test("categories that lay out differently than at 1440p are flagged with their columns", async ({ page }) => {
+        await widenFirstCategory(page);
+        await open(page, `/builds/view?source=local&id=${LOCAL_ID}`);
+        const build: BuildView = (await localBuilds(page)).builds.find((b) => b.build.heroBuildId === LOCAL_ID)!.build;
+        const expected = screenDifferences(build.modCategories, FHD);
+        expect(expected.map((d) => d.index)).toContain(0);
+
+        const flags = differences(page).locator("[data-category-index]");
+        await expect(flags).toHaveCount(expected.length);
+        for (const [i, d] of expected.entries()) {
+            await expect(flags.nth(i)).toHaveAttribute("data-category-index", String(d.index));
+        }
+        for (const [i, d] of expected.entries()) {
+            await expect(flags.nth(i)).toHaveAttribute("data-columns", String(d.columns));
+            await expect(flags.nth(i)).toHaveAttribute("data-reference-columns", String(d.referenceColumns));
+        }
+        await flags.first().hover();
+        await expect(page.locator("[data-tooltip-content]")).toBeVisible();
+    });
 });

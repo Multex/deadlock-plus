@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { columnsAtEveryScale, layoutBuild, type Screen } from "@deadlock-plus/build-layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-import { fitSize, shopView } from "./shop-view";
+import { closestResolution, deviceScreen, fitSize, screenDifferences, shopView } from "./shop-view";
 
 const QHD: Screen = { width: 2560, height: 1440 };
 const FHD: Screen = { width: 1920, height: 1080 };
@@ -166,5 +166,46 @@ describe("fitSize (our rule, not the game's)", () => {
                 expect(drawn.capped).toBe(false);
             }
         }
+    });
+});
+
+describe("closestResolution", () => {
+    it.each([
+        [720, "1080"],
+        [1080, "1080"],
+        [1200, "1080"],
+        [1440, "1440"],
+        [1600, "1440"],
+        [2160, "2160"],
+        [2880, "2160"],
+    ] as const)("picks the closest preset for a %s px tall screen", (height, resolution) => {
+        expect(closestResolution(height)).toBe(resolution);
+    });
+});
+
+describe("deviceScreen", () => {
+    it("measures the screen in device px, rounded", () => {
+        expect(deviceScreen({ width: 1707, height: 960, devicePixelRatio: 1.5 })).toEqual({
+            width: 2561,
+            height: 1440,
+        });
+        expect(deviceScreen({ width: 1920, height: 1080, devicePixelRatio: 2 })).toEqual({
+            width: 3840,
+            height: 2160,
+        });
+    });
+});
+
+describe("screenDifferences", () => {
+    it("is empty on a 1440p screen", () => {
+        expect(screenDifferences(BUILD, QHD)).toEqual([]);
+    });
+
+    it("flags a category whose columns differ on the user's screen from 1440p", () => {
+        const build = [category(600, 3), category(339, 4), category(null, 5, null)];
+        expect(shopView(build, QHD, 0, "native").categories[1].columns).toBe(4);
+        expect(shopView(build, FHD, 0, "native").categories[1].columns).toBe(3);
+        expect(screenDifferences(build, FHD)).toEqual([{ index: 1, columns: 3, referenceColumns: 4 }]);
+        expect(screenDifferences(build, UHD)).toEqual([{ index: 1, columns: 3, referenceColumns: 4 }]);
     });
 });

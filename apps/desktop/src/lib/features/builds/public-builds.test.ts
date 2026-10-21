@@ -4,8 +4,11 @@ import {
     browserLanguages,
     buildLanguageFor,
     createPublicBuilds,
+    heroParam,
+    liveHeroId,
     mergePublicBuilds,
     publicBuildsQueries,
+    startingHero,
     toPublicBuild,
 } from "./public-builds";
 
@@ -257,5 +260,51 @@ describe("createPublicBuilds", () => {
         await expect(source.load({ ...request, languages: ["English"] })).rejects.toThrow("down");
         await expect(source.load({ ...request, languages: ["English"] })).resolves.toHaveLength(1);
         expect(fetchBuilds).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe("heroParam", () => {
+    it.each([
+        ["?hero=13", 13],
+        ["?hero=abc", null],
+        ["?hero=0", null],
+        ["?hero=-2", null],
+        ["?hero=1.5", null],
+        ["", null],
+    ])("reads %s as %s", (search, hero) => {
+        expect(heroParam(new URLSearchParams(search))).toBe(hero);
+    });
+});
+
+describe("liveHeroId", () => {
+    const player = (heroId: number | null, isYou: boolean) => ({ heroId, isYou });
+    const match = (perspective: "playing" | "spectating" | "unknown", players: ReturnType<typeof player>[]) => ({
+        perspective,
+        teams: [{ players }],
+    });
+
+    it("is the hero of the player when playing", () => {
+        expect(liveHeroId(match("playing", [player(7, false), player(31, true)]))).toBe(31);
+    });
+
+    it("is null when spectating, with no match, or before the hero is known", () => {
+        expect(liveHeroId(match("spectating", [player(31, true)]))).toBeNull();
+        expect(liveHeroId(null)).toBeNull();
+        expect(liveHeroId(match("playing", []))).toBeNull();
+        expect(liveHeroId(match("playing", [player(null, true)]))).toBeNull();
+    });
+});
+
+describe("startingHero", () => {
+    const heroes = [{ id: 1 }, { id: 13 }, { id: 31 }];
+
+    it("takes the first candidate that is a known hero", () => {
+        expect(startingHero(heroes, [null, 99, 31, 13])).toBe(31);
+        expect(startingHero(heroes, [13, 31])).toBe(13);
+    });
+
+    it("falls back to the first hero, or null with none", () => {
+        expect(startingHero(heroes, [undefined, null, 99])).toBe(1);
+        expect(startingHero([], [13])).toBeNull();
     });
 });

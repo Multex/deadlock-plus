@@ -13,6 +13,8 @@
     import type { PublicSort } from "../../public-builds";
     import BuildCard from "./build-card.svelte";
 
+    let { hero = null }: { hero?: number | null } = $props();
+
     const browser = new BuildBrowser();
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
@@ -26,6 +28,11 @@
 
     $effect(() => {
         if (accountId !== null) void stats.load(accountId);
+    });
+
+    $effect(() => {
+        browser.requested = hero;
+        browser.picked = null;
     });
 
     $effect(() => browser.debounceSearch());

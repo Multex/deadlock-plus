@@ -2,12 +2,15 @@ import { untrack } from "svelte";
 import { failureText } from "$lib/core/errors";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
+import { live } from "$lib/features/live/live.svelte";
 import { playerNames } from "$lib/features/match-history/names";
 import { stats } from "$lib/features/stats/stats.svelte";
 import { loadShopCatalog } from "./catalog";
 import {
     browserLanguages,
+    liveHeroId,
     publicBuilds,
+    startingHero,
     type PublicBuild,
     type PublicBuildsRequest,
     type PublicSort,
@@ -26,8 +29,10 @@ function pickable(heroes: Record<number, Hero>): Hero[] {
 
 export class BuildBrowser {
     heroes = $state.raw<Hero[]>([]);
-    /** Null until the player picks a hero: the browser then follows the last played one. */
+    /** Null until the player picks a hero: the browser then follows `requested`, then the current or last played one. */
     picked = $state<number | null>(null);
+    /** A hero page's `?hero=` link. */
+    requested = $state<number | null>(null);
     sort = $state<PublicSort>("weekly");
     search = $state("");
     status = $state<BrowserStatus>("loading");
@@ -39,12 +44,9 @@ export class BuildBrowser {
     private query = $state("");
     private token = 0;
 
-    readonly heroId = $derived.by(() => {
-        if (this.picked !== null) return this.picked;
-        const last = stats.matches.at(-1)?.heroId;
-        if (last !== undefined && this.heroes.some((h) => h.id === last)) return last;
-        return this.heroes[0]?.id ?? null;
-    });
+    readonly heroId = $derived(
+        startingHero(this.heroes, [this.picked, this.requested, liveHeroId(live.match), stats.matches.at(-1)?.heroId]),
+    );
 
     readonly request = $derived<PublicBuildsRequest | null>(
         this.heroId === null

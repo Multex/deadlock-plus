@@ -23,17 +23,25 @@
         {#each rows as row (row.heroId)}
             {@const hero = heroes[row.heroId]}
             {@const st = row.stat}
+            {@const heroName = hero?.name ?? t("stats.hero_fallback", { id: row.heroId })}
             <Card as="li">
                 <div class="flex items-center gap-4">
                     <HeroIcon {hero} size="size-16" />
                     <div class="min-w-0 flex-1">
                         <div class="flex items-baseline justify-between gap-3">
-                            <p class="truncate font-heading text-xl">
-                                {hero?.name ?? t("stats.hero_fallback", { id: row.heroId })}
-                            </p>
-                            <p class="shrink-0 text-sm {row.board.ready ? 'text-primary' : 'text-muted-foreground'}">
-                                {row.board.ready ? t("stats.heroes.eligible") : t("stats.heroes.not_yet")}
-                            </p>
+                            <p class="truncate font-heading text-xl">{heroName}</p>
+                            <div class="flex shrink-0 items-baseline gap-3 text-sm">
+                                <a
+                                    href="/builds?hero={row.heroId}"
+                                    class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                                    aria-label={t("stats.heroes.builds_label", { hero: heroName })}
+                                >
+                                    {t("stats.heroes.builds")}
+                                </a>
+                                <p class={row.board.ready ? "text-primary" : "text-muted-foreground"}>
+                                    {row.board.ready ? t("stats.heroes.eligible") : t("stats.heroes.not_yet")}
+                                </p>
+                            </div>
                         </div>
                         {#if st}
                             <div class="mt-2 flex items-center gap-3">

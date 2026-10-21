@@ -841,7 +841,9 @@
             "none": "No games in this selection.",
             "none_lifetime": "No games in this selection. {games} lifetime games.",
             "recent_games": "Games, last {days} days",
-            "lifetime_wins": "Lifetime wins"
+            "lifetime_wins": "Lifetime wins",
+            "builds": "Builds",
+            "builds_label": "{hero} builds"
         },
         "region": {
             "heading": "Region leaderboard",
@@ -1874,7 +1876,11 @@
             "warning_free_unlock": "Some unlocks are stored with no cost.",
             "warning_ultimate_early": "The ultimate unlocks before the other 3 abilities.",
             "warning_leftover": "The ability order has extra steps after it completes. They are not shown.",
-            "warning_invalid": "The ability order has steps the game does not allow."
+            "warning_invalid": "The ability order has steps the game does not allow.",
+            "your_screen": "Lays out differently on your {height}p screen:",
+            "differs_one": "Lays out differently on your screen: {count} column instead of {reference}.",
+            "differs_other": "Lays out differently on your screen: {count} columns instead of {reference}.",
+            "category_fallback": "Category {n}"
         }
     },
     "alerts": {

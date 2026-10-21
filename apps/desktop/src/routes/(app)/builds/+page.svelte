@@ -1,12 +1,19 @@
 <script lang="ts">
+    import { page } from "$app/state";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import * as Tabs from "@deadlock-plus/ui/tabs";
     import { t } from "$lib/core/i18n.svelte";
     import MyBuilds from "$lib/features/builds/components/my-builds/my-builds.svelte";
     import PublicBrowser from "$lib/features/builds/components/browser/public-browser.svelte";
+    import { heroParam } from "$lib/features/builds/public-builds";
 
+    const hero = $derived(heroParam(page.url.searchParams));
     let tab = $state("public");
+
+    $effect(() => {
+        if (hero !== null) tab = "public";
+    });
 </script>
 
 <Page>
@@ -18,7 +25,7 @@
             <Tabs.Trigger value="mine">{t("builds.browser.tab_mine")}</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="public" class="mt-4">
-            <PublicBrowser />
+            <PublicBrowser {hero} />
         </Tabs.Content>
         <Tabs.Content value="mine" class="mt-4">
             <MyBuilds />

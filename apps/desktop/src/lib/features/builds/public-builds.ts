@@ -1,6 +1,8 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
 import type { Build, BuildLanguage, BuildSortBy, BuildsQuery } from "@deadlock-plus/deadlock-api";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
+import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
+import type { LivePlayer } from "@deadlock-plus/ipc-types/LivePlayer";
 
 export type PublicSort = "weekly" | "all_time" | "newest";
 
@@ -74,6 +76,33 @@ export function publicBuildsQueries(request: PublicBuildsRequest): BuildsQuery[]
         buildLanguage,
         ...(searchName === undefined ? {} : { searchName }),
     }));
+}
+
+/** `?hero=<id>` from a hero page's link. */
+export function heroParam(params: URLSearchParams): number | null {
+    const raw = params.get("hero");
+    if (raw === null || !/^\d+$/.test(raw)) return null;
+    const id = Number(raw);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+type LiveHeroMatch = Pick<LiveMatch, "perspective"> & {
+    teams: readonly { players: readonly Pick<LivePlayer, "heroId" | "isYou">[] }[];
+};
+
+/** While spectating, `isYou` marks the followed player, whose hero is not the player's own. */
+export function liveHeroId(match: LiveHeroMatch | null): number | null {
+    if (match?.perspective !== "playing") return null;
+    for (const team of match.teams) for (const p of team.players) if (p.isYou && p.heroId) return p.heroId;
+    return null;
+}
+
+export function startingHero(
+    heroes: readonly { id: number }[],
+    candidates: readonly (number | null | undefined)[],
+): number | null {
+    for (const id of candidates) if (id != null && heroes.some((h) => h.id === id)) return id;
+    return heroes[0]?.id ?? null;
 }
 
 export function toPublicBuild(row: Build): PublicBuild {
