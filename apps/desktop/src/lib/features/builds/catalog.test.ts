@@ -313,6 +313,13 @@ describe("catalog stats", () => {
         expect(buildShopCatalog([], metas, {}).statsById.size).toBe(0);
     });
 
+    it("keeps the game's tooltip sections by id, only for items the game gave them for", () => {
+        const sections = [{ kind: "innate" as const, cooldown: null, blocks: [] }];
+        const catalog = buildShopCatalog([], metas, {}, [{ ...stats[0]!, sections }]);
+        expect(catalog.sectionsById.get(1)).toEqual(sections);
+        expect(buildShopCatalog([], metas, {}, stats).sectionsById.size).toBe(0);
+    });
+
     it("searches shop items by name and by stat label", () => {
         const catalog = buildShopCatalog([], metas, {}, stats);
         expect(catalog.search("power").map((i) => i.id)).toEqual([2, 1]);

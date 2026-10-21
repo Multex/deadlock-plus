@@ -5,6 +5,7 @@ import { loadItemStats, loadShopItems } from "$lib/features/gamedata/vdata";
 import type { AssetItem } from "@deadlock-plus/deadlock-api";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
+import type { TooltipSection } from "@deadlock-plus/ipc-types/TooltipSection";
 import { normaliseSearchText, statLabelMatchers, statsByItem, type StatsById } from "./stats";
 
 export type ShopSlot = "weapon" | "vitality" | "spirit";
@@ -60,6 +61,8 @@ export interface ShopCatalog {
     byId: ReadonlyMap<number, ShopItem>;
     /** The stats each item's shop tooltip shows; empty while the game cannot be read. */
     statsById: StatsById;
+    /** The game's tooltip sections per item; absent for items the game files give none for. */
+    sectionsById: ReadonlyMap<number, readonly TooltipSection[]>;
     /** Shopable, non-disabled items only. */
     itemsBySlotTier(): ItemsBySlotTier;
     /** `searchItems` over `items` (the shop by default), also matching stat labels. */
@@ -164,10 +167,12 @@ export function buildShopCatalog(
         byId.set(m.id, item);
     }
     const statsById = statsByItem(stats);
+    const sectionsById = new Map(stats.flatMap((i) => (i.sections ? [[i.itemId, i.sections] as const] : [])));
     const matchers = statLabelMatchers(statsById);
     return {
         byId,
         statsById,
+        sectionsById,
         search: (query, items = [...byId.values()].filter(isInShop)) => searchItems(items, query, matchers),
         itemsBySlotTier() {
             const out = {} as ItemsBySlotTier;

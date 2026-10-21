@@ -1,9 +1,13 @@
 import { command, fileSrc } from "$lib/core/tauri";
+import type { PropertyIcon } from "@deadlock-plus/game-ui/art";
+import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
+import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
+import type { PropertyIconArt } from "@deadlock-plus/ipc-types/PropertyIconArt";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import type { ShopUiArt } from "@deadlock-plus/ipc-types/ShopUiArt";
 import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
@@ -16,6 +20,11 @@ export function loadShopItems(): Promise<ShopItem[]> {
 /** The stats each item shows in its shop tooltip, labelled in `locale`. Empty while the game cannot be read. */
 export function loadItemStats(locale: string): Promise<ItemStats[]> {
     return command<ItemStats[]>("game_item_stats", { locale }).catch((): ItemStats[] => []);
+}
+
+/** Each hero ability's tooltip, labelled in `locale`. Empty while the game cannot be read. */
+export function loadAbilityTooltips(locale: string): Promise<AbilityTooltip[]> {
+    return command<AbilityTooltip[]>("game_ability_tooltips", { locale }).catch((): AbilityTooltip[] => []);
 }
 
 /** The installed game's level table. No levels while the game cannot be read. */
@@ -55,4 +64,22 @@ export async function loadShopUiArt(): Promise<Partial<Record<ShopUiImage, strin
         // No local art: callers draw the cards with plain CSS.
     }
     return out;
+}
+
+/** The game's tooltip icons by icon class or keyword, as asset urls. Icons the game does not have are absent. */
+export async function loadPropertyIcons(): Promise<Partial<Record<string, PropertyIcon>>> {
+    const out: Partial<Record<string, PropertyIcon>> = {};
+    try {
+        for (const icon of await command<PropertyIconArt[]>("game_property_icon_art")) {
+            out[icon.class] = { url: fileSrc(icon.path), wash: icon.wash, color: icon.color };
+        }
+    } catch {
+        // No local art: tooltips draw their icons with plain CSS.
+    }
+    return out;
+}
+
+/** The game's own strings for game-ui labels in `locale`, by token; tokens the game lacks there are absent. */
+export function loadGameUiStrings(locale: string): Promise<GameUiStrings> {
+    return command<GameUiStrings>("game_ui_strings", { locale }).catch((): GameUiStrings => ({}));
 }

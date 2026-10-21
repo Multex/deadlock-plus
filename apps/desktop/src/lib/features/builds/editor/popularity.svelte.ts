@@ -1,11 +1,10 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
-import { t } from "$lib/core/i18n.svelte";
+import { loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
 import { loadPopularItems } from "$lib/features/gamedata/vdata";
 import { loadHeroes } from "$lib/features/heroes/heroes";
 import type { AnalyticsFilter, HeroStatsRow, ItemStats, ItemStatsFilter } from "@deadlock-plus/deadlock-api";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import {
-    cardLines,
     gamePopular,
     HERO_MATCHES_FILTER,
     heroMatches,
@@ -29,20 +28,16 @@ const defaultDeps: PopularityDeps = {
     loadGame: loadPopularItems,
     itemStats: (filter) => deadlockApi.itemStats(filter),
     heroStats: (filter) => deadlockApi.heroStats(filter),
-    loadIcon: async (heroId) => (await loadHeroes([heroId]))[heroId]?.icon ?? null,
+    loadIcon: async (heroId) =>
+        (await loadHeroMinimapArt())[heroId] ?? (await loadHeroes([heroId]))[heroId]?.icon ?? null,
 };
-
-export interface PopularityText {
-    popular: string[];
-    stats: { label: string; value: string }[];
-}
 
 /** One hero's item popularity: the game's Popular set and, when deadlock-api answers, every item's stats. */
 export class HeroPopularity {
     game = $state.raw<ReadonlyMap<number, readonly GamePopular[]>>(new Map());
     /** Null while loading or when the API is unreachable. */
     api = $state.raw<PhaseStats | null>(null);
-    /** The hero's icon for the game's popular marker. */
+    /** The hero's minimap head for the game's popular marker, else its icon. */
     icon = $state.raw<string | null>(null);
     #deps: PopularityDeps;
     #token = 0;
@@ -87,7 +82,7 @@ export class HeroPopularity {
         return { early, mid, late };
     }
 
-    /** True for items on the hero's Popular page in the game: they get the hero icon + green arrow marker. */
+    /** True for items on the hero's Popular page in the game: they get the hero popular marker. */
     isPopular(itemId: number): boolean {
         return this.game.has(itemId);
     }
@@ -99,17 +94,5 @@ export class HeroPopularity {
 
     score(phase: Phase): (itemId: number) => number | undefined {
         return pickScore(phase, this.api, this.game);
-    }
-
-    /** The item card's popularity lines, translated. `stats` is empty when the API is unreachable. */
-    lines(itemId: number): PopularityText {
-        const lines = cardLines(itemId, this.game, this.api);
-        return {
-            popular: lines.popular.map((l) => t(`builds.editor.picker.popular_${l.phase}`, { pct: l.pct })),
-            stats: lines.stats.map((l) => ({
-                label: t(`builds.editor.picker.phase_${l.phase}`),
-                value: t("builds.editor.picker.pick_win", { pick: l.pickPct, win: l.winPct }),
-            })),
-        };
     }
 }

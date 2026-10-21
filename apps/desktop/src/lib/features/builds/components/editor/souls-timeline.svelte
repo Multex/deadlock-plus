@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Info } from "@lucide/svelte";
+    import { itemTooltipModel } from "@deadlock-plus/game-ui/item-tooltip/model";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
@@ -32,8 +33,8 @@
     } from "../../editor/timeline";
     import type { Level } from "../../levels";
     import type { StatsById } from "../../stats";
-    import { itemTooltipSource } from "../item-tooltip/context";
-    import { itemTooltip } from "../item-tooltip/item-tooltip";
+    import { itemTooltipInput, popularityFor } from "../../game-item";
+    import { itemTipSource } from "../shop/item-tips";
     import AbilityArt from "./ability-bar/ability-art.svelte";
     import TierPips from "./ability-bar/tier-pips.svelte";
     import TimelineAxis from "./timeline/timeline-axis.svelte";
@@ -172,18 +173,17 @@
         };
     });
 
-    const tooltipSource = itemTooltipSource();
+    const tipSource = itemTipSource();
     const itemTip = $derived.by(() => {
+        const entry = focusedItem?.entry;
         const id = focusedItem?.item?.id;
-        if (id === undefined) return undefined;
-        const model = itemTooltip(catalog.byId, statsById, id);
-        if (!model) return undefined;
-        const popularity = tooltipSource()?.popularity;
-        return {
-            model,
-            popularity: popularity?.lines(id) ?? null,
-            heroIcon: popularity?.isPopular(id) ? popularity.icon : null,
-        };
+        if (!entry || id === undefined) return undefined;
+        const popularity = tipSource()?.popularity;
+        const input = itemTooltipInput({ byId: catalog.byId, statsById, sectionsById: catalog.sectionsById }, id, {
+            popularity: popularity ? popularityFor(popularity.game, popularity.icon, id) : null,
+            ownedIds: entries.slice(0, entries.indexOf(entry)).map((e) => e.abilityId),
+        });
+        return input ? itemTooltipModel(input) : undefined;
     });
 
     let tipWidth = $state(0);

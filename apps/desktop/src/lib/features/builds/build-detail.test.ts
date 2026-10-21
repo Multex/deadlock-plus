@@ -156,6 +156,7 @@ describe("chipFor", () => {
             name: "Item 1",
             slot: "spirit",
             tier: 2,
+            cost: 800,
             active: true,
             imbue: false,
         });

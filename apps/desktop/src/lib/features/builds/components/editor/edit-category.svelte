@@ -7,6 +7,7 @@
     import type { Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import { widthPx } from "@deadlock-plus/build-layout/layout";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
     import Input from "@deadlock-plus/ui/input.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
@@ -17,7 +18,7 @@
     import type { LayoutIssueKind } from "../../editor/repair";
     import { BREAK_THROUGH_PX, dragStop, edgeWidth, sizeTag, snapHeight, type RowEdge } from "../../editor/resize";
     import { rowLimit, rowOf } from "../../editor/row-ops";
-    import type { ChipItem, ShopCategoryView, ShopView } from "../../shop-view";
+    import type { ShopCategoryView, ShopView } from "../../shop-view";
     import CategoryTitle from "../shop/category-title.svelte";
     import ItemChip from "../shop/item-chip.svelte";
     import { chipShifts, itemCaret, slotBoxes, storedSize } from "./canvas/geometry";
@@ -59,7 +60,7 @@
         screen: Screen;
         /** Resizes snap to safe sizes; Alt flips it for one drag. */
         snap?: boolean;
-        items: (ChipItem | undefined)[];
+        items: (GameItem | undefined)[];
         /** How often each ability sits in the build. */
         counts: ReadonlyMap<number, number>;
         /** This category's flow row wraps at another scale. */
@@ -420,11 +421,7 @@
                 onclick={(event) => itemClick(i, event)}
                 oncontextmenu={(event) => itemMenu(i, event)}
             >
-                <ItemChip
-                    item={items[i]}
-                    box={{ x: 0, y: 0, width: box.width, height: box.height }}
-                    scale={shop.unit}
-                />
+                <ItemChip item={items[i]} box={{ x: 0, y: 0 }} scale={shop.unit} />
                 {#if copies > 1}
                     <span class="copies" title={t("builds.editor.copies_hint", { count: copies })}>
                         {t("builds.editor.copies", { count: copies })}

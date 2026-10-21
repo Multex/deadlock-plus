@@ -4,17 +4,6 @@ import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
 
 export type ShopMode = "fit" | "native";
 
-export type ChipSlot = "weapon" | "vitality" | "spirit";
-
-export interface ChipItem {
-    name: string;
-    art?: string;
-    slot: ChipSlot;
-    tier: 1 | 2 | 3 | 4;
-    active: boolean;
-    imbue?: boolean;
-}
-
 export interface ShopCategoryView {
     box: Box;
     columns: number;

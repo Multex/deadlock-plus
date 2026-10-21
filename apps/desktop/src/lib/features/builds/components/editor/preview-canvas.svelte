@@ -4,7 +4,7 @@
     import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { t } from "$lib/core/i18n.svelte";
-    import type { ChipItem } from "../../shop-view";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import ShopCategory from "../shop/shop-category.svelte";
     import { headerLinesFor } from "../../header-lines.svelte";
     import { previewView } from "./canvas/preview";
@@ -18,7 +18,7 @@
         fit = $bindable(1),
     }: {
         build: BuildView;
-        resolve: (abilityId: number) => ChipItem | undefined;
+        resolve: (abilityId: number) => GameItem | undefined;
         screen: Screen;
         zoom?: Zoom;
         /** Out: the scale that fills the column, which caps `zoom`. */

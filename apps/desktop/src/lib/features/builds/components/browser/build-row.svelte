@@ -6,7 +6,7 @@
     import type { TagInfo } from "../../editor/details";
     import { tagLabel } from "../../lookups.svelte";
     import type { WinRate } from "../../public-builds";
-    import type { ChipItem } from "../../shop-view";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import TagGlyph from "./tag-glyph.svelte";
 
     let {
@@ -38,7 +38,7 @@
         showHero?: boolean;
         byline: readonly string[];
         tags: readonly TagInfo[];
-        items: readonly ChipItem[];
+        items: readonly GameItem[];
         favourites?: number | null;
         weekly?: number | null;
         winRate?: WinRate;

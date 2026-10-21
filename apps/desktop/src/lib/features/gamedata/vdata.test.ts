@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { command } from "$lib/core/tauri";
 import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
 import {
+    loadAbilityTooltips,
     loadBuildTags,
+    loadGameUiStrings,
     loadHeroAbilities,
     loadHeroProgression,
     loadItemStats,
     loadPopularItems,
+    loadPropertyIcons,
     loadShopItems,
     loadShopUiArt,
 } from "./vdata";
@@ -153,5 +156,63 @@ describe("loadShopUiArt", () => {
     it("is empty when the command fails", async () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadShopUiArt()).toEqual({});
+    });
+});
+
+describe("loadPropertyIcons", () => {
+    it("keys each icon's asset url, wash and label colour by its class", async () => {
+        invoke.mockResolvedValue([
+            { class: "tech_damage", path: "C:/art/icon_tech_damage.svg", wash: "#ce90ff", color: null },
+            { class: "SpiritDamage", path: "C:/art/icon_spirit.png", wash: null, color: "#e7c8ff" },
+        ]);
+        expect(await loadPropertyIcons()).toEqual({
+            tech_damage: { url: "asset://C:/art/icon_tech_damage.svg", wash: "#ce90ff", color: null },
+            SpiritDamage: { url: "asset://C:/art/icon_spirit.png", wash: null, color: "#e7c8ff" },
+        });
+        expect(invoke).toHaveBeenCalledWith("game_property_icon_art");
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadPropertyIcons()).toEqual({});
+    });
+});
+
+describe("loadAbilityTooltips", () => {
+    it("asks for the tooltips in one locale", async () => {
+        const tooltips = [
+            {
+                abilityId: 1,
+                className: "ability_a",
+                name: "Ability",
+                header: [],
+                charges: null,
+                chargeCooldown: null,
+                cooldown: null,
+                sections: [],
+                upgrades: [],
+            },
+        ];
+        invoke.mockResolvedValue(tooltips);
+        expect(await loadAbilityTooltips("german")).toEqual(tooltips);
+        expect(invoke).toHaveBeenCalledWith("game_ability_tooltips", { locale: "german" });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadAbilityTooltips("english")).toEqual([]);
+    });
+});
+
+describe("loadGameUiStrings", () => {
+    it("asks for the game's own UI strings in one locale", async () => {
+        invoke.mockResolvedValue({ Citadel_Mod_Tooltip_Passive: "Passiv" });
+        expect(await loadGameUiStrings("de")).toEqual({ Citadel_Mod_Tooltip_Passive: "Passiv" });
+        expect(invoke).toHaveBeenCalledWith("game_ui_strings", { locale: "de" });
+    });
+
+    it("is empty when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadGameUiStrings("de")).toEqual({});
     });
 });

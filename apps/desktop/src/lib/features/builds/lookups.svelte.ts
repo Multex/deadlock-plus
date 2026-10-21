@@ -1,12 +1,12 @@
 import { untrack } from "svelte";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { loadBuildTags } from "$lib/features/gamedata/vdata";
+import type { GameItem } from "@deadlock-plus/game-ui/item";
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import { chipFor, loadKit, type HeroKit } from "./build-detail.svelte";
 import { coreItems } from "./build-list";
 import { isInShop, loadShopCatalog, type ShopCatalog } from "./catalog";
-import type { TooltipChip } from "./components/item-tooltip/context";
 import { describeTag, selectedTags, standardTags, type StandardTag, type TagInfo } from "./editor/details";
 
 const kits = new Map<number, Promise<HeroKit>>();
@@ -54,10 +54,10 @@ export class BuildLookups {
         });
     }
 
-    chip = (abilityId: number): TooltipChip | undefined =>
+    chip = (abilityId: number): GameItem | undefined =>
         this.catalog ? chipFor(this.catalog.byId, abilityId) : undefined;
 
-    core(build: BuildView | null): TooltipChip[] {
+    core(build: BuildView | null): GameItem[] {
         const byId = this.catalog?.byId;
         if (!build || !byId) return [];
         const cost = (id: number) => {

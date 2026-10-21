@@ -18,7 +18,7 @@
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { layoutIssues } from "../../editor/repair";
     import { headerLinesFor } from "../../header-lines.svelte";
-    import type { ChipItem } from "../../shop-view";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import { canvasView, categoryBar, dropTarget, rowWarnings, storedSize, type DropTarget } from "./canvas/geometry";
     import { stepZoom, wheelSteps, type Zoom } from "./canvas/zoom";
     import DragPreview from "./drag-preview.svelte";
@@ -36,7 +36,7 @@
         fit = $bindable(1),
     }: {
         editor: BuildEditor;
-        resolve: (abilityId: number) => ChipItem | undefined;
+        resolve: (abilityId: number) => GameItem | undefined;
         screen?: Screen;
         /** Resizes snap to safe sizes; Alt flips it for one drag. */
         snap?: boolean;

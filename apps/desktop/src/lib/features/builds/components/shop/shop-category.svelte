@@ -1,9 +1,10 @@
 <script lang="ts">
     import { Monitor } from "@lucide/svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
     import { tn } from "$lib/core/i18n.svelte";
-    import type { ChipItem, ScreenDifference, ShopCategoryView } from "../../shop-view";
+    import type { ScreenDifference, ShopCategoryView } from "../../shop-view";
     import CategoryTitle from "./category-title.svelte";
     import ItemChip from "./item-chip.svelte";
 
@@ -18,7 +19,7 @@
         category: Pick<ModCategoryView, "name" | "description" | "optional" | "width" | "mods">;
         view: ShopCategoryView;
         /** One per chip; undefined for an item the game no longer has. */
-        items: (ChipItem | undefined)[];
+        items: (GameItem | undefined)[];
         /** CSS px per game unit. */
         unit: number;
         border: number;
@@ -63,12 +64,7 @@
     {#each view.chips as chip, i (i)}
         <ItemChip
             item={items[i]}
-            box={{
-                x: chip.x - view.box.x - border,
-                y: chip.y - view.box.y - border,
-                width: chip.width,
-                height: chip.height,
-            }}
+            box={{ x: chip.x - view.box.x - border, y: chip.y - view.box.y - border }}
             scale={unit}
         />
     {/each}

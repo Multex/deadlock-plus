@@ -19,13 +19,13 @@
         type ShopMode,
         type ShopResolution,
     } from "../../shop-view";
-    import { provideItemTooltips } from "../item-tooltip/context";
+    import { provideItemTips } from "../shop/item-tips";
     import ShopGrid from "../shop/shop-grid.svelte";
 
     let { build, catalog, catalogFailed }: { build: BuildView; catalog: ShopCatalog | null; catalogFailed: boolean } =
         $props();
 
-    provideItemTooltips(() => (catalog ? { catalog } : null));
+    provideItemTips(() => (catalog ? { catalog } : null));
 
     const RESOLUTIONS: readonly { value: ShopResolution; label: string }[] = [
         { value: "1080", label: "1080p" },

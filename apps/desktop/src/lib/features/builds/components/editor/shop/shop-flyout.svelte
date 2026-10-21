@@ -283,7 +283,6 @@
                                             {item}
                                             {popularity}
                                             count={counts.get(item.id) ?? 0}
-                                            stats={statsById.get(item.id) ?? []}
                                             focusable={index === focused}
                                             onadd={() => {
                                                 focused = index;

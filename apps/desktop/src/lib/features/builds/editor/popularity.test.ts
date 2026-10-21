@@ -2,15 +2,12 @@ import type { HeroStatsRow, ItemStats } from "@deadlock-plus/deadlock-api";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("$lib/core/i18n.svelte", () => ({
-    t: (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
-}));
 vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: {} }));
+vi.mock("$lib/features/gamedata/gamedata", () => ({ loadHeroMinimapArt: vi.fn() }));
 vi.mock("$lib/features/gamedata/vdata", () => ({ loadPopularItems: vi.fn() }));
 vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
 
 import {
-    cardLines,
     gamePopular,
     heroMatches,
     PHASE_WINDOWS,
@@ -135,26 +132,6 @@ describe("pickScore", () => {
     });
 });
 
-describe("cardLines", () => {
-    it("gives the game's purchased line per popular phase, rounded like the game card", () => {
-        expect(cardLines(10, gamePopular(GAME), null)).toEqual({
-            popular: [
-                { phase: "early", pct: 40 },
-                { phase: "mid", pct: 12 },
-            ],
-            stats: [],
-        });
-    });
-
-    it("lists API pick % and win % per phase the item has data for", () => {
-        expect(cardLines(10, new Map(), API).stats).toEqual([
-            { phase: "early", pickPct: 41, winPct: 52 },
-            { phase: "mid", pickPct: 9, winPct: 48 },
-        ]);
-        expect(cardLines(99, new Map(), API)).toEqual({ popular: [], stats: [] });
-    });
-});
-
 function deps(over: Partial<PopularityDeps> = {}): PopularityDeps {
     return {
         loadGame: vi.fn(async () => GAME),
@@ -187,19 +164,6 @@ describe("HeroPopularity", () => {
         await store.load(7);
         expect(store.api).toBeNull();
         expect(store.isPopular(10)).toBe(true);
-        expect(store.lines(10).stats).toEqual([]);
-        expect(store.lines(10).popular).toEqual([
-            'builds.editor.picker.popular_early {"pct":40}',
-            'builds.editor.picker.popular_mid {"pct":12}',
-        ]);
-    });
-
-    it("formats API lines through the flat locale keys", async () => {
-        const store = new HeroPopularity(deps());
-        await store.load(7);
-        expect(store.lines(10).stats).toEqual([
-            { label: "builds.editor.picker.phase_early", value: 'builds.editor.picker.pick_win {"pick":50,"win":50}' },
-        ]);
     });
 
     it("keeps only the newest hero's data when loads overlap", async () => {

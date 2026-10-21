@@ -80,25 +80,3 @@ export function pickScore(
     if (api !== null) return (id) => api[phase].get(id)?.pickPct;
     return (id) => game.get(id)?.find((g) => g.phase === phase)?.pickPct;
 }
-
-export interface CardLines {
-    /** The game card's "Purchased <phase> game in N% of matches." lines; whole percents like the game. */
-    popular: { phase: Phase; pct: number }[];
-    stats: { phase: Phase; pickPct: number; winPct: number }[];
-}
-
-export function cardLines(
-    itemId: number,
-    game: ReadonlyMap<number, readonly GamePopular[]>,
-    api: PhaseStats | null,
-): CardLines {
-    const popular = (game.get(itemId) ?? []).map((g) => ({ phase: g.phase, pct: Math.round(g.pickPct) }));
-    const stats: CardLines["stats"] = [];
-    if (api !== null) {
-        for (const phase of PHASES) {
-            const s = api[phase].get(itemId);
-            if (s) stats.push({ phase, pickPct: Math.round(s.pickPct), winPct: Math.round(s.winPct) });
-        }
-    }
-    return { popular, stats };
-}

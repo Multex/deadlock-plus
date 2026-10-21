@@ -2,7 +2,7 @@ import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import { describe, expect, it } from "vitest";
 import type { ShopItem } from "./catalog";
 import { searchItems } from "./catalog";
-import { statLabelMatchers, statsSoFar } from "./stats";
+import { statLabelMatchers, statsSoFar, statText } from "./stats";
 
 const SPIRIT = "MODIFIER_VALUE_TECH_POWER";
 const HEALTH = "MODIFIER_VALUE_BONUS_HEALTH";
@@ -173,5 +173,20 @@ describe("statLabelMatchers", () => {
 
     it("matches no item without stats", () => {
         expect(searchItems([item(8, "Plain")], "spirit", statLabelMatchers(statsById))).toEqual([]);
+    });
+});
+
+describe("statText", () => {
+    it("signs bonuses like the game", () => {
+        expect(statText(30, "%", true)).toBe("+30%");
+        expect(statText(-20, "%", true)).toBe("-20%");
+    });
+
+    it("leaves unsigned values without a plus", () => {
+        expect(statText(5, "s", false)).toBe("5s");
+    });
+
+    it("uses the given number format", () => {
+        expect(statText(1200, null, true, (n) => n.toLocaleString("en-US"))).toBe("+1,200");
     });
 });

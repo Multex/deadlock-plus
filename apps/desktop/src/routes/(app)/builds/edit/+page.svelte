@@ -18,10 +18,10 @@
     import Inspector from "$lib/features/builds/components/editor/inspector/inspector.svelte";
     import { itemFieldId, type ItemField } from "$lib/features/builds/components/editor/inspector/item-section.svelte";
     import ItemMenu from "$lib/features/builds/components/editor/item-menu.svelte";
-    import { provideItemTooltips } from "$lib/features/builds/components/item-tooltip/context";
     import { loadSnap, saveSnap } from "$lib/features/builds/components/editor/canvas/snap";
     import { loadZoom, saveZoom, stepZoom } from "$lib/features/builds/components/editor/canvas/zoom";
     import ShopRail from "$lib/features/builds/components/editor/shop/shop-rail.svelte";
+    import { provideItemTips } from "$lib/features/builds/components/shop/item-tips";
     import SoulsTimeline from "$lib/features/builds/components/editor/souls-timeline.svelte";
     import { addCategory, type ItemRef } from "$lib/features/builds/editor/document";
     import { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
@@ -49,7 +49,7 @@
     let snap = $state(loadSnap());
     $effect(() => saveSnap(snap));
     const popularity = new HeroPopularity();
-    provideItemTooltips(() => (catalog ? { catalog, popularity } : null));
+    provideItemTips(() => (catalog ? { catalog, popularity } : null));
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 

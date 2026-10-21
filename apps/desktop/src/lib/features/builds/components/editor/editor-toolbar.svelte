@@ -13,6 +13,7 @@
         ZoomIn,
         ZoomOut,
     } from "@lucide/svelte";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import Button from "@deadlock-plus/ui/button.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
@@ -20,7 +21,7 @@
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import type { BuildEditor, SaveStatus } from "$lib/features/builds/editor/editor.svelte";
     import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
-    import { MEASURED_RESOLUTION, type ChipItem, type ShopResolution } from "$lib/features/builds/shop-view";
+    import { MEASURED_RESOLUTION, type ShopResolution } from "$lib/features/builds/shop-view";
     import { ZOOM_STEPS, shownZoom, stepZoom, zoomScale, type Zoom } from "./canvas/zoom";
     import { compactAll } from "./inspector/actions";
     import LayoutIssues from "./layout-issues.svelte";
@@ -47,7 +48,7 @@
         /** The scale that fills the canvas column; a larger zoom draws at it. */
         fit?: number;
         /** Draws chips in the version history; it waits for the shop catalog. */
-        resolve?: (abilityId: number) => ChipItem | undefined;
+        resolve?: (abilityId: number) => GameItem | undefined;
         onAddCategory: () => void;
         onSave: () => void;
     } = $props();

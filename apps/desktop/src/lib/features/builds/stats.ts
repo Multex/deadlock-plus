@@ -70,3 +70,14 @@ export function statLabelMatchers(statsById: StatsById): ItemMatcher[] {
     const labels = new Map([...statsById].map(([id, stats]) => [id, stats.map((s) => normaliseSearchText(s.label))]));
     return [(item, query) => labels.get(item.id)?.some((label) => label.includes(query)) ?? false];
 }
+
+/** `+30%` for a bonus; `signed` false leaves positive values without a plus. */
+export function statText(
+    value: number,
+    unit: string | null,
+    signed: boolean,
+    format: (n: number) => string = String,
+): string {
+    const sign = signed && value > 0 ? "+" : value < 0 ? "-" : "";
+    return `${sign}${format(Math.abs(value))}${unit ?? ""}`;
+}

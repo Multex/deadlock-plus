@@ -20,7 +20,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Builds by other players that you favourited sit under Favourites in the Mine tab.
 - Heroes still in development are left out.
 - Opening a build shows its shop exactly as the game lays it out at 1440p.
-- Item cards look like the game's, and hovering an item shows its stats as the game does.
+- Item cards are drawn with the game's own art, fonts and colours.
+- Hovering an item shows the game's tooltip: the same sections, stats, descriptions and upgrade paths.
+- Tooltip labels use your game's own wording in your language.
 - Long category names wrap and descriptions sit next to the name, as in-game.
 - The build view shows the ability order with the hero's abilities and the level of each step.
 - The build view previews 1080p and 4K too, marked as unmeasured.

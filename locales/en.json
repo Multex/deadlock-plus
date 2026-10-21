@@ -1990,19 +1990,13 @@
                 "slot_spirit": "Spirit",
                 "tier": "Tier {tier}",
                 "count": "x{count}",
-                "in_build": "In this build: {count}",
                 "add": "Add {name}",
                 "add_counted": "Add {name} (in build x{count})",
                 "no_results": "No items match \"{query}\".",
                 "empty": "The shop could not load.",
-                "popular_early": "Purchased early game in {pct}% of matches.",
-                "popular_mid": "Purchased mid game in {pct}% of matches.",
-                "popular_late": "Purchased late game in {pct}% of matches.",
                 "phase_early": "Early game",
                 "phase_mid": "Mid game",
-                "phase_late": "Late game",
-                "pick_win": "{pick}% picked · {win}% won",
-                "popular_marker": "Popular on this hero"
+                "phase_late": "Late game"
             },
             "abilities": {
                 "title": "Ability order",
@@ -2216,11 +2210,7 @@
             "hidden_items_other": "{count} hidden"
         },
         "tooltip": {
-            "passive": "Passive",
-            "active": "Active",
-            "upgrades_to": "Upgrades to:",
-            "built_from": "Built from:",
-            "cooldown": "Cooldown"
+            "active": "Active"
         },
         "list": {
             "label": "Public builds",
@@ -3316,6 +3306,31 @@
         "row_state": {
             "missing": "No details",
             "recovering": "Recovering"
+        }
+    },
+    "game_ui": {
+        "item_tooltip": {
+            "passive": "Passive",
+            "active": "Active",
+            "owned": "Owned",
+            "imbued_upon": "Imbued upon {ability}",
+            "upgrades_from": "Upgrades From:",
+            "upgrades_to": "Upgrades To:",
+            "used_in": "Currently Used in:",
+            "popular_early": "Purchased early game in {percent}% of matches.",
+            "popular_mid": "Purchased mid game in {percent}% of matches.",
+            "popular_late": "Purchased late game in {percent}% of matches.",
+            "conditional": "Conditional",
+            "see_details": "See Details",
+            "varies_by_hero": "Varies by hero"
+        },
+        "ability_tooltip": {
+            "imbued_by": "Imbued by {item}",
+            "recommended": "Recommended",
+            "status_effect": "Status Effect"
+        },
+        "item_card": {
+            "new": "New"
         }
     }
 }

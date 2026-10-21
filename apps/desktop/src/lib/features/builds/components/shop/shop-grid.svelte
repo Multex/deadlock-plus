@@ -1,9 +1,10 @@
 <script lang="ts">
     import type { Screen } from "@deadlock-plus/build-layout";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { headerLinesFor } from "../../header-lines.svelte";
-    import { fitWidth, shopView, type ChipItem, type ScreenDifference, type ShopMode } from "../../shop-view";
+    import { fitWidth, shopView, type ScreenDifference, type ShopMode } from "../../shop-view";
     import ShopCategory from "./shop-category.svelte";
 
     let {
@@ -14,7 +15,7 @@
         differences = [],
     }: {
         build: BuildView;
-        resolve: (abilityId: number) => ChipItem | undefined;
+        resolve: (abilityId: number) => GameItem | undefined;
         screen: Screen;
         /** Fit scales the shop to this element's width, never past native; native draws one game px per CSS px. */
         mode: ShopMode;

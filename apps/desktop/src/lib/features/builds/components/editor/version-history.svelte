@@ -1,5 +1,6 @@
 <script lang="ts">
     import { History, LoaderCircle } from "@lucide/svelte";
+    import type { GameItem } from "@deadlock-plus/game-ui/item";
     import type { BuildVersionMeta } from "@deadlock-plus/ipc-types/BuildVersionMeta";
     import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -10,7 +11,7 @@
     import { buildsHistory, buildsHistoryGet } from "../../api";
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { ageOf, historyBuildId, restoredBuild, versionRows, type VersionRow } from "../../editor/history-versions";
-    import { SHOP_SCREENS, type ChipItem } from "../../shop-view";
+    import { SHOP_SCREENS } from "../../shop-view";
     import ShopGrid from "../shop/shop-grid.svelte";
 
     let {
@@ -18,7 +19,7 @@
         resolve,
     }: {
         editor: BuildEditor;
-        resolve: (abilityId: number) => ChipItem | undefined;
+        resolve: (abilityId: number) => GameItem | undefined;
     } = $props();
 
     const buildId = $derived(historyBuildId(editor.origin));

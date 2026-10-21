@@ -1,10 +1,9 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import { ItemTooltip } from "@deadlock-plus/game-ui";
+    import type { ItemTooltipModel } from "@deadlock-plus/game-ui/item-tooltip/model";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
-    import type { PopularityText } from "../../../editor/popularity.svelte";
-    import type { StatTotal } from "../../../stats";
-    import { statText, type ItemTooltipModel } from "../../item-tooltip/item-tooltip";
-    import ItemTooltip from "../../item-tooltip/item-tooltip.svelte";
+    import { statText, type StatTotal } from "../../../stats";
 
     let {
         left,
@@ -27,7 +26,7 @@
         width?: number;
         height?: number;
         /** The hovered item: its game tooltip sits on top and the timeline's facts take its colours. */
-        item?: { model: ItemTooltipModel; popularity: PopularityText | null; heroIcon: string | null };
+        item?: ItemTooltipModel;
         header?: Snippet;
     } = $props();
 
@@ -49,12 +48,12 @@
     style:left="{left}px"
     style:top="{top}px"
     style:visibility={height === 0 ? "hidden" : undefined}
-    data-slot={item?.model.slot}
+    data-slot={item?.header.slot}
     role="tooltip"
     data-testid="timeline-readout"
 >
     {#if item}
-        <ItemTooltip model={item.model} popularity={item.popularity} heroIcon={item.heroIcon} />
+        <ItemTooltip model={item} />
     {/if}
     <div class="panel">
         {#if header && !item}
@@ -106,9 +105,6 @@
         color: var(--off-white);
         font-size: 13px;
         line-height: 1.3;
-    }
-    .readout.with-item {
-        width: 340px;
     }
     .readout[data-slot="weapon"] {
         --body: #785017;

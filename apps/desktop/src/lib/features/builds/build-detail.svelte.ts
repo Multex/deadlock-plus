@@ -4,6 +4,7 @@ import { i18n, t } from "$lib/core/i18n.svelte";
 import { loadAbilityArt } from "$lib/features/gamedata/gamedata";
 import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
 import { playerNames } from "$lib/features/match-history/names";
+import type { GameItem } from "@deadlock-plus/game-ui/item";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
 import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
@@ -13,9 +14,9 @@ import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 import { buildsDraftDelete, buildsDrafts, buildsFavourite, buildsLocal, buildsSave, buildsUnfavourite } from "./api";
 import { chainCost, isInShop, loadShopCatalog, type ShopCatalog, type ShopItem } from "./catalog";
+import { gameItem } from "./game-item";
 import { loadLevelTable, netWorthFor, type Level } from "./levels";
 import { LOCAL_ID_LIMIT, viewOfPublished, type MineStatus } from "./my-builds";
-import type { TooltipChip } from "./components/item-tooltip/context";
 
 const ABILITY_POINTS = 1;
 const ABILITY_UNLOCK = 2;
@@ -61,19 +62,9 @@ export function localStatus(
 const inShop = (item: ShopItem | undefined): item is ShopItem => !!item && isInShop(item);
 
 /** Undefined for an item the shop no longer sells, which the grid flags as removed. */
-export function chipFor(byId: ReadonlyMap<number, ShopItem>, abilityId: number): TooltipChip | undefined {
+export function chipFor(byId: ReadonlyMap<number, ShopItem>, abilityId: number): GameItem | undefined {
     const item = byId.get(abilityId);
-    if (!inShop(item)) return undefined;
-    const chip: TooltipChip = {
-        id: item.id,
-        name: item.name,
-        slot: item.slot,
-        tier: item.tier,
-        active: item.active,
-        imbue: item.imbue ?? false,
-    };
-    if (item.art !== undefined) chip.art = item.art;
-    return chip;
+    return inShop(item) ? gameItem(item) : undefined;
 }
 
 export interface CostLine {
