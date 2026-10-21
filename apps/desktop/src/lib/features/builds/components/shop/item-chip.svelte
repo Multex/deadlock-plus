@@ -26,6 +26,22 @@
             .map((word) => word[0].toUpperCase())
             .join(""),
     );
+
+    const NAME_SIZE = 14;
+    const NAME_PADDING = 6;
+    const AVG_GLYPH_EM = 0.58;
+    const MIN_NAME_SIZE = 8;
+    const MAX_NAME_LINES = 3;
+
+    const label = $derived(item ? item.name : t("builds.shop.removed_item"));
+    // Panorama shrinks the label to fit; CSS has no equivalent, so the size is estimated from glyph count.
+    const nameSize = $derived.by(() => {
+        const available = Math.max(1, box.width / scale - NAME_PADDING);
+        const longestWord = Math.max(...label.split(/\s+/).map((word) => word.length), 1);
+        const forWord = available / (longestWord * AVG_GLYPH_EM);
+        const forLines = (available * MAX_NAME_LINES) / (label.length * AVG_GLYPH_EM * 1.15);
+        return Math.max(MIN_NAME_SIZE, Math.min(NAME_SIZE, forWord, forLines));
+    });
 </script>
 
 <div
@@ -52,12 +68,12 @@
             {/if}
         </div>
         <span class="tier" aria-hidden="true">{item.tier}</span>
-        <span class="name"><span>{item.name}</span></span>
+        <span class="name" style:--name-size={nameSize} title={item.name}><span>{item.name}</span></span>
     {:else}
         <div class="art">
             <TriangleAlert class="warn" aria-hidden="true" />
         </div>
-        <span class="name"><span>{t("builds.shop.removed_item")}</span></span>
+        <span class="name" style:--name-size={nameSize}><span>{label}</span></span>
     {/if}
 </div>
 
@@ -196,7 +212,7 @@
         padding: 0 calc(var(--u) * 3);
         color: var(--name-fg);
         font-family: var(--font-heading);
-        font-size: calc(var(--u) * 14);
+        font-size: calc(var(--u) * var(--name-size, 14));
         font-weight: 600;
         line-height: 0.92;
         text-align: center;
@@ -204,7 +220,7 @@
     .name > span {
         display: -webkit-box;
         overflow: hidden;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 3;
         line-clamp: 3;
