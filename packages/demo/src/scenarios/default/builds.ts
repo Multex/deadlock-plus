@@ -343,7 +343,7 @@ interface ApiBuild {
         publish_timestamp: number | null;
         tags: number[];
     };
-    num_favorites: number;
+    num_favorites: number | null;
     num_ignores: number;
     num_reports: number;
     num_weekly_favorites: number;
@@ -351,7 +351,8 @@ interface ApiBuild {
 }
 
 interface Counts {
-    favorites: number;
+    /** `null` as the API leaves it on some rows. */
+    favorites: number | null;
     weekly: number;
     ignores: number;
     reports: number;
@@ -405,12 +406,37 @@ function apiRow(build: BuildView, counts: Counts): ApiBuild {
     };
 }
 
+/** `/v1/analytics/hero-build-stats/{hero_id}` rows, as `@deadlock-plus/deadlock-api` reads them. */
+interface ApiBuildStats {
+    hero_id: number;
+    hero_build_id: number;
+    bucket: number;
+    wins: number;
+    losses: number;
+    matches: number;
+    players: number;
+}
+
+/** MurmurHash2 (seed 0x31415926) of `citadel_build_tag_<key>`, the ids builds store in `tags`. */
+const TAG = {
+    weapon: 47026193,
+    spirit: 36498494,
+    vitality: 4213205702,
+    complexity1: 1052421347,
+    damage: 2592289373,
+    crowdControl: 4216803923,
+    melee: 3401565923,
+    headshots: 2579669585,
+} as const;
+
 const FAVOURITED_ID = 381204;
 const OWN_PUBLISHED_ID = 402117;
 
 interface Published {
     build: BuildView;
     counts: Counts;
+    /** Wins, losses and players over the API's 30 days; `undefined` for a build no tracked match used. */
+    stats?: [number, number, number];
 }
 
 /** Published builds of four heroes; one is the player's own. Languages use Steam's numbers (0 English, 1 German, 8 Russian). */
@@ -425,6 +451,7 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
         [version, publishedDays, updatedDays]: [number, number, number],
         counts: Counts,
         fields: Partial<BuildView> = {},
+        stats?: [number, number, number],
     ): Published => ({
         build: view(template, {
             heroBuildId: id,
@@ -436,20 +463,29 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             ...fields,
         }),
         counts,
+        stats,
     });
     return [
-        published(TEMPLATES.gunHaze, FAVOURITED_ID, "Bullet Dance Crit", by(0), [14, 61, 3], {
-            favorites: 9812,
-            weekly: 412,
-            ignores: 210,
-            reports: 3,
-        }),
-        published(TEMPLATES.spiritHaze, 377455, "Sleepy Spirit Haze", by(3), [6, 120, 9], {
-            favorites: 2304,
-            weekly: 96,
-            ignores: 88,
-            reports: 1,
-        }),
+        published(
+            TEMPLATES.gunHaze,
+            FAVOURITED_ID,
+            "Bullet Dance Crit",
+            by(0),
+            [14, 61, 3],
+            { favorites: 9812, weekly: 412, ignores: 210, reports: 3 },
+            { tags: [TAG.damage, TAG.weapon, TAG.headshots] },
+            [1200, 1000, 1640],
+        ),
+        published(
+            TEMPLATES.spiritHaze,
+            377455,
+            "Sleepy Spirit Haze",
+            by(3),
+            [6, 120, 9],
+            { favorites: 2304, weekly: 96, ignores: 88, reports: 1 },
+            { tags: [TAG.spirit, TAG.crowdControl] },
+            [410, 395, 620],
+        ),
         published(
             TEMPLATES.gunHaze,
             390718,
@@ -457,7 +493,8 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             by(7),
             [3, 40, 12],
             { favorites: 811, weekly: 140, ignores: 19, reports: 0 },
-            { language: 8, originBuildId: FAVOURITED_ID },
+            { language: 8, originBuildId: FAVOURITED_ID, tags: [TAG.weapon] },
+            [88, 71, 120],
         ),
         published(
             TEMPLATES.spiritInfernus,
@@ -467,6 +504,7 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             [4, 25, 6],
             { favorites: 37, weekly: 5, ignores: 2, reports: 0 },
             { description: "Spirit Infernus that lives on Afterburn uptime." },
+            [31, 29, 1],
         ),
         published(
             TEMPLATES.spiritInfernus,
@@ -475,7 +513,11 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             by(1),
             [22, 160, 2],
             { favorites: 15420, weekly: 655, ignores: 402, reports: 6 },
-            { description: "Stack spirit, keep Afterburn on everyone, never stop moving." },
+            {
+                description: "Stack spirit, keep Afterburn on everyone, never stop moving.",
+                tags: [TAG.spirit, TAG.damage],
+            },
+            [2950, 2610, 4100],
         ),
         published(
             TEMPLATES.spiritInfernus,
@@ -493,53 +535,77 @@ function publishedBuilds(identity: Identity, nowS: number): Published[] {
             by(4),
             [11, 75, 5],
             { favorites: 7340, weekly: 318, ignores: 176, reports: 2 },
-            { description: "Slow everything, then Ice Dome the fight you want." },
+            {
+                description: "Slow everything, then Ice Dome the fight you want.",
+                tags: [TAG.spirit, TAG.crowdControl],
+            },
+            [1730, 1490, 2380],
         ),
-        published(TEMPLATES.frostWallKelvin, 384019, "Frost Wall", by(6), [7, 55, 8], {
-            favorites: 2180,
-            weekly: 87,
-            ignores: 54,
-            reports: 1,
-        }),
-        published(TEMPLATES.gunKelvin, 392266, "Kelvin Cold Bullets", by(8), [4, 35, 14], {
-            favorites: 640,
-            weekly: 73,
-            ignores: 12,
-            reports: 0,
-        }),
+        published(
+            TEMPLATES.frostWallKelvin,
+            384019,
+            "Frost Wall",
+            by(6),
+            [7, 55, 8],
+            { favorites: 2180, weekly: 87, ignores: 54, reports: 1 },
+            { tags: [TAG.vitality] },
+            [520, 540, 810],
+        ),
+        published(
+            TEMPLATES.gunKelvin,
+            392266,
+            "Kelvin Cold Bullets",
+            by(8),
+            [4, 35, 14],
+            { favorites: 640, weekly: 73, ignores: 12, reports: 0 },
+            { tags: [TAG.weapon] },
+            [260, 290, 400],
+        ),
         published(
             TEMPLATES.spiritKelvin,
             397745,
             "Kelvin lane bully",
             by(10),
             [2, 18, 1],
-            { favorites: 96, weekly: 31, ignores: 3, reports: 0 },
+            { favorites: null, weekly: 31, ignores: 3, reports: 0 },
             { originBuildId: 372846 },
+            [52, 41, 77],
         ),
-        published(TEMPLATES.brawlerAbrams, 371112, "Brawler Abrams", by(2), [9, 90, 4], {
-            favorites: 6022,
-            weekly: 233,
-            ignores: 150,
-            reports: 2,
-        }),
-        published(TEMPLATES.brawlerAbrams, 394580, "Tank Abrams", by(5), [5, 50, 20], {
-            favorites: 1400,
-            weekly: 60,
-            ignores: 31,
-            reports: 0,
-        }),
+        published(
+            TEMPLATES.brawlerAbrams,
+            371112,
+            "Brawler Abrams",
+            by(2),
+            [9, 90, 4],
+            { favorites: 6022, weekly: 233, ignores: 150, reports: 2 },
+            { tags: [TAG.melee, TAG.vitality, TAG.complexity1] },
+            [1390, 1280, 1920],
+        ),
+        published(
+            TEMPLATES.brawlerAbrams,
+            394580,
+            "Tank Abrams",
+            by(5),
+            [5, 50, 20],
+            { favorites: null, weekly: 60, ignores: 31, reports: 0 },
+            {},
+            [300, 330, 470],
+        ),
     ];
 }
 
 const LANGUAGES: Record<string, number> = { English: 0, German: 1, Russian: 8 };
 
+const updated = (row: ApiBuild) => row.hero_build.last_updated_timestamp ?? 0;
+const publish = (row: ApiBuild) => row.hero_build.publish_timestamp ?? 0;
+
 const SORT_KEYS: Record<string, (row: ApiBuild) => number> = {
     weekly_favorites: (row) => row.num_weekly_favorites,
-    favorites: (row) => row.num_favorites,
+    favorites: (row) => row.num_favorites ?? 0,
     ignores: (row) => row.num_ignores,
     reports: (row) => row.num_reports,
-    updated_at: (row) => row.hero_build.last_updated_timestamp ?? 0,
-    published_at: (row) => row.hero_build.publish_timestamp ?? 0,
+    updated_at: updated,
+    published_at: publish,
     version: (row) => row.hero_build.version,
 };
 
@@ -557,6 +623,16 @@ function buildsRoute(rows: readonly ApiBuild[]): ApiRoute {
                 [number("build_id"), (row) => row.hero_build.hero_build_id === number("build_id")],
                 [number("tag"), (row) => row.hero_build.tags.includes(number("tag")!)],
                 [language, (row) => row.hero_build.language === language],
+                [number("min_unix_timestamp"), (row) => updated(row) >= number("min_unix_timestamp")!],
+                [number("max_unix_timestamp"), (row) => updated(row) <= number("max_unix_timestamp")!],
+                [
+                    number("min_published_unix_timestamp"),
+                    (row) => publish(row) >= number("min_published_unix_timestamp")!,
+                ],
+                [
+                    number("max_published_unix_timestamp"),
+                    (row) => publish(row) <= number("max_published_unix_timestamp")!,
+                ],
             ];
             const search = q.get("search_name")?.toLowerCase();
             if (search) filters.push([0, (row) => row.hero_build.name.toLowerCase().includes(search)]);
@@ -567,6 +643,23 @@ function buildsRoute(rows: readonly ApiBuild[]): ApiRoute {
                 .filter((row) => filters.every(([value, test]) => value === undefined || test(row)))
                 .sort((a, b) => direction * (key(a) - key(b)))
                 .slice(start, start + (number("limit") ?? 100));
+        },
+    ];
+}
+
+function buildStatsRoute(published: readonly Published[]): ApiRoute {
+    const rows = published.flatMap(({ build, stats }): ApiBuildStats[] => {
+        if (!stats) return [];
+        const [wins, losses, players] = stats;
+        const { heroId: hero_id, heroBuildId: hero_build_id } = build;
+        return [{ hero_id, hero_build_id, bucket: 0, wins, losses, matches: wins + losses, players }];
+    });
+    return [
+        /^\/v1\/analytics\/hero-build-stats\/\d+$/,
+        (url) => {
+            const heroId = Number(url.pathname.split("/").pop());
+            const minMatches = Number(url.searchParams.get("min_matches") ?? 0);
+            return rows.filter((row) => row.hero_id === heroId && row.matches >= minMatches);
         },
     ];
 }
@@ -998,7 +1091,8 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
                 builds_backups: (): BuildBackup[] => backups,
             };
 
-            return { handlers, routes: [buildsRoute(published.map((p) => apiRow(p.build, p.counts)))] };
+            const routes = [buildsRoute(published.map((p) => apiRow(p.build, p.counts))), buildStatsRoute(published)];
+            return { handlers, routes };
         },
     };
 }

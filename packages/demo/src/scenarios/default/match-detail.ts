@@ -1474,6 +1474,8 @@ function shopItems(items: readonly AssetItem[]): ShopItem[] {
                           disabled: item.disabled ?? false,
                           shopable: item.shopable ?? false,
                           imbue: typeof item.imbue === "string" && item.imbue !== "",
+                          shopFilters: [],
+                          disabledShopFilters: [],
                       },
                   ]
                 : [],

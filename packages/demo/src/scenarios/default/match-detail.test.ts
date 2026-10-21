@@ -185,6 +185,8 @@ describe("game files from the default scenario", () => {
                 disabled: false,
                 shopable: true,
                 imbue: true,
+                shopFilters: [],
+                disabledShopFilters: [],
             },
             {
                 id: 8,
@@ -197,6 +199,8 @@ describe("game files from the default scenario", () => {
                 disabled: true,
                 shopable: false,
                 imbue: false,
+                shopFilters: [],
+                disabledShopFilters: [],
             },
             {
                 id: 1548066885,
@@ -209,6 +213,8 @@ describe("game files from the default scenario", () => {
                 disabled: false,
                 shopable: true,
                 imbue: false,
+                shopFilters: [],
+                disabledShopFilters: [],
             },
         ]);
     });

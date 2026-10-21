@@ -27,12 +27,44 @@ interface PublicBuild {
         author_account_id: number;
         name: string;
         language: number;
+        version: number;
         last_updated_timestamp?: number | null;
+        publish_timestamp?: number | null;
+        tags: number[];
         details: { mod_categories: unknown[]; ability_order?: { currency_changes?: unknown[] | null } | null };
     };
     num_favorites?: number | null;
     num_weekly_favorites?: number | null;
 }
+
+interface HeroBuildStatsRow {
+    hero_id: number;
+    hero_build_id: number;
+    bucket: number;
+    wins: number;
+    losses: number;
+    matches: number;
+    players: number;
+}
+
+/** MurmurHash2 (seed 0x31415926) of `citadel_build_tag_<key>`, as builds store their tags. */
+const DAMAGE_TAG = 2592289373;
+const BUILD_TAG_IDS = [
+    47026193,
+    4213205702,
+    36498494,
+    1052421347,
+    1150155374,
+    3797987367,
+    DAMAGE_TAG,
+    953263904,
+    38758251,
+    4216803923,
+    3238474489,
+    3401565923,
+    2579669585,
+    255841590,
+];
 
 const handles: DemoHandle[] = [];
 function start(scenario: Scenario): DemoHandle {
@@ -516,8 +548,110 @@ describe("public builds route", () => {
         expect(await publicBuilds("?search_name=no%20such%20build")).toEqual([]);
     });
 
+    it("filters by update and publish time, both ends inclusive", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        const updated = all.map((b) => b.hero_build.last_updated_timestamp!).sort((a, b) => a - b);
+        const published = all.map((b) => b.hero_build.publish_timestamp!).sort((a, b) => a - b);
+        const mid = (values: number[]) => values[Math.floor(values.length / 2)]!;
+
+        const since = await publicBuilds(`?min_unix_timestamp=${mid(updated)}`);
+        expect(since.length).toBeGreaterThan(0);
+        expect(since.length).toBeLessThan(all.length);
+        expect(since.every((b) => b.hero_build.last_updated_timestamp! >= mid(updated))).toBe(true);
+        const until = await publicBuilds(`?max_unix_timestamp=${mid(updated)}`);
+        expect(until.every((b) => b.hero_build.last_updated_timestamp! <= mid(updated))).toBe(true);
+        expect(since.length + until.length).toBe(all.length + updated.filter((t) => t === mid(updated)).length);
+
+        const newer = await publicBuilds(`?min_published_unix_timestamp=${mid(published)}`);
+        expect(newer.length).toBeGreaterThan(0);
+        expect(newer.length).toBeLessThan(all.length);
+        expect(newer.every((b) => b.hero_build.publish_timestamp! >= mid(published))).toBe(true);
+        const older = await publicBuilds(`?max_published_unix_timestamp=${mid(published)}`);
+        expect(older.length).toBeGreaterThan(0);
+        expect(older.every((b) => b.hero_build.publish_timestamp! <= mid(published))).toBe(true);
+    });
+
+    it("tags some builds with the game's tag ids and filters by one tag", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        expect(all.find((b) => b.hero_build.hero_build_id === 381204)!.hero_build.tags).toContain(DAMAGE_TAG);
+        expect(all.filter((b) => b.hero_build.tags.length > 0).length).toBeGreaterThanOrEqual(3);
+        expect(all.flatMap((b) => b.hero_build.tags).every((tag) => BUILD_TAG_IDS.includes(tag))).toBe(true);
+
+        const damage = await publicBuilds(`?tag=${DAMAGE_TAG}`);
+        expect(damage.length).toBeGreaterThan(0);
+        expect(damage.length).toBeLessThan(all.length);
+        expect(damage.every((b) => b.hero_build.tags.includes(DAMAGE_TAG))).toBe(true);
+    });
+
+    it("leaves the favourite count out of a couple of rows and sorts them as zero", async () => {
+        start(defaultScenario(OPTIONS));
+        const byUpdate = await publicBuilds("?sort_by=updated_at");
+        const missing = byUpdate.filter((b) => b.num_favorites === null);
+        expect(missing.length).toBeGreaterThanOrEqual(2);
+        expect(missing.length).toBeLessThan(byUpdate.length / 2);
+
+        const favorites = (await publicBuilds("?sort_by=favorites")).map((b) => b.num_favorites ?? 0);
+        expect(favorites).toEqual([...favorites].sort((a, b) => b - a));
+        expect(favorites.slice(-missing.length)).toEqual(missing.map(() => 0));
+    });
+
+    it("sorts by publish time and version in either direction", async () => {
+        start(defaultScenario(OPTIONS));
+        const published = (await publicBuilds("?sort_by=published_at")).map((b) => b.hero_build.publish_timestamp!);
+        expect(published).toEqual([...published].sort((a, b) => b - a));
+        const versions = (await publicBuilds("?sort_by=version&sort_direction=asc")).map((b) => b.hero_build.version);
+        expect(versions).toEqual([...versions].sort((a, b) => a - b));
+        expect(new Set(versions).size).toBeGreaterThan(1);
+    });
+
     it("fails like every other Deadlock API path when offline", async () => {
         start(offlineScenario(OPTIONS));
         await expect(fetch(`${API}/builds?hero_id=${HAZE}`)).rejects.toThrow("Failed to fetch");
+    });
+});
+
+describe("hero build stats route", () => {
+    async function stats(heroId: number, query = ""): Promise<HeroBuildStatsRow[]> {
+        const response = await fetch(`${API}/analytics/hero-build-stats/${heroId}${query}`);
+        expect(response.status).toBe(200);
+        return (await response.json()) as HeroBuildStatsRow[];
+    }
+
+    it("answers one row per public build of the hero, shaped as the API's rows", async () => {
+        start(defaultScenario(OPTIONS));
+        const rows = await stats(HAZE);
+        const hazeIds = (await publicBuilds(`?hero_id=${HAZE}`)).map((b) => b.hero_build.hero_build_id);
+        expect(rows.length).toBeGreaterThan(0);
+        expect(rows.map((r) => r.hero_build_id).every((id) => hazeIds.includes(id))).toBe(true);
+        expect(new Set(rows.map((r) => r.hero_build_id)).size).toBe(rows.length);
+        for (const row of rows) {
+            expect(row.hero_id).toBe(HAZE);
+            expect(row.bucket).toBe(0);
+            expect(row.matches).toBe(row.wins + row.losses);
+            expect(row.players).toBeGreaterThan(0);
+            expect(row.players).toBeLessThanOrEqual(row.matches);
+        }
+        expect(rows.find((r) => r.hero_build_id === 381204)).toMatchObject({ wins: 1200, losses: 1000, matches: 2200 });
+    });
+
+    it("has a build under 200 matches that min_matches leaves out", async () => {
+        start(defaultScenario(OPTIONS));
+        const heroes = [...new Set((await publicBuilds("")).map((b) => b.hero_build.hero_id))];
+        const all = (await Promise.all(heroes.map((hero) => stats(hero)))).flat();
+        const few = all.filter((r) => r.matches < 200);
+        expect(few.length).toBeGreaterThanOrEqual(1);
+
+        const hero = few[0]!.hero_id;
+        const kept = await stats(hero, "?min_matches=200");
+        expect(kept.length).toBeGreaterThan(0);
+        expect(kept.every((r) => r.matches >= 200)).toBe(true);
+        expect(kept.map((r) => r.hero_build_id)).not.toContain(few[0]!.hero_build_id);
+    });
+
+    it("answers no rows for a hero without public builds", async () => {
+        start(defaultScenario(OPTIONS));
+        expect(await stats(2)).toEqual([]);
     });
 });
