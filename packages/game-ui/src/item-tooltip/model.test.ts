@@ -336,7 +336,8 @@ describe("itemTooltipModel cells", () => {
         expect(rows.find((r) => r.key === "ImmunityDuration")?.variesByHero).toBe(false);
     });
 
-    it("passes the conditional flag through and names its locale text once per model", () => {
+    // `.ImportantStatLabel` is `visibility: collapse` in the item tooltip and rows have no label slot for it.
+    it("drops the conditional flag, which the game's item tooltip never draws", () => {
         const model = itemTooltipModel({
             item: spiritBurnItem,
             sections: [
@@ -352,14 +353,9 @@ describe("itemTooltipModel cells", () => {
                 },
             ],
         });
-        const cell = model.sections[0].blocks[0].cells[0];
-        expect(cell.kind === "important" && cell.conditional).toBe(true);
-        expect(model.sections[0].blocks[0].rows[0].conditional).toBe(false);
-        expect(model.text.conditional).toEqual({
-            key: "game_ui.item_tooltip.conditional",
-            params: {},
-            game: { token: "Citadel_Shop_ConditionalAttribute", params: {} },
-        });
+        expect(model.sections[0].blocks[0].cells[0]).not.toHaveProperty("conditional");
+        expect(model.sections[0].blocks[0].rows[0]).not.toHaveProperty("conditional");
+        expect(model.text).not.toHaveProperty("conditional");
         expect(model.text.variesByHero).toEqual({ key: "game_ui.item_tooltip.varies_by_hero", params: {}, game: null });
     });
 });

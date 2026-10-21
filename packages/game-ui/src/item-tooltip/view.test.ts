@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { gameColors } from "../colors";
-import { panoramaAlpha, panoramaColor } from "../panorama";
+import { panoramaBlend, panoramaColor } from "../panorama";
 import {
     cellValueSize,
     cssUrl,
+    diminishBlock,
     headerNameSize,
     iconPaint,
     inlineAttributeStyle,
@@ -13,8 +14,10 @@ import {
     shrinkFont,
     styleVars,
     tooltipVars,
+    variesByHero,
     washColor,
 } from "./view";
+import { itemTooltipModel } from "./model";
 
 describe("washColor", () => {
     it("resolves the base-style colour names the game's stylesheets wash icons with", () => {
@@ -27,7 +30,8 @@ describe("washColor", () => {
 
     it("takes hex and a Panorama alpha suffix through the alpha rule", () => {
         expect(washColor("#99f051")).toBe("#99f051");
-        expect(washColor("courageBrightColor&ea")).toBe(panoramaColor("#ec9719&ea"));
+        expect(washColor("courageBrightColor&ea")).toBe(panoramaColor("#ec9719&ea", "offBlack"));
+        expect(washColor("courageBrightColor&ea", "#59507a")).toBe(panoramaColor("#ec9719&ea", "#59507a"));
     });
 
     it("is null for no wash and for names it does not know", () => {
@@ -58,7 +62,7 @@ describe("inlineAttributeStyle", () => {
             wash: "#ffffff",
             color: "#ffffff",
         });
-        expect(inlineAttributeStyle("Spirit", icons).color).toBe(panoramaColor("#e1a0ff&ea"));
+        expect(inlineAttributeStyle("Spirit", icons).color).toBe(panoramaColor("#e1a0ff&ea", "offBlack"));
     });
 
     it("keeps the description's colour for a keyword the game gives no label colour", () => {
@@ -88,7 +92,7 @@ describe("scaling marker", () => {
         expect(scalingColor("spirit")).toBe(gameColors.spiritLight);
         expect(scalingColor("melee")).toBe(gameColors.courageLight);
         expect(scalingColor("boon")).toBe("#53e1c4");
-        expect(scalingColor(null)).toBe(panoramaColor("offWhite&aa"));
+        expect(scalingColor(null)).toBe(panoramaColor("offWhite&aa", "offBlack"));
     });
 });
 
@@ -147,16 +151,43 @@ describe("iconPaint", () => {
 });
 
 describe("tooltip colours", () => {
-    it("dims every Panorama alpha colour through the alpha rule", () => {
+    it("backs the paper with the typical colour of the slot's backer art", () => {
+        expect(tooltipVars("spirit")["--tt-paper"]).toBe("#59507a");
+        expect(tooltipVars("vitality")["--tt-paper"]).toBe("#405b44");
+        expect(tooltipVars("weapon")["--tt-paper"]).toBe("#795218");
+    });
+
+    // The paper beside each element in the 1440p captures, and the element drawn over it.
+    it.each([
+        ["spirit", "--tt-bar-passive", "#54476e", "#382f49"],
+        ["spirit", "--tt-cell", "#59517b", "#463e61"],
+        ["spirit", "--tt-stats", "#5c5783", "#484568"],
+        ["vitality", "--tt-bar-passive", "#405b44", "#293b2d"],
+        ["vitality", "--tt-component-label-bg", "#4c674a", "#1b2419"],
+        ["vitality", "--tt-component-list-bg", "#4e694b", "#3a5038"],
+        ["vitality", "--tt-bar-active", "#3f5a44", "#253428"],
+        ["vitality", "--tt-stats", "#4c674a", "#3b5139"],
+        ["weapon", "--tt-cell", "#7e591b", "#634412"],
+    ] as const)("draws the %s %s over %s as the game does", (slot, name, under, game) => {
+        expect(distance(over(tooltipVars(slot)[name], under), game)).toBeLessThanOrEqual(6);
+    });
+
+    it("blends text over the box it sits on", () => {
+        const vars = tooltipVars("vitality");
+        const label = over(vars["--tt-component-label-bg"], "#4c674a");
+        expect(distance(over(vars["--tt-component-label"], label), "#9a9b99")).toBeLessThanOrEqual(5);
+        const list = over(vars["--tt-component-list-bg"], "#4e694b");
+        expect(distance(over(vars["--tt-component-name"], list), "#c9bfab")).toBeLessThanOrEqual(5);
+    });
+
+    it("fades whole elements by their colour over their backdrop", () => {
         const vars = tooltipVars("spirit");
-        expect(vars["--tt-affix"]).toBe(panoramaColor("#ffffff50"));
-        expect(vars["--tt-diminish"]).toBe(panoramaColor("#bfbbb090"));
-        expect(vars["--tt-bar-active"]).toBe(panoramaColor("offBlack&aa"));
-        expect(vars["--tt-bar-passive"]).toBe(panoramaColor("offBlack&90"));
-        expect(vars["--tt-stacks-wash"]).toBe(panoramaColor("#ce90ff&ea"));
-        expect(vars["--tt-slot-bright"]).toBe(gameColors.spiritBright);
-        expect(vars["--tt-bar-dim"]).toBe(String(Math.round(panoramaAlpha(0.5) * 1000) / 1000));
-        expect(vars["--tt-conditional"]).toBe(String(Math.round(panoramaAlpha(0.3) * 1000) / 1000));
+        const paper = vars["--tt-paper"];
+        const rowName = withOpacity("#ffffff", vars["--tt-row-name-opacity"]);
+        expect(distance(over(rowName, paper), panoramaBlend("#ffffff", 0.5, paper))).toBeLessThanOrEqual(4);
+        const bar = panoramaBlend("offBlack", 0x90 / 255, paper);
+        const label = withOpacity(gameColors.offWhite, vars["--tt-bar-dim"]);
+        expect(distance(over(label, bar), panoramaBlend("offWhite", 0.5, bar))).toBeLessThanOrEqual(4);
     });
 
     it("joins custom properties into a style attribute", () => {
@@ -168,3 +199,94 @@ describe("tooltip colours", () => {
         expect(cssUrl(undefined)).toBeUndefined();
     });
 });
+
+describe("diminishBlock", () => {
+    const text = (t: string) => ({ kind: "text" as const, text: t });
+
+    it("draws a diminish span as its own block, without the break the block already implies", () => {
+        const node = {
+            kind: "span" as const,
+            styles: ["diminish" as const],
+            children: [{ kind: "break" as const }, text("Can be self-cast.")],
+        };
+        expect(diminishBlock(node)).toEqual([text("Can be self-cast.")]);
+        expect(diminishBlock({ ...node, styles: ["small_diminish"] })).toEqual([text("Can be self-cast.")]);
+    });
+
+    it("leaves every other node inline", () => {
+        expect(diminishBlock({ kind: "span", styles: ["highlight"], children: [text("x")] })).toBeNull();
+        expect(diminishBlock(text("x"))).toBeNull();
+    });
+});
+
+describe("variesByHero", () => {
+    const model = (displayType: string | null, where: "important" | "properties") =>
+        itemTooltipModel({
+            item: { id: 1, name: "Silencer", slot: "weapon", tier: 3, cost: 3200, active: false, imbue: false },
+            sections: [
+                {
+                    kind: "passive",
+                    cooldown: null,
+                    blocks: [
+                        {
+                            description: null,
+                            values: {},
+                            elevated: [],
+                            important: [],
+                            properties: [],
+                            [where]: [
+                                {
+                                    key: "BuildUpPerShot",
+                                    value: 1.04,
+                                    unit: "%",
+                                    label: "Buildup Per Shot",
+                                    signed: false,
+                                    cssClass: null,
+                                    displayType,
+                                    scale: null,
+                                    statusEffect: false,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+
+    it("says whether any cell or row shows a number that varies by hero, for the tooltip's one footnote", () => {
+        expect(variesByHero(model("EBuildUpRate", "properties"))).toBe(true);
+        expect(variesByHero(model("EBuildUpRate", "important"))).toBe(true);
+        expect(variesByHero(model(null, "properties"))).toBe(false);
+    });
+});
+
+function rgb(value: string): number[] {
+    const hex = value in gameColors ? gameColors[value as keyof typeof gameColors] : value;
+    return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+}
+
+function distance(a: string, b: string): number {
+    const [x, y] = [rgb(a), rgb(b)];
+    return Math.max(...x.map((v, i) => Math.abs(v - y[i])));
+}
+
+function withOpacity(hex: string, opacity: string): string {
+    return `rgb(${rgb(hex).join(" ")} / ${opacity})`;
+}
+
+/** The browser's own blend of a CSS colour (`#rrggbb` or `rgb(r g b / a)`) over an opaque one. */
+function over(css: string, under: string): string {
+    const m = /^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/.exec(css);
+    const [c, a] = m ? [[m[1], m[2], m[3]].map(Number), Number(m[4])] : [rgb(css), 1];
+    const u = rgb(under);
+    return (
+        "#" +
+        c
+            .map((v, i) =>
+                Math.round(a * v + (1 - a) * u[i])
+                    .toString(16)
+                    .padStart(2, "0"),
+            )
+            .join("")
+    );
+}

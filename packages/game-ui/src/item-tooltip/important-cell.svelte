@@ -1,28 +1,33 @@
 <script lang="ts">
     import { gameArt } from "../art";
-    import { gameText } from "../text";
     import GameIcon from "./game-icon.svelte";
-    import type { ImportantCell, ItemTooltipModel, StatusCell } from "./model";
+    import type { ImportantCell, StatusCell } from "./model";
     import ModifiedArrow from "./modified-arrow.svelte";
     import ScalingMarker from "./scaling-marker.svelte";
     import ValueText from "./value-text.svelte";
     import { cellValueSize, iconPaint, roleColor } from "./view";
 
-    type Props = { cell: ImportantCell | StatusCell; text: ItemTooltipModel["text"] };
-
-    let { cell, text }: Props = $props();
+    let { cell }: { cell: ImportantCell | StatusCell } = $props();
 
     const art = gameArt();
-    const t = gameText();
     const paint = $derived(cell.icon ? iconPaint(art().propertyIcons[cell.icon]) : null);
     const color = $derived(roleColor(cell.role));
 </script>
 
-{#if cell.kind === "status"}
+{#if cell.kind === "status" && cell.duration}
+    <!-- `.StatusEffectBox` has no value slot: a status with a duration takes the `ImportantStatBox` layout, iconless. -->
+    <div class="cell" style:--role={color} class:tinted={cell.role !== "default"}>
+        <span class="value-row">
+            <span class="value" style:font-size="calc(var(--u) * {cellValueSize(cell.duration)})"
+                ><ValueText value={cell.duration} /></span
+            >
+        </span>
+        <span class="type">{cell.label}</span>
+    </div>
+{:else if cell.kind === "status"}
     <div class="cell status" style:--role={color} class:tinted={cell.role !== "default"}>
         <span class="status-type">
             <span class="icon"><GameIcon {paint} size={20} fallback={color} /></span>
-            {#if cell.duration}<span class="duration"><ValueText value={cell.duration} /></span>{/if}
             <span class="type">{cell.label}</span>
         </span>
     </div>
@@ -32,13 +37,12 @@
         <span class="value-row">
             <span class="icon"><GameIcon {paint} size={20} fallback={color} /></span>
             <span class="value" style:font-size="calc(var(--u) * {cellValueSize(cell.value)})"
-                ><ValueText value={cell.value} /></span
+                ><ValueText value={cell.value} />{#if cell.variesByHero}<span class="mark" aria-hidden="true">*</span
+                    >{/if}</span
             >
             {#if cell.scaled}<ModifiedArrow />{/if}
         </span>
         <span class="type">{cell.label}</span>
-        {#if cell.conditional}<span class="note">{t(text.conditional)}</span>{/if}
-        {#if cell.variesByHero}<span class="note">{t(text.variesByHero)}</span>{/if}
     </div>
 {/if}
 
@@ -69,12 +73,13 @@
         display: inline-flex;
         margin-right: calc(var(--u) * 3);
     }
-    /* `#ImportantStatValue`: white oracle bold 22. */
+    /* `#ImportantStatValue`: oracle bold 22; the stylesheet says white, the captures show offWhite. */
     .value {
         max-width: calc(var(--u) * 90);
-        color: #ffffff;
+        color: var(--game-off-white, #ffefd7);
         font-family: var(--game-font-oracle);
         font-weight: 700;
+        line-height: var(--tt-oracle-line);
         text-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--tt-text-shadow);
         white-space: nowrap;
     }
@@ -100,15 +105,12 @@
     .tinted .type {
         font-weight: 600;
     }
-    /* `.ImportantStatLabel`: italic semi-bold 16 at 0.3. */
-    .note {
-        width: 100%;
-        font-size: calc(var(--u) * 16);
-        font-style: italic;
-        font-weight: 600;
-        line-height: calc(var(--u) * 18);
-        opacity: var(--tt-conditional);
-        text-align: center;
+    /* Points at the tooltip's "varies by hero" footnote; not a game mark. */
+    .mark {
+        color: var(--tt-affix);
+        font-size: 0.75em;
+        vertical-align: super;
+        line-height: 0;
     }
 
     /* `.StatusEffectBox`: icon and a bold 20 type, left aligned. */
@@ -120,17 +122,12 @@
     .status .icon {
         margin-right: 0;
     }
-    .status .type,
-    .duration {
+    .status .type {
         margin: 0;
         font-size: calc(var(--u) * 20);
         font-weight: 700;
         line-height: 1.2;
         text-align: left;
-    }
-    .duration {
-        color: var(--role);
-        font-family: var(--game-font-oracle);
     }
     .status.tinted .type {
         font-weight: 600;

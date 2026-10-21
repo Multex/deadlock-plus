@@ -8,9 +8,10 @@ import { FACTOR_DECIMALS, formatShownNumber, roundHalfEven, shownDecimals } from
 
 /**
  * A tier's upgrade card state, as the game's classes name them: `has` (`hasUpgrade`, trained), `available`
- * (`UpgradeAvailable`), `cantAfford` (`cantAffordUpgrade`), `notTrained` (`abilityNotTrained`).
+ * (`UpgradeAvailable`), `canAfford` (`canAffordUpgrade`), `cantAfford` (`cantAffordUpgrade`), `notTrained`
+ * (`abilityNotTrained`).
  */
-export type UpgradeState = "has" | "available" | "cantAfford" | "notTrained";
+export type UpgradeState = "has" | "available" | "canAfford" | "cantAfford" | "notTrained";
 
 export type AbilityTooltipInput = {
     ability: AbilityTooltip;

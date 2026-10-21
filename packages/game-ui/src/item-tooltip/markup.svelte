@@ -3,7 +3,7 @@
     import type { MarkupNode } from "../markup/markup";
     import GameIcon from "./game-icon.svelte";
     import Markup from "./markup.svelte";
-    import { iconPaint, inlineAttributeStyle } from "./view";
+    import { diminishBlock, iconPaint, inlineAttributeStyle } from "./view";
 
     type Props = {
         nodes: readonly MarkupNode[];
@@ -18,8 +18,9 @@
 </script>
 
 {#each nodes as node, i (i)}{#if node.kind === "text"}{node.text}{:else if node.kind === "value"}{node.text}{:else if node.kind === "break"}<br
-        />{:else if node.kind === "span"}<span class={node.styles.map((style) => `m-${style}`)}
-            ><Markup nodes={node.children} {bindings} /></span
+        />{:else if node.kind === "span"}{@const block = diminishBlock(node)}<span
+            class={node.styles.map((style) => `m-${style}`)}
+            class:block={block !== null}><Markup nodes={block ?? node.children} {bindings} /></span
         >{:else if node.kind === "attribute"}{@const look = inlineAttributeStyle(node.name, icons)}{@const paint =
             look.icon ? iconPaint(icons[look.icon], look.wash) : null}<span class="attribute" style:color={look.color}
             >{#if paint}<span class="attribute-icon"><GameIcon {paint} size={16} /></span>{/if}{node.label ??
@@ -59,6 +60,11 @@
         font-size: calc(var(--u, 1px) * 15);
         font-style: italic;
         font-weight: 600;
+    }
+    /* Measured: 26 px a line at 1440p. */
+    .block {
+        display: block;
+        line-height: 1.3;
     }
     .m-bold {
         font-weight: 700;

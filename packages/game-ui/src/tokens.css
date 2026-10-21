@@ -1,5 +1,6 @@
 /* Colours from the game's `citadel_base_styles`, the same values as `gameColors` in colors.ts. A Panorama alpha
-   (`offWhite&90`) does not map to a plain CSS alpha: use `panoramaColor` from panorama.ts. */
+   (`offWhite&90`) does not map to a plain CSS alpha: use `panoramaColor` from panorama.ts with the colour
+   under it. */
 :root {
     --game-off-white: #ffefd7;
     --game-off-black: #10130d;

@@ -16,8 +16,8 @@ export type UiText = {
     game: { token: string; params: Record<string, string | number> } | null;
 };
 
-/** `conditional` and `negative` are the API's flags; the game files' tooltip data does not carry them yet. */
-export type ItemTooltipProperty = TooltipProperty & { conditional?: boolean; negative?: boolean };
+/** `negative` is the API's flag; the game files' tooltip data does not carry it yet. */
+export type ItemTooltipProperty = TooltipProperty & { negative?: boolean };
 
 export type ItemTooltipBlock = Omit<TooltipBlock, "elevated" | "important" | "properties"> & {
     elevated: readonly ItemTooltipProperty[];
@@ -74,7 +74,6 @@ export type ImportantCell = {
     value: ValueText;
     label: string;
     role: LabelRole;
-    conditional: boolean;
     negative: boolean;
     scaling: ScalingMarker | null;
     /** The value includes the hero's stat. */
@@ -98,7 +97,6 @@ export type StatRow = {
     value: ValueText | null;
     label: string;
     elevated: boolean;
-    conditional: boolean;
     negative: boolean;
     scaling: ScalingMarker | null;
     scaled: boolean;
@@ -154,7 +152,7 @@ export type ItemTooltipModel = {
     components: ComponentGroup[];
     details: { side: "left" | "right"; label: UiText } | null;
     /** Shared labels the cells and rows refer to by flag. */
-    text: { conditional: UiText; variesByHero: UiText };
+    text: { variesByHero: UiText };
 };
 
 const NS = "game_ui.item_tooltip";
@@ -243,7 +241,6 @@ function cellOf(property: ItemTooltipProperty, heroStats: ItemTooltipInput["hero
         value: shown?.value ?? { prefix: "", number: "", postfix: "" },
         label: property.label,
         role: (property.cssClass !== null && ROLES[property.cssClass]) || "default",
-        conditional: property.conditional === true,
         negative: property.negative === true,
         scaling: scalingOf(property),
         scaled: shown?.scaled ?? false,
@@ -258,7 +255,6 @@ function rowOf(property: ItemTooltipProperty, elevated: boolean, heroStats: Item
         value: shown?.value ?? null,
         label: property.label,
         elevated,
-        conditional: property.conditional === true,
         negative: property.negative === true,
         scaling: scalingOf(property),
         scaled: shown?.scaled ?? false,
@@ -360,9 +356,6 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
                 items: (items ?? []).map((component) => ({ item: component, owned: ownedIds.has(component.id) })),
             })),
         details: hasDetails ? { side: position, label: uiText("see_details", {}, "Citadel_ItemViewImpact") } : null,
-        text: {
-            conditional: uiText("conditional", {}, "Citadel_Shop_ConditionalAttribute"),
-            variesByHero: uiText("varies_by_hero"),
-        },
+        text: { variesByHero: uiText("varies_by_hero") },
     };
 }

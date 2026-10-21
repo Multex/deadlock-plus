@@ -34,7 +34,7 @@
         display: flex;
         width: calc(var(--u) * 350);
         flex: none;
-        align-items: center;
+        align-items: flex-start;
         margin-top: calc(var(--u) * 26);
         margin-left: calc(var(--u) * -15);
     }

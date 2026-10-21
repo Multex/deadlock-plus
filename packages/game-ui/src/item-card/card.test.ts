@@ -6,6 +6,7 @@ import {
     cardState,
     fitName,
     initials,
+    NAME_LINE_HEIGHT,
     nameTone,
     oracleWidth,
     phaseWash,
@@ -35,39 +36,20 @@ describe("cardLayers", () => {
         expect(cardLayers({ ...weapon, tier: 5 }, { variant: 0 }).backer).toBeNull();
     });
 
-    it("cycles paper textures by 3 and wear by 4, from the first", () => {
+    it("cycles paper textures by 3, from the first", () => {
         const paper = [0, 1, 2, 3].map((variant) => cardLayers(weapon, { variant }).paper);
         expect(paper).toEqual(["paper_texture_1", "paper_texture_2", "paper_texture_3", "paper_texture_1"]);
-        const wear = [0, 1, 2, 3, 4].map((variant) => cardLayers(weapon, { variant }).wear?.image);
-        expect(wear).toEqual(["paper_wear_1", "paper_wear_2", "paper_wear_3", "paper_wear_4", "paper_wear_1"]);
     });
 
-    it("washes the wear per tier and slot, through the Panorama alpha rule", () => {
-        expect(cardLayers(weapon, { variant: 0 }).wear).toMatchObject({
-            wash: "rgb(230 209 191)",
-            opacity: panoramaAlpha(0.5),
-        });
-        expect(cardLayers({ ...weapon, tier: 1 }, { variant: 0 }).wear).toMatchObject({
-            wash: null,
-            opacity: panoramaAlpha(0.5),
-        });
-        expect(cardLayers({ ...weapon, slot: "vitality", tier: 1 }, { variant: 0 }).wear).toMatchObject({
-            wash: "#f3e1cc",
-            opacity: 1,
-        });
-        expect(cardLayers({ ...weapon, slot: "spirit", tier: 1 }, { variant: 0 }).wear).toMatchObject({
-            wash: "rgb(247 232 213)",
-            opacity: 1,
-        });
-        expect(cardLayers({ ...weapon, tier: 3 }, { variant: 0 }).wear?.wash).toBe("rgb(206 173 155)");
-        expect(cardLayers({ ...weapon, tier: 4 }, { variant: 0 }).wear?.wash).toBe("rgb(105 97 92)");
+    it("draws no paper wear, as the 1440p captures show none", () => {
+        for (const tier of [1, 2, 3, 4, 5] as const) {
+            expect(cardLayers({ ...weapon, tier }, { variant: 0 })).not.toHaveProperty("wear");
+        }
     });
 
-    it("drops the wear and backer art on owned and component cards", () => {
+    it("drops the backer art on owned and component cards", () => {
         for (const flags of [{ owned: true }, { usedAsComponent: true }]) {
-            const layers = cardLayers(weapon, { variant: 0, ...flags });
-            expect(layers.wear).toBeNull();
-            expect(layers.backer).toBeNull();
+            expect(cardLayers(weapon, { variant: 0, ...flags }).backer).toBeNull();
         }
     });
 
@@ -117,7 +99,7 @@ describe("nameTone", () => {
 
     it("dims owned and component names over the tier colours", () => {
         expect(nameTone("weapon", 3, { owned: true })).toEqual({
-            color: panoramaColor("offWhite&80"),
+            color: panoramaColor("offWhite&80", "offBlack"),
             shadow: null,
             italic: false,
             opacity: 1,
@@ -126,7 +108,7 @@ describe("nameTone", () => {
             color: "#ffefd7",
             shadow: null,
             italic: true,
-            opacity: panoramaAlpha(0.5),
+            opacity: panoramaAlpha(0.5, "offWhite", "offBlack"),
         });
     });
 
@@ -151,9 +133,9 @@ describe("cardState", () => {
 
     it("dims owned cards and outlines them", () => {
         expect(cardState({ owned: true })).toMatchObject({
-            opacity: panoramaAlpha(0.7),
-            cardOpacity: panoramaAlpha(0.5),
-            artBrightness: panoramaAlpha(0.5),
+            opacity: panoramaAlpha(0.7, "offWhite", "offBlack"),
+            cardOpacity: panoramaAlpha(0.5, "offWhite", "offBlack"),
+            artBrightness: 1 - panoramaAlpha(0.5, "#000000", "offWhite"),
             shadow: false,
             outline: "#10130d",
             popularity: false,
@@ -163,8 +145,8 @@ describe("cardState", () => {
 
     it("keeps component art bright", () => {
         expect(cardState({ usedAsComponent: true })).toMatchObject({
-            opacity: panoramaAlpha(0.7),
-            cardOpacity: panoramaAlpha(0.5),
+            opacity: panoramaAlpha(0.7, "offWhite", "offBlack"),
+            cardOpacity: panoramaAlpha(0.5, "offWhite", "offBlack"),
             artBrightness: 1,
             outline: "#10130d",
         });
@@ -172,7 +154,7 @@ describe("cardState", () => {
 
     it("greys disabled cards out", () => {
         expect(cardState({ disabled: true })).toMatchObject({
-            opacity: panoramaAlpha(0.2),
+            opacity: panoramaAlpha(0.2, "offWhite", "offBlack"),
             saturation: 0,
             shadow: false,
         });
@@ -193,8 +175,8 @@ describe("oracleWidth", () => {
 
 describe("fitName", () => {
     it("keeps short names at the full 15 on two lines", () => {
-        expect(fitName("Extra Regen")).toEqual({ size: 15, lines: 2 });
-        expect(fitName("Grit")).toEqual({ size: 15, lines: 1 });
+        expect(fitName("Extra Regen")).toEqual({ size: 15, lines: ["Extra", "Regen"] });
+        expect(fitName("Grit")).toEqual({ size: 15, lines: ["Grit"] });
     });
 
     it("shrinks for a word wider than the name box, as the 1440p captures show", () => {
@@ -207,13 +189,29 @@ describe("fitName", () => {
     it("fits every word inside the width at the chosen size", () => {
         for (const name of ["Mystic Vulnerability", "High-Velocity Rounds", "Spellbreaker", "Enchanter's Emblem"]) {
             const { size } = fitName(name);
-            for (const word of name.split(" ")) expect(oracleWidth(word, size)).toBeLessThanOrEqual(68);
+            for (const word of name.split(" ")) expect(oracleWidth(word, size)).toBeLessThanOrEqual(68.05);
         }
     });
 
     it("wraps onto three lines only once the size leaves room for them", () => {
         const fit = fitName("A Very Long Item Name Here");
-        expect(fit.lines * fit.size * 0.92).toBeLessThanOrEqual(36);
+        expect(fit.lines.length * fit.size * NAME_LINE_HEIGHT).toBeLessThanOrEqual(36);
+    });
+
+    it("spaces lines one font size apart, as the 1440p captures show (20 px at 15)", () => {
+        expect(NAME_LINE_HEIGHT * 15 * (4 / 3)).toBeCloseTo(20, 0);
+        // Each word takes its own line; three lines one size apart fit 36 only below 12.
+        const measure = (text: string, size: number) => text.length * size * 0.5;
+        expect(fitName("abcdefgh abcdefgh abcdefgh", { measure })).toEqual({
+            size: 11.75,
+            lines: ["abcdefgh", "abcdefgh", "abcdefgh"],
+        });
+    });
+
+    it("breaks lines where the game does, at the untracked width", () => {
+        expect(fitName("Veil Walker").lines).toEqual(["Veil", "Walker"]);
+        expect(fitName("Burst Fire").lines).toEqual(["Burst Fire"]);
+        expect(fitName("Mystic Vulnerability").lines).toEqual(["Mystic", "Vulnerability"]);
     });
 
     it("never goes below the minimum", () => {
@@ -222,7 +220,7 @@ describe("fitName", () => {
 
     it("uses a host measurer and box when given", () => {
         const measure = (text: string, size: number) => text.length * size;
-        expect(fitName("abcd", { measure, width: 40 })).toEqual({ size: 10, lines: 1 });
+        expect(fitName("abcd", { measure, width: 40 })).toEqual({ size: 10, lines: ["abcd"] });
     });
 });
 

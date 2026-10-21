@@ -1,5 +1,5 @@
 export { gameColors, type GameColor } from "./colors";
-export { panoramaAlpha, panoramaColor, scale } from "./panorama";
+export { panoramaAlpha, panoramaBlend, panoramaColor, scale } from "./panorama";
 export { gameArt, provideGameArt, type GameArt, type PropertyIcon, type UiArt } from "./art";
 export type { GameItem, ItemSlot } from "./item";
 export * from "./markup/markup";
@@ -13,3 +13,9 @@ export * from "./ability-tooltip/model";
 export { roundHalfEven, formatShownNumber, shownDecimals, FACTOR_DECIMALS } from "./ability-tooltip/number";
 export { abilityTooltipVars, upgradeArt, abilityNameSize } from "./ability-tooltip/view";
 export { default as AbilityTooltipView } from "./ability-tooltip/ability-tooltip.svelte";
+export {
+    upgradeCardStyle,
+    upgradeCardClasses,
+    type UpgradeCardClass,
+    type UpgradeCardStyle,
+} from "./ability-tooltip/view";

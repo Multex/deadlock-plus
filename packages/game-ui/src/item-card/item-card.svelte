@@ -12,6 +12,9 @@
         cardState,
         fitName,
         initials,
+        NAME_BASELINE_SHIFT,
+        NAME_LINE_HEIGHT,
+        NAME_TRACKING,
         nameTone,
         phaseWash,
         plateColor,
@@ -32,7 +35,7 @@
         /** Shown in place of the name for a removed item. */
         removedLabel?: string;
         layout?: CardLayout;
-        /** Picks the paper, wear and icon mask; pass the card's position to cycle them like the game. */
+        /** Picks the paper and icon mask; pass the card's position to cycle them like the game. */
         variant?: number;
         /** The game shows the tier corner in build lists, not in the shop grid. */
         showTier?: boolean;
@@ -109,9 +112,9 @@
     const cap = $derived(image("tier_corner"));
     const numeralArt = $derived(layers ? image(layers.numeral) : undefined);
     const iconMask = $derived(layers ? image(layers.iconMask) : undefined);
-    const wearArt = $derived(layers?.wear ? image(layers.wear.image) : undefined);
     const paperArt = $derived(layers ? image(layers.paper) : undefined);
     const spent = $derived(owned || usedAsComponent);
+    const plate = $derived(item ? (spent ? gameColors.offBlack : plateColor(item.slot, item.tier)) : undefined);
 
     let failedArt = $state<string>();
     const showArt = $derived(!!item?.art && failedArt !== item.art);
@@ -127,7 +130,7 @@
     data-tier={item?.tier}
     style:--radius={radius}
     style:--bright={item ? BRIGHT[item.slot] : undefined}
-    style:--plate={item ? (spent ? gameColors.offBlack : plateColor(item.slot, item.tier)) : undefined}
+    style:--plate={plate}
     style:opacity={look.opacity}
     style:filter={look.saturation < 1 ? `saturate(${look.saturation})` : undefined}
 >
@@ -143,8 +146,12 @@
                 class="art"
                 class:masked={!!iconMask}
                 style:--icon-mask={url(iconMask)}
-                style:--icon-mask-floor="rgb(0 0 0 / {panoramaAlpha(0.5)})"
-                style:--icon-shadow={panoramaColor("offBlack&60")}
+                style:--icon-mask-floor="rgb(0 0 0 / {panoramaAlpha(
+                    0.5,
+                    BRIGHT[item.slot],
+                    plate ?? gameColors.offBlack,
+                )})"
+                style:--icon-shadow={panoramaColor("offBlack&60", plate ?? gameColors.offBlack)}
                 style:filter={look.artBrightness < 1 ? `brightness(${look.artBrightness})` : undefined}
             >
                 {#if showArt}
@@ -164,7 +171,7 @@
                 <span
                     class="tier"
                     aria-hidden="true"
-                    style:--tier-shadow={panoramaColor("#000000ee")}
+                    style:--tier-shadow={panoramaColor("#000000ee", plate ?? gameColors.offBlack)}
                     style:--tier-scale={TIER_SCALE}
                 >
                     {#if cap}
@@ -190,21 +197,12 @@
             {#if item.imbue}
                 <span class="imbue">{imbueLabel}</span>
             {/if}
-            {#if layers.wear && wearArt}
-                <span
-                    class="wear"
-                    class:washed={!!layers.wear.wash}
-                    style:--wear={url(wearArt)}
-                    style:--wash={layers.wear.wash ?? undefined}
-                    style:opacity={layers.wear.opacity}
-                ></span>
-            {/if}
             {#if paperArt}<span class="paper" style:background-image={url(paperArt)}></span>{/if}
             {#if look.outline}<span class="outline" style:border-color={look.outline}></span>{/if}
         </div>
         {#if showActiveTag && item.active}
-            <span class="active-tag" style:--tag-shadow={panoramaColor("#00000060")}
-                ><span style:color={panoramaColor("offWhite&aa")}>{activeLabel}</span></span
+            <span class="active-tag" style:--tag-shadow={panoramaColor("#00000060", plate ?? gameColors.offBlack)}
+                ><span style:color={panoramaColor("offWhite&aa", "#181818")}>{activeLabel}</span></span
             >
         {/if}
     {:else}
@@ -222,12 +220,14 @@
         <span
             class="name"
             style:font-size="calc(var(--u) * {fit.size})"
+            style:line-height={NAME_LINE_HEIGHT}
+            style:letter-spacing="{NAME_TRACKING}em"
             style:color={tone?.color}
             style:opacity={tone?.opacity}
             style:font-style={tone?.italic ? "italic" : undefined}
             style:text-shadow={tone?.shadow ? `0 0 calc(var(--u) * 12) ${tone.shadow}` : undefined}
-            style:-webkit-line-clamp={fit.lines}
-            style:line-clamp={fit.lines}>{label}</span
+            style:translate="0 {NAME_BASELINE_SHIFT}em"
+            >{#each fit.lines as line, i (i)}<span class="line">{line}</span>{/each}</span
         >
     </span>
 
@@ -302,7 +302,6 @@
     }
     .backer,
     .paper,
-    .wear,
     .outline {
         position: absolute;
         inset: 0;
@@ -315,13 +314,6 @@
     .paper {
         background-size: 100% 100%;
         mix-blend-mode: multiply;
-    }
-    .wear {
-        background: var(--wear) center / 100% 100% no-repeat;
-    }
-    .wear.washed {
-        background: var(--wash);
-        mask: var(--wear) center / 100% 100% no-repeat;
     }
     .outline {
         z-index: 2;
@@ -480,17 +472,17 @@
         padding: calc(var(--u) * 2);
     }
     .name {
-        display: -webkit-box;
         max-width: 100%;
         overflow: hidden;
         padding: 0 calc(var(--u) * 2);
         color: var(--off-black);
         font-family: var(--game-font-oracle, "Valve Oracle", sans-serif);
         font-weight: 700;
-        line-height: 0.92;
         text-align: center;
-        overflow-wrap: normal;
-        -webkit-box-orient: vertical;
+    }
+    .line {
+        display: block;
+        white-space: nowrap;
     }
 
     .item-card.removed {

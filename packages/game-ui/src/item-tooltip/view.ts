@@ -3,8 +3,9 @@ import type { PropertyIcon } from "../art";
 import { gameColors, type GameColor } from "../colors";
 import { oracleWidth } from "../item-card/card";
 import type { ItemSlot } from "../item";
-import { panoramaAlpha, panoramaColor } from "../panorama";
-import type { LabelRole, ScalingArrow, ValueText } from "./model";
+import type { MarkupNode } from "../markup/markup";
+import { panoramaAlpha, panoramaBlend, panoramaColor } from "../panorama";
+import type { ItemTooltipModel, LabelRole, ScalingArrow, ValueText } from "./model";
 
 /** A url as a CSS `url()` value. */
 export function cssUrl(src: string | null | undefined): string | undefined {
@@ -32,9 +33,9 @@ const EXTRA_COLORS: Record<string, string> = {
 
 /**
  * A Panorama colour value as CSS: a base-style name (`spiritBrightColor`, `armorColor`, `offWhite`) or hex, with
- * an optional `&xx` alpha through the alpha rule. Null for `none` and for names it does not know.
+ * an optional `&xx` alpha blended over `under`. Null for `none` and for names it does not know.
  */
-export function washColor(value: string | null | undefined): string | null {
+export function washColor(value: string | null | undefined, under: string = gameColors.offBlack): string | null {
     if (!value || value === "none") return null;
     const [name, alpha] = value.split("&");
     let hex: string | undefined;
@@ -46,7 +47,7 @@ export function washColor(value: string | null | undefined): string | null {
     }
     if (hex === undefined) return null;
     try {
-        return panoramaColor(alpha === undefined ? hex : `${hex}&${alpha}`);
+        return panoramaColor(alpha === undefined ? hex : `${hex}&${alpha}`, under);
     } catch {
         return null;
     }
@@ -61,6 +62,29 @@ export type IconPaint = { image: string; wash: string | null };
 export function iconPaint(icon: PropertyIcon | undefined, wash?: string | null): IconPaint | null {
     if (!icon) return null;
     return { image: cssUrl(icon.url) ?? "none", wash: wash ?? washColor(icon.wash) };
+}
+
+/**
+ * The children of a `diminish` span, drawn as a block of their own, or null for any other node. Panorama sizes
+ * each line to its own text, so the game's 15 px notes pack tighter than the description's 18 px lines; a browser
+ * line keeps its paragraph's strut, so the note needs its own block. A block starts its own line already, so a
+ * leading break inside it would leave an empty line.
+ */
+export function diminishBlock(node: MarkupNode): MarkupNode[] | null {
+    if (node.kind !== "span" || !node.styles.some((s) => s === "diminish" || s === "small_diminish")) return null;
+    const first = node.children.findIndex((child) => child.kind !== "break");
+    return first === -1 ? [] : node.children.slice(first);
+}
+
+/** Some cell or row shows a base number the game would replace with the hero's own; the tooltip notes it once. */
+export function variesByHero(model: ItemTooltipModel): boolean {
+    return model.sections.some((section) =>
+        section.blocks.some(
+            (block) =>
+                block.rows.some((row) => row.variesByHero) ||
+                block.cells.some((cell) => cell.kind === "important" && cell.variesByHero),
+        ),
+    );
 }
 
 export type InlineAttributeStyle = {
@@ -118,9 +142,12 @@ const SCALING_COLORS: Record<ScalingArrow, string> = {
     boon: "#53e1c4",
 };
 
-/** `.ScalingStat_<Stat> Label`; a marker with no known stat keeps `.ScalingStatValue`'s offWhite&aa. */
+/**
+ * `.ScalingStat_<Stat> Label`; a marker with no known stat keeps `.ScalingStatValue`'s offWhite&aa, over the
+ * dark box the marker sits in.
+ */
 export function scalingColor(arrow: ScalingArrow | null): string {
-    return arrow ? SCALING_COLORS[arrow] : panoramaColor("offWhite&aa");
+    return arrow ? SCALING_COLORS[arrow] : panoramaColor("offWhite&aa", gameColors.offBlack);
 }
 
 const SHRINK_STEP = 0.25;
@@ -164,54 +191,79 @@ const SLOT_DARK: Record<ItemSlot, string> = {
     spirit: "#362147",
 };
 
+// The typical (median) colour of the body of `tooltip_backer_<slot>`, the paper every translucent colour of the
+// tooltip blends over. Panorama blends in linear light, so the browser alpha that matches depends on it.
+const PAPER: Record<ItemSlot, string> = {
+    weapon: "#795218",
+    vitality: "#405b44",
+    spirit: "#59507a",
+};
+
+// The typical colour of `tooltip_header_<slot>`, under the header's own text.
+const HEADER: Record<ItemSlot, string> = {
+    weapon: "#532400",
+    vitality: "#397f50",
+    spirit: "#372a6a",
+};
+
+const COMPONENT_ICON_BOX = "#009cb3";
+
 /**
- * Every colour the item tooltip draws that is not a plain base colour, as `--tt-*` custom properties. Panorama
- * alphas go through the alpha rule here because CSS cannot.
+ * Every colour the item tooltip draws that is not a plain base colour, as `--tt-*` custom properties. Each
+ * translucent colour and opacity is fitted to what it sits on, since the browser cannot blend in linear light.
  */
 export function tooltipVars(slot: ItemSlot): Record<string, string> {
     const bright = SLOT_BRIGHT[slot];
     const dark = SLOT_DARK[slot];
+    const paper = PAPER[slot];
+    const header = HEADER[slot];
+    const bar = panoramaBlend("offBlack", 0x90 / 255, paper);
+    const stacks = panoramaBlend("offBlack", 0x50 / 255, panoramaBlend("offBlack", 0xaa / 255, paper));
+    const cell = panoramaBlend("#000000", 0x60 / 255, paper);
+    const label = panoramaBlend("offBlack", 0xea / 255, paper);
+    const list = panoramaBlend("offBlack", 0x70 / 255, paper);
+    const owned = panoramaBlend("#000000", 0x50 / 255, list);
     return {
         "--tt-slot-bright": bright,
         "--tt-slot-dark": dark,
-        "--tt-stacks-wash": panoramaColor(`${bright}&ea`),
-        "--tt-affix": panoramaColor("#ffffff50"),
-        "--tt-text-shadow": panoramaColor("offBlack&90"),
-        "--tt-name-shadow": panoramaColor("#00000030"),
+        "--tt-stacks-wash": panoramaColor(`${bright}&ea`, stacks),
+        "--tt-affix": panoramaColor("#ffffff50", paper),
+        "--tt-text-shadow": panoramaColor("offBlack&90", paper),
+        "--tt-name-shadow": panoramaColor("#00000030", header),
         "--tt-description": "#cdcdcd",
         "--tt-highlight": "#f8f8f8",
-        "--tt-diminish": panoramaColor("#bfbbb090"),
+        "--tt-diminish": panoramaColor("#bfbbb090", paper),
         "--tt-negative": "rgb(255 106 106)",
         "--tt-negative-value": "#ff8888",
-        "--tt-bar-active": panoramaColor("offBlack&aa"),
-        "--tt-bar-passive": panoramaColor("offBlack&90"),
-        "--tt-bar-dim": opacity(0.5),
-        "--tt-stacks-bg": panoramaColor("offBlack&50"),
-        "--tt-cell": panoramaColor("#00000060"),
-        "--tt-stats": panoramaColor("#00000066"),
-        "--tt-owned": panoramaColor("shard&90"),
-        "--tt-imbued": panoramaColor("#000000aa"),
-        "--tt-conditional": opacity(0.3),
-        "--tt-scaling-x": panoramaColor("#ffffff86"),
+        "--tt-bar-active": panoramaColor("offBlack&aa", paper),
+        "--tt-bar-passive": panoramaColor("offBlack&90", paper),
+        "--tt-bar-dim": opacity(0.5, gameColors.offWhite, bar),
+        "--tt-stacks-bg": panoramaColor("offBlack&50", stacks),
+        "--tt-cell": panoramaColor("#00000060", paper),
+        "--tt-stats": panoramaColor("#00000066", paper),
+        "--tt-owned": panoramaColor("shard&90", header),
+        "--tt-imbued": panoramaColor("#000000aa", header),
+        // `.ScalingStatAltMultiply` is #ffffff86 at 0.8 opacity: one fade of 0x86 x 0.8, drawn by the colour.
+        "--tt-scaling-x": panoramaColor(`#ffffff${Math.round(0x86 * 0.8).toString(16)}`, cell),
         "--tt-modified": "#00ff99",
-        "--tt-component-label": panoramaColor("#ffffff50"),
-        "--tt-component-label-bg": panoramaColor("offBlack&ea"),
-        "--tt-component-list-bg": panoramaColor("offBlack&70"),
-        "--tt-component-name": panoramaColor("offWhite&90"),
-        "--tt-component-owned-bg": panoramaColor("#00000050"),
-        "--tt-details-border": panoramaColor("#00000070"),
-        "--tt-scaling-x-opacity": opacity(0.8),
-        "--tt-stacks-label-opacity": opacity(0.8),
-        "--tt-row-name-opacity": opacity(0.5),
-        "--tt-component-icon-opacity": opacity(0.9),
-        "--tt-component-owned-opacity": opacity(0.8),
-        "--tt-component-owned-icon-opacity": opacity(0.3),
-        "--tt-popularity-fallback": panoramaColor("brandGreen&30"),
-        "--tt-paper": `color-mix(in srgb, ${dark} 45%, ${gameColors.offBlack})`,
+        "--tt-component-label": panoramaColor("#ffffff50", label),
+        "--tt-component-label-bg": panoramaColor("offBlack&ea", paper),
+        "--tt-component-list-bg": panoramaColor("offBlack&70", paper),
+        "--tt-component-name": panoramaColor("offWhite&90", list),
+        "--tt-component-owned-bg": panoramaColor("#00000050", list),
+        "--tt-details-border": panoramaColor("#00000070", dark),
+        "--tt-scaling-x-opacity": "1",
+        "--tt-stacks-label-opacity": opacity(0.8, bright, stacks),
+        "--tt-row-name-opacity": opacity(0.5, "#ffffff", paper),
+        "--tt-component-icon-opacity": opacity(0.9, gameColors.offWhite, COMPONENT_ICON_BOX),
+        "--tt-component-owned-opacity": opacity(0.8, gameColors.offWhite, list),
+        "--tt-component-owned-icon-opacity": opacity(0.3, gameColors.offWhite, COMPONENT_ICON_BOX),
+        "--tt-popularity-fallback": panoramaColor("brandGreen&30", paper),
+        "--tt-paper": paper,
         "--tt-header-fallback": `linear-gradient(100deg, ${bright}, ${dark})`,
     };
 }
 
-function opacity(alpha: number): string {
-    return String(Math.round(panoramaAlpha(alpha) * 1000) / 1000);
+function opacity(alpha: number, color: string, under: string): string {
+    return String(Math.round(panoramaAlpha(alpha, color, under) * 1000) / 1000);
 }

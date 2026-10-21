@@ -27,33 +27,21 @@ export function textureVariant(name: string): number {
 export type CardLayers = {
     backer: ShopUiImage | null;
     paper: ShopUiImage;
-    wear: { image: ShopUiImage; wash: string | null; opacity: number } | null;
     iconMask: ShopUiImage | null;
     numeral: ShopUiImage | null;
 };
 
-const HALF = panoramaAlpha(0.5);
-
-function wearWash(slot: ItemSlot, tier: ItemTier): { wash: string | null; opacity: number } {
-    switch (tier) {
-        case 1:
-            if (slot === "vitality") return { wash: "#f3e1cc", opacity: 1 };
-            if (slot === "spirit") return { wash: "rgb(247 232 213)", opacity: 1 };
-            return { wash: null, opacity: HALF };
-        case 2:
-            return { wash: "rgb(230 209 191)", opacity: HALF };
-        case 3:
-            return { wash: "rgb(206 173 155)", opacity: HALF };
-        case 4:
-            return { wash: "rgb(105 97 92)", opacity: HALF };
-        case 5:
-            return { wash: null, opacity: 1 };
-    }
+// A card's art and name plate are light and the page under it dark, so its fades are light over dark.
+function fade(alpha: number): number {
+    return panoramaAlpha(alpha, gameColors.offWhite, gameColors.offBlack);
 }
+
+const HALF = fade(0.5);
 
 /**
  * The game's card images for an item. `variant` stands in for the card's position: the game cycles paper
- * textures and icon masks by `3n+k` and paper wear by `4n+k`.
+ * textures and icon masks by `3n+k`. Its `.paperWear` panel has no width or height, so Panorama sizes it to
+ * its (no) children and the wear never shows; the 1440p captures have none.
  */
 export function cardLayers(
     item: Pick<GameItem, "slot" | "tier" | "active">,
@@ -70,9 +58,6 @@ export function cardLayers(
     return {
         backer: spent || item.tier === 5 ? null : `card_backer_${item.slot}_t${item.tier}`,
         paper: `paper_texture_${mask}`,
-        wear: spent
-            ? null
-            : { image: `paper_wear_${((index % 4) + 1) as 1 | 2 | 3 | 4}`, ...wearWash(item.slot, item.tier) },
         iconMask: layout === "shop" && !item.active ? `icon_mask_${mask}` : null,
         numeral: item.tier === 5 ? null : `tier_number_${item.tier}`,
     };
@@ -99,7 +84,9 @@ const TIER4_NAME: Record<ItemSlot, string> = { weapon: "#e4c5a1", vitality: "#c2
 export function nameTone(slot: ItemSlot, tier: ItemTier, flags: CardFlags): NameTone {
     const italic = !!flags.disabled;
     if (flags.usedAsComponent) return { color: gameColors.offWhite, shadow: null, italic: true, opacity: HALF };
-    if (flags.owned) return { color: panoramaColor("offWhite&80"), shadow: null, italic, opacity: 1 };
+    // A spent card's plate is offBlack.
+    if (flags.owned)
+        return { color: panoramaColor("offWhite&80", gameColors.offBlack), shadow: null, italic, opacity: 1 };
     if (tier === 4) return { color: TIER4_NAME[slot], shadow: null, italic, opacity: 1 };
     if (tier === 3 && slot === "weapon") return { color: "#000000", shadow: "#aa8470", italic, opacity: 1 };
     return { color: gameColors.offBlack, shadow: null, italic, opacity: 1 };
@@ -122,7 +109,7 @@ export function cardState({ owned = false, usedAsComponent = false, disabled = f
     const spent = owned || usedAsComponent;
     if (disabled && !spent) {
         return {
-            opacity: panoramaAlpha(0.2),
+            opacity: fade(0.2),
             cardOpacity: 1,
             artBrightness: 1,
             saturation: 0,
@@ -133,9 +120,9 @@ export function cardState({ owned = false, usedAsComponent = false, disabled = f
         };
     }
     return {
-        opacity: spent ? panoramaAlpha(0.7) : 1,
+        opacity: spent ? fade(0.7) : 1,
         cardOpacity: spent ? HALF : 1,
-        artBrightness: owned ? HALF : 1,
+        artBrightness: owned ? 1 - panoramaAlpha(0.5, "#000000", gameColors.offWhite) : 1,
         saturation: 1,
         shadow: !spent,
         outline: spent ? gameColors.offBlack : null,
@@ -168,7 +155,27 @@ export function oracleWidth(text: string, size: number): number {
     return (total / 1000) * size;
 }
 
-export type NameFit = { size: number; lines: number };
+/**
+ * `.modName`'s `line-height: 92%`, in em. The 1440p captures put its lines one font size apart, which is 92% of
+ * Valve Oracle's Windows ascent + descent (1.09 em), not of the font size.
+ */
+export const NAME_LINE_HEIGHT = 0.92 * 1.09;
+
+/**
+ * Letter spacing in em. The game sets Valve Oracle about 0.5 px per glyph tighter at 15 px than browsers do
+ * (41 words measured in the 1440p captures). The fit ignores it: the captures shrink names to the same sizes.
+ */
+export const NAME_TRACKING = -0.035;
+
+/**
+ * How far below the browser's the game draws the name's baseline, in em. Panorama places a line by the font's
+ * Windows ascent and descent (1.0 + 0.09 em for Valve Oracle), the browser by its hhea ones (1.0 + 0.3 em), so
+ * at the same line height the game's text sits half the 0.21 em difference lower.
+ */
+export const NAME_BASELINE_SHIFT = (1.3 - 1.09) / 2;
+
+/** The fitted size and the name's text on each line. */
+export type NameFit = { size: number; lines: string[] };
 
 export type FitOptions = {
     /** px; the name area is 76 wide with 2 padding, the label another 2 each side. */
@@ -183,35 +190,53 @@ export type FitOptions = {
 };
 
 const FIT_STEP = 0.25;
+// The estimated advances are a hair off the game's: "Burst Fire" estimates 68.01 at 15 and stays on one line.
+const FIT_SLACK = 0.05;
 
-function wrap(words: string[], size: number, width: number, measure: FitOptions["measure"] & {}): number | null {
-    let lines = 0;
+/** Greedy word wrap; null when `strict` and a single word is wider than `width`. */
+function wrap(
+    words: string[],
+    size: number,
+    width: number,
+    measure: FitOptions["measure"] & {},
+    strict: boolean,
+): string[] | null {
+    const lines: string[] = [];
     let line = "";
     for (const word of words) {
-        if (measure(word, size) > width) return null;
+        if (strict && measure(word, size) > width + FIT_SLACK) return null;
         const joined = line ? `${line} ${word}` : word;
-        if (line && measure(joined, size) > width) {
-            lines += 1;
+        if (line && measure(joined, size) > width + FIT_SLACK) {
+            lines.push(line);
             line = word;
         } else {
             line = joined;
         }
     }
-    return lines + (line ? 1 : 0);
+    if (line) lines.push(line);
+    return lines;
 }
 
 /**
  * The name size Panorama's `text-overflow: shrink` lands on: the largest size at which every word fits the
- * width and the wrapped lines fit the height. CSS has no shrink-to-fit, so the host renders at this size.
+ * width and the wrapped lines fit the height. CSS has no shrink-to-fit, so the host renders at this size, and
+ * breaks at these lines: the browser's own wrap would see the tighter tracking and join words the game splits.
  */
 export function fitName(name: string, options: FitOptions = {}): NameFit {
-    const { width = 68, height = 36, max = 15, min = 8, lineHeight = 0.92, measure = oracleWidth } = options;
+    const {
+        width = 68,
+        height = 36,
+        max = 15,
+        min = 8,
+        lineHeight = NAME_LINE_HEIGHT,
+        measure = oracleWidth,
+    } = options;
     const words = name.split(/\s+/).filter(Boolean);
     for (let size = max; size >= min; size -= FIT_STEP) {
-        const lines = wrap(words, size, width, measure);
-        if (lines !== null && lines * size * lineHeight <= height) return { size, lines };
+        const lines = wrap(words, size, width, measure, true);
+        if (lines !== null && lines.length * size * lineHeight <= height) return { size, lines };
     }
-    return { size: min, lines: wrap(words, min, width, measure) ?? Math.max(1, words.length) };
+    return { size: min, lines: wrap(words, min, width, measure, false)! };
 }
 
 /** Up to two letters for a card whose art is missing. */

@@ -9,7 +9,7 @@
     const icon = $derived(popularity.heroIcon && failed !== popularity.heroIcon ? popularity.heroIcon : null);
 </script>
 
-<!-- `#PopularityContainer`: the hero's 30 px minimap icon and an oracle italic line in brandGreen. -->
+<!-- `#PopularityContainer`: the hero's 30 px minimap icon and an oracle italic line in brandGreen, from the left. -->
 <div class="popularity">
     {#if icon}
         <img class="hero" src={icon} alt="" draggable="false" onerror={() => (failed = icon)} />
@@ -23,7 +23,6 @@
     .popularity {
         display: flex;
         align-items: center;
-        justify-content: center;
         padding: calc(var(--u) * 5) calc(var(--u) * 20);
     }
     .hero {
@@ -43,5 +42,7 @@
         font-size: calc(var(--u) * 16);
         font-style: italic;
         font-weight: 500;
+        /* Measured: this italic line sits taller than the other oracle labels. */
+        line-height: 1.48;
     }
 </style>

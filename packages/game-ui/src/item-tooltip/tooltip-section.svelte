@@ -1,15 +1,14 @@
 <script lang="ts">
-    import type { ItemTooltipModel, SectionView } from "./model";
+    import type { SectionView } from "./model";
     import SectionBar from "./section-bar.svelte";
     import TooltipBlock from "./tooltip-block.svelte";
 
     type Props = {
         section: SectionView;
-        text: ItemTooltipModel["text"];
         bindings?: Partial<Record<string, string>>;
     };
 
-    let { section, text, bindings }: Props = $props();
+    let { section, bindings }: Props = $props();
 </script>
 
 <!-- `AbilityTypeSection`: the header bar, then the blocks with 14 less on the right. -->
@@ -17,7 +16,7 @@
     {#if section.bar !== "none"}<SectionBar {section} />{/if}
     <div class="body">
         {#each section.blocks as block, i (i)}
-            <div class="block"><TooltipBlock {block} innate={section.kind === "innate"} {text} {bindings} /></div>
+            <div class="block"><TooltipBlock {block} innate={section.kind === "innate"} {bindings} /></div>
         {/each}
     </div>
 </section>

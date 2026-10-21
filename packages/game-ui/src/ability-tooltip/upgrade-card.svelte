@@ -4,7 +4,7 @@
     import { gameText } from "../text";
     import AbilityMarkup from "./ability-markup.svelte";
     import type { AbilityTooltipModel, UpgradeCardView } from "./model";
-    import { upgradeArt } from "./view";
+    import { upgradeCardClasses, upgradeCardStyle } from "./view";
 
     type Props = {
         card: UpgradeCardView;
@@ -17,21 +17,30 @@
     const art = gameArt();
     const t = gameText();
     const ui = $derived(art().ui);
-    const body = $derived(cssUrl(ui[upgradeArt(card.state)]));
-    const bolt = $derived(cssUrl(card.state === "has" ? ui.ability_upgrade_check : ui.ability_point));
+    const look = $derived(upgradeCardStyle(upgradeCardClasses(card.state)));
+    const body = $derived(cssUrl(ui[look.art]));
+    const bolt = $derived(cssUrl(ui[look.bolt.art]));
 </script>
 
 <!-- `CitadelAbilityUpgradeButton`: a 30 tall cost strip over the `ap_rect_*` body. -->
 <div
     class="card"
-    class:has={card.state === "has"}
-    class:available={card.state === "available"}
-    class:cant-afford={card.state === "cantAfford"}
+    style:--body={body}
+    style:--body-fill={look.body}
+    style:--strip={look.strip}
+    style:--bolt={bolt}
+    style:--bolt-wash={look.bolt.wash}
+    style:--bolt-size={look.bolt.size}
+    style:--cost={look.cost}
+    style:--bonus={look.bonus.color}
+    style:--bonus-opacity={look.bonus.opacity}
+    style:--desc={look.desc.color}
+    style:--desc-opacity={look.desc.opacity}
 >
-    <div class="content" style:--body={body} class:painted={!!body}>
+    <div class="content" class:painted={!!body}>
         <div class="strip">
-            <span class="bolt" class:fallback={!bolt} style:--bolt={bolt} aria-hidden="true"></span>
-            {#if card.state !== "has"}<span class="cost">{card.cost}</span>{/if}
+            <span class="bolt" class:fallback={!bolt} aria-hidden="true"></span>
+            {#if look.cost}<span class="cost">{card.cost}</span>{/if}
         </div>
         <div class="desc">
             {#if card.description}
@@ -61,17 +70,14 @@
         display: flex;
         width: 100%;
         flex-direction: column;
+        background-color: var(--body-fill, transparent);
     }
     .content.painted {
-        background: var(--body) center / 100% 100% no-repeat;
+        background-image: var(--body);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
     }
-    .cant-afford .content {
-        background-color: var(--at-card-cant-afford);
-    }
-    .has .content {
-        background-color: var(--at-strip);
-    }
-    /* `.abilityPointsRequiredContainer`: offBlack, deadlockGreenDarker once trained. */
     .strip {
         display: flex;
         height: calc(var(--u) * 30);
@@ -79,42 +85,27 @@
         align-items: center;
         justify-content: center;
         margin: calc(var(--u) * 2);
-        background: var(--at-strip);
+        background: var(--strip);
     }
-    .has .strip {
-        background: var(--at-strip-has);
-    }
-    /* `.abilityPointBolt`: the AP glyph washed deadlockGreen; colorEnemy when it cannot be afforded. */
     .bolt {
-        --wash: var(--at-bolt);
-        width: calc(var(--u) * 16);
-        height: calc(var(--u) * 16);
+        width: calc(var(--u) * var(--bolt-size));
+        height: calc(var(--u) * var(--bolt-size));
         background:
             var(--bolt) center / contain no-repeat,
-            var(--wash);
+            var(--bolt-wash);
         background-blend-mode: multiply;
         mask: var(--bolt) center / contain no-repeat;
     }
     .bolt.fallback {
-        background: var(--wash);
+        background: var(--bolt-wash);
         clip-path: polygon(55% 0, 15% 55%, 45% 55%, 35% 100%, 85% 40%, 55% 40%);
         mask: none;
-    }
-    .cant-afford .bolt {
-        --wash: var(--at-enemy);
-    }
-    .has .bolt {
-        --wash: var(--at-check);
-        width: calc(var(--u) * 20);
-        height: calc(var(--u) * 20);
     }
     .cost {
         margin-left: calc(var(--u) * 4);
         font-size: calc(var(--u) * 20);
         font-weight: 700;
-    }
-    .cant-afford .cost {
-        color: var(--at-enemy);
+        color: var(--cost);
     }
     .desc {
         display: flex;
@@ -125,24 +116,24 @@
         padding: calc(var(--u) * 3) calc(var(--u) * 8);
         text-align: center;
     }
-    /* `.upgradeBonusAmount`: bold 22. */
     .bonus {
+        color: var(--bonus);
         font-size: calc(var(--u) * 22);
         font-weight: 700;
+        opacity: var(--bonus-opacity);
     }
-    /* `#upgradeDesc`: semi-bold 16 at .6. */
     .upgrade-desc {
+        color: var(--desc);
         font-size: calc(var(--u) * 16);
         font-weight: 600;
-        opacity: var(--at-card-desc-opacity);
+        opacity: var(--desc-opacity);
     }
-    .cant-afford .bonus,
-    .cant-afford .upgrade-desc {
-        opacity: var(--at-card-dim-opacity);
+    /* The card's `.highlight` is only bold; the tooltip body's highlight colours do not reach it. */
+    .upgrade-desc :global([class^="m-highlight"]) {
+        color: inherit;
     }
-    .has .bonus,
-    .has .upgrade-desc {
-        opacity: 1;
+    .upgrade-desc :global(.m-highlight) {
+        font-weight: 700;
     }
     /* `.build_next`: bold 14 uppercase on buildsDark, hanging 10 below the card. */
     .recommended {

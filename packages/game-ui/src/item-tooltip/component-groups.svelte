@@ -40,9 +40,10 @@
         flex-direction: column;
         padding: 0 calc(var(--u) * 20);
     }
-    /* `.componentsLabel`: 14 bold uppercase #ffffff50 on offBlack&ea. */
+    /* `.componentsLabel`: 14 bold uppercase #ffffff50 on offBlack&ea; the band measures 33 px at 1440p. */
     .label {
         padding: calc(var(--u) * 4) calc(var(--u) * 10) calc(var(--u) * 2);
+        line-height: 1.34;
         background: var(--tt-component-label-bg);
         color: var(--tt-component-label);
         font-size: calc(var(--u) * 14);

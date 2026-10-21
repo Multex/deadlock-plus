@@ -1,13 +1,14 @@
 <script lang="ts">
     import type { HTMLAttributes } from "svelte/elements";
     import { gameArt } from "../art";
+    import { gameText } from "../text";
     import ComponentGroups from "./component-groups.svelte";
     import DetailsBox from "./details-box.svelte";
     import type { ItemTooltipModel } from "./model";
     import PopularityLine from "./popularity-line.svelte";
     import TooltipHeader from "./tooltip-header.svelte";
     import TooltipSection from "./tooltip-section.svelte";
-    import { cssUrl, styleVars, tooltipVars } from "./view";
+    import { cssUrl, styleVars, tooltipVars, variesByHero } from "./view";
 
     type Props = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
         /** From `itemTooltipModel`. */
@@ -22,6 +23,7 @@
     let { model, bindings = {}, class: className, style, ...rest }: Props = $props();
 
     const art = gameArt();
+    const t = gameText();
     const ui = $derived(art().ui);
     const slot = $derived(model.header.slot);
     const backer = $derived(cssUrl(ui[`tooltip_backer_${slot}`]));
@@ -42,19 +44,25 @@
             <TooltipHeader header={model.header} width={model.width} />
             <div class="attributes">
                 {#each model.sections as section, i (i)}
-                    <TooltipSection {section} text={model.text} {bindings} />
+                    <TooltipSection {section} {bindings} />
                 {/each}
             </div>
             {#if model.popularity}<PopularityLine popularity={model.popularity} />{/if}
             {#if model.components.length > 0}<ComponentGroups groups={model.components} />{/if}
+            {#if variesByHero(model)}<span class="footnote">* {t(model.text.variesByHero)}</span>{/if}
         </div>
     </div>
     {#if model.details}<DetailsBox details={model.details} {slot} keyLabel={bindings.ExtraInfo} />{/if}
 </div>
 
 <style>
+    /*
+     * `--tt-oracle-line`: a Panorama label sets its own height from the font, taller than a browser's normal line
+     * for Valve Oracle (measured on stat rows and item names at 1440p).
+     */
     .item-tooltip {
         --u: calc(var(--game-ui-scale, 1) * 1px);
+        --tt-oracle-line: 1.375;
         position: relative;
         z-index: 0;
         display: flex;
@@ -79,7 +87,9 @@
         filter: drop-shadow(0 0 calc(var(--u) * 10) #000000);
     }
     .paper {
+        position: relative;
         display: flex;
+        box-sizing: border-box;
         min-height: 100%;
         flex-direction: column;
         padding-bottom: calc(var(--u) * 30);
@@ -90,6 +100,17 @@
     }
     .paper.masked {
         mask: var(--backer-mask) center / 100% 100% no-repeat;
+    }
+    /* Not a game label: it sits in the paper's bottom padding, so the game's layout above keeps its size. */
+    .footnote {
+        position: absolute;
+        bottom: calc(var(--u) * 10);
+        left: calc(var(--u) * 21);
+        color: var(--tt-affix);
+        font-size: calc(var(--u) * 13);
+        font-style: italic;
+        font-weight: 600;
+        line-height: calc(var(--u) * 16);
     }
     .attributes {
         margin: calc(var(--u) * 1);

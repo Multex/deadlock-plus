@@ -20,7 +20,7 @@
 <header class="header" class:painted={!!band} style:--band={band}>
     <span class="name" style:font-size="calc(var(--u) * {headerNameSize(header.name, width)})">{header.name}</span>
     {#if header.cost !== null}
-        <span class="state">
+        <span class="state priced">
             <span class="soul" class:fallback={!soul} style:--soul={soul} aria-hidden="true"></span>
             <span class="cost">{header.cost}</span>
         </span>
@@ -52,13 +52,16 @@
     .name {
         font-family: var(--game-font-oracle);
         font-weight: 700;
-        line-height: 1.1;
+        line-height: var(--tt-oracle-line);
         text-shadow: calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--tt-name-shadow);
         white-space: nowrap;
     }
     .state {
         display: flex;
         align-items: center;
+    }
+    .priced {
+        align-items: flex-start;
     }
     /* `.goldIcon`: 16 x 22, 3 down, washed shardColor. */
     .soul {
@@ -73,8 +76,13 @@
         mask: none;
         clip-path: polygon(50% 20%, 85% 50%, 50% 80%, 15% 50%);
     }
-    /* `.ModCost`: numericBlock bold 20 in shardColor, plain digits. */
+    /*
+     * `.ModCost`: numericBlock bold 20 in shardColor, plain digits, centred beside the top-aligned glyph. Its
+     * line box is Panorama's, measured at 1440p.
+     */
     .cost {
+        align-self: center;
+        line-height: 1.375;
         color: var(--game-shard, #99ffd6);
         font-family: var(--game-font-numeric-block);
         font-size: calc(var(--u) * 20);

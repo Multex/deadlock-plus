@@ -3320,7 +3320,6 @@
             "popular_early": "Purchased early game in {percent}% of matches.",
             "popular_mid": "Purchased mid game in {percent}% of matches.",
             "popular_late": "Purchased late game in {percent}% of matches.",
-            "conditional": "Conditional",
             "see_details": "See Details",
             "varies_by_hero": "Varies by hero"
         },
