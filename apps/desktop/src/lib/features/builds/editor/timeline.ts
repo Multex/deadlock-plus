@@ -108,6 +108,87 @@ export function timelineEnd(
     return last ? netWorthFor(last.souls) : STARTING_SOULS;
 }
 
+export interface SoulScale {
+    /** Fraction of the strip's width, 0-1, at which `netWorth` sits. */
+    at(netWorth: number): number;
+    netWorthAt(fraction: number): number;
+}
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+/**
+ * A square-root scale from 0 to `end`: the cheap early buys and the first levels come a few hundred souls
+ * apart, so a linear strip piles them into its first few percent.
+ */
+export function soulScale(end: number): SoulScale {
+    return {
+        at: (netWorth) => (end > 0 ? Math.sqrt(clamp(netWorth, 0, end) / end) : 0),
+        netWorthAt: (fraction) => clamp(fraction, 0, 1) ** 2 * end,
+    };
+}
+
+// Rounder counts first, so a narrow strip keeps 1k/10k/20k and drops 5k before them.
+const TICK_PRIORITY = [10_000, 1000, 20_000, 40_000, 5000, 2000, 80_000, 30_000, 60_000, 100_000, 15_000, 50_000];
+
+/** Soul counts to label on a strip `width` px wide, each at least `minGap` px from the next. */
+export function soulTicks(end: number, width: number, minGap: number): number[] {
+    const { at } = soulScale(end);
+    const kept: number[] = [];
+    for (const souls of TICK_PRIORITY) {
+        if (souls > end) continue;
+        const x = at(souls) * width;
+        if (kept.every((k) => Math.abs(at(k) * width - x) >= minGap)) kept.push(souls);
+    }
+    return kept.sort((a, b) => a - b);
+}
+
+export interface LaneOptions {
+    /** Icon width in px. */
+    size: number;
+    gap: number;
+    width: number;
+    rows: number;
+}
+
+export interface Packed {
+    /** Centre of the icon in px. */
+    x: number;
+    row: number;
+}
+
+/**
+ * Lays icons centred on `xs` along a lane without overlap: an icon that would touch takes the next free
+ * row, and once every row is taken it slides right along the row with the most room. Icons stay inside
+ * both edges; a crowd at the right edge is pushed back left.
+ */
+export function packLane(xs: readonly number[], { size, gap, width, rows }: LaneOptions): Packed[] {
+    const pitch = size + gap;
+    const min = size / 2;
+    const max = width - size / 2;
+    const out: Packed[] = xs.map(() => ({ x: 0, row: 0 }));
+    const last = Array<number>(Math.max(1, rows)).fill(-Infinity);
+    const byX = xs.map((x, i) => ({ x: clamp(x, min, max), i })).sort((a, b) => a.x - b.x);
+
+    for (const { x, i } of byX) {
+        let row = last.findIndex((l) => l + pitch <= x);
+        if (row < 0) row = last.indexOf(Math.min(...last));
+        const placed = Math.max(x, last[row]! + pitch);
+        out[i] = { x: placed, row };
+        last[row] = placed;
+    }
+
+    for (let row = 0; row < last.length; row++) {
+        let limit = max;
+        for (const { i } of [...byX].reverse()) {
+            const p = out[i]!;
+            if (p.row !== row) continue;
+            p.x = Math.min(p.x, limit);
+            limit = p.x - pitch;
+        }
+    }
+    return out;
+}
+
 export function itemsBoughtBy(entries: readonly TimelineEntry[], netWorth: number): number[] {
     return entries.filter((e) => e.netWorth <= netWorth).map((e) => e.abilityId);
 }

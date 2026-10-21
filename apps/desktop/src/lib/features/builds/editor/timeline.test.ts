@@ -20,8 +20,11 @@ import {
     itemsBoughtBy,
     levelAt,
     loadNetWorthCurve,
+    packLane,
     placeItems,
     quickBuyOrder,
+    soulScale,
+    soulTicks,
     statsAt,
     timeFor,
     timelineEnd,
@@ -382,5 +385,107 @@ describe("loadNetWorthCurve", () => {
         const api = fakeApi({});
         api.performanceCurve.mockResolvedValue([curvePoint(180, null)]);
         expect(await loadNetWorthCurve(api, HERO, null)).toBeNull();
+    });
+});
+
+describe("soulScale", () => {
+    const scale = soulScale(40_000);
+
+    it("spreads the early game: a quarter of the souls takes half the width", () => {
+        expect(scale.at(0)).toBe(0);
+        expect(scale.at(10_000)).toBeCloseTo(0.5);
+        expect(scale.at(40_000)).toBe(1);
+    });
+
+    it("maps a fraction of the width back to its net worth", () => {
+        expect(scale.netWorthAt(0.5)).toBeCloseTo(10_000);
+        expect(scale.netWorthAt(scale.at(1234))).toBeCloseTo(1234);
+    });
+
+    it("clamps to the strip", () => {
+        expect(scale.at(-5)).toBe(0);
+        expect(scale.at(90_000)).toBe(1);
+        expect(scale.netWorthAt(2)).toBe(40_000);
+    });
+
+    it("is flat rather than NaN for an empty strip", () => {
+        expect(soulScale(0).at(100)).toBe(0);
+    });
+});
+
+describe("soulTicks", () => {
+    const px = (end: number, width: number) => (souls: number) => soulScale(end).at(souls) * width;
+
+    it("labels round soul counts up to the end, in order", () => {
+        const ticks = soulTicks(50_000, 1000, 40);
+        expect(ticks).toEqual(expect.arrayContaining([1000, 2000, 5000, 10_000, 20_000, 40_000]));
+        expect(ticks).toEqual([...ticks].sort((a, b) => a - b));
+        expect(Math.max(...ticks)).toBeLessThanOrEqual(50_000);
+    });
+
+    it("keeps every label at least the gap apart", () => {
+        for (const width of [300, 700, 1400]) {
+            const at = px(50_000, width);
+            const ticks = soulTicks(50_000, width, 40);
+            for (let i = 1; i < ticks.length; i++) expect(at(ticks[i]!) - at(ticks[i - 1]!)).toBeGreaterThanOrEqual(40);
+        }
+    });
+
+    it("drops the minor ticks first when the strip is narrow", () => {
+        const ticks = soulTicks(50_000, 300, 40);
+        expect(ticks).toEqual(expect.arrayContaining([1000, 10_000, 20_000, 40_000]));
+        expect(ticks).not.toContain(5000);
+    });
+});
+
+describe("packLane", () => {
+    const opts = { size: 24, gap: 2, width: 300, rows: 3 };
+    const pitch = opts.size + opts.gap;
+
+    const noOverlap = (packed: { x: number; row: number }[]) => {
+        for (const a of packed)
+            for (const b of packed)
+                if (a !== b && a.row === b.row) expect(Math.abs(a.x - b.x)).toBeGreaterThanOrEqual(pitch - 1e-9);
+    };
+
+    it("keeps icons that do not touch at their own x on the first row", () => {
+        expect(packLane([20, 100], opts)).toEqual([
+            { x: 20, row: 0 },
+            { x: 100, row: 0 },
+        ]);
+    });
+
+    it("stacks icons at the same x into rows", () => {
+        expect(packLane([50, 50, 50], opts)).toEqual([
+            { x: 50, row: 0 },
+            { x: 50, row: 1 },
+            { x: 50, row: 2 },
+        ]);
+    });
+
+    it("nudges along a row once every row is taken, never overlapping", () => {
+        const packed = packLane([50, 50, 50, 50], opts);
+        noOverlap(packed);
+        expect(packed[3]!.x).toBeGreaterThanOrEqual(50 + pitch);
+    });
+
+    it("keeps every icon inside both edges", () => {
+        const packed = packLane([0, 300], opts);
+        expect(packed[0]!.x).toBe(12);
+        expect(packed[1]!.x).toBe(288);
+    });
+
+    it("pushes a crowd at the right edge back inside without overlap", () => {
+        const packed = packLane(Array(20).fill(295), opts);
+        noOverlap(packed);
+        for (const p of packed) {
+            expect(p.x).toBeGreaterThanOrEqual(12);
+            expect(p.x).toBeLessThanOrEqual(288);
+        }
+    });
+
+    it("returns the icons in the order given", () => {
+        const packed = packLane([200, 10], { ...opts, rows: 1 });
+        expect(packed.map((p) => p.x)).toEqual([200, 12]);
     });
 });

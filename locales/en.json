@@ -2091,7 +2091,8 @@
                 "level": "Level {level}",
                 "time": "About {time}",
                 "step_unlock": "Unlock {name}",
-                "step_tier": "{name} T{tier}"
+                "step_tier": "{name} T{tier}",
+                "about": "About the souls timeline"
             },
             "shop": {
                 "popular": "Popular",
