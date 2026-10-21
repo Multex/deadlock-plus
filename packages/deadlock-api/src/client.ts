@@ -18,16 +18,48 @@ export class DeadlockApiError extends Error {
     }
 }
 
+/** One level of a hero's `level_info`. Levels that grant an ability unlock list `EAbilityUnlocks`, the others `EAbilityPoints`. */
+export interface AssetLevelInfo {
+    required_gold: number;
+    bonus_currencies?: string[];
+    use_standard_upgrade?: boolean;
+}
+
 /** A row of `/assets/heroes`. */
 export interface AssetHero {
     id: number;
     name: string;
+    /** Class names by slot; `signature1` to `signature4` are the hero's four abilities. */
+    items?: Record<string, string>;
+    /** Keyed by level number as a string. */
+    level_info?: Record<string, AssetLevelInfo>;
     hideout_rich_presence?: string | null;
     images?: {
         icon_image_small_webp?: string | null;
         icon_hero_card?: string | null;
         icon_image_small?: string | null;
     };
+}
+
+/** A row of `/assets/items`. The shop fields exist on `type: "upgrade"` rows only. */
+export interface AssetItem {
+    id: number;
+    class_name: string;
+    name: string;
+    type: "ability" | "weapon" | "upgrade";
+    /** Ids of the heroes that use the item. */
+    heroes: number[];
+    item_slot_type?: "weapon" | "vitality" | "spirit";
+    /** 1 to 4 are shop tiers; 5 marks unreleased items priced 9999. */
+    item_tier?: number;
+    cost?: number;
+    is_active_item?: boolean;
+    shopable?: boolean;
+    disabled?: boolean;
+    /** Class names of the items this one upgrades from. */
+    component_items?: string[];
+    shop_image?: string;
+    shop_image_webp?: string;
 }
 
 /** A row of `/players/steam` and `/players/steam-search`. */
@@ -245,6 +277,8 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
         health: (init?: { signal?: AbortSignal }) => json<unknown>("/info/health", init),
 
         heroes: () => json<AssetHero[]>("/assets/heroes"),
+
+        items: () => json<AssetItem[]>("/assets/items"),
 
         ranks: () => json<unknown>("/assets/ranks"),
 

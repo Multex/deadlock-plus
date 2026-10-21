@@ -20,6 +20,7 @@ describe("createDeadlockApi", () => {
     it("requests each endpoint with the URL alone", async () => {
         const { fetch, api } = setup();
         await api.heroes();
+        await api.items();
         await api.ranks();
         await api.playerMatchHistory(77);
         await api.playerRank(77);
@@ -28,6 +29,7 @@ describe("createDeadlockApi", () => {
         await api.matchMetadata(42);
         expect(fetch.mock.calls).toEqual([
             [`${BASE}/assets/heroes`],
+            [`${BASE}/assets/items`],
             [`${BASE}/assets/ranks`],
             [`${BASE}/players/77/match-history`],
             [`${BASE}/players/77/rank`],
@@ -49,6 +51,38 @@ describe("createDeadlockApi", () => {
         expect(await api.steamProfiles([5])).toEqual([{ account_id: 5, personaname: "Ada" }]);
     });
 
+    it("returns the shop item and hero level rows typed as the API sends them", async () => {
+        const item = {
+            id: 709540378,
+            class_name: "upgrade_non_player_bonus_sacrifice",
+            name: "Cultist Sacrifice",
+            type: "upgrade" as const,
+            item_slot_type: "weapon" as const,
+            item_tier: 3,
+            cost: 3200,
+            is_active_item: true,
+            shopable: true,
+            component_items: ["upgrade_non_player_bonus"],
+            shop_image_webp: "https://x/a.webp",
+        };
+        const hero = {
+            id: 1,
+            name: "Infernus",
+            items: { signature1: "ability_incendiary_projectile" },
+            level_info: { "1": { bonus_currencies: ["EAbilityUnlocks"], required_gold: 0 } },
+        };
+        const { api: itemsApi } = setup(() => Response.json([item]));
+        const [row] = await itemsApi.items();
+        expect(row?.component_items?.[0]).toBe("upgrade_non_player_bonus");
+        expect(row?.item_slot_type).toBe("weapon");
+        expect(row).toEqual(item);
+        const { api: heroApi } = setup(() => Response.json([hero]));
+        const [h] = await heroApi.heroes();
+        expect(h?.items?.signature1).toBe("ability_incendiary_projectile");
+        expect(h?.level_info?.["1"]?.required_gold).toBe(0);
+        expect(h?.level_info?.["1"]?.bonus_currencies).toEqual(["EAbilityUnlocks"]);
+    });
+
     it("returns match metadata as the raw text", async () => {
         const { api } = setup(() => new Response('{"a": 1}'));
         expect(await api.matchMetadata(1)).toBe('{"a": 1}');
@@ -59,6 +93,7 @@ describe("createDeadlockApi", () => {
         for (const call of [
             () => api.health(),
             () => api.heroes(),
+            () => api.items(),
             () => api.ranks(),
             () => api.playerRank(1),
             () => api.steamProfiles([1]),

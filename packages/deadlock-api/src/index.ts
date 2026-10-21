@@ -18,6 +18,8 @@ export {
     DEFAULT_BASE_URL,
     type AnalyticsFilter,
     type AssetHero,
+    type AssetItem,
+    type AssetLevelInfo,
     type CurveMetric,
     type DeadlockApi,
     type DeadlockApiOptions,
