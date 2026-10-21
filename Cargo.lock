@@ -1535,6 +1535,20 @@ name = "dp-autostart"
 version = "0.13.2"
 
 [[package]]
+name = "dp-builds"
+version = "0.13.2"
+dependencies = [
+ "dp-atomic",
+ "dp-game",
+ "dp-steam",
+ "dp-sync",
+ "log",
+ "serde",
+ "source2-kv3",
+ "ts-rs",
+]
+
+[[package]]
 name = "dp-connection"
 version = "0.13.2"
 dependencies = [
