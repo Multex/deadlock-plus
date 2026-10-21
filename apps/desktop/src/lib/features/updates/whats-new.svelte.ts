@@ -4,6 +4,7 @@ import { getAppInfo } from "$lib/features/settings/about";
 import { settings } from "$lib/features/settings/settings.svelte";
 import { getChangelog } from "./changelog-source";
 import { needsOnboarding } from "$lib/features/onboarding/onboarding";
+import { isLaunch } from "$lib/shell/last-route";
 import { seenFlagTiming, shouldOpenNotes, WHATS_NEW_UPDATE_ROUTE } from "./whats-new";
 import { notesSince, parseChangelog, releasedUpTo, type ChangelogEntry } from "./changelog";
 
@@ -32,7 +33,12 @@ class WhatsNew {
             if (timing === "on-seen") {
                 const onboardingPending = needsOnboarding(await kvGet<number>(STORE, ONBOARDING_KEY));
                 if (
-                    shouldOpenNotes({ noteCount: this.entries.length, onboardingPending, pathname: location.pathname })
+                    shouldOpenNotes({
+                        noteCount: this.entries.length,
+                        onboardingPending,
+                        pathname: location.pathname,
+                        launch: isLaunch(),
+                    })
                 ) {
                     await goto(WHATS_NEW_UPDATE_ROUTE);
                 }

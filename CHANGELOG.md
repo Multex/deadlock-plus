@@ -61,6 +61,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - Reloading the app keeps you on the page you were on.
+- Reloading the app no longer opens What's New.
+- What's New counts as read once you leave it, without scrolling to the end.
 
 ## [0.13.2] - 2026-10-21
 

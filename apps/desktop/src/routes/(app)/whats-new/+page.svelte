@@ -9,7 +9,7 @@
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
     import ReleaseNotes from "$lib/features/updates/components/release-notes.svelte";
-    import { isForcedExit, visibleReleases } from "$lib/features/updates/whats-new";
+    import { isForcedExit, notesVisit, visibleReleases } from "$lib/features/updates/whats-new";
     import { whatsNew } from "$lib/features/updates/whats-new.svelte";
 
     let sentinel = $state<HTMLElement | null>(null);
@@ -23,15 +23,18 @@
     const onlyNew = $derived(forced && !showAll && whatsNew.entries.length > 0);
 
     onMount(() => {
-        if (!sentinel) return;
+        const visit = notesVisit(() => void whatsNew.markSeen());
+        visit.rendered();
         const observer = new IntersectionObserver((hits) => {
             if (!hits.some((h) => h.isIntersecting)) return;
             reachedEnd = true;
-            void whatsNew.markSeen();
             observer.disconnect();
         });
-        observer.observe(sentinel);
-        return () => observer.disconnect();
+        if (sentinel) observer.observe(sentinel);
+        return () => {
+            observer.disconnect();
+            visit.left();
+        };
     });
 </script>
 

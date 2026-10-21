@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
     isForcedExit,
     newestFirst,
+    notesVisit,
     shouldOpenNotes,
     seenFlagTiming,
     visibleReleases,
@@ -46,7 +47,7 @@ describe("newestFirst", () => {
 });
 
 describe("shouldOpenNotes", () => {
-    const base = { noteCount: 2, onboardingPending: false, pathname: "/" };
+    const base = { noteCount: 2, onboardingPending: false, pathname: "/", launch: true };
     it("opens when there are notes and nothing else is in the way", () => {
         expect(shouldOpenNotes(base)).toBe(true);
     });
@@ -62,6 +63,34 @@ describe("shouldOpenNotes", () => {
     });
     it("does not reopen when already on the page", () => {
         expect(shouldOpenNotes({ ...base, pathname: "/whats-new" })).toBe(false);
+    });
+    it("leaves a reload or an HMR re-run on the page it is on", () => {
+        expect(shouldOpenNotes({ ...base, pathname: "/builds/view", launch: false })).toBe(false);
+        expect(shouldOpenNotes({ ...base, launch: false })).toBe(false);
+    });
+});
+
+describe("notesVisit", () => {
+    it("marks the notes seen when the user leaves a rendered page", () => {
+        const markSeen = vi.fn();
+        const visit = notesVisit(markSeen);
+        visit.rendered();
+        expect(markSeen).not.toHaveBeenCalled();
+        visit.left();
+        expect(markSeen).toHaveBeenCalledOnce();
+    });
+    it("leaves the notes unread when the page never rendered", () => {
+        const markSeen = vi.fn();
+        notesVisit(markSeen).left();
+        expect(markSeen).not.toHaveBeenCalled();
+    });
+    it("marks once per visit", () => {
+        const markSeen = vi.fn();
+        const visit = notesVisit(markSeen);
+        visit.rendered();
+        visit.left();
+        visit.left();
+        expect(markSeen).toHaveBeenCalledOnce();
     });
 });
 
