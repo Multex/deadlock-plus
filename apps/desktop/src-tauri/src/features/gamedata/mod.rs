@@ -30,8 +30,9 @@ pub mod commands {
     use std::sync::Arc;
 
     use dp_gamedata::{
-        AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry, HeroProgression,
-        ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, RankArt, ShopItem,
+        AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry,
+        HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems,
+        RankArt, ShopItem,
     };
     use tauri::State;
 
@@ -64,6 +65,15 @@ pub mod commands {
         let data = data.inner().clone();
         let list =
             tauri::async_runtime::spawn_blocking(move || data.accolades(&locale)).await.map_err(AppError::internal)?;
+        Ok(list.to_vec())
+    }
+
+    /// Empty while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_build_tags(data: State<'_, GameData>, locale: String) -> Result<Vec<BuildTag>, AppError> {
+        let data = data.inner().clone();
+        let list =
+            tauri::async_runtime::spawn_blocking(move || data.build_tags(&locale)).await.map_err(AppError::internal)?;
         Ok(list.to_vec())
     }
 

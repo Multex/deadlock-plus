@@ -1,3 +1,4 @@
+import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
 import { defaultScenario } from "./index";
@@ -289,6 +290,18 @@ describe("game files from the default scenario", () => {
                 ],
             },
         ]);
+    });
+
+    it("names the game's standard build tags with the ids builds store", async () => {
+        const tags = (await start().invoke("game_build_tags", { locale: "en" })) as BuildTag[];
+        expect(tags).toHaveLength(14);
+        expect(tags[0]).toEqual({ key: "weapon", id: 47026193, name: "Weapon" });
+        expect(tags.find((t) => t.key === "complexity_1")).toEqual({
+            key: "complexity_1",
+            id: 1052421347,
+            name: "For New Players",
+        });
+        expect(tags.at(-1)).toEqual({ key: "debuff", id: 255841590, name: "Debuff" });
     });
 
     it("answers as an unreadable game does when the assets cannot be fetched", async () => {

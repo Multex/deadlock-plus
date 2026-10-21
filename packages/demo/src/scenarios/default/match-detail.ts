@@ -1,4 +1,5 @@
 import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
+import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
@@ -37,6 +38,24 @@ export interface MatchDetailOptions {
 
 type Rng = () => number;
 type Side = 0 | 1;
+
+/** English names from `citadel_main_english.txt`; ids are MurmurHash2 (seed 0x31415926) of `citadel_build_tag_<key>`. */
+const BUILD_TAGS: BuildTag[] = [
+    { key: "weapon", id: 47026193, name: "Weapon" },
+    { key: "vitality", id: 4213205702, name: "Vitality" },
+    { key: "spirit", id: 36498494, name: "Spirit" },
+    { key: "complexity_1", id: 1052421347, name: "For New Players" },
+    { key: "complexity_2", id: 1150155374, name: "For Intermediate Players" },
+    { key: "complexity_3", id: 3797987367, name: "For Advanced Players" },
+    { key: "damage", id: 2592289373, name: "Damage" },
+    { key: "utility", id: 953263904, name: "Utility" },
+    { key: "healing", id: 38758251, name: "Healing" },
+    { key: "crowd_control", id: 4216803923, name: "Crowd Control" },
+    { key: "mobility", id: 3238474489, name: "Mobility" },
+    { key: "melee", id: 3401565923, name: "Melee" },
+    { key: "headshots", id: 2579669585, name: "Headshots" },
+    { key: "debuff", id: 255841590, name: "Debuff" },
+];
 
 const int = (rng: Rng, lo: number, hi: number) => lo + Math.floor(rng() * (hi - lo + 1));
 const range = (rng: Rng, lo: number, hi: number) => lo + rng() * (hi - lo);
@@ -1634,6 +1653,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 game_hero_abilities: () => orNoGame(async () => heroAbilities(await asset<AssetHero[]>("heroes")), []),
                 game_popular_items: (args) =>
                     orNoGame(async () => popularItems(await asset<AssetHero[]>("heroes"), args.heroId), null),
+                game_build_tags: () => BUILD_TAGS.map((tag) => ({ ...tag })),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,

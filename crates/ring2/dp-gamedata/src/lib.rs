@@ -1,4 +1,5 @@
 mod art;
+mod build_tags;
 mod catalog;
 mod cc;
 mod item_stats;
@@ -12,6 +13,7 @@ pub use art::{
     ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,
     RankImage, MINIMAP_RADIUS,
 };
+pub use build_tags::{build_tags, BuildTag, BUILD_TAG_KEYS};
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};
 pub use cc::{CcAbility, CcKind, CcOwner, CcSet};
 pub use item_stats::{item_stats, ItemStat, ItemStats, StatSection, STAT_BUNDLES};

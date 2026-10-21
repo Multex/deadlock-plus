@@ -1,4 +1,5 @@
 import { command } from "$lib/core/tauri";
+import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
@@ -28,4 +29,9 @@ export function loadHeroAbilities(): Promise<HeroAbilities[]> {
 /** The popular items the installed game ships for a hero; null for unreleased heroes or an unreadable game. */
 export function loadPopularItems(heroId: number): Promise<PopularItems | null> {
     return command<PopularItems | null>("game_popular_items", { heroId }).catch(() => null);
+}
+
+/** The game's standard build tags, named in `locale` with English filling gaps. Empty while the game cannot be read. */
+export function loadBuildTags(locale: string): Promise<BuildTag[]> {
+    return command<BuildTag[]>("game_build_tags", { locale }).catch((): BuildTag[] => []);
 }

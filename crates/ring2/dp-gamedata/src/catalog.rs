@@ -9,6 +9,7 @@ use deadlock_data::{HeroCatalog, Item, ItemCatalog, LocalizationFile};
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::build_tags::{build_tags, BuildTag};
 use crate::cc::CcSet;
 use crate::locale::game_language;
 
@@ -72,6 +73,7 @@ struct Loaded {
     hero_lists: HashMap<&'static str, Arc<Vec<HeroEntry>>>,
     item_lists: HashMap<&'static str, Arc<Vec<ItemEntry>>>,
     accolade_lists: HashMap<&'static str, Arc<Vec<AccoladeEntry>>>,
+    build_tag_lists: HashMap<&'static str, Arc<Vec<BuildTag>>>,
 }
 
 struct Shared<I> {
@@ -158,6 +160,18 @@ impl<I: Install> GameData<I> {
         list
     }
 
+    pub fn build_tags(&self, locale: &str) -> Arc<Vec<BuildTag>> {
+        let language = game_language(locale);
+        let mut guard = self.current();
+        let loaded = guard.as_mut().expect("current() fills the state");
+        if let Some(list) = loaded.build_tag_lists.get(language) {
+            return Arc::clone(list);
+        }
+        let list = Arc::new(loaded.dir.as_deref().map(|dir| build_tags(dir, language)).unwrap_or_default());
+        loaded.build_tag_lists.insert(language, Arc::clone(&list));
+        list
+    }
+
     /// The installed game's hard-CC list replaces the bundled one: a patch can remove CC, so they are never merged.
     pub fn cc_abilities(&self) -> Arc<CcSet> {
         let mut guard = self.current();
@@ -183,6 +197,7 @@ impl<I: Install> GameData<I> {
                 hero_lists: HashMap::new(),
                 item_lists: HashMap::new(),
                 accolade_lists: HashMap::new(),
+                build_tag_lists: HashMap::new(),
             });
         }
         guard
@@ -449,6 +464,25 @@ mod tests {
         assert_eq!(find(&data.heroes("ru"), "hero_inferno").name, "Инфернус");
         assert_eq!(display_name("#|f|##|p|#Name"), "Name");
         assert_eq!(display_name("#|broken"), "#|broken");
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn build_tags_follow_the_app_locale_and_are_empty_without_an_install() {
+        let dir = temp_dir("build-tags");
+        for (language, fixture) in [
+            ("english", include_str!("../fixtures/citadel_main_english.txt")),
+            ("german", include_str!("../fixtures/citadel_main_german.txt")),
+        ] {
+            let path = dir.join(LocalizationFile::relative_path("citadel_main", language));
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, fixture).unwrap();
+        }
+        let data = GameData::new(FakeInstall::at(&dir));
+        let name = |locale: &str| data.build_tags(locale).iter().find(|t| t.key == "weapon").map(|t| t.name.clone());
+        assert_eq!(name("de").as_deref(), Some("Waffe"));
+        assert_eq!(name("en").as_deref(), Some("Weapon"));
+        assert!(GameData::new(FakeInstall::none()).build_tags("en").is_empty());
         fs::remove_dir_all(dir).ok();
     }
 
