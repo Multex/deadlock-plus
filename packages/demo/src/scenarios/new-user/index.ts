@@ -9,6 +9,7 @@ import type { ApiRoute } from "../../fetch";
 import { defineScenario, type Module, type ModuleParts, type Scenario } from "../../scenario";
 import type { ScenarioOptions } from "../default";
 import { adminAccessModule } from "../default/admin-access";
+import { builds } from "../default/builds";
 import { IDENTITY, NOW_MS, SEED } from "../default/identity";
 import { matchDetailModule } from "../default/match-detail";
 import { serverPickerModule } from "../default/server-picker";
@@ -104,6 +105,7 @@ export function newUserScenario(options: ScenarioOptions): Scenario {
             matchDetailModule(options),
             emptied(upkeepModule, deleteEveryReplay),
             adminAccessModule(),
+            builds({ empty: true }),
         ],
     });
 }

@@ -1,6 +1,7 @@
 import { defineScenario, type Module, type Scenario } from "../../scenario";
 import type { ScenarioOptions } from "../default";
 import { adminAccessModule } from "../default/admin-access";
+import { buildsModule } from "../default/builds";
 import { IDENTITY, NOW_MS, SEED } from "../default/identity";
 import { matchDetailModule } from "../default/match-detail";
 import { progressModule } from "../default/progress";
@@ -65,6 +66,7 @@ export function updateAvailableScenario(options: ScenarioOptions): Scenario {
             matchDetailModule(options),
             upkeepModule,
             adminAccessModule(),
+            buildsModule,
             updaterModule(options),
         ],
     });
