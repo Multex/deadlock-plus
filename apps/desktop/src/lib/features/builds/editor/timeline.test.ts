@@ -23,6 +23,7 @@ import {
     packLane,
     placeItems,
     quickBuyOrder,
+    readoutPlacement,
     soulScale,
     soulTicks,
     statsAt,
@@ -538,5 +539,40 @@ describe("timelineLayout", () => {
         expect(full).toBeGreaterThanOrEqual(150);
         expect(full).toBeLessThanOrEqual(175);
         expect(timelineLayout(timelineSize(900)).height).toBeLessThan(full);
+    });
+});
+
+describe("readoutPlacement", () => {
+    // A strip 800 px wide whose top sits 500 px down a pane that spans 40 to 900.
+    const base = {
+        anchor: 400,
+        half: 19,
+        gap: 6,
+        track: { width: 800, top: 500, bottom: 640 },
+        bounds: { top: 40, bottom: 900 },
+    };
+
+    it("sits above the strip, centred on the anchor, when it fits", () => {
+        expect(readoutPlacement({ ...base, tip: { width: 340, height: 300 } })).toEqual({ left: 230, top: -306 });
+    });
+
+    it("stays inside the strip's edges", () => {
+        const tip = { width: 340, height: 300 };
+        expect(readoutPlacement({ ...base, anchor: 20, tip }).left).toBe(0);
+        expect(readoutPlacement({ ...base, anchor: 790, tip }).left).toBe(460);
+    });
+
+    it("moves beside the anchor, bottom on the strip's bottom, when the pane has no room above", () => {
+        expect(readoutPlacement({ ...base, tip: { width: 340, height: 500 } })).toEqual({ left: 425, top: -360 });
+    });
+
+    it("goes to the anchor's left when the right side has no room", () => {
+        expect(readoutPlacement({ ...base, anchor: 600, tip: { width: 340, height: 500 } }).left).toBe(235);
+    });
+
+    it("keeps a tooltip taller than the pane's room inside the pane", () => {
+        const placed = readoutPlacement({ ...base, tip: { width: 340, height: 700 } });
+        expect(placed.top).toBe(-460);
+        expect(placed.top + base.track.top + 700).toBeLessThanOrEqual(base.bounds.bottom);
     });
 });

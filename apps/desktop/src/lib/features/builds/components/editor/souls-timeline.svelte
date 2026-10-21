@@ -20,6 +20,7 @@
         loadNetWorthCurve,
         packLane,
         placeItems,
+        readoutPlacement,
         soulScale,
         soulTicks,
         statsAt,
@@ -31,6 +32,8 @@
     } from "../../editor/timeline";
     import type { Level } from "../../levels";
     import type { StatsById } from "../../stats";
+    import { itemTooltipSource } from "../item-tooltip/context";
+    import { itemTooltip } from "../item-tooltip/item-tooltip";
     import AbilityArt from "./ability-bar/ability-art.svelte";
     import TierPips from "./ability-bar/tier-pips.svelte";
     import TimelineAxis from "./timeline/timeline-axis.svelte";
@@ -169,10 +172,38 @@
         };
     });
 
+    const tooltipSource = itemTooltipSource();
+    const itemTip = $derived.by(() => {
+        const id = focusedItem?.item?.id;
+        if (id === undefined) return undefined;
+        const model = itemTooltip(catalog.byId, statsById, id);
+        if (!model) return undefined;
+        const popularity = tooltipSource()?.popularity;
+        return {
+            model,
+            popularity: popularity?.lines(id) ?? null,
+            heroIcon: popularity?.isPopular(id) ? popularity.icon : null,
+        };
+    });
+
     let tipWidth = $state(0);
-    const tipLeft = $derived(
-        point === null ? 0 : Math.max(0, Math.min(width - tipWidth, (focused?.at ?? x(point)) - tipWidth / 2)),
-    );
+    let tipHeight = $state(0);
+    const tipAt = $derived.by(() => {
+        if (point === null || !track) return { left: 0, top: 0 };
+        const anchor = focused?.at ?? x(point);
+        const icon = focusedItem ? size.item : focusedStep ? size.mark : 0;
+        const rect = track.getBoundingClientRect();
+        const pane = track.closest("main")?.getBoundingClientRect() ?? { top: 0, bottom: window.innerHeight };
+        return readoutPlacement({
+            anchor,
+            // The icon may sit off its axis point after packing, and grows 10% while hovered.
+            half: focused ? Math.abs(focused.x - anchor) + icon * 0.55 : 0,
+            tip: { width: tipWidth, height: tipHeight },
+            track: { width, top: rect.top, bottom: rect.bottom },
+            bounds: { top: pane.top, bottom: pane.bottom },
+            gap: 6,
+        });
+    });
 
     function drop(state: DragState): boolean {
         const { payload } = state;
@@ -387,32 +418,26 @@
 
             {#if readout && !dragging}
                 <TimelineReadout
-                    left={tipLeft}
+                    left={tipAt.left}
+                    top={tipAt.top}
                     souls={readout.souls}
                     level={readout.level}
                     time={readout.time}
                     stats={readout.stats}
                     bind:width={tipWidth}
-                    header={focusedItem?.item ? itemHeader : focusedStep ? stepHeader : undefined}
+                    bind:height={tipHeight}
+                    item={itemTip}
+                    header={focusedStep ? stepHeader : undefined}
                 />
             {/if}
         {/if}
     </div>
 </section>
 
-{#snippet itemHeader()}
-    {#if focusedItem?.item}
-        {#if focusedItem.item.art}
-            <img src={focusedItem.item.art} alt="" class="size-5 rounded-[3px]" draggable="false" />
-        {/if}
-        <span class="font-semibold">{focusedItem.item.name}</span>
-    {/if}
-{/snippet}
-
 {#snippet stepHeader()}
     {#if focusedStep}
-        <AbilityArt ability={kit.abilities.get(focusedStep.mark.abilityId)} class="size-5" />
-        <span class="font-semibold">{stepLabel(focusedStep.mark.abilityId, focusedStep.mark.tier)}</span>
+        <AbilityArt ability={kit.abilities.get(focusedStep.mark.abilityId)} class="size-7" />
+        <span>{stepLabel(focusedStep.mark.abilityId, focusedStep.mark.tier)}</span>
     {/if}
 {/snippet}
 

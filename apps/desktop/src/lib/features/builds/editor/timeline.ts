@@ -234,6 +234,38 @@ export function timelineLayout({ item, mark, gap, rows }: TimelineSize): Timelin
     return { itemsTop, itemsBottom, axisY, marksTop, labelsY, height: labelsY + LABELS_H };
 }
 
+export interface ReadoutPlacementOptions {
+    /** Centre of the hovered icon or point, in px from the strip's left edge. */
+    anchor: number;
+    /** Half the hovered icon's width; 0 for a bare point. */
+    half: number;
+    tip: { width: number; height: number };
+    /** The strip's width, and its top and bottom in viewport px. */
+    track: { width: number; top: number; bottom: number };
+    /** The visible pane in viewport px; the tooltip is clipped outside it. */
+    bounds: { top: number; bottom: number };
+    gap: number;
+}
+
+/**
+ * Where the readout goes, relative to the strip's top left: above the anchor while the pane has room, otherwise
+ * beside it with its bottom on the strip's bottom, so a tall item tooltip neither loses its name off the top nor
+ * covers the icon it describes.
+ */
+export function readoutPlacement({ anchor, half, tip, track, bounds, gap }: ReadoutPlacementOptions): {
+    left: number;
+    top: number;
+} {
+    const maxLeft = Math.max(0, track.width - tip.width);
+    if (track.top - gap - tip.height >= bounds.top) {
+        return { left: clamp(anchor - tip.width / 2, 0, maxLeft), top: -gap - tip.height };
+    }
+    const right = anchor + half + gap;
+    const left = right + tip.width <= track.width ? right : anchor - half - gap - tip.width;
+    const top = Math.max(bounds.top, Math.min(track.bottom, bounds.bottom) - tip.height);
+    return { left: clamp(left, 0, maxLeft), top: top - track.top };
+}
+
 export function itemsBoughtBy(entries: readonly TimelineEntry[], netWorth: number): number[] {
     return entries.filter((e) => e.netWorth <= netWorth).map((e) => e.abilityId);
 }
