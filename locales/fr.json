@@ -1,23 +1,23 @@
 {
     "errors": {
         "common": {
-            "io": "Impossible de lire ou écrire le fichier. Vérifier vos journaux (logs) pour plus d'info.",
-            "network": "Une requête serveur n'a pu aboutir. Vérifiez votre connexion internet et réessayez.",
-            "internal": "Une erreur est survenue. Vérifiez vos journaux (logs) pour plus d'info."
+            "io": "Impossible de lire ou d'écrire un fichier. Vérifiez les journaux (logs) pour plus de détails.",
+            "network": "Une requête réseau a échoué. Vérifiez votre connexion internet et réessayez.",
+            "internal": "Une erreur est survenue. Vérifiez les journaux (logs) pour plus de détails."
         },
         "demos": {
             "replays_folder_not_found": "Dossier \"replays\" introuvable.",
             "invalid_match_id": "ID de match invalide.",
             "replay_missing": "Ce replay n'existe plus.",
-            "recycle_bin_full": "Ce fichier est trop volumineux pour la corbeille.",
+            "recycle_bin_full": "La corbeille ne peut pas contenir ces replays.",
             "reveal_failed": "",
-            "pin_save_failed": "Impossible d'enregistrer le replay épinglé. Vérifiez vos journaux (logs) pour plus d'info.",
-            "rules_save_failed": "Impossible d'enregistrer les règles. Vérifiez vos journaux (logs) pour plus d'info.",
+            "pin_save_failed": "Impossible d'enregistrer les replays épinglés. Vérifiez les journaux (logs) pour plus de détails.",
+            "rules_save_failed": "Impossible d'enregistrer les règles de nettoyage. Vérifiez les journaux (logs) pour plus de détails.",
             "rules_duplicate_id": "",
-            "rules_zero_days": "La limite d'âge fichier doit être d'au moins 1 jour.",
-            "rules_zero_size": "La limite de taille doit être supérieure 0.",
+            "rules_zero_days": "La limite d'âge doit être d'au moins 1 jour.",
+            "rules_zero_size": "La limite de taille doit être supérieure à 0.",
             "not_a_replay": "Le fichier choisi n'est pas un replay.",
-            "replay_pinned": "Les replays épinglés doivent être premièrement désépinglé avant suppression.",
+            "replay_pinned": "Les replays épinglés ne peuvent pas être supprimés. Désépinglez-les d'abord.",
             "delete_failed": "Impossible de supprimer ce replay. Vérifiez vos journaux (logs) pour plus d'info."
         },
         "about": {
@@ -152,7 +152,7 @@
             "overlay": "",
             "privacy": "",
             "about": "",
-            "diagnostics": "Diagnostiques",
+            "diagnostics": "Diagnostic",
             "sharing": "",
             "storage": ""
         },
@@ -171,10 +171,10 @@
             "telemetry": "",
             "gc_recovery": "",
             "version": "Version",
-            "whats_new": "Quoi de neuf",
+            "whats_new": "Nouveautés",
             "updates": "",
             "thanks": "Remerciements",
-            "diagnostics": "Diagnostiques",
+            "diagnostics": "Diagnostic",
             "licenses": "Licences",
             "storage": "",
             "overlay": "",
@@ -215,7 +215,7 @@
             },
             "midnight": {
                 "label": "Minuit",
-                "description": "Cool bleu-noir avec un doux accent argenté."
+                "description": "Bleu-noir froid avec un doux accent argenté."
             },
             "daylight": {
                 "label": "",
@@ -235,9 +235,9 @@
             }
         },
         "autostart": {
-            "title_windows": "Ouvrir avec Windows",
-            "title_macos": "Ouvrir avec macOS",
-            "title_linux": "Ouvrir au démarrage",
+            "title_windows": "Lancer avec Windows",
+            "title_macos": "Lancer avec macOS",
+            "title_linux": "Lancer à l'ouverture de session",
             "description_windows": "",
             "description_macos": "",
             "description_linux": "",
@@ -312,10 +312,10 @@
             "sunday": "Dimanche"
         },
         "countdown": {
-            "days": "{days} J {hours} h",
+            "days": "{days} j {hours} h",
             "hours": "{hours} h {minutes} min",
-            "minutes": "{minutes} Min",
-            "soon": "Moins d'une minute"
+            "minutes": "{minutes} min",
+            "soon": "moins d'une minute"
         },
         "discord": {
             "presence_description": "",
@@ -385,7 +385,7 @@
             "share_description": "",
             "import_label": "",
             "import": "Importer",
-            "import_file": "Importer à partir d’un fichier",
+            "import_file": "Importer depuis un fichier",
             "export": "",
             "exported": "",
             "export_failed": "",
@@ -569,7 +569,7 @@
             "dependencies_title": "",
             "dependencies_description": "",
             "dependencies_failed": "",
-            "dependencies_loading": "",
+            "dependencies_loading": "Chargement...",
             "dependencies_packages": "",
             "dependencies_rust": "",
             "dependencies_npm": "",
@@ -580,7 +580,7 @@
             "contributors": "Contributeurs",
             "contributors_description": "",
             "translators": "Traducteurs",
-            "translators_description": "A apporté Deadlock+ dans plus de langues.",
+            "translators_description": "Ont traduit Deadlock+ dans davantage de langues.",
             "donators": "Donateurs",
             "donators_description": "",
             "nobody_yet": "",
@@ -647,8 +647,8 @@
         }
     },
     "common": {
-        "confirm": "",
-        "cancel": "",
+        "confirm": "Confirmer",
+        "cancel": "Annuler",
         "open_link_failed": "",
         "link_open_failed": ""
     },
@@ -1181,15 +1181,15 @@
         "import": {
             "title": "",
             "description": "",
-            "confirm": ""
+            "confirm": "Importer"
         },
         "ping": {
-            "ms": "",
+            "ms": "{value} ms",
             "no_reply": "Pas de réponse"
         },
         "external": {
-            "summary": "",
-            "import": "",
+            "summary": "Détecté : {rules} bloquant {regions}.",
+            "import": "Importer",
             "rules_one": "",
             "rules_other": "",
             "regions_one": "",
@@ -1200,22 +1200,22 @@
             "body": ""
         },
         "sort": {
-            "by": "",
-            "ascending": "",
-            "descending": "",
+            "by": "Trier par {label}",
+            "ascending": "croissant",
+            "descending": "décroissant",
             "region": "Région",
             "ping": "",
-            "blocked": ""
+            "blocked": "Bloqué"
         },
         "presets": {
-            "title": "",
+            "title": "Préréglages",
             "description": "",
-            "edit_title": "",
-            "new_title": "",
+            "edit_title": "Modifier le préréglage",
+            "new_title": "Nouveau préréglage",
             "edit_description": "",
-            "name_placeholder": "",
-            "name_aria": "",
-            "mode_aria": "",
+            "name_placeholder": "Nom du préréglage, par exemple \"UE uniquement\"",
+            "name_aria": "Nom du préréglage",
+            "mode_aria": "Mode de préréglage",
             "mode_allow_title": "",
             "mode_allow_note": "",
             "mode_block_title": "",
@@ -1228,9 +1228,9 @@
             "back": "",
             "save": "",
             "apply": "Appliquer",
-            "edit_label": "",
-            "delete_label": "",
-            "empty": "",
+            "edit_label": "Modifier {name}",
+            "delete_label": "Supprimer {name}",
+            "empty": "Aucun préréglage pour l'instant.",
             "save_current": "",
             "new": "",
             "apply_label": ""
@@ -1245,7 +1245,7 @@
             "no_reply_hint": "",
             "ping_region": "",
             "ping_relay": "",
-            "applying": "",
+            "applying": "Application en cours",
             "blocked": "Bloqué",
             "open": "Ouvert",
             "block_aria": "Bloquer {name}",
@@ -1265,15 +1265,15 @@
             "blocks_update_failed": "",
             "sync_failed": "",
             "unsupported": "",
-            "blocked": "",
-            "unblocked": "",
+            "blocked": "Bloqué : {name}",
+            "unblocked": "Débloqué : {name}",
             "block_failed": "",
             "unblock_failed": "",
             "siblings_failed": "",
             "unblock_all_failed": "",
             "preset_applied": "",
             "preset_apply_failed": "",
-            "preset_saved": "",
+            "preset_saved": "Enregistré : \"{name}\"",
             "preset_save_failed": "",
             "preset_delete_failed": "",
             "import_failed": "",
@@ -1339,7 +1339,7 @@
         },
         "row": {
             "select": "",
-            "unknown_hero": "Occultiste inconnue",
+            "unknown_hero": "Occultiste inconnu",
             "build": "",
             "not_in_api": "",
             "details_unavailable": "",
@@ -1414,8 +1414,8 @@
             "clear_regenerable": ""
         },
         "entry": {
-            "path_missing": "",
-            "not_found": "",
+            "path_missing": "Introuvable sur cet ordinateur",
+            "not_found": "Introuvable",
             "retry_aria": "",
             "retry": "",
             "measuring": "",
@@ -1462,7 +1462,7 @@
             },
             "mods": {
                 "label": "",
-                "blurb": ""
+                "blurb": "Géré par vos outils de mods. Non modifié ici."
             }
         },
         "kinds": {
@@ -1471,11 +1471,11 @@
                 "hint": ""
             },
             "history": {
-                "label": "Histoire",
+                "label": "Historique",
                 "hint": ""
             },
             "backup": {
-                "label": "",
+                "label": "Sauvegarde",
                 "hint": ""
             },
             "yours": {
@@ -1497,8 +1497,8 @@
                 "units_other": ""
             },
             "hero_presence_cache": {
-                "label": "",
-                "clear_name": "",
+                "label": "Cache de présence des occultistes",
+                "clear_name": "cache de présence des occultistes",
                 "description": "",
                 "consequence": ""
             },
@@ -1547,8 +1547,8 @@
                 "consequence": ""
             },
             "connection_history": {
-                "label": "",
-                "clear_name": "",
+                "label": "Historique des connexions",
+                "clear_name": "historique des connexions",
                 "description": "",
                 "consequence": ""
             },
@@ -1762,28 +1762,28 @@
         "no_matches_hint": "",
         "source": {
             "steam": "",
-            "forum": ""
+            "forum": "Forum"
         }
     },
     "onboarding": {
         "progress_label": "",
-        "skip": "",
+        "skip": "Passer",
         "back": "",
         "next": "",
-        "finish": "",
+        "finish": "Terminer",
         "autostart_error": "",
         "welcome": {
             "step_title": "Bienvenue dans Deadlock+",
             "returning_title": "",
             "returning_body": "",
-            "new_title": "",
+            "new_title": "Bienvenue sur votre nouveau compagnon Deadlock préféré",
             "new_body": "",
-            "found": "",
-            "not_found": "",
+            "found": "Deadlock trouvé",
+            "not_found": "Deadlock introuvable",
             "not_found_body": ""
         },
         "features": {
-            "title": "Qu'est-ce que Deadlock+ fait"
+            "title": "Ce que fait Deadlock+"
         },
         "groups": {
             "play": "Jouer",
@@ -1828,15 +1828,15 @@
             "always_on_hint": ""
         },
         "steam": {
-            "title": "",
+            "title": "Votre compte Steam",
             "body": "",
             "signed_in": "",
-            "none_title": "",
+            "none_title": "Aucun compte Steam trouvé",
             "none_body": "",
             "looking": ""
         },
         "sharing": {
-            "title": "",
+            "title": "Aider la communauté Deadlock ?",
             "intro": "",
             "consent": "",
             "optional": "",
@@ -1871,7 +1871,7 @@
             "body": "",
             "home": "",
             "settings": "Paramètres",
-            "whats_new": "Quoi de Neuf"
+            "whats_new": "Nouveautés"
         }
     },
     "patch_notes": {
@@ -1887,7 +1887,7 @@
         "view_on": "Voir sur {source}"
     },
     "updates": {
-        "toast_available": "",
+        "toast_available": "Deadlock+ {version} est disponible",
         "status": {
             "idle": "",
             "checking": "",
@@ -1910,9 +1910,9 @@
             "game_closed": "",
             "menus": "",
             "queuing": "",
-            "pregame": "",
-            "in_match": "",
-            "post_match": "",
+            "pregame": "Début de la partie",
+            "in_match": "Dans une partie",
+            "post_match": "Partie terminée",
             "game_closed_hint": "",
             "menus_hint": "",
             "queuing_hint": "",
@@ -1923,15 +1923,15 @@
             "loading_match_hint": ""
         },
         "team": {
-            "amber": "",
-            "sapphire": ""
+            "amber": "Le Roi de l'Ombre",
+            "sapphire": "La Matriarche"
         },
         "mode": {
             "unranked": "",
             "ranked": "",
             "privateLobby": "",
             "coopBot": "",
-            "tutorial": "",
+            "tutorial": "Tutoriel",
             "other": ""
         },
         "game": {
@@ -1942,7 +1942,7 @@
             "other": ""
         },
         "col": {
-            "rank": "",
+            "rank": "Grade",
             "souls": "",
             "souls_per_min": "",
             "kills": "",
@@ -2044,7 +2044,7 @@
             "waiting_server": ""
         },
         "current": {
-            "title": "",
+            "title": "Serveur actuel",
             "not_running": "",
             "not_connected": "",
             "unknown_relay": "",
@@ -2068,8 +2068,8 @@
         "ping": {
             "no_data": "",
             "avg": "",
-            "min": "",
-            "max": "",
+            "min": "min",
+            "max": "max",
             "jitter": "",
             "loss": "",
             "loss_down": "",
@@ -2086,12 +2086,12 @@
         "save_failed": "",
         "open_failed": "",
         "min_level": "",
-        "search": "Chercher",
+        "search": "Rechercher",
         "search_label": "",
         "auto_scroll": "",
         "refresh": "",
         "copy": "Copier",
-        "save": "Sauvegarder",
+        "save": "Enregistrer",
         "open_folder": "",
         "read_failed": "",
         "loading": "",
@@ -2142,13 +2142,13 @@
             "title": "",
             "summary": "",
             "summary_delta": "",
-            "empty": ""
+            "empty": "Aucune partie pour le moment."
         },
         "verdict": {
-            "excellent": "",
-            "good": "",
-            "bad": "",
-            "neutral": ""
+            "excellent": "Excellente session",
+            "good": "Bonne session",
+            "bad": "Session difficile",
+            "neutral": "Session équilibrée"
         },
         "greetings": {
             "late_night": {
@@ -2165,27 +2165,27 @@
                 "4": ""
             },
             "morning": {
-                "1": "",
+                "1": "Bonjour, {name}",
                 "2": "",
                 "3": "",
                 "4": "",
                 "5": ""
             },
             "midday": {
-                "1": "",
+                "1": "Bon après-midi, {name}",
                 "2": "",
                 "3": "",
                 "4": ""
             },
             "afternoon": {
-                "1": "",
+                "1": "Bon après-midi, {name}",
                 "2": "",
                 "3": "",
                 "4": "",
                 "5": ""
             },
             "evening": {
-                "1": "",
+                "1": "Bonsoir, {name}",
                 "2": "",
                 "3": "",
                 "4": "",
@@ -2335,10 +2335,10 @@
         "back_home": ""
     },
     "account": {
-        "default_name": "",
-        "none": "",
-        "none_found": "",
-        "tooltip": ""
+        "default_name": "Compte Steam",
+        "none": "Aucun compte Steam",
+        "none_found": "Aucun compte Steam trouvé",
+        "tooltip": "{name} ({id})"
     },
     "heroes": {},
     "jobs": {
@@ -2378,8 +2378,8 @@
             "looking_for_login": "",
             "last_pass_failed": "",
             "using": "",
-            "accounts_one": "",
-            "accounts_other": ""
+            "accounts_one": "{count} compte Steam",
+            "accounts_other": "{count} comptes Steam"
         },
         "own": {
             "reading_history": "",
@@ -2439,11 +2439,11 @@
         "refresh": "",
         "creating": "",
         "preview": "",
-        "copy": "",
+        "copy": "Copier",
         "copied": "",
         "copy_failed": "",
-        "save": "",
-        "save_filter": "",
+        "save": "Enregistrer",
+        "save_filter": "Texte",
         "saved": "",
         "save_failed": "",
         "build_failed": ""
@@ -2452,11 +2452,11 @@
         "api_error": "",
         "detail_invalid": "",
         "team": {
-            "hidden_king": "",
-            "archmother": ""
+            "hidden_king": "Le Roi de l'Ombre",
+            "archmother": "La Matriarche"
         },
         "list": {
-            "title": "",
+            "title": "Historique des parties",
             "subtitle": "",
             "empty": "",
             "no_results": "",
@@ -2471,11 +2471,11 @@
             },
             "filter": {
                 "label": "",
-                "mode": "",
-                "hero": "",
+                "mode": "Mode",
+                "hero": "Occultiste",
                 "outcome": "",
                 "window": "",
-                "any_hero": "",
+                "any_hero": "Tous les occultistes",
                 "any_outcome": "",
                 "custom": "",
                 "reset": ""
@@ -2485,7 +2485,7 @@
             },
             "summary": {
                 "label": "",
-                "matches": ""
+                "matches": "Parties"
             },
             "row": {
                 "souls": "",
@@ -2493,13 +2493,13 @@
                 "kda_split": "",
                 "kda_ratio": ""
             },
-            "count_one": "",
-            "count_other": ""
+            "count_one": "{count} partie",
+            "count_other": "{count} parties"
         },
         "deep_dive": {
             "not_available": "",
-            "player": "",
-            "player_fallback": "",
+            "player": "Joueur",
+            "player_fallback": "Joueur {slot}",
             "progress": {
                 "heading": "",
                 "souls": "",
@@ -2520,8 +2520,8 @@
                 "previous": "",
                 "next": "",
                 "step": "",
-                "item_buy": "",
-                "item_sell": "",
+                "item_buy": "Achat : {name}",
+                "item_sell": "Vente : {name}",
                 "ability_unlock": "",
                 "ability_upgrade": "",
                 "imbued": "",
@@ -2543,8 +2543,8 @@
                 "picker_aria": ""
             },
             "objectives": {
-                "heading": "",
-                "objective": "",
+                "heading": "Objectifs",
+                "objective": "Objectif",
                 "owner": "",
                 "destroyed": "",
                 "players": "",
