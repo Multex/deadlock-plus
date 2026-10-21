@@ -191,7 +191,15 @@ test("the inspector edits the build, the selected category and the selected item
     const tag = page.getByRole("menuitem").nth(0);
     const tagName = (await tag.textContent())!.trim();
     await tag.click();
-    await expect(slot).toContainText(tagName);
+    // A slot is a small square showing only the tag's icon; its name is in the label and the tooltip.
+    await expect(slot).toHaveAccessibleName(new RegExp(`: ${tagName}$`));
+    await expect(slot).not.toContainText(tagName);
+    const box = (await slot.boundingBox())!;
+    expect(box.height).toBeLessThanOrEqual(48);
+    expect(box.width).toBe(box.height);
+    await page.mouse.move(0, 0);
+    await slot.hover();
+    await expect(page.locator("[data-tooltip-content]")).toHaveText(tagName);
 
     await chips(page).first().click();
     await expect(page.getByTestId("inspector-item-name")).toBeVisible();

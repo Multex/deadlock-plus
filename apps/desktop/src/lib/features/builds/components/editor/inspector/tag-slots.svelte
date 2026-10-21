@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Check, X } from "@lucide/svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
+    import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { t } from "$lib/core/i18n.svelte";
     import { updateBuild } from "$lib/features/builds/editor/document";
@@ -55,34 +56,52 @@
         }
     }
 
-    const art = (tag: TagInfo) => (tag.kind === "standard" ? tag.icon : tag.kind === "unknown" ? undefined : tag.art);
-
     function place(slot: number, id: number) {
         const next = setTagSlot(editor.build.tags, slot, id);
         if (next !== editor.build.tags) editor.apply(updateBuild(editor.build, { tags: next }));
     }
 </script>
 
+<!--
+    The game's standard tag icons each come in their own accent colour; drawing them as a mask in
+    currentColor gives every slot and menu row one tint that follows the theme.
+-->
 {#snippet glyph(tag: TagInfo, size: string)}
-    {@const src = art(tag)}
-    {#if src}
-        <img {src} alt="" class={cn("shrink-0 object-contain", tag.kind !== "standard" && "rounded-sm", size)} />
-    {:else}
-        <!-- The letter is generated content so it stays out of the tag's accessible name and text. -->
+    {#if tag.kind === "standard" && tag.icon}
         <span
-            class={cn(
-                "grid shrink-0 place-items-center rounded-sm border border-border bg-muted text-[10px] leading-none font-semibold text-muted-foreground uppercase before:content-[attr(data-initial)]",
-                size,
-            )}
-            data-initial={label(tag).trim().charAt(0) || "?"}
+            class={cn("shrink-0 bg-current mask-contain mask-center mask-no-repeat", size)}
+            style:mask-image={`url("${tag.icon}")`}
             aria-hidden="true"
         ></span>
+    {:else if tag.kind === "ability" || tag.kind === "item"}
+        {#if tag.art}
+            <span class={cn("relative shrink-0 overflow-hidden rounded-[3px] bg-black/30", size)} aria-hidden="true">
+                <img src={tag.art} alt="" class="size-full object-cover" />
+                <span class="absolute inset-0 rounded-[inherit] ring-1 ring-white/12 ring-inset"></span>
+            </span>
+        {:else}
+            {@render initial(tag, size)}
+        {/if}
+    {:else}
+        {@render initial(tag, size)}
     {/if}
+{/snippet}
+
+{#snippet initial(tag: TagInfo, size: string)}
+    <!-- The letter is generated content so it stays out of the tag's accessible name and text. -->
+    <span
+        class={cn(
+            "grid shrink-0 place-items-center rounded-[3px] border border-current/30 text-[11px] leading-none font-semibold uppercase before:content-[attr(data-initial)]",
+            size,
+        )}
+        data-initial={label(tag).trim().charAt(0) || "?"}
+        aria-hidden="true"
+    ></span>
 {/snippet}
 
 {#snippet option(slot: number, tag: TagInfo, current: TagInfo | null)}
     <DropdownMenu.Item onSelect={() => place(slot, tag.id)} disabled={current?.id === tag.id}>
-        {@render glyph(tag, "size-5")}
+        <span class="contents text-foreground/85">{@render glyph(tag, "size-5")}</span>
         <span class="truncate">{label(tag)}</span>
         {#if taken.has(tag.id)}
             <Check class={cn("ml-auto", current?.id !== tag.id && "opacity-50")} aria-hidden="true" />
@@ -90,29 +109,43 @@
     </DropdownMenu.Item>
 {/snippet}
 
-<ul class="grid grid-cols-3 gap-2" aria-labelledby={labelledby} data-testid="tag-slots">
+<ul class="flex gap-2" aria-labelledby={labelledby} data-testid="tag-slots">
     {#each slots as current, slot (slot)}
+        {@const art = current !== null && (current.kind === "ability" || current.kind === "item") && !!current.art}
         <li>
             <DropdownMenu.Root>
-                <DropdownMenu.Trigger
-                    class={cn(
-                        "group flex h-[68px] w-full flex-col items-center justify-center gap-1 rounded-md border px-1.5 text-center transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-                        current
-                            ? "border-border bg-muted/40 hover:border-ring/60"
-                            : "border-dashed border-border/80 text-muted-foreground hover:border-ring/60 hover:text-foreground",
-                    )}
-                    aria-label={current
-                        ? t("builds.editor.inspector.tag_slot_filled", { slot: slot + 1, name: label(current) })
-                        : t("builds.editor.inspector.tag_slot_empty", { slot: slot + 1 })}
-                    data-slot={slot}
-                >
-                    {#if current}
-                        {@render glyph(current, "size-6")}
-                        <span class="line-clamp-3 text-[11px] leading-tight font-medium">{label(current)}</span>
-                    {:else}
-                        <span class="text-xl leading-none font-semibold" aria-hidden="true">?</span>
-                    {/if}
-                </DropdownMenu.Trigger>
+                <Tooltip.Provider>
+                    <Tooltip.Root delayDuration={150} disabled={current === null}>
+                        <Tooltip.Trigger>
+                            {#snippet child({ props })}
+                                <DropdownMenu.Trigger
+                                    {...props}
+                                    class={cn(
+                                        "grid size-11 place-items-center overflow-hidden rounded-md border transition-[color,background-color,border-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none aria-expanded:border-ring/70 aria-expanded:text-foreground",
+                                        current
+                                            ? "border-border bg-muted/60 text-foreground/80 hover:border-ring/60 hover:bg-muted hover:text-foreground"
+                                            : "border-dashed border-border bg-black/20 text-muted-foreground/60 hover:border-ring/60 hover:bg-muted/40 hover:text-muted-foreground",
+                                        art && "p-[3px]",
+                                    )}
+                                    aria-label={current
+                                        ? t("builds.editor.inspector.tag_slot_filled", {
+                                              slot: slot + 1,
+                                              name: label(current),
+                                          })
+                                        : t("builds.editor.inspector.tag_slot_empty", { slot: slot + 1 })}
+                                    data-slot={slot}
+                                >
+                                    {#if current}
+                                        {@render glyph(current, art ? "size-full" : "size-6")}
+                                    {:else}
+                                        <span class="text-lg leading-none font-semibold" aria-hidden="true">?</span>
+                                    {/if}
+                                </DropdownMenu.Trigger>
+                            {/snippet}
+                        </Tooltip.Trigger>
+                        <Tooltip.Content side="top">{current ? label(current) : ""}</Tooltip.Content>
+                    </Tooltip.Root>
+                </Tooltip.Provider>
                 <DropdownMenu.Content align="start" class="max-h-96 w-64 overflow-y-auto">
                     {#if current}
                         <DropdownMenu.Item onSelect={() => place(slot, 0)}>
