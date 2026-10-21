@@ -30,6 +30,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@deadlock-plus/build-layout':
+        specifier: workspace:*
+        version: link:../../packages/build-layout
       '@deadlock-plus/deadlock-api':
         specifier: workspace:*
         version: link:../../packages/deadlock-api

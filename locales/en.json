@@ -1760,6 +1760,13 @@
             "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
         }
     },
+    "builds": {
+        "shop": {
+            "optional": "Optional",
+            "imbue": "Imbue",
+            "removed_item": "Removed item"
+        }
+    },
     "alerts": {
         "title": "News",
         "subtitle": "Recent Deadlock patch notes and Steam announcements.",

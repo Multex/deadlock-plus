@@ -29,7 +29,7 @@ const config = {
                 // Relative to the generated tsconfig. Without these, only package files the app imports are
                 // checked, which leaves out every package test.
                 const depth = demo ? "../../../.." : "../../..";
-                for (const name of ["deadlock-api", "demo", "match", "stats", "ui"]) {
+                for (const name of ["build-layout", "deadlock-api", "demo", "match", "stats", "ui"]) {
                     tsconfig.include.push(`${depth}/packages/${name}/src/**/*.ts`);
                 }
                 // The packages' tests sit outside this app, where `vitest` is not installed.

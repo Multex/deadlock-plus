@@ -33,6 +33,7 @@
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "@deadlock-plus/build-layout": "workspace:*",
     "@deadlock-plus/deadlock-api": "workspace:*",
     "@deadlock-plus/ipc-types": "workspace:*",
     "@deadlock-plus/links": "workspace:*",
