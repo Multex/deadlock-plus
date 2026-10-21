@@ -374,14 +374,85 @@ pub fn local_builds(
 
 /// The proto's `language` number for a game language name (`english`, `schinese`, ...).
 pub fn proto_language(game_language: &str) -> u32 {
-    // language mapping pending
-    let _ = game_language;
-    0
+    match game_language {
+        "german" => 1,
+        "french" => 2,
+        "italian" => 3,
+        "koreana" => 4,
+        "spanish" => 5,
+        "schinese" => 6,
+        "tchinese" => 7,
+        "russian" => 8,
+        "thai" => 9,
+        "japanese" => 10,
+        "portuguese" => 11,
+        "polish" => 12,
+        "danish" => 13,
+        "dutch" => 14,
+        "finnish" => 15,
+        "norwegian" => 16,
+        "swedish" => 17,
+        "hungarian" => 18,
+        "czech" => 19,
+        "romanian" => 20,
+        "turkish" => 21,
+        "brazilian" => 22,
+        "bulgarian" => 23,
+        "greek" => 24,
+        "ukrainian" => 25,
+        "latam" => 26,
+        "vietnamese" => 27,
+        "indonesian" => 28,
+        _ => 0,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn proto_language_matches_steam_elanguage() {
+        let expected = [
+            ("english", 0),
+            ("german", 1),
+            ("french", 2),
+            ("italian", 3),
+            ("koreana", 4),
+            ("spanish", 5),
+            ("schinese", 6),
+            ("tchinese", 7),
+            ("russian", 8),
+            ("thai", 9),
+            ("japanese", 10),
+            ("portuguese", 11),
+            ("polish", 12),
+            ("hungarian", 18),
+            ("czech", 19),
+            ("turkish", 21),
+            ("brazilian", 22),
+            ("ukrainian", 25),
+            ("latam", 26),
+            ("indonesian", 28),
+        ];
+        for (name, number) in expected {
+            assert_eq!(proto_language(name), number, "{name}");
+        }
+    }
+
+    #[test]
+    fn proto_language_covers_every_game_language_locale() {
+        for (locale, number) in [("zh-TW", 7), ("es-419", 26), ("pt-BR", 22), ("hu", 18), ("id", 28), ("xx", 0)] {
+            assert_eq!(proto_language(dp_gamedata::game_language(locale)), number, "{locale}");
+        }
+    }
+
+    #[test]
+    fn proto_language_unknown_is_english() {
+        assert_eq!(proto_language("klingon"), 0);
+        assert_eq!(proto_language(""), 0);
+    }
+
     use crate::features::builds::views::{BuildSection, FlushView};
     use dp_builds::backup::WriteError;
     use dp_builds::model::{self, CURRENCY_ABILITY_POINTS, CURRENCY_ABILITY_UNLOCKS};
