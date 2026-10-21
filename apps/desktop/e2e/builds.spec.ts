@@ -113,6 +113,34 @@ test("discarding a draft from My builds asks first", async ({ page }) => {
     await expect(mineRow(page, "Infernus burst")).toHaveCount(0);
 });
 
+test("My builds lists another player's favourite with its author, edits a copy of it and unfavourites it", async ({
+    page,
+}) => {
+    await openMine(page);
+    const favourites = mineTab(page).getByTestId("favourites");
+    const link = favourites.getByRole("link", { name: "Bullet Dance Crit", exact: true });
+    const row = favourites
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("link", { name: "Bullet Dance Crit", exact: true }) });
+    await expect(row).toContainText("Haze");
+    await expect(row).toContainText("By Brass Tack");
+    await expect(link).toHaveAttribute("href", "/builds/view?source=local&id=381204");
+    await expect(mineTab(page).getByRole("link", { name: "Bullet Dance Crit", exact: true })).toHaveCount(1);
+
+    const actions = row.getByRole("button", { name: "More actions for Bullet Dance Crit", exact: true });
+    await actions.click();
+    await page.getByRole("menuitem", { name: "Edit a copy", exact: true }).click();
+    await expect(page).toHaveURL(/\/builds\/edit\?source=local&id=381204$/);
+    await expect(page.getByTestId("build-name")).toHaveValue("Bullet Dance Crit (copy)");
+
+    await open(page, "/builds");
+    await openMine(page);
+    await actions.click();
+    await page.getByRole("menuitem", { name: "Unfavourite", exact: true }).click();
+    await expect(favourites).toHaveCount(0);
+    await expect(mineRow(page, "Infernus test")).toBeVisible();
+});
+
 test("?hero= opens the Public tab on that hero", async ({ page }) => {
     await open(page, "/builds?hero=13");
     await expect(main(page).getByRole("tab", { name: "Public", exact: true })).toHaveAttribute("aria-selected", "true");

@@ -1823,7 +1823,9 @@
             "discard_draft": "Discard draft",
             "draft_discarded": "Draft discarded.",
             "discard_title": "Discard {name}?",
-            "discard_description": "Its unsaved changes are lost."
+            "discard_description": "Its unsaved changes are lost.",
+            "favourites_title": "Favourites",
+            "favourite_version": "Version {version}"
         },
         "browser": {
             "title": "Builds",

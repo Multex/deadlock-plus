@@ -18,7 +18,9 @@ const mocks = vi.hoisted(() => ({
     buildsFavourite: vi.fn(),
     buildsDrafts: vi.fn(),
     buildsDraftDelete: vi.fn(),
+    buildsUnfavourite: vi.fn(),
     onFlushed: vi.fn(),
+    resolveNames: vi.fn(),
 }));
 vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: { builds: mocks.builds } }));
 vi.mock("./api", () => ({
@@ -31,9 +33,10 @@ vi.mock("./api", () => ({
     buildsDrafts: mocks.buildsDrafts,
     buildsDraftDelete: mocks.buildsDraftDelete,
     buildsSave: vi.fn(),
-    buildsUnfavourite: vi.fn(),
+    buildsUnfavourite: mocks.buildsUnfavourite,
     buildsQueueCancel: vi.fn(),
 }));
+vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: mocks.resolveNames } }));
 
 import { MyBuildsStore } from "./my-builds.svelte";
 
@@ -44,7 +47,9 @@ import {
     copyRequest,
     deleteTargets,
     favouriteAction,
+    favouriteViewHref,
     flushFailure,
+    foreignFavourites,
     mergeMine,
     openHref,
     toDraft,
@@ -120,6 +125,77 @@ function only(over: Partial<MineInput>): MineRow {
     expect(all).toHaveLength(1);
     return all[0]!;
 }
+
+describe("foreignFavourites", () => {
+    it("lists other players' favourites with their hero, author and version, newest first", () => {
+        const favourites = foreignFavourites(ME, [
+            local("Favorites", {
+                heroBuildId: 6000,
+                heroId: 13,
+                authorAccountId: OTHER,
+                name: "Old",
+                version: 4,
+                lastUpdatedTimestamp: 10,
+            }),
+            local("Favorites", {
+                heroBuildId: 6001,
+                heroId: 2,
+                authorAccountId: OTHER + 1,
+                name: "New",
+                version: 9,
+                lastUpdatedTimestamp: 20,
+            }),
+        ]);
+        expect(favourites).toEqual([
+            {
+                key: "favourite:6001",
+                buildId: 6001,
+                heroId: 2,
+                name: "New",
+                authorAccountId: OTHER + 1,
+                version: 9,
+                updatedAt: 20,
+            },
+            {
+                key: "favourite:6000",
+                buildId: 6000,
+                heroId: 13,
+                name: "Old",
+                authorAccountId: OTHER,
+                version: 4,
+                updatedAt: 10,
+            },
+        ]);
+    });
+
+    it("leaves out own favourites and other players' builds outside Favorites", () => {
+        expect(
+            foreignFavourites(ME, [
+                local("Favorites", { heroBuildId: 5000 }),
+                local("Favorites", { heroBuildId: 8 }),
+                local("SavedLastUsed", { heroBuildId: 6001, authorAccountId: OTHER }),
+                local("Unpublished", { heroBuildId: 9, authorAccountId: OTHER }),
+            ]),
+        ).toEqual([]);
+    });
+
+    it("puts every Favorites entry in My builds or in Favourites, never both", () => {
+        const entries = [
+            local("Favorites", { heroBuildId: 5000 }),
+            local("Favorites", { heroBuildId: 8 }),
+            local("Favorites", { heroBuildId: 6000, authorAccountId: OTHER }),
+        ];
+        const mine = rows({ local: entries }).map((r) => r.buildId);
+        const theirs = foreignFavourites(ME, entries).map((f) => f.buildId);
+        expect([...mine, ...theirs].sort()).toEqual([5000, 6000, 8]);
+        expect(theirs).toEqual([6000]);
+    });
+
+    it("opens a favourite's view page from the file", () => {
+        const [favourite] = foreignFavourites(ME, [local("Favorites", { heroBuildId: 6000, authorAccountId: OTHER })]);
+        expect(favouriteViewHref(favourite!)).toBe("/builds/view?source=local&id=6000");
+    });
+});
 
 describe("mergeMine status", () => {
     it("shows an Unpublished build as in game", () => {
@@ -454,6 +530,42 @@ describe("MyBuildsStore", () => {
         mocks.builds.mockResolvedValue([api()]);
         mocks.onFlushed.mockResolvedValue(() => {});
         mocks.buildsDrafts.mockResolvedValue([]);
+        mocks.resolveNames.mockResolvedValue(new Map());
+    });
+
+    it("lists other players' favourites with their authors' names", async () => {
+        const theirs = local("Favorites", { heroBuildId: 6000, authorAccountId: OTHER, name: "Theirs" });
+        mocks.buildsLocal.mockResolvedValue(file({ builds: [local("Unpublished"), theirs] }));
+        mocks.resolveNames.mockResolvedValue(new Map([[OTHER, "Brass Tack"]]));
+        const store = new MyBuildsStore();
+        await store.refresh();
+        await settle();
+        expect(store.favourites.map((f) => f.name)).toEqual(["Theirs"]);
+        expect(mocks.resolveNames).toHaveBeenCalledWith([OTHER]);
+        expect(store.authors.get(OTHER)).toBe("Brass Tack");
+    });
+
+    it("keeps the favourites when their authors' names cannot load", async () => {
+        const theirs = local("Favorites", { heroBuildId: 6000, authorAccountId: OTHER });
+        mocks.buildsLocal.mockResolvedValue(file({ builds: [theirs] }));
+        mocks.resolveNames.mockRejectedValue(new Error("down"));
+        const store = new MyBuildsStore();
+        await store.refresh();
+        await settle();
+        expect(store.favourites).toHaveLength(1);
+        expect(store.authors.size).toBe(0);
+    });
+
+    it("unfavourites another player's build by its id and reloads", async () => {
+        const theirs = local("Favorites", { heroBuildId: 6000, authorAccountId: OTHER });
+        mocks.buildsLocal.mockResolvedValue(file({ builds: [theirs] }));
+        mocks.buildsUnfavourite.mockResolvedValue({ kind: "written", buildId: 6000, backup: null });
+        const store = new MyBuildsStore();
+        await store.refresh();
+        mocks.buildsLocal.mockResolvedValue(file({ builds: [] }));
+        expect(await store.unfavourite(store.favourites[0]!)).toBe("done");
+        expect(mocks.buildsUnfavourite).toHaveBeenCalledWith(6000);
+        expect(store.favourites).toEqual([]);
     });
 
     function storedDraft(): DraftView {

@@ -173,7 +173,39 @@ export function mergeMine(input: MineInput): MineGroup[] {
     return groupRows(rows);
 }
 
-function newestFirst(a: MineRow, b: MineRow): number {
+/** Another player's build the player favourited, kept in the file's `Favorites`. */
+export interface FavouriteRow {
+    key: string;
+    buildId: number;
+    heroId: number;
+    name: string;
+    authorAccountId: number;
+    version: number;
+    /** Unix seconds. */
+    updatedAt: number | null;
+}
+
+/** The `Favorites` entries `mergeMine` leaves out, newest first. */
+export function foreignFavourites(accountId: number, local: readonly LocalBuild[]): FavouriteRow[] {
+    return local
+        .filter((entry) => entry.section === "Favorites" && !isMine(entry, accountId))
+        .map(({ build }) => ({
+            key: `favourite:${build.heroBuildId}`,
+            buildId: build.heroBuildId,
+            heroId: build.heroId,
+            name: build.name,
+            authorAccountId: build.authorAccountId,
+            version: build.version,
+            updatedAt: build.lastUpdatedTimestamp,
+        }))
+        .sort(newestFirst);
+}
+
+export function favouriteViewHref(row: FavouriteRow): string {
+    return `/builds/view?source=local&id=${row.buildId}`;
+}
+
+function newestFirst(a: Pick<MineRow, "updatedAt" | "name">, b: Pick<MineRow, "updatedAt" | "name">): number {
     return (b.updatedAt ?? -Infinity) - (a.updatedAt ?? -Infinity) || a.name.localeCompare(b.name);
 }
 

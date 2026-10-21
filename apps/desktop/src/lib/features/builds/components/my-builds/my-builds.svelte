@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CircleHelp, Clock, Plus, TriangleAlert } from "@lucide/svelte";
+    import { CircleHelp, Clock, Plus, Star, TriangleAlert } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
 
     import { failureText } from "$lib/core/errors";
@@ -14,6 +14,7 @@
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import BuildRow from "./build-row.svelte";
     import ConflictDialog from "./conflict-dialog.svelte";
+    import FavouriteRow from "./favourite-row.svelte";
 
     const store = new MyBuildsStore();
     let heroes = $state<Record<number, Hero>>({});
@@ -22,7 +23,12 @@
     let discarding = $state<MineRow | null>(null);
     let discardOpen = $state(false);
 
-    const heroIds = $derived(store.groups.flatMap((g) => (g.heroId === null ? [] : [g.heroId])));
+    const heroIds = $derived([
+        ...new Set([
+            ...store.groups.flatMap((g) => (g.heroId === null ? [] : [g.heroId])),
+            ...store.favourites.map((f) => f.heroId),
+        ]),
+    ]);
     const waiting = $derived(waitingCount(store.queue));
     const conflict = $derived(store.conflicts[0] ?? null);
 
@@ -176,6 +182,27 @@
                     </ul>
                 </div>
             {/each}
+        {/if}
+        {#if store.favourites.length > 0}
+            <div class="flex flex-col gap-2" data-testid="favourites">
+                <h3 class="flex items-center gap-2 text-sm font-semibold">
+                    <span class="flex size-7 items-center justify-center rounded-md bg-muted text-brass">
+                        <Star class="size-4 fill-current" aria-hidden="true" />
+                    </span>
+                    {t("builds.mine.favourites_title")}
+                </h3>
+                <ul class="flex flex-col gap-1.5">
+                    {#each store.favourites as row (row.key)}
+                        <FavouriteRow
+                            {row}
+                            hero={heroes[row.heroId]}
+                            author={store.authors.get(row.authorAccountId)}
+                            busy={store.busy}
+                            onunfavourite={() => void run(() => store.unfavourite(row), t("builds.mine.unfavourited"))}
+                        />
+                    {/each}
+                </ul>
+            </div>
         {/if}
     {/if}
 </section>

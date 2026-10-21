@@ -1,4 +1,5 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
+import { playerNames } from "$lib/features/match-history/names";
 import type { Build } from "@deadlock-plus/deadlock-api";
 import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
@@ -25,9 +26,11 @@ import {
     deleteTargets,
     favouriteAction,
     flushFailure,
+    foreignFavourites,
     mergeMine,
     toDraft,
     type DraftSource,
+    type FavouriteRow,
     type MineGroup,
     type MineRow,
 } from "./my-builds";
@@ -44,6 +47,9 @@ export type ActionOutcome = "done" | "queued" | "conflict";
 
 export class MyBuildsStore {
     groups = $state<MineGroup[]>([]);
+    /** Other players' builds the player favourited. */
+    favourites = $state<FavouriteRow[]>([]);
+    authors = $state.raw<ReadonlyMap<number, string>>(new Map());
     queue = $state<QueuedSaveView[]>([]);
     gameRunning = $state(false);
     loading = $state(true);
@@ -82,6 +88,8 @@ export class MyBuildsStore {
                 published,
                 drafts,
             });
+            this.favourites = foreignFavourites(local.accountId, local.builds);
+            void this.#loadAuthors(this.favourites);
             this.queue = local.queue;
             this.gameRunning = local.gameRunning;
             this.publishedFailed = publishedFailed;
@@ -94,6 +102,17 @@ export class MyBuildsStore {
             if (mine === this.#generation) this.error = e;
         } finally {
             if (mine === this.#generation) this.loading = false;
+        }
+    }
+
+    async #loadAuthors(rows: readonly FavouriteRow[]) {
+        const ids = [...new Set(rows.map((r) => r.authorAccountId))].filter((id) => !this.authors.has(id));
+        if (ids.length === 0) return;
+        try {
+            const names = await playerNames.resolve(ids);
+            this.authors = new Map([...this.authors, ...names]);
+        } catch {
+            // Rows show no author until a later refresh resolves the names.
         }
     }
 
@@ -166,6 +185,10 @@ export class MyBuildsStore {
             if (action.kind === "unfavourite") return buildsUnfavourite(action.id);
             return buildsFavourite("view" in action ? { view: action.view } : { id: action.id });
         });
+    }
+
+    unfavourite(row: FavouriteRow): Promise<ActionOutcome> {
+        return this.#act(() => buildsUnfavourite(row.buildId));
     }
 
     async discard(row: MineRow) {
