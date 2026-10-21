@@ -678,6 +678,33 @@ mod tests {
         assert_eq!((out.num_favorites, out.rollup_category), (Some(0), Some(0)));
     }
 
+    fn ability_ids(v: &BuildView) -> Vec<Vec<u32>> {
+        v.mod_categories.iter().map(|c| c.mods.iter().map(|m| m.ability_id).collect()).collect()
+    }
+
+    // The game's shop refuses an item twice in one build, but the file allows it and players ask for it.
+    #[test]
+    fn a_stored_duplicate_item_survives_a_round_trip_byte_for_byte() {
+        let mut b = base();
+        categories(&mut b)[0].mods.push(ModEntry { ability_id: Some(1), unknown: unk(11), ..Default::default() });
+        categories(&mut b)[1].mods.push(ModEntry { ability_id: Some(1), ..Default::default() });
+        let b = HeroBuildResult::decode(&b.encode()).unwrap();
+        let encoded = apply(&b, &view(&b)).encode();
+        assert_eq!(encoded, b.encode());
+        assert_eq!(ability_ids(&view(&HeroBuildResult::decode(&encoded).unwrap())), vec![vec![1, 2, 1], vec![3, 1]]);
+    }
+
+    #[test]
+    fn a_duplicate_item_added_in_an_edit_is_written_in_order() {
+        let b = base();
+        let mut v = view(&b);
+        v.mod_categories[0].mods.insert(1, ModEntryView { ability_id: 1, ..Default::default() });
+        v.mod_categories[1].mods.push(ModEntryView { ability_id: 1, ..Default::default() });
+        let decoded = HeroBuildResult::decode(&apply(&b, &v).encode()).unwrap();
+        assert_eq!(view(&decoded), v);
+        assert_eq!(ability_ids(&view(&decoded)), vec![vec![1, 1, 2], vec![3, 1]]);
+    }
+
     // A new build exactly as the game wrote it on create (game build 6805), with its name and items
     // as parameters.
     fn template(id: u32, ts: u32, name: &str, account: u32, hero: u32, items: &[u32]) -> HeroBuildResult {

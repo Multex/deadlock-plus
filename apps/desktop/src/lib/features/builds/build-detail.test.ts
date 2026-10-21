@@ -180,6 +180,11 @@ describe("costLine", () => {
         const build = view({ modCategories: [category([12, 14, 99]), category([14], true)] });
         expect(costLine(build, byId)).toEqual({ total: 500, items: 1, removed: 3 });
     });
+
+    it("prices a listed duplicate once and still counts it", () => {
+        const build = view({ modCategories: [category([10, 12, 10]), category([10, 11])] });
+        expect(costLine(build, byId)).toEqual({ total: 800 + 500 + 800, items: 5, removed: 0 });
+    });
 });
 
 describe("abilitySteps", () => {

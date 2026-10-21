@@ -100,6 +100,19 @@ fn repeated_tags_keep_order_and_duplicates() {
 }
 
 #[test]
+fn the_same_item_in_several_categories_keeps_every_copy_in_order() {
+    let early = cat(&[ld(1, &mod_entry(Vec::new())), ld(1, &cat(&[vi(1, 8)])), ld(1, &mod_entry(Vec::new()))]);
+    let late = cat(&[ld(1, &cat(&[vi(1, 7)]))]);
+    let details = cat(&[ld(1, &early), ld(1, &late)]);
+    let bytes = result(&cat(&[vi(2, 42), ld(10, &details)]));
+    let r = HeroBuildResult::decode(&bytes).unwrap();
+    let categories = &r.hero_build.as_ref().unwrap().details.as_ref().unwrap().mod_categories;
+    let ids: Vec<Vec<Option<u32>>> = categories.iter().map(|c| c.mods.iter().map(|m| m.ability_id).collect()).collect();
+    assert_eq!(ids, vec![vec![Some(7), Some(8), Some(7)], vec![Some(7)]]);
+    assert_eq!(r.encode(), bytes);
+}
+
+#[test]
 fn unknown_fields_survive_rename() {
     let junk_build = cat(&[vi(99, 7)]);
     let junk_entry = cat(&[ld(99, b"abc")]);

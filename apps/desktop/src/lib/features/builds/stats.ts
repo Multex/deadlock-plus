@@ -24,21 +24,21 @@ export function normaliseSearchText(text: string): string {
         .trim();
 }
 
-/** The items of `order` still owned at the end, once each upgrade has used up its components. */
+/**
+ * The items of `order` still owned at the end, once each upgrade has used up its components. A copy
+ * of an item listed earlier is skipped, as `chainCost` prices it at nothing.
+ */
 function itemsStillOwned(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): number[] {
-    const owned: { id: number; at: number }[] = [];
-    const take = (id: number) => {
-        const at = owned.findIndex((o) => o.id === id);
-        if (at === -1) return false;
-        owned.splice(at, 1);
-        return true;
-    };
-    order.forEach((id, at) => {
+    const owned = new Set<number>();
+    const listed = new Set<number>();
+    for (const id of order) {
+        if (listed.has(id)) continue;
+        listed.add(id);
         const item = byId.get(id);
-        if (item !== undefined) consumeComponents(byId, item, take);
-        owned.push({ id, at });
-    });
-    return owned.map((o) => o.id);
+        if (item !== undefined) consumeComponents(byId, item, (c) => owned.delete(c));
+        owned.add(id);
+    }
+    return [...owned];
 }
 
 /**

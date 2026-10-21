@@ -401,8 +401,18 @@ describe("chainCost", () => {
         expect(chainCost(byId, [5, 6, 4]).costs).toEqual([800, 1600, 800]);
     });
 
-    it("consumes a component once an upgrade used it", () => {
-        expect(chainCost(byId, [1, 2, 2]).costs).toEqual([800, 800, 1600]);
+    it("charges nothing for a copy of an item already bought", () => {
+        expect(chainCost(byId, [1, 1])).toEqual({ total: 800, costs: [800, 0] });
+        expect(chainCost(byId, [1, 2, 2])).toEqual({ total: 1600, costs: [800, 800, 0] });
+    });
+
+    it("charges nothing for a copy of an item an upgrade already used up", () => {
+        expect(chainCost(byId, [1, 2, 1])).toEqual({ total: 1600, costs: [800, 800, 0] });
+    });
+
+    it("does not let a copy use up components again", () => {
+        expect(chainCost(byId, [5, 4, 5, 4])).toEqual({ total: 3200, costs: [800, 2400, 0, 0] });
+        expect(chainCost(byId, [1, 2, 1, 3]).costs).toEqual([800, 800, 0, 4800]);
     });
 
     it("buys the component at full price after its upgrade", () => {

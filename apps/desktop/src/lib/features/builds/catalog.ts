@@ -211,12 +211,17 @@ export function consumeComponents(
     return walk(item, new Set([item.id]));
 }
 
-/** Souls to buy `order` one item after another. Owning a component discounts the upgrade by its full price. */
+/**
+ * Souls to buy `order` one item after another. Owning a component discounts the upgrade by its full price.
+ * A build may list an item more than once; every copy after the first costs nothing and uses up nothing.
+ */
 export function chainCost(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): ChainCost {
     const owned = new Set<number>();
+    const bought = new Set<number>();
     const costs = order.map((id) => {
         const item = byId.get(id);
-        if (item === undefined) return 0;
+        if (item === undefined || bought.has(id)) return 0;
+        bought.add(id);
         const cost = Math.max(0, item.cost - consumeComponents(byId, item, (c) => owned.delete(c)));
         owned.add(id);
         return cost;

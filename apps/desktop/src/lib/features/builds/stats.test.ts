@@ -72,9 +72,9 @@ describe("statsSoFar", () => {
         ]);
     });
 
-    it("counts an item bought twice twice", () => {
+    it("counts an item listed twice once", () => {
         expect(statsSoFar([1, 1], statsById, noCatalog)).toEqual([
-            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 20 },
+            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 10 },
         ]);
     });
 
@@ -129,10 +129,17 @@ describe("statsSoFar with components", () => {
         ]);
     });
 
-    it("uses up only one copy of a component bought twice", () => {
+    it("lets an upgrade use up a component listed twice", () => {
         expect(statsSoFar([1, 1, 2], statsById, byId)).toEqual([
-            { provides: SPIRIT, label: "Spirit Power", unit: null, total: 16 },
             { provides: HEALTH, label: "Bonus Health", unit: null, total: 210 },
+            { provides: SPIRIT, label: "Bonus Spirit", unit: null, total: 6 },
+        ]);
+    });
+
+    it("does not bring back a used-up component listed again after its upgrade", () => {
+        expect(statsSoFar([1, 2, 1], statsById, byId)).toEqual([
+            { provides: HEALTH, label: "Bonus Health", unit: null, total: 210 },
+            { provides: SPIRIT, label: "Bonus Spirit", unit: null, total: 6 },
         ]);
     });
 });
