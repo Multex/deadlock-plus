@@ -23,6 +23,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Unsaved changes to a build are kept as a draft until you save or discard them.
 - You can favourite any public build from its page, and it shows in your favourites in-game.
 - Shop items, prices and hero levels come from your Deadlock install.
+- Hero rows on the Stats page link to that hero's builds.
+
+#### Build editor
+
+- Edit any build on a copy of the game's shop page, then save it to your game files.
+- Drag a category's edges to resize it; sizes snap to ones that keep their columns at 1080p, 1440p and 4K.
+- Drag items in from the shop, between categories, or hold Ctrl to copy them.
+- An item can sit in a build more than once, which the game's own editor does not allow.
+- A souls timeline shows when each item and ability step becomes affordable, with the stats you have by then.
+- Set the ability order by clicking the hero's abilities; orders the game would reject are blocked.
+- Name, description, tags and language sit next to the shop, with the game's own limits.
+- The shop shows which items are popular on the hero, and their pick and win rates.
+- Search the shop by item name or by a stat the item gives.
+- Undo and redo every change, and restore any of the last 20 saved versions.
 
 ## [0.13.2] - 2026-10-21
 
