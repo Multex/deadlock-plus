@@ -2,10 +2,10 @@
     import { Star, Trophy } from "@lucide/svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import { formatDate, formatNumber, t, tn } from "$lib/core/i18n.svelte";
-    import ShopGrid from "../shop/shop-grid.svelte";
+    import BuildPreview from "../shop/build-preview.svelte";
     import { visibility } from "../shop/visibility.svelte";
     import type { PublicBuild, WinRate } from "../../public-builds";
-    import { shopView, type ChipItem } from "../../shop-view";
+    import type { ChipItem } from "../../shop-view";
 
     let {
         entry,
@@ -23,12 +23,6 @@
     const SCREEN: Screen = { width: 2560, height: 1440 };
 
     const build = $derived(entry.build);
-    /** Share of the shop's width the categories use: the preview crops the empty right side away. */
-    const used = $derived.by(() => {
-        const view = shopView(build.modCategories, SCREEN, 1, "fit");
-        const right = Math.max(0, ...view.categories.map(({ box }) => box.x + box.width));
-        return right > 0 ? Math.min(1, right / view.contentWidth) : 1;
-    });
     const href = $derived(`/builds/view?source=public&id=${build.heroBuildId}`);
     const favorites = $derived(entry.favorites === null ? null : tn("builds.browser.favorites", entry.favorites));
     const weekly = $derived(
@@ -59,10 +53,9 @@
 >
     <div class="preview border-b border-border bg-background/40 p-2" inert {@attach preview.attach}>
         {#if resolve && preview.seen}
-            <div style:width="{100 / used}%">
-                <ShopGrid {build} {resolve} screen={SCREEN} mode="fit" lite />
-            </div>
+            <BuildPreview {build} {resolve} screen={SCREEN} maxHeight={256} />
         {/if}
+        <div class="fade" aria-hidden="true"></div>
     </div>
     <div class="flex flex-col gap-1 px-3 py-2.5">
         <div class="flex items-center gap-3">
@@ -99,9 +92,15 @@
 
 <style>
     .preview {
+        position: relative;
         min-height: 6rem;
         max-height: 16rem;
         overflow: hidden;
-        mask-image: linear-gradient(to bottom, black 85%, transparent);
+    }
+    .fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 85%, var(--card));
+        pointer-events: none;
     }
 </style>

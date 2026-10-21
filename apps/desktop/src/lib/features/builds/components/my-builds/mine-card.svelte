@@ -2,9 +2,9 @@
     import type { Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
-    import ShopGrid from "../shop/shop-grid.svelte";
+    import BuildPreview from "../shop/build-preview.svelte";
     import { visibility } from "../shop/visibility.svelte";
-    import { shopView, type ChipItem } from "../../shop-view";
+    import type { ChipItem } from "../../shop-view";
 
     let {
         name,
@@ -30,12 +30,6 @@
 
     const SCREEN: Screen = { width: 2560, height: 1440 };
 
-    const used = $derived.by(() => {
-        if (!build) return 1;
-        const view = shopView(build.modCategories, SCREEN, 1, "fit");
-        const right = Math.max(0, ...view.categories.map(({ box }) => box.x + box.width));
-        return right > 0 ? Math.min(1, right / view.contentWidth) : 1;
-    });
     const filled = $derived(!!build && build.modCategories.some((c) => c.mods.length > 0));
     // Many cards to a page: each preview draws once it scrolls near the viewport.
     const preview = visibility();
@@ -47,10 +41,9 @@
 >
     <div class="preview border-b border-border bg-background/40 p-2" inert {@attach preview.attach}>
         {#if build && resolve && filled && preview.seen}
-            <div style:width="{100 / used}%">
-                <ShopGrid {build} {resolve} screen={SCREEN} mode="fit" lite />
-            </div>
+            <BuildPreview {build} {resolve} screen={SCREEN} maxHeight={256} />
         {/if}
+        <div class="fade" aria-hidden="true"></div>
     </div>
     <div class="flex flex-1 flex-col gap-1.5 px-3 py-2.5">
         <div class="flex items-center gap-2">
@@ -72,9 +65,15 @@
 
 <style>
     .preview {
+        position: relative;
         min-height: 6rem;
         max-height: 16rem;
         overflow: hidden;
-        mask-image: linear-gradient(to bottom, black 85%, transparent);
+    }
+    .fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 85%, var(--card));
+        pointer-events: none;
     }
 </style>
