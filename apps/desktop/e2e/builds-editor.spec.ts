@@ -300,6 +300,19 @@ test("an ability icon's tooltip shows again on every hover", async ({ page }) =>
     }
 });
 
+test("the ability order stays one row that scrolls in a narrow window", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openEditor(page);
+    const bar = page.getByTestId("ability-bar");
+    expect((await bar.boundingBox())!.height).toBe(150);
+    const sequence = page.getByTestId("ability-sequence");
+    const rows = await sequence.evaluate(
+        (ol) => new Set([...ol.children].map((li) => Math.round(li.getBoundingClientRect().top))).size,
+    );
+    expect(rows).toBe(1);
+    expect(await sequence.evaluate((ol) => ol.scrollWidth > ol.clientWidth)).toBe(true);
+});
+
 test("Preview shows the Build Browser's read-only layout and the shop canvas comes back after", async ({ page }) => {
     await openEditor(page);
     const count = await canvas(page).locator("[data-category]").count();

@@ -84,7 +84,7 @@
 <BarFrame
     {kit}
     title={t("builds.editor.abilities.title")}
-    class={cn("border-t border-border", className)}
+    class={cn("h-[150px] shrink-0 border-t border-border", className)}
     data-testid="ability-bar"
 >
     {#snippet actions()}
@@ -100,7 +100,7 @@
                 </Button>
             </span>
         {/if}
-        <div class="ml-auto flex gap-1.5">
+        <div class="ml-auto flex shrink-0 gap-1.5">
             <Tooltip.Provider>
                 <Tooltip.Root delayDuration={350}>
                     <Tooltip.Trigger>

@@ -11,6 +11,7 @@
     import { netWorthFor } from "../../../levels";
     import AbilityArt from "./ability-art.svelte";
     import TierPips from "./tier-pips.svelte";
+    import { dragScroll, edgeSpeed, reveal, sidewaysWheel } from "./track-scroll";
 
     let {
         steps,
@@ -25,7 +26,7 @@
     }: {
         steps: readonly OrderStep[];
         kit: HeroKit;
-        /** Shows the steps with a tooltip each; nothing moves or removes. */
+        /** Shows the steps with a tooltip each and wraps; nothing moves or removes. Editing keeps one scrolling row. */
         readonly?: boolean;
         /** Every step a full order has; the ones not taken yet show as empty slots. */
         total?: number;
@@ -144,7 +145,52 @@
             x: event.clientX,
             y: event.clientY,
         };
+        if (!readonly && !frame) autoScroll();
     }
+
+    let frame = 0;
+
+    const padding = () => (list ? parseFloat(getComputedStyle(list).paddingLeft) || 0 : 0);
+
+    /** Scrolls while a drag holds near an edge, even when the pointer stops moving. */
+    function autoScroll() {
+        frame = 0;
+        if (!dragging || !list) return;
+        const before = list.scrollLeft;
+        const firstEmpty = (list.children[steps.length] ?? list.lastElementChild) as HTMLElement | null;
+        const end = firstEmpty ? firstEmpty.offsetLeft + firstEmpty.offsetWidth + padding() : list.scrollWidth;
+        const view = { scrollLeft: before, width: list.clientWidth };
+        list.scrollLeft = dragScroll(view, edgeSpeed(dragging.x, list.getBoundingClientRect()), end);
+        if (Math.round(list.scrollLeft) === Math.round(before)) return;
+        dragging = { ...dragging, ...insertionAt(dragging.x, dragging.y) };
+        frame = requestAnimationFrame(autoScroll);
+    }
+
+    function wheel(event: WheelEvent) {
+        if (!list) return;
+        const delta = sidewaysWheel(event, list.clientWidth);
+        const max = list.scrollWidth - list.clientWidth;
+        if (max <= 0 || (delta < 0 && list.scrollLeft <= 0) || (delta > 0 && list.scrollLeft >= max)) return;
+        event.preventDefault();
+        list.scrollLeft += delta;
+    }
+
+    let seen: number | null = null;
+
+    $effect(() => {
+        const count = steps.length;
+        const grew = seen !== null && count > seen;
+        seen = count;
+        if (readonly || !grew || !list) return;
+        const newest = list.children[count - 1] as HTMLElement | undefined;
+        const after = (list.children[count] as HTMLElement | undefined) ?? newest;
+        if (!newest || !after) return;
+        list.scrollLeft = reveal(
+            { scrollLeft: list.scrollLeft, width: list.clientWidth },
+            newest.offsetLeft - padding(),
+            after.offsetLeft + after.offsetWidth + padding(),
+        );
+    });
 
     function pointerup(event: PointerEvent) {
         if (!press || event.pointerId !== press.pointer) return;
@@ -156,6 +202,8 @@
     function cancel() {
         press = null;
         dragging = null;
+        cancelAnimationFrame(frame);
+        frame = 0;
     }
 
     function keydown(event: KeyboardEvent, i: number) {
@@ -244,11 +292,19 @@
 {/snippet}
 
 <Tooltip.Provider>
+    <!-- Editing keeps one row so the bar never grows over the canvas; the padding keeps the remove
+         buttons, carets and focus rings inside the scroll box's clip. -->
     <ol
         bind:this={list}
-        class="flex flex-wrap content-start gap-x-1.5 gap-y-1.5"
+        class={readonly
+            ? "flex flex-wrap content-start gap-x-1.5 gap-y-1.5"
+            : cn(
+                  "relative -mx-1.5 -mt-1.5 flex h-[78px] shrink-0 gap-x-1.5 overflow-x-auto overflow-y-hidden px-1.5 pt-1.5",
+                  "[&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:border-0",
+              )}
         aria-label={t("builds.editor.abilities.sequence")}
         data-testid="ability-sequence"
+        onwheel={readonly ? undefined : wheel}
     >
         {#each steps as step, i (i)}
             {#if readonly}
@@ -256,7 +312,7 @@
             {:else}
                 {@const side = caret(i)}
                 <li
-                    class="relative flex w-12 flex-col items-center gap-0.5 transition-transform duration-100"
+                    class="relative flex w-12 shrink-0 flex-col items-center gap-0.5 transition-transform duration-100"
                     style:transform={shift(i) ? `translateX(${shift(i)}px)` : undefined}
                 >
                     {#if side}{@render caretBar(side)}{/if}
@@ -327,7 +383,7 @@
         {#each { length: readonly ? 0 : Math.max(0, total - steps.length) } as _, k (k)}
             {@const n = steps.length + k}
             {@const shown = k === 0 ? preview : null}
-            <li class="flex w-12 flex-col items-center gap-0.5" aria-hidden="true">
+            <li class="flex w-12 shrink-0 flex-col items-center gap-0.5" aria-hidden="true">
                 <span
                     class={cn(
                         "relative flex h-[50px] w-12 flex-col items-center justify-end gap-1 rounded-md border border-dashed pb-1.5",

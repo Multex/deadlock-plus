@@ -38,13 +38,19 @@
         <p class="m-auto text-sm text-muted-foreground">{t("builds.editor.abilities.no_kit")}</p>
     {:else}
         <div class="flex min-w-0 flex-1 flex-col gap-2 px-4 pt-2.5 pb-2">
-            <header class="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
-                <h3 class="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">{title}</h3>
+            <header class="flex min-h-7 items-center gap-x-3">
+                <h3
+                    class="shrink-0 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground whitespace-nowrap uppercase"
+                >
+                    {title}
+                </h3>
                 {@render actions?.()}
             </header>
             {@render track(kit)}
             {#if footer}
-                <footer class="mt-auto flex min-h-4 items-center gap-3 text-xs text-muted-foreground tabular-nums">
+                <footer
+                    class="mt-auto flex min-h-4 items-center gap-3 overflow-hidden text-xs whitespace-nowrap text-muted-foreground tabular-nums"
+                >
                     {@render footer()}
                 </footer>
             {/if}
