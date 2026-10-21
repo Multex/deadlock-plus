@@ -7,7 +7,7 @@ import { chipFor, loadKit, type HeroKit } from "./build-detail.svelte";
 import { coreItems } from "./build-list";
 import { isInShop, loadShopCatalog, type ShopCatalog } from "./catalog";
 import type { TooltipChip } from "./components/item-tooltip/context";
-import { describeTag, standardTags, type StandardTag, type TagInfo } from "./editor/details";
+import { describeTag, selectedTags, standardTags, type StandardTag, type TagInfo } from "./editor/details";
 
 const kits = new Map<number, Promise<HeroKit>>();
 
@@ -71,9 +71,7 @@ export class BuildLookups {
         if (!build) return [];
         const items = this.catalog?.byId;
         const abilities = this.kits.get(build.heroId)?.abilities;
-        return build.tags
-            .filter((id) => id !== 0)
-            .map((id) => describeTag(id, { standard: this.standard, items, abilities }));
+        return selectedTags(build.tags).map((id) => describeTag(id, { standard: this.standard, items, abilities }));
     }
 }
 

@@ -190,6 +190,10 @@ describe("tag slots", () => {
         expect(selectedTags([0, 7, 0, 9])).toEqual([7, 9]);
     });
 
+    it("lists a tag the build stores twice once", () => {
+        expect(selectedTags([5, 0, 5, 9])).toEqual([5, 9]);
+    });
+
     it("adds into the first empty slot, keeping the others in place", () => {
         expect(toggleTag([0, 0, 0], 5)).toEqual([5, 0, 0]);
         expect(toggleTag([4, 0, 6], 5)).toEqual([4, 5, 6]);

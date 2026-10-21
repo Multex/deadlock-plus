@@ -164,8 +164,9 @@ export function describeTag(id: number, names: TagNames): TagInfo {
     return { id, kind: "unknown" };
 }
 
+/** Published builds can store the same tag twice; it shows once. */
 export function selectedTags(tags: readonly number[]): number[] {
-    return tags.filter((t) => t !== 0);
+    return [...new Set(tags.filter((t) => t !== 0))];
 }
 
 export function canAddTag(tags: readonly number[]): boolean {
