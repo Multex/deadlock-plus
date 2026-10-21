@@ -6,6 +6,7 @@ import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
 import type { QueuedSaveView } from "@deadlock-plus/ipc-types/QueuedSaveView";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
+import type { WinRate } from "./public-builds";
 
 /** Ids below this are local builds; the GC hands out ids above it on Publish. */
 export const LOCAL_ID_LIMIT = 1000;
@@ -223,9 +224,176 @@ export function statsHeroes(groups: readonly MineGroup[]): number[] {
     return [...new Set(heroes.filter((id): id is number => id !== null))];
 }
 
-/** `null` keeps every hero. */
-export function filterGroups(groups: readonly MineGroup[], heroId: number | null): MineGroup[] {
-    return heroId === null ? [...groups] : groups.filter((g) => g.heroId === heroId);
+export type MineView = "mine" | "favourites";
+export const MINE_VIEWS: readonly MineView[] = ["mine", "favourites"];
+
+/** `waiting` is a build with a save queued until Deadlock closes, whatever its place. */
+export type MineStatusFilter = "all" | RowStatus | "waiting";
+export const MINE_STATUSES: readonly MineStatusFilter[] = ["all", "public", "local", "draft", "waiting"];
+
+export type MineSort = "updated" | "name" | "favorites" | "win_rate" | "versions";
+export const MINE_SORTS: readonly MineSort[] = ["updated", "name", "favorites", "win_rate", "versions"];
+/** Another player's favourite carries no favourite count or win rate. */
+export const FAVOURITE_SORTS: readonly MineSort[] = ["updated", "name", "versions"];
+
+export interface MineFilters {
+    view: MineView;
+    hero: number | null;
+    status: MineStatusFilter;
+    sort: MineSort;
+    tag: number | null;
+    /** A Steam ELanguage id. */
+    language: "any" | number;
+    name: string;
+    /** Favourites only: the author's SteamID3. */
+    author: number | null;
+}
+
+export const DEFAULT_MINE_FILTERS: MineFilters = {
+    view: "mine",
+    hero: null,
+    status: "all",
+    sort: "updated",
+    tag: null,
+    language: "any",
+    name: "",
+    author: null,
+};
+
+/** Prefixed so the Mine tab's filters live in the URL beside the Public tab's. */
+const MINE_PARAMS = {
+    view: "view",
+    hero: "mhero",
+    status: "status",
+    sort: "msort",
+    tag: "mtag",
+    language: "mlang",
+    name: "mq",
+    author: "mauthor",
+} as const satisfies Record<keyof MineFilters, string>;
+
+const paramId = (raw: string | null): number | null => {
+    if (raw === null || !/^\d+$/.test(raw)) return null;
+    const n = Number(raw);
+    return Number.isSafeInteger(n) ? n : null;
+};
+
+const oneOf = <T extends string>(raw: string | null, values: readonly T[], fallback: T): T =>
+    raw !== null && (values as readonly string[]).includes(raw) ? (raw as T) : fallback;
+
+export function mineFiltersFromParams(params: URLSearchParams): MineFilters {
+    const get = (key: keyof MineFilters) => params.get(MINE_PARAMS[key]);
+    const d = DEFAULT_MINE_FILTERS;
+    return {
+        view: oneOf(get("view"), MINE_VIEWS, d.view),
+        hero: paramId(get("hero")),
+        status: oneOf(get("status"), MINE_STATUSES, d.status),
+        sort: oneOf(get("sort"), MINE_SORTS, d.sort),
+        tag: paramId(get("tag")),
+        language: paramId(get("language")) ?? "any",
+        name: get("name") ?? "",
+        author: paramId(get("author")),
+    };
+}
+
+/** Writes non-default filters over `params`; every other parameter is kept. */
+export function mineFiltersToParams(filters: MineFilters, params: URLSearchParams): URLSearchParams {
+    const out = new URLSearchParams(params);
+    const d = DEFAULT_MINE_FILTERS;
+    const set = (key: keyof MineFilters, value: string | null) =>
+        value === null ? out.delete(MINE_PARAMS[key]) : out.set(MINE_PARAMS[key], value);
+    const id = (n: number | null) => (n === null ? null : String(n));
+    set("view", filters.view === d.view ? null : filters.view);
+    set("hero", id(filters.hero));
+    set("status", filters.status === d.status ? null : filters.status);
+    set("sort", filters.sort === d.sort ? null : filters.sort);
+    set("tag", id(filters.tag));
+    set("language", filters.language === "any" ? null : String(filters.language));
+    set("name", filters.name.trim() || null);
+    set("author", id(filters.author));
+    return out;
+}
+
+/** The view and the sort only arrange the list; everything else can hide builds. */
+export function mineFiltered(filters: MineFilters): boolean {
+    const d = DEFAULT_MINE_FILTERS;
+    return (
+        filters.hero !== d.hero ||
+        filters.status !== d.status ||
+        filters.tag !== d.tag ||
+        filters.language !== d.language ||
+        filters.name.trim() !== "" ||
+        filters.author !== d.author
+    );
+}
+
+interface Sortable {
+    name: string;
+    updatedAt: number | null;
+}
+
+/** Higher first; a row without the value goes after every row with one. */
+function byValue<T extends Sortable>(value: (row: T) => number | null) {
+    return (a: T, b: T) => {
+        const x = value(a);
+        const y = value(b);
+        if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;
+        return y - x;
+    };
+}
+
+function sortRows<T extends Sortable>(rows: T[], compare: ((a: T, b: T) => number) | null): T[] {
+    if (compare === null) return rows.sort((a, b) => a.name.localeCompare(b.name) || newestFirst(a, b));
+    return rows.sort((a, b) => compare(a, b) || newestFirst(a, b));
+}
+
+function matchesBuild(build: BuildView | null, name: string, filters: MineFilters): boolean {
+    const query = filters.name.trim().toLocaleLowerCase();
+    if (query !== "" && !name.toLocaleLowerCase().includes(query)) return false;
+    if (filters.tag !== null && !build?.tags.includes(filters.tag)) return false;
+    return filters.language === "any" || build?.language === filters.language;
+}
+
+function matchesStatus(row: MineRow, status: MineStatusFilter): boolean {
+    if (status === "all") return true;
+    return status === "waiting" ? row.waiting : row.status === status;
+}
+
+export function filterMine(
+    rows: readonly MineRow[],
+    filters: MineFilters,
+    winRates: ReadonlyMap<number, WinRate>,
+): MineRow[] {
+    const kept = rows.filter(
+        (row) =>
+            (filters.hero === null || row.heroId === filters.hero) &&
+            matchesStatus(row, filters.status) &&
+            matchesBuild(row.build, row.name, filters),
+    );
+    const rate = (row: MineRow) => {
+        const won = row.buildId === null ? undefined : winRates.get(row.buildId);
+        return won ? won.wins / won.matches : null;
+    };
+    const compare: Record<MineSort, ((a: MineRow, b: MineRow) => number) | null> = {
+        updated: () => 0,
+        name: null,
+        favorites: byValue((row) => row.favourites),
+        win_rate: byValue(rate),
+        versions: byValue((row) => row.version ?? row.build?.version ?? null),
+    };
+    return sortRows(kept, compare[filters.sort]);
+}
+
+export function filterFavourites(rows: readonly FavouriteRow[], filters: MineFilters): FavouriteRow[] {
+    const kept = rows.filter(
+        (row) =>
+            (filters.hero === null || row.heroId === filters.hero) &&
+            (filters.author === null || row.authorAccountId === filters.author) &&
+            matchesBuild(row.build, row.name, filters),
+    );
+    const sort = FAVOURITE_SORTS.includes(filters.sort) ? filters.sort : "updated";
+    if (sort === "name") return sortRows(kept, null);
+    return sortRows(kept, sort === "versions" ? byValue((row) => row.version) : () => 0);
 }
 
 export function favouriteViewHref(row: FavouriteRow): string {

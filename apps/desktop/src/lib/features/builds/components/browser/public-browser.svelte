@@ -2,18 +2,19 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
-    import { ArrowDownWideNarrow, CalendarClock, Languages, Star, Tag, UserRound, X } from "@lucide/svelte";
-    import Button from "@deadlock-plus/ui/button.svelte";
+    import { CalendarClock, ExternalLink, Star, UserRound, X } from "@lucide/svelte";
+    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
-    import { formatNumber, i18n, t } from "$lib/core/i18n.svelte";
+    import { formatDate, formatNumber, t } from "$lib/core/i18n.svelte";
     import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
     import { stats } from "$lib/features/stats/stats.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import { BuildBrowser } from "../../browser.svelte";
-    import { languageOptions } from "../../editor/details";
+    import { pickSelection, withParam } from "../../build-list";
+    import type { BuildLookups } from "../../lookups.svelte";
     import {
         DEFAULT_FILTERS,
         filtersFromParams,
@@ -22,30 +23,28 @@
         PUBLIC_SORTS,
         UPDATED_WITHIN,
         type BrowserFilters,
+        type PublicBuild,
         type UpdatedWithin,
     } from "../../public-builds";
-    import BuildCard from "./build-card.svelte";
+    import DetailActions from "../build-detail/detail-actions.svelte";
+    import BuildOverview from "./build-overview.svelte";
+    import BuildRow from "./build-row.svelte";
+    import HeroFilter from "./filters/hero-filter.svelte";
+    import LanguageFilter from "./filters/language-filter.svelte";
+    import SortFilter from "./filters/sort-filter.svelte";
+    import TagFilter from "./filters/tag-filter.svelte";
+    import ListDetail from "./list-detail.svelte";
 
-    let { hero = null }: { hero?: number | null } = $props();
+    let { hero = null, lookups }: { hero?: number | null; lookups: BuildLookups } = $props();
 
     const browser = new BuildBrowser();
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
-    const heroItems = $derived(browser.heroes.map((h) => ({ value: String(h.id), label: h.name, icon: h.icon })));
     const heroName = $derived(browser.heroes.find((h) => h.id === browser.heroId)?.name ?? "");
     const sortItems = $derived(PUBLIC_SORTS.map((value) => ({ value, label: t(`builds.browser.sort_${value}`) })));
     const windows = $derived<{ value: UpdatedWithin; label: string }[]>(
         UPDATED_WITHIN.map((value) => ({ value, label: t(`builds.browser.updated_${value}`) })),
     );
-    const tagItems = $derived([
-        { value: "any", label: t("builds.browser.tag_any"), icon: null },
-        ...browser.tags.map((tag) => ({ value: String(tag.id), label: tag.name, icon: tag.icon ?? null })),
-    ]);
-    const languageItems = $derived([
-        { value: "default", label: t("builds.browser.language_default") },
-        { value: "any", label: t("builds.browser.language_any") },
-        ...languageOptions(i18n.locale, 0, String),
-    ]);
     const favoriteItems = $derived(
         MIN_FAVORITES_STEPS.map((n) => ({
             value: String(n),
@@ -61,11 +60,14 @@
             : (browser.authors.get(browser.filters.author) ?? String(browser.filters.author)),
     );
 
-    /** The URL holds the filters, so they survive leaving the page and coming back. */
-    function apply(filters: BrowserFilters, heroId: number | null = hero) {
-        const params = filtersToParams(filters, page.url.searchParams);
-        if (heroId === null) params.delete("hero");
-        else params.set("hero", String(heroId));
+    const heroInfo = $derived(browser.heroes.find((h) => h.id === browser.heroId));
+    const keys = $derived(browser.builds.map((b) => String(b.build.heroBuildId)));
+    const selectedKey = $derived(pickSelection(keys, page.url.searchParams.get("build")));
+    const selected = $derived(browser.builds.find((b) => String(b.build.heroBuildId) === selectedKey) ?? null);
+    const paneDetail = $derived(selected ? browser.detailFor(selected) : null);
+    let detailOpen = $state(false);
+
+    function navigate(params: URLSearchParams) {
         const query = params.toString();
         void goto(`${page.url.pathname}${query ? `?${query}` : ""}`, {
             replaceState: true,
@@ -74,7 +76,33 @@
         });
     }
 
-    const patch = (change: Partial<BrowserFilters>) => apply({ ...browser.filters, ...change });
+    /** The URL holds the filters, so they survive leaving the page and coming back. */
+    function apply(filters: BrowserFilters, heroId: number | null = hero) {
+        const params = filtersToParams(filters, page.url.searchParams);
+        if (heroId === null) params.delete("hero");
+        else params.set("hero", String(heroId));
+        navigate(params);
+    }
+
+    function select(key: string) {
+        detailOpen = true;
+        if (key !== selectedKey) navigate(withParam(page.url.searchParams, "build", key));
+    }
+
+    const viewHref = (entry: PublicBuild) => `/builds/view?source=public&id=${entry.build.heroBuildId}`;
+
+    function byline(entry: PublicBuild): string[] {
+        const author = browser.authors.get(entry.build.authorAccountId);
+        const at = entry.build.lastUpdatedTimestamp;
+        return [
+            author ? t("builds.browser.by", { name: author }) : null,
+            at === null ? null : t("builds.browser.updated", { date: formatDate(at * 1000, { dateStyle: "medium" }) }),
+        ].filter((part): part is string => part !== null);
+    }
+
+    // Any other filter change also commits the name as typed, so a pending search is not undone.
+    const patch = (change: Partial<BrowserFilters>) =>
+        apply({ ...browser.filters, name: browser.search.trim(), ...change });
 
     function pickHero(id: number) {
         browser.picked = id;
@@ -104,33 +132,16 @@
         if (browser.heroId !== null) void browser.loadWinRates(browser.heroId);
     });
 
+    $effect(() => lookups.loadKits([browser.heroId]));
+
     onMount(() => browser.start());
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex min-h-0 flex-1 flex-col gap-3">
     <div class="flex flex-col gap-2" role="group" aria-label={t("builds.browser.filters")}>
         <div class="flex flex-wrap items-center gap-2">
-            <SelectMenu
-                items={heroItems}
-                value={browser.heroId === null ? undefined : String(browser.heroId)}
-                onValueChange={(v) => pickHero(Number(v))}
-                placeholder={t("builds.browser.hero")}
-                aria-label={t("builds.browser.hero")}
-                class="w-52"
-            >
-                {#snippet leading(item)}
-                    {#if item.icon}<img src={item.icon} alt="" />{/if}
-                {/snippet}
-            </SelectMenu>
-            <SelectMenu
-                items={sortItems}
-                value={browser.filters.sort}
-                onValueChange={(v) => patch({ sort: v as BrowserFilters["sort"] })}
-                aria-label={t("builds.browser.sort")}
-                class="w-52"
-            >
-                {#snippet icon()}<ArrowDownWideNarrow />{/snippet}
-            </SelectMenu>
+            <HeroFilter heroes={browser.heroes} value={browser.heroId} onchange={(id) => id !== null && pickHero(id)} />
+            <SortFilter options={sortItems} value={browser.filters.sort} onchange={(sort) => patch({ sort })} />
             <Segmented
                 options={windows}
                 value={browser.filters.within}
@@ -147,28 +158,8 @@
             />
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <SelectMenu
-                items={tagItems}
-                value={browser.filters.tag === null ? "any" : String(browser.filters.tag)}
-                onValueChange={(v) => patch({ tag: v === "any" ? null : Number(v) })}
-                aria-label={t("builds.browser.tag")}
-                size="sm"
-                class="w-48"
-            >
-                {#snippet leading(item)}
-                    {#if item.icon}<img src={item.icon} alt="" class="object-contain!" />{:else}<Tag />{/if}
-                {/snippet}
-            </SelectMenu>
-            <SelectMenu
-                items={languageItems}
-                value={String(browser.filters.language)}
-                onValueChange={(v) => patch({ language: v === "default" || v === "any" ? v : Number(v) })}
-                aria-label={t("builds.browser.language")}
-                size="sm"
-                class="w-56"
-            >
-                {#snippet icon()}<Languages />{/snippet}
-            </SelectMenu>
+            <TagFilter tags={lookups.gameTags} value={browser.filters.tag} onchange={(tag) => patch({ tag })} />
+            <LanguageFilter value={browser.filters.language} onchange={(language) => patch({ language })} withDefault />
             <SelectMenu
                 items={favoriteItems}
                 value={String(browser.filters.minFavorites)}
@@ -237,35 +228,84 @@
         </div>
     </div>
 
-    <div aria-busy={browser.status === "loading"}>
-        {#if browser.status === "loading"}
-            <EmptyState role="status">{t("builds.browser.loading")}</EmptyState>
-        {:else if browser.status === "error"}
-            <EmptyState role="status" tone="destructive">
-                {browser.error}
-                {#snippet action()}
-                    <Button variant="outline" size="sm" onclick={() => browser.retry()}>
-                        {t("builds.browser.retry")}
-                    </Button>
-                {/snippet}
-            </EmptyState>
-        {:else if browser.builds.length === 0}
-            <EmptyState role="status">
-                {browser.filtered ? t("builds.browser.empty_filtered") : t("builds.browser.empty", { hero: heroName })}
-            </EmptyState>
-        {:else}
-            <ul class="grid grid-cols-[repeat(auto-fill,minmax(22rem,1fr))] gap-3">
+    {#if browser.status === "loading"}
+        <EmptyState role="status" aria-busy="true">{t("builds.browser.loading")}</EmptyState>
+    {:else if browser.status === "error"}
+        <EmptyState role="status" tone="destructive">
+            {browser.error}
+            {#snippet action()}
+                <Button variant="outline" size="sm" onclick={() => browser.retry()}>
+                    {t("builds.browser.retry")}
+                </Button>
+            {/snippet}
+        </EmptyState>
+    {:else if browser.builds.length === 0}
+        <EmptyState role="status">
+            {browser.filtered ? t("builds.browser.empty_filtered") : t("builds.browser.empty", { hero: heroName })}
+        </EmptyState>
+    {:else}
+        <ListDetail
+            {keys}
+            selected={selectedKey}
+            onselect={select}
+            label={t("builds.list.label")}
+            bind:open={detailOpen}
+        >
+            {#snippet list()}
                 {#each browser.builds as entry (entry.build.heroBuildId)}
-                    <li>
-                        <BuildCard
-                            {entry}
-                            author={browser.authors.get(entry.build.authorAccountId)}
-                            resolve={browser.resolve}
-                            winRate={browser.winRates.get(entry.build.heroBuildId)}
-                        />
-                    </li>
+                    {@const key = String(entry.build.heroBuildId)}
+                    <BuildRow
+                        rowKey={key}
+                        name={entry.build.name}
+                        href={viewHref(entry)}
+                        selected={key === selectedKey}
+                        onselect={() => select(key)}
+                        byline={byline(entry)}
+                        tags={lookups.tags(entry.build)}
+                        items={lookups.core(entry.build)}
+                        favourites={entry.favorites}
+                        weekly={entry.weeklyFavorites}
+                        winRate={browser.winRates.get(entry.build.heroBuildId)}
+                    />
                 {/each}
-            </ul>
-        {/if}
-    </div>
+            {/snippet}
+            {#snippet detail()}
+                {#if selected && paneDetail}
+                    {@const author = browser.authors.get(selected.build.authorAccountId)}
+                    <BuildOverview
+                        build={selected.build}
+                        hero={heroInfo}
+                        author={selected.build.authorAccountId === accountId
+                            ? t("builds.view.by_you")
+                            : author
+                              ? t("builds.browser.by", { name: author })
+                              : null}
+                        version={selected.build.version}
+                        favourites={selected.favorites}
+                        weekly={selected.weeklyFavorites}
+                        winRate={browser.winRates.get(selected.build.heroBuildId)}
+                        tags={lookups.tags(selected.build)}
+                        catalog={lookups.catalog}
+                        catalogFailed={lookups.catalogFailed}
+                        kit={lookups.kits.get(selected.build.heroId) ?? null}
+                    >
+                        {#snippet actions()}
+                            <DetailActions detail={paneDetail} ownAccountId={accountId} layout="row">
+                                {#snippet leading()}
+                                    <a
+                                        class={buttonVariants({ size: "sm" })}
+                                        href={viewHref(selected)}
+                                        data-testid="open-full-view"
+                                    >
+                                        <ExternalLink aria-hidden="true" />
+                                        {t("builds.list.open_full")}
+                                    </a>
+                                {/snippet}
+                            </DetailActions>
+                        {/snippet}
+                    </BuildOverview>
+                {/if}
+            {/snippet}
+        </ListDetail>
+    {/if}
 </div>

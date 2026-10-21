@@ -1,15 +1,10 @@
 <script lang="ts">
-    import { Check, Clock, Copy, Heart, LoaderCircle, Pencil, Star, Trash2, TriangleAlert } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
-    import { goto } from "$app/navigation";
-    import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
+    import { Heart } from "@lucide/svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
-    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
-    import { failureText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import type { BuildDetail } from "../../build-detail.svelte";
-    import { editHref, editsInPlace } from "../../editor/load";
     import StatusBadge from "../my-builds/status-badge.svelte";
+    import DetailActions from "./detail-actions.svelte";
 
     let { detail, ownAccountId }: { detail: BuildDetail; ownAccountId: number | null } = $props();
 
@@ -32,32 +27,6 @@
               })
             : null,
     );
-    const copy = $derived(detail.copy);
-    const favourite = $derived(detail.favourite);
-    let discarding = $state(false);
-    let discardOpen = $state(false);
-
-    const edit = $derived.by(() => {
-        const draft = detail.draft;
-        if (draft) return { href: editHref({ source: "draft", id: draft.id }), own: true };
-        const own = detail.local
-            ? editsInPlace(detail.local, ownAccountId)
-            : ownAccountId !== null && build.authorAccountId === ownAccountId;
-        return { href: editHref(detail.target), own };
-    });
-
-    async function discard() {
-        discarding = true;
-        try {
-            await detail.discardDraft();
-            toast.success(t("builds.mine.draft_discarded"));
-            await goto("/builds");
-        } catch (e) {
-            toast.error(failureText(e, t("builds.mine.action_failed")));
-        } finally {
-            discarding = false;
-        }
-    }
 </script>
 
 <Card padding="none" class="overflow-hidden" data-testid="build-header">
@@ -113,106 +82,6 @@
             </p>
         </div>
 
-        <div class="flex w-56 shrink-0 flex-col items-end gap-2 border-l border-border pl-5">
-            <a
-                class={buttonVariants({ variant: "outline", class: "w-full" })}
-                href={edit.href}
-                data-testid="edit-build"
-            >
-                <Pencil aria-hidden="true" />
-                {edit.own ? t("builds.editor.edit") : t("builds.editor.edit_copy")}
-            </a>
-            <Button
-                class="w-full"
-                variant="outline"
-                disabled={copy.kind === "saving"}
-                data-testid="copy-as-new"
-                onclick={() => void detail.copyAsNew()}
-            >
-                {#if copy.kind === "saving"}
-                    <LoaderCircle class="animate-spin" aria-hidden="true" />
-                {:else}
-                    <Copy aria-hidden="true" />
-                {/if}
-                {t("builds.mine.copy")}
-            </Button>
-            {#if copy.kind === "written"}
-                <p class="text-right text-xs text-muted-foreground" role="status">
-                    <Check class="mr-0.5 inline size-3.5 text-success" aria-hidden="true" />
-                    {t("builds.mine.copied")}
-                    <a
-                        class="text-primary underline-offset-4 hover:underline"
-                        href="/builds/view?source=local&id={copy.buildId}"
-                    >
-                        {t("builds.view.open_copy")}
-                    </a>
-                </p>
-            {:else if copy.kind === "queued"}
-                <p class="text-right text-xs text-muted-foreground" role="status">
-                    <Clock class="mr-0.5 inline size-3.5 text-warning" aria-hidden="true" />
-                    {t("builds.mine.queued")}
-                </p>
-            {:else if copy.kind === "conflict"}
-                <p class="text-right text-xs text-warning" role="status">
-                    <TriangleAlert class="mr-0.5 inline size-3.5" aria-hidden="true" />
-                    {t("builds.mine.changed_in_game")}
-                </p>
-            {:else if copy.kind === "failed"}
-                <p class="text-right text-xs text-destructive" role="alert">{copy.message}</p>
-            {/if}
-            {#if detail.canFavourite}
-                <Button
-                    class="w-full"
-                    variant="toggle"
-                    aria-pressed={detail.favourited}
-                    disabled={favourite.kind === "saving"}
-                    data-testid="favourite"
-                    onclick={() => void detail.toggleFavourite()}
-                >
-                    {#if favourite.kind === "saving"}
-                        <LoaderCircle class="animate-spin" aria-hidden="true" />
-                    {:else}
-                        <Star class={detail.favourited ? "fill-current" : ""} aria-hidden="true" />
-                    {/if}
-                    {t("builds.mine.favourite")}
-                </Button>
-                {#if favourite.kind === "queued"}
-                    <p class="text-right text-xs text-muted-foreground" role="status">
-                        <Clock class="mr-0.5 inline size-3.5 text-warning" aria-hidden="true" />
-                        {t("builds.mine.queued")}
-                    </p>
-                {:else if favourite.kind === "conflict"}
-                    <p class="text-right text-xs text-warning" role="status">
-                        <TriangleAlert class="mr-0.5 inline size-3.5" aria-hidden="true" />
-                        {t("builds.mine.changed_in_game")}
-                    </p>
-                {:else if favourite.kind === "failed"}
-                    <p class="text-right text-xs text-destructive" role="alert">{favourite.message}</p>
-                {/if}
-            {/if}
-            {#if detail.draft}
-                <Button
-                    class="w-full text-destructive hover:text-destructive"
-                    variant="ghost"
-                    disabled={discarding}
-                    data-testid="discard-draft"
-                    onclick={() => (discardOpen = true)}
-                >
-                    <Trash2 aria-hidden="true" />
-                    {t("builds.mine.discard_draft")}
-                </Button>
-            {/if}
-        </div>
+        <DetailActions {detail} {ownAccountId} />
     </div>
 </Card>
-
-<ConfirmDialog
-    bind:open={discardOpen}
-    class="max-w-md"
-    title={t("builds.mine.discard_title", { name: build.name })}
-    description={t("builds.mine.discard_description")}
-    confirmLabel={t("builds.mine.discard_draft")}
-    destructive
-    disabled={discarding}
-    onconfirm={discard}
-/>

@@ -22,7 +22,6 @@ const mocks = vi.hoisted(() => ({
     buildsUnfavourite: vi.fn(),
     onFlushed: vi.fn(),
     resolveNames: vi.fn(),
-    loadShopCatalog: vi.fn(),
 }));
 vi.mock("$lib/core/deadlock-api", () => ({ deadlockApi: { builds: mocks.builds } }));
 vi.mock("./public-builds", () => ({ buildWinRates: { load: mocks.winRatesLoad } }));
@@ -40,10 +39,6 @@ vi.mock("./api", () => ({
     buildsQueueCancel: vi.fn(),
 }));
 vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: mocks.resolveNames } }));
-vi.mock("./catalog", () => ({
-    loadShopCatalog: mocks.loadShopCatalog,
-    isInShop: (i: { shopable: boolean; disabled: boolean }) => i.shopable && !i.disabled,
-}));
 
 import { MyBuildsStore } from "./my-builds.svelte";
 
@@ -55,7 +50,12 @@ import {
     deleteTargets,
     favouriteAction,
     favouriteViewHref,
-    filterGroups,
+    DEFAULT_MINE_FILTERS,
+    filterFavourites,
+    filterMine,
+    mineFiltered,
+    mineFiltersFromParams,
+    mineFiltersToParams,
     flushFailure,
     foreignFavourites,
     mergeMine,
@@ -66,8 +66,12 @@ import {
     waitingCount,
     type Draft,
     type MineInput,
+    type MineFilters,
     type MineRow,
+    type MineSort,
+    type MineStatusFilter,
 } from "./my-builds";
+import type { WinRate } from "./public-builds";
 
 const ME = 4242;
 const OTHER = 777;
@@ -404,25 +408,151 @@ describe("win rates", () => {
     });
 });
 
-describe("filterGroups", () => {
-    const groups = () =>
-        mergeMine(
-            input({
-                local: [
-                    local("Unpublished", { heroBuildId: 1, heroId: 1 }),
-                    local("Unpublished", { heroBuildId: 2, heroId: 6 }),
-                ],
-                queue: [queued(9)],
-            }),
-        );
+describe("Mine filters", () => {
+    const filters = (over: Partial<MineFilters> = {}): MineFilters => ({ ...DEFAULT_MINE_FILTERS, ...over });
+    const names = (list: readonly { name: string }[]) => list.map((r) => r.name);
+    const all = () =>
+        rows({
+            local: [
+                local("Unpublished", {
+                    heroBuildId: 1,
+                    heroId: 1,
+                    name: "Haze crit",
+                    lastUpdatedTimestamp: 300,
+                    tags: [7],
+                    language: 0,
+                }),
+                local("Unpublished", {
+                    heroBuildId: 2,
+                    heroId: 6,
+                    name: "abrams tank",
+                    lastUpdatedTimestamp: 250,
+                    language: 8,
+                    version: 9,
+                }),
+            ],
+            published: [
+                {
+                    ...api({
+                        hero_build_id: 5000,
+                        hero_id: 1,
+                        name: "Big Crit",
+                        version: 7,
+                        last_updated_timestamp: 200,
+                        tags: [7, 9],
+                    }),
+                    num_favorites: 12,
+                },
+                {
+                    ...api({ hero_build_id: 5001, hero_id: 6, name: "Zoom", version: 3, last_updated_timestamp: 50 }),
+                    num_favorites: 90,
+                },
+            ],
+            queue: [queued(1, { queuedAt: 10 })],
+            drafts: [draftRow({ heroId: 1, name: "Idea", updatedAt: 150 })],
+        });
 
-    it("keeps every group for all heroes", () => {
-        expect(filterGroups(groups(), null).map((g) => g.heroId)).toEqual(groups().map((g) => g.heroId));
+    it("lists every build newest first by default", () => {
+        expect(names(filterMine(all(), filters(), new Map()))).toEqual([
+            "Haze crit",
+            "abrams tank",
+            "Big Crit",
+            "Idea",
+            "Zoom",
+        ]);
     });
 
-    it("keeps only the picked hero's group, and none when the hero has no builds", () => {
-        expect(filterGroups(groups(), 6).map((g) => g.heroId)).toEqual([6]);
-        expect(filterGroups(groups(), 13)).toEqual([]);
+    it("keeps one hero's builds", () => {
+        expect(names(filterMine(all(), filters({ hero: 6 }), new Map()))).toEqual(["abrams tank", "Zoom"]);
+    });
+
+    it("keeps builds by status, with Waiting meaning a save queued until Deadlock closes", () => {
+        const by = (status: MineStatusFilter) => names(filterMine(all(), filters({ status }), new Map()));
+        expect(by("public")).toEqual(["Big Crit", "Zoom"]);
+        expect(by("local")).toEqual(["Haze crit", "abrams tank"]);
+        expect(by("draft")).toEqual(["Idea"]);
+        expect(by("waiting")).toEqual(["Haze crit"]);
+    });
+
+    it("keeps builds with a tag, in a language, or whose name holds the search in any case", () => {
+        expect(names(filterMine(all(), filters({ tag: 7 }), new Map()))).toEqual(["Haze crit", "Big Crit"]);
+        expect(names(filterMine(all(), filters({ language: 8 }), new Map()))).toEqual(["abrams tank"]);
+        expect(names(filterMine(all(), filters({ name: " CRIT " }), new Map()))).toEqual(["Haze crit", "Big Crit"]);
+    });
+
+    it("sorts by name, favourites, win rate and version, unknown values last", () => {
+        const sorted = (sort: MineSort, rates = new Map<number, WinRate>()) =>
+            names(filterMine(all(), filters({ sort }), rates));
+        expect(sorted("name")).toEqual(["abrams tank", "Big Crit", "Haze crit", "Idea", "Zoom"]);
+        expect(sorted("favorites")).toEqual(["Zoom", "Big Crit", "Haze crit", "abrams tank", "Idea"]);
+        const rates = new Map([
+            [5000, { wins: 120, matches: 200 }],
+            [5001, { wins: 130, matches: 200 }],
+        ]);
+        expect(sorted("win_rate", rates)).toEqual(["Zoom", "Big Crit", "Haze crit", "abrams tank", "Idea"]);
+        expect(sorted("versions")).toEqual(["abrams tank", "Big Crit", "Zoom", "Haze crit", "Idea"]);
+    });
+
+    it("filters favourites by hero, author, tag, language and name, and ignores status", () => {
+        const favourites = foreignFavourites(ME, [
+            local("Favorites", {
+                heroBuildId: 381204,
+                heroId: 13,
+                authorAccountId: OTHER,
+                name: "Bullet Dance",
+                lastUpdatedTimestamp: 20,
+                tags: [7],
+            }),
+            local("Favorites", {
+                heroBuildId: 381205,
+                heroId: 1,
+                authorAccountId: 888,
+                name: "Spirit Haze",
+                lastUpdatedTimestamp: 30,
+                language: 8,
+                version: 5,
+            }),
+        ]);
+        const pick = (over: Partial<MineFilters>) =>
+            names(filterFavourites(favourites, filters({ view: "favourites", ...over })));
+        expect(pick({})).toEqual(["Spirit Haze", "Bullet Dance"]);
+        expect(pick({ status: "draft" })).toEqual(["Spirit Haze", "Bullet Dance"]);
+        expect(pick({ hero: 13 })).toEqual(["Bullet Dance"]);
+        expect(pick({ author: 888 })).toEqual(["Spirit Haze"]);
+        expect(pick({ tag: 7 })).toEqual(["Bullet Dance"]);
+        expect(pick({ language: 8 })).toEqual(["Spirit Haze"]);
+        expect(pick({ name: "bullet" })).toEqual(["Bullet Dance"]);
+        expect(pick({ sort: "name" })).toEqual(["Bullet Dance", "Spirit Haze"]);
+        expect(pick({ sort: "versions" })).toEqual(["Spirit Haze", "Bullet Dance"]);
+    });
+
+    it("reads and writes the filters through the URL, leaving the Public tab's parameters alone", () => {
+        const wanted = filters({
+            view: "favourites",
+            hero: 6,
+            status: "waiting",
+            sort: "win_rate",
+            tag: 7,
+            language: 8,
+            name: "crit",
+            author: 888,
+        });
+        const params = mineFiltersToParams(wanted, new URLSearchParams("hero=13&sort=updated"));
+        expect(params.get("hero")).toBe("13");
+        expect(params.get("sort")).toBe("updated");
+        expect(mineFiltersFromParams(params)).toEqual(wanted);
+        expect(mineFiltersToParams(DEFAULT_MINE_FILTERS, params).toString()).toBe("hero=13&sort=updated");
+    });
+
+    it("falls back to the defaults for values it does not know", () => {
+        const params = new URLSearchParams("view=x&status=gone&msort=best&mhero=-1&mlang=zz&mtag=a");
+        expect(mineFiltersFromParams(params)).toEqual(DEFAULT_MINE_FILTERS);
+    });
+
+    it("counts the view and sort as no filter", () => {
+        expect(mineFiltered(filters({ view: "favourites", sort: "name" }))).toBe(false);
+        expect(mineFiltered(filters({ status: "draft" }))).toBe(true);
+        expect(mineFiltered(filters({ name: "  " }))).toBe(false);
     });
 });
 
@@ -655,40 +785,7 @@ describe("MyBuildsStore", () => {
         mocks.onFlushed.mockResolvedValue(() => {});
         mocks.buildsDrafts.mockResolvedValue([]);
         mocks.resolveNames.mockResolvedValue(new Map());
-        mocks.loadShopCatalog.mockResolvedValue({ byId: new Map() });
         mocks.winRatesLoad.mockResolvedValue(new Map());
-    });
-
-    it("resolves the previews' items from the shop catalog, leaving out items the shop no longer sells", async () => {
-        const item = (id: number, shopable: boolean) => ({
-            id,
-            name: `Item ${id}`,
-            slot: "spirit",
-            tier: 2,
-            active: false,
-            shopable,
-            disabled: false,
-            art: `art-${id}`,
-        });
-        mocks.loadShopCatalog.mockResolvedValue({
-            byId: new Map([
-                [11, item(11, true)],
-                [12, item(12, false)],
-            ]),
-        });
-        const store = new MyBuildsStore();
-        const stop = store.start();
-        await settle();
-        stop();
-        expect(store.resolveItem?.(11)).toEqual({
-            name: "Item 11",
-            slot: "spirit",
-            tier: 2,
-            active: false,
-            art: "art-11",
-        });
-        expect(store.resolveItem?.(12)).toBeUndefined();
-        expect(store.resolveItem?.(13)).toBeUndefined();
     });
 
     it("lists other players' favourites with their authors' names", async () => {

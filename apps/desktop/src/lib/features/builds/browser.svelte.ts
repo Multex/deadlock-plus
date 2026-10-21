@@ -1,15 +1,14 @@
 import { untrack } from "svelte";
 import { failureText } from "$lib/core/errors";
 import { i18n, t } from "$lib/core/i18n.svelte";
-import { loadBuildTags } from "$lib/features/gamedata/vdata";
 import { onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 import { live } from "$lib/features/live/live.svelte";
 import { playerNames } from "$lib/features/match-history/names";
 import { stats } from "$lib/features/stats/stats.svelte";
 import { searchPlayers, type Profile } from "$lib/features/voice-bans/profiles";
 import { parseSteamId, steam64ToSteam32 } from "$lib/features/voice-bans/voice-ban";
-import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
-import { loadShopCatalog } from "./catalog";
+import { buildsLocal } from "./api";
+import { BuildDetail } from "./build-detail.svelte";
 import { loadHeroFlags, loadPlayableHeroes, playableHeroes } from "./heroes";
 import {
     buildWinRates,
@@ -24,7 +23,6 @@ import {
     type PublicBuildsRequest,
     type WinRate,
 } from "./public-builds";
-import type { ChipItem } from "./shop-view";
 
 export type BrowserStatus = "loading" | "ready" | "error";
 
@@ -53,9 +51,11 @@ export class BuildBrowser {
     builds = $state.raw<PublicBuild[]>([]);
     error = $state<string | null>(null);
     authors = $state.raw<ReadonlyMap<number, string>>(new Map());
-    tags = $state.raw<(BuildTag & { icon?: string | null })[]>([]);
     winRates = $state.raw<ReadonlyMap<number, WinRate>>(new Map());
-    resolve = $state.raw<((abilityId: number) => ChipItem | undefined) | null>(null);
+    /** Builds the file holds in `Favorites`; an unreadable file shows none as favourites. */
+    favouriteIds = $state.raw<ReadonlySet<number>>(new Set());
+
+    private details = new Map<number, BuildDetail>();
 
     private token = 0;
     private authorToken = 0;
@@ -91,29 +91,27 @@ export class BuildBrowser {
     /** Call from `onMount`; returns the cleanup. */
     start(): () => void {
         void loadPlayableHeroes().then((h) => (this.heroes = h));
-        void loadBuildTags(i18n.locale).then((tags) => (this.tags = tags));
-        void loadShopCatalog(i18n.locale)
-            .then((catalog) => {
-                this.resolve = (abilityId) => {
-                    const item = catalog.byId.get(abilityId);
-                    return (
-                        item && {
-                            name: item.name,
-                            art: item.art,
-                            slot: item.slot,
-                            tier: item.tier,
-                            active: item.active,
-                        }
-                    );
-                };
-            })
-            .catch(() => {});
+        void buildsLocal().then(
+            (local) => {
+                const ids = new Set(
+                    local.builds.filter((b) => b.section === "Favorites").map((b) => b.build.heroBuildId),
+                );
+                this.favouriteIds = ids;
+                // A pane opened before the file answered starts as not a favourite.
+                for (const [id, detail] of this.details) {
+                    if (detail.favourite.kind === "idle") detail.favourited = ids.has(id);
+                }
+            },
+            () => {},
+        );
         return onHeroesRefreshed((h) => void loadHeroFlags().then((flags) => (this.heroes = playableHeroes(h, flags))));
     }
 
     /** Takes the filters the URL carries; the name field follows unless it already says the same. */
     readFilters(filters: BrowserFilters): void {
-        this.filters = filters;
+        // Selecting a build also rewrites the URL; equal filters must not reload the list under the selection.
+        const same = JSON.stringify(filters) === JSON.stringify(untrack(() => this.filters));
+        if (!same) this.filters = filters;
         untrack(() => {
             if (this.search.trim() !== filters.name) this.search = filters.name;
         });
@@ -168,6 +166,24 @@ export class BuildBrowser {
             const rates = await buildWinRates.load(heroId);
             if (this.heroId === heroId) this.winRates = rates;
         });
+    }
+
+    /**
+     * The detail pane's copy and favourite actions, kept per build for the page's life so a result stays
+     * with its build. Filled from the list: the pane needs no request of its own.
+     */
+    detailFor(entry: PublicBuild): BuildDetail {
+        const id = entry.build.heroBuildId;
+        let detail = this.details.get(id);
+        if (!detail) {
+            detail = new BuildDetail({ source: "public", id });
+            detail.build = entry.build;
+            detail.favourites = entry.favorites;
+            detail.favourited = this.favouriteIds.has(id);
+            detail.status = "ready";
+            this.details.set(id, detail);
+        }
+        return detail;
     }
 
     retry(): void {

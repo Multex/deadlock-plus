@@ -1,5 +1,4 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
-import { i18n } from "$lib/core/i18n.svelte";
 import { playerNames } from "$lib/features/match-history/names";
 import type { Build } from "@deadlock-plus/deadlock-api";
 import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
@@ -21,7 +20,6 @@ import {
     buildsUnfavourite,
     onFlushed,
 } from "./api";
-import { isInShop, loadShopCatalog } from "./catalog";
 import {
     conflictsOf,
     copyRequest,
@@ -38,7 +36,6 @@ import {
     type MineRow,
 } from "./my-builds";
 import { buildWinRates, type WinRate } from "./public-builds";
-import type { ChipItem } from "./shop-view";
 
 export const storedDrafts: DraftSource = {
     list: async () => (await buildsDrafts()).map(toDraft),
@@ -67,8 +64,6 @@ export class MyBuildsStore {
     /** Why queued saves could not be written, as an app error; `null` when they could. */
     flushFailed = $state<unknown>(null);
     busy = $state(false);
-    /** Null until the shop catalog loads; an item the shop no longer sells resolves to nothing. */
-    resolveItem = $state.raw<((abilityId: number) => ChipItem | undefined) | null>(null);
 
     #generation = 0;
     #checkedLeftovers = false;
@@ -134,7 +129,6 @@ export class MyBuildsStore {
 
     start(): () => void {
         void this.refresh();
-        void this.#loadCatalog();
         let stopped = false;
         let unlisten: (() => void) | null = null;
         void onFlushed((view) => this.#flushed(view))
@@ -149,21 +143,6 @@ export class MyBuildsStore {
             stopped = true;
             unlisten?.();
         };
-    }
-
-    async #loadCatalog() {
-        try {
-            const { byId } = await loadShopCatalog(i18n.locale);
-            this.resolveItem = (abilityId) => {
-                const item = byId.get(abilityId);
-                if (!item || !isInShop(item)) return undefined;
-                const chip: ChipItem = { name: item.name, slot: item.slot, tier: item.tier, active: item.active };
-                if (item.art !== undefined) chip.art = item.art;
-                return chip;
-            };
-        } catch {
-            // Cards show no shop preview without the catalog.
-        }
     }
 
     async flush() {

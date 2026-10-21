@@ -32,12 +32,8 @@ async function itemsInFile(page: Page): Promise<number> {
 async function openEditor(page: Page) {
     await open(page, "/builds");
     await main(page).getByRole("tab", { name: "Mine", exact: true }).click();
-    const row = main(page)
-        .getByRole("tabpanel", { name: "Mine" })
-        .getByRole("listitem")
-        .filter({ has: page.getByRole("link", { name: BUILD, exact: true }) });
-    await row.getByRole("button", { name: `More actions for ${BUILD}` }).click();
-    await page.getByTestId("edit-build").click();
+    await main(page).getByTestId("build-list").getByRole("link", { name: BUILD, exact: true }).click();
+    await main(page).getByTestId("build-detail").getByTestId("edit-build").click();
     await expect(page).toHaveURL(new RegExp(`/builds/edit\\?source=local&id=${BUILD_ID}$`));
     await expect(page.getByTestId("build-name")).toHaveValue(BUILD);
     await expect(chips(page).first()).toBeVisible();

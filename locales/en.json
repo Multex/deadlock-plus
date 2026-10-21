@@ -1792,13 +1792,10 @@
             "updated": "Updated {date}",
             "edited": "Edited. Press Publish in-game to upload it.",
             "edited_hint": "The edit is lost if another build of this hero is used first.",
-            "actions": "More actions for {name}",
-            "open": "Open",
             "copy": "Copy as new",
             "copy_name": "{name} (copy)",
             "copied": "Copied as a new build.",
             "favourite": "Favourite",
-            "unfavourite": "Unfavourite",
             "favourited": "Added to favourites.",
             "unfavourited": "Removed from favourites.",
             "cancel_queued": "Cancel queued save",
@@ -1831,7 +1828,12 @@
             "show": "Show",
             "empty_hero": "You have no {hero} builds yet.",
             "favourites_empty": "You have no favourites yet.",
-            "favourites_empty_hero": "You have no {hero} favourites yet."
+            "favourites_empty_hero": "You have no {hero} favourites yet.",
+            "sort_name": "Name",
+            "sort_win_rate": "Best win rate",
+            "status_all": "Any status",
+            "status_label": "Status",
+            "author_any": "Any author"
         },
         "browser": {
             "title": "Builds",
@@ -2219,6 +2221,11 @@
             "upgrades_to": "Upgrades to:",
             "built_from": "Built from:",
             "cooldown": "Cooldown"
+        },
+        "list": {
+            "label": "Public builds",
+            "back": "All builds",
+            "open_full": "Open full view"
         }
     },
     "alerts": {
