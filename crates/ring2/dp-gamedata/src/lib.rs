@@ -5,6 +5,7 @@ mod locale;
 mod map_items;
 mod progression;
 mod shop;
+mod vpk_source;
 
 pub use art::{
     ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,
@@ -20,9 +21,8 @@ pub use map_items::{
     MAP_ITEMS_SCHEMA,
 };
 pub use progression::{
-    ability_id, hero_abilities, hero_progression, popular_items, HeroProgression, HeroTable, HeroVdata, HeroesSource,
-    LevelInfo, NoHeroesReader, PopularItem, PopularItems,
+    ability_id, hero_abilities, hero_progression, popular_items, HeroAbilities, HeroProgression, HeroTable, HeroVdata,
+    HeroesSource, LevelInfo, PopularItem, PopularItems,
 };
-pub use shop::{
-    shop_items, NoShopReader, ShopItem, ShopSlot, ShopSource, ShopVdata, ABILITIES_PATH, GENERIC_DATA_PATH,
-};
+pub use shop::{shop_items, ShopItem, ShopSlot, ShopSource, ShopVdata, ABILITIES_PATH, GENERIC_DATA_PATH};
+pub use vpk_source::{VpkVdataSource, HEROES_PATH};

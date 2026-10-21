@@ -8,6 +8,7 @@ use source2_kv3::{Document, Object, Value};
 use ts_rs::TS;
 
 use crate::catalog::{archive_stamp, Install, SteamInstall};
+use crate::vpk_source::VpkVdataSource;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
@@ -148,6 +149,15 @@ fn phase_items(phase: &Value) -> Vec<PopularItem> {
         .collect()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct HeroAbilities {
+    pub hero_id: u32,
+    /// Signature slots 1 to 4; the last is the ultimate.
+    pub ability_ids: [u32; 4],
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct HeroTable {
     pub progression: HeroProgression,
@@ -156,6 +166,13 @@ pub struct HeroTable {
 }
 
 impl HeroTable {
+    pub fn ability_list(&self) -> Vec<HeroAbilities> {
+        let mut list: Vec<HeroAbilities> =
+            self.abilities.iter().map(|(&hero_id, &ability_ids)| HeroAbilities { hero_id, ability_ids }).collect();
+        list.sort_by_key(|h| h.hero_id);
+        list
+    }
+
     pub fn from_document(doc: &Document) -> Result<Self, String> {
         let heroes = doc.root.as_object().ok_or("heroes.vdata: root is not an object")?;
         let progression = hero_progression(heroes).ok_or("heroes.vdata: hero_base has no level table")?;
@@ -168,21 +185,19 @@ pub trait HeroesSource: Send + Sync + 'static {
     fn read(&self, citadel_dir: &Path) -> Result<Document, String>;
 }
 
-pub struct NoHeroesReader;
-
-impl HeroesSource for NoHeroesReader {
-    fn read(&self, _citadel_dir: &Path) -> Result<Document, String> {
-        Err("reading heroes.vdata is not available in this build".into())
-    }
-}
-
 type Memo = (Option<PathBuf>, Option<SystemTime>, Option<Arc<HeroTable>>);
 
-pub struct HeroVdata<I: Install = SteamInstall, S: HeroesSource = NoHeroesReader> {
+pub struct HeroVdata<I: Install = SteamInstall, S: HeroesSource = VpkVdataSource> {
     install: I,
     source: S,
     /// Failures are memoized too: the archive is re-read only once the install or its build changes.
     memo: Mutex<Option<Memo>>,
+}
+
+impl Default for HeroVdata {
+    fn default() -> Self {
+        Self::new(SteamInstall, VpkVdataSource)
+    }
 }
 
 impl<I: Install, S: HeroesSource> HeroVdata<I, S> {
@@ -411,6 +426,16 @@ mod tests {
         assert_eq!(table.progression.levels.len(), 36);
         assert_eq!(table.abilities.len(), 1);
         assert_eq!(table.popular_items.len(), 1);
+    }
+
+    #[test]
+    fn the_ability_list_is_sorted_by_hero_id() {
+        let mut table = HeroTable::from_document(&Document::from_text(&heroes_6805_shape()).unwrap()).unwrap();
+        table.abilities.insert(21, [5, 6, 7, 8]);
+        table.abilities.insert(2, [1, 2, 3, 4]);
+        let list = table.ability_list();
+        assert_eq!(list.iter().map(|h| h.hero_id).collect::<Vec<_>>(), [1, 2, 21]);
+        assert_eq!(list[1], HeroAbilities { hero_id: 2, ability_ids: [1, 2, 3, 4] });
     }
 
     #[test]

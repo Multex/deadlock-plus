@@ -49,6 +49,7 @@ pub fn run() {
         .manage(NetworkMonitor::default())
         .manage(features::network::recording::MatchPingService::default())
         .manage(IngestService::default())
+        .manage(features::gamedata::GameVdata::default())
         .manage(GcService::default())
         .manage(features::salts::record::SaltRecordService::default())
         .manage(PostgameService::default())
@@ -164,6 +165,10 @@ pub fn run() {
             features::postgame::commands::get_postgame_detail,
             features::gamedata::commands::game_heroes,
             features::gamedata::commands::game_items,
+            features::gamedata::commands::game_shop_items,
+            features::gamedata::commands::game_hero_progression,
+            features::gamedata::commands::game_hero_abilities,
+            features::gamedata::commands::game_popular_items,
             features::gamedata::commands::game_accolades,
             features::gamedata::commands::game_hero_art,
             features::gamedata::commands::game_rank_art,

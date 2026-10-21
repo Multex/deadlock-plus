@@ -8,6 +8,7 @@ use ts_rs::TS;
 
 use crate::catalog::{archive_stamp, Install, SteamInstall};
 use crate::progression::ability_id;
+use crate::vpk_source::VpkVdataSource;
 
 pub use deadlock_data::vdata::ABILITIES_PATH;
 pub const GENERIC_DATA_PATH: &str = "scripts/generic_data.vdata_c";
@@ -112,21 +113,19 @@ pub trait ShopSource: Send + Sync + 'static {
     fn read(&self, citadel_dir: &Path, path: &str) -> Result<Document, String>;
 }
 
-pub struct NoShopReader;
-
-impl ShopSource for NoShopReader {
-    fn read(&self, _citadel_dir: &Path, _path: &str) -> Result<Document, String> {
-        Err("reading vdata is not available in this build".into())
-    }
-}
-
 type Memo = (Option<PathBuf>, Option<SystemTime>, Option<Arc<Vec<ShopItem>>>);
 
-pub struct ShopVdata<I: Install = SteamInstall, S: ShopSource = NoShopReader> {
+pub struct ShopVdata<I: Install = SteamInstall, S: ShopSource = VpkVdataSource> {
     install: I,
     source: S,
     /// Failures are memoized too: the archive is re-read only once the install or its build changes.
     memo: Mutex<Option<Memo>>,
+}
+
+impl Default for ShopVdata {
+    fn default() -> Self {
+        Self::new(SteamInstall, VpkVdataSource)
+    }
 }
 
 impl<I: Install, S: ShopSource> ShopVdata<I, S> {

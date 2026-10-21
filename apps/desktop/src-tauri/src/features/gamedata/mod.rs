@@ -2,8 +2,9 @@ pub mod map_items;
 pub mod minimap;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use dp_gamedata::ArtCache;
+use dp_gamedata::{ArtCache, HeroVdata, ShopVdata};
 use tauri::{AppHandle, Emitter};
 
 pub const ART_CHANGED_EVENT: &str = "game-art-changed";
@@ -18,17 +19,25 @@ pub fn art_cache(app: &AppHandle, root: PathBuf) -> ArtCache {
     })
 }
 
+/// `heroes.vdata` and the shop, read from the installed game and kept until its build changes.
+#[derive(Clone, Default)]
+pub struct GameVdata {
+    pub heroes: Arc<HeroVdata>,
+    pub shop: Arc<ShopVdata>,
+}
+
 pub mod commands {
     use std::sync::Arc;
 
     use dp_gamedata::{
-        AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroArt, HeroEntry, ItemEntry, ItemImage,
-        MapItemsPayload, MinimapIcon, MinimapIconArt, RankArt,
+        AccoladeEntry, ArtCache, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt, HeroEntry, HeroProgression,
+        ItemEntry, ItemImage, MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, RankArt, ShopItem,
     };
     use tauri::State;
 
     use super::map_items::ApiMapItems;
     use super::minimap::MinimapArtResult;
+    use super::GameVdata;
 
     use crate::features::error::AppError;
 
@@ -120,5 +129,38 @@ pub mod commands {
     ) -> Result<Vec<ClassArt>, AppError> {
         let art = art.inner().clone();
         tauri::async_runtime::spawn_blocking(move || art.item_art(&names, kind)).await.map_err(AppError::internal)
+    }
+
+    /// Empty while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_shop_items(vdata: State<'_, GameVdata>) -> Result<Vec<ShopItem>, AppError> {
+        let shop = Arc::clone(&vdata.shop);
+        let items = tauri::async_runtime::spawn_blocking(move || shop.items()).await.map_err(AppError::internal)?;
+        Ok(items.map(|i| i.to_vec()).unwrap_or_default())
+    }
+
+    /// No levels while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_hero_progression(vdata: State<'_, GameVdata>) -> Result<HeroProgression, AppError> {
+        let heroes = Arc::clone(&vdata.heroes);
+        let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+        Ok(table.map(|t| t.progression.clone()).unwrap_or(HeroProgression { levels: Vec::new() }))
+    }
+
+    #[tauri::command]
+    pub async fn game_hero_abilities(vdata: State<'_, GameVdata>) -> Result<Vec<HeroAbilities>, AppError> {
+        let heroes = Arc::clone(&vdata.heroes);
+        let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+        Ok(table.map(|t| t.ability_list()).unwrap_or_default())
+    }
+
+    #[tauri::command]
+    pub async fn game_popular_items(
+        vdata: State<'_, GameVdata>,
+        hero_id: u32,
+    ) -> Result<Option<PopularItems>, AppError> {
+        let heroes = Arc::clone(&vdata.heroes);
+        let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+        Ok(table.and_then(|t| t.popular_items.get(&hero_id).cloned()))
     }
 }

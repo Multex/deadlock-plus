@@ -3,17 +3,18 @@ mod plan;
 pub mod views;
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use dp_builds::history::{self, Version};
 use dp_builds::paths::{self, Target};
 use dp_builds::queue::{self, FlushReport, QueueError, QueuedSave};
 use dp_builds::save::{save_with, SaveError, SaveOp};
-use dp_gamedata::GameData;
+use dp_gamedata::{GameData, HeroEntry, HeroTable, HeroVdata};
 use dp_sync::LockExt;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::features::error::{AppError, ErrorKey};
+use crate::features::gamedata::GameVdata;
 use error::BuildsError;
 use plan::{HeroInfo, Heroes, Planned};
 use views::{FlushView, SaveResult};
@@ -52,20 +53,23 @@ fn read_file(path: &Path) -> Result<Option<Vec<u8>>, AppError> {
     }
 }
 
-fn heroes(data: &GameData) -> Heroes {
+/// A hero missing from `heroes.vdata` (or every hero, while the game cannot be read) has no ability slots.
+fn heroes(entries: &[HeroEntry], table: Option<&HeroTable>) -> Heroes {
     Heroes(
-        data.heroes("en")
+        entries
             .iter()
-            .map(|h| HeroInfo { id: h.id, class_name: h.class_name.clone(), abilities: hero_ability_ids(data, h.id) })
+            .map(|h| HeroInfo { id: h.id, class_name: h.class_name.clone(), abilities: hero_ability_ids(table, h.id) })
             .collect(),
     )
 }
 
 /// The hero's 4 ability slots from `heroes.vdata`, ultimate last.
-fn hero_ability_ids(data: &GameData, hero_id: u32) -> Option<[u32; 4]> {
-    // hero ability slots pending
-    let _ = (data, hero_id);
-    None
+fn hero_ability_ids(table: Option<&HeroTable>, hero_id: u32) -> Option<[u32; 4]> {
+    table?.abilities.get(&hero_id).copied()
+}
+
+fn installed_heroes(data: &GameData, vdata: &HeroVdata) -> Heroes {
+    heroes(&data.heroes("en"), vdata.table().as_deref())
 }
 
 /// Writes now, or queues the save while the game runs (it would drop a write on its next save).
@@ -217,8 +221,11 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(work).await.map_err(AppError::internal)?
     }
 
-    fn save_inputs(data: &GameData, locale: &str) -> SaveInputs {
-        SaveInputs { heroes: heroes(data), language: plan::proto_language(dp_gamedata::game_language(locale)) }
+    fn save_inputs(data: &GameData, vdata: &HeroVdata, locale: &str) -> SaveInputs {
+        SaveInputs {
+            heroes: installed_heroes(data, vdata),
+            language: plan::proto_language(dp_gamedata::game_language(locale)),
+        }
     }
 
     fn no_heroes() -> SaveInputs {
@@ -226,16 +233,21 @@ pub mod commands {
     }
 
     #[tauri::command]
-    pub async fn builds_local(app: AppHandle, data: State<'_, GameData>) -> Result<LocalBuilds, AppError> {
+    pub async fn builds_local(
+        app: AppHandle,
+        data: State<'_, GameData>,
+        vdata: State<'_, GameVdata>,
+    ) -> Result<LocalBuilds, AppError> {
         let dirs = app_dirs(&app)?;
         let data = data.inner().clone();
+        let vdata = Arc::clone(&vdata.heroes);
         blocking(move || {
             let target = paths::current_target()?;
             let bytes = read_file(&target.path)?;
             let queued = queue::pending(&dirs.queue, target.account_id32)?;
             plan::local_builds(
                 bytes.as_deref(),
-                &heroes(&data),
+                &installed_heroes(&data, &vdata),
                 &queued,
                 target.account_id32,
                 paths::game_running_recent(),
@@ -248,12 +260,19 @@ pub mod commands {
     pub async fn builds_save(
         app: AppHandle,
         data: State<'_, GameData>,
+        vdata: State<'_, GameVdata>,
         i18n: State<'_, I18nState>,
         request: SaveRequest,
     ) -> Result<SaveResult, AppError> {
         let dirs = app_dirs(&app)?;
-        let inputs = save_inputs(data.inner(), &i18n.locale());
-        blocking(move || save_planned(&dirs, inputs, |ctx| plan::plan_save(request, ctx))).await
+        let data = data.inner().clone();
+        let vdata = Arc::clone(&vdata.heroes);
+        let locale = i18n.locale();
+        blocking(move || {
+            let inputs = save_inputs(&data, &vdata, &locale);
+            save_planned(&dirs, inputs, |ctx| plan::plan_save(request, ctx))
+        })
+        .await
     }
 
     #[tauri::command]
@@ -390,6 +409,36 @@ mod tests {
                 hero_class: Some("hero_inferno".into()),
             }],
         }
+    }
+
+    fn hero(id: u32, class_name: &str) -> HeroEntry {
+        HeroEntry {
+            id,
+            class_name: class_name.into(),
+            name: class_name.into(),
+            localised: true,
+            selectable: true,
+            in_development: false,
+            disabled: false,
+            pre_release: false,
+            portrait: None,
+            card: None,
+        }
+    }
+
+    #[test]
+    fn heroes_take_their_ability_slots_from_the_game_data() {
+        let entries = [hero(1, "hero_inferno"), hero(2, "hero_gigawatt")];
+        let table = HeroTable {
+            progression: dp_gamedata::HeroProgression { levels: Vec::new() },
+            abilities: [(1, [11, 12, 13, 14])].into(),
+            popular_items: Default::default(),
+        };
+        let known = heroes(&entries, Some(&table));
+        assert_eq!(known.abilities(1), Some([11, 12, 13, 14]));
+        assert_eq!(known.abilities(2), None);
+        assert_eq!(known.class_name(2), Some("hero_gigawatt"));
+        assert_eq!(heroes(&entries, None).abilities(1), None);
     }
 
     #[test]
