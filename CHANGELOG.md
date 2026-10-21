@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Public builds can be sorted by this week, all time or newest, and searched by name.
 - Builds show in your game's language plus English.
 - The Mine tab lists your own builds by hero: local, favourited and published.
+- Builds by other players that you favourited get their own Favourites list in the Mine tab.
 - Opening a build shows its shop exactly as the game lays it out at 1440p.
 - The build view previews 1080p and 4K too, marked as unmeasured.
 - Copy as new saves any build, public or your own, as a new build in your game files.
