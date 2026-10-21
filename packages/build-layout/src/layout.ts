@@ -3,6 +3,8 @@ export interface BuildCategory {
     width: number;
     height: number;
     items: number;
+    /** Lines the category's name wraps to in its header; 1 when absent. */
+    headerLines?: number;
 }
 
 /** Only `height` moves the layout. Aspect ratios other than 16:9 are unmeasured. */
@@ -25,6 +27,10 @@ export interface CategoryLayout {
     capped: boolean;
     columns: number;
     rows: number;
+    /** Header bar height, grown by the name's extra lines. */
+    header: number;
+    /** Chip rows the stored height cuts off, in part or whole. */
+    clippedRows: number;
     chips: Box[];
 }
 
@@ -38,6 +44,8 @@ const CONTAINER_PADDING = 20;
 const CATEGORY_MARGIN = 5;
 const CATEGORY_BORDER = 2;
 const HEADER_HEIGHT = 30.75;
+/** 28 px per extra name line at 1440p (S5 shot, 2026-10-21); other scales predicted. */
+const HEADER_LINE_HEIGHT = 21;
 const MODS_PADDING = 4;
 const CHIP_WIDTH = 76;
 const CHIP_HEIGHT = 114;
@@ -65,9 +73,13 @@ export interface Geometry {
     margin: number;
     /** Widest a category draws: the content box less its own margins. */
     cap: number;
+    border: number;
     /** Border plus mods padding, on each side of the chip grid. */
     frame: number;
+    /** A one-line header. */
     header: number;
+    /** What each extra line of the name adds to the header. */
+    headerLine: number;
     chipMargin: number;
     chip: { width: number; height: number };
     pitch: { x: number; y: number };
@@ -87,8 +99,10 @@ export function categoryGeometry(contentWidth: number, px: (length: number) => n
         contentWidth,
         margin,
         cap: contentWidth - 2 * margin,
+        border: px(CATEGORY_BORDER),
         frame: px(CATEGORY_BORDER) + px(MODS_PADDING),
         header: px(HEADER_HEIGHT),
+        headerLine: px(HEADER_LINE_HEIGHT),
         chipMargin,
         chip,
         pitch: { x: chip.width + 2 * chipMargin, y: chip.height + 2 * chipMargin },
@@ -99,9 +113,13 @@ export function columnsFor(drawnWidth: number, { frame, pitch }: Geometry): numb
     return Math.max(1, Math.floor((drawnWidth - 2 * frame) / pitch.x));
 }
 
-function chipBoxes(box: Box, items: number, columns: number, g: Geometry): Box[] {
+export function headerHeight(lines: number | undefined, g: Geometry): number {
+    return g.header + Math.max(0, (lines ?? 1) - 1) * g.headerLine;
+}
+
+function chipBoxes(box: Box, items: number, columns: number, header: number, g: Geometry): Box[] {
     const left = box.x + g.frame + g.chipMargin;
-    const top = box.y + g.frame + g.header + g.chipMargin;
+    const top = box.y + g.frame + header + g.chipMargin;
     return Array.from({ length: items }, (_, i) => ({
         x: left + (i % columns) * g.pitch.x,
         y: top + Math.floor(i / columns) * g.pitch.y,
@@ -131,7 +149,7 @@ export function flowLayout(
     let x = 0;
     let y = 0;
     let rowHeight = 0;
-    for (const { width, height, items } of categories) {
+    for (const { width, height, items, headerLines } of categories) {
         const stored = widthPx(width);
         const drawn = Math.min(stored, g.cap);
         const outer = drawn + 2 * g.margin;
@@ -142,13 +160,15 @@ export function flowLayout(
         }
         const box = { x: x + g.margin, y: y + g.margin, width: drawn, height: heightPx(height) };
         const columns = columnsFor(drawn, g);
-        placed.push({
-            box,
-            capped: stored > g.cap,
-            columns,
-            rows: Math.ceil(items / columns),
-            chips: chipBoxes(box, items, columns, g),
-        });
+        const header = headerHeight(headerLines, g);
+        const chips = chipBoxes(box, items, columns, header, g);
+        const rows = Math.ceil(items / columns);
+        // #ModsContainer clips at the category's inner edge, under the bottom border.
+        const visibleBottom = box.y + box.height - g.border;
+        const clippedRows = new Set(
+            chips.flatMap((chip, i) => (chip.y + chip.height > visibleBottom ? [Math.floor(i / columns)] : [])),
+        ).size;
+        placed.push({ box, capped: stored > g.cap, columns, rows, header, clippedRows, chips });
         x += outer;
         rowHeight = Math.max(rowHeight, box.height + 2 * g.margin);
     }
