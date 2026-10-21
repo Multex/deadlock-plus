@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { Info } from "@lucide/svelte";
+    import { CircleDashed, Info, Monitor } from "@lucide/svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-    import { t } from "$lib/core/i18n.svelte";
-    import type { ChipItem, ShopCategoryView } from "../../shop-view";
+    import { t, tn } from "$lib/core/i18n.svelte";
+    import type { ChipItem, ScreenDifference, ShopCategoryView } from "../../shop-view";
     import ItemChip from "./item-chip.svelte";
 
     let {
@@ -14,6 +14,7 @@
         unit,
         border,
         header,
+        difference,
     }: {
         category: Pick<ModCategoryView, "name" | "description" | "optional">;
         view: ShopCategoryView;
@@ -23,9 +24,14 @@
         unit: number;
         border: number;
         header: number;
+        /** How this category lays out differently on the user's own screen. */
+        difference?: ScreenDifference;
     } = $props();
 
     const description = $derived(category.description.trim());
+    const differs = $derived(
+        difference ? tn("builds.view.differs", difference.columns, { reference: difference.referenceColumns }) : null,
+    );
 </script>
 
 <section
@@ -52,8 +58,30 @@
         {:else}
             <span class="title"><span class="name">{category.name}</span></span>
         {/if}
-        {#if category.optional}
+        {#if category.optional && view.columns < 3}
+            <!-- Below three columns the header has room for the name only. -->
+            <Tooltip.Root delayDuration={100}>
+                <Tooltip.Trigger class="optional-pill compact" aria-label={t("builds.shop.optional")}>
+                    <CircleDashed aria-hidden="true" />
+                </Tooltip.Trigger>
+                <Tooltip.Content>{t("builds.shop.optional")}</Tooltip.Content>
+            </Tooltip.Root>
+        {:else if category.optional}
             <Badge variant="outline" class="optional-pill">{t("builds.shop.optional")}</Badge>
+        {/if}
+        {#if difference && differs}
+            <Tooltip.Root delayDuration={100}>
+                <Tooltip.Trigger
+                    class="screen-flag"
+                    aria-label={differs}
+                    data-screen-difference
+                    data-columns={difference.columns}
+                    data-reference-columns={difference.referenceColumns}
+                >
+                    <Monitor aria-hidden="true" />
+                </Tooltip.Trigger>
+                <Tooltip.Content>{differs}</Tooltip.Content>
+            </Tooltip.Root>
         {/if}
     </header>
     {#each view.chips as chip, i (i)}
@@ -130,5 +158,38 @@
         font-weight: 700;
         line-height: 1.4;
         text-transform: uppercase;
+    }
+    header :global(.optional-pill.compact) {
+        display: inline-grid;
+        flex-shrink: 0;
+        place-items: center;
+        width: calc(var(--u) * 18);
+        height: calc(var(--u) * 18);
+        padding: 0;
+        cursor: help;
+    }
+    header :global(.optional-pill.compact svg) {
+        width: calc(var(--u) * 12);
+        height: calc(var(--u) * 12);
+    }
+    header :global(.screen-flag) {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        margin-left: auto;
+        padding: calc(var(--u) * 2) calc(var(--u) * 4);
+        border: 0;
+        border-radius: 2px;
+        background: color-mix(in oklch, var(--warning) 22%, transparent);
+        color: var(--warning);
+        cursor: help;
+    }
+    header :global(.screen-flag:focus-visible) {
+        outline: 2px solid var(--ring);
+        outline-offset: 1px;
+    }
+    header :global(.screen-flag svg) {
+        width: calc(var(--u) * 13);
+        height: calc(var(--u) * 13);
     }
 </style>

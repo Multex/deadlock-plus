@@ -4,6 +4,7 @@
     import { goto } from "$app/navigation";
     import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
+    import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import { failureText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import type { BuildDetail } from "../../build-detail.svelte";
@@ -34,6 +35,7 @@
     const copy = $derived(detail.copy);
     const favourite = $derived(detail.favourite);
     let discarding = $state(false);
+    let discardOpen = $state(false);
 
     const edit = $derived.by(() => {
         const draft = detail.draft;
@@ -194,7 +196,7 @@
                     variant="ghost"
                     disabled={discarding}
                     data-testid="discard-draft"
-                    onclick={() => void discard()}
+                    onclick={() => (discardOpen = true)}
                 >
                     <Trash2 aria-hidden="true" />
                     {t("builds.mine.discard_draft")}
@@ -203,3 +205,14 @@
         </div>
     </div>
 </Card>
+
+<ConfirmDialog
+    bind:open={discardOpen}
+    class="max-w-md"
+    title={t("builds.mine.discard_title", { name: build.name })}
+    description={t("builds.mine.discard_description")}
+    confirmLabel={t("builds.mine.discard_draft")}
+    destructive
+    disabled={discarding}
+    onconfirm={discard}
+/>

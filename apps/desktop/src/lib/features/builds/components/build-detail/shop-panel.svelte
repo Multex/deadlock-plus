@@ -43,9 +43,6 @@
     const cost = $derived(catalog ? costLine(build, catalog.byId) : null);
     const hasOptional = $derived(build.modCategories.some((c) => c.optional));
     const differences = $derived(screenDifferences(build.modCategories, device));
-
-    const categoryName = (index: number) =>
-        build.modCategories[index]?.name.trim() || t("builds.view.category_fallback", { n: index + 1 });
 </script>
 
 <Card as="section" padding="none" class="overflow-hidden" aria-label={t("builds.view.shop")}>
@@ -98,41 +95,6 @@
         </div>
     </div>
 
-    {#if differences.length > 0}
-        <div
-            class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 text-sm text-muted-foreground"
-            role="note"
-            data-testid="screen-differences"
-        >
-            <Monitor class="size-4 shrink-0" aria-hidden="true" />
-            <span>{t("builds.view.your_screen", { height: device.height })}</span>
-            <Tooltip.Provider>
-                {#each differences as difference (difference.index)}
-                    <Tooltip.Root delayDuration={100}>
-                        <Tooltip.Trigger>
-                            {#snippet child({ props })}
-                                <Badge
-                                    {...props}
-                                    variant="outline"
-                                    tabindex={0}
-                                    class="text-muted-foreground"
-                                    data-category-index={difference.index}
-                                    data-columns={difference.columns}
-                                    data-reference-columns={difference.referenceColumns}
-                                >
-                                    {categoryName(difference.index)}
-                                </Badge>
-                            {/snippet}
-                        </Tooltip.Trigger>
-                        <Tooltip.Content>
-                            {tn("builds.view.differs", difference.columns, { reference: difference.referenceColumns })}
-                        </Tooltip.Content>
-                    </Tooltip.Root>
-                {/each}
-            </Tooltip.Provider>
-        </div>
-    {/if}
-
     {#if cost && cost.removed > 0}
         <p class="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm" role="note">
             <TriangleAlert class="size-4 shrink-0 text-warning" aria-hidden="true" />
@@ -142,7 +104,7 @@
 
     <div class="p-4" data-testid="shop" data-resolution={resolution} data-mode={mode}>
         {#if catalog}
-            <ShopGrid {build} {resolve} screen={SHOP_SCREENS[resolution]} {mode} />
+            <ShopGrid {build} {resolve} screen={SHOP_SCREENS[resolution]} {mode} {differences} />
         {:else if catalogFailed}
             <EmptyState role="alert">{t("builds.view.shop_failed")}</EmptyState>
         {/if}

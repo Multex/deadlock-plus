@@ -112,6 +112,9 @@ test("widening the last category of a row stops at the row edge until it is pull
     await page.mouse.move(x + 4, y);
     const line = (await second.locator(".row-edge").boundingBox())!;
     const edge = line.x + line.width / 2;
+    // The edge tag stays clear of the header, where the category menu sits.
+    const edgeTag = (await second.locator(".row-edge span").boundingBox())!;
+    expect(edgeTag.y + edgeTag.height).toBeLessThanOrEqual(top);
 
     for (let step = 1; step <= 8; step++) await page.mouse.move(x + ((edge + 40 - x) * step) / 8, y);
     const held = (await second.boundingBox())!;
@@ -196,6 +199,35 @@ test("the toolbar adds a category and previews other resolutions", async ({ page
     await resolution.getByRole("button", { name: "4K" }).click();
     await expect(resolution.getByRole("button", { name: "4K" })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("ability-bar")).toBeVisible();
+});
+
+test("a width that loses a column at another resolution shows a layout issue that Fix all clears", async ({ page }) => {
+    await openEditor(page);
+    const issues = page.getByTestId("layout-issues");
+    // The demo stores Lane and Late game without a height.
+    await expect(issues).toHaveAttribute("data-count", "2");
+
+    // Unsnapped, 1 px narrower stores 257 units: 3 columns at 1440p but 2 at 1080p and 4K.
+    await page.getByTestId("toolbar-snap").click();
+    const first = canvas(page).locator('[data-category="0"]');
+    await first.hover();
+    const handle = (await first.locator(".handle.right").boundingBox())!;
+    const x = Math.round(handle.x + handle.width / 2);
+    const y = Math.round(handle.y + handle.height / 2);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 1, y);
+    await page.mouse.up();
+    await expect(issues).toHaveAttribute("data-count", "3");
+    await expect(first.getByTestId("category-layout-issue")).toBeVisible();
+
+    await issues.click();
+    await page.getByTestId("layout-fix-all").click();
+    await expect(issues).toBeHidden();
+    await expect(canvas(page).getByTestId("category-layout-issue")).toHaveCount(0);
+
+    await page.getByTestId("editor-undo").click();
+    await expect(issues).toHaveAttribute("data-count", "3");
 });
 
 test("editing an own published build says it is published in-game", async ({ page }) => {

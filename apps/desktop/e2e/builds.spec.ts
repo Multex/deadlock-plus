@@ -81,9 +81,35 @@ test("discarding a draft from its view takes its row out of My builds", async ({
     await page.getByRole("menuitem", { name: "Open", exact: true }).click();
     await expect(page).toHaveURL(/\/builds\/view\?source=draft&id=[^&]+$/);
     await page.getByTestId("discard-draft").click();
+    const confirm = page.getByRole("alertdialog");
+    await confirm.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(page).toHaveURL(/\/builds\/view\?source=draft&id=[^&]+$/);
+
+    await page.getByTestId("discard-draft").click();
+    await confirm.getByRole("button", { name: "Discard draft", exact: true }).click();
     await expect(page).toHaveURL(/\/builds$/);
     await openMine(page);
     await expect(mineRow(page, "Infernus test")).toBeVisible();
+    await expect(mineRow(page, "Infernus burst")).toHaveCount(0);
+});
+
+test("discarding a draft from My builds asks first", async ({ page }) => {
+    await openMine(page);
+    const actions = mineRow(page, "Infernus burst").getByRole("button", {
+        name: "More actions for Infernus burst",
+        exact: true,
+    });
+    await actions.click();
+    await page.getByRole("menuitem", { name: "Discard draft", exact: true }).click();
+    const confirm = page.getByRole("alertdialog");
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(mineRow(page, "Infernus burst")).toBeVisible();
+
+    await actions.click();
+    await page.getByRole("menuitem", { name: "Discard draft", exact: true }).click();
+    await confirm.getByRole("button", { name: "Discard draft", exact: true }).click();
     await expect(mineRow(page, "Infernus burst")).toHaveCount(0);
 });
 

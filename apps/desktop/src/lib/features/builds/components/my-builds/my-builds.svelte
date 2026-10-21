@@ -19,6 +19,8 @@
     let heroes = $state<Record<number, Hero>>({});
     let deleting = $state<MineRow | null>(null);
     let confirmOpen = $state(false);
+    let discarding = $state<MineRow | null>(null);
+    let discardOpen = $state(false);
 
     const heroIds = $derived(store.groups.flatMap((g) => (g.heroId === null ? [] : [g.heroId])));
     const waiting = $derived(waitingCount(store.queue));
@@ -62,6 +64,11 @@
         } catch (e) {
             toast.error(failureText(e, t("builds.mine.action_failed")));
         }
+    }
+
+    function askDiscard(row: MineRow) {
+        discarding = row;
+        discardOpen = true;
     }
 
     async function discard(row: MineRow) {
@@ -163,7 +170,7 @@
                                         row.favorited ? t("builds.mine.unfavourited") : t("builds.mine.favourited"),
                                     )}
                                 oncancel={() => void cancelQueued(row)}
-                                ondiscard={() => void discard(row)}
+                                ondiscard={() => askDiscard(row)}
                             />
                         {/each}
                     </ul>
@@ -183,6 +190,19 @@
     disabled={store.busy}
     onconfirm={async () => {
         if (deleting) await run(() => store.delete(deleting!), t("builds.mine.deleted"));
+    }}
+/>
+
+<ConfirmDialog
+    bind:open={discardOpen}
+    class="max-w-md"
+    title={t("builds.mine.discard_title", { name: discarding?.name ?? "" })}
+    description={t("builds.mine.discard_description")}
+    confirmLabel={t("builds.mine.discard_draft")}
+    destructive
+    disabled={store.busy}
+    onconfirm={async () => {
+        if (discarding) await discard(discarding);
     }}
 />
 

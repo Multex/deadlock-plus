@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+    import { CircleDashed, TriangleAlert } from "@lucide/svelte";
     import type { Snippet } from "svelte";
     import type { Screen } from "@deadlock-plus/build-layout";
     import { widthPx } from "@deadlock-plus/build-layout/layout";
@@ -14,6 +15,7 @@
     import { updateCategory, type ItemRef } from "../../editor/document";
     import { drag } from "../../editor/drag.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
+    import type { LayoutIssueKind } from "../../editor/repair";
     import { BREAK_THROUGH_PX, dragStop, edgeWidth, sizeTag, snapHeight, type RowEdge } from "../../editor/resize";
     import { rowLimit, rowOf } from "../../editor/row-ops";
     import type { ChipItem, ShopCategoryView, ShopView } from "../../shop-view";
@@ -39,6 +41,7 @@
         items,
         counts,
         rowWraps,
+        issues = [],
         dropIndex,
         dragged,
         renaming,
@@ -61,6 +64,8 @@
         counts: ReadonlyMap<number, number>;
         /** This category's flow row wraps at another scale. */
         rowWraps: boolean;
+        /** What lays this category out differently at 1080p, 1440p or 4K. */
+        issues?: readonly LayoutIssueKind[];
         /** Where a hovering item drop would insert. */
         dropIndex: number | null;
         /** This category is being dragged to a new place. */
@@ -83,6 +88,8 @@
     const shifts = $derived(chipShifts(view.chips, dropIndex, Math.max(3, 6 * shop.unit)));
     const active = $derived(editor.activeCategory === index);
     const warn = $derived(tag.unsafe || rowWraps);
+    // Below three columns the header has room for the name only, so the extras shrink or hide.
+    const narrow = $derived(tag.columns < 3);
     const selected = $derived(
         new Set(editor.selection.filter((ref) => ref.category === index).map((ref) => ref.index)),
     );
@@ -281,6 +288,7 @@
     class:active
     class:dragged
     class:resizing={!!resizing}
+    class:narrow
     class:straining={resizing?.row === "pulling"}
     class:warn={warn && !!resizing}
     class:target={dropIndex !== null}
@@ -316,21 +324,47 @@
                 {category.name || t("builds.editor.unnamed")}
             </span>
         {/if}
-        <Tooltip.Root delayDuration={200}>
-            <Tooltip.Trigger class="size-tag {warn ? 'warn' : ''} {resizing ? 'live' : ''}">
-                {t("builds.editor.size_tag", { columns: tag.columns, rows: tag.rows })}
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-                {#if tag.unsafe}
-                    {t("builds.editor.unsafe_width")}
-                {:else if rowWraps}
-                    {t("builds.editor.row_wraps")}
-                {:else}
-                    {t("builds.editor.size_hint")}
-                {/if}
-            </Tooltip.Content>
-        </Tooltip.Root>
-        {#if category.optional}
+        {#if !narrow || resizing}
+            <Tooltip.Root delayDuration={200}>
+                <Tooltip.Trigger class="size-tag {warn ? 'warn' : ''} {resizing ? 'live' : ''}">
+                    {t("builds.editor.size_tag", { columns: tag.columns, rows: tag.rows })}
+                </Tooltip.Trigger>
+                <Tooltip.Content>
+                    {#if tag.unsafe}
+                        {t("builds.editor.unsafe_width")}
+                    {:else if rowWraps}
+                        {t("builds.editor.row_wraps")}
+                    {:else}
+                        {t("builds.editor.size_hint")}
+                    {/if}
+                </Tooltip.Content>
+            </Tooltip.Root>
+        {/if}
+        {#if issues.length > 0}
+            <Tooltip.Root delayDuration={200}>
+                <Tooltip.Trigger
+                    class="layout-marker"
+                    aria-label={t("builds.editor.layout.marker")}
+                    data-testid="category-layout-issue"
+                >
+                    <TriangleAlert aria-hidden="true" />
+                </Tooltip.Trigger>
+                <Tooltip.Content>
+                    {#each issues as kind (kind)}
+                        <p>{t(`builds.editor.layout.kind_${kind}`)}</p>
+                    {/each}
+                </Tooltip.Content>
+            </Tooltip.Root>
+        {/if}
+        <!-- One column leaves room for the name and menu only; the tint still marks it optional. -->
+        {#if category.optional && narrow && tag.columns > 1}
+            <Tooltip.Root delayDuration={200}>
+                <Tooltip.Trigger class="optional-pill compact" aria-label={t("builds.shop.optional")}>
+                    <CircleDashed aria-hidden="true" />
+                </Tooltip.Trigger>
+                <Tooltip.Content>{t("builds.shop.optional")}</Tooltip.Content>
+            </Tooltip.Root>
+        {:else if category.optional && !narrow}
             <Badge variant="outline" class="optional-pill">{t("builds.shop.optional")}</Badge>
         {/if}
         {#if categoryMenu}
@@ -579,6 +613,23 @@
         background: color-mix(in oklch, var(--warning) 22%, transparent);
         color: var(--warning);
     }
+    header :global(.layout-marker) {
+        display: inline-grid;
+        flex-shrink: 0;
+        place-items: center;
+        width: calc(var(--u) * 20);
+        height: calc(var(--u) * 18);
+        padding: 0;
+        border: 0;
+        border-radius: 2px;
+        background: color-mix(in oklch, var(--warning) 22%, transparent);
+        color: var(--warning);
+        cursor: help;
+    }
+    header :global(.layout-marker svg) {
+        width: calc(var(--u) * 12);
+        height: calc(var(--u) * 12);
+    }
     header :global(.optional-pill) {
         padding: 0 calc(var(--u) * 4);
         border: 0;
@@ -589,6 +640,30 @@
         font-weight: 700;
         line-height: 1.4;
         text-transform: uppercase;
+    }
+    header :global(.optional-pill.compact) {
+        display: inline-grid;
+        flex-shrink: 0;
+        place-items: center;
+        width: calc(var(--u) * 18);
+        height: calc(var(--u) * 18);
+        padding: 0;
+        cursor: help;
+    }
+    header :global(.optional-pill.compact svg) {
+        width: calc(var(--u) * 12);
+        height: calc(var(--u) * 12);
+    }
+    .category.narrow header {
+        gap: calc(var(--u) * 3);
+        padding-left: calc(var(--u) * 6);
+    }
+    .category.narrow .name {
+        font-size: calc(var(--u) * 14);
+    }
+    .category.narrow .menu :global(button) {
+        width: calc(var(--u) * 20);
+        height: calc(var(--u) * 20);
     }
     .menu {
         display: inline-flex;
@@ -771,12 +846,13 @@
         box-shadow: 0 0 8px color-mix(in oklch, var(--brass) 70%, transparent);
         pointer-events: none;
     }
-    /* Inside the line, on the category's side: past it the canvas would scroll sideways. */
+    /* Above the category so it never covers the header, and on the category's side of the line:
+       past the line the canvas would scroll sideways. The line starts 10px above the padding box. */
     .row-edge span {
         position: absolute;
-        top: 14px;
+        top: calc(8px - max(1px, var(--edge)));
         right: 100%;
-        margin-right: 4px;
+        translate: 0 -100%;
         padding: 1px 6px;
         border-radius: 3px;
         background: var(--brass);

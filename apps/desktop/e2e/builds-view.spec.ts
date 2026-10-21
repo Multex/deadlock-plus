@@ -208,14 +208,14 @@ async function widenFirstCategory(page: Page): Promise<void> {
     }, 339);
 }
 
-const differences = (page: Page) => page.getByTestId("screen-differences");
+const flags = (page: Page) => categories(page).locator("header [data-screen-difference]");
 
 test("on a 1440p screen the shop starts at 1440p and flags nothing", async ({ page }) => {
     await open(page, `/builds/view?source=local&id=${LOCAL_ID}`);
     await expect(shop(page)).toHaveAttribute("data-resolution", "1440");
     await expect(page.getByRole("button", { name: "1440p", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(categories(page).first()).toBeVisible();
-    await expect(differences(page)).toHaveCount(0);
+    await expect(flags(page)).toHaveCount(0);
 });
 
 test.describe("on a 1080p screen", () => {
@@ -234,16 +234,14 @@ test.describe("on a 1080p screen", () => {
         const expected = screenDifferences(build.modCategories, FHD);
         expect(expected.map((d) => d.index)).toContain(0);
 
-        const flags = differences(page).locator("[data-category-index]");
-        await expect(flags).toHaveCount(expected.length);
-        for (const [i, d] of expected.entries()) {
-            await expect(flags.nth(i)).toHaveAttribute("data-category-index", String(d.index));
+        await expect(flags(page)).toHaveCount(expected.length);
+        for (const d of expected) {
+            const flag = categories(page).nth(d.index).locator("header [data-screen-difference]");
+            await expect(flag).toHaveAttribute("data-columns", String(d.columns));
+            await expect(flag).toHaveAttribute("data-reference-columns", String(d.referenceColumns));
         }
-        for (const [i, d] of expected.entries()) {
-            await expect(flags.nth(i)).toHaveAttribute("data-columns", String(d.columns));
-            await expect(flags.nth(i)).toHaveAttribute("data-reference-columns", String(d.referenceColumns));
-        }
-        await flags.first().hover();
-        await expect(page.locator("[data-tooltip-content]")).toBeVisible();
+        await expect(page.getByTestId("screen-differences")).toHaveCount(0);
+        await flags(page).first().hover();
+        await expect(page.locator("[data-tooltip-content]")).toContainText("instead of");
     });
 });

@@ -1821,7 +1821,9 @@
             },
             "draft_of": "Unsaved changes to {name}",
             "discard_draft": "Discard draft",
-            "draft_discarded": "Draft discarded."
+            "draft_discarded": "Draft discarded.",
+            "discard_title": "Discard {name}?",
+            "discard_description": "Its unsaved changes are lost."
         },
         "browser": {
             "title": "Builds",
@@ -1877,7 +1879,6 @@
             "warning_ultimate_early": "The ultimate unlocks before the other 3 abilities.",
             "warning_leftover": "The ability order has extra steps after it completes. They are not shown.",
             "warning_invalid": "The ability order has steps the game does not allow.",
-            "your_screen": "Lays out differently on your {height}p screen:",
             "differs_one": "Lays out differently on your screen: {count} column instead of {reference}.",
             "differs_other": "Lays out differently on your screen: {count} columns instead of {reference}.",
             "category_fallback": "Category {n}"
@@ -2143,7 +2144,20 @@
             "row_edge_pull": "Keep pulling to move to a new row",
             "row_edge_release": "Release to move to a new row",
             "row_edge_pull_next": "Keep pulling to move the next categories to a new row",
-            "row_edge_release_next": "Release to move the next categories to a new row"
+            "row_edge_release_next": "Release to move the next categories to a new row",
+            "layout": {
+                "issues_one": "{count} layout issue",
+                "issues_other": "{count} layout issues",
+                "heading": "These categories lay out differently at 1080p, 1440p or 4K.",
+                "kind_unsized": "Stored without a size",
+                "kind_cap": "Wider than the game draws a category",
+                "kind_columns": "Loses a column at another resolution",
+                "kind_row": "Its row wraps differently at another resolution",
+                "kind_height": "Taller than its box",
+                "fix_all": "Fix all",
+                "fix_hint": "Keeps the columns each category shows at 1440p.",
+                "marker": "Layout issues"
+            }
         }
     },
     "alerts": {
