@@ -149,4 +149,27 @@ describe("drag", () => {
         host.dispatchEvent(click);
         expect(click.defaultPrevented).toBe(true);
     });
+
+    it("swallows the click that follows the release of a drag cancelled with Escape", () => {
+        const { host, drag, start } = setup();
+        drag.begin({ kind: "category", index: 0 }, start);
+        host.dispatchEvent(pointer("pointermove", { clientX: 30, clientY: 10 }));
+        host.dispatchEvent(key("keydown", { key: "Escape" }));
+        host.dispatchEvent(pointer("pointerup", { clientX: 30, clientY: 10 }));
+        const click = new Event("click", { cancelable: true });
+        host.dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+    });
+
+    it("lets a later click through after an Escape-cancelled drag is released", () => {
+        const { host, drag, start } = setup();
+        drag.begin({ kind: "category", index: 0 }, start);
+        host.dispatchEvent(pointer("pointermove", { clientX: 30, clientY: 10 }));
+        host.dispatchEvent(key("keydown", { key: "Escape" }));
+        host.dispatchEvent(pointer("pointerup", { clientX: 30, clientY: 10 }));
+        host.dispatchEvent(new Event("click", { cancelable: true }));
+        const later = new Event("click", { cancelable: true });
+        host.dispatchEvent(later);
+        expect(later.defaultPrevented).toBe(false);
+    });
 });

@@ -109,6 +109,8 @@ export function createDrag(host: () => EventTarget) {
             event.preventDefault();
             event.stopPropagation();
             cancel();
+            // The button is still down: its release clicks whatever is under the pointer.
+            host().addEventListener("pointerup", swallowClick, { once: true });
             return;
         }
         if (event.key === "Alt") event.preventDefault();
