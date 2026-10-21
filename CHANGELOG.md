@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+#### Builds
+
+- A new Builds page lists public builds for your last played hero, with this week's favourites first.
+- Public builds can be sorted by this week, all time or newest, and searched by name.
+- Builds show in your game's language plus English.
+- The Mine tab lists your own builds by hero: local, favourited and published.
+- Opening a build shows its shop exactly as the game lays it out at 1440p.
+- The build view previews 1080p and 4K too, marked as unmeasured.
+- Copy as new saves any build, public or your own, as a new build in your game files.
+- Builds you save while Deadlock is running are written when the game closes.
+- If the game changed a build while a save was waiting, you choose which version to keep.
+- Deadlock+ backs up your build file before every write and keeps the last 10 backups.
+
 ## [0.13.2] - 2026-10-21
 
 ### Fixed
