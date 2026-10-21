@@ -848,7 +848,7 @@
         "section": {
             "games": "Ваши игры"
         },
-        "syncing_one": "{count} матч синхронизируется",
+        "syncing_one": "Синхронизация",
         "syncing_few": "{count} матча синхронизируются",
         "syncing_many": "{count} матчей синхронизируются",
         "syncing_other": "{count} матча синхронизируются",
