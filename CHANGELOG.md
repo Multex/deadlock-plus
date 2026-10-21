@@ -11,11 +11,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 #### Builds
 
 - A new Builds page lists public builds for your last played hero, with this week's favourites first.
-- Public builds can be sorted by this week, all time or newest, and searched by name.
+- Filter public builds by sort, update date, tag, language, favourites, author and name.
+- Public and your own builds show their win rate when they have enough recent matches.
 - Builds show in your game's language plus English.
-- The Mine tab lists your own builds by hero: local, favourited and published.
-- Builds by other players that you favourited get their own Favourites list in the Mine tab.
+- The Mine tab shows your own builds as cards with a preview, filterable by hero.
+- Your builds say Public or Local, with their favourites and version.
+- Builds by other players that you favourited sit under Favourites in the Mine tab.
+- Heroes still in development are left out.
 - Opening a build shows its shop exactly as the game lays it out at 1440p.
+- Item cards look like the game's, and hovering an item shows its stats as the game does.
+- Long category names wrap and descriptions sit next to the name, as in-game.
+- The build view shows the ability order with the hero's abilities and the level of each step.
 - The build view previews 1080p and 4K too, marked as unmeasured.
 - Copy as new saves any build, public or your own, as a new build in your game files.
 - Builds you save while Deadlock is running are written when the game closes.
@@ -42,7 +48,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Set the ability order by clicking the hero's abilities; orders the game would reject are blocked.
 - Name, description, tags and language sit next to the shop, with the game's own limits.
 - The shop shows which items are popular on the hero, and their pick and win rates.
-- Search the shop by item name or by a stat the item gives.
+- The shop's Popular and Search tabs are laid out like the game's, by item type and price.
+- Search shows every item before you type, with the game's Physical, Spirit, Defense, Mobility, Disruption and Misc filters.
+- Tags show the game's icons.
+- Fix all also grows a category whose wrapped name would hide items.
 - Undo and redo every change, and restore any of the last 20 saved versions.
 
 ## [0.13.2] - 2026-10-21
