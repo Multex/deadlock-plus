@@ -5,6 +5,7 @@ pub mod views;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use dp_builds::drafts;
 use dp_builds::history::{self, Version};
 use dp_builds::paths::{self, Target};
 use dp_builds::queue::{self, FlushReport, QueueError, QueuedSave};
@@ -24,8 +25,12 @@ pub const FLUSHED_EVENT: &str = "builds://flushed";
 /// Every write of the build file and the queue goes through this: the queue file has no lock of its own.
 static SAVE_LOCK: Mutex<()> = Mutex::new(());
 
+/// Every write of the drafts file. Taken after `SAVE_LOCK` when both are held, never before it.
+static DRAFT_LOCK: Mutex<()> = Mutex::new(());
+
 struct Dirs {
     backups: PathBuf,
+    drafts: PathBuf,
     history: PathBuf,
     queue: PathBuf,
 }
@@ -33,7 +38,12 @@ struct Dirs {
 impl Dirs {
     fn under(app_data: &Path) -> Self {
         let root = app_data.join("builds");
-        Self { backups: root.join("backups"), history: root.join("history"), queue: root.join("queue") }
+        Self {
+            backups: root.join("backups"),
+            drafts: root.join("drafts"),
+            history: root.join("history"),
+            queue: root.join("queue"),
+        }
     }
 }
 
@@ -121,17 +131,40 @@ fn record_history(dirs: &Dirs, account: u32, now: u64, planned: &Planned) {
     }
 }
 
+/// Drafts are a convenience too: the save already happened, so a failure here is logged only.
+fn drafts_after_save(dirs: &Dirs, account: u32, result: &SaveResult, draft_id: Option<&str>) {
+    let (SaveResult::Written { build_id, .. } | SaveResult::Queued { build_id, .. }) = result else { return };
+    let _guard = DRAFT_LOCK.lock_or_recover();
+    if let Some(id) = draft_id {
+        if let Err(e) = drafts::remove(&dirs.drafts, account, id) {
+            log::warn!("draft {id} not removed after its save: {e}");
+        }
+    }
+    if let Err(e) = drafts::clear_for_build(&dirs.drafts, account, *build_id) {
+        log::warn!("drafts of build {build_id} not removed after its save: {e}");
+    }
+}
+
 struct SaveInputs {
     heroes: Heroes,
     language: u32,
 }
 
-/// Plans against the file as it is now, under the save lock, then writes or queues.
 fn save_planned(
     dirs: &Dirs,
     inputs: SaveInputs,
     make: impl FnOnce(&plan::Ctx) -> Result<Planned, AppError>,
 ) -> Result<SaveResult, AppError> {
+    save_planned_for(dirs, inputs, make).map(|(_, result)| result)
+}
+
+/// Plans against the file as it is now, under the save lock, then writes or queues. Also returns the
+/// account it saved for.
+fn save_planned_for(
+    dirs: &Dirs,
+    inputs: SaveInputs,
+    make: impl FnOnce(&plan::Ctx) -> Result<Planned, AppError>,
+) -> Result<(u32, SaveResult), AppError> {
     let _guard = SAVE_LOCK.lock_or_recover();
     let target = paths::current_target()?;
     let running = paths::game_running_now();
@@ -152,7 +185,7 @@ fn save_planned(
         language: inputs.language,
     };
     let planned = make(&ctx)?;
-    submit(dirs, &target, now, planned, &paths::game_running_now)
+    Ok((target.account_id32, submit(dirs, &target, now, planned, &paths::game_running_now)?))
 }
 
 fn flush_report(dirs: &Dirs) -> Result<Result<FlushReport, QueueError>, AppError> {
@@ -211,6 +244,7 @@ pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
 pub mod commands {
     use super::*;
     use crate::features::i18n::I18nState;
+    use dp_builds::drafts::DraftView;
     use dp_builds::model::BuildView;
     use tauri::State;
     use views::{BuildBackup, BuildSection, LocalBuilds, ResolveChoice, SaveRequest};
@@ -263,6 +297,7 @@ pub mod commands {
         vdata: State<'_, GameVdata>,
         i18n: State<'_, I18nState>,
         request: SaveRequest,
+        draft_id: Option<String>,
     ) -> Result<SaveResult, AppError> {
         let dirs = app_dirs(&app)?;
         let data = data.inner().clone();
@@ -270,7 +305,43 @@ pub mod commands {
         let locale = i18n.locale();
         blocking(move || {
             let inputs = save_inputs(&data, &vdata, &locale);
-            save_planned(&dirs, inputs, |ctx| plan::plan_save(request, ctx))
+            let (account, result) = save_planned_for(&dirs, inputs, |ctx| plan::plan_save(request, ctx))?;
+            drafts_after_save(&dirs, account, &result, draft_id.as_deref());
+            Ok(result)
+        })
+        .await
+    }
+
+    /// Newest first.
+    #[tauri::command]
+    pub async fn builds_drafts(app: AppHandle) -> Result<Vec<DraftView>, AppError> {
+        let dirs = app_dirs(&app)?;
+        blocking(move || {
+            let target = paths::current_target()?;
+            Ok(drafts::list(&dirs.drafts, target.account_id32)?)
+        })
+        .await
+    }
+
+    /// Autosave: stores the draft under its id, or under a new one when `id` is empty.
+    #[tauri::command]
+    pub async fn builds_draft_save(app: AppHandle, draft: DraftView) -> Result<DraftView, AppError> {
+        let dirs = app_dirs(&app)?;
+        blocking(move || {
+            let target = paths::current_target()?;
+            let _guard = DRAFT_LOCK.lock_or_recover();
+            Ok(drafts::upsert(&dirs.drafts, target.account_id32, draft, now_secs())?)
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn builds_draft_delete(app: AppHandle, id: String) -> Result<bool, AppError> {
+        let dirs = app_dirs(&app)?;
+        blocking(move || {
+            let target = paths::current_target()?;
+            let _guard = DRAFT_LOCK.lock_or_recover();
+            Ok(drafts::remove(&dirs.drafts, target.account_id32, &id)?)
         })
         .await
     }
@@ -291,10 +362,13 @@ pub mod commands {
         app: AppHandle,
         base: Option<String>,
         id: Option<u32>,
+        view: Option<BuildView>,
     ) -> Result<SaveResult, AppError> {
         let dirs = app_dirs(&app)?;
-        blocking(move || save_planned(&dirs, no_heroes(), |ctx| plan::plan_favourite(ctx.file, base.as_deref(), id)))
-            .await
+        blocking(move || {
+            save_planned(&dirs, no_heroes(), |ctx| plan::plan_favourite(ctx.file, base.as_deref(), id, view.as_ref()))
+        })
+        .await
     }
 
     #[tauri::command]
@@ -387,6 +461,7 @@ pub mod commands {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dp_builds::drafts::{self, DraftSource, DraftView};
     use dp_builds::file::{BuildsFile, Section};
     use dp_builds::model;
 
@@ -445,6 +520,7 @@ mod tests {
     fn dirs_live_in_a_builds_folder_in_app_data() {
         let dirs = Dirs::under(Path::new("A"));
         assert_eq!(dirs.backups, Path::new("A").join("builds").join("backups"));
+        assert_eq!(dirs.drafts, Path::new("A").join("builds").join("drafts"));
         assert_eq!(dirs.history, Path::new("A").join("builds").join("history"));
         assert_eq!(dirs.queue, Path::new("A").join("builds").join("queue"));
     }
@@ -475,6 +551,35 @@ mod tests {
         let pending = queue::pending(&dirs.queue, 7).unwrap();
         assert_eq!((pending.len(), pending[0].id.as_str(), pending[0].label.as_str()), (1, id.as_str(), "mine"));
         assert!(!target.path.exists());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    fn store_draft(dirs: &Dirs, name: &str, source: DraftSource) -> String {
+        let build = model::BuildView { hero_id: 1, name: name.into(), ..Default::default() };
+        let draft = DraftView { id: String::new(), updated_at: 0, hero_id: 0, source, build };
+        drafts::upsert(&dirs.drafts, 7, draft, 1).unwrap().id
+    }
+
+    fn draft_names(dirs: &Dirs) -> Vec<String> {
+        drafts::list(&dirs.drafts, 7).unwrap().into_iter().map(|d| d.build.name).collect()
+    }
+
+    #[test]
+    fn a_written_or_queued_save_drops_its_draft_and_the_builds_edit_drafts() {
+        let root = temp_dir("drafts");
+        let dirs = Dirs::under(&root);
+        let local = |build_id| DraftSource::Local { section: Section::Unpublished, build_id, base: String::new() };
+        let saved = store_draft(&dirs, "new", DraftSource::New);
+        store_draft(&dirs, "other", DraftSource::New);
+        store_draft(&dirs, "edit 4", local(4));
+        store_draft(&dirs, "edit 5", local(5));
+        drafts_after_save(&dirs, 7, &SaveResult::Conflict { conflicts: Vec::new() }, Some(&saved));
+        drafts_after_save(&dirs, 7, &SaveResult::Unchanged { build_id: 4 }, Some(&saved));
+        assert_eq!(draft_names(&dirs).len(), 4);
+        drafts_after_save(&dirs, 7, &SaveResult::Written { build_id: 4, backup: None }, Some(&saved));
+        assert_eq!(draft_names(&dirs), vec!["edit 5", "other"]);
+        drafts_after_save(&dirs, 7, &SaveResult::Queued { id: "q".into(), build_id: 5 }, None);
+        assert_eq!(draft_names(&dirs), vec!["other"]);
         let _ = std::fs::remove_dir_all(&root);
     }
 }

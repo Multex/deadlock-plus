@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod drafts;
 pub mod file;
 pub mod history;
 pub mod model;

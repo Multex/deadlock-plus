@@ -203,22 +203,47 @@ pub fn plan_delete(section: Section, id: u32, base: &str) -> Result<Planned, App
     Ok(Planned { label: name_of(&blob), build_id: id, ops: vec![SaveOp::Delete { section, id, base: Some(blob) }] })
 }
 
-pub fn plan_favourite(file: &BuildsFile, base: Option<&str>, id: Option<u32>) -> Result<Planned, AppError> {
-    let source = match (base, id) {
-        (Some(hex), _) => decode_base(hex)?.1,
-        (None, Some(id)) => {
+pub fn plan_favourite(
+    file: &BuildsFile,
+    base: Option<&str>,
+    id: Option<u32>,
+    published: Option<&BuildView>,
+) -> Result<Planned, AppError> {
+    let source = match (base, published, id) {
+        (Some(hex), _, _) => decode_base(hex)?.1,
+        (None, Some(view), _) => published_from_view(view)?,
+        (None, None, Some(id)) => {
             let blob = [Section::Unpublished, Section::SavedLastUsed, Section::Favorites]
                 .into_iter()
                 .find_map(|s| file.get(s, id))
                 .ok_or(BuildsError::BuildNotFound)?;
             HeroBuildResult::decode(blob).map_err(|e| AppError::new(BuildsError::BadFile).detail(e))?
         }
-        (None, None) => return Err(BuildsError::BuildNotFound.into()),
+        (None, None, None) => return Err(BuildsError::BuildNotFound.into()),
     };
     let mut view = model::view(&source);
     view.favorited = true;
     let blob = model::apply(&source, &view).encode();
     Ok(Planned { label: view.name, build_id: view.hero_build_id, ops: vec![SaveOp::Favourite { blob }] })
+}
+
+/// A published build that exists only on deadlock-api, as the blob the GC would have sent: its id,
+/// version, origin, publish time and tags as published. The header fields are written even at their
+/// defaults, as the game writes them; a blob's unknown bytes cannot be recovered from a view.
+fn published_from_view(view: &BuildView) -> Result<HeroBuildResult, AppError> {
+    if view.hero_build_id < LOCAL_ID_LIMIT {
+        return Err(BuildsError::BadBase.into());
+    }
+    let mut out = model::apply(&HeroBuildResult::default(), view);
+    let h = out.hero_build.get_or_insert_with(Default::default);
+    h.hero_build_id = Some(view.hero_build_id);
+    h.hero_id = Some(view.hero_id);
+    h.author_account_id = Some(view.author_account_id);
+    h.name = Some(view.name.clone());
+    h.description = Some(view.description.clone());
+    h.language = Some(view.language);
+    h.version = Some(view.version);
+    Ok(out)
 }
 
 pub fn plan_unfavourite(file: &BuildsFile, id: u32) -> Planned {
@@ -458,6 +483,7 @@ mod tests {
     use dp_builds::model::{self, CURRENCY_ABILITY_POINTS, CURRENCY_ABILITY_UNLOCKS};
     use dp_builds::queue::QueuedConflict;
     use dp_builds::save::SaveError;
+    use dp_builds::wire::{AbilityOrder, CurrencyChange, HeroBuild, ModCategory, ModEntry};
     use std::path::PathBuf;
 
     const ACCOUNT: u32 = 77;
@@ -726,14 +752,171 @@ mod tests {
     #[test]
     fn favouriting_by_id_copies_the_local_build_into_favorites() {
         let file = file_with(&[(Section::Unpublished, blob(4, 1, "mine"))]);
-        let planned = plan_favourite(&file, None, Some(4)).unwrap();
+        let planned = plan_favourite(&file, None, Some(4), None).unwrap();
         let [SaveOp::Favourite { blob: fav }] = planned.ops.as_slice() else { panic!("{:?}", planned.ops) };
         let v = model::view(&HeroBuildResult::decode(fav).unwrap());
         assert!(v.favorited);
         assert_eq!((v.hero_build_id, planned.build_id), (4, 4));
-        assert_eq!(plan_favourite(&file, None, Some(8)).unwrap_err().code(), "builds.build_not_found");
-        let from_blob = plan_favourite(&file, Some(&encode_hex(&blob(5000, 1, "pub"))), None).unwrap();
+        assert_eq!(plan_favourite(&file, None, Some(8), None).unwrap_err().code(), "builds.build_not_found");
+        let from_blob = plan_favourite(&file, Some(&encode_hex(&blob(5000, 1, "pub"))), None, None).unwrap();
         assert_eq!(from_blob.build_id, 5000);
+    }
+
+    // A published build in the shape a view carries in full: no unknown bytes, and no field the view
+    // reads the same whether it is absent or at its default.
+    fn published(id: u32, language: u32) -> HeroBuildResult {
+        let mut r = build(id, 1, "public");
+        r.preference = None;
+        let h = r.hero_build.as_mut().unwrap();
+        h.author_account_id = Some(1_694_025_232);
+        h.version = Some(77);
+        h.language = Some(language);
+        h.description = Some("desc".into());
+        h.origin_build_id = Some(395_336);
+        h.publish_timestamp = Some(1_700_000_000);
+        h.tags = vec![3, 9];
+        let d = h.details.as_mut().unwrap();
+        d.mod_categories[0].mods = vec![ModEntry {
+            ability_id: Some(21),
+            annotation: Some("first".into()),
+            sell_priority: Some(2),
+            ..Default::default()
+        }];
+        d.mod_categories.push(ModCategory {
+            mods: vec![ModEntry { ability_id: Some(22), ..Default::default() }],
+            name: Some("Late".into()),
+            description: Some(String::new()),
+            width: Some(100.0),
+            height: Some(162.75),
+            optional: Some(true),
+            unknown: Vec::new(),
+        });
+        d.ability_order = Some(AbilityOrder {
+            currency_changes: vec![CurrencyChange {
+                ability_id: Some(11),
+                currency_type: Some(CURRENCY_ABILITY_UNLOCKS),
+                delta: Some(-1),
+                annotation: None,
+                unknown: Vec::new(),
+            }],
+            unknown: Vec::new(),
+        });
+        r
+    }
+
+    #[test]
+    fn favouriting_a_view_writes_what_favouriting_its_blob_writes() {
+        let file = BuildsFile::empty();
+        for language in [5, 0] {
+            let source = published(5000, language);
+            let from_blob = plan_favourite(&file, Some(&encode_hex(&source.encode())), None, None).unwrap();
+            let from_view = plan_favourite(&file, None, None, Some(&model::view(&source))).unwrap();
+            assert_eq!(from_view, from_blob, "language {language}");
+            let [SaveOp::Favourite { blob }] = from_view.ops.as_slice() else { panic!("{:?}", from_view.ops) };
+            let written = HeroBuildResult::decode(blob).unwrap();
+            assert_eq!(written.preference.and_then(|p| p.favorited), Some(true));
+            let h = written.hero_build.unwrap();
+            assert_eq!((h.hero_build_id, h.version, h.language), (Some(5000), Some(77), Some(language)));
+            assert_eq!(
+                (h.origin_build_id, h.publish_timestamp, h.tags),
+                (Some(395_336), Some(1_700_000_000), vec![3, 9])
+            );
+        }
+    }
+    // Written by our own research tool from deadlock-api JSON, never by the game.
+    const TOOL_WRITTEN_FAVOURITE: u32 = 113_244;
+
+    /// Game builds of different ages write an empty category description, a false `optional` and an
+    /// empty ability order either explicitly or not at all; a view reads both the same, so it writes
+    /// the new-build shape. Returns how many of each were folded.
+    fn fold_presence(r: &mut HeroBuildResult) -> (usize, usize, usize) {
+        let Some(d) = r.hero_build.as_mut().and_then(|h| h.details.as_mut()) else { return (0, 0, 0) };
+        let empty_order = d.ability_order.as_ref().is_some_and(|a| *a == AbilityOrder::default());
+        if empty_order {
+            d.ability_order = None;
+        }
+        let (mut description, mut optional) = (0, 0);
+        for c in &mut d.mod_categories {
+            if c.description.is_none() {
+                c.description = Some(String::new());
+                description += 1;
+            }
+            if c.optional == Some(false) {
+                c.optional = None;
+                optional += 1;
+            }
+        }
+        (description, optional, usize::from(empty_order))
+    }
+
+    fn header_of(r: &HeroBuildResult) -> String {
+        let h = r.hero_build.clone().map(|h| HeroBuild { details: None, ..h });
+        format!("{h:?} {:?} {:?}", r.preference, r.unknown)
+    }
+
+    /// Runs only when `DP_BUILDS_SAMPLES` names a directory of real `cached_hero_builds.kv3` copies.
+    #[test]
+    fn sample_published_favourites_rebuild_from_their_view_byte_for_byte() {
+        let Some(dir) = std::env::var_os("DP_BUILDS_SAMPLES") else { return };
+        let mut seen = std::collections::HashSet::new();
+        let (mut exact, mut folded_builds) = (0, 0);
+        let (mut folded_description, mut folded_optional, mut folded_order) = (0, 0, 0);
+        let mut failures = Vec::new();
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|e| e != "kv3") {
+                continue;
+            }
+            let file = BuildsFile::parse(&std::fs::read(&path).unwrap()).unwrap();
+            for blob in file.entries(Section::Favorites) {
+                let Some(id) = peek_build_id(blob).filter(|&id| id >= LOCAL_ID_LIMIT) else { continue };
+                if id == TOOL_WRITTEN_FAVOURITE || !seen.insert(blob.to_vec()) {
+                    continue;
+                }
+                let mut game = HeroBuildResult::decode(blob).unwrap();
+                // The game resets both on launch.
+                game.num_favorites = Some(0);
+                game.rollup_category = Some(0);
+                let planned = plan_favourite(&file, None, None, Some(&model::view(&game))).unwrap();
+                let [SaveOp::Favourite { blob: ours }] = planned.ops.as_slice() else { panic!("{:?}", planned.ops) };
+                let ours = HeroBuildResult::decode(ours).unwrap();
+                if header_of(&ours) != header_of(&game) {
+                    failures.push(format!(
+                        "{} {id} header: ours {} game {}",
+                        path.display(),
+                        header_of(&ours),
+                        header_of(&game)
+                    ));
+                    continue;
+                }
+                match fold_presence(&mut game) {
+                    (0, 0, 0) => exact += 1,
+                    (description, optional, order) => {
+                        folded_builds += 1;
+                        folded_description += description;
+                        folded_optional += optional;
+                        folded_order += order;
+                    }
+                }
+                if ours.encode() != game.encode() {
+                    failures.push(format!("{} {id}: ours {ours:?} game {game:?}", path.display()));
+                }
+            }
+        }
+        eprintln!(
+            "checked {} distinct published favourites: {exact} byte-equal, {folded_builds} equal once {folded_description} \
+             absent descriptions, {folded_optional} explicit optional=false and {folded_order} empty ability orders are folded",
+            seen.len()
+        );
+        assert!(!seen.is_empty());
+        assert!(failures.is_empty(), "{} differ:\n{}", failures.len(), failures.join("\n"));
+    }
+
+    #[test]
+    fn only_a_published_view_can_be_favourited() {
+        let local = model::view(&build(4, 1, "mine"));
+        let err = plan_favourite(&BuildsFile::empty(), None, None, Some(&local)).unwrap_err();
+        assert_eq!(err.code(), "builds.bad_base");
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use crate::features::error::{error_codes, AppError};
 use dp_builds::backup::WriteError;
+use dp_builds::drafts::DraftError;
 use dp_builds::file::FileError;
 use dp_builds::history::HistoryError;
 use dp_builds::model::AbilityOrderError;
@@ -26,6 +27,7 @@ error_codes! {
         HistoryFailed = "history_failed",
         VersionNotFound = "version_not_found",
         QueueFailed = "queue_failed",
+        DraftsFailed = "drafts_failed",
     }
 }
 
@@ -93,6 +95,12 @@ impl From<HistoryError> for AppError {
     }
 }
 
+impl From<DraftError> for AppError {
+    fn from(error: DraftError) -> Self {
+        AppError::new(BuildsError::DraftsFailed).detail(error)
+    }
+}
+
 impl From<AbilityOrderError> for AppError {
     fn from(error: AbilityOrderError) -> Self {
         let step = match error {
@@ -153,6 +161,7 @@ mod tests {
     fn store_errors_map_to_their_store() {
         assert_eq!(AppError::from(QueueError::Io(io())).code(), "builds.queue_failed");
         assert_eq!(AppError::from(HistoryError::Io(io())).code(), "builds.history_failed");
+        assert_eq!(AppError::from(DraftError::Io(io())).code(), "builds.drafts_failed");
         assert_eq!(AppError::from(FileError::NotUtf8).code(), "builds.bad_file");
     }
 

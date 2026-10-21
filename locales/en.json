@@ -124,7 +124,8 @@
             "build_not_found": "That build isn't in your build file anymore.",
             "history_failed": "Couldn't read this build's saved versions. Check the log for details.",
             "version_not_found": "That saved version is gone.",
-            "queue_failed": "Couldn't update the builds waiting for Deadlock to close. Check the log for details."
+            "queue_failed": "Couldn't update the builds waiting for Deadlock to close. Check the log for details.",
+            "drafts_failed": "Couldn't save or read your build drafts. Check the log for details."
         },
         "match_history": {
             "too_large": "That match is too large to save on this PC.",
