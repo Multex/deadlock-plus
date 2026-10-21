@@ -30,6 +30,8 @@ const item: ShopItem = {
     disabled: false,
     shopable: true,
     imbue: false,
+    shopFilters: [],
+    disabledShopFilters: [],
 };
 
 describe("loadShopItems", () => {

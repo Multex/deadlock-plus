@@ -39,6 +39,10 @@ pub struct ShopItem {
     pub disabled: bool,
     pub shopable: bool,
     pub imbue: bool,
+    /// `EShopFilter*` tags the vdata adds on top of the ones the game computes, minus the disabled ones.
+    pub shop_filters: Vec<String>,
+    /// `EShopFilter*` tags the vdata removes from the computed ones.
+    pub disabled_shop_filters: Vec<String>,
 }
 
 /// Every shop item in `abilities.vdata`, disabled ones included; `shopable` says which the shop offers.
@@ -87,6 +91,11 @@ fn shop_item(class_name: &str, entry: &Object, prices: &[u32]) -> Option<ShopIte
         .filter_map(Value::as_str)
         .map(ability_id)
         .collect();
+    let disabled_shop_filters = filter_flags(text("m_eDisableShopFilters"));
+    let shop_filters = filter_flags(text("m_eAdditionalShopFilters"))
+        .into_iter()
+        .filter(|f| !disabled_shop_filters.contains(f))
+        .collect();
     Some(ShopItem {
         id: ability_id(class_name),
         class_name: class_name.to_string(),
@@ -101,7 +110,14 @@ fn shop_item(class_name: &str, entry: &Object, prices: &[u32]) -> Option<ShopIte
         disabled,
         shopable: !disabled && !text("m_strShopIconLarge").is_empty(),
         imbue: text("m_TargetAbilityEffectsToApply").starts_with("CITADEL_TARGET_ABILITY_BEHAVIOR_IMBUE"),
+        shop_filters,
+        disabled_shop_filters,
     })
+}
+
+/// A flags enum compiles to one string, `"A | B"`, or `""` for none.
+fn filter_flags(flags: &str) -> Vec<String> {
+    flags.split('|').map(str::trim).filter(|f| !f.is_empty()).map(String::from).collect()
 }
 
 /// The compiled file stores `m_bDisabled` as a bool, an integer or the string `"true"`, varying by item.
@@ -250,6 +266,8 @@ mod tests {
                 disabled: false,
                 shopable: true,
                 imbue: false,
+                shop_filters: vec![],
+                disabled_shop_filters: vec![],
             }
         );
     }
@@ -382,6 +400,41 @@ mod tests {
         sorted.sort_unstable();
         assert_eq!(ids.len(), 3);
         assert_eq!(ids, sorted);
+    }
+
+    fn with_filters(fields: &str) -> ShopItem {
+        one(&format!(
+            "x = {}",
+            item(&format!("m_eItemSlotType = \"EItemSlotType_Tech\"\nm_iItemTier = \"EModTier_2\"\n{fields}"))
+        ))
+    }
+
+    #[test]
+    fn additional_shop_filters_are_split_on_pipes() {
+        // As build 6805 stores upgrade_phantom_strike's.
+        let parsed = with_filters("m_eAdditionalShopFilters = \"EShopFilterTeleport | EShopFilterStatus_Grounded\"");
+        assert_eq!(parsed.shop_filters, ["EShopFilterTeleport", "EShopFilterStatus_Grounded"]);
+        assert!(parsed.disabled_shop_filters.is_empty());
+    }
+
+    #[test]
+    fn disabled_shop_filters_are_listed_and_dropped_from_the_additional_ones() {
+        let parsed = with_filters(
+            "m_eAdditionalShopFilters = \"EShopFilterSpiritCooldownAndCharges | EShopFilterSpiritDamage\"\n\
+             m_eDisableShopFilters = \"EShopFilterSpiritDamage\"",
+        );
+        assert_eq!(parsed.shop_filters, ["EShopFilterSpiritCooldownAndCharges"]);
+        assert_eq!(parsed.disabled_shop_filters, ["EShopFilterSpiritDamage"]);
+    }
+
+    #[test]
+    fn empty_or_missing_shop_filter_overrides_are_empty() {
+        // Most items store `m_eAdditionalShopFilters = ""`.
+        for fields in ["", "m_eAdditionalShopFilters = \"\"\nm_eDisableShopFilters = \"\""] {
+            let parsed = with_filters(fields);
+            assert!(parsed.shop_filters.is_empty(), "{fields:?}");
+            assert!(parsed.disabled_shop_filters.is_empty(), "{fields:?}");
+        }
     }
 
     struct FakeInstall(Mutex<Option<PathBuf>>);
