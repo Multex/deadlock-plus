@@ -338,6 +338,10 @@ describe("game files from the default scenario", () => {
         expect(await start().invoke("game_property_icon_art", {})).toEqual([]);
     });
 
+    it("has no game UI strings, so game-ui labels read the app's locale", async () => {
+        expect(await start().invoke("game_ui_strings", { locale: "de" })).toEqual({});
+    });
+
     it("has no ability tooltips: their layout is read from the installed game", async () => {
         expect(await start().invoke("game_ability_tooltips", { locale: "english" })).toEqual([]);
     });

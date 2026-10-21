@@ -12,6 +12,7 @@ use ts_rs::TS;
 use crate::build_tags::{build_tags, BuildTag};
 use crate::cc::CcSet;
 use crate::locale::game_language;
+use crate::ui_strings::{game_ui_strings, GameUiStrings};
 
 pub trait Install: Send + Sync + 'static {
     fn citadel_dir(&self) -> Option<PathBuf>;
@@ -74,6 +75,7 @@ struct Loaded {
     item_lists: HashMap<&'static str, Arc<Vec<ItemEntry>>>,
     accolade_lists: HashMap<&'static str, Arc<Vec<AccoladeEntry>>>,
     build_tag_lists: HashMap<&'static str, Arc<Vec<BuildTag>>>,
+    ui_strings: HashMap<&'static str, Arc<GameUiStrings>>,
 }
 
 struct Shared<I> {
@@ -172,6 +174,19 @@ impl<I: Install> GameData<I> {
         list
     }
 
+    /// The game's own strings for the game-ui labels; empty without an install.
+    pub fn ui_strings(&self, locale: &str) -> Arc<GameUiStrings> {
+        let language = game_language(locale);
+        let mut guard = self.current();
+        let loaded = guard.as_mut().expect("current() fills the state");
+        if let Some(strings) = loaded.ui_strings.get(language) {
+            return Arc::clone(strings);
+        }
+        let strings = Arc::new(loaded.dir.as_deref().map(|dir| game_ui_strings(dir, language)).unwrap_or_default());
+        loaded.ui_strings.insert(language, Arc::clone(&strings));
+        strings
+    }
+
     /// The installed game's hard-CC list replaces the bundled one: a patch can remove CC, so they are never merged.
     pub fn cc_abilities(&self) -> Arc<CcSet> {
         let mut guard = self.current();
@@ -198,6 +213,7 @@ impl<I: Install> GameData<I> {
                 item_lists: HashMap::new(),
                 accolade_lists: HashMap::new(),
                 build_tag_lists: HashMap::new(),
+                ui_strings: HashMap::new(),
             });
         }
         guard
@@ -483,6 +499,26 @@ mod tests {
         assert_eq!(name("de").as_deref(), Some("Waffe"));
         assert_eq!(name("en").as_deref(), Some("Weapon"));
         assert!(GameData::new(FakeInstall::none()).build_tags("en").is_empty());
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn ui_strings_follow_the_app_locale_and_are_empty_without_an_install() {
+        let dir = temp_dir("ui-strings");
+        for (language, passive) in [("english", "Passive"), ("german", "Passiv")] {
+            let path = dir.join(LocalizationFile::relative_path("citadel_main", language));
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            let body = format!(
+                "\"lang\"\n{{\n\t\"Tokens\"\n\t{{\n\t\t\"Citadel_Mod_Tooltip_Passive\"\t\"{passive}\"\n\t}}\n}}\n"
+            );
+            fs::write(path, body).unwrap();
+        }
+        let data = GameData::new(FakeInstall::at(&dir));
+        let passive = |locale: &str| data.ui_strings(locale).0.get("Citadel_Mod_Tooltip_Passive").cloned();
+        assert_eq!(passive("de").as_deref(), Some("Passiv"));
+        assert_eq!(passive("en").as_deref(), Some("Passive"));
+        assert!(Arc::ptr_eq(&data.ui_strings("de"), &data.ui_strings("de-AT")));
+        assert!(GameData::new(FakeInstall::none()).ui_strings("en").0.is_empty());
         fs::remove_dir_all(dir).ok();
     }
 

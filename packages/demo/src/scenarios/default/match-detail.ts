@@ -1,6 +1,7 @@
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
+import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
@@ -1698,6 +1699,8 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 // Which icon each class or keyword gets is read from the installed game's stylesheets.
                 game_property_icon_art: async (): Promise<PropertyIconArt[]> => [],
                 game_ability_tooltips: async (): Promise<AbilityTooltip[]> => [],
+                // Read from the installed game's localization; without it game-ui labels use the app's locale.
+                game_ui_strings: async (): Promise<GameUiStrings> => ({}),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,

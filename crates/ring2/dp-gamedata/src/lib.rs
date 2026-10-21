@@ -12,6 +12,7 @@ mod property_icons;
 mod shop;
 mod tooltip;
 mod ui_art;
+mod ui_strings;
 mod vpk_source;
 
 pub use ability_tooltip::{
@@ -41,4 +42,5 @@ pub use progression::{
 pub use property_icons::PropertyIconArt;
 pub use shop::{shop_items, ShopItem, ShopSlot, ShopSource, ShopVdata, ABILITIES_PATH, GENERIC_DATA_PATH};
 pub use tooltip::{StatScale, TooltipProperty};
+pub use ui_strings::{game_ui_strings, GameUiStrings, GAME_UI_TOKENS};
 pub use vpk_source::{VpkVdataSource, HEROES_PATH};

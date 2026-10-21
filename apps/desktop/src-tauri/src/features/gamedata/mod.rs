@@ -30,9 +30,9 @@ pub mod commands {
     use std::sync::Arc;
 
     use dp_gamedata::{
-        AbilityTooltip, AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, HeroAbilities, HeroArt,
-        HeroEntry, HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload, MinimapIcon, MinimapIconArt,
-        PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
+        AbilityTooltip, AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, GameUiStrings,
+        HeroAbilities, HeroArt, HeroEntry, HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload,
+        MinimapIcon, MinimapIconArt, PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
     };
     use tauri::State;
 
@@ -80,6 +80,15 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(move || art.build_tag_icons(&data.build_tags(&locale)))
             .await
             .map_err(AppError::internal)
+    }
+
+    /// The game's own strings for the game-ui labels, by token. Empty while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_ui_strings(data: State<'_, GameData>, locale: String) -> Result<GameUiStrings, AppError> {
+        let data = data.inner().clone();
+        let strings =
+            tauri::async_runtime::spawn_blocking(move || data.ui_strings(&locale)).await.map_err(AppError::internal)?;
+        Ok(strings.as_ref().clone())
     }
 
     #[tauri::command]
