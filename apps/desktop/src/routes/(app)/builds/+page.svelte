@@ -29,7 +29,7 @@
     }
 </script>
 
-<Page class="h-full min-h-0 max-w-none gap-4 px-6 pt-6 pb-6">
+<Page class="h-full min-h-0 max-w-[1232px] gap-4 px-4 pb-6">
     <PageHeader title={t("builds.browser.title")} subtitle={t("builds.browser.subtitle")} />
 
     <Tabs.Root value={tab} onValueChange={pickTab} class="flex min-h-0 flex-1 flex-col">

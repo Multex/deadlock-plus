@@ -145,6 +145,11 @@ export function shopView(
     };
 }
 
+/** The width a fit shop fills: `available`, but never wider than the game draws the shop at `screen`. */
+export function fitWidth(available: number, screen: Screen): number {
+    return Math.min(available, geometry(screen.height).contentWidth);
+}
+
 export type ShopResolution = "1080" | "1440" | "2160";
 
 export const SHOP_SCREENS: Readonly<Record<ShopResolution, Screen>> = {

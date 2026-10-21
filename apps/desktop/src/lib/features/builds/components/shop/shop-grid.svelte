@@ -3,7 +3,7 @@
     import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { headerLinesFor } from "../../header-lines.svelte";
-    import { shopView, type ChipItem, type ScreenDifference, type ShopMode } from "../../shop-view";
+    import { fitWidth, shopView, type ChipItem, type ScreenDifference, type ShopMode } from "../../shop-view";
     import ShopCategory from "./shop-category.svelte";
 
     let {
@@ -16,14 +16,16 @@
         build: BuildView;
         resolve: (abilityId: number) => ChipItem | undefined;
         screen: Screen;
-        /** Fit scales the shop to this element's width; native draws one game px per CSS px. */
+        /** Fit scales the shop to this element's width, never past native; native draws one game px per CSS px. */
         mode: ShopMode;
         /** Categories that lay out differently on the user's own screen. */
         differences?: readonly ScreenDifference[];
     } = $props();
 
     let available = $state(0);
-    const view = $derived(shopView(build.modCategories, screen, available, mode, headerLinesFor(build.modCategories)));
+    const view = $derived(
+        shopView(build.modCategories, screen, fitWidth(available, screen), mode, headerLinesFor(build.modCategories)),
+    );
     const items = $derived(build.modCategories.map((category) => category.mods.map((mod) => resolve(mod.abilityId))));
     const differenceAt = $derived(new Map(differences.map((d) => [d.index, d])));
 </script>

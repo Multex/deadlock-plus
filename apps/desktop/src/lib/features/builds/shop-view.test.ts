@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { columnsAtEveryScale, layoutBuild, type Screen } from "@deadlock-plus/build-layout";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
-import { closestResolution, deviceScreen, fitSize, screenDifferences, shopView } from "./shop-view";
+import { closestResolution, deviceScreen, fitSize, fitWidth, screenDifferences, shopView } from "./shop-view";
 
 const QHD: Screen = { width: 2560, height: 1440 };
 const FHD: Screen = { width: 1920, height: 1080 };
@@ -56,6 +56,19 @@ describe("shopView", () => {
                 c.chips.forEach((chip, j) => expect(chip[key]).toBeCloseTo(n.chips[j][key] * view.scale, 10));
             }
         });
+    });
+
+    it("never draws a fit shop past one CSS px per game px at the previewed resolution", () => {
+        for (const screen of [FHD, QHD, UHD]) {
+            const wide = shopView(BUILD, screen, fitWidth(5000, screen), "fit");
+            expect(wide.scale).toBe(1);
+            expect(wide.contentWidth).toBe(shopView(BUILD, screen, 0, "native").contentWidth);
+        }
+    });
+
+    it("still shrinks a fit shop to a narrower width", () => {
+        expect(shopView(BUILD, QHD, fitWidth(713, QHD), "fit").scale).toBeCloseTo(713 / 1426, 10);
+        expect(fitWidth(0, QHD)).toBe(0);
     });
 
     it("measures content height to the bottom margin of the lowest row", () => {
