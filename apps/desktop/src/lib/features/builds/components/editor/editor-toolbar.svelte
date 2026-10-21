@@ -23,6 +23,7 @@
     import { MEASURED_RESOLUTION, type ChipItem, type ShopResolution } from "$lib/features/builds/shop-view";
     import { ZOOM_STEPS, shownZoom, stepZoom, zoomScale, type Zoom } from "./canvas/zoom";
     import { compactAll } from "./inspector/actions";
+    import LayoutIssues from "./layout-issues.svelte";
     import VersionHistory from "./version-history.svelte";
 
     let {
@@ -166,6 +167,7 @@
     </IconButton>
 
     <div class="ml-auto flex items-center gap-1">
+        <LayoutIssues {editor} />
         <p
             class={[
                 "mr-2 flex items-center gap-1 text-xs",

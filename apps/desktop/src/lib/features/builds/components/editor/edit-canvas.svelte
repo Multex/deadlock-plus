@@ -16,6 +16,7 @@
     } from "../../editor/document";
     import { drag, type DragState } from "../../editor/drag.svelte";
     import type { BuildEditor } from "../../editor/editor.svelte";
+    import { layoutIssues } from "../../editor/repair";
     import type { ChipItem } from "../../shop-view";
     import { canvasView, categoryBar, dropTarget, rowWarnings, storedSize, type DropTarget } from "./canvas/geometry";
     import { stepZoom, wheelSteps, type Zoom } from "./canvas/zoom";
@@ -104,6 +105,7 @@
     });
     const items = $derived(build.modCategories.map((category) => category.mods.map((mod) => resolve(mod.abilityId))));
     const counts = $derived(occurrences(build));
+    const issues = $derived(new Map(layoutIssues(build).map((issue) => [issue.index, issue.kinds])));
     const wraps = $derived(
         rowWarnings(
             view,
@@ -291,6 +293,7 @@
                         items={items[category.index]!}
                         {counts}
                         rowWraps={wraps.has(category.index)}
+                        issues={issues.get(category.index) ?? []}
                         dropIndex={hover?.kind === "items" && hover.category === category.index ? hover.index : null}
                         dragged={drag.current?.payload.kind === "category" &&
                             drag.current.payload.index === category.index}
