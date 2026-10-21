@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    checkGameUiPackageLayers,
     checkLayers,
     checkPackageLayers,
     checkUiPackageLayers,
@@ -135,8 +136,8 @@ describe("demo package layers", () => {
 });
 
 describe("plain package layers", () => {
-    it("covers every package folder except the Svelte one and the generated one", () => {
-        expect(plainPackages(["analytics", "demo", "ipc-types", "links", "match", "ui"])).toEqual([
+    it("covers every package folder except the Svelte ones and the generated one", () => {
+        expect(plainPackages(["analytics", "demo", "game-ui", "ipc-types", "links", "match", "ui"])).toEqual([
             "analytics",
             "demo",
             "links",
@@ -158,6 +159,7 @@ describe("plain package layers", () => {
         const specifiers = [
             "svelte",
             "@deadlock-plus/ui/select-menu",
+            "@deadlock-plus/game-ui/item-card.svelte",
             "@tauri-apps/api/core",
             "$lib/core/i18n.svelte",
             "$lib/core/kv",
@@ -198,6 +200,8 @@ describe("ui package layers", () => {
             "@tauri-apps/api/window",
             "$app/state",
             "@sveltejs/kit",
+            "@deadlock-plus/game-ui",
+            "@deadlock-plus/game-ui/tokens.css",
         ];
         const violations = checkUiPackageLayers([f("packages/ui/src/confirm-dialog.svelte", ...specifiers)]);
         expect(violations).toEqual(
@@ -215,6 +219,49 @@ describe("ui package layers", () => {
         ];
         expect(checkUiPackageLayers(files)).toEqual([
             expect.stringContaining("confirm-dialog.svelte imports ../../../apps/desktop/src/lib/locales/en.json"),
+            expect.stringContaining("a.test.ts imports ../../../apps/web/src/lib/content/links"),
+        ]);
+    });
+});
+
+describe("game ui package layers", () => {
+    it("accepts Svelte, the UI package, the IPC types and the package's own files", () => {
+        const files = [
+            f("packages/game-ui/src/item-card.svelte", "svelte", "@deadlock-plus/ui/utils", "./panorama"),
+            f(
+                "packages/game-ui/src/item-tooltip/section.svelte",
+                "@deadlock-plus/ipc-types/TooltipSection",
+                "../colors",
+            ),
+            f("packages/game-ui/src/panorama.test.ts", "vitest", "node:fs", "./panorama"),
+        ];
+        expect(checkGameUiPackageLayers(files)).toEqual([]);
+    });
+
+    it("rejects the app's aliases, Tauri and SvelteKit", () => {
+        const specifiers = [
+            "$lib/core/i18n.svelte",
+            "$lib/features/builds/components/shop/item-card.svelte",
+            "@tauri-apps/api/core",
+            "$app/environment",
+            "@sveltejs/kit",
+        ];
+        const violations = checkGameUiPackageLayers([f("packages/game-ui/src/item-card.svelte", ...specifiers)]);
+        expect(violations).toEqual(
+            specifiers.map((specifier) =>
+                expect.stringContaining(`packages/game-ui/src/item-card.svelte imports ${specifier}:`),
+            ),
+        );
+    });
+
+    it("rejects a relative path into an app, in test files too", () => {
+        const files = [
+            f("packages/game-ui/src/item-card.svelte", "../../../apps/desktop/src/lib/locales/en.json"),
+            f("packages/game-ui/src/a.test.ts", "../../../apps/web/src/lib/content/links"),
+            f("packages/game-ui/src/b.test.ts", "../../ui/src/utils"),
+        ];
+        expect(checkGameUiPackageLayers(files)).toEqual([
+            expect.stringContaining("item-card.svelte imports ../../../apps/desktop/src/lib/locales/en.json"),
             expect.stringContaining("a.test.ts imports ../../../apps/web/src/lib/content/links"),
         ]);
     });

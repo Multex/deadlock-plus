@@ -1,0 +1,35 @@
+/* Colours from the game's `citadel_base_styles`, the same values as `gameColors` in colors.ts. A Panorama alpha
+   (`offWhite&90`) does not map to a plain CSS alpha: use `panoramaColor` from panorama.ts. */
+:root {
+    --game-off-white: #ffefd7;
+    --game-off-black: #10130d;
+    --game-silvered: #c6c6c6;
+    --game-shard: #99ffd6;
+    --game-courage-light: #ffd18d;
+    --game-courage-bright: #ec9719;
+    --game-courage: #9d620b;
+    --game-courage-dark: #7f540e;
+    --game-spirit-light: #e7c8ff;
+    --game-spirit-bright: #ce90ff;
+    --game-spirit: #8a55b3;
+    --game-spirit-dark: #613484;
+    --game-fortitude-light: #d3fc96;
+    --game-fortitude-bright: #7bba1d;
+    --game-fortitude: #649717;
+    --game-fortitude-dark: #4c7113;
+    --game-armor: #00ff99;
+    --game-tech: #00ddff;
+    --game-brand-green: #5fe69e;
+    --game-deadlock-green: #69e799;
+    --game-deadlock-green-darker: #2b7047;
+    --game-enemy: #ff410d;
+    --game-builds-dark: #365b92;
+
+    /* The game's font stacks. Retail Text Demo is not bundled and falls back to Retail Demo, the game's own
+       second choice for `sans`. */
+    --game-font-sans: "Radiance", "Retail Demo", "Noto Sans", sans-serif;
+    --game-font-sans-mono: "Retail Text Demo", "Retail Demo", "Noto Sans", sans-serif;
+    --game-font-oracle: "Valve Oracle", "Retail Demo", sans-serif;
+    --game-font-block: "Valve Pulp", "Noto Sans", sans-serif;
+    --game-font-numeric-block: "Valve Pulp", "Noto Sans", sans-serif;
+}

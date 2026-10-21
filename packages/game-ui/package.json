@@ -1,0 +1,33 @@
+{
+    "name": "@deadlock-plus/game-ui",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Deadlock+ game-styled UI: the game's own item cards and tooltips, drawn from its Panorama files",
+    "type": "module",
+    "license": "GPL-3.0-or-later",
+    "exports": {
+        "./tokens.css": "./src/tokens.css",
+        ".": {
+            "types": "./src/index.ts",
+            "svelte": "./src/index.ts",
+            "default": "./src/index.ts"
+        },
+        "./*.svelte": {
+            "types": "./src/*.svelte",
+            "svelte": "./src/*.svelte",
+            "default": "./src/*.svelte"
+        },
+        "./*": {
+            "types": "./src/*.ts",
+            "svelte": "./src/*.ts",
+            "default": "./src/*.ts"
+        }
+    },
+    "dependencies": {
+        "@deadlock-plus/ipc-types": "workspace:*",
+        "@deadlock-plus/ui": "workspace:*"
+    },
+    "peerDependencies": {
+        "svelte": "^5.56.3"
+    }
+}

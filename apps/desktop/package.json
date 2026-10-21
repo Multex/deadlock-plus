@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
-    "format": "prettier --write \"src/**/*.{ts,svelte,css,js,html}\" \"e2e/**/*.{ts,mjs,css}\" \"playwright.config.ts\" \"../../packages/**/*.ts\" \"../../packages/ui/**/*.{svelte,css,js}\" \"!../../packages/ipc-types/**\" \"../../scripts/**/*.mjs\" \"../discord-updates/**/*.mjs\"",
-    "format:check": "prettier --check \"src/**/*.{ts,svelte,css,js,html}\" \"e2e/**/*.{ts,mjs,css}\" \"playwright.config.ts\" \"../../packages/**/*.ts\" \"../../packages/ui/**/*.{svelte,css,js}\" \"!../../packages/ipc-types/**\" \"../../scripts/**/*.mjs\" \"../discord-updates/**/*.mjs\"",
+    "format": "prettier --write \"src/**/*.{ts,svelte,css,js,html}\" \"e2e/**/*.{ts,mjs,css}\" \"playwright.config.ts\" \"../../packages/**/*.ts\" \"../../packages/ui/**/*.{svelte,css,js}\" \"../../packages/game-ui/**/*.{svelte,css,js}\" \"!../../packages/ipc-types/**\" \"../../scripts/**/*.mjs\" \"../discord-updates/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,svelte,css,js,html}\" \"e2e/**/*.{ts,mjs,css}\" \"playwright.config.ts\" \"../../packages/**/*.ts\" \"../../packages/ui/**/*.{svelte,css,js}\" \"../../packages/game-ui/**/*.{svelte,css,js}\" \"!../../packages/ipc-types/**\" \"../../scripts/**/*.mjs\" \"../discord-updates/**/*.mjs\"",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p e2e",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
@@ -35,6 +35,7 @@
   "dependencies": {
     "@deadlock-plus/build-layout": "workspace:*",
     "@deadlock-plus/deadlock-api": "workspace:*",
+    "@deadlock-plus/game-ui": "workspace:*",
     "@deadlock-plus/ipc-types": "workspace:*",
     "@deadlock-plus/links": "workspace:*",
     "@deadlock-plus/match": "workspace:*",

@@ -26,6 +26,7 @@ export default defineConfig(() => ({
             "../../packages/build-layout/src/**/*.test.ts",
             "../../packages/deadlock-api/src/**/*.test.ts",
             "../../packages/demo/src/**/*.test.ts",
+            "../../packages/game-ui/src/**/*.test.ts",
             "../../packages/match/src/**/*.test.ts",
             "../../packages/stats/src/**/*.test.ts",
             "../../packages/ui/src/**/*.test.ts",
