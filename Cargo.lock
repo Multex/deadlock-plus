@@ -1208,6 +1208,7 @@ dependencies = [
  "dp-alerts",
  "dp-atomic",
  "dp-autostart",
+ "dp-builds",
  "dp-connection",
  "dp-crash",
  "dp-demos",

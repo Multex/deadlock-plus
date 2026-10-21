@@ -56,6 +56,7 @@ dp-postgame = { path = "../../../crates/ring1/dp-postgame" }
 dp-mvp = { path = "../../../crates/ring1/dp-mvp" }
 dp-telemetry = { path = "../../../crates/ring1/dp-telemetry" }
 dp-storage = { path = "../../../crates/ring2/dp-storage" }
+dp-builds = { path = "../../../crates/ring2/dp-builds" }
 dp-voice-bans = { path = "../../../crates/ring2/dp-voice-bans" }
 dp-demos = { path = "../../../crates/ring2/dp-demos" }
 dp-ingest = { path = "../../../crates/ring2/dp-ingest" }

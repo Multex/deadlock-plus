@@ -107,6 +107,25 @@
             "backup_failed": "Couldn't back up your mute list, so nothing was changed. Check the log for details.",
             "write_failed": "Couldn't save your mute list. Nothing was changed. A backup is on the Storage page."
         },
+        "builds": {
+            "no_account": "No Steam account found.",
+            "no_userdata": "Couldn't find this account's Steam data. Launch Deadlock with it once, then try again.",
+            "read_failed": "Couldn't read your build file. Check the log for details.",
+            "bad_file": "Your build file is damaged, so Deadlock+ can't read it.",
+            "no_backup_name": "Could not find a free backup name. The file was not changed.",
+            "backup_failed": "Couldn't back up your build file, so nothing was changed. Check the log for details.",
+            "write_failed": "Couldn't save your builds. Nothing was changed.",
+            "bad_base": "This build could not be read. Reload your builds and try again.",
+            "invalid_ability_order": "Step {step} of the ability order isn't possible in the game.",
+            "abilities_unknown": "Deadlock+ doesn't know this hero's abilities yet, so it can't check the ability order.",
+            "published_delete_in_game": "This build is published. Delete it in-game.",
+            "unknown_hero": "Deadlock+ doesn't know this hero yet. Update the game, then try again.",
+            "no_local_id": "You have too many local builds. Delete one, then try again.",
+            "build_not_found": "That build isn't in your build file anymore.",
+            "history_failed": "Couldn't read this build's saved versions. Check the log for details.",
+            "version_not_found": "That saved version is gone.",
+            "queue_failed": "Couldn't update the builds waiting for Deadlock to close. Check the log for details."
+        },
         "match_history": {
             "too_large": "That match is too large to save on this PC.",
             "not_json": "Couldn't read that match's details. Try again later."

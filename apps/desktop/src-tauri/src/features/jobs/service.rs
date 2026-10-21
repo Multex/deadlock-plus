@@ -137,6 +137,7 @@ pub fn start(app: &AppHandle) {
             if last != Some(running) {
                 crate::features::app_window::on_game_probe(&probe_app, last, running);
                 crate::features::gc::on_game_probe(&probe_app, last, running);
+                crate::features::builds::on_game_probe(&probe_app, last, running);
                 last = Some(running);
                 events.notify();
             }
