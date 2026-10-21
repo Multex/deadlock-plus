@@ -11,10 +11,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 #### Builds
 
 - A new Builds page lists public builds for your last played hero, with this week's favourites first.
+- Pick a build in the list to see its full shop, ability order and description beside it.
 - Filter public builds by sort, update date, tag, language, favourites, author and name.
 - Public and your own builds show their win rate when they have enough recent matches.
 - Builds show in your game's language plus English.
-- The Mine tab shows your own builds as cards with a preview, filterable by hero.
+- The Mine tab lists your own builds the same way, filterable by hero, status, tag, language and name.
 - Your builds say Public or Local, with their favourites and version.
 - Builds by other players that you favourited sit under Favourites in the Mine tab.
 - Heroes still in development are left out.
