@@ -2,45 +2,37 @@
     import Button from "@deadlock-plus/ui/button.svelte";
     import { tick } from "svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import { loadShopUiArt } from "$lib/features/gamedata/vdata";
-    import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
+    import type { HeroKit } from "../../../build-detail.svelte";
     import type { ShopCatalog } from "../../../catalog";
     import type { BuildEditor } from "../../../editor/editor.svelte";
-    import { HeroPopularity } from "../../../editor/popularity.svelte";
     import type { StatsById } from "../../../stats";
     import { RAIL_COLORS, RAIL_ICONS, RAIL_TABS, toggleTab, type RailTab } from "./rail";
+    import { itemTipSource, provideItemTips } from "../../shop/item-tips";
     import ShopFlyout from "./shop-flyout.svelte";
 
     let {
         editor,
         catalog,
         statsById,
-        heroId,
+        kit = null,
     }: {
         editor: BuildEditor;
         catalog: ShopCatalog;
         statsById: StatsById;
-        heroId: number;
+        /** The hero's abilities and levels, for the shop tooltips' notes and hero level. */
+        kit?: HeroKit | null;
     } = $props();
 
     const SEARCH_ID = "build-editor-item-search";
 
     let open = $state<RailTab | null>(null);
-    let popularLoading = $state(true);
-    const popularity = new HeroPopularity();
-    let uiArt = $state<Partial<Record<ShopUiImage, string>>>({});
-
-    $effect(() => {
-        loadShopUiArt().then((art) => (uiArt = art));
+    const tips = itemTipSource();
+    // The shop's tooltips show each item at its point in the build being edited.
+    provideItemTips(() => {
+        const outer = tips();
+        return outer && { ...outer, build: editor.build, kit: kit ?? outer.kit ?? null };
     });
-
-    $effect(() => {
-        const id = heroId;
-        popularLoading = true;
-        popularity.load(id).finally(() => {
-            if (id === heroId) popularLoading = false;
-        });
-    });
+    const popularity = $derived(tips()?.popularity ?? null);
 
     const label = (tab: RailTab) =>
         tab === "popular"
@@ -88,15 +80,13 @@
     {/each}
 </nav>
 
-{#if open !== null}
+{#if open !== null && popularity}
     <ShopFlyout
         tab={open}
         {editor}
         {catalog}
         {statsById}
         {popularity}
-        {popularLoading}
-        {uiArt}
         searchId={SEARCH_ID}
         onclose={() => (open = null)}
     />

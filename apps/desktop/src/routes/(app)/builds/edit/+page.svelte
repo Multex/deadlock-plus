@@ -281,7 +281,7 @@
             <!-- The rail's flyout is absolutely placed over the canvas column, so this box spans both. -->
             <div class="relative flex min-w-0 flex-1">
                 {#if catalog}
-                    <ShopRail {editor} {catalog} statsById={catalog.statsById} heroId={build.heroId} />
+                    <ShopRail {editor} {catalog} statsById={catalog.statsById} {kit} />
                 {/if}
                 <div class="flex min-w-0 flex-1 flex-col">
                     <EditorToolbar

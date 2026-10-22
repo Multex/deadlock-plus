@@ -5,7 +5,7 @@
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
-    import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
+    import { gameArt } from "@deadlock-plus/game-ui/art";
     import { tick } from "svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
@@ -34,8 +34,6 @@
         catalog,
         statsById,
         popularity,
-        popularLoading,
-        uiArt,
         searchId,
         onclose,
     }: {
@@ -44,9 +42,6 @@
         catalog: ShopCatalog;
         statsById: StatsById;
         popularity: HeroPopularity;
-        popularLoading: boolean;
-        /** The game's own shop icons by name; missing ones fall back to drawn icons or plain labels. */
-        uiArt: Partial<Record<ShopUiImage, string>>;
         searchId: string;
         onclose: () => void;
     } = $props();
@@ -71,6 +66,9 @@
 
     const matchers = $derived(statLabelMatchers(statsById));
     const filtersOf = (item: ShopItem) => providedFilters(statsById.get(item.id) ?? []);
+    const ui = gameArt();
+    const uiArt = $derived(ui().ui);
+
     const rows = $derived(flyoutRows(catalog, tab, { query, phase, categories, filtersOf }, popularity.game, matchers));
     const tiles = $derived(rows.flatMap((r) => r.cells.flatMap((c) => c.items)));
     // Each cell's first tile index; the roving tabindex and arrow keys count tiles in DOM order.
@@ -170,7 +168,7 @@
                 : t("builds.editor.picker.no_results", { query: query.trim() });
         }
         if (tab === "popular") {
-            return popularLoading ? t("builds.editor.shop.popular_loading") : t("builds.editor.shop.popular_empty");
+            return t(popularity.loading ? "builds.editor.shop.popular_loading" : "builds.editor.shop.popular_empty");
         }
         return t("builds.editor.picker.empty");
     });

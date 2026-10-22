@@ -41,10 +41,6 @@
         {count}
         {popular}
         countLabel={count > 0 ? t("builds.editor.picker.count", { count }) : undefined}
-        removedLabel={t("builds.shop.removed_item")}
-        imbueLabel={t("builds.shop.imbue")}
-        activeLabel={t("builds.tooltip.active")}
-        newLabel={t("game_ui.item_card.new")}
         style="position: absolute; left: {box.x}px; top: {box.y}px; margin: 0; --game-ui-scale: {scale}"
     />
 {/snippet}

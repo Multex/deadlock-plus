@@ -4,6 +4,7 @@
     import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
     import { gameArt } from "../art";
     import { gameColors } from "../colors";
+    import { gameText } from "../text";
     import type { GameItem, ItemSlot } from "../item";
     import { panoramaAlpha, panoramaColor } from "../panorama";
     import {
@@ -32,8 +33,6 @@
     type Props = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
         /** Undefined when a build holds an item the game no longer has. */
         item: GameItem | undefined;
-        /** Shown in place of the name for a removed item. */
-        removedLabel?: string;
         layout?: CardLayout;
         /** Picks the paper and icon mask; pass the card's position to cycle them like the game. */
         variant?: number;
@@ -45,9 +44,6 @@
         usedAsComponent?: boolean;
         disabled?: boolean;
         isNew?: boolean;
-        newLabel?: string;
-        imbueLabel?: string;
-        activeLabel?: string;
         /** A hero's popular item (hero colour + minimap icon), or the Popular tab's phase icon. */
         popular?: Popular;
         /** How often the build holds this item; the badge shows above 0. */
@@ -61,7 +57,6 @@
 
     let {
         item,
-        removedLabel = "",
         layout = "shop",
         variant,
         showTier = layout === "build",
@@ -70,9 +65,6 @@
         usedAsComponent = false,
         disabled = false,
         isNew = false,
-        newLabel = "New",
-        imbueLabel = "Imbue",
-        activeLabel = "Active",
         popular,
         count = 0,
         countLabel,
@@ -87,6 +79,13 @@
         vitality: gameColors.fortitudeBright,
         spirit: gameColors.spiritBright,
     };
+
+    const text = gameText();
+    const plain = (key: string) => text({ key, params: {}, game: null });
+    const newLabel = $derived(plain("game_ui.item_card.new"));
+    const imbueLabel = $derived(plain("builds.shop.imbue"));
+    const activeLabel = $derived(plain("game_ui.item_tooltip.active"));
+    const removedLabel = $derived(plain("builds.shop.removed_item"));
 
     const art = gameArt();
     const ui = $derived(art().ui);

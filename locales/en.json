@@ -2220,9 +2220,6 @@
             "hidden_items_one": "{count} hidden",
             "hidden_items_other": "{count} hidden"
         },
-        "tooltip": {
-            "active": "Active"
-        },
         "list": {
             "label": "Public builds",
             "back": "All builds",
