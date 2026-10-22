@@ -1,4 +1,5 @@
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
 import { defaultScenario } from "./index";
@@ -265,7 +266,8 @@ describe("game files from the default scenario", () => {
             provides,
             section,
         });
-        expect(await start().invoke("game_item_stats", { locale: "english" })).toEqual([
+        const list = (await start().invoke("game_item_stats", { locale: "english" })) as ItemStats[];
+        expect(list.map(({ itemId, stats }) => ({ itemId, stats }))).toEqual([
             {
                 itemId: 7,
                 stats: [
@@ -332,18 +334,6 @@ describe("game files from the default scenario", () => {
             { image: "tier_number_2", path: `${ICON_FILES}/upgrades/tier_numbers_small_02.svg` },
             { image: "popular_thumb", path: `${ICON_FILES}/shop/catalog/filters/icon_recommend_up.svg` },
         ]);
-    });
-
-    it("has no property icons: their classes come from the installed game's stylesheet", async () => {
-        expect(await start().invoke("game_property_icon_art", {})).toEqual([]);
-    });
-
-    it("has no game UI strings, so game-ui labels read the app's locale", async () => {
-        expect(await start().invoke("game_ui_strings", { locale: "de" })).toEqual({});
-    });
-
-    it("has no ability tooltips: their layout is read from the installed game", async () => {
-        expect(await start().invoke("game_ability_tooltips", { locale: "english" })).toEqual([]);
     });
 
     it("answers as an unreadable game does when the assets cannot be fetched", async () => {

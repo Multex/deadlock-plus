@@ -6,8 +6,6 @@ import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
-import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
-import type { InvestmentTier } from "@deadlock-plus/ipc-types/InvestmentTier";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
@@ -31,6 +29,15 @@ import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
 import type { Handlers } from "../../backend";
 import { seeded } from "../../random";
 import type { Identity, Module } from "../../scenario";
+import {
+    abilityTooltips,
+    gameUiStrings,
+    heroStats,
+    itemTooltip,
+    propertyIconArt,
+    type GameAssetHero,
+    type GameAssetItem,
+} from "./builds-gamedata";
 import { fakeAccountId, fakeName } from "./identity";
 import { demoGrade } from "./match-grades";
 import { historyRows, type HistoryRow } from "./progress";
@@ -1328,7 +1335,7 @@ function assetLoader(): AssetLoader {
     };
 }
 
-interface AssetItem {
+interface AssetItem extends GameAssetItem {
     id: number;
     class_name: string;
     name: string;
@@ -1380,7 +1387,7 @@ interface AssetAccolade {
     tracked_stat_name: string | null;
 }
 
-interface AssetHero {
+interface AssetHero extends GameAssetHero {
     id: number;
     images?: { minimap_image_webp?: string | null };
     items?: Record<string, string>;
@@ -1418,6 +1425,19 @@ function iconAt(icons: IconTree, path: readonly string[]): string | null {
     let at: string | IconTree | undefined = icons;
     for (const name of path) at = typeof at === "object" ? at[name] : undefined;
     return typeof at === "string" ? at : null;
+}
+
+/** Every file url in the icons asset's folder tree. */
+function iconFiles(icons: IconTree): Set<string> {
+    const files = new Set<string>();
+    const walk = (tree: IconTree) => {
+        for (const entry of Object.values(tree)) {
+            if (typeof entry === "string") files.add(entry);
+            else if (entry) walk(entry);
+        }
+    };
+    walk(icons);
+    return files;
 }
 
 /** The shop UI images the public icon set also has: only the vector ones. The textures are the game's own. */
@@ -1534,7 +1554,8 @@ function itemStats(items: readonly AssetItem[]): ItemStats[] {
                     },
                 ];
             });
-            return stats.length > 0 ? [{ itemId: item.id, stats }] : [];
+            const tooltip = itemTooltip(item);
+            return stats.length > 0 || tooltip.sections.length > 0 ? [{ itemId: item.id, stats, ...tooltip }] : [];
         })
         .sort((a, b) => a.itemId - b.itemId);
 }
@@ -1560,51 +1581,6 @@ function heroAbilities(heroes: readonly AssetHero[]): HeroAbilities[] {
             return [{ heroId: hero.id, abilityIds: [a!, b!, c!, d!] }];
         })
         .sort((a, b) => a.heroId - b.heroId);
-}
-
-const tiers = (rows: readonly (readonly [number, number, number])[]): InvestmentTier[] =>
-    rows.map(([souls, bonus, percentOnGraph]) => ({ souls, bonus, percentOnGraph }));
-
-/** Infernus's numbers from the game files, answered for any hero: the demo has no heroes.vdata. */
-function heroStats(heroId: unknown): HeroStatsData | null {
-    if (typeof heroId !== "number") return null;
-    return {
-        heroId,
-        base: { EMaxHealth: 830, EMaxMoveSpeed: 6.7, EBaseHealthRegen: 2, ELightMeleeDamage: 50 },
-        perLevel: {
-            MODIFIER_VALUE_BASE_HEALTH_FROM_LEVEL: 39,
-            MODIFIER_VALUE_BASE_BULLET_DAMAGE_FROM_LEVEL: 0.088,
-            MODIFIER_VALUE_TECH_POWER: 1.1,
-            MODIFIER_VALUE_BOON_COUNT: 1,
-        },
-        investment: {
-            weapon: tiers([
-                [800, 9, 7],
-                [1600, 12, 7],
-                [2400, 15, 8],
-                [3200, 18, 8],
-                [4800, 46, 9],
-                [28800, 115, 11],
-            ]),
-            spirit: tiers([
-                [800, 7, 7],
-                [1600, 11, 7],
-                [2400, 15, 8],
-                [3200, 19, 8],
-                [4800, 38, 9],
-                [28800, 100, 11],
-            ]),
-            vitality: tiers([
-                [800, 9, 7],
-                [1600, 12, 7],
-                [2400, 15, 8],
-                [3200, 20, 8],
-                [4800, 38, 9],
-                [28800, 66, 11],
-            ]),
-        },
-        bulletDamage: 10.8,
-    };
 }
 
 function popularItems(heroes: readonly AssetHero[], heroId: unknown): PopularItems | null {
@@ -1743,12 +1719,28 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                         return file ? [{ image, path: file }] : [];
                     });
                 },
-                // Which icon each class or keyword gets is read from the installed game's stylesheets.
-                game_property_icon_art: async (): Promise<PropertyIconArt[]> => [],
-                game_ability_tooltips: async (): Promise<AbilityTooltip[]> => [],
-                game_hero_stats: async (args) => heroStats(args.heroId),
-                // Read from the installed game's localization; without it game-ui labels use the app's locale.
-                game_ui_strings: async (): Promise<GameUiStrings> => ({}),
+                game_property_icon_art: () =>
+                    orNoGame(async (): Promise<PropertyIconArt[]> => {
+                        const [items, icons] = await Promise.all([
+                            asset<AssetItem[]>("items"),
+                            asset<AssetIcons>("icons"),
+                        ]);
+                        return propertyIconArt(items, iconFiles(icons));
+                    }, []),
+                game_ability_tooltips: () =>
+                    orNoGame(
+                        async (): Promise<AbilityTooltip[]> => abilityTooltips(await asset<AssetItem[]>("items")),
+                        [],
+                    ),
+                game_hero_stats: (args) =>
+                    orNoGame(async () => {
+                        const [heroes, items] = await Promise.all([
+                            asset<AssetHero[]>("heroes"),
+                            asset<AssetItem[]>("items"),
+                        ]);
+                        return heroStats(heroes, items, args.heroId);
+                    }, null),
+                game_ui_strings: async (args): Promise<GameUiStrings> => gameUiStrings(args.locale),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,
