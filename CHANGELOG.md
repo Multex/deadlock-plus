@@ -61,6 +61,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Undo and redo every change, and restore any of the last 20 saved versions.
 - Ability steps show the level the game takes them at, with unlocks and ability points taken separately.
 - Unlocks first moves every unlock to the front of the ability order; only Deadlock's build preview changes.
+- Turn on Support Deadlock+ to add a "Made with Deadlock+ - deadlockplus.app" line under a build's description.
+- New builds start with that line if you left it on last time.
 
 ### Fixed
 

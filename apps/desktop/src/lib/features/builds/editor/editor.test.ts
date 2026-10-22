@@ -435,3 +435,44 @@ describe("BuildEditor selection", () => {
         expect(e.activeCategory).toBe(0);
     });
 });
+
+describe("BuildEditor support footer", () => {
+    const FOOTER = "Made with Deadlock+ - deadlockplus.app";
+    const on = () => Promise.resolve(FOOTER);
+
+    it("starts a new build with the footer when the player has it on, as its clean state", async () => {
+        const e = editor(fakeApi(), { supportFooter: on });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(e.build.description).toBe(FOOTER);
+        expect(e.dirty).toBe(false);
+        expect(e.canUndo).toBe(false);
+    });
+
+    it("leaves a new build alone when the player has it off", async () => {
+        const e = editor(fakeApi(), { supportFooter: () => Promise.resolve(null) });
+        const start = e.build;
+        await vi.advanceTimersByTimeAsync(0);
+        expect(e.build).toBe(start);
+    });
+
+    it("leaves a build from the game file or a draft as it was saved", async () => {
+        const local = editor(fakeApi(), {
+            origin: { kind: "local", section: "Unpublished", base: "b", buildId: 3 },
+            supportFooter: on,
+        });
+        const draft = editor(fakeApi(), { draftId: "d0", supportFooter: on });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(local.build.description).toBe("");
+        expect(draft.build.description).toBe("");
+    });
+
+    it("does not overwrite an edit made before the preference loaded", async () => {
+        let resolve!: (footer: string) => void;
+        const e = editor(fakeApi(), { supportFooter: () => new Promise((r) => (resolve = r)) });
+        e.apply(addItems(e.build, 0, 0, [8]));
+        const edited = e.build;
+        resolve(FOOTER);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(e.build).toBe(edited);
+    });
+});

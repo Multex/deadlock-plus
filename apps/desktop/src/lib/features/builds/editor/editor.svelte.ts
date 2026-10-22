@@ -4,9 +4,10 @@ import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
+import { t } from "$lib/core/i18n.svelte";
 import type { Unlisten } from "$lib/core/tauri";
 import { buildsDraftSave, buildsLocal, buildsQueueCancel, buildsSave, onFlushed } from "../api";
-import type { ItemRef } from "./document";
+import { updateBuild, type ItemRef } from "./document";
 import { History } from "./history";
 import {
     draftOf,
@@ -19,6 +20,7 @@ import {
     type QueuedSave,
     type SelectMode,
 } from "./session";
+import { SUPPORT_HOST, hasFooter, readSupportPreference, withFooter } from "./support-footer";
 
 export type { EditOrigin, SelectMode } from "./session";
 
@@ -40,6 +42,8 @@ export interface EditorOptions {
     /** The stored draft the build was opened from. */
     draftId?: string;
     api?: EditorApi;
+    /** The footer a new build starts with; `null` while the player has "Support Deadlock+" off. */
+    supportFooter?: () => Promise<string | null>;
 }
 
 const AUTOSAVE_MS = 800;
@@ -52,6 +56,15 @@ const defaultApi: EditorApi = {
     onFlushed,
 };
 
+/** The line "Support Deadlock+" adds under a build's description. */
+export function supportFooterText(): string {
+    return t("builds.editor.details.support_footer", { url: SUPPORT_HOST });
+}
+
+async function preferredFooter(): Promise<string | null> {
+    return (await readSupportPreference()) ? supportFooterText() : null;
+}
+
 export class BuildEditor {
     build = $state.raw<BuildView>(null!);
     selection = $state.raw<ItemRef[]>([]);
@@ -61,7 +74,7 @@ export class BuildEditor {
     saving = $state(false);
     /** Why the last autosave failed; cleared by the next one that works. */
     draftError = $state<unknown>(null);
-    readonly history: History<BuildView>;
+    history: History<BuildView>;
 
     /** The build as the game file holds it; `null` when that is unknown, as for a stored draft. */
     #clean = $state.raw<BuildView | null>(null);
@@ -96,6 +109,13 @@ export class BuildEditor {
             .catch(() => {
                 // Not running inside Tauri.
             });
+        const footer = options.supportFooter ?? (options.api ? undefined : preferredFooter);
+        if (footer && options.origin.kind !== "local" && options.draftId === undefined) {
+            void footer().then(
+                (text) => text !== null && this.#startWithFooter(options.build, text),
+                () => {},
+            );
+        }
     }
 
     get status(): SaveStatus {
@@ -232,6 +252,16 @@ export class BuildEditor {
         } catch {
             // The file could not be read back: the origin stays, so the next save repeats this one's kind.
         }
+    }
+
+    /** A saved or drafted build keeps the description it has; only an untouched new one takes the preference. */
+    #startWithFooter(initial: BuildView, footer: string): void {
+        if (this.#disposed || this.build !== initial || hasFooter(initial.description)) return;
+        const next = updateBuild(initial, { description: withFooter(initial.description, true, footer) });
+        this.history = new History(next);
+        this.#clean = next;
+        this.build = next;
+        this.#revision++;
     }
 
     #show(next: BuildView): void {

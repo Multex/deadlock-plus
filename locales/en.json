@@ -2074,7 +2074,9 @@
                 "tag_mobility": "Mobility",
                 "tag_melee": "Melee",
                 "tag_headshots": "Headshots",
-                "tag_debuff": "Debuff"
+                "tag_debuff": "Debuff",
+                "support": "Support Deadlock+",
+                "support_footer": "Made with Deadlock+ - {url}"
             },
             "edit": "Edit",
             "edit_copy": "Edit a copy",
