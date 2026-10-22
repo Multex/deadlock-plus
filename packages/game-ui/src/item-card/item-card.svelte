@@ -226,7 +226,7 @@
             style:font-style={tone?.italic ? "italic" : undefined}
             style:text-shadow={tone?.shadow ? `0 0 calc(var(--u) * 12) ${tone.shadow}` : undefined}
             style:translate="0 {NAME_BASELINE_SHIFT}em"
-            >{#each fit.lines as line, i (i)}<span class="line">{line}</span>{/each}</span
+            >{#each fit.lines as line, i (i)}{#if i > 0}{" "}{/if}<span class="line">{line}</span>{/each}</span
         >
     </span>
 
