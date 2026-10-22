@@ -2,9 +2,12 @@ import { provideGameArt, type GameArt } from "@deadlock-plus/game-ui/art";
 import type { UiText } from "@deadlock-plus/game-ui/item-tooltip/model";
 import { provideGameText } from "@deadlock-plus/game-ui/text";
 import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
+import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { keepGameArt, onGameArtChanged } from "$lib/features/gamedata/art-refresh";
-import { loadGameUiStrings, loadPropertyIcons, loadShopUiArt } from "$lib/features/gamedata/vdata";
+import { loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
+import { loadGameUiStrings, loadHeroStats, loadPropertyIcons, loadShopUiArt } from "$lib/features/gamedata/vdata";
+import { loadHeroes } from "$lib/features/heroes/heroes";
 
 let art = $state.raw<GameArt>({ ui: {}, propertyIcons: {} });
 let requested = false;
@@ -87,6 +90,36 @@ export function gameUiText(text: UiText): string {
     const template = text.game ? gameStrings(i18n.locale)[text.game.token] : undefined;
     const game = template && text.game ? fillGameString(template, text.game.params) : null;
     return game ?? t(text.key, text.params);
+}
+
+export interface BuildsHero {
+    stats: HeroStatsData | null;
+    icon: string | null;
+}
+
+let heroes = $state.raw<ReadonlyMap<number, BuildsHero>>(new Map());
+const requestedHeroes = new Set<number>();
+
+// The minimap head, as the game's popular marker draws it, else the hero's icon.
+async function heroIcon(heroId: number): Promise<string | null> {
+    return (await loadHeroMinimapArt())[heroId] ?? (await loadHeroes([heroId]))[heroId]?.icon ?? null;
+}
+
+async function loadHero(heroId: number): Promise<void> {
+    const [stats, icon] = await Promise.all([loadHeroStats(heroId), heroIcon(heroId).catch(() => null)]);
+    heroes = new Map(heroes).set(heroId, { stats, icon });
+}
+
+/** A hero's stats and portrait for tooltips; null until loaded, reloaded after a game update. */
+export function buildsHero(heroId: number): BuildsHero | null {
+    if (!requestedHeroes.has(heroId)) {
+        if (requestedHeroes.size === 0) {
+            onGameArtChanged(() => Promise.all([...requestedHeroes].map(loadHero)));
+        }
+        requestedHeroes.add(heroId);
+        void loadHero(heroId);
+    }
+    return heroes.get(heroId) ?? null;
 }
 
 /** Call once in a component above every game-ui component. */

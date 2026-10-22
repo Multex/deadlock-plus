@@ -269,6 +269,46 @@ describe("statsAt", () => {
         expect(statsAt(entries, 2400, statsById, BY_ID).map((s) => s.total)).toEqual([10]);
         expect(statsAt(entries, 1000, statsById, BY_ID).map((s) => s.total)).toEqual([4]);
     });
+
+    describe("with the hero's slot investment", () => {
+        const TECH = "MODIFIER_VALUE_TECH_POWER";
+        const tier = (souls: number, bonus: number) => ({ souls, bonus, percentOnGraph: 7 });
+        const investment = {
+            tables: {
+                weapon: [tier(800, 9)],
+                spirit: [tier(800, 7), tier(2400, 15)],
+                vitality: [tier(800, 9)],
+            },
+            label: (slot: string) => `invest:${slot}`,
+        };
+        const byId = new Map<number, ShopItem>([...BY_ID, [7, item(7, 800, { slot: "weapon" })]]);
+        const spirit = new Map<number, ItemStat[]>([[1, [{ ...stat(4), provides: TECH }]]]);
+
+        it("folds the bonus into the total of the stat it raises", () => {
+            const entries = placeItems(buildOf([category([1, 2])]), byId);
+            expect(statsAt(entries, 1000, spirit, byId, investment)).toEqual([
+                { provides: TECH, label: "Spirit Power", unit: null, total: 11 },
+            ]);
+            expect(statsAt(entries, 2400, spirit, byId, investment).map((s) => s.total)).toEqual([19]);
+        });
+
+        it("adds a labelled row when no item raises that stat", () => {
+            const entries = placeItems(buildOf([category([7])]), byId);
+            expect(statsAt(entries, 800, spirit, byId, investment)).toEqual([
+                {
+                    provides: "MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE",
+                    label: "invest:weapon",
+                    unit: "%",
+                    total: 9,
+                },
+            ]);
+        });
+
+        it("adds nothing below the first tier", () => {
+            const entries = placeItems(buildOf([category([4])]), byId);
+            expect(statsAt(entries, 500, spirit, byId, investment)).toEqual([]);
+        });
+    });
 });
 
 describe("levelAt", () => {

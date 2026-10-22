@@ -1,6 +1,8 @@
 import type { AnalyticsFilter, DeadlockApi, PerformanceCurvePoint } from "@deadlock-plus/deadlock-api";
+import type { ItemSlot } from "@deadlock-plus/game-ui/item";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { SlotInvestment } from "@deadlock-plus/ipc-types/SlotInvestment";
 import {
     groupFilter,
     groupLabel,
@@ -10,6 +12,7 @@ import {
     type GroupLabel,
 } from "@deadlock-plus/stats/lobby-badge";
 import { chainCost, isInShop, type ShopItem } from "../catalog";
+import { investmentBonus, slotSpend } from "../hero-stats";
 import { STARTING_SOULS, netWorthFor, type Level } from "../levels";
 import { statsSoFar, type StatsById, type StatTotal } from "../stats";
 import { readSteps } from "./ability-order";
@@ -273,14 +276,43 @@ export function itemsBoughtBy(entries: readonly TimelineEntry[], netWorth: numbe
     return entries.filter((e) => e.netWorth <= netWorth).map((e) => e.abilityId);
 }
 
-/** Flat stats of the items bought by `netWorth`; conditional effects are left out. */
+export interface InvestmentRows {
+    tables: SlotInvestment;
+    /** Label for a slot's bonus when no item gives the stat it raises. */
+    label: (slot: ItemSlot) => string;
+}
+
+/** The item stat each slot's investment bonus raises, so the readout can fold it into that total. */
+const INVESTMENT_STAT: Readonly<Record<ItemSlot, { provides: string; unit: string | null }>> = {
+    weapon: { provides: "MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE", unit: "%" },
+    spirit: { provides: "MODIFIER_VALUE_TECH_POWER", unit: null },
+    vitality: { provides: "MODIFIER_VALUE_HEALTH_MAX_PERCENT", unit: "%" },
+};
+
+/**
+ * Flat stats of the items bought by `netWorth`; conditional effects are left out. With `investment`, each slot's
+ * investment bonus is added to the total of the stat it raises.
+ */
 export function statsAt(
     entries: readonly TimelineEntry[],
     netWorth: number,
     statsById: StatsById,
     byId: ReadonlyMap<number, ShopItem>,
+    investment?: InvestmentRows,
 ): StatTotal[] {
-    return statsSoFar(itemsBoughtBy(entries, netWorth), statsById, byId);
+    const bought = itemsBoughtBy(entries, netWorth);
+    const totals = statsSoFar(bought, statsById, byId);
+    if (!investment) return totals;
+    const spend = slotSpend(bought, byId);
+    for (const slot of Object.keys(INVESTMENT_STAT) as ItemSlot[]) {
+        const bonus = investmentBonus(investment.tables[slot], spend[slot]);
+        if (bonus === 0) continue;
+        const { provides, unit } = INVESTMENT_STAT[slot];
+        const total = totals.find((t) => t.provides === provides);
+        if (total) total.total += bonus;
+        else totals.push({ provides, label: investment.label(slot), unit, total: bonus });
+    }
+    return totals;
 }
 
 export function levelAt(levels: readonly Level[], netWorth: number): number | null {
