@@ -206,15 +206,6 @@ pub enum ShopUiImage {
     PaperTexture2,
     #[serde(rename = "paper_texture_3")]
     PaperTexture3,
-    /// `.paperWear` over the card; the game cycles 1-4 by child index (`4n+k`).
-    #[serde(rename = "paper_wear_1")]
-    PaperWear1,
-    #[serde(rename = "paper_wear_2")]
-    PaperWear2,
-    #[serde(rename = "paper_wear_3")]
-    PaperWear3,
-    #[serde(rename = "paper_wear_4")]
-    PaperWear4,
     /// `#ModIconImage` opacity masks on passive items in the shop lists (`#ShopModsContainer`, `3n+k`).
     #[serde(rename = "icon_mask_1")]
     IconMask1,
@@ -332,7 +323,7 @@ pub enum ShopUiImage {
 }
 
 impl ShopUiImage {
-    pub const ALL: [ShopUiImage; 93] = [
+    pub const ALL: [ShopUiImage; 89] = [
         ShopUiImage::CardBackerWeaponT1,
         ShopUiImage::CardBackerWeaponT2,
         ShopUiImage::CardBackerWeaponT3,
@@ -350,10 +341,6 @@ impl ShopUiImage {
         ShopUiImage::PaperTexture1,
         ShopUiImage::PaperTexture2,
         ShopUiImage::PaperTexture3,
-        ShopUiImage::PaperWear1,
-        ShopUiImage::PaperWear2,
-        ShopUiImage::PaperWear3,
-        ShopUiImage::PaperWear4,
         ShopUiImage::IconMask1,
         ShopUiImage::IconMask2,
         ShopUiImage::IconMask3,
@@ -480,10 +467,6 @@ impl ShopUiImage {
             ShopUiImage::PaperTexture1 => ("paper_texture_1", cards!("shopitem_papertexture01_psd.vtex_c")),
             ShopUiImage::PaperTexture2 => ("paper_texture_2", cards!("shopitem_papertexture02_psd.vtex_c")),
             ShopUiImage::PaperTexture3 => ("paper_texture_3", cards!("shopitem_papertexture03_psd.vtex_c")),
-            ShopUiImage::PaperWear1 => ("paper_wear_1", cards!("shopitem_paperwear01_psd.vtex_c")),
-            ShopUiImage::PaperWear2 => ("paper_wear_2", cards!("shopitem_paperwear02_psd.vtex_c")),
-            ShopUiImage::PaperWear3 => ("paper_wear_3", cards!("shopitem_paperwear03_psd.vtex_c")),
-            ShopUiImage::PaperWear4 => ("paper_wear_4", cards!("shopitem_paperwear04_psd.vtex_c")),
             ShopUiImage::IconMask1 => ("icon_mask_1", cards!("icon_mask01_psd.vtex_c")),
             ShopUiImage::IconMask2 => ("icon_mask_2", cards!("icon_mask02_psd.vtex_c")),
             ShopUiImage::IconMask3 => ("icon_mask_3", cards!("icon_mask03_psd.vtex_c")),
@@ -1917,6 +1900,8 @@ mod tests {
     fn every_shop_ui_image_has_its_own_wire_name_and_compiled_file() {
         let images: HashSet<ShopUiImage> = ShopUiImage::ALL.into_iter().collect();
         assert_eq!(images.len(), ShopUiImage::ALL.len(), "ALL has no repeats");
+        assert_eq!(ShopUiImage::ALL.len(), 89);
+        assert!(ShopUiImage::ALL.iter().all(|i| !i.key().starts_with("paper_wear")));
         let keys: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.key()).collect();
         let paths: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.compiled_path()).collect();
         assert_eq!(keys.len(), ShopUiImage::ALL.len());
@@ -1945,7 +1930,6 @@ mod tests {
             (ShopUiImage::CardBase, "panorama/images/shop/card_backer_psd.vtex_c".into()),
             (ShopUiImage::CardBaseMask, "panorama/images/shop/card_backer_png.vtex_c".into()),
             (ShopUiImage::PaperTexture2, format!("{cards}/shopitem_papertexture02_psd.vtex_c")),
-            (ShopUiImage::PaperWear4, format!("{cards}/shopitem_paperwear04_psd.vtex_c")),
             (ShopUiImage::IconMask1, format!("{cards}/icon_mask01_psd.vtex_c")),
             (ShopUiImage::TierCorner, "panorama/images/shop/tier_corner_cap.vsvg_c".into()),
             (ShopUiImage::TierNumber3, "panorama/images/upgrades/tier_numbers_small_03.vsvg_c".into()),
