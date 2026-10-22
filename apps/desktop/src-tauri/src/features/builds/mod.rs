@@ -246,21 +246,21 @@ pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
 
 error_codes! {
     pub enum CodeKey in "builds" {
-        CodeEmpty = "code_empty",
-        CodeInvalid = "code_invalid",
-        CodeIncomplete = "code_incomplete",
-        CodeDamaged = "code_damaged",
+        Empty = "code_empty",
+        Invalid = "code_invalid",
+        Incomplete = "code_incomplete",
+        Damaged = "code_damaged",
     }
 }
 
 impl From<CodeError> for AppError {
     fn from(error: CodeError) -> Self {
         let key = match error {
-            CodeError::Empty => CodeKey::CodeEmpty,
-            CodeError::NotBase64 => CodeKey::CodeInvalid,
+            CodeError::Empty => CodeKey::Empty,
+            CodeError::NotBase64 => CodeKey::Invalid,
             // Valid base64 that is no zstd frame is most often a code cut short by the paste.
-            CodeError::NotZstd => CodeKey::CodeIncomplete,
-            CodeError::BadBuild(_) | CodeError::NoHero => CodeKey::CodeDamaged,
+            CodeError::NotZstd => CodeKey::Incomplete,
+            CodeError::BadBuild(_) | CodeError::NoHero => CodeKey::Damaged,
         };
         AppError::new(key).detail(error)
     }
