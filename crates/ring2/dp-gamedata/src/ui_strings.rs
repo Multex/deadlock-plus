@@ -6,7 +6,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 /// The game strings the game-ui labels use, with the bundle each lives in.
-pub const GAME_UI_TOKENS: [(&str, &str); 15] = [
+pub const GAME_UI_TOKENS: [(&str, &str); 20] = [
     ("citadel_main", "Citadel_Mod_Tooltip_Passive"),
     ("citadel_main", "Citadel_Mod_Tooltip_Active"),
     ("citadel_main", "Citadel_Shop_Purchased"),
@@ -22,6 +22,11 @@ pub const GAME_UI_TOKENS: [(&str, &str); 15] = [
     ("citadel_main", "Citadel_ItemViewImpact"),
     ("citadel_main", "Citadel_HeroBuilds_AP_Next_Indicator"),
     ("citadel_attributes", "Citadel_StatusEffect"),
+    ("citadel_attributes", "StatDesc_BulletDamage"),
+    ("citadel_attributes", "StatDesc_LightMeleeDamage"),
+    ("citadel_attributes", "StatDesc_HeavyMeleeDamage"),
+    ("citadel_attributes", "StatDesc_MaxHealth"),
+    ("citadel_attributes", "StatDesc_TechPower"),
 ];
 
 /// Game UI strings by token, as the game writes them: params stay in its `{d:name}` / `{s:name}` form.
@@ -186,6 +191,26 @@ mod tests {
         }
         let german = game_ui_strings(&dir, "german").0;
         assert_eq!(german.get("Citadel_Mod_Tooltip_Passive").map(String::as_str), Some("Passiv"));
+    }
+
+    // Game build 6810: the stat names the ALT "See Details" rows show.
+    #[test]
+    fn the_installed_game_names_the_alt_column_stats_in_english() {
+        use crate::catalog::{Install, SteamInstall};
+        let dir = std::env::var_os("DEADLOCK_CITADEL_DIR").map(PathBuf::from).or_else(|| SteamInstall.citadel_dir());
+        let Some(dir) =
+            dir.filter(|d| d.join(LocalizationFile::relative_path("citadel_attributes", "english")).is_file())
+        else {
+            eprintln!("skipped: no installed Deadlock");
+            return;
+        };
+        let strings = game_ui_strings(&dir, "english").0;
+        let named = |token: &str| strings.get(token).map(String::as_str);
+        assert_eq!(named("StatDesc_BulletDamage"), Some("Bullet Damage"));
+        assert_eq!(named("StatDesc_LightMeleeDamage"), Some("Light Melee"));
+        assert_eq!(named("StatDesc_HeavyMeleeDamage"), Some("Heavy Melee"));
+        assert_eq!(named("StatDesc_MaxHealth"), Some("Max Health"));
+        assert_eq!(named("StatDesc_TechPower"), Some("Spirit Power"));
     }
 
     #[test]

@@ -46,6 +46,10 @@ pub struct ItemStats {
     #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sections: Option<Vec<TooltipSection>>,
+    /// The condition the item's bonus needs, as the game words it under each ALT "See Details" row ("within Range").
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub condition: Option<String>,
 }
 
 /// The localisation bundles holding `<property>_label` and `<property>_postfix` tokens.
@@ -62,6 +66,8 @@ pub(crate) struct RawItem {
     stats: Vec<RawStat>,
     sections: Vec<RawSection>,
     values: HashMap<String, f64>,
+    /// Tokens that may word the item's condition, best first.
+    condition_tokens: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -88,8 +94,9 @@ pub(crate) fn raw_item_stats(abilities: &Document) -> HashMap<u32, RawItem> {
             }
             let stats = raw_stats(entry);
             let (sections, values) = raw_sections(entry);
+            let condition_tokens = condition_tokens(entry);
             (!stats.is_empty() || !sections.is_empty())
-                .then(|| (ability_id(class_name), RawItem { stats, sections, values }))
+                .then(|| (ability_id(class_name), RawItem { stats, sections, values, condition_tokens }))
         })
         .collect()
 }
@@ -137,6 +144,24 @@ fn raw_stats(entry: &Object) -> Vec<RawStat> {
 }
 
 const INNATE: &str = "EArea_Innate";
+
+/// Each shown property's `m_strConditionalLocTokenOverride`, else its `<property>_conditional` token, in tooltip
+/// order. Only conditional properties have such a token, so the first one the language has is the condition.
+fn condition_tokens(entry: &Object) -> Vec<String> {
+    let Some(properties) = entry.get("m_mapAbilityProperties").and_then(Value::as_object) else { return Vec::new() };
+    let mut tokens: Vec<String> = Vec::new();
+    for (_, name) in tooltip_sections(entry) {
+        let Some(property) = properties.get(name).and_then(Value::as_object) else { continue };
+        let token = match property.get("m_strConditionalLocTokenOverride").and_then(Value::as_str) {
+            Some(token) if !token.is_empty() => token.trim_start_matches('#').to_string(),
+            _ => format!("{name}_conditional"),
+        };
+        if !tokens.contains(&token) {
+            tokens.push(token);
+        }
+    }
+    tokens
+}
 
 /// `(section type, property name)` for every property a tooltip section shows.
 fn tooltip_sections(entry: &Object) -> Vec<(&str, &str)> {
@@ -189,6 +214,7 @@ pub(crate) fn labelled(raw: &HashMap<u32, RawItem>, localisation: &[Localization
         .map(|(&item_id, item)| ItemStats {
             item_id,
             sections: Some(localised(&item.sections, &item.values, &lookup)),
+            condition: item.condition_tokens.iter().find_map(|t| find(t, "")).map(str::to_string),
             stats: item
                 .stats
                 .iter()
@@ -497,6 +523,56 @@ mod tests {
         assert_eq!(labels, ["Bonuslebenspunkte", "Spirit Power"]);
     }
 
+    fn condition_of(body: &str, localisation: &[LocalizationFile]) -> Option<String> {
+        let list = labelled(&raw_item_stats(&doc(&format!("{{\nupgrade_x = {body}\n}}"))), localisation);
+        list.into_iter().next().and_then(|i| i.condition)
+    }
+
+    // Shaped after `upgrade_close_range` in `scripts/abilities.vdata_c`, game build 6810.
+    #[test]
+    fn the_condition_is_the_first_shown_propertys_conditional_token() {
+        let props = [
+            property("CloseRangeBonusDamageRange", "15m", ""),
+            typed("CloseRangeBonusWeaponPower", "20", "MODIFIER_VALUE_BONUS_WEAPON_DAMAGE_CLOSE_RANGE", ""),
+        ]
+        .join("\n");
+        let body = entry(
+            &props,
+            &section("EArea_Passive", &["CloseRangeBonusDamageRange", "CloseRangeBonusWeaponPower"]),
+            &[],
+        );
+        let loc = english(
+            "\"CloseRangeBonusWeaponPower_label\" \"Weapon Damage\"\n\
+             \"CloseRangeBonusWeaponPower_Conditional\" \"within Range\"",
+        );
+        assert_eq!(condition_of(&body, &[loc]).as_deref(), Some("within Range"));
+    }
+
+    #[test]
+    fn a_conditional_token_override_names_the_condition() {
+        let props = property(
+            "BonusFireRate",
+            "25",
+            "m_strConditionalLocTokenOverride = \"#AfterProc_conditional\"\nm_eProvidedPropertyType = \"MODIFIER_VALUE_FIRE_RATE\"",
+        );
+        let body = entry(&props, &section("EArea_Passive", &["BonusFireRate"]), &[]);
+        let loc = english(
+            "\"BonusFireRate_label\" \"Fire Rate\"\n\"BonusFireRate_conditional\" \"never shown\"\n\
+             \"AfterProc_conditional\" \"after proc\"",
+        );
+        assert_eq!(condition_of(&body, &[loc]).as_deref(), Some("after proc"));
+    }
+
+    #[test]
+    fn an_item_without_a_conditional_token_has_no_condition() {
+        let body = entry(
+            &typed("BonusHealth", "210", "MODIFIER_VALUE_HEALTH_MAX", ""),
+            &section("EArea_Innate", &["BonusHealth"]),
+            &["BonusHealth"],
+        );
+        assert_eq!(condition_of(&body, &[labels()]), None);
+    }
+
     #[test]
     fn a_stat_without_any_label_is_left_out() {
         let props = typed("HealAmpRegenPercent", "20", "MODIFIER_VALUE_HEAL_AMP_REGEN_PERCENT", "");
@@ -619,6 +695,22 @@ mod installed_tests {
             (provides("MODIFIER_VALUE_STATUS_RESISTANCE"), Some(StatSection::Active))
         );
         assert_eq!(stat(blood_tribute, "BonusMoveSpeed").unit.as_deref(), Some("m"));
+    }
+
+    // Checked against the ALT "See Details" sub-text in game at 1440p (Close Quarters, Monster Rounds), build 6810.
+    #[test]
+    fn the_installed_items_carry_the_condition_the_game_shows() {
+        let Some(dir) = installed() else { return };
+        let abilities = ShopSource::read(&VpkVdataSource, &dir, ABILITIES_PATH).expect("abilities.vdata reads");
+        let raw = raw_item_stats(&abilities);
+        let condition = |language: &str, class: &str| {
+            let all = labelled(&raw, &stat_localisation(&dir, language));
+            all.into_iter().find(|i| i.item_id == ability_id(class)).and_then(|i| i.condition)
+        };
+        assert_eq!(condition("english", "upgrade_close_range").as_deref(), Some("within Range"));
+        assert_eq!(condition("english", "upgrade_non_player_bonus").as_deref(), Some("against NPCs"));
+        assert_eq!(condition("german", "upgrade_close_range").as_deref(), Some("im Nahbereich"));
+        assert_eq!(condition("english", "upgrade_health"), None);
     }
 
     // Checked against in-game tooltips at 1440p (Spirit Burn, Silencer, Veil Walker), game build 6805.

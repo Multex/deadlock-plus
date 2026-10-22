@@ -6,4 +6,8 @@ export type ItemStats = { itemId: number, stats: Array<ItemStat>,
 /**
  * What the game's tooltip shows, section by section, in its order.
  */
-sections?: Array<TooltipSection>, };
+sections?: Array<TooltipSection>, 
+/**
+ * The condition the item's bonus needs, as the game words it under each ALT "See Details" row ("within Range").
+ */
+condition?: string, };
