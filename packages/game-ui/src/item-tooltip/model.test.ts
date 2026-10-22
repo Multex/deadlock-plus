@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
+import { gameColors } from "../colors";
+import type { ItemDetails, StatChange } from "../hero";
 import type { GameItem } from "../item";
 import { itemTooltipModel, type ItemTooltipBlock, type ItemTooltipProperty, type ItemTooltipSection } from "./model";
 
@@ -113,7 +115,14 @@ const silencer: ItemTooltipSection[] = [
 describe("itemTooltipModel header and width", () => {
     it("shows the name and the cost as plain digits", () => {
         const model = itemTooltipModel({ item: { ...spiritBurnItem, cost: 6400 }, sections: [] });
-        expect(model.header).toEqual({ name: "Spirit Burn", slot: "spirit", cost: "6400", owned: null, imbued: null });
+        expect(model.header).toEqual({
+            name: "Spirit Burn",
+            slot: "spirit",
+            cost: "6400",
+            cantAfford: false,
+            owned: null,
+            imbued: null,
+        });
     });
 
     it("hides a zero cost", () => {
@@ -133,14 +142,35 @@ describe("itemTooltipModel header and width", () => {
             item: spiritBurnItem,
             sections: [],
             owned: true,
-            imbuedUpon: "Kinetic Pulse",
+            imbuedUpon: { name: "Kinetic Pulse", icon: "kinetic.png" },
         });
         expect(imbued.header.owned).toBeNull();
         expect(imbued.header.imbued).toEqual({
-            key: "game_ui.item_tooltip.imbued_upon",
-            params: { ability: "Kinetic Pulse" },
-            game: { token: "Citadel_Shop_AbilityIsImbuing", params: { imbued_ability_name: "Kinetic Pulse" } },
+            text: {
+                key: "game_ui.item_tooltip.imbued_upon",
+                params: { ability: "Kinetic Pulse" },
+                game: { token: "Citadel_Shop_AbilityIsImbuing", params: { imbued_ability_name: "Kinetic Pulse" } },
+            },
+            icon: "kinetic.png",
         });
+    });
+
+    it("ignores the imbue target of an item the player does not own", () => {
+        const header = itemTooltipModel({
+            item: spiritBurnItem,
+            sections: [],
+            imbuedUpon: { name: "Kinetic Pulse", icon: null },
+        }).header;
+        expect(header.imbued).toBeNull();
+        expect(header.cost).toBe("3200");
+    });
+
+    it("marks the cost the player cannot afford, and only while the cost shows", () => {
+        const base = { item: spiritBurnItem, sections: [] };
+        expect(itemTooltipModel(base).header.cantAfford).toBe(false);
+        expect(itemTooltipModel({ ...base, canAfford: true }).header.cantAfford).toBe(false);
+        expect(itemTooltipModel({ ...base, canAfford: false }).header.cantAfford).toBe(true);
+        expect(itemTooltipModel({ ...base, canAfford: false, owned: true }).header.cantAfford).toBe(false);
     });
 
     it("is 450 wide with the ALT column, else 420, or 410 when placed left", () => {
@@ -161,8 +191,55 @@ describe("itemTooltipModel header and width", () => {
                 params: {},
                 game: { token: "Citadel_ItemViewImpact", params: {} },
             },
+            panel: null,
         });
         expect(itemTooltipModel({ item: spiritBurnItem, sections: [] }).details).toBeNull();
+    });
+});
+
+describe("itemTooltipModel build note", () => {
+    const base = { item: spiritBurnItem, sections: [] };
+
+    it("has no note box without a note, or with only empty fields", () => {
+        expect(itemTooltipModel(base).buildNote).toBeNull();
+        expect(itemTooltipModel({ ...base, buildNote: null }).buildNote).toBeNull();
+        expect(
+            itemTooltipModel({ ...base, buildNote: { text: "  ", sellPriority: null, imbueTarget: null } }).buildNote,
+        ).toBeNull();
+    });
+
+    it("shows the author's note as written, trimmed", () => {
+        const note = itemTooltipModel({ ...base, buildNote: { text: "  Rush this vs. Haze\n" } }).buildNote;
+        expect(note).toEqual({ text: "Rush this vs. Haze", sellPriority: null, imbueTarget: null });
+    });
+
+    it("words the sell priority with the game's string", () => {
+        const note = itemTooltipModel({ ...base, buildNote: { sellPriority: 2 } }).buildNote;
+        expect(note?.sellPriority).toEqual({
+            key: "game_ui.item_tooltip.sell_priority",
+            params: { priority: 2 },
+            game: { token: "Citadel_Item_Build_SellPriority", params: { sell_priority: 2 } },
+        });
+    });
+
+    it("treats a zero sell priority as unset", () => {
+        expect(itemTooltipModel({ ...base, buildNote: { sellPriority: 0 } }).buildNote).toBeNull();
+    });
+
+    it("labels the suggested imbue target and keeps its icon", () => {
+        const note = itemTooltipModel({
+            ...base,
+            buildNote: { imbueTarget: { name: "Kinetic Pulse", icon: "kinetic.png" } },
+        }).buildNote;
+        expect(note?.imbueTarget).toEqual({
+            label: {
+                key: "game_ui.item_tooltip.imbue_suggestion",
+                params: {},
+                game: { token: "Citadel_Item_Build_ImbueTarget", params: {} },
+            },
+            name: "Kinetic Pulse",
+            icon: "kinetic.png",
+        });
     });
 });
 
@@ -231,9 +308,6 @@ describe("itemTooltipModel cells", () => {
         const cells = itemTooltipModel({ item: spiritBurnItem, sections: spiritBurn }).sections[1].blocks[0].cells;
         const scaling = cells.map((c) => (c.kind === "important" ? c.scaling : null));
         expect(scaling).toEqual([null, null, { factor: "0.06", stat: "ETechPower", arrow: "spirit", heroIcon: null }]);
-        expect(itemTooltipModel({ item: spiritBurnItem, sections: spiritBurn }).sections[1].blocks[0].scaling).toBe(
-            true,
-        );
     });
 
     it("adds factor x hero stat to the base when the hero's stat is known, and says so", () => {
@@ -551,5 +625,138 @@ describe("itemTooltipModel popularity and components", () => {
             "game_ui.item_tooltip.upgrades_to",
             "Citadel_IsComponentOf",
         ]);
+    });
+});
+
+const closeQuarters: GameItem = {
+    id: 2,
+    name: "Close Quarters",
+    slot: "weapon",
+    tier: 2,
+    cost: 1600,
+    active: false,
+    imbue: false,
+};
+
+function change(key: string, label: string, before: number, after: number, decimals: number): StatChange {
+    return { key, label, before, after, decimals, postfix: null };
+}
+
+// Close Quarters on Seven (capture XcRb4u2xw0): bullet damage 1 decimal, melee whole.
+const closeQuartersDetails: ItemDetails = {
+    groups: [
+        { icon: "bullet.png", changes: [change("EBulletDamage", "Bullet Damage", 10.8, 11.772, 1)] },
+        {
+            icon: "melee.png",
+            changes: [
+                change("ELightMeleeDamage", "Light Melee", 50, 53.4, 0),
+                change("EHeavyMeleeDamage", "Heavy Melee", 116, 122.5, 0),
+            ],
+        },
+    ],
+    condition: "within Range",
+    phases: [
+        { phase: "early", pickPercent: 12.4, winPercent: 51.6 },
+        { phase: "late", pickPercent: 3, winPercent: 48.49 },
+    ],
+};
+
+describe("itemTooltipModel ALT details panel", () => {
+    const base = { item: closeQuarters, sections: [], hasDetails: true, details: closeQuartersDetails };
+
+    it("keeps the key prompt without detailView, even with details", () => {
+        expect(itemTooltipModel(base).details?.panel).toBeNull();
+        expect(itemTooltipModel({ ...base, detailView: true, details: null }).details?.panel).toBeNull();
+    });
+
+    it("rounds before and after to the game's decimals, half to even, with the condition under every row", () => {
+        const panel = itemTooltipModel({ ...base, detailView: true }).details?.panel;
+        expect(panel?.groups).toEqual([
+            {
+                icon: "bullet.png",
+                rows: [
+                    {
+                        key: "EBulletDamage",
+                        label: "Bullet Damage",
+                        subText: "within Range",
+                        before: "10.8",
+                        after: "11.8",
+                        postfix: "",
+                    },
+                ],
+            },
+            {
+                icon: "melee.png",
+                rows: [
+                    {
+                        key: "ELightMeleeDamage",
+                        label: "Light Melee",
+                        subText: "within Range",
+                        before: "50",
+                        after: "53",
+                        postfix: "",
+                    },
+                    {
+                        key: "EHeavyMeleeDamage",
+                        label: "Heavy Melee",
+                        subText: "within Range",
+                        before: "116",
+                        after: "122",
+                        postfix: "",
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it("leaves the sub-text out when the item has no condition, and keeps a postfix", () => {
+        const details: ItemDetails = {
+            groups: [{ icon: null, changes: [{ ...change("EFireRate", "Fire Rate", 5, 13, 0), postfix: "%" }] }],
+            condition: null,
+            phases: [],
+        };
+        const row = itemTooltipModel({ ...base, detailView: true, details }).details?.panel?.groups[0].rows[0];
+        expect([row?.subText, row?.postfix]).toEqual([null, "%"]);
+    });
+
+    it("colours the new value by slot; a vitality postfix keeps the text colour", () => {
+        const colours = (slot: GameItem["slot"]) => {
+            const panel = itemTooltipModel({ ...base, item: { ...closeQuarters, slot }, detailView: true }).details
+                ?.panel;
+            return [panel?.valueColor, panel?.postfixColor];
+        };
+        expect(colours("weapon")).toEqual([gameColors.courageBright, gameColors.courageBright]);
+        expect(colours("spirit")).toEqual([gameColors.spiritBright, gameColors.spiritBright]);
+        expect(colours("vitality")).toEqual([gameColors.fortitudeBright, null]);
+    });
+
+    it("flips with the tooltip and opens the column even without hasDetails", () => {
+        const model = itemTooltipModel({ ...base, hasDetails: false, detailView: true, position: "left" });
+        expect(model.details?.side).toBe("left");
+        expect(model.width).toBe(450);
+    });
+
+    it("adds Deadlock+'s own pick and win line per phase, rounded, under a heading of its own", () => {
+        const phases = itemTooltipModel({ ...base, detailView: true }).details?.panel?.phases;
+        expect(phases).toEqual({
+            heading: { key: "game_ui.item_tooltip.phase_heading", params: {}, game: null },
+            lines: [
+                {
+                    phase: "early",
+                    label: { key: "game_ui.item_tooltip.phase_early", params: {}, game: null },
+                    rates: { key: "game_ui.item_tooltip.phase_rates", params: { pick: 12, win: 52 }, game: null },
+                },
+                {
+                    phase: "late",
+                    label: { key: "game_ui.item_tooltip.phase_late", params: {}, game: null },
+                    rates: { key: "game_ui.item_tooltip.phase_rates", params: { pick: 3, win: 48 }, game: null },
+                },
+            ],
+        });
+    });
+
+    it("draws no phase block without phase data", () => {
+        const details = { ...closeQuartersDetails, phases: [] };
+        expect(itemTooltipModel({ ...base, detailView: true, details }).details?.panel?.phases).toBeNull();
     });
 });

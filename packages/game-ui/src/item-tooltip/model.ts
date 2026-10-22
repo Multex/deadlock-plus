@@ -2,6 +2,9 @@ import type { StatSection } from "@deadlock-plus/ipc-types/StatSection";
 import type { TooltipBlock } from "@deadlock-plus/ipc-types/TooltipBlock";
 import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
 import type { TooltipSection } from "@deadlock-plus/ipc-types/TooltipSection";
+import { formatShownNumber } from "../number";
+import { gameColors } from "../colors";
+import type { HeroStats, ItemDetails, StatGroup } from "../hero";
 import type { GameItem, ItemSlot } from "../item";
 import { formatGameNumber, parseMarkup, type MarkupNode } from "../markup/markup";
 
@@ -41,8 +44,10 @@ export type ItemTooltipInput = {
     position?: "left" | "right";
     /** Owned items show "Owned" instead of the cost. */
     owned?: boolean;
-    /** The ability an owned imbue item is imbued upon; shown in place of "Owned", as the game does. */
-    imbuedUpon?: string | null;
+    /** The ability an owned imbue item is imbued upon; shown with its icon in place of "Owned", as the game does. */
+    imbuedUpon?: AbilityRef | null;
+    /** False colours the cost the way the game marks an item the player cannot afford yet. */
+    canAfford?: boolean;
     popularity?: { phase: PopularityPhase; percent: number; heroIcon?: string | null } | null;
     upgradesFrom?: readonly GameItem[];
     upgradesTo?: readonly GameItem[];
@@ -51,10 +56,30 @@ export type ItemTooltipInput = {
     ownedIds?: readonly number[];
     /** The item has an ALT "See Details" column. */
     hasDetails?: boolean;
+    /** ALT is held: the "See Details" column shows `details` instead of its key prompt. */
+    detailView?: boolean;
+    details?: ItemDetails | null;
     /** The hero's current stats keyed by the game's stat enum (`ETechPower`), for scaled values. */
-    heroStats?: Partial<Record<string, number>>;
+    heroStats?: HeroStats;
     /** The hero's portrait, drawn on boon-scaled markers. */
     heroIcon?: string | null;
+    /** The build author's notes on this item, which the game shows in a box under the tooltip. */
+    buildNote?: BuildNoteInput | null;
+};
+
+export type AbilityRef = { name: string; icon: string | null };
+
+export type BuildNoteInput = {
+    text?: string | null;
+    sellPriority?: number | null;
+    imbueTarget?: AbilityRef | null;
+};
+
+/** `.BuildInfoContainer`'s lines; each is null when the build leaves it unset. */
+export type BuildNoteView = {
+    text: string | null;
+    sellPriority: UiText | null;
+    imbueTarget: (AbilityRef & { label: UiText }) | null;
 };
 
 /** A value split so the prefix and postfix can be drawn muted. */
@@ -125,8 +150,6 @@ export type BlockView = {
     /** False when the block has neither cells nor rows: the stats area collapses. */
     showStats: boolean;
     hasRows: boolean;
-    /** A cell shows a scaling marker, which makes the stats area taller. */
-    scaling: boolean;
 };
 
 export type SectionView = {
@@ -145,6 +168,32 @@ export type ComponentGroup = {
     items: { item: GameItem; owned: boolean }[];
 };
 
+/** One `.AffectedAbilityProperty` row of the ALT column, its numbers already rounded the game's way. */
+export type DetailRow = {
+    key: string;
+    label: string;
+    /** The item's condition, which the game repeats under every row. */
+    subText: string | null;
+    before: string;
+    after: string;
+    postfix: string;
+};
+
+export type DetailGroup = { icon: string | null; rows: DetailRow[] };
+
+/** Deadlock+'s own match stats for a phase, drawn under the game's rows. */
+export type DetailPhaseLine = { phase: PopularityPhase; label: UiText; rates: UiText };
+
+/** What the ALT column draws while ALT is held, in place of its key prompt. */
+export type DetailsPanel = {
+    groups: DetailGroup[];
+    /** `.AffectedValNew`'s colour by the item's slot. */
+    valueColor: string;
+    /** `.AffectedValPostfix`'s; null keeps the text colour, as vitality items do. */
+    postfixColor: string | null;
+    phases: { heading: UiText; lines: DetailPhaseLine[] } | null;
+};
+
 export type ItemTooltipModel = {
     /** Panorama px of the main column. */
     width: 450 | 420 | 410;
@@ -152,13 +201,16 @@ export type ItemTooltipModel = {
         name: string;
         slot: ItemSlot;
         cost: string | null;
+        /** `.cantAfford`: the cost and its glyph turn red. */
+        cantAfford: boolean;
         owned: UiText | null;
-        imbued: UiText | null;
+        imbued: { text: UiText; icon: string | null } | null;
     };
     sections: SectionView[];
     popularity: { phase: PopularityPhase; heroIcon: string | null; text: UiText } | null;
     components: ComponentGroup[];
-    details: { side: "left" | "right"; label: UiText } | null;
+    details: { side: "left" | "right"; label: UiText; panel: DetailsPanel | null } | null;
+    buildNote: BuildNoteView | null;
     /** Shared labels the cells and rows refer to by flag. */
     text: { variesByHero: UiText };
 };
@@ -307,7 +359,6 @@ function blockView(
         rows,
         showStats: cells.length > 0 || rows.length > 0,
         hasRows: rows.length > 0,
-        scaling: cells.some((c) => c.kind === "important" && c.scaling !== null),
     };
 }
 
@@ -338,11 +389,65 @@ const POPULARITY_TOKENS: Record<PopularityPhase, string> = {
     late: "Citadel_PopularityLabel_Late",
 };
 
+const DETAIL_VALUE_COLORS: Record<ItemSlot, string> = {
+    weapon: gameColors.courageBright,
+    spirit: gameColors.spiritBright,
+    vitality: gameColors.fortitudeBright,
+};
+
+function detailGroup(group: StatGroup, condition: string | null): DetailGroup {
+    return {
+        icon: group.icon,
+        rows: group.changes.map((c) => ({
+            key: c.key,
+            label: c.label,
+            subText: condition,
+            before: formatShownNumber(c.before, c.decimals),
+            after: formatShownNumber(c.after, c.decimals),
+            postfix: c.postfix ?? "",
+        })),
+    };
+}
+
+function detailsPanel(details: ItemDetails, slot: ItemSlot): DetailsPanel {
+    const lines = details.phases.map((p) => ({
+        phase: p.phase,
+        label: uiText(`phase_${p.phase}`),
+        rates: uiText("phase_rates", { pick: Math.round(p.pickPercent), win: Math.round(p.winPercent) }),
+    }));
+    return {
+        groups: details.groups.map((g) => detailGroup(g, details.condition)),
+        valueColor: DETAIL_VALUE_COLORS[slot],
+        postfixColor: slot === "vitality" ? null : DETAIL_VALUE_COLORS[slot],
+        phases: lines.length > 0 ? { heading: uiText("phase_heading"), lines } : null,
+    };
+}
+
+function buildNoteView(note: BuildNoteInput): BuildNoteView | null {
+    const text = note.text?.trim() || null;
+    // A build stores an unset sell priority as 0.
+    const priority = note.sellPriority || null;
+    const target = note.imbueTarget ?? null;
+    if (text === null && priority === null && target === null) return null;
+    return {
+        text,
+        sellPriority:
+            priority === null
+                ? null
+                : uiText("sell_priority", { priority }, "Citadel_Item_Build_SellPriority", { sell_priority: priority }),
+        imbueTarget:
+            target === null
+                ? null
+                : { label: uiText("imbue_suggestion", {}, "Citadel_Item_Build_ImbueTarget"), ...target },
+    };
+}
+
 /** Builds everything an item tooltip view draws, in the game's order, from the item and its tooltip data. */
 export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
     const { item, owned = false, imbuedUpon = null, hasDetails = false, position = "right" } = input;
     const ownedIds = new Set(input.ownedIds ?? []);
-    const imbued = owned && imbuedUpon ? imbuedUpon : null;
+    const imbued = owned ? imbuedUpon : null;
+    const cost = owned || item.cost === 0 ? null : formatGameNumber(item.cost);
 
     const groups: [ComponentGroup["kind"], readonly GameItem[] | undefined, UiText][] = [
         ["from", input.upgradesFrom, uiText("upgrades_from", {}, "Citadel_ComponentRequired")],
@@ -350,22 +455,29 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
         ["usedIn", input.usedIn, uiText("used_in", {}, "Citadel_ComponentUseIn")],
     ];
 
+    const panel = input.detailView && input.details ? detailsPanel(input.details, item.slot) : null;
+    const column = hasDetails || panel !== null;
+
     const popularity = input.popularity ?? null;
     const percent = popularity ? Math.round(popularity.percent) : 0;
 
     return {
-        width: hasDetails ? 450 : position === "left" ? 410 : 420,
+        width: column ? 450 : position === "left" ? 410 : 420,
         header: {
             name: item.name,
             slot: item.slot,
-            cost: owned || item.cost === 0 ? null : formatGameNumber(item.cost),
+            cost,
+            cantAfford: cost !== null && input.canAfford === false,
             owned: owned && imbued === null ? uiText("owned", {}, "Citadel_Shop_Purchased") : null,
             imbued:
                 imbued === null
                     ? null
-                    : uiText("imbued_upon", { ability: imbued }, "Citadel_Shop_AbilityIsImbuing", {
-                          imbued_ability_name: imbued,
-                      }),
+                    : {
+                          text: uiText("imbued_upon", { ability: imbued.name }, "Citadel_Shop_AbilityIsImbuing", {
+                              imbued_ability_name: imbued.name,
+                          }),
+                          icon: imbued.icon,
+                      },
         },
         sections: input.sections.map((s) => sectionView(s, input.heroStats, input.heroIcon ?? null)),
         popularity: popularity
@@ -384,7 +496,8 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
                 label,
                 items: (items ?? []).map((component) => ({ item: component, owned: ownedIds.has(component.id) })),
             })),
-        details: hasDetails ? { side: position, label: uiText("see_details", {}, "Citadel_ItemViewImpact") } : null,
+        details: column ? { side: position, label: uiText("see_details", {}, "Citadel_ItemViewImpact"), panel } : null,
+        buildNote: input.buildNote ? buildNoteView(input.buildNote) : null,
         text: { variesByHero: uiText("varies_by_hero") },
     };
 }

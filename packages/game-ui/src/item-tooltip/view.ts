@@ -208,6 +208,34 @@ const HEADER: Record<ItemSlot, string> = {
 
 const COMPONENT_ICON_BOX = "#009cb3";
 
+// `.AffectedAbilitiesHeader`'s colour under `tooltip_modifies_header_<slot>`.
+const MODIFIES_HEADER: Record<ItemSlot, string> = {
+    weapon: "#c87903",
+    vitality: gameColors.fortitude,
+    spirit: gameColors.spirit,
+};
+
+// `.AffectedAbilitiesTogglePanel`'s colour under `tooltip_modifies_bg_<slot>`; spirit has no art.
+const MODIFIES_BODY: Record<ItemSlot, string> = {
+    weapon: gameColors.courageDark,
+    vitality: gameColors.fortitudeDark,
+    spirit: "#362147",
+};
+
+// What the ALT column's labels sit on. Weapon is measured under the rows of a 1440p capture; spirit is its plain
+// colour; vitality's art is unmeasured, so its plain colour stands in.
+const MODIFIES_TEXT_BODY: Record<ItemSlot, string> = {
+    weapon: "#6b4c28",
+    vitality: gameColors.fortitudeDark,
+    spirit: "#362147",
+};
+
+// `colorCommonOffWhite`, measured on the ALT column's row names, which draw it at full opacity.
+const COMMON_OFF_WHITE = "#f3f0e7";
+
+// Fitted to the arrow's ink in the 1440p capture; `.AffectedValArrow`'s own 0.25 draws it 9 levels darker.
+const DETAILS_ARROW_ALPHA = 0.29;
+
 /**
  * Every colour the item tooltip draws that is not a plain base colour, as `--tt-*` custom properties. Each
  * translucent colour and opacity is fitted to what it sits on, since the browser cannot blend in linear light.
@@ -223,6 +251,7 @@ export function tooltipVars(slot: ItemSlot): Record<string, string> {
     const label = panoramaBlend("offBlack", 0xea / 255, paper);
     const list = panoramaBlend("offBlack", 0x70 / 255, paper);
     const owned = panoramaBlend("#000000", 0x50 / 255, list);
+    const modifies = MODIFIES_TEXT_BODY[slot];
     return {
         "--tt-slot-bright": bright,
         "--tt-slot-dark": dark,
@@ -243,6 +272,10 @@ export function tooltipVars(slot: ItemSlot): Record<string, string> {
         "--tt-stats": panoramaColor("#00000066", paper),
         "--tt-owned": panoramaColor("shard&90", header),
         "--tt-imbued": panoramaColor("#000000aa", header),
+        "--tt-cant-afford": "#ffa1a1",
+        // The note box sits below the paper, over whatever is behind the tooltip; offBlack stands in for it.
+        "--tt-build-note-bg": panoramaColor("buildsDark&ee", gameColors.offBlack),
+        "--tt-build-note-shadow": panoramaColor("#00000090", gameColors.buildsDark),
         // `.ScalingStatAltMultiply` is #ffffff86 at 0.8 opacity: one fade of 0x86 x 0.8, drawn by the colour.
         "--tt-scaling-x": panoramaColor(`#ffffff${Math.round(0x86 * 0.8).toString(16)}`, cell),
         "--tt-modified": "#00ff99",
@@ -261,6 +294,14 @@ export function tooltipVars(slot: ItemSlot): Record<string, string> {
         "--tt-popularity-fallback": panoramaColor("brandGreen&30", paper),
         "--tt-paper": paper,
         "--tt-header-fallback": `linear-gradient(100deg, ${bright}, ${dark})`,
+        "--tt-modifies-header": MODIFIES_HEADER[slot],
+        "--tt-modifies-body": MODIFIES_BODY[slot],
+        "--tt-modifies-shadow": "#00000060",
+        "--tt-details-name": COMMON_OFF_WHITE,
+        // Solid: a browser fade of these labels over the column's body misses the capture's hue.
+        "--tt-details-current": panoramaBlend(COMMON_OFF_WHITE, 0.5, modifies),
+        "--tt-details-arrow": panoramaBlend(COMMON_OFF_WHITE, DETAILS_ARROW_ALPHA, modifies),
+        "--tt-details-sub": panoramaBlend("offWhite", 0.8, modifies),
     };
 }
 

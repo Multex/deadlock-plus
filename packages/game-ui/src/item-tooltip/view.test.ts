@@ -180,6 +180,15 @@ describe("tooltip colours", () => {
         expect(distance(over(vars["--tt-component-name"], list), "#c9bfab")).toBeLessThanOrEqual(5);
     });
 
+    // Close Quarters' ALT column at 1440p: each label over the column's body, which measures #6b4c28.
+    it("fades the ALT column's labels to the colours measured over its body", () => {
+        const vars = tooltipVars("weapon");
+        expect(distance(vars["--tt-details-name"], "#f3f0e7")).toBeLessThanOrEqual(2);
+        expect(distance(vars["--tt-details-current"], "#c3b9ae")).toBeLessThanOrEqual(6);
+        expect(distance(vars["--tt-details-arrow"], "#a59584")).toBeLessThanOrEqual(6);
+        expect(distance(vars["--tt-details-sub"], "#ecdcc4")).toBeLessThanOrEqual(6);
+    });
+
     it("fades whole elements by their colour over their backdrop", () => {
         const vars = tooltipVars("spirit");
         const paper = vars["--tt-paper"];

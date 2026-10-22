@@ -3348,7 +3348,14 @@
             "popular_mid": "Purchased mid game in {percent}% of matches.",
             "popular_late": "Purchased late game in {percent}% of matches.",
             "see_details": "See Details",
-            "varies_by_hero": "Varies by hero"
+            "varies_by_hero": "Varies by hero",
+            "phase_heading": "Deadlock+ stats",
+            "phase_early": "Early game",
+            "phase_mid": "Mid game",
+            "phase_late": "Late game",
+            "phase_rates": "Picked {pick}% / Won {win}%",
+            "sell_priority": "Sell Priority: {priority}",
+            "imbue_suggestion": "Imbue Suggestion:"
         },
         "ability_tooltip": {
             "imbued_by": "Imbued by {item}",

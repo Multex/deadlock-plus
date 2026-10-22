@@ -14,18 +14,31 @@
     const band = $derived(cssUrl(ui[`tooltip_header_${header.slot}`]));
     const soul = $derived(cssUrl(ui.soul_icon));
     const check = $derived(cssUrl(ui.purchased_check));
+    let failed = $state<string | null>(null);
+    const abilityIcon = $derived(header.imbued?.icon && failed !== header.imbued.icon ? header.imbued.icon : null);
 </script>
 
 <!-- `.HeaderContainer`: at least 96 tall, padding 20 25, on the slot's painted band. -->
 <header class="header" class:painted={!!band} style:--band={band}>
     <span class="name" style:font-size="calc(var(--u) * {headerNameSize(header.name, width)})">{header.name}</span>
     {#if header.cost !== null}
-        <span class="state priced">
+        <span class="state priced" class:cant-afford={header.cantAfford}>
             <span class="soul" class:fallback={!soul} style:--soul={soul} aria-hidden="true"></span>
             <span class="cost">{header.cost}</span>
         </span>
     {:else if header.imbued}
-        <span class="state"><span class="imbued">{t(header.imbued)}</span></span>
+        <span class="state">
+            <span class="imbued">{t(header.imbued.text)}</span>
+            {#if abilityIcon}
+                <img
+                    class="ability"
+                    src={abilityIcon}
+                    alt=""
+                    draggable="false"
+                    onerror={() => (failed = abilityIcon)}
+                />
+            {/if}
+        </span>
     {:else if header.owned}
         <span class="state">
             <span class="owned">{t(header.owned)}</span>
@@ -72,6 +85,11 @@
         background: var(--game-shard, #99ffd6);
         mask: var(--soul) center / contain no-repeat;
     }
+    /* `.cantAfford .goldIcon` / `.cantAfford .ModCost`. */
+    .cant-afford .soul,
+    .cant-afford .cost {
+        --game-shard: var(--tt-cant-afford);
+    }
     .soul.fallback {
         mask: none;
         clip-path: polygon(50% 20%, 85% 50%, 50% 80%, 15% 50%);
@@ -114,5 +132,13 @@
         font-size: calc(var(--u) * 20);
         font-style: italic;
         font-weight: 700;
+    }
+    /* `#ModImbuedContainer #ImbueAbilityIcon`: `CitadelAbilityIcon`'s 100 px image at 20% ui-scale. */
+    .ability {
+        width: calc(var(--u) * 20);
+        height: calc(var(--u) * 20);
+        flex: none;
+        margin-left: calc(var(--u) * 5);
+        object-fit: contain;
     }
 </style>

@@ -2,8 +2,10 @@
     import type { HTMLAttributes } from "svelte/elements";
     import { gameArt } from "../art";
     import { gameText } from "../text";
+    import BuildNote from "./build-note.svelte";
     import ComponentGroups from "./component-groups.svelte";
     import DetailsBox from "./details-box.svelte";
+    import DetailsPanel from "./details-panel.svelte";
     import type { ItemTooltipModel } from "./model";
     import PopularityLine from "./popularity-line.svelte";
     import TooltipHeader from "./tooltip-header.svelte";
@@ -39,20 +41,28 @@
     data-slot={slot}
     style={style ? `${vars}; ${style}` : vars}
 >
-    <div class="main" style:width="calc(var(--u) * {model.width})">
-        <div class="paper" class:painted={!!backer} class:masked={!!mask}>
-            <TooltipHeader header={model.header} width={model.width} />
-            <div class="attributes">
-                {#each model.sections as section, i (i)}
-                    <TooltipSection {section} {bindings} />
-                {/each}
+    <!-- `#TooltipMainColumn`: the paper, then the build's note box under it. -->
+    <div class="column" style:width="calc(var(--u) * {model.width})">
+        <div class="main">
+            <div class="paper" class:painted={!!backer} class:masked={!!mask}>
+                <TooltipHeader header={model.header} width={model.width} />
+                <div class="attributes">
+                    {#each model.sections as section, i (i)}
+                        <TooltipSection {section} {bindings} />
+                    {/each}
+                </div>
+                {#if model.popularity}<PopularityLine popularity={model.popularity} />{/if}
+                {#if model.components.length > 0}<ComponentGroups groups={model.components} />{/if}
+                {#if variesByHero(model)}<span class="footnote">* {t(model.text.variesByHero)}</span>{/if}
             </div>
-            {#if model.popularity}<PopularityLine popularity={model.popularity} />{/if}
-            {#if model.components.length > 0}<ComponentGroups groups={model.components} />{/if}
-            {#if variesByHero(model)}<span class="footnote">* {t(model.text.variesByHero)}</span>{/if}
         </div>
+        {#if model.buildNote}<BuildNote note={model.buildNote} />{/if}
     </div>
-    {#if model.details}<DetailsBox details={model.details} {slot} keyLabel={bindings.ExtraInfo} />{/if}
+    {#if model.details?.panel}
+        <DetailsPanel panel={model.details.panel} side={model.details.side} {slot} />
+    {:else if model.details}
+        <DetailsBox details={model.details} {slot} keyLabel={bindings.ExtraInfo} />
+    {/if}
 </div>
 
 <style>
@@ -79,11 +89,16 @@
     .item-tooltip.left {
         flex-direction: row-reverse;
     }
+    .column {
+        display: flex;
+        flex: none;
+        flex-direction: column;
+    }
     /* `#ModTooltipContainer`'s `img-shadow` follows the masked paper's edge, so it sits on a wrapper. */
     .main {
         position: relative;
         z-index: 1;
-        flex: none;
+        flex: 1 0 auto;
         filter: drop-shadow(0 0 calc(var(--u) * 10) #000000);
     }
     .paper {
