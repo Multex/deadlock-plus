@@ -188,4 +188,12 @@ describe("formatGameNumber", () => {
         expect(formatGameNumber(26.8234, 2)).toBe("26.82");
         expect(formatGameNumber(0.30000000000000004)).toBe("0.3");
     });
+
+    it("rounds an exact tie to the even digit, as the game does", () => {
+        expect(formatGameNumber(2.5, 0)).toBe("2");
+        expect(formatGameNumber(3.5, 0)).toBe("4");
+        expect(formatGameNumber(0.125, 2)).toBe("0.12");
+        expect(formatGameNumber(-0.125, 2)).toBe("-0.12");
+        expect(formatGameNumber(-0.4, 0)).toBe("0");
+    });
 });

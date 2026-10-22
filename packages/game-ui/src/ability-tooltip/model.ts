@@ -4,7 +4,7 @@ import type { AbilityUpgrade } from "@deadlock-plus/ipc-types/AbilityUpgrade";
 import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
 import type { ScalingArrow, ScalingMarker, UiText, ValueText } from "../item-tooltip/model";
 import { parseMarkup, type MarkupNode } from "../markup/markup";
-import { FACTOR_DECIMALS, formatShownNumber, roundHalfEven, shownDecimals } from "./number";
+import { FACTOR_DECIMALS, formatShownNumber, roundHalfEven, shownDecimals } from "../number";
 
 /**
  * A tier's upgrade card state, as the game's classes name them: `has` (`hasUpgrade`, trained), `available`

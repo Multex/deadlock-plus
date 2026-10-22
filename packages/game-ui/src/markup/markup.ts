@@ -1,3 +1,5 @@
+import { formatShownNumber } from "../number";
+
 /** The text styles the game's description markup can ask for; class names kept as the game spells them. */
 export type MarkupStyle =
     | "highlight"
@@ -49,10 +51,9 @@ const STYLE_CLASSES: Record<string, MarkupStyle> = {
 const INLINE_ATTRIBUTE_CLASS = "inline-attribute-label";
 const PROPERTY_ICON_CLASS = "AbilityPropertyIcon";
 
-/** Shows a number the way the game's tooltips do: plain digits, no grouping, trailing zeros trimmed. */
+/** Shows a number the way the game's tooltips do: plain digits, no grouping, trailing zeros trimmed, ties to even. */
 export function formatGameNumber(value: number, maxDecimals = 4): string {
-    const rounded = Number(value.toFixed(maxDecimals));
-    return String(rounded === 0 ? 0 : rounded);
+    return formatShownNumber(value, maxDecimals);
 }
 
 type Frame = {

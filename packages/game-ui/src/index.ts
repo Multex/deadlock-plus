@@ -10,7 +10,7 @@ export * from "./item-card/card";
 export { default as ItemTooltip } from "./item-tooltip/item-tooltip.svelte";
 export * from "./item-tooltip/view";
 export * from "./ability-tooltip/model";
-export { roundHalfEven, formatShownNumber, shownDecimals, FACTOR_DECIMALS } from "./ability-tooltip/number";
+export { roundHalfEven, formatShownNumber, shownDecimals, FACTOR_DECIMALS } from "./number";
 export { abilityTooltipVars, upgradeArt, abilityNameSize } from "./ability-tooltip/view";
 export { default as AbilityTooltipView } from "./ability-tooltip/ability-tooltip.svelte";
 export {
