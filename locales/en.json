@@ -2132,7 +2132,12 @@
                 "step_tier": "{name} T{tier}",
                 "about": "About the souls timeline",
                 "items": "Items",
-                "abilities": "Abilities"
+                "abilities": "Abilities",
+                "investment": {
+                    "weapon": "Weapon Damage",
+                    "spirit": "Spirit Power",
+                    "vitality": "Max Health"
+                }
             },
             "shop": {
                 "popular": "Popular",
@@ -2243,6 +2248,11 @@
             "paste_label": "Build code",
             "paste_submit": "Open in editor",
             "import_failed": "Couldn't open this build code"
+        },
+        "hero_stat": {
+            "bullet_damage": "Bullet Damage",
+            "max_health": "Max Health",
+            "spirit_power": "Spirit Power"
         }
     },
     "alerts": {

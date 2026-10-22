@@ -8,7 +8,7 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
-    import { chipFor, costLine } from "../../build-detail.svelte";
+    import { chipFor, costLine, type HeroKit } from "../../build-detail.svelte";
     import type { ShopCatalog } from "../../catalog";
     import {
         MEASURED_RESOLUTION,
@@ -19,13 +19,23 @@
         type ShopMode,
         type ShopResolution,
     } from "../../shop-view";
+    import { HeroPopularity } from "../../editor/popularity.svelte";
     import { provideItemTips } from "../shop/item-tips";
     import ShopGrid from "../shop/shop-grid.svelte";
 
-    let { build, catalog, catalogFailed }: { build: BuildView; catalog: ShopCatalog | null; catalogFailed: boolean } =
-        $props();
+    let {
+        build,
+        catalog,
+        catalogFailed,
+        kit = null,
+    }: { build: BuildView; catalog: ShopCatalog | null; catalogFailed: boolean; kit?: HeroKit | null } = $props();
 
-    provideItemTips(() => (catalog ? { catalog } : null));
+    const popularity = new HeroPopularity();
+    provideItemTips(() => (catalog ? { catalog, popularity, build, kit } : null));
+
+    $effect(() => {
+        void popularity.load(build.heroId);
+    });
 
     const RESOLUTIONS: readonly { value: ShopResolution; label: string }[] = [
         { value: "1080", label: "1080p" },

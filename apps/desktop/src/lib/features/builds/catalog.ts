@@ -63,6 +63,8 @@ export interface ShopCatalog {
     statsById: StatsById;
     /** The game's tooltip sections per item; absent for items the game files give none for. */
     sectionsById: ReadonlyMap<number, readonly TooltipSection[]>;
+    /** Each item's condition text ("within Range"), which the game repeats under every ALT "See Details" row. */
+    conditionById?: ReadonlyMap<number, string>;
     /** Shopable, non-disabled items only. */
     itemsBySlotTier(): ItemsBySlotTier;
     /** `searchItems` over `items` (the shop by default), also matching stat labels. */
@@ -168,11 +170,13 @@ export function buildShopCatalog(
     }
     const statsById = statsByItem(stats);
     const sectionsById = new Map(stats.flatMap((i) => (i.sections ? [[i.itemId, i.sections] as const] : [])));
+    const conditionById = new Map(stats.flatMap((i) => (i.condition ? [[i.itemId, i.condition] as const] : [])));
     const matchers = statLabelMatchers(statsById);
     return {
         byId,
         statsById,
         sectionsById,
+        conditionById,
         search: (query, items = [...byId.values()].filter(isInShop)) => searchItems(items, query, matchers),
         itemsBySlotTier() {
             const out = {} as ItemsBySlotTier;

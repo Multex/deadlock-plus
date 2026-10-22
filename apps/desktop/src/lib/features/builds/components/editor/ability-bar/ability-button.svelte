@@ -6,7 +6,7 @@
     import { cn } from "@deadlock-plus/ui/utils";
     import { t, tn } from "$lib/core/i18n.svelte";
     import type { AbilityInfo } from "../../../build-detail.svelte";
-    import { abilityTooltipAt } from "../../../ability-tooltip";
+    import { abilityTooltipAt, type TooltipHero } from "../../../ability-tooltip";
     import type { AbilityProgress } from "../../../editor/ability-order";
     import AbilityArt from "./ability-art.svelte";
     import AbilityHover from "./ability-hover.svelte";
@@ -15,6 +15,7 @@
     let {
         ability,
         tooltip,
+        hero = {},
         slot,
         ultimate,
         progress,
@@ -28,6 +29,8 @@
         ability: AbilityInfo | undefined;
         /** The game's tooltip for this ability; the hover falls back to its name without one. */
         tooltip?: AbilityTooltip;
+        /** The hero as it stands when the build trains this ability's current tier. */
+        hero?: TooltipHero;
         /** 1-based slot number, as the game's keys 1-4. */
         slot: number;
         ultimate: boolean;
@@ -49,7 +52,7 @@
     const blocked = $derived(!readonly && progress.next?.kind === "blocked");
     const nextTier = $derived(!readonly && progress.next?.kind === "next" ? progress.next.tier : null);
 
-    const model = $derived(tooltip ? abilityTooltipAt(tooltip, progress.tier) : null);
+    const model = $derived(tooltip ? abilityTooltipAt(tooltip, progress.tier, null, hero) : null);
 
     const kindText = (tier: number) =>
         tier === 0 ? t("builds.editor.abilities.unlock") : t("builds.editor.abilities.tier", { tier });

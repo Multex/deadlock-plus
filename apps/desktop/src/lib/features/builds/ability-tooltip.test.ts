@@ -129,6 +129,79 @@ describe("abilityTooltipAt", () => {
     });
 });
 
+describe("spiritChanges", () => {
+    const property = (key: string, over: Partial<AbilityProperty> = {}): AbilityProperty => ({
+        key,
+        value: 30,
+        unit: null,
+        label: `${key} label`,
+        signed: false,
+        cssClass: "tech_damage",
+        displayType: null,
+        scale: { stat: "ETechPower", factor: 0.5, function: "scale_function_tech_damage" },
+        statusEffect: false,
+        ...over,
+    });
+
+    const burn: AbilityTooltip = {
+        ...ability(7, "Spirit Burn"),
+        header: [property("Radius", { value: 5, unit: "m", cssClass: "radius", scale: null })],
+        cooldown: property("AbilityCooldown", { value: 20, unit: "s", cssClass: null, scale: null }),
+        sections: [
+            {
+                description: null,
+                values: {},
+                groups: [{ title: null, cells: [property("Damage")] }],
+                properties: [
+                    property("Heal", { scale: { stat: "ELevelUpBoons", factor: 2, function: "boon" } }),
+                    property("Slow", {
+                        value: 10,
+                        unit: "%",
+                        cssClass: null,
+                        scale: { ...property("x").scale!, factor: 0.01 },
+                    }),
+                    property("BonusDamage", { value: 0, requiredTier: 2 }),
+                ],
+                requiredTier: null,
+            },
+        ],
+        upgrades: [
+            {
+                tier: 1,
+                description: null,
+                values: {},
+                bonuses: [{ property: property("Damage", { value: 0.25 }), kind: "addToScale" }],
+            },
+            upgrade(2),
+            upgrade(3),
+        ],
+    };
+
+    it("lists the values that grow with spirit power and change, as the game shows them", async () => {
+        const { spiritChanges } = await adapter();
+        const before = { ETechPower: 20, ELevelUpBoons: 1 };
+        expect(spiritChanges(burn, 0, before, { ETechPower: 30, ELevelUpBoons: 2 })).toEqual([
+            { key: "ability:7:Damage", label: "Damage label", before: 40, after: 45, decimals: 1, postfix: null },
+            { key: "ability:7:Slow", label: "Slow label", before: 10.2, after: 10.3, decimals: 1, postfix: "%" },
+        ]);
+    });
+
+    it("scales by the tiers trained, and shows values a trained tier unlocks", async () => {
+        const { spiritChanges } = await adapter();
+        const changes = spiritChanges(burn, 2, { ETechPower: 20 }, { ETechPower: 30 });
+        expect(changes.map((c) => [c.key, c.before, c.after])).toEqual([
+            ["ability:7:Damage", 45, 52],
+            ["ability:7:Slow", 10.2, 10.3],
+            ["ability:7:BonusDamage", 10, 15],
+        ]);
+    });
+
+    it("is empty when spirit power does not change", async () => {
+        const { spiritChanges } = await adapter();
+        expect(spiritChanges(burn, 3, { ETechPower: 20 }, { ETechPower: 20, EMaxHealth: 900 })).toEqual([]);
+    });
+});
+
 describe("heroAbilityTooltips", () => {
     it("keys the game's ability tooltips by ability id", async () => {
         const { heroAbilityTooltips } = await adapter();

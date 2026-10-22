@@ -6,7 +6,7 @@
     import { cn } from "@deadlock-plus/ui/utils";
     import { tick } from "svelte";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
-    import { abilityTooltipAt, recommendedAfter } from "../../../ability-tooltip";
+    import { abilityTooltipAt, recommendedAfter, type TooltipHero } from "../../../ability-tooltip";
     import type { HeroKit } from "../../../build-detail.svelte";
     import { TIER_COSTS, type BlockReason, type OrderStep } from "../../../editor/ability-order";
     import { pastThreshold } from "../../../editor/drag.svelte";
@@ -21,6 +21,7 @@
         kit,
         readonly = false,
         tooltips = new Map(),
+        heroAt = () => ({}),
         total = 0,
         preview = null,
         alsoRemoves = () => [],
@@ -34,6 +35,8 @@
         readonly?: boolean;
         /** The game's ability tooltips by ability id, for the read-only steps' hovers. */
         tooltips?: ReadonlyMap<number, AbilityTooltip>;
+        /** The hero when the build reaches step `index`, for the read-only steps' hovers. */
+        heroAt?: (index: number) => TooltipHero;
         /** Every step a full order has; the ones not taken yet show as empty slots. */
         total?: number;
         /** The step a click on an ability would add, drawn in the first empty slot. */
@@ -85,7 +88,7 @@
 
     function stepTooltip(step: OrderStep, i: number) {
         const tooltip = tooltips.get(step.abilityId);
-        return tooltip ? abilityTooltipAt(tooltip, step.tier, recommendedAfter(steps, i)) : null;
+        return tooltip ? abilityTooltipAt(tooltip, step.tier, recommendedAfter(steps, i), heroAt(i)) : null;
     }
 
     const costLine = (step: OrderStep) =>

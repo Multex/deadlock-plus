@@ -149,6 +149,6 @@
         </p>
     {/if}
 
-    <ShopPanel {build} {catalog} {catalogFailed} />
-    <AbilityOrder order={build.abilityOrder} {kit} />
+    <ShopPanel {build} {catalog} {catalogFailed} {kit} />
+    <AbilityOrder order={build.abilityOrder} {kit} {build} {catalog} />
 </article>

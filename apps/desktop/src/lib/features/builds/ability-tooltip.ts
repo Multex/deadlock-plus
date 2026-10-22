@@ -1,5 +1,6 @@
 import { abilityTooltipModel, type AbilityTooltipModel, type UpgradeState } from "@deadlock-plus/game-ui";
-import type { HeroStats } from "@deadlock-plus/game-ui/hero";
+import type { HeroStats, StatChange } from "@deadlock-plus/game-ui/hero";
+import type { ValueText } from "@deadlock-plus/game-ui/item-tooltip/model";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { loadAbilityTooltips } from "$lib/features/gamedata/vdata";
@@ -47,6 +48,54 @@ export function abilityTooltipAt(
         recommendedTier,
         heroStats: hero.stats,
         heroIcon: hero.icon,
+    });
+}
+
+type ShownValue = { label: string; value: ValueText };
+
+/** Every value the tooltip scales by spirit power, by property, as the game prints it. */
+function spiritValues(model: AbilityTooltipModel): Map<string, ShownValue> {
+    const views = [
+        ...model.chips,
+        ...[model.charges, model.chargeCooldown, model.cooldown].filter((c) => c !== null),
+        ...model.sections.flatMap((s) => [
+            ...s.groups.flatMap((g) => g.cells.flatMap((c) => (c.kind === "value" ? [c] : []))),
+            ...s.rows,
+        ]),
+    ];
+    const out = new Map<string, ShownValue>();
+    for (const view of views) {
+        if (view.scaled && view.scaling?.stat === "ETechPower" && !out.has(view.key)) out.set(view.key, view);
+    }
+    return out;
+}
+
+/**
+ * The values of an ability at `tier` that grow with spirit power and read differently for the hero `after` than
+ * `before`, rounded as the game's ability tooltip prints them.
+ */
+export function spiritChanges(
+    ability: AbilityTooltip,
+    tier: number | null,
+    before: HeroStats,
+    after: HeroStats,
+): StatChange[] {
+    const was = spiritValues(abilityTooltipAt(ability, tier, null, { stats: before }));
+    const now = spiritValues(abilityTooltipAt(ability, tier, null, { stats: after }));
+    return [...now].flatMap(([key, { label, value }]): StatChange[] => {
+        const old = was.get(key)?.value;
+        if (!old || old.number === value.number) return [];
+        return [
+            {
+                key: `ability:${ability.abilityId}:${key}`,
+                label,
+                before: Number(old.number),
+                after: Number(value.number),
+                // Already rounded to the property's own decimals; the game never shows more than one.
+                decimals: 1,
+                postfix: value.postfix || null,
+            },
+        ];
     });
 }
 

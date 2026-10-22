@@ -102,7 +102,21 @@ export function popularityFor(
 
 export type TooltipCatalog = Pick<ShopCatalog, "byId" | "statsById" | "sectionsById">;
 
-export type TooltipExtras = Pick<ItemTooltipInput, "popularity" | "ownedIds" | "owned" | "imbuedUpon" | "heroStats">;
+export type TooltipExtras = Pick<
+    ItemTooltipInput,
+    | "popularity"
+    | "ownedIds"
+    | "owned"
+    | "imbuedUpon"
+    | "canAfford"
+    | "buildNote"
+    | "heroStats"
+    | "heroIcon"
+    | "position"
+    | "hasDetails"
+    | "detailView"
+    | "details"
+>;
 
 /** Everything `itemTooltipModel` needs for `id`; null when the catalog does not know the item. */
 export function itemTooltipInput(

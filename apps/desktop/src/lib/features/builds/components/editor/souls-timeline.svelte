@@ -1,12 +1,17 @@
 <script lang="ts">
     import { Info } from "@lucide/svelte";
+    import type { ItemSlot } from "@deadlock-plus/game-ui/item";
+    import { gameArt } from "@deadlock-plus/game-ui/art";
     import { itemTooltipModel } from "@deadlock-plus/game-ui/item-tooltip/model";
+    import { gameText } from "@deadlock-plus/game-ui/text";
+    import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { deadlockApi } from "$lib/core/deadlock-api";
-    import { t } from "$lib/core/i18n.svelte";
+    import { i18n, t } from "$lib/core/i18n.svelte";
     import { stats } from "$lib/features/stats/stats.svelte";
+    import { abilityTooltipsRevision, heroAbilityTooltips } from "../../ability-tooltip";
     import type { HeroKit } from "../../build-detail.svelte";
     import type { ShopCatalog } from "../../catalog";
     import { addItems, moveItems } from "../../editor/document";
@@ -21,7 +26,6 @@
         loadNetWorthCurve,
         packLane,
         placeItems,
-        readoutPlacement,
         soulScale,
         soulTicks,
         statsAt,
@@ -31,13 +35,14 @@
         timelineSize,
         type NetWorthCurve,
     } from "../../editor/timeline";
+    import { buildsHero } from "../../game-ui-host.svelte";
     import type { Level } from "../../levels";
     import type { StatsById } from "../../stats";
-    import { itemTooltipInput, popularityFor } from "../../game-item";
-    import { itemTipSource } from "../shop/item-tips";
+    import { heroStatIcon, heroStatLabel, itemTipSource, tipInput, trackAlt } from "../shop/item-tips";
     import AbilityArt from "./ability-bar/ability-art.svelte";
     import TierPips from "./ability-bar/tier-pips.svelte";
     import TimelineAxis from "./timeline/timeline-axis.svelte";
+    import { readoutFit } from "./timeline/readout-fit";
     import TimelineReadout from "./timeline/timeline-readout.svelte";
 
     let {
@@ -163,42 +168,94 @@
                 : hover,
     );
 
+    const hero = $derived(buildsHero(editor.build.heroId));
+    const investment = $derived(
+        hero?.stats
+            ? {
+                  tables: hero.stats.investment,
+                  label: (slot: ItemSlot) => t(`builds.editor.timeline.investment.${slot}`),
+              }
+            : undefined,
+    );
+
     const readout = $derived.by(() => {
         if (point === null) return null;
         return {
             souls: point,
             level: levelAt(levels, point),
             time: timeAt(point),
-            stats: statsAt(entries, point, statsById, catalog.byId),
+            stats: statsAt(entries, point, statsById, catalog.byId, investment),
         };
     });
 
     const tipSource = itemTipSource();
-    const itemTip = $derived.by(() => {
-        const entry = focusedItem?.entry;
-        const id = focusedItem?.item?.id;
-        if (!entry || id === undefined) return undefined;
-        const popularity = tipSource()?.popularity;
-        const input = itemTooltipInput({ byId: catalog.byId, statsById, sectionsById: catalog.sectionsById }, id, {
-            popularity: popularity ? popularityFor(popularity.game, popularity.icon, id) : null,
-            ownedIds: entries.slice(0, entries.indexOf(entry)).map((e) => e.abilityId),
+    const statLabel = heroStatLabel(gameText());
+    const statIcon = heroStatIcon(gameArt());
+
+    // Focus follows pointerenter, so ALT is watched from the moment an item is hovered.
+    const itemFocused = $derived(focusedItem !== undefined);
+    let alt = $state(false);
+    $effect(() => {
+        if (!itemFocused) return;
+        const stop = trackAlt(window, (held) => (alt = held));
+        return () => {
+            stop();
+            alt = false;
+        };
+    });
+
+    let abilityTooltips = $state.raw<ReadonlyMap<number, AbilityTooltip> | undefined>(undefined);
+    $effect(() => {
+        if (!itemFocused) return;
+        let live = true;
+        abilityTooltipsRevision();
+        void heroAbilityTooltips(i18n.locale).then((read) => {
+            if (live) abilityTooltips = read;
         });
+        return () => {
+            live = false;
+        };
+    });
+
+    const itemTip = $derived.by(() => {
+        const id = focusedItem?.item?.id;
+        if (id === undefined) return undefined;
+        const input = tipInput(
+            {
+                catalog: { ...catalog, statsById },
+                popularity: tipSource()?.popularity ?? null,
+                build: editor.build,
+                kit: { abilities: kit.abilities, levels },
+            },
+            id,
+            {
+                hero: hero?.stats ?? null,
+                heroIcon: hero?.icon ?? null,
+                label: statLabel,
+                icon: statIcon,
+                position: tipAt.side,
+                detailView: alt,
+                abilityTooltips,
+            },
+        );
         return input ? itemTooltipModel(input) : undefined;
     });
 
     let tipWidth = $state(0);
     let tipHeight = $state(0);
+    let tipBody = $state(0);
     const tipAt = $derived.by(() => {
-        if (point === null || !track) return { left: 0, top: 0 };
+        if (point === null || !track) return { left: 0, top: 0, side: "right" as const };
         const anchor = focused?.at ?? x(point);
         const icon = focusedItem ? size.item : focusedStep ? size.mark : 0;
         const rect = track.getBoundingClientRect();
         const pane = track.closest("main")?.getBoundingClientRect() ?? { top: 0, bottom: window.innerHeight };
-        return readoutPlacement({
+        return readoutFit({
             anchor,
             // The icon may sit off its axis point after packing, and grows 10% while hovered.
             half: focused ? Math.abs(focused.x - anchor) + icon * 0.55 : 0,
-            tip: { width: tipWidth, height: tipHeight },
+            tip: { width: tipBody, height: tipHeight },
+            details: Math.max(0, tipWidth - tipBody),
             track: { width, top: rect.top, bottom: rect.bottom },
             bounds: { top: pane.top, bottom: pane.bottom },
             gap: 6,
@@ -426,6 +483,7 @@
                     stats={readout.stats}
                     bind:width={tipWidth}
                     bind:height={tipHeight}
+                    bind:body={tipBody}
                     item={itemTip}
                     header={focusedStep ? stepHeader : undefined}
                 />

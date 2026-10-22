@@ -193,4 +193,22 @@ describe("itemTooltipInput", () => {
         expect(input.popularity).toBe(popularity);
         expect(input.ownedIds).toEqual([1]);
     });
+
+    it("passes the ALT column, hero and build note through", () => {
+        const details = { groups: [], condition: null, phases: [] };
+        const buildNote = { text: "Rush", sellPriority: 1, imbueTarget: { name: "Burst Fire", icon: null } };
+        const input = itemTooltipInput(catalog, 3, {
+            position: "left",
+            hasDetails: true,
+            detailView: true,
+            details,
+            canAfford: false,
+            buildNote,
+            imbuedUpon: { name: "Burst Fire", icon: "burst.png" },
+        })!;
+        expect(input).toMatchObject({ position: "left", hasDetails: true, detailView: true, canAfford: false });
+        expect(input.details).toBe(details);
+        expect(input.buildNote).toBe(buildNote);
+        expect(input.imbuedUpon).toEqual({ name: "Burst Fire", icon: "burst.png" });
+    });
 });

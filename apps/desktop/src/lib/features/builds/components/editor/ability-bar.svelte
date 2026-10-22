@@ -6,7 +6,7 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { cn } from "@deadlock-plus/ui/utils";
     import { i18n, t, tn } from "$lib/core/i18n.svelte";
-    import { heroAbilityTooltips } from "../../ability-tooltip";
+    import { abilityTooltipsRevision, heroAbilityTooltips, type TooltipHero } from "../../ability-tooltip";
     import type { HeroKit } from "../../build-detail.svelte";
     import {
         abilityProgress,
@@ -26,6 +26,9 @@
     } from "../../editor/ability-order";
     import { updateBuild } from "../../editor/document";
     import type { BuildEditor } from "../../editor/editor.svelte";
+    import { buildsHero } from "../../game-ui-host.svelte";
+    import { heroStatsAtStep, heroTimeline } from "../../hero-timeline";
+    import { itemTipSource } from "../shop/item-tips";
     import AbilityButton from "./ability-bar/ability-button.svelte";
     import BarFrame from "./ability-bar/bar-frame.svelte";
     import PointsLine from "./ability-bar/points-line.svelte";
@@ -39,6 +42,7 @@
 
     $effect(() => {
         let live = true;
+        abilityTooltipsRevision();
         void heroAbilityTooltips(i18n.locale).then((read) => {
             if (live) tooltips = read;
         });
@@ -57,6 +61,20 @@
     const steps = $derived(orderSteps(order, levels));
     const points = $derived(pointsSummary(order, levels));
     const total = $derived(abilities.length * (TIER_COSTS.length + 1));
+
+    const tipSource = itemTipSource();
+    const hero = $derived(buildsHero(editor.build.heroId));
+    const timeline = $derived.by(() => {
+        const catalog = tipSource()?.catalog;
+        return catalog && hero?.stats ? heroTimeline(hero.stats, editor.build, catalog, levels) : null;
+    });
+    // Each button shows the ability at its current tier, so its hero is the one at the step that trained it.
+    const heroes = $derived(
+        progress.map((p): TooltipHero => ({
+            stats: timeline ? heroStatsAtStep(timeline, steps, p.lastStep) : undefined,
+            icon: hero?.icon ?? null,
+        })),
+    );
 
     const preview = $derived.by((): OrderStep | null => {
         const column = hovered === null ? -1 : abilities.indexOf(hovered);
@@ -160,6 +178,7 @@
             <AbilityButton
                 ability={kit.abilities.get(abilityId)}
                 tooltip={tooltips.get(abilityId)}
+                hero={heroes[column]}
                 slot={column + 1}
                 ultimate={abilityId === ultimateId}
                 progress={progress[column]!}

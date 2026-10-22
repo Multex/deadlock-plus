@@ -3,6 +3,7 @@ import { loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
 import { loadPopularItems } from "$lib/features/gamedata/vdata";
 import { loadHeroes } from "$lib/features/heroes/heroes";
 import type { AnalyticsFilter, HeroStatsRow, ItemStats, ItemStatsFilter } from "@deadlock-plus/deadlock-api";
+import type { PhaseStat } from "@deadlock-plus/game-ui/hero";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import {
     gamePopular,
@@ -11,6 +12,7 @@ import {
     PHASES,
     phaseFilter,
     phaseStats,
+    phaseStatsFor,
     pickScore,
     type GamePopular,
     type Phase,
@@ -39,6 +41,9 @@ export class HeroPopularity {
     api = $state.raw<PhaseStats | null>(null);
     /** The hero's minimap head for the game's popular marker, else its icon. */
     icon = $state.raw<string | null>(null);
+    heroId = $state<number | null>(null);
+    /** True until every source of the newest load has answered or failed. */
+    loading = $state(false);
     #deps: PopularityDeps;
     #token = 0;
 
@@ -52,6 +57,8 @@ export class HeroPopularity {
         this.game = new Map();
         this.api = null;
         this.icon = null;
+        this.heroId = heroId;
+        this.loading = true;
         const d = this.#deps;
         await Promise.all([
             d
@@ -66,6 +73,7 @@ export class HeroPopularity {
                 .catch(() => null)
                 .then((api) => current() && (this.api = api)),
         ]);
+        if (current()) this.loading = false;
     }
 
     async #loadApi(heroId: number): Promise<PhaseStats> {
@@ -90,6 +98,11 @@ export class HeroPopularity {
     /** True when there is anything to sort by. */
     get available(): boolean {
         return this.api !== null || this.game.size > 0;
+    }
+
+    /** The item's pick and win % per phase, for the tooltip's ALT column. */
+    phases(itemId: number): PhaseStat[] {
+        return phaseStatsFor(this.api, itemId);
     }
 
     score(phase: Phase): (itemId: number) => number | undefined {

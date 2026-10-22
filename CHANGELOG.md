@@ -40,6 +40,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Ability tooltips show values an upgrade switches on only from that tier.
 - Ability upgrades that multiply a value are counted and worded as in-game.
 - Boon-scaled values show the hero's portrait, as in-game.
+- Hold Alt over an item to see how it changes your hero's stats, as the game's See Details does.
+- See Details also lists Deadlock+'s pick and win rates for each game phase.
+- Item tooltips show the build's note, sell priority and imbue suggestion for that item.
+- Ability and item tooltips use your hero's stats at that point in the build.
+- The build view's shop marks popular items with their pick and win rates.
 
 #### Build editor
 
@@ -64,6 +69,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Undo and redo every change, and restore any of the last 20 saved versions.
 - Ability steps show the level the game takes them at, with unlocks and ability points taken separately.
 - Unlocks first moves every unlock to the front of the ability order; only Deadlock's build preview changes.
+- The souls timeline adds slot investment bonuses to weapon damage, spirit power and max health.
 - Turn on Support Deadlock+ to add a "Made with Deadlock+ - deadlockplus.app" line under a build's description.
 - New builds start with that line if you left it on last time.
 

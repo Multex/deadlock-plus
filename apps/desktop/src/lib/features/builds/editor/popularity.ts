@@ -1,4 +1,5 @@
 import type { AnalyticsFilter, HeroStatsRow, ItemStats, ItemStatsFilter } from "@deadlock-plus/deadlock-api";
+import type { PhaseStat } from "@deadlock-plus/game-ui/hero";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 
 export const PHASES = ["early", "mid", "late"] as const;
@@ -48,6 +49,15 @@ export function phaseStats(rows: readonly ItemStats[], heroMatchCount: number): 
         });
     }
     return stats;
+}
+
+/** The item's pick and win % in each phase deadlock-api has it in; empty without API data. */
+export function phaseStatsFor(api: PhaseStats | null, itemId: number): PhaseStat[] {
+    if (api === null) return [];
+    return PHASES.flatMap((phase) => {
+        const s = api[phase].get(itemId);
+        return s ? [{ phase, pickPercent: s.pickPct, winPercent: s.winPct }] : [];
+    });
 }
 
 export interface GamePopular {

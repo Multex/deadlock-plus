@@ -13,6 +13,7 @@ import {
     PHASE_WINDOWS,
     phaseFilter,
     phaseStats,
+    phaseStatsFor,
     pickScore,
     type PhaseStats,
 } from "./popularity";
@@ -132,6 +133,20 @@ describe("pickScore", () => {
     });
 });
 
+describe("phaseStatsFor", () => {
+    it("lists the item's pick and win % in each phase the API has it in", () => {
+        expect(phaseStatsFor(API, 10)).toEqual([
+            { phase: "early", pickPercent: 41, winPercent: 52 },
+            { phase: "mid", pickPercent: 9, winPercent: 47.5 },
+        ]);
+        expect(phaseStatsFor(API, 99)).toEqual([]);
+    });
+
+    it("is empty without API data", () => {
+        expect(phaseStatsFor(null, 10)).toEqual([]);
+    });
+});
+
 function deps(over: Partial<PopularityDeps> = {}): PopularityDeps {
     return {
         loadGame: vi.fn(async () => GAME),
@@ -157,6 +172,40 @@ describe("HeroPopularity", () => {
         expect(store.api?.early.get(10)?.pickPct).toBe(50);
         expect(store.api?.mid.get(11)?.pickPct).toBe(20);
         expect(store.score("early")(10)).toBe(50);
+        expect(store.phases(10)).toEqual([{ phase: "early", pickPercent: 50, winPercent: 50 }]);
+    });
+
+    it("is loading until every source answers, and knows its hero", async () => {
+        let release: (v: HeroStatsRow[]) => void = () => {};
+        const slow = new Promise<HeroStatsRow[]>((r) => (release = r));
+        const store = new HeroPopularity(deps({ heroStats: vi.fn(() => slow) }));
+        expect(store.loading).toBe(false);
+        const loading = store.load(7);
+        expect(store.loading).toBe(true);
+        expect(store.heroId).toBe(7);
+        release([{ hero_id: 7, matches: 200 }]);
+        await loading;
+        expect(store.loading).toBe(false);
+    });
+
+    it("stops loading when the API is down, so the Popular tab can say it is empty", async () => {
+        const store = new HeroPopularity(deps({ itemStats: vi.fn(async () => Promise.reject(new Error("down"))) }));
+        await store.load(7);
+        expect(store.loading).toBe(false);
+        expect(store.api).toBeNull();
+    });
+
+    it("stays loading while a newer hero's load runs", async () => {
+        let release: (v: PopularItems | null) => void = () => {};
+        const slow = new Promise<PopularItems | null>((r) => (release = r));
+        const loadGame = vi.fn((hero: number) => (hero === 2 ? slow : Promise.resolve(null)));
+        const store = new HeroPopularity(deps({ loadGame }));
+        await store.load(1);
+        const second = store.load(2);
+        expect(store.loading).toBe(true);
+        release(null);
+        await second;
+        expect(store.loading).toBe(false);
     });
 
     it("hides API stats when the API is unreachable but keeps the game's marker", async () => {

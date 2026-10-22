@@ -49,7 +49,7 @@
     let snap = $state(loadSnap());
     $effect(() => saveSnap(snap));
     const popularity = new HeroPopularity();
-    provideItemTips(() => (catalog ? { catalog, popularity } : null));
+    provideItemTips(() => (catalog ? { catalog, popularity, build: editor?.build ?? null, kit } : null));
     const NAME_ID = "editor-build-name";
     let nameWanted = $state(false);
 

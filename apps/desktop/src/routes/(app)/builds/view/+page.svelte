@@ -55,7 +55,17 @@
             </div>
         {/if}
 
-        <ShopPanel build={detail.build} catalog={detail.catalog} catalogFailed={detail.catalogFailed} />
-        <AbilityOrder order={detail.build.abilityOrder} kit={detail.kit} />
+        <ShopPanel
+            build={detail.build}
+            catalog={detail.catalog}
+            catalogFailed={detail.catalogFailed}
+            kit={detail.kit}
+        />
+        <AbilityOrder
+            order={detail.build.abilityOrder}
+            kit={detail.kit}
+            build={detail.build}
+            catalog={detail.catalog}
+        />
     {/if}
 </Page>

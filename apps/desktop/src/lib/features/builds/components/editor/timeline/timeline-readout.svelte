@@ -4,6 +4,7 @@
     import type { ItemTooltipModel } from "@deadlock-plus/game-ui/item-tooltip/model";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { statText, type StatTotal } from "../../../stats";
+    import { TIP_BINDINGS } from "../../shop/item-tips";
 
     let {
         left,
@@ -14,6 +15,7 @@
         stats,
         width = $bindable(0),
         height = $bindable(0),
+        body = $bindable(0),
         item,
         header,
     }: {
@@ -23,8 +25,11 @@
         level: number | null;
         time: string | null;
         stats: readonly StatTotal[];
+        /** The whole readout, the item tooltip's ALT column included. */
         width?: number;
         height?: number;
+        /** The readout without the item tooltip's ALT column. */
+        body?: number;
         /** The hovered item: its game tooltip sits on top and the timeline's facts take its colours. */
         item?: ItemTooltipModel;
         header?: Snippet;
@@ -45,6 +50,7 @@
     bind:offsetHeight={height}
     class="readout pointer-events-none absolute z-20"
     class:with-item={!!item}
+    class:left={item?.details?.side === "left"}
     style:left="{left}px"
     style:top="{top}px"
     style:visibility={height === 0 ? "hidden" : undefined}
@@ -53,9 +59,13 @@
     data-testid="timeline-readout"
 >
     {#if item}
-        <ItemTooltip model={item} />
+        <ItemTooltip model={item} bindings={TIP_BINDINGS} />
     {/if}
-    <div class="panel">
+    <div
+        bind:offsetWidth={body}
+        class="panel"
+        style:min-width={item ? `max(200px, calc(var(--game-ui-scale, 1) * ${item.width}px))` : undefined}
+    >
         {#if header && !item}
             <header>{@render header()}</header>
         {/if}
@@ -99,9 +109,10 @@
         --body: #48433a;
         --bar: #1d1b17;
         --off-white: #ffefd7;
+        display: flex;
         width: max-content;
-        min-width: 200px;
-        max-width: 30rem;
+        flex-direction: column;
+        align-items: flex-start;
         color: var(--off-white);
         font-size: 13px;
         line-height: 1.3;
@@ -119,8 +130,15 @@
         --bar: #18220c;
     }
 
+    /* With the ALT column on the left, the main column sits on the right and the facts stay under it. */
+    .readout.left {
+        align-items: flex-end;
+    }
+
     .panel {
         position: relative;
+        min-width: 200px;
+        max-width: 30rem;
         filter: drop-shadow(0 6px 14px #000a);
     }
     /* Tucks under the item tooltip's torn bottom edge so the two read as one panel. */
