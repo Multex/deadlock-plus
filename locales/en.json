@@ -125,7 +125,11 @@
             "history_failed": "Couldn't read this build's saved versions. Check the log for details.",
             "version_not_found": "That saved version is gone.",
             "queue_failed": "Couldn't update the builds waiting for Deadlock to close. Check the log for details.",
-            "drafts_failed": "Couldn't save or read your build drafts. Check the log for details."
+            "drafts_failed": "Couldn't save or read your build drafts. Check the log for details.",
+            "code_empty": "Paste a build code first.",
+            "code_invalid": "That isn't a build code. In Deadlock, use Copy build to clipboard and paste the whole code.",
+            "code_incomplete": "This build code is cut off or isn't from Deadlock. Copy it again.",
+            "code_damaged": "This build code is damaged. Copy it again from Deadlock."
         },
         "match_history": {
             "too_large": "That match is too large to save on this PC.",
@@ -2216,6 +2220,27 @@
             "label": "Public builds",
             "back": "All builds",
             "open_full": "Open full view"
+        },
+        "code": {
+            "copy": "Copy for game",
+            "steps_show": "How to paste it in Deadlock",
+            "copied_title": "Build code copied",
+            "copied_description": "To add it in Deadlock:",
+            "steps_title": "Paste a build in Deadlock",
+            "step_hero": "Switch to {hero}.",
+            "step_hero_unknown": "Switch to the hero this build is for.",
+            "step_menu": "Open the build menu.",
+            "step_browser": "Click Build Browser.",
+            "step_create": "Click Create New Build.",
+            "step_paste": "Click Paste Build.",
+            "done": "Done",
+            "copy_failed": "Couldn't copy the build code",
+            "paste": "Paste code",
+            "paste_title": "Open a build code",
+            "paste_description": "In Deadlock, use Copy build to clipboard, then paste the code here. It opens in the editor as a new copy.",
+            "paste_label": "Build code",
+            "paste_submit": "Open in editor",
+            "import_failed": "Couldn't open this build code"
         }
     },
     "alerts": {

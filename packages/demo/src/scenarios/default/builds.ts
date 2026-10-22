@@ -701,6 +701,43 @@ function fail(code: string): never {
     throw { code: `builds.${code}`, params: {} };
 }
 
+/**
+ * A stand-in for the game's build code (base64 of zstd of protobuf): base64 of the build's JSON, in
+ * the shape the app exports, with a GC id moved to the origin as a local copy of it.
+ */
+function exportCode(build: BuildView): string {
+    const published = build.heroBuildId >= LOCAL_ID_LIMIT;
+    const exported: BuildView = {
+        ...build,
+        heroBuildId: published ? 0 : build.heroBuildId,
+        originBuildId: published ? build.heroBuildId : build.originBuildId,
+        version: 0,
+        favorited: false,
+    };
+    return btoa(String.fromCodePoint(...new TextEncoder().encode(JSON.stringify(exported))));
+}
+
+function importCode(code: string): BuildView {
+    const text = code.replace(/\s/g, "");
+    if (!text) fail("code_empty");
+    let bytes: string;
+    try {
+        bytes = atob(text);
+    } catch {
+        fail("code_invalid");
+    }
+    let build: unknown;
+    try {
+        build = JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes, (c) => c.charCodeAt(0))));
+    } catch {
+        fail("code_incomplete");
+    }
+    if (typeof build !== "object" || build === null || typeof (build as BuildView).heroId !== "number") {
+        fail("code_damaged");
+    }
+    return build as BuildView;
+}
+
 export interface BuildsOptions {
     /** Deadlock is running, so every save waits in the queue. */
     gameRunning?: boolean;
@@ -1089,6 +1126,13 @@ export function builds({ gameRunning = false, empty = false }: BuildsOptions = {
                     history.get(Number(buildId))?.find((v) => v.meta.id === versionId)?.build ??
                     fail("version_not_found"),
                 builds_backups: (): BuildBackup[] => backups,
+                build_code_export: ({ request }) => {
+                    const save = request as SaveRequest;
+                    if (save.kind === "edit") decode(save.base);
+                    if (save.kind === "copy") decode(save.source);
+                    return exportCode(save.build);
+                },
+                build_code_import: ({ code }): BuildView => importCode(String(code ?? "")),
             };
 
             const routes = [buildsRoute(published.map((p) => apiRow(p.build, p.counts))), buildStatsRoute(published)];

@@ -1539,6 +1539,7 @@ version = "0.13.2"
 name = "dp-builds"
 version = "0.13.2"
 dependencies = [
+ "base64 0.23.1",
  "dp-atomic",
  "dp-game",
  "dp-steam",
@@ -1549,6 +1550,7 @@ dependencies = [
  "serde_json",
  "source2-kv3",
  "ts-rs",
+ "zstd-rs",
 ]
 
 [[package]]

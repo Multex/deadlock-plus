@@ -20,6 +20,8 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import type { BuildEditor, SaveStatus } from "$lib/features/builds/editor/editor.svelte";
+    import { saveRequest } from "$lib/features/builds/editor/session";
+    import CopyForGame from "../build-code/copy-for-game.svelte";
     import Segmented from "$lib/features/match-history/components/list/segmented.svelte";
     import { MEASURED_RESOLUTION, type ShopResolution } from "$lib/features/builds/shop-view";
     import { ZOOM_STEPS, shownZoom, stepZoom, zoomScale, type Zoom } from "./canvas/zoom";
@@ -228,6 +230,11 @@
         {#if resolve}
             <VersionHistory {editor} {resolve} />
         {/if}
+        <CopyForGame
+            class="ml-1"
+            request={() => saveRequest(editor.origin, editor.build)}
+            heroId={editor.build.heroId}
+        />
         <Button
             size="sm"
             class="ml-1"

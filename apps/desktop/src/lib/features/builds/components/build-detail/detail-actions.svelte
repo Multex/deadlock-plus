@@ -8,7 +8,9 @@
     import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
+    import { detailExportRequest } from "../../build-code.svelte";
     import type { BuildDetail } from "../../build-detail.svelte";
+    import CopyForGame from "../build-code/copy-for-game.svelte";
     import { editHref, editsInPlace } from "../../editor/load";
 
     let {
@@ -125,6 +127,15 @@
     </Button>
 {/snippet}
 
+{#snippet gameCodeButton()}
+    <CopyForGame
+        class={width}
+        {size}
+        request={() => detailExportRequest(build, detail.local, detail.draft)}
+        heroId={build.heroId}
+    />
+{/snippet}
+
 {#snippet favouriteButton()}
     <Button
         class={width}
@@ -164,6 +175,7 @@
         {@render editButton()}
         {@render copyButton()}
         {@render copyStatus()}
+        {@render gameCodeButton()}
         {#if detail.canFavourite}
             {@render favouriteButton()}
             {@render favouriteStatus()}
@@ -176,6 +188,7 @@
             {@render leading?.()}
             {@render editButton()}
             {@render copyButton()}
+            {@render gameCodeButton()}
             {#if detail.canFavourite}{@render favouriteButton()}{/if}
             {#if detail.draft}{@render discardButton()}{/if}
         </div>

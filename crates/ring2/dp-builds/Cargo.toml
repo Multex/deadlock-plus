@@ -9,6 +9,7 @@ publish.workspace = true
 tier = 2
 
 [dependencies]
+base64 = "0.23.1"
 dp-atomic = { path = "../../ring0/dp-atomic" }
 dp-sync = { path = "../../ring0/dp-sync" }
 dp-versioned = { path = "../../ring0/dp-versioned" }
@@ -18,6 +19,7 @@ log = "0.4.34"
 serde = { version = "1", features = ["derive"] }
 source2-kv3 = { git = "https://github.com/deadlock-plus/source2-rs", rev = "2b73748e7bc8d901cbdbef60d8d68ddaddd3159f" }
 ts-rs = "12"
+zstd-rs = "0.1.0"
 
 [dev-dependencies]
 serde_json = "1"

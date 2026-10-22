@@ -35,6 +35,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - You can favourite any public build from its page, and it shows in your favourites in-game.
 - Shop items, prices and hero levels come from your Deadlock install.
 - Hero rows on the Stats page link to that hero's builds.
+- Copy for game puts a build on your clipboard as a code Deadlock's Create New Build accepts.
+- Paste code on the Builds page opens a code copied in Deadlock as a new build in the editor.
 
 #### Build editor
 

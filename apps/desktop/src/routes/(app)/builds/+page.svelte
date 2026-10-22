@@ -6,6 +6,7 @@
     import * as Tabs from "@deadlock-plus/ui/tabs";
     import { t } from "$lib/core/i18n.svelte";
     import { withParam } from "$lib/features/builds/build-list";
+    import PasteCodeDialog from "$lib/features/builds/components/build-code/paste-code-dialog.svelte";
     import MyBuilds from "$lib/features/builds/components/my-builds/my-builds.svelte";
     import PublicBrowser from "$lib/features/builds/components/browser/public-browser.svelte";
     import { BuildLookups } from "$lib/features/builds/lookups.svelte";
@@ -30,7 +31,11 @@
 </script>
 
 <Page class="h-full min-h-0 max-w-[1232px] gap-4 px-4 pb-6">
-    <PageHeader title={t("builds.browser.title")} subtitle={t("builds.browser.subtitle")} />
+    <PageHeader title={t("builds.browser.title")} subtitle={t("builds.browser.subtitle")}>
+        {#snippet actions()}
+            <PasteCodeDialog />
+        {/snippet}
+    </PageHeader>
 
     <Tabs.Root value={tab} onValueChange={pickTab} class="flex min-h-0 flex-1 flex-col">
         <Tabs.List class="self-start">

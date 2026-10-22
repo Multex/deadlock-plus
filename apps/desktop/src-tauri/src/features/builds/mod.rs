@@ -5,20 +5,23 @@ pub mod views;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use dp_builds::code::{self, CodeError};
 use dp_builds::drafts;
 use dp_builds::history::{self, Version};
+use dp_builds::model::{self, BuildView};
 use dp_builds::paths::{self, Target};
 use dp_builds::queue::{self, FlushReport, QueueError, QueuedSave};
 use dp_builds::save::{save_with, SaveError, SaveOp};
+use dp_builds::wire::{HeroBuild, HeroBuildResult};
 use dp_gamedata::{GameData, HeroEntry, HeroTable, HeroVdata};
 use dp_sync::LockExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::features::error::{AppError, ErrorKey};
+use crate::features::error::{error_codes, AppError, ErrorKey};
 use crate::features::gamedata::GameVdata;
 use error::BuildsError;
 use plan::{HeroInfo, Heroes, Planned};
-use views::{FlushView, SaveResult};
+use views::{FlushView, SaveRequest, SaveResult};
 
 pub const FLUSHED_EVENT: &str = "builds://flushed";
 
@@ -241,13 +244,57 @@ pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
     }
 }
 
+error_codes! {
+    pub enum CodeKey in "builds" {
+        CodeEmpty = "code_empty",
+        CodeInvalid = "code_invalid",
+        CodeIncomplete = "code_incomplete",
+        CodeDamaged = "code_damaged",
+    }
+}
+
+impl From<CodeError> for AppError {
+    fn from(error: CodeError) -> Self {
+        let key = match error {
+            CodeError::Empty => CodeKey::CodeEmpty,
+            CodeError::NotBase64 => CodeKey::CodeInvalid,
+            // Valid base64 that is no zstd frame is most often a code cut short by the paste.
+            CodeError::NotZstd => CodeKey::CodeIncomplete,
+            CodeError::BadBuild(_) | CodeError::NoHero => CodeKey::CodeDamaged,
+        };
+        AppError::new(key).detail(error)
+    }
+}
+
+/// The build `request` would save, before the save gives it an id.
+fn export_source(request: SaveRequest) -> Result<HeroBuild, AppError> {
+    let (base, build) = match request {
+        SaveRequest::Edit { base, build, .. } | SaveRequest::Copy { source: base, build } => {
+            (plan::decode_base(&base)?.1, build)
+        }
+        SaveRequest::New { build } => {
+            (model::new_local(build.hero_build_id, build.author_account_id, build.hero_id, build.language, 0), build)
+        }
+        SaveRequest::CopyView { build } => (HeroBuildResult::default(), build),
+    };
+    Ok(model::apply(&base, &build).hero_build.unwrap_or_default())
+}
+
+fn export_code(request: SaveRequest, account: Option<u32>, now: u32) -> Result<String, AppError> {
+    Ok(code::encode_code(&code::for_export(&export_source(request)?, account, now)))
+}
+
+fn import_code(text: &str) -> Result<BuildView, AppError> {
+    let build = code::decode_code(text)?;
+    Ok(model::view(&HeroBuildResult { hero_build: Some(build), ..Default::default() }))
+}
+
 pub mod commands {
     use super::*;
     use crate::features::i18n::I18nState;
     use dp_builds::drafts::DraftView;
-    use dp_builds::model::BuildView;
     use tauri::State;
-    use views::{BuildBackup, BuildSection, LocalBuilds, ResolveChoice, SaveRequest};
+    use views::{BuildBackup, BuildSection, LocalBuilds, ResolveChoice};
 
     async fn blocking<T: Send + 'static>(
         work: impl FnOnce() -> Result<T, AppError> + Send + 'static,
@@ -444,6 +491,23 @@ pub mod commands {
         .await
     }
 
+    /// The code Deadlock's "Create New Build" accepts, for the build `request` would save. Nothing is
+    /// written, so it works while the game runs.
+    #[tauri::command]
+    pub async fn build_code_export(request: SaveRequest) -> Result<String, AppError> {
+        blocking(move || {
+            let account = paths::current_target().ok().map(|t| t.account_id32);
+            export_code(request, account, u32::try_from(now_secs()).unwrap_or(u32::MAX))
+        })
+        .await
+    }
+
+    /// A code from the game's "Copy build to clipboard", as a build to open. Save it as a `copyView`.
+    #[tauri::command]
+    pub async fn build_code_import(code: String) -> Result<BuildView, AppError> {
+        import_code(&code)
+    }
+
     #[tauri::command]
     pub async fn builds_backups(app: AppHandle) -> Result<Vec<BuildBackup>, AppError> {
         let dirs = app_dirs(&app)?;
@@ -499,6 +563,70 @@ mod tests {
             portrait: None,
             card: None,
         }
+    }
+
+    const GAME_CODE: &str = include_str!("../../../../../../crates/ring2/dp-builds/tests/fixtures/build_code.txt");
+
+    fn draft(name: &str) -> BuildView {
+        BuildView {
+            hero_id: 2,
+            name: name.into(),
+            description: "notes".into(),
+            mod_categories: vec![model::ModCategoryView { name: "Early".into(), ..Default::default() }],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_game_code_opens_as_its_build() {
+        let build = import_code(GAME_CODE).unwrap();
+        assert_eq!((build.hero_id, build.author_account_id), (2, 387_246_372));
+        assert_eq!(build.name, "Copy of [FLINT SEVEN SOLVED - 21 OCTOBER]");
+        assert!(!build.mod_categories.is_empty());
+    }
+
+    #[test]
+    fn a_new_build_exports_as_a_local_build_of_the_account() {
+        let code = export_code(SaveRequest::New { build: draft("Mine") }, Some(7), 500).unwrap();
+        let back = import_code(&code).unwrap();
+        assert_eq!((back.hero_build_id, back.author_account_id, back.version), (0, 7, 0));
+        assert_eq!((back.name.as_str(), back.description.as_str()), ("Mine", "notes"));
+        assert_eq!(back.mod_categories, draft("").mod_categories);
+        assert_eq!(back.last_updated_timestamp, Some(500));
+    }
+
+    #[test]
+    fn an_edited_published_build_exports_as_a_copy_of_it() {
+        let mut published = model::new_local(446_250, 9, 2, 0, 1);
+        published.hero_build.as_mut().unwrap().version = Some(3);
+        let base = plan::encode_hex(&published.encode());
+        let build = BuildView { hero_build_id: 446_250, author_account_id: 9, version: 3, ..draft("Edited") };
+        let request = SaveRequest::Edit { section: views::BuildSection::SavedLastUsed, base, build };
+        let back = import_code(&export_code(request, None, 500).unwrap()).unwrap();
+        assert_eq!((back.hero_build_id, back.origin_build_id, back.version), (0, Some(446_250), 0));
+        assert_eq!((back.author_account_id, back.name.as_str()), (9, "Edited"));
+    }
+
+    #[test]
+    fn a_bad_base_is_refused_on_export() {
+        let request = SaveRequest::Copy { source: "zz".into(), build: draft("x") };
+        assert_eq!(export_code(request, None, 0).unwrap_err().code(), "builds.bad_base");
+    }
+
+    #[test]
+    fn each_bad_code_has_its_own_error() {
+        let code = |text: &str| import_code(text).unwrap_err().code().to_string();
+        assert_eq!(code("  "), "builds.code_empty");
+        assert_eq!(code("not a code!"), "builds.code_invalid");
+        assert_eq!(code(&GAME_CODE[..400]), "builds.code_incomplete");
+        assert_eq!(AppError::from(CodeError::NoHero).code(), "builds.code_damaged");
+        let wire = dp_builds::wire::WireError::Truncated;
+        assert_eq!(AppError::from(CodeError::BadBuild(wire)).code(), "builds.code_damaged");
+    }
+
+    #[test]
+    fn every_build_code_error_is_in_the_english_catalog() {
+        crate::features::error::assert_catalogued::<CodeKey>();
     }
 
     #[test]

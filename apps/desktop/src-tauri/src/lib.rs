@@ -201,6 +201,8 @@ pub fn run() {
             features::builds::commands::builds_drafts,
             features::builds::commands::builds_draft_save,
             features::builds::commands::builds_draft_delete,
+            features::builds::commands::build_code_export,
+            features::builds::commands::build_code_import,
             features::voice_bans::commands::is_game_running,
             features::voice_bans::commands::read_voice_ban,
             features::voice_bans::commands::write_voice_ban,

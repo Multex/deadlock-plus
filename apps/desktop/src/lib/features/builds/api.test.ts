@@ -34,6 +34,8 @@ describe("builds api", () => {
         await api.buildsDrafts();
         await api.buildsDraftSave(draft);
         await api.buildsDraftDelete("d-1");
+        await api.buildCodeExport({ kind: "new", build });
+        await api.buildCodeImport("KLUv/Q==");
 
         expect(tauri.command.mock.calls).toEqual([
             ["builds_local"],
@@ -53,6 +55,8 @@ describe("builds api", () => {
             ["builds_drafts"],
             ["builds_draft_save", { draft }],
             ["builds_draft_delete", { id: "d-1" }],
+            ["build_code_export", { request: { kind: "new", build } }],
+            ["build_code_import", { code: "KLUv/Q==" }],
         ]);
     });
 

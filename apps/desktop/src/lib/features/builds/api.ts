@@ -81,6 +81,16 @@ export function buildsDraftDelete(id: string) {
     return command<boolean>("builds_draft_delete", { id });
 }
 
+/** The code Deadlock's "Create New Build" accepts, for the build `request` would save. Writes nothing. */
+export function buildCodeExport(request: SaveRequest) {
+    return command<string>("build_code_export", { request });
+}
+
+/** A code from the game's "Copy build to clipboard", as a build to open; save it as a `copyView`. */
+export function buildCodeImport(code: string) {
+    return command<BuildView>("build_code_import", { code });
+}
+
 /** Fires when saves queued while the game ran were written, or could not be, after it closed. */
 export const onFlushed = (handler: (view: FlushView) => void): Promise<Unlisten> =>
     listen<FlushView>(FLUSHED_EVENT, handler);

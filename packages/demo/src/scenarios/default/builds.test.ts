@@ -279,6 +279,24 @@ describe("builds in the default scenario", () => {
         });
     });
 
+    it("exports a build as a code that imports back as a copy of it", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const build = { ...draft(HAZE, "Shared"), heroBuildId: 446250, version: 3 };
+        const code = handle.invoke("build_code_export", { request: { kind: "copyView", build } }) as string;
+        expect(code).toMatch(/^[A-Za-z0-9+/]+=*$/);
+        const back = handle.invoke("build_code_import", { code: ` ${code}\n` }) as BuildView;
+        expect(back).toMatchObject({ name: "Shared", heroId: HAZE, heroBuildId: 0, originBuildId: 446250, version: 0 });
+    });
+
+    it("refuses a bad build code with its own error", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const refused = (code: string) => expect(() => handle.invoke("build_code_import", { code }));
+        refused(" ").toThrow(expect.objectContaining({ code: "builds.code_empty" }));
+        refused("not a code!").toThrow(expect.objectContaining({ code: "builds.code_invalid" }));
+        refused("aGVsbG8=").toThrow(expect.objectContaining({ code: "builds.code_incomplete" }));
+        refused(btoa("{}")).toThrow(expect.objectContaining({ code: "builds.code_damaged" }));
+    });
+
     it("deletes a local build and refuses a published one", () => {
         const handle = start(defaultScenario(OPTIONS));
         const before = local(handle);
