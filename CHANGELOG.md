@@ -59,6 +59,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Tags show the game's icons.
 - Fix all also grows a category whose wrapped name would hide items.
 - Undo and redo every change, and restore any of the last 20 saved versions.
+- Ability steps show the level the game takes them at, with unlocks and ability points taken separately.
+- Unlocks first moves every unlock to the front of the ability order; only Deadlock's build preview changes.
 
 ### Fixed
 

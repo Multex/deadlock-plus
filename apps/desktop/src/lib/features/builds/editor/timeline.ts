@@ -12,7 +12,7 @@ import {
 import { chainCost, isInShop, type ShopItem } from "../catalog";
 import { STARTING_SOULS, netWorthFor, type Level } from "../levels";
 import { statsSoFar, type StatsById, type StatTotal } from "../stats";
-import { orderSteps } from "./ability-order";
+import { readSteps } from "./ability-order";
 import type { ItemRef } from "./document";
 
 export interface OrderEntry {
@@ -80,10 +80,13 @@ export function placeItems(build: BuildView, byId: ReadonlyMap<number, ShopItem>
     return place(quickBuyOrder(build, byId), byId);
 }
 
-/** The build's ability steps at the net worth of the level that first affords each; steps past the table are left out. */
+/**
+ * The build's ability steps, read as the game reads the stored order, at the net worth of the level that first affords
+ * each; steps past the table are left out.
+ */
 export function breakpoints(order: readonly CurrencyChangeView[], levels: readonly Level[]): Breakpoint[] {
     const byLevel = new Map(levels.map((l) => [l.level, l]));
-    return orderSteps(order, levels).flatMap((step) => {
+    return readSteps(order, levels).flatMap((step) => {
         const level = step.level === null ? undefined : byLevel.get(step.level);
         return level
             ? [{ abilityId: step.abilityId, tier: step.tier, level: level.level, netWorth: netWorthFor(level.souls) }]

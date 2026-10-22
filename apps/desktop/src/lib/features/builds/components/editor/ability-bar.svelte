@@ -12,12 +12,13 @@
         abilityProgress,
         appendStep,
         dependents,
-        fillRest,
+        isUnlocksFirst,
         isValid,
         loadOrder,
         moveStep,
         orderSteps,
         pointsSummary,
+        previewUnlocksFirst,
         removeStep,
         TIER_COSTS,
         type BlockReason,
@@ -55,7 +56,6 @@
     const progress = $derived(abilityProgress(order, abilities, ultimateId, levels));
     const steps = $derived(orderSteps(order, levels));
     const points = $derived(pointsSummary(order, levels));
-    const complete = $derived(fillRest(order, abilities, ultimateId).length === order.length);
     const total = $derived(abilities.length * (TIER_COSTS.length + 1));
 
     const preview = $derived.by((): OrderStep | null => {
@@ -115,22 +115,24 @@
         {/if}
         <div class="ml-auto flex shrink-0 gap-1.5">
             <Tooltip.Provider>
-                <Tooltip.Root delayDuration={350}>
+                <Tooltip.Root delayDuration={300}>
                     <Tooltip.Trigger>
                         {#snippet child({ props })}
-                            <Button
-                                {...props}
-                                size="sm"
-                                variant="outline"
-                                class="h-7"
-                                disabled={complete}
-                                onclick={() => commit(fillRest(order, abilities, ultimateId))}
-                            >
-                                {t("builds.editor.abilities.fill_rest")}
-                            </Button>
+                            <span {...props} class="inline-flex">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    class="h-7"
+                                    disabled={isUnlocksFirst(order)}
+                                    data-testid="ability-unlocks-first"
+                                    onclick={() => commit(previewUnlocksFirst(order))}
+                                >
+                                    {t("builds.editor.abilities.unlocks_first")}
+                                </Button>
+                            </span>
                         {/snippet}
                     </Tooltip.Trigger>
-                    <Tooltip.Content side="top">{t("builds.editor.abilities.fill_rest_hint")}</Tooltip.Content>
+                    <Tooltip.Content>{t("builds.editor.abilities.unlocks_first_hint")}</Tooltip.Content>
                 </Tooltip.Root>
             </Tooltip.Provider>
             <Button size="sm" variant="ghost" class="h-7" disabled={order.length === 0} onclick={() => commit([])}>

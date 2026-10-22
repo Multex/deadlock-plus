@@ -1,20 +1,22 @@
 import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
 import { describe, expect, it } from "vitest";
-import type { Level } from "../levels";
+import { createProgressionTable, type Level } from "../levels";
 import {
     abilityProgress,
     appendStep,
     dependents,
-    fillRest,
+    isUnlocksFirst,
     isValid,
     loadOrder,
     moveStep,
     orderSteps,
     pointsSummary,
+    previewUnlocksFirst,
     readSteps,
     removeStep,
     slotState,
     stepsSummary,
+    type OrderStep,
 } from "./ability-order";
 
 const ABILITIES = [10, 20, 30, 40] as const;
@@ -53,6 +55,21 @@ const LEVELS = [
     row(8, 4, 4),
 ];
 
+// The game's level table (heroes.vdata hero_base m_mapLevelInfo): unlocks at levels 1, 3, 5 and 8, one AP at every
+// other level.
+const GAME_SOULS = [
+    0, 200, 500, 900, 1400, 2000, 2600, 3200, 3900, 4600, 5300, 6000, 6800, 7600, 8400, 9200, 10100, 11000, 11900,
+    12800, 13800, 14900, 16100, 17400, 18900, 20600, 22500, 24600, 26900, 29400, 32100, 35000, 38100, 41400, 44900,
+    48600,
+];
+const GAME_UNLOCK_LEVELS = [1, 3, 5, 8];
+const GAME_LEVELS = createProgressionTable(
+    GAME_SOULS.map((souls, i) => {
+        const unlocks = GAME_UNLOCK_LEVELS.includes(i + 1) ? 1 : 0;
+        return { level: i + 1, souls, ap: 1 - unlocks, unlocks };
+    }),
+).levels;
+
 const ids = (order: readonly CurrencyChangeView[]) =>
     order.map((c) => `${c.abilityId}:${c.currencyType === 2 ? "U" : -c.delta}`);
 
@@ -63,6 +80,114 @@ const apply = (order: CurrencyChangeView[], abilityId: number): CurrencyChangeVi
 };
 
 const FULL_UNLOCKS = [unlock(10), unlock(20), unlock(30), unlock(40)];
+
+// Every unlock, the ultimate last of them, then each tier in slot order.
+const COMPLETE = [...FULL_UNLOCKS, ...[-1, -2, -5].flatMap((delta) => ABILITIES.map((id) => ap(id, delta)))];
+
+// Seven: Static Charge, Power Surge, Lightning Ball, Storm Cloud (ultimate).
+const [STATIC_CHARGE, POWER_SURGE, LIGHTNING_BALL, STORM_CLOUD] = [1074714947, 539192269, 1065103387, 2061574352];
+// The game's own copy code of a user's Seven build: every unlock first, then every ability point step.
+const SEVEN_ORDER = [
+    unlock(STATIC_CHARGE),
+    unlock(POWER_SURGE),
+    unlock(LIGHTNING_BALL),
+    unlock(STORM_CLOUD),
+    ap(STATIC_CHARGE, -1),
+    ap(POWER_SURGE, -1),
+    ap(POWER_SURGE, -2),
+    ap(POWER_SURGE, -5),
+    ap(LIGHTNING_BALL, -1),
+    ap(STORM_CLOUD, -1),
+    ap(STORM_CLOUD, -2),
+    ap(STATIC_CHARGE, -2),
+    ap(STATIC_CHARGE, -5),
+    ap(STORM_CLOUD, -5),
+    ap(LIGHTNING_BALL, -2),
+    ap(LIGHTNING_BALL, -5),
+];
+
+describe("unlocks and ability points as two queues", () => {
+    it("trains the game-stored Seven order's first point at level 2, between the first two unlocks", () => {
+        for (const steps of [orderSteps(SEVEN_ORDER, GAME_LEVELS), readSteps(SEVEN_ORDER, GAME_LEVELS)]) {
+            expect(steps.slice(0, 5).map((s) => [s.abilityId, s.tier, s.level])).toEqual([
+                [STATIC_CHARGE, 0, 1],
+                [POWER_SURGE, 0, 3],
+                [LIGHTNING_BALL, 0, 5],
+                [STORM_CLOUD, 0, 8],
+                [STATIC_CHARGE, 1, 2],
+            ]);
+        }
+    });
+
+    it("holds a point on an ability unlocked later until that unlock, and the points after it too", () => {
+        const steps = orderSteps([unlock(10), unlock(20), unlock(30), ap(30, -1), ap(10, -1)], GAME_LEVELS);
+        expect(steps.map((s) => s.level)).toEqual([1, 3, 5, 5, 5]);
+    });
+
+    it("never holds an unlock behind a point step still waiting", () => {
+        const steps = orderSteps([unlock(10), ap(10, -1), ap(10, -2), unlock(20)], GAME_LEVELS);
+        expect(steps.map((s) => [s.abilityId, s.tier, s.level])).toEqual([
+            [10, 0, 1],
+            [10, 1, 2],
+            [10, 2, 6],
+            [20, 0, 3],
+        ]);
+    });
+
+    it("accepts points stored before their unlock: they wait for it", () => {
+        expect(isValid([ap(10, -1), unlock(10)], ABILITIES, ULT)).toBe(true);
+        expect(orderSteps([ap(10, -1), unlock(10)], GAME_LEVELS)).toEqual([
+            { abilityId: 10, tier: 1, level: 2 },
+            { abilityId: 10, tier: 0, level: 1 },
+        ]);
+    });
+});
+
+const levelOf = (steps: readonly OrderStep[]) => new Map(steps.map((s) => [`${s.abilityId}:${s.tier}`, s.level]));
+
+describe("previewUnlocksFirst", () => {
+    const mixed = [unlock(10), ap(10, -1), unlock(20), ap(20, -1), ap(10, -2), unlock(30), unlock(40), ap(40, -1)];
+
+    it("moves every unlock before every point step, each keeping its order", () => {
+        expect(ids(previewUnlocksFirst(mixed))).toEqual([
+            "10:U",
+            "20:U",
+            "30:U",
+            "40:U",
+            "10:1",
+            "20:1",
+            "10:2",
+            "40:1",
+        ]);
+        expect(previewUnlocksFirst(SEVEN_ORDER)).toEqual(SEVEN_ORDER);
+    });
+
+    it("leaves every step at the level it had", () => {
+        const before = orderSteps(mixed, GAME_LEVELS);
+        const after = orderSteps(previewUnlocksFirst(mixed), GAME_LEVELS);
+        expect(levelOf(after)).toEqual(levelOf(before));
+        expect(isValid(previewUnlocksFirst(mixed), ABILITIES, ULT)).toBe(true);
+    });
+});
+
+describe("isUnlocksFirst", () => {
+    it("is true once no point step comes before an unlock", () => {
+        expect(isUnlocksFirst([])).toBe(true);
+        expect(isUnlocksFirst(SEVEN_ORDER)).toBe(true);
+        expect(isUnlocksFirst(COMPLETE)).toBe(true);
+        expect(isUnlocksFirst([unlock(10), unlock(20), ap(10, -1)])).toBe(true);
+    });
+
+    it("is false while a point step comes before an unlock", () => {
+        expect(isUnlocksFirst([unlock(10), ap(10, -1), unlock(20)])).toBe(false);
+        expect(isUnlocksFirst([ap(10, -1), unlock(10)])).toBe(false);
+    });
+
+    it("holds for the result of previewUnlocksFirst", () => {
+        const mixed = [unlock(10), ap(10, -1), unlock(20), ap(20, -1), unlock(30)];
+        expect(isUnlocksFirst(previewUnlocksFirst(mixed))).toBe(true);
+    });
+});
 
 describe("orderSteps", () => {
     it("gives each step its tier and the level it becomes affordable", () => {
@@ -75,9 +200,27 @@ describe("orderSteps", () => {
         ]);
     });
 
-    it("never puts a step at a lower level than the step before it", () => {
+    it("keeps stored order and gives a point step stored after unlocks its own, earlier level", () => {
         const steps = orderSteps([unlock(10), unlock(20), unlock(30), ap(10, -1)], LEVELS);
-        expect(steps.map((s) => s.level)).toEqual([1, 3, 5, 5]);
+        expect(steps.map((s) => [s.abilityId, s.tier, s.level])).toEqual([
+            [10, 0, 1],
+            [20, 0, 3],
+            [30, 0, 5],
+            [10, 1, 2],
+        ]);
+    });
+
+    it("puts each step at its own level on the game's table, an upgrade between unlocks", () => {
+        const order = [unlock(10), ap(10, -1), unlock(20), ap(10, -2), unlock(30), ap(20, -1), unlock(40)];
+        expect(orderSteps(order, GAME_LEVELS).map((s) => [s.abilityId, s.tier, s.level])).toEqual([
+            [10, 0, 1],
+            [10, 1, 2],
+            [20, 0, 3],
+            [10, 2, 6],
+            [30, 0, 5],
+            [20, 1, 7],
+            [40, 0, 8],
+        ]);
     });
 
     it("has no level past the end of the level table", () => {
@@ -171,8 +314,24 @@ describe("moveStep", () => {
         expect(edit).toEqual({ ok: true, order: [unlock(20), unlock(10, "first"), ap(10, -1)] });
     });
 
-    it("refuses a tier before its ability's unlock", () => {
-        expect(moveStep([unlock(10), ap(10, -1)], 1, 0, ABILITIES, ULT)).toEqual({ ok: false, reason: "locked" });
+    it("moves a step across the other currency's steps, which changes only the preview", () => {
+        const edit = moveStep([unlock(10), ap(10, -1)], 1, 0, ABILITIES, ULT);
+        expect(edit).toEqual({ ok: true, order: [ap(10, -1), unlock(10)] });
+        expect(edit.ok && levelOf(orderSteps(edit.order, GAME_LEVELS))).toEqual(
+            levelOf(orderSteps([unlock(10), ap(10, -1)], GAME_LEVELS)),
+        );
+    });
+
+    it("changes when a step comes once it passes a step of its own currency", () => {
+        const edit = moveStep([unlock(10), ap(10, -1), unlock(20), ap(20, -1)], 3, 1, ABILITIES, ULT);
+        expect(edit.ok && ids(edit.order)).toEqual(["10:U", "20:1", "10:1", "20:U"]);
+        expect(edit.ok && orderSteps(edit.order, GAME_LEVELS).map((s) => s.level)).toEqual([1, 3, 4, 3]);
+    });
+
+    it("makes a moved unlock's points wait for it", () => {
+        const edit = moveStep([unlock(10), unlock(20), unlock(30), ap(20, -1)], 1, 3, ABILITIES, ULT);
+        expect(edit.ok && ids(edit.order)).toEqual(["10:U", "30:U", "20:1", "20:U"]);
+        expect(edit.ok && orderSteps(edit.order, GAME_LEVELS).map((s) => s.level)).toEqual([1, 3, 5, 5]);
     });
 
     it("refuses tiers out of order", () => {
@@ -185,50 +344,9 @@ describe("moveStep", () => {
     });
 });
 
-describe("fillRest", () => {
-    it("unlocks the 3 abilities, then the ultimate, then evens tiers out in slot order", () => {
-        const filled = fillRest([], ABILITIES, ULT);
-        expect(ids(filled)).toEqual([
-            "10:U",
-            "20:U",
-            "30:U",
-            "40:U",
-            "10:1",
-            "20:1",
-            "30:1",
-            "40:1",
-            "10:2",
-            "20:2",
-            "30:2",
-            "40:2",
-            "10:5",
-            "20:5",
-            "30:5",
-            "40:5",
-        ]);
-        expect(isValid(filled, ABILITIES, ULT)).toBe(true);
-    });
-
-    it("keeps the steps already chosen and gives the lowest tier the next point", () => {
-        const filled = fillRest([unlock(20), ap(20, -1), ap(20, -2)], ABILITIES, ULT);
-        expect(ids(filled).slice(0, 9)).toEqual([
-            "20:U",
-            "20:1",
-            "20:2",
-            "10:U",
-            "30:U",
-            "40:U",
-            "10:1",
-            "30:1",
-            "40:1",
-        ]);
-        expect(filled).toHaveLength(16);
-    });
-});
-
 describe("isValid", () => {
     it("accepts a complete order", () => {
-        expect(isValid(fillRest([], ABILITIES, ULT), ABILITIES, ULT)).toBe(true);
+        expect(isValid(COMPLETE, ABILITIES, ULT)).toBe(true);
     });
 
     it.each([
@@ -246,9 +364,8 @@ describe("isValid", () => {
 
 describe("loadOrder", () => {
     it("drops a leftover tail and counts the dropped steps", () => {
-        const complete = fillRest([], ABILITIES, ULT);
-        const loaded = loadOrder([...complete, unlock(10), ap(10, -1), ap(20, -1)], ABILITIES, ULT);
-        expect(loaded).toEqual({ order: complete, dropped: 3, moved: 0 });
+        const loaded = loadOrder([...COMPLETE, unlock(10), ap(10, -1), ap(20, -1)], ABILITIES, ULT);
+        expect(loaded).toEqual({ order: COMPLETE, dropped: 3, moved: 0 });
     });
 
     it("drops everything from the first repeated unlock, as the game files' tails start", () => {
@@ -261,11 +378,24 @@ describe("loadOrder", () => {
         expect(loaded).toEqual({ order: [unlock(10), ap(10, -1)], dropped: 0, moved: 0 });
     });
 
-    it("moves an early ultimate and its tiers after the third other unlock", () => {
+    it("moves an early ultimate after the third other unlock and leaves its points where they are", () => {
         const loaded = loadOrder([unlock(10), unlock(40), ap(40, -1), unlock(20), unlock(30)], ABILITIES, ULT);
-        expect(ids(loaded.order)).toEqual(["10:U", "20:U", "30:U", "40:U", "40:1"]);
-        expect(loaded.moved).toBe(2);
+        expect(ids(loaded.order)).toEqual(["10:U", "40:1", "20:U", "30:U", "40:U"]);
+        expect(loaded.moved).toBe(1);
         expect(loaded.dropped).toBe(0);
+    });
+
+    it("keeps points stored before their unlock where they are", () => {
+        const raw = [ap(20, -1), ap(10, -1), unlock(10), unlock(20)];
+        expect(loadOrder(raw, ABILITIES, ULT)).toEqual({ order: raw, dropped: 0, moved: 0 });
+    });
+
+    it("drops points on an ability the order never unlocks", () => {
+        expect(loadOrder([unlock(10), ap(20, -1), ap(10, -1)], ABILITIES, ULT)).toEqual({
+            order: [unlock(10), ap(10, -1)],
+            dropped: 1,
+            moved: 0,
+        });
     });
 
     it("drops steps on abilities the hero no longer has", () => {
@@ -303,11 +433,18 @@ describe("abilityProgress", () => {
         expect(progress[3]).toEqual({ tier: null, lastStep: null, next: { kind: "blocked", reason: "ultimate" } });
     });
 
-    it("gives the highest tier taken, the ability's latest step and its next tier", () => {
+    it("gives the highest tier taken, the step that took it and its next tier", () => {
         const order = [unlock(10), unlock(20), ap(10, -1), ap(20, -1)];
         const progress = abilityProgress(order, ABILITIES, ULT, LEVELS);
         expect(progress[0]).toEqual({ tier: 1, lastStep: 2, next: { kind: "next", tier: 2, level: 8 } });
         expect(progress[1]).toEqual({ tier: 1, lastStep: 3, next: { kind: "next", tier: 2, level: 8 } });
+    });
+
+    it("points at the highest tier's step even when the unlock is stored after it", () => {
+        expect(abilityProgress([ap(10, -1), unlock(10)], ABILITIES, ULT, LEVELS)[0]).toMatchObject({
+            tier: 1,
+            lastStep: 0,
+        });
     });
 
     it("says maxed once all three tiers are taken", () => {

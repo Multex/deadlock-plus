@@ -231,6 +231,15 @@
     }
 
     const dragged = $derived(dragging ? steps[dragging.from] : undefined);
+
+    // Unlocks and points are two queues the game runs side by side, so a step can come at a lower level than one
+    // stored before it; its level stands out so the out-of-sequence timing reads.
+    const earlier = $derived(
+        steps.map((step, i) => {
+            const level = step.level;
+            return level !== null && steps.slice(0, i).some((s) => s.level !== null && s.level > level);
+        }),
+    );
 </script>
 
 {#snippet face(step: OrderStep)}
@@ -244,8 +253,13 @@
     {/if}
 {/snippet}
 
-{#snippet levelLabel(step: OrderStep)}
-    <span class="h-3 text-[10px] leading-3 text-muted-foreground tabular-nums">
+{#snippet levelLabel(step: OrderStep, i: number)}
+    <span
+        class={cn(
+            "h-3 text-[10px] leading-3 tabular-nums",
+            earlier[i] ? "font-semibold text-foreground" : "text-muted-foreground",
+        )}
+    >
         {#if step.level !== null}{t("builds.editor.abilities.level", { level: step.level })}{/if}
     </span>
 {/snippet}
@@ -283,7 +297,7 @@
                 <p class="text-muted-foreground">{costLine(step)}</p>
             </AbilityHover>
         </Tooltip.Root>
-        {@render levelLabel(step)}
+        {@render levelLabel(step, i)}
     </li>
 {/snippet}
 
@@ -386,7 +400,7 @@
                             </Tooltip.Root>
                         {/if}
                     </div>
-                    {@render levelLabel(step)}
+                    {@render levelLabel(step, i)}
                 </li>
             {/if}
         {/each}

@@ -171,14 +171,47 @@ describe("placeItems", () => {
 });
 
 describe("breakpoints", () => {
-    it("names each ability step at the net worth of the level that affords it", () => {
+    it("names each ability step at the net worth of the level the game takes it at", () => {
         const order = [unlock(10), unlock(20), ap(10, -1), unlock(30), ap(10, -2)];
         expect(breakpoints(order, LEVELS)).toEqual([
             { abilityId: 10, tier: 0, level: 1, netWorth: 600 },
             { abilityId: 20, tier: 0, level: 3, netWorth: 1100 },
-            { abilityId: 10, tier: 1, level: 3, netWorth: 1100 },
+            { abilityId: 10, tier: 1, level: 2, netWorth: 800 },
             { abilityId: 30, tier: 0, level: 5, netWorth: 2000 },
             { abilityId: 10, tier: 2, level: 6, netWorth: 2600 },
+        ]);
+    });
+
+    it("never holds an unlock behind an upgrade still waiting for points", () => {
+        const order = [unlock(10), ap(10, -1), unlock(20), ap(10, -2), unlock(30)];
+        expect(breakpoints(order, LEVELS).map((b) => [b.abilityId, b.tier, b.netWorth])).toEqual([
+            [10, 0, 600],
+            [10, 1, 800],
+            [20, 0, 1100],
+            [10, 2, 2600],
+            [30, 0, 2000],
+        ]);
+    });
+
+    it("spends a point as it is earned in an order stored unlocks first, as the game stores it", () => {
+        const order = [unlock(10), unlock(20), unlock(30), unlock(40), ap(10, -1), ap(20, -1), ap(40, -1)];
+        expect(breakpoints(order, LEVELS).map((b) => [b.abilityId, b.tier, b.netWorth])).toEqual([
+            [10, 0, 600],
+            [20, 0, 1100],
+            [30, 0, 2000],
+            [40, 0, 3800],
+            [10, 1, 800],
+            [20, 1, 1500],
+            [40, 1, 3800],
+        ]);
+    });
+
+    it("reads a stored order as the game does: no mark for points on a locked ability or the leftover tail", () => {
+        const order = [unlock(10), ap(30, -1), ap(10, -1), unlock(20), unlock(10), unlock(30)];
+        expect(breakpoints(order, LEVELS).map((b) => [b.abilityId, b.tier, b.level])).toEqual([
+            [10, 0, 1],
+            [10, 1, 2],
+            [20, 0, 3],
         ]);
     });
 

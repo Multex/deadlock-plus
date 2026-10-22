@@ -2022,8 +2022,6 @@
                 "sequence_hint": "Drag a step to reorder it, or use Alt+Left and Alt+Right.",
                 "chip_label": "Step {step}: {ability}, {kind}",
                 "clear": "Clear",
-                "fill_rest": "Fill the rest",
-                "fill_rest_hint": "Unlocks the other abilities, then the ultimate, then adds tiers to the lowest ability first.",
                 "spent": "{spent} AP spent",
                 "spent_of": "{spent} of {available} AP spent",
                 "last_level": "Last step at Lv {level}",
@@ -2046,7 +2044,9 @@
                 "cost_points": "Costs {points} AP.",
                 "final_locked": "Not unlocked in this order.",
                 "final_unlocked": "Unlocked at step {step}, no tiers.",
-                "final_tier": "Reaches Tier {tier} at step {step}."
+                "final_tier": "Reaches Tier {tier} at step {step}.",
+                "unlocks_first": "Unlocks first",
+                "unlocks_first_hint": "Only changes how the order reads in Deadlock's build preview. Nothing is taken at a different level."
             },
             "details": {
                 "name": "Name",

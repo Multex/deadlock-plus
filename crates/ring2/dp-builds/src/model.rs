@@ -390,58 +390,60 @@ pub fn ability_order_warnings(
     walk(steps, hero_ability_ids, false)
 }
 
+/// The game runs unlocks and ability points as two queues, so where a step sits relative to the other
+/// currency does not matter: unlocks are checked in stored order, then ability points in stored order, each
+/// keeping its original index for errors. Points stored before their unlock simply wait for it.
 fn walk(
     steps: &[CurrencyChangeView],
     hero_ability_ids: &[u32; 4],
     strict: bool,
 ) -> Result<Vec<AbilityOrderWarning>, AbilityOrderError> {
     let mut warnings = Vec::new();
+    let head = if strict { steps.len() } else { leftover_start(steps) };
+
     // Tracked by id, not slot, so abilities the hero no longer has still count towards a complete order.
-    let mut unlocked: Vec<(u32, usize)> = Vec::new();
-    for (step, s) in steps.iter().enumerate() {
-        let repeat = match s.currency_type {
-            CURRENCY_ABILITY_UNLOCKS => unlocked.len() == 4 || unlocked.iter().any(|&(id, _)| id == s.ability_id),
-            CURRENCY_ABILITY_POINTS => {
-                unlocked.iter().any(|&(id, t)| id == s.ability_id && t == ABILITY_TIER_COSTS.len())
-            }
-            _ => false,
-        };
-        if repeat && !strict {
-            warnings.push(AbilityOrderWarning::Leftover { step });
-            check_costs(&steps[step..], step)?;
-            break;
+    let mut unlocked: Vec<u32> = Vec::new();
+    for (step, s) in steps[..head].iter().enumerate() {
+        if s.currency_type != CURRENCY_ABILITY_UNLOCKS {
+            continue;
         }
-        let slot = hero_ability_ids.iter().position(|&a| a == s.ability_id);
-        if slot.is_none() {
+        let slot = check_known(s, step, hero_ability_ids, strict, &mut warnings)?;
+        if unlocked.contains(&s.ability_id) {
+            return Err(AbilityOrderError::AlreadyUnlocked { step });
+        }
+        match s.delta {
+            -1 => {}
+            0 if !strict => warnings.push(AbilityOrderWarning::FreeUnlock { step }),
+            _ => return Err(AbilityOrderError::WrongCost { step, expected: -1 }),
+        }
+        // Counted by id, so a slot whose ability was reworked still counts as one of the 3.
+        let others_unlocked = unlocked.iter().filter(|&&id| id != hero_ability_ids[3]).count() >= 3;
+        if slot == Some(3) && !others_unlocked {
             if strict {
-                return Err(AbilityOrderError::UnknownAbility { step });
+                return Err(AbilityOrderError::UltimateBeforeOthers { step });
             }
-            warnings.push(AbilityOrderWarning::UnknownAbility { step });
+            warnings.push(AbilityOrderWarning::UltimateEarly { step });
         }
+        unlocked.push(s.ability_id);
+    }
+
+    let mut tiers: Vec<(u32, usize)> = Vec::new();
+    for (step, s) in steps[..head].iter().enumerate() {
         match s.currency_type {
-            CURRENCY_ABILITY_UNLOCKS => {
-                if unlocked.iter().any(|&(id, _)| id == s.ability_id) {
-                    return Err(AbilityOrderError::AlreadyUnlocked { step });
-                }
-                match s.delta {
-                    -1 => {}
-                    0 if !strict => warnings.push(AbilityOrderWarning::FreeUnlock { step }),
-                    _ => return Err(AbilityOrderError::WrongCost { step, expected: -1 }),
-                }
-                // Counted by id, so a slot whose ability was reworked still counts as one of the 3.
-                let others_unlocked = unlocked.iter().filter(|&&(id, _)| id != hero_ability_ids[3]).count() >= 3;
-                if slot == Some(3) && !others_unlocked {
-                    if strict {
-                        return Err(AbilityOrderError::UltimateBeforeOthers { step });
-                    }
-                    warnings.push(AbilityOrderWarning::UltimateEarly { step });
-                }
-                unlocked.push((s.ability_id, 0));
-            }
+            CURRENCY_ABILITY_UNLOCKS => {}
             CURRENCY_ABILITY_POINTS => {
-                let Some((_, tier)) = unlocked.iter_mut().find(|(id, _)| *id == s.ability_id) else {
+                check_known(s, step, hero_ability_ids, strict, &mut warnings)?;
+                if !unlocked.contains(&s.ability_id) {
                     return Err(AbilityOrderError::NotUnlocked { step });
+                }
+                let at = match tiers.iter().position(|&(id, _)| id == s.ability_id) {
+                    Some(at) => at,
+                    None => {
+                        tiers.push((s.ability_id, 0));
+                        tiers.len() - 1
+                    }
                 };
+                let tier = &mut tiers[at].1;
                 let cost = *ABILITY_TIER_COSTS.get(*tier).ok_or(AbilityOrderError::AlreadyMaxed { step })?;
                 if s.delta != -cost {
                     return Err(AbilityOrderError::WrongCost { step, expected: -cost });
@@ -451,7 +453,59 @@ fn walk(
             _ => return Err(AbilityOrderError::UnknownCurrency { step }),
         }
     }
+
+    if head < steps.len() {
+        warnings.push(AbilityOrderWarning::Leftover { step: head });
+        check_costs(&steps[head..], head)?;
+    }
+    warnings.sort_by_key(|w| match *w {
+        AbilityOrderWarning::UnknownAbility { step }
+        | AbilityOrderWarning::FreeUnlock { step }
+        | AbilityOrderWarning::UltimateEarly { step }
+        | AbilityOrderWarning::Leftover { step } => step,
+    });
     Ok(warnings)
+}
+
+fn check_known(
+    s: &CurrencyChangeView,
+    step: usize,
+    hero_ability_ids: &[u32; 4],
+    strict: bool,
+    warnings: &mut Vec<AbilityOrderWarning>,
+) -> Result<Option<usize>, AbilityOrderError> {
+    let slot = hero_ability_ids.iter().position(|&a| a == s.ability_id);
+    if slot.is_none() {
+        if strict {
+            return Err(AbilityOrderError::UnknownAbility { step });
+        }
+        warnings.push(AbilityOrderWarning::UnknownAbility { step });
+    }
+    Ok(slot)
+}
+
+/// Index of the first step that repeats an unlock, adds a fifth one, or buys a tier past the last, counting
+/// tiers per ability across all ability point steps wherever they sit; `steps.len()` when there is none.
+fn leftover_start(steps: &[CurrencyChangeView]) -> usize {
+    let mut unlocked: Vec<u32> = Vec::new();
+    let mut tiers: Vec<(u32, usize)> = Vec::new();
+    for (step, s) in steps.iter().enumerate() {
+        match s.currency_type {
+            CURRENCY_ABILITY_UNLOCKS => {
+                if unlocked.len() == 4 || unlocked.contains(&s.ability_id) {
+                    return step;
+                }
+                unlocked.push(s.ability_id);
+            }
+            CURRENCY_ABILITY_POINTS => match tiers.iter_mut().find(|(id, _)| *id == s.ability_id) {
+                Some((_, t)) if *t == ABILITY_TIER_COSTS.len() => return step,
+                Some((_, t)) => *t += 1,
+                None => tiers.push((s.ability_id, 1)),
+            },
+            _ => {}
+        }
+    }
+    steps.len()
 }
 
 /// Prepares a loaded order for editing: free unlocks become -1 and the leftover tail is dropped.
@@ -886,6 +940,41 @@ mod tests {
         assert_eq!(
             validate_ability_order(&[unlock(11), ap(22, -1)], &HERO),
             Err(AbilityOrderError::NotUnlocked { step: 1 })
+        );
+    }
+
+    #[test]
+    fn the_users_real_order_validates() {
+        let code = include_str!("../tests/fixtures/build_code.txt");
+        let build = crate::code::decode_code(code).unwrap();
+        let steps: Vec<_> =
+            build.details.unwrap().ability_order.unwrap().currency_changes.iter().map(view_change).collect();
+        let unlocks: Vec<u32> =
+            steps.iter().filter(|s| s.currency_type == CURRENCY_ABILITY_UNLOCKS).map(|s| s.ability_id).collect();
+        let hero: [u32; 4] = unlocks[..4].try_into().unwrap();
+        assert_eq!(validate_ability_order(&steps, &hero), Ok(()));
+    }
+
+    #[test]
+    fn ability_points_stored_before_their_unlock_wait_for_it() {
+        let steps = [ap(11, -1), unlock(11), ap(11, -2), ap(22, -1), unlock(22), unlock(33), unlock(44)];
+        assert_eq!(validate_ability_order(&steps, &HERO), Ok(()));
+        assert_eq!(ability_order_warnings(&steps, &HERO), Ok(Vec::new()));
+    }
+
+    #[test]
+    fn tiers_are_counted_per_ability_in_ap_order_wherever_they_sit() {
+        assert_eq!(
+            validate_ability_order(&[ap(11, -2), unlock(11), ap(11, -1)], &HERO),
+            Err(AbilityOrderError::WrongCost { step: 0, expected: -1 })
+        );
+    }
+
+    #[test]
+    fn ability_points_on_an_ability_the_order_never_unlocks_are_rejected() {
+        assert_eq!(
+            validate_ability_order(&[ap(22, -1), unlock(11)], &HERO),
+            Err(AbilityOrderError::NotUnlocked { step: 0 })
         );
     }
 
