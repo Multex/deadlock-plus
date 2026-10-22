@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use deadlock_data::vdata::ARCHIVE;
+use deadlock_data::vdata::{ABILITIES_PATH, ARCHIVE};
 use source2::ext::VpkResourceKv3;
 use source2::resource::BlockKind;
 use source2::vpk::Vpk;
@@ -25,6 +25,10 @@ impl VpkVdataSource {
 impl HeroesSource for VpkVdataSource {
     fn read(&self, citadel_dir: &Path) -> Result<Document, String> {
         self.read_vdata(citadel_dir, HEROES_PATH)
+    }
+
+    fn read_abilities(&self, citadel_dir: &Path) -> Result<Document, String> {
+        self.read_vdata(citadel_dir, ABILITIES_PATH)
     }
 }
 
@@ -81,6 +85,15 @@ mod tests {
         assert_eq!(table.abilities.get(&1), Some(&[491_391_007, 3_516_947_824, 1_593_133_799, 1_142_270_357]));
         assert_eq!(table.abilities.get(&2), Some(&[1_065_103_387, 1_074_714_947, 539_192_269, 2_061_574_352]));
         assert!(table.popular_items.contains_key(&1));
+    }
+
+    #[test]
+    fn the_installed_table_carries_bullet_damage() {
+        let Some(dir) = installed() else { return };
+        let heroes = HeroesSource::read(&VpkVdataSource, &dir).expect("heroes.vdata reads");
+        let abilities = HeroesSource::read_abilities(&VpkVdataSource, &dir).expect("abilities.vdata reads");
+        let table = HeroTable::from_documents(&heroes, Some(&abilities)).expect("heroes.vdata parses");
+        assert_eq!(table.stats[&2].bullet_damage, Some(10.8));
     }
 
     #[test]

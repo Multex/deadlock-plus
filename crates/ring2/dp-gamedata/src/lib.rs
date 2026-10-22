@@ -3,6 +3,7 @@ mod art;
 mod build_tags;
 mod catalog;
 mod cc;
+mod hero_stats;
 mod item_stats;
 mod item_tooltip;
 mod locale;
@@ -26,6 +27,7 @@ pub use art::{
 pub use build_tags::{build_tags, BuildTag, BUILD_TAG_KEYS};
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};
 pub use cc::{CcAbility, CcKind, CcOwner, CcSet};
+pub use hero_stats::{hero_bullet_damage, hero_stats, HeroStatsData, InvestmentTier, SlotInvestment};
 pub use item_stats::{item_stats, ItemStat, ItemStats, StatSection, STAT_BUNDLES};
 pub use item_tooltip::{TooltipBlock, TooltipSection};
 pub use locale::game_language;

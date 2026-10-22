@@ -508,6 +508,7 @@ mod tests {
             progression: dp_gamedata::HeroProgression { levels: Vec::new() },
             abilities: [(1, [11, 12, 13, 14])].into(),
             popular_items: Default::default(),
+            stats: Default::default(),
         };
         let known = heroes(&entries, Some(&table));
         assert_eq!(known.abilities(1), Some([11, 12, 13, 14]));

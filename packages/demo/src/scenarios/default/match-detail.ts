@@ -6,6 +6,8 @@ import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
+import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
+import type { InvestmentTier } from "@deadlock-plus/ipc-types/InvestmentTier";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
@@ -1560,6 +1562,51 @@ function heroAbilities(heroes: readonly AssetHero[]): HeroAbilities[] {
         .sort((a, b) => a.heroId - b.heroId);
 }
 
+const tiers = (rows: readonly (readonly [number, number, number])[]): InvestmentTier[] =>
+    rows.map(([souls, bonus, percentOnGraph]) => ({ souls, bonus, percentOnGraph }));
+
+/** Infernus's numbers from the game files, answered for any hero: the demo has no heroes.vdata. */
+function heroStats(heroId: unknown): HeroStatsData | null {
+    if (typeof heroId !== "number") return null;
+    return {
+        heroId,
+        base: { EMaxHealth: 830, EMaxMoveSpeed: 6.7, EBaseHealthRegen: 2, ELightMeleeDamage: 50 },
+        perLevel: {
+            MODIFIER_VALUE_BASE_HEALTH_FROM_LEVEL: 39,
+            MODIFIER_VALUE_BASE_BULLET_DAMAGE_FROM_LEVEL: 0.088,
+            MODIFIER_VALUE_TECH_POWER: 1.1,
+            MODIFIER_VALUE_BOON_COUNT: 1,
+        },
+        investment: {
+            weapon: tiers([
+                [800, 9, 7],
+                [1600, 12, 7],
+                [2400, 15, 8],
+                [3200, 18, 8],
+                [4800, 46, 9],
+                [28800, 115, 11],
+            ]),
+            spirit: tiers([
+                [800, 7, 7],
+                [1600, 11, 7],
+                [2400, 15, 8],
+                [3200, 19, 8],
+                [4800, 38, 9],
+                [28800, 100, 11],
+            ]),
+            vitality: tiers([
+                [800, 9, 7],
+                [1600, 12, 7],
+                [2400, 15, 8],
+                [3200, 20, 8],
+                [4800, 38, 9],
+                [28800, 66, 11],
+            ]),
+        },
+        bulletDamage: 10.8,
+    };
+}
+
 function popularItems(heroes: readonly AssetHero[], heroId: unknown): PopularItems | null {
     const popular = heroes.find((hero) => hero.id === heroId)?.popular_items;
     if (!popular) return null;
@@ -1699,6 +1746,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 // Which icon each class or keyword gets is read from the installed game's stylesheets.
                 game_property_icon_art: async (): Promise<PropertyIconArt[]> => [],
                 game_ability_tooltips: async (): Promise<AbilityTooltip[]> => [],
+                game_hero_stats: async (args) => heroStats(args.heroId),
                 // Read from the installed game's localization; without it game-ui labels use the app's locale.
                 game_ui_strings: async (): Promise<GameUiStrings> => ({}),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>

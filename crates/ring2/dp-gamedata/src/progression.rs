@@ -8,6 +8,7 @@ use source2_kv3::{Document, Object, Value};
 use ts_rs::TS;
 
 use crate::catalog::{archive_stamp, Install, SteamInstall};
+use crate::hero_stats::{hero_bullet_damage, hero_stats, HeroStatsData};
 use crate::vpk_source::VpkVdataSource;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -163,6 +164,7 @@ pub struct HeroTable {
     pub progression: HeroProgression,
     pub abilities: HashMap<u32, [u32; 4]>,
     pub popular_items: HashMap<u32, PopularItems>,
+    pub stats: HashMap<u32, HeroStatsData>,
 }
 
 impl HeroTable {
@@ -174,15 +176,31 @@ impl HeroTable {
     }
 
     pub fn from_document(doc: &Document) -> Result<Self, String> {
+        Self::from_documents(doc, None)
+    }
+
+    /// `abilities` supplies the weapon numbers; without it every hero's `bullet_damage` stays None.
+    pub fn from_documents(doc: &Document, abilities: Option<&Document>) -> Result<Self, String> {
         let heroes = doc.root.as_object().ok_or("heroes.vdata: root is not an object")?;
         let progression = hero_progression(heroes).ok_or("heroes.vdata: hero_base has no level table")?;
-        Ok(Self { progression, abilities: hero_abilities(heroes), popular_items: popular_items(heroes) })
+        let mut stats = hero_stats(heroes);
+        if let Some(abilities) = abilities.and_then(|doc| doc.root.as_object()) {
+            for (hero_id, damage) in hero_bullet_damage(heroes, abilities) {
+                if let Some(entry) = stats.get_mut(&hero_id) {
+                    entry.bullet_damage = Some(damage);
+                }
+            }
+        }
+        Ok(Self { progression, abilities: hero_abilities(heroes), popular_items: popular_items(heroes), stats })
     }
 }
 
 pub trait HeroesSource: Send + Sync + 'static {
     /// `scripts/heroes.vdata_c` of the install in `citadel_dir`, as a KV3 document.
     fn read(&self, citadel_dir: &Path) -> Result<Document, String>;
+
+    /// `scripts/abilities.vdata_c` of the same install.
+    fn read_abilities(&self, citadel_dir: &Path) -> Result<Document, String>;
 }
 
 type Memo = (Option<PathBuf>, Option<SystemTime>, Option<Arc<HeroTable>>);
@@ -215,7 +233,8 @@ impl<I: Install, S: HeroesSource> HeroVdata<I, S> {
             }
         }
         let table = dir.as_deref().and_then(|dir| {
-            let read = self.source.read(dir).and_then(|doc| HeroTable::from_document(&doc));
+            let abilities = self.source.read_abilities(dir).map_err(|e| log::warn!("hero weapons unavailable: {e}"));
+            let read = self.source.read(dir).and_then(|doc| HeroTable::from_documents(&doc, abilities.ok().as_ref()));
             read.map_err(|e| log::warn!("hero progression unavailable: {e}")).ok().map(Arc::new)
         });
         *memo = Some((dir, stamp, table.clone()));
@@ -429,6 +448,46 @@ mod tests {
     }
 
     #[test]
+    fn a_table_carries_every_hero_s_stats() {
+        let table = HeroTable::from_document(&Document::from_text(&heroes_6805_shape()).unwrap()).unwrap();
+        let mut ids: Vec<u32> = table.stats.keys().copied().collect();
+        ids.sort();
+        assert_eq!(ids, [1, 21]);
+        assert_eq!(table.stats[&21].hero_id, 21);
+    }
+
+    const ABILITIES_SHAPE: &str = "{
+        citadel_weapon_inferno_set = { m_mapWeaponInfos = { primary = { m_flBulletDamage = 5.5 } } }
+        citadel_weapon_other = { m_mapWeaponInfos = { primary = { m_flBulletDamage = 9 } } }
+    }";
+
+    fn heroes_with_weapons() -> Document {
+        Document::from_text(&heroes_6805_shape()).unwrap()
+    }
+
+    #[test]
+    fn a_table_fills_bullet_damage_from_the_abilities_document() {
+        let abilities = Document::from_text(ABILITIES_SHAPE).unwrap();
+        let table = HeroTable::from_documents(&heroes_with_weapons(), Some(&abilities)).unwrap();
+        assert_eq!(table.stats[&1].bullet_damage, Some(5.5));
+        assert_eq!(table.stats[&21].bullet_damage, None);
+    }
+
+    #[test]
+    fn a_table_without_abilities_leaves_bullet_damage_unset() {
+        let table = HeroTable::from_documents(&heroes_with_weapons(), None).unwrap();
+        assert_eq!(table.stats[&1].bullet_damage, None);
+    }
+
+    #[test]
+    fn the_source_s_abilities_reach_the_table() {
+        let dir = temp_install("abilities");
+        let (data, _) = vdata(Some(&dir), Some(heroes_6805_shape()));
+        assert_eq!(data.table().unwrap().stats[&1].bullet_damage, Some(5.5));
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
     fn the_ability_list_is_sorted_by_hero_id() {
         let mut table = HeroTable::from_document(&Document::from_text(&heroes_6805_shape()).unwrap()).unwrap();
         table.abilities.insert(21, [5, 6, 7, 8]);
@@ -462,6 +521,10 @@ mod tests {
             self.reads.fetch_add(1, Ordering::Relaxed);
             let text = self.text.as_deref().ok_or("no archive")?;
             Document::from_text(text).map_err(|e| e.to_string())
+        }
+
+        fn read_abilities(&self, _citadel_dir: &Path) -> Result<Document, String> {
+            Document::from_text(ABILITIES_SHAPE).map_err(|e| e.to_string())
         }
     }
 

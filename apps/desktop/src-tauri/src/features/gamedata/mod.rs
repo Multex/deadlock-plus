@@ -31,8 +31,8 @@ pub mod commands {
 
     use dp_gamedata::{
         AbilityTooltip, AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, GameUiStrings,
-        HeroAbilities, HeroArt, HeroEntry, HeroProgression, ItemEntry, ItemImage, ItemStats, MapItemsPayload,
-        MinimapIcon, MinimapIconArt, PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
+        HeroAbilities, HeroArt, HeroEntry, HeroProgression, HeroStatsData, ItemEntry, ItemImage, ItemStats,
+        MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
     };
     use tauri::State;
 
@@ -223,5 +223,13 @@ pub mod commands {
         let heroes = Arc::clone(&vdata.heroes);
         let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
         Ok(table.and_then(|t| t.popular_items.get(&hero_id).cloned()))
+    }
+
+    /// None for an unknown hero or while the installed game cannot be read.
+    #[tauri::command]
+    pub async fn game_hero_stats(vdata: State<'_, GameVdata>, hero_id: u32) -> Result<Option<HeroStatsData>, AppError> {
+        let heroes = Arc::clone(&vdata.heroes);
+        let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+        Ok(table.and_then(|t| t.stats.get(&hero_id).cloned()))
     }
 }

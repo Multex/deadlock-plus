@@ -5,6 +5,7 @@ import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
+import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
 import type { PropertyIconArt } from "@deadlock-plus/ipc-types/PropertyIconArt";
@@ -40,6 +41,11 @@ export function loadHeroAbilities(): Promise<HeroAbilities[]> {
 /** The popular items the installed game ships for a hero; null for unreleased heroes or an unreadable game. */
 export function loadPopularItems(heroId: number): Promise<PopularItems | null> {
     return command<PopularItems | null>("game_popular_items", { heroId }).catch(() => null);
+}
+
+/** A hero's starting stats, per-level gains and slot investment tiers; null for an unknown hero or game. */
+export function loadHeroStats(heroId: number): Promise<HeroStatsData | null> {
+    return command<HeroStatsData | null>("game_hero_stats", { heroId }).catch(() => null);
 }
 
 /**

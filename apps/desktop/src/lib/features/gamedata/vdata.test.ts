@@ -7,6 +7,7 @@ import {
     loadGameUiStrings,
     loadHeroAbilities,
     loadHeroProgression,
+    loadHeroStats,
     loadItemStats,
     loadPopularItems,
     loadPropertyIcons,
@@ -89,6 +90,20 @@ describe("loadPopularItems", () => {
     it("is null when the command fails", async () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadPopularItems(7)).toBeNull();
+    });
+});
+
+describe("loadHeroStats", () => {
+    it("asks for one hero", async () => {
+        const stats = { heroId: 7, base: {}, perLevel: {}, investment: { weapon: [], spirit: [], vitality: [] } };
+        invoke.mockResolvedValue(stats);
+        expect(await loadHeroStats(7)).toEqual(stats);
+        expect(invoke).toHaveBeenCalledWith("game_hero_stats", { heroId: 7 });
+    });
+
+    it("is null when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadHeroStats(7)).toBeNull();
     });
 });
 
