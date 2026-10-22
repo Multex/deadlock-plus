@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AbilityProperty } from "@deadlock-plus/ipc-types/AbilityProperty";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AbilityUpgrade } from "@deadlock-plus/ipc-types/AbilityUpgrade";
+import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { loadAbilityTooltips } from "$lib/features/gamedata/vdata";
 import type { OrderStep } from "./editor/ability-order";
 
 vi.mock("$lib/features/gamedata/vdata", () => ({ loadAbilityTooltips: vi.fn() }));
+vi.mock("$lib/features/gamedata/art-refresh", () => ({ onGameArtChanged: vi.fn() }));
 
 const load = vi.mocked(loadAbilityTooltips);
+const artChanged = vi.mocked(onGameArtChanged);
 
 async function adapter() {
     vi.resetModules();
@@ -17,9 +21,8 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-const upgrade = (tier: number, cost: number): AbilityUpgrade => ({
+const upgrade = (tier: number): AbilityUpgrade => ({
     tier,
-    cost,
     description: `Tier ${tier}`,
     values: {},
     bonuses: [],
@@ -35,7 +38,7 @@ function ability(abilityId: number, name: string): AbilityTooltip {
         chargeCooldown: null,
         cooldown: null,
         sections: [],
-        upgrades: [upgrade(1, 1), upgrade(2, 2), upgrade(3, 5)],
+        upgrades: [upgrade(1), upgrade(2), upgrade(3)],
     };
 }
 
@@ -88,6 +91,37 @@ describe("abilityTooltipAt", () => {
         ]);
     });
 
+    it("prices each tier as the build model charges it", async () => {
+        const { abilityTooltipAt } = await adapter();
+        const model = abilityTooltipAt(ability(7, "Lightning Ball"), 0);
+        expect(model.upgrades.map((u) => u.cost)).toEqual(["1", "2", "5"]);
+    });
+
+    it("scales values by the hero's stats and draws the hero on boon markers", async () => {
+        const { abilityTooltipAt } = await adapter();
+        const scaled = (key: string, stat: string, factor: number): AbilityProperty => ({
+            key,
+            value: 30,
+            unit: null,
+            label: key,
+            signed: false,
+            cssClass: null,
+            displayType: null,
+            scale: { stat, factor, function: "scale_function_tech_damage" },
+            statusEffect: false,
+        });
+        const burn = {
+            ...ability(7, "Spirit Burn"),
+            header: [scaled("Damage", "ETechPower", 0.5), scaled("Heal", "ELevelUpBoons", 2)],
+        };
+        const model = abilityTooltipAt(burn, 1, null, {
+            stats: { ETechPower: 20, ELevelUpBoons: 4 },
+            icon: "seven.png",
+        });
+        expect(model.chips.map((c) => c.value.number)).toEqual(["40", "38"]);
+        expect(model.chips[1]!.scaling?.heroIcon).toBe("seven.png");
+    });
+
     it("recommends nothing by default", async () => {
         const { abilityTooltipAt } = await adapter();
         const model = abilityTooltipAt(ability(7, "Lightning Ball"), null);
@@ -120,5 +154,35 @@ describe("heroAbilityTooltips", () => {
         expect((await heroAbilityTooltips("english")).size).toBe(0);
         expect((await heroAbilityTooltips("english")).size).toBe(1);
         expect(load).toHaveBeenCalledTimes(2);
+    });
+
+    it("reads the locales it holds again after a game update", async () => {
+        const { heroAbilityTooltips } = await adapter();
+        let build = 6805;
+        load.mockImplementation(async (locale) => [ability(7, `${locale} ${build}`)]);
+        await heroAbilityTooltips("english");
+        expect(artChanged).toHaveBeenCalledTimes(1);
+        build = 6810;
+        await artChanged.mock.calls[0]![0]();
+        expect((await heroAbilityTooltips("english")).get(7)?.name).toBe("english 6810");
+        await heroAbilityTooltips("german");
+        expect(artChanged).toHaveBeenCalledTimes(1);
+        expect(load.mock.calls).toEqual([["english"], ["english"], ["german"]]);
+    });
+
+    it("bumps its revision once a game update's re-read lands", async () => {
+        const { heroAbilityTooltips, abilityTooltipsRevision } = await adapter();
+        load.mockResolvedValue([ability(7, "Lightning Ball")]);
+        await heroAbilityTooltips("english");
+        const before = abilityTooltipsRevision();
+        let land!: () => void;
+        load.mockImplementationOnce(
+            () => new Promise((resolve) => (land = () => resolve([ability(7, "Lightning Ball, updated")]))),
+        );
+        const refresh = artChanged.mock.calls[0]![0]();
+        expect(abilityTooltipsRevision()).toBe(before);
+        land();
+        await refresh;
+        expect(abilityTooltipsRevision()).toBe(before + 1);
     });
 });

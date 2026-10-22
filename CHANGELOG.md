@@ -37,6 +37,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Hero rows on the Stats page link to that hero's builds.
 - Copy for game puts a build on your clipboard as a code Deadlock's Create New Build accepts.
 - Paste code on the Builds page opens a code copied in Deadlock as a new build in the editor.
+- Ability tooltips show values an upgrade switches on only from that tier.
+- Ability upgrades that multiply a value are counted and worded as in-game.
+- Boon-scaled values show the hero's portrait, as in-game.
 
 #### Build editor
 

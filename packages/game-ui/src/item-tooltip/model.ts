@@ -53,6 +53,8 @@ export type ItemTooltipInput = {
     hasDetails?: boolean;
     /** The hero's current stats keyed by the game's stat enum (`ETechPower`), for scaled values. */
     heroStats?: Partial<Record<string, number>>;
+    /** The hero's portrait, drawn on boon-scaled markers. */
+    heroIcon?: string | null;
 };
 
 /** A value split so the prefix and postfix can be drawn muted. */
@@ -64,7 +66,13 @@ export type LabelRole = "default" | "weapon" | "spirit" | "vitality";
 /** The `keystat_*_arrow` art beside a scaling marker. */
 export type ScalingArrow = "spirit" | "courage" | "fortitude" | "melee" | "boon";
 
-export type ScalingMarker = { factor: string; stat: string | null; arrow: ScalingArrow | null };
+export type ScalingMarker = {
+    factor: string;
+    stat: string | null;
+    arrow: ScalingArrow | null;
+    /** The hero's portrait the game draws beside a boon arrow (`.ScalingStat_ELevelUpBoons #HeroImage`). */
+    heroIcon: string | null;
+};
 
 export type ImportantCell = {
     kind: "important";
@@ -187,6 +195,9 @@ const STATUS_ROLES: Partial<Record<string, LabelRole>> = { StatusEffectEMP: "spi
 
 const BUILD_UP_RATE = "EBuildUpRate";
 
+// The boon arrow art leaves its right side empty for the portrait; the other arrows fill their art.
+const BOON_STAT = "ELevelUpBoons";
+
 // Scaled values are a sum of game floats; the game's exact rounding for them is not known.
 const SCALED_DECIMALS = 2;
 
@@ -198,13 +209,14 @@ function valueText(value: number, signed: boolean, unit: string | null, decimals
     };
 }
 
-function scalingOf(property: ItemTooltipProperty): ScalingMarker | null {
+function scalingOf(property: ItemTooltipProperty, heroIcon: string | null): ScalingMarker | null {
     const scale = property.scale;
     if (scale?.factor == null) return null;
     return {
         factor: formatGameNumber(scale.factor),
         stat: scale.stat,
         arrow: (scale.stat !== null && SCALING_ARROWS[scale.stat]) || null,
+        heroIcon: scale.stat === BOON_STAT ? heroIcon : null,
     };
 }
 
@@ -222,7 +234,11 @@ function shownValue(property: ItemTooltipProperty, heroStats: ItemTooltipInput["
     return { value: valueText(property.value, property.signed, property.unit), scaled: false };
 }
 
-function cellOf(property: ItemTooltipProperty, heroStats: ItemTooltipInput["heroStats"]): ImportantCell | StatusCell {
+function cellOf(
+    property: ItemTooltipProperty,
+    heroStats: ItemTooltipInput["heroStats"],
+    heroIcon: string | null,
+): ImportantCell | StatusCell {
     if (property.statusEffect) {
         return {
             kind: "status",
@@ -242,13 +258,18 @@ function cellOf(property: ItemTooltipProperty, heroStats: ItemTooltipInput["hero
         label: property.label,
         role: (property.cssClass !== null && ROLES[property.cssClass]) || "default",
         negative: property.negative === true,
-        scaling: scalingOf(property),
+        scaling: scalingOf(property, heroIcon),
         scaled: shown?.scaled ?? false,
         variesByHero: property.displayType === BUILD_UP_RATE,
     };
 }
 
-function rowOf(property: ItemTooltipProperty, elevated: boolean, heroStats: ItemTooltipInput["heroStats"]): StatRow {
+function rowOf(
+    property: ItemTooltipProperty,
+    elevated: boolean,
+    heroStats: ItemTooltipInput["heroStats"],
+    heroIcon: string | null,
+): StatRow {
     const shown = shownValue(property, heroStats);
     return {
         key: property.key,
@@ -256,7 +277,7 @@ function rowOf(property: ItemTooltipProperty, elevated: boolean, heroStats: Item
         label: property.label,
         elevated,
         negative: property.negative === true,
-        scaling: scalingOf(property),
+        scaling: scalingOf(property, heroIcon),
         scaled: shown?.scaled ?? false,
         variesByHero: property.displayType === BUILD_UP_RATE,
     };
@@ -269,11 +290,15 @@ function layoutOf(count: number): CellLayout {
     return count >= 4 ? "four" : "several";
 }
 
-function blockView(block: ItemTooltipBlock, heroStats: ItemTooltipInput["heroStats"]): BlockView {
-    const cells = block.important.map((p) => cellOf(p, heroStats));
+function blockView(
+    block: ItemTooltipBlock,
+    heroStats: ItemTooltipInput["heroStats"],
+    heroIcon: string | null,
+): BlockView {
+    const cells = block.important.map((p) => cellOf(p, heroStats, heroIcon));
     const rows = [
-        ...block.elevated.map((p) => rowOf(p, true, heroStats)),
-        ...block.properties.map((p) => rowOf(p, false, heroStats)),
+        ...block.elevated.map((p) => rowOf(p, true, heroStats, heroIcon)),
+        ...block.properties.map((p) => rowOf(p, false, heroStats, heroIcon)),
     ];
     return {
         description: block.description ? parseMarkup(block.description, block.values) : [],
@@ -291,7 +316,11 @@ const SECTION_LABELS: Record<Exclude<StatSection, "innate">, UiText> = {
     active: uiText("active", {}, "Citadel_Mod_Tooltip_Active"),
 };
 
-function sectionView(section: ItemTooltipSection, heroStats: ItemTooltipInput["heroStats"]): SectionView {
+function sectionView(
+    section: ItemTooltipSection,
+    heroStats: ItemTooltipInput["heroStats"],
+    heroIcon: string | null,
+): SectionView {
     return {
         kind: section.kind,
         bar: section.kind === "innate" ? "none" : section.kind,
@@ -299,7 +328,7 @@ function sectionView(section: ItemTooltipSection, heroStats: ItemTooltipInput["h
         cooldown: section.cooldown === null ? null : valueText(section.cooldown, false, "s"),
         chargeUp: section.chargeUp == null ? null : valueText(section.chargeUp, false, "s"),
         stacks: section.stacks ? { count: formatGameNumber(section.stacks.count), label: section.stacks.label } : null,
-        blocks: section.blocks.map((b) => blockView(b, heroStats)),
+        blocks: section.blocks.map((b) => blockView(b, heroStats, heroIcon)),
     };
 }
 
@@ -338,7 +367,7 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
                           imbued_ability_name: imbued,
                       }),
         },
-        sections: input.sections.map((s) => sectionView(s, input.heroStats)),
+        sections: input.sections.map((s) => sectionView(s, input.heroStats, input.heroIcon ?? null)),
         popularity: popularity
             ? {
                   phase: popularity.phase,

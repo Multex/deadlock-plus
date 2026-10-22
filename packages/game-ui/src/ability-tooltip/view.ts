@@ -11,7 +11,6 @@ export type UpgradeCardClass =
 const STATE_CLASSES: Record<UpgradeState, readonly UpgradeCardClass[]> = {
     has: ["hasUpgrade"],
     available: ["UpgradeAvailable"],
-    canAfford: ["canAffordUpgrade"],
     cantAfford: ["cantAffordUpgrade"],
     notTrained: ["abilityNotTrained"],
 };

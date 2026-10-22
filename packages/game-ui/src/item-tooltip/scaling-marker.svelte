@@ -13,11 +13,15 @@
 
     const art = gameArt();
     const arrow = $derived(marker.arrow ? cssUrl(art().ui[scalingArt(marker.arrow)]) : undefined);
+    let failed = $state<string | null>(null);
+    const hero = $derived(arrow && marker.heroIcon && failed !== marker.heroIcon ? marker.heroIcon : null);
 </script>
 
 <!-- `CitadelStatScalingLabel` at the 80% ui-scale `#ScalingStatValue` draws it with. -->
 <span class="marker" class:inline style:--stat={scalingColor(marker.arrow)}>
-    <span class="arrow" class:fallback={!arrow} style:--arrow={arrow} aria-hidden="true"></span>
+    <span class="arrow" class:fallback={!arrow} style:--arrow={arrow} aria-hidden="true">
+        {#if hero}<img class="hero" src={hero} alt="" draggable="false" onerror={() => (failed = hero)} />{/if}
+    </span>
     <span class="amount"><span class="x">x</span><span class="factor">{marker.factor}</span></span>
 </span>
 
@@ -40,7 +44,26 @@
         height: calc(var(--u, 1px) * 27);
         margin-top: calc(var(--u, 1px) * 2);
         margin-right: calc(var(--u, 1px) * 1);
+        position: relative;
         background: var(--arrow) right center / contain no-repeat;
+    }
+    /*
+     * `#HeroImage`: a child of the arrow box with margin-left 12 and no size of its own, so Panorama squishes
+     * it into the 24 px left beside the margin, aspect kept and centred.
+     */
+    .hero {
+        position: absolute;
+        left: calc(var(--u, 1px) * 12);
+        top: calc(var(--u, 1px) * 1.5);
+        width: calc(var(--u, 1px) * 24);
+        height: calc(var(--u, 1px) * 24);
+        object-fit: contain;
+    }
+    .inline .hero {
+        left: calc(var(--u, 1px) * 8);
+        top: calc(var(--u, 1px) * 1);
+        width: calc(var(--u, 1px) * 16);
+        height: calc(var(--u, 1px) * 16);
     }
     .inline .arrow {
         width: calc(var(--u, 1px) * 24);

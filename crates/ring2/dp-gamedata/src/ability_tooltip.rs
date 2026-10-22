@@ -8,16 +8,12 @@ use ts_rs::TS;
 use crate::item_stats::number;
 use crate::progression::ability_id;
 use crate::tooltip::{
-    important_cell, labelled_property, loc_token, localised_description, localised_property, named_properties,
-    property_values, raw_property, token_map, Find, RawProperty, TooltipProperty,
+    important_cell, labelled_property, loc_token, localised_description, named_properties, property_values,
+    raw_property, token_map, Find, RawProperty, TooltipProperty,
 };
 
 /// The localisation bundles holding hero ability names, descriptions and property labels.
 pub const ABILITY_BUNDLES: [&str; 2] = ["citadel_heroes", "citadel_attributes"];
-
-/// Ability points each upgrade tier costs. No game file carries these: the client sets the tooltip's
-/// `ability_points_required` in code, and every ability's `m_nAbilityPointsCost` is 0 (build 6805).
-pub const ABILITY_UPGRADE_COSTS: [u32; 3] = [1, 2, 5];
 
 /// What the game's hero ability tooltip shows, before the hero's own stats scale it.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -29,11 +25,11 @@ pub struct AbilityTooltip {
     pub name: String,
     /// Chips under the name, in the game's order: channel time, cast range, radius, duration, then the
     /// ability's own extra header properties.
-    pub header: Vec<TooltipProperty>,
-    pub charges: Option<TooltipProperty>,
+    pub header: Vec<AbilityProperty>,
+    pub charges: Option<AbilityProperty>,
     /// The wait between two charges; only with `charges`.
-    pub charge_cooldown: Option<TooltipProperty>,
-    pub cooldown: Option<TooltipProperty>,
+    pub charge_cooldown: Option<AbilityProperty>,
+    pub cooldown: Option<AbilityProperty>,
     pub sections: Vec<AbilitySection>,
     /// Tiers 1 to 3.
     pub upgrades: Vec<AbilityUpgrade>,
@@ -48,7 +44,7 @@ pub struct AbilitySection {
     pub description: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub groups: Vec<AbilityCellGroup>,
-    pub properties: Vec<TooltipProperty>,
+    pub properties: Vec<AbilityProperty>,
     /// The upgrade tier that adds this section; None when it always shows.
     pub required_tier: Option<u8>,
 }
@@ -58,7 +54,20 @@ pub struct AbilitySection {
 #[serde(rename_all = "camelCase")]
 pub struct AbilityCellGroup {
     pub title: Option<String>,
-    pub cells: Vec<TooltipProperty>,
+    pub cells: Vec<AbilityProperty>,
+}
+
+/// A property at its base value, which may be zero when an upgrade tier switches it on.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct AbilityProperty {
+    #[serde(flatten)]
+    pub property: TooltipProperty,
+    /// The first upgrade tier at which the game shows the property; absent when it shows untrained.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required_tier: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -66,8 +75,6 @@ pub struct AbilityCellGroup {
 #[serde(rename_all = "camelCase")]
 pub struct AbilityUpgrade {
     pub tier: u8,
-    /// Ability points.
-    pub cost: u32,
     /// The `<ability>_t<tier>_desc` markup; None when the game shows the bonuses with their labels instead.
     pub description: Option<String>,
     /// The numbers of the description's placeholders: this tier's bonus, else the property's base value.
@@ -100,10 +107,10 @@ pub enum UpgradeKind {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RawAbility {
     class_name: String,
-    header: Vec<RawProperty>,
-    charges: Option<RawProperty>,
-    charge_cooldown: Option<RawProperty>,
-    cooldown: Option<RawProperty>,
+    header: Vec<RawCell>,
+    charges: Option<RawCell>,
+    charge_cooldown: Option<RawCell>,
+    cooldown: Option<RawCell>,
     sections: Vec<RawSection>,
     upgrades: Vec<RawUpgrade>,
     values: HashMap<String, f64>,
@@ -112,14 +119,41 @@ pub(crate) struct RawAbility {
 #[derive(Debug, Clone, PartialEq)]
 struct RawSection {
     description: Option<String>,
-    groups: Vec<(Option<String>, Vec<RawProperty>)>,
-    properties: Vec<RawProperty>,
+    groups: Vec<(Option<String>, Vec<RawCell>)>,
+    properties: Vec<RawCell>,
     required_tier: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 struct RawUpgrade {
     bonuses: Vec<(RawProperty, f64, UpgradeKind)>,
+}
+
+/// A property the game shows, with the upgrade tier it needs (None: shown untrained).
+type RawCell = (RawProperty, Option<u8>);
+
+/// When the game first shows `property`: None untrained, `Some(tier)` once that tier's bonuses switch it
+/// on; the outer None when it never shows. `shows` is the game's rule for a value.
+fn shown_from(
+    property: RawProperty,
+    upgrades: &[RawUpgrade],
+    shows: impl Fn(&RawProperty, f64) -> bool,
+) -> Option<RawCell> {
+    if property.status_effect || property.value.is_some_and(|v| shows(&property, v)) {
+        return Some((property, None));
+    }
+    let mut value = property.value?;
+    // Only an added bonus can lift a zero: a multiplied zero stays zero, and a scale bonus leaves the value.
+    let tier = upgrades.iter().zip(1u8..).find_map(|(upgrade, tier)| {
+        value += upgrade
+            .bonuses
+            .iter()
+            .filter(|(p, _, kind)| p.key == property.key && *kind == UpgradeKind::AddToBase)
+            .map(|(_, bonus, _)| bonus)
+            .sum::<f64>();
+        shows(&property, value).then_some(tier)
+    })?;
+    Some((property, Some(tier)))
 }
 
 /// The ability types the hero's ability bar shows: signature slots 1 to 3, then the ultimate in slot 4.
@@ -145,15 +179,18 @@ const HEADER_CHIPS: [&str; 4] = ["AbilityChannelTime", "AbilityCastRange", "Radi
 fn raw_ability(class_name: &str, entry: &Object) -> Option<RawAbility> {
     let details = entry.get("m_AbilityTooltipDetails")?;
     let properties = entry.get("m_mapAbilityProperties").and_then(Value::as_object);
+    let upgrades = raw_upgrades(entry, properties);
     // Charge delays sit at -1 on abilities without charges, below their -2 disable value.
     let positive = |name: &str| {
-        properties.and_then(|p| raw_property(name, p)).filter(|p| !p.disabled && p.value.is_some_and(|v| v > 0.0))
+        shown_from(properties.and_then(|p| raw_property(name, p))?, &upgrades, |p, v| v > 0.0 && p.shows(v))
     };
     let extra = details.get("m_vecAdditionalHeaderProperties").and_then(Value::as_array).unwrap_or_default();
     let header = HEADER_CHIPS.into_iter().chain(extra.iter().filter_map(Value::as_str)).filter_map(positive).collect();
     let charges = positive("AbilityCharges");
-    let charge_cooldown = charges.as_ref().and_then(|_| positive("AbilityCooldownBetweenCharge"));
-    let upgrades = raw_upgrades(entry, properties);
+    let charge_cooldown = charges.as_ref().and_then(|(_, charges_tier)| {
+        let (delay, tier) = positive("AbilityCooldownBetweenCharge")?;
+        Some((delay, tier.max(*charges_tier)))
+    });
     let sections = details
         .get("m_vecAbilityInfoSections")
         .and_then(Value::as_array)
@@ -187,7 +224,7 @@ fn raw_section(section: &Value, properties: Option<&Object>, upgrades: &[RawUpgr
                 .iter()
                 .filter_map(|cell| {
                     let with_value = cell.get("m_bShowPropertyValue").and_then(Value::as_bool) == Some(true);
-                    important_cell(cell, properties, with_value)
+                    shown_from(important_cell(cell, properties, with_value)?, upgrades, RawProperty::shows)
                 })
                 .collect();
             (loc_token(block.get("m_strPropertiesTitleLocString")), cells)
@@ -201,7 +238,10 @@ fn raw_section(section: &Value, properties: Option<&Object>, upgrades: &[RawUpgr
     RawSection {
         description: loc_token(section.get("m_strLocString")),
         groups,
-        properties: named_properties(section.get("m_vecBasicProperties"), properties),
+        properties: named_properties(section.get("m_vecBasicProperties"), properties)
+            .into_iter()
+            .filter_map(|p| shown_from(p, upgrades, RawProperty::shows))
+            .collect(),
         required_tier,
     }
 }
@@ -249,8 +289,11 @@ pub(crate) fn localised_abilities(
 }
 
 fn localised_ability(ability_id: u32, raw: &RawAbility, find: &Find<'_>) -> AbilityTooltip {
-    let shown = |p: &Option<RawProperty>| p.as_ref().and_then(|p| localised_property(p, find));
-    let list = |raw: &[RawProperty]| raw.iter().filter_map(|p| localised_property(p, find)).collect::<Vec<_>>();
+    let labelled = |(p, required_tier): &RawCell| {
+        Some(AbilityProperty { property: labelled_property(p, p.value, find)?, required_tier: *required_tier })
+    };
+    let shown = |p: &Option<RawCell>| p.as_ref().and_then(labelled);
+    let list = |raw: &[RawCell]| raw.iter().filter_map(labelled).collect::<Vec<_>>();
     let sections = raw
         .sections
         .iter()
@@ -277,9 +320,8 @@ fn localised_ability(ability_id: u32, raw: &RawAbility, find: &Find<'_>) -> Abil
     let upgrades = raw
         .upgrades
         .iter()
-        .zip(ABILITY_UPGRADE_COSTS)
         .zip(1u8..)
-        .map(|((upgrade, cost), tier)| {
+        .map(|(upgrade, tier)| {
             let bonus = |name: &str| upgrade.bonuses.iter().find(|(p, _, _)| p.key == name).map(|(_, b, _)| *b);
             let token = format!("{}_t{tier}_desc", raw.class_name);
             let (description, values) =
@@ -291,7 +333,7 @@ fn localised_ability(ability_id: u32, raw: &RawAbility, find: &Find<'_>) -> Abil
                     Some(AbilityBonus { property: labelled_property(property, Some(*value), find)?, kind: *kind })
                 })
                 .collect();
-            AbilityUpgrade { tier, cost, description, values, bonuses }
+            AbilityUpgrade { tier, description, values, bonuses }
         })
         .collect();
     AbilityTooltip {
@@ -406,6 +448,10 @@ mod tests {
         (p.value, p.unit.as_deref(), p.label.as_str())
     }
 
+    fn cell(p: &AbilityProperty) -> (Option<f64>, Option<&str>, &str) {
+        shown(&p.property)
+    }
+
     #[test]
     fn an_ability_carries_its_id_class_and_name() {
         let ball = lightning_ball();
@@ -416,12 +462,15 @@ mod tests {
     #[test]
     fn charges_the_charge_delay_and_the_cooldown_go_to_the_header() {
         let ball = lightning_ball();
-        assert_eq!(ball.charges.as_ref().map(shown), Some((Some(1.0), None, "Charges")));
-        assert_eq!(ball.charge_cooldown.as_ref().map(shown), Some((Some(6.0), Some("s"), "Charge Delay")));
+        assert_eq!(ball.charges.as_ref().map(cell), Some((Some(1.0), None, "Charges")));
+        assert_eq!(ball.charge_cooldown.as_ref().map(cell), Some((Some(6.0), Some("s"), "Charge Delay")));
         let cooldown = ball.cooldown.as_ref().expect("a cooldown");
-        assert_eq!(shown(cooldown), (Some(26.0), Some("s"), "Cooldown"));
-        assert_eq!(cooldown.css_class.as_deref(), Some("cooldown"));
-        assert_eq!(ball.charge_cooldown.as_ref().and_then(|c| c.css_class.as_deref()), Some("charge_cooldown"));
+        assert_eq!(cell(cooldown), (Some(26.0), Some("s"), "Cooldown"));
+        assert_eq!(cooldown.property.css_class.as_deref(), Some("cooldown"));
+        assert_eq!(
+            ball.charge_cooldown.as_ref().and_then(|c| c.property.css_class.as_deref()),
+            Some("charge_cooldown")
+        );
     }
 
     #[test]
@@ -447,9 +496,9 @@ mod tests {
              \"SlashRadius_label\" \"Slash Radius\"",
         );
         let header = tooltip_of("ability_x", entry, &[loc]).header;
-        let keys: Vec<&str> = header.iter().map(|p| p.key.as_str()).collect();
+        let keys: Vec<&str> = header.iter().map(|p| p.property.key.as_str()).collect();
         assert_eq!(keys, ["AbilityChannelTime", "AbilityCastRange", "Radius", "AbilityDuration", "SlashRadius"]);
-        assert_eq!(shown(&header[1]), (Some(20.0), Some("m"), "Cast Range"));
+        assert_eq!(cell(&header[1]), (Some(20.0), Some("m"), "Cast Range"));
     }
 
     #[test]
@@ -479,19 +528,82 @@ mod tests {
         );
         assert_eq!(section.groups.len(), 1);
         assert_eq!(section.groups[0].title, None);
-        let cells: Vec<_> = section.groups[0].cells.iter().map(shown).collect();
-        assert_eq!(cells, [(Some(75.0), None, "Damage Per Second"), (Some(4.25), Some("m"), "Radius")]);
+        let cells: Vec<_> = section.groups[0].cells.iter().map(cell).collect();
+        assert_eq!(cells[..2], [(Some(75.0), None, "Damage Per Second"), (Some(4.25), Some("m"), "Radius")]);
         assert_eq!(
-            section.groups[0].cells[0].scale,
+            section.groups[0].cells[0].property.scale,
             Some(StatScale {
                 stat: Some("ETechPower".into()),
                 factor: Some(0.5),
                 function: "scale_function_tech_damage".into()
             })
         );
-        let rows: Vec<_> = section.properties.iter().map(shown).collect();
+        let rows: Vec<_> = section.properties.iter().map(cell).collect();
         assert_eq!(rows, [(Some(5.0), Some("s"), "Lifetime")]);
         assert_eq!(section.required_tier, None);
+    }
+
+    #[test]
+    fn a_zero_cell_that_an_upgrade_switches_on_names_that_tier() {
+        let cells = &lightning_ball().sections[0].groups[0].cells;
+        let tiers: Vec<(&str, Option<u8>)> = cells.iter().map(|c| (c.property.key.as_str(), c.required_tier)).collect();
+        assert_eq!(tiers, [("DPS", None), ("ShockRadius", None), ("SlowPercent", Some(2))]);
+        assert_eq!(cell(&cells[2]), (Some(0.0), Some("%"), "Move Speed"));
+        assert_eq!(cells[2].property.prefix.as_deref(), Some("-"));
+    }
+
+    #[test]
+    fn zero_cells_rows_and_chips_no_upgrade_switches_on_stay_out() {
+        let entry = r#"m_eAbilityType = "EAbilityType_Signature"
+            m_mapAbilityProperties = {
+                Damage = { m_strValue = "10" }
+                Slow = { m_strValue = "0" }
+                Off = { m_strValue = "3" m_strDisableValue = "3" }
+                Bounce = { m_strValue = "0" }
+                AbilityDuration = { m_strValue = "0" m_strDisableValue = "0" }
+                AbilityCastRange = { m_strValue = "0" }
+            }
+            m_vecAbilityUpgrades = [
+                { m_vecPropertyUpgrades = [ { m_strPropertyName = "Slow" m_strBonus = "2" m_eUpgradeType = "EMultiplyBase" } ] },
+                { m_vecPropertyUpgrades = [ { m_strPropertyName = "AbilityDuration" m_strBonus = "0" } ] },
+                { m_vecPropertyUpgrades = [
+                    { m_strPropertyName = "Bounce" m_strBonus = "2" },
+                    { m_strPropertyName = "AbilityCastRange" m_strBonus = "12m" },
+                ] },
+            ]
+            m_AbilityTooltipDetails = { m_vecAbilityInfoSections = [ {
+                m_vecAbilityPropertiesBlock = [ { m_vecAbilityProperties = [
+                    { m_strImportantProperty = "Damage" }, { m_strImportantProperty = "Slow" }, { m_strImportantProperty = "Off" },
+                ] } ]
+                m_vecBasicProperties = [ "Bounce", "Slow" ]
+            } ] }"#;
+        let loc = english(
+            "\"Damage_label\" \"Damage\"\n\"Slow_label\" \"Slow\"\n\"Off_label\" \"Off\"\n\"Bounce_label\" \"Bounces\"\n\
+             \"AbilityDuration_label\" \"Duration\"\n\"AbilityCastRange_label\" \"Cast Range\"",
+        );
+        let tooltip = tooltip_of("ability_x", entry, &[loc]);
+        let keys = |list: &[AbilityProperty]| -> Vec<(String, Option<u8>)> {
+            list.iter().map(|p| (p.property.key.clone(), p.required_tier)).collect()
+        };
+        assert_eq!(keys(&tooltip.sections[0].groups[0].cells), [("Damage".into(), None)]);
+        assert_eq!(keys(&tooltip.sections[0].properties), [("Bounce".into(), Some(3))]);
+        assert_eq!(keys(&tooltip.header), [("AbilityCastRange".into(), Some(3))]);
+    }
+
+    #[test]
+    fn charges_an_upgrade_adds_gate_their_charge_delay_too() {
+        let entry = r#"m_eAbilityType = "EAbilityType_Signature"
+            m_mapAbilityProperties = {
+                AbilityCharges = { m_strValue = "0" m_strDisableValue = "-1" }
+                AbilityCooldownBetweenCharge = { m_strValue = "3" m_strDisableValue = "-2" }
+            }
+            m_vecAbilityUpgrades = [ { }, { m_vecPropertyUpgrades = [ { m_strPropertyName = "AbilityCharges" m_strBonus = "2" } ] }, { } ]
+            m_AbilityTooltipDetails = { m_vecAbilityInfoSections = [ ] }"#;
+        let loc =
+            english("\"AbilityCharges_label\" \"Charges\"\n\"AbilityCooldownBetweenCharge_label\" \"Charge Delay\"");
+        let tooltip = tooltip_of("ability_x", entry, &[loc]);
+        assert_eq!(tooltip.charges.map(|c| (c.property.value, c.required_tier)), Some((Some(0.0), Some(2))));
+        assert_eq!(tooltip.charge_cooldown.map(|c| (c.property.value, c.required_tier)), Some((Some(3.0), Some(2))));
     }
 
     #[test]
@@ -528,10 +640,10 @@ mod tests {
         let groups = &tooltip_of("ability_x", entry, &[loc]).sections[0].groups;
         let titles: Vec<Option<&str>> = groups.iter().map(|g| g.title.as_deref()).collect();
         assert_eq!(titles, [Some("On Hero Collide"), Some("On Wall Impact")]);
-        assert_eq!(shown(&groups[0].cells[1]), (None, None, "Displaced"));
-        assert_eq!(shown(&groups[1].cells[0]), (Some(1.5), Some("s"), "Stunned"));
-        assert_eq!(shown(&groups[1].cells[1]), (None, None, "Slowed"));
-        assert!(groups[1].cells.iter().all(|c| c.status_effect));
+        assert_eq!(cell(&groups[0].cells[1]), (None, None, "Displaced"));
+        assert_eq!(cell(&groups[1].cells[0]), (Some(1.5), Some("s"), "Stunned"));
+        assert_eq!(cell(&groups[1].cells[1]), (None, None, "Slowed"));
+        assert!(groups[1].cells.iter().all(|c| c.property.status_effect && c.required_tier.is_none()));
     }
 
     #[test]
@@ -554,10 +666,16 @@ mod tests {
     }
 
     #[test]
-    fn upgrades_cost_one_two_and_five_points_and_carry_their_bonuses() {
+    fn upgrades_leave_their_ability_point_cost_to_the_host() {
+        // No game file has the costs, so the one definition lives with the build model.
         let upgrades = lightning_ball().upgrades;
-        let costs: Vec<(u8, u32)> = upgrades.iter().map(|u| (u.tier, u.cost)).collect();
-        assert_eq!(costs, [(1, 1), (2, 2), (3, 5)]);
+        assert!(upgrades.iter().all(|u| !format!("{u:?}").contains("cost:")), "{upgrades:?}");
+    }
+
+    #[test]
+    fn upgrades_carry_their_tier_and_bonuses() {
+        let upgrades = lightning_ball().upgrades;
+        assert_eq!(upgrades.iter().map(|u| u.tier).collect::<Vec<_>>(), [1, 2, 3]);
         let bonuses = |tier: usize| -> Vec<(Option<f64>, Option<&str>, &str)> {
             upgrades[tier].bonuses.iter().map(|b| shown(&b.property)).collect()
         };
@@ -663,7 +781,7 @@ mod tests {
         };
         let ball = tooltip_of("citadel_ability_lightning_ball", LIGHTNING_BALL, &[german, lightning_ball_tokens()]);
         assert_eq!(ball.name, "Blitzkugel");
-        assert_eq!(ball.cooldown.map(|c| c.label), Some("Cooldown".into()));
+        assert_eq!(ball.cooldown.map(|c| c.property.label), Some("Cooldown".into()));
     }
 }
 
@@ -696,12 +814,13 @@ mod installed_tests {
             localised_abilities(&raw_abilities(&abilities), &bundle_localisation(&dir, "english", &ABILITY_BUNDLES));
         let ball = all.iter().find(|a| a.class_name == "citadel_ability_lightning_ball").expect("Lightning Ball");
         let shown = |p: &TooltipProperty| format!("{:?}{} {}", p.value, p.unit.as_deref().unwrap_or(""), p.label);
+        let cell = |p: &AbilityProperty| shown(&p.property);
 
         assert_eq!(ball.name, "Lightning Ball");
         assert!(ball.header.is_empty());
-        assert_eq!(ball.charges.as_ref().map(shown).as_deref(), Some("Some(1.0) Charges"));
-        assert_eq!(ball.charge_cooldown.as_ref().map(shown).as_deref(), Some("Some(6.0)s Charge Delay"));
-        assert_eq!(ball.cooldown.as_ref().map(shown).as_deref(), Some("Some(26.0)s Cooldown"));
+        assert_eq!(ball.charges.as_ref().map(cell).as_deref(), Some("Some(1.0) Charges"));
+        assert_eq!(ball.charge_cooldown.as_ref().map(cell).as_deref(), Some("Some(6.0)s Charge Delay"));
+        assert_eq!(ball.cooldown.as_ref().map(cell).as_deref(), Some("Some(26.0)s Cooldown"));
 
         let section = &ball.sections[0];
         assert!(section
@@ -709,13 +828,15 @@ mod installed_tests {
             .as_deref()
             .unwrap()
             .starts_with("Shoot a ball of lightning that travels in a straight line."));
-        let cells: Vec<String> = section.groups[0].cells.iter().map(shown).collect();
-        assert_eq!(cells, ["Some(75.0) Damage Per Second", "Some(4.25)m Radius"]);
-        assert_eq!(section.groups[0].cells[0].scale.as_ref().and_then(|s| s.factor), Some(0.5));
-        assert_eq!(section.properties.iter().map(shown).collect::<Vec<_>>(), ["Some(5.0)s Lifetime"]);
+        let cells: Vec<String> = section.groups[0].cells.iter().map(cell).collect();
+        assert_eq!(cells, ["Some(75.0) Damage Per Second", "Some(4.25)m Radius", "Some(0.0)% Move Speed"]);
+        let tiers: Vec<Option<u8>> = section.groups[0].cells.iter().map(|c| c.required_tier).collect();
+        assert_eq!(tiers, [None, None, Some(2)]);
+        assert_eq!(section.groups[0].cells[0].property.scale.as_ref().and_then(|s| s.factor), Some(0.5));
+        assert_eq!(section.properties.iter().map(cell).collect::<Vec<_>>(), ["Some(5.0)s Lifetime"]);
 
         let upgrades = &ball.upgrades;
-        assert_eq!(upgrades.iter().map(|u| u.cost).collect::<Vec<_>>(), [1, 2, 5]);
+        assert_eq!(upgrades.iter().map(|u| u.tier).collect::<Vec<_>>(), [1, 2, 3]);
         assert_eq!(upgrades[0].description, None);
         assert_eq!(upgrades[0].bonuses.iter().map(|b| shown(&b.property)).collect::<Vec<_>>(), ["Some(1.0) Charges"]);
         assert!(upgrades[1].description.as_deref().unwrap().contains("move speed on hit targets"));
@@ -764,7 +885,10 @@ mod installed_tests {
         let Some(dir) = installed() else { return };
         let all = installed_tooltips(&dir);
         let cloud = all.iter().find(|a| a.ability_id == 2_061_574_352).expect("Seven's ultimate");
-        let shown = |p: &TooltipProperty| format!("{:?}{} {}", p.value, p.unit.as_deref().unwrap_or(""), p.label);
+        let shown = |p: &AbilityProperty| {
+            let p = &p.property;
+            format!("{:?}{} {}", p.value, p.unit.as_deref().unwrap_or(""), p.label)
+        };
 
         assert_eq!(cloud.name, "Storm Cloud");
         assert_eq!(
@@ -775,7 +899,7 @@ mod installed_tests {
         assert_eq!(cloud.charges, None);
         let cells: Vec<String> = cloud.sections[0].groups[0].cells.iter().map(shown).collect();
         assert_eq!(cells, ["Some(95.0) Damage Per Second", "Some(1.5)m Flight Speed"]);
-        assert_eq!(cloud.upgrades.iter().map(|u| u.cost).collect::<Vec<_>>(), [1, 2, 5]);
+        assert_eq!(cloud.upgrades.iter().map(|u| u.tier).collect::<Vec<_>>(), [1, 2, 3]);
         assert_eq!(cloud.upgrades[0].values.get("BulletResistOnActive"), Some(&55.0));
     }
 

@@ -3,10 +3,6 @@ import type { AbilityBonus } from "./AbilityBonus";
 
 export type AbilityUpgrade = { tier: number, 
 /**
- * Ability points.
- */
-cost: number, 
-/**
  * The `<ability>_t<tier>_desc` markup; None when the game shows the bonuses with their labels instead.
  */
 description: string | null, 

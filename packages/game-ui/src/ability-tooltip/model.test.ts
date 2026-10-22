@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { AbilityProperty } from "@deadlock-plus/ipc-types/AbilityProperty";
 import type { AbilitySection } from "@deadlock-plus/ipc-types/AbilitySection";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
 import { markupText } from "../markup/markup";
 import type { ValueText } from "../item-tooltip/model";
-import { abilityTooltipModel, type AbilityTooltipModel, type CellGroupView } from "./model";
+import { abilityTooltipModel, type AbilityTooltipModel, type CellGroupView, type UpgradeState } from "./model";
 
 function prop(key: string, value: number | null, label: string, extra: Partial<TooltipProperty> = {}): TooltipProperty {
     return {
@@ -36,6 +37,11 @@ const shockRadius = prop("ShockRadius", 4.25, "Radius", {
     cssClass: "distance",
     scale: { stat: "ETechRadius", factor: null, function: "scale_function_single_stat" },
 });
+// Starts at 0; the tier 2 bonus switches it on.
+const slow: AbilityProperty = {
+    ...prop("SlowPercent", 0, "Move Speed", { unit: "%", prefix: "-", cssClass: "slow" }),
+    requiredTier: 2,
+};
 const lifetime = prop("MaxLifetime", 5, "Lifetime", {
     unit: "s",
     cssClass: "duration",
@@ -68,21 +74,19 @@ const lightningBall: AbilityTooltip = {
                 "Shoot a ball of lightning that travels in a straight line. Does " +
                 '<span class="highlight">damage to all targets in its radius</span>. Slows down when damaging ' +
                 "enemies and stops if it hits the world.",
-            groups: [{ title: null, cells: [dps, shockRadius] }],
+            groups: [{ title: null, cells: [dps, shockRadius, slow] }],
             properties: [lifetime],
         }),
     ],
     upgrades: [
         {
             tier: 1,
-            cost: 1,
             description: null,
             values: {},
             bonuses: [{ property: prop("AbilityCharges", 1, "Charges", { cssClass: "cast" }), kind: "addToBase" }],
         },
         {
             tier: 2,
-            cost: 2,
             description:
                 '<span class="highlight">-{s:SlowPercent}%</span> move speed on hit targets and ' +
                 '<span class="highlight">+{s:MaxLifetime}s</span> Lifetime',
@@ -100,7 +104,6 @@ const lightningBall: AbilityTooltip = {
         },
         {
             tier: 3,
-            cost: 5,
             description: "+{s:DPS} DPS and +{s:ShockRadius}m radius",
             values: { DPS: 58.5, ShockRadius: 1.75 },
             bonuses: [
@@ -114,11 +117,14 @@ const lightningBall: AbilityTooltip = {
     ],
 };
 
+// The ladder the build model charges; the game files have no tier costs.
+const tierCosts = [1, 2, 5];
+
 const cells = (model: AbilityTooltipModel, group = 0): CellGroupView["cells"] => model.sections[0].groups[group].cells;
 
 describe("abilityTooltipModel header", () => {
     it("puts the name, the charge chips and the cooldown in the header", () => {
-        const model = abilityTooltipModel({ ability: lightningBall });
+        const model = abilityTooltipModel({ tierCosts, ability: lightningBall });
         expect(model.name).toBe("Lightning Ball");
         expect(model.chips).toEqual([]);
         expect(text(model.charges?.value)).toBe("1");
@@ -136,7 +142,7 @@ describe("abilityTooltipModel header", () => {
                 prop("AbilityDuration", 3.5, "Duration", { unit: "s", cssClass: "duration" }),
             ],
         };
-        const model = abilityTooltipModel({ ability });
+        const model = abilityTooltipModel({ tierCosts, ability });
         expect(model.chips.map((c) => [c.key, text(c.value)])).toEqual([
             ["AbilityCastRange", "20m"],
             ["AbilityDuration", "3.5s"],
@@ -150,18 +156,18 @@ describe("abilityTooltipModel header", () => {
             header: [prop("Radius", 6, "Radius", { unit: "m", scale: scaled })],
             cooldown: prop("AbilityCooldown", 26, "Cooldown", { unit: "s", scale: scaled }),
         };
-        const model = abilityTooltipModel({ ability });
+        const model = abilityTooltipModel({ tierCosts, ability });
         expect(model.chips[0].style).toBe("spirit");
         expect(model.chips[0].scaling?.factor).toBe("0.2");
         expect(model.cooldown?.style).toBeNull();
         expect(model.cooldown?.scaling?.factor).toBe("0.2");
-        expect(abilityTooltipModel({ ability: lightningBall }).cooldown?.style).toBeNull();
+        expect(abilityTooltipModel({ tierCosts, ability: lightningBall }).cooldown?.style).toBeNull();
     });
 });
 
 describe("abilityTooltipModel sections", () => {
     it("parses the description and keeps the cells and rows in the game's order", () => {
-        const model = abilityTooltipModel({ ability: lightningBall });
+        const model = abilityTooltipModel({ tierCosts, ability: lightningBall });
         const [first] = model.sections;
         expect(markupText(first.description)).toMatch(/^Shoot a ball of lightning/);
         expect(first.description).toContainEqual({
@@ -177,11 +183,12 @@ describe("abilityTooltipModel sections", () => {
     });
 
     it("marks a cell with a scaling factor with its factor, arrow and border", () => {
-        const [damage, radius] = cells(abilityTooltipModel({ ability: lightningBall }));
+        const [damage, radius] = cells(abilityTooltipModel({ tierCosts, ability: lightningBall }));
         expect(damage.kind === "value" && damage.scaling).toEqual({
             factor: "0.5",
             stat: "ETechPower",
             arrow: "spirit",
+            heroIcon: null,
         });
         expect(damage.kind === "value" && damage.style).toBe("spirit");
         expect(radius.kind === "value" && radius.scaling).toBeNull();
@@ -209,7 +216,7 @@ describe("abilityTooltipModel sections", () => {
                 }),
             ],
         };
-        const model = abilityTooltipModel({ ability });
+        const model = abilityTooltipModel({ tierCosts, ability });
         expect(model.sections[0].groups[0].title).toBe("On Hit");
         expect(cells(model).map((c) => c.kind === "value" && [c.style, c.scaling?.arrow])).toEqual([
             ["weapon", "courage"],
@@ -217,6 +224,27 @@ describe("abilityTooltipModel sections", () => {
             ["weapon", "melee"],
             ["boon", "boon"],
         ]);
+    });
+
+    it("puts the hero's portrait on boon-scaled markers only", () => {
+        const scaled = (stat: string) =>
+            prop(stat, 10, "X", { scale: { stat, factor: 1.5, function: "scale_function_single_stat" } });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            header: [scaled("ELevelUpBoons")],
+            sections: [
+                section({
+                    groups: [{ title: null, cells: [scaled("ELevelUpBoons"), scaled("ETechPower")] }],
+                    properties: [scaled("ELevelUpBoons")],
+                }),
+            ],
+        };
+        const model = abilityTooltipModel({ tierCosts, ability, heroIcon: "hero_sm.png" });
+        expect(cells(model).map((c) => c.kind === "value" && c.scaling?.heroIcon)).toEqual(["hero_sm.png", null]);
+        expect(model.sections[0].rows[0].scaling?.heroIcon).toBe("hero_sm.png");
+        expect(model.chips[0].scaling?.heroIcon).toBe("hero_sm.png");
+        const [noHero] = cells(abilityTooltipModel({ tierCosts, ability }));
+        expect(noHero.kind === "value" && noHero.scaling?.heroIcon).toBeNull();
     });
 
     it("shows a status cell's value, or names it a status effect when it has none", () => {
@@ -236,7 +264,7 @@ describe("abilityTooltipModel sections", () => {
                 }),
             ],
         };
-        const [stun, displaced] = cells(abilityTooltipModel({ ability }));
+        const [stun, displaced] = cells(abilityTooltipModel({ tierCosts, ability }));
         expect(stun).toEqual({
             kind: "status",
             key: "StatusEffectStun",
@@ -252,13 +280,51 @@ describe("abilityTooltipModel sections", () => {
             ...lightningBall,
             sections: [...lightningBall.sections, section({ description: "Upgraded.", requiredTier: 2 })],
         };
-        expect(abilityTooltipModel({ ability }).sections).toHaveLength(1);
-        expect(abilityTooltipModel({ ability, upgrades: ["has", "available"] }).sections).toHaveLength(1);
-        const trained = abilityTooltipModel({ ability, upgrades: ["has", "has"] });
+        expect(abilityTooltipModel({ tierCosts, ability }).sections).toHaveLength(1);
+        expect(abilityTooltipModel({ tierCosts, ability, upgrades: ["has", "available"] }).sections).toHaveLength(1);
+        const trained = abilityTooltipModel({ tierCosts, ability, upgrades: ["has", "has"] });
         expect(trained.sections.map((s) => markupText(s.description))).toEqual([
             expect.stringMatching(/^Shoot/),
             "Upgraded.",
         ]);
+    });
+
+    it("shows a cell an upgrade switches on only once that tier is trained", () => {
+        const keys = (upgrades: UpgradeState[]) =>
+            cells(abilityTooltipModel({ tierCosts, ability: lightningBall, upgrades })).map((c) => c.key);
+        expect(keys([])).toEqual(["DPS", "ShockRadius"]);
+        expect(keys(["has", "cantAfford", "cantAfford"])).toEqual(["DPS", "ShockRadius"]);
+        expect(keys(["cantAfford", "has", "cantAfford"])).toEqual(["DPS", "ShockRadius", "SlowPercent"]);
+        const [, , slowCell] = cells(
+            abilityTooltipModel({ tierCosts, ability: lightningBall, upgrades: ["has", "has"] }),
+        );
+        expect(text(slowCell.value)).toBe("-28%");
+    });
+
+    it("gates rows, header chips, charges and cooldowns by their tier too", () => {
+        const gated = <T extends AbilityProperty>(p: T): T => ({ ...p, requiredTier: 1 });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            header: [gated(prop("AbilityCastRange", 0, "Cast Range", { unit: "m" }))],
+            charges: gated(lightningBall.charges!),
+            chargeCooldown: gated(lightningBall.chargeCooldown!),
+            cooldown: gated(lightningBall.cooldown!),
+            sections: [section({ properties: [gated(prop("Bounces", 0, "Bounces")), lifetime] })],
+        };
+        const untrained = abilityTooltipModel({ tierCosts, ability });
+        expect([untrained.chips, untrained.charges, untrained.chargeCooldown, untrained.cooldown]).toEqual([
+            [],
+            null,
+            null,
+            null,
+        ]);
+        expect(untrained.sections[0].rows.map((r) => r.key)).toEqual(["MaxLifetime"]);
+        const trained = abilityTooltipModel({ tierCosts, ability, upgrades: ["has"] });
+        expect(trained.chips.map((c) => c.key)).toEqual(["AbilityCastRange"]);
+        expect(text(trained.charges?.value)).toBe("2");
+        expect(text(trained.chargeCooldown?.value)).toBe("6s");
+        expect(text(trained.cooldown?.value)).toBe("26s");
+        expect(trained.sections[0].rows.map((r) => r.key)).toEqual(["Bounces", "MaxLifetime"]);
     });
 
     it("rounds description numbers the way the cells do", () => {
@@ -272,7 +338,9 @@ describe("abilityTooltipModel sections", () => {
                 }),
             ],
         };
-        expect(markupText(abilityTooltipModel({ ability }).sections[0].description)).toBe("4.2m and 58 and 1.8");
+        expect(markupText(abilityTooltipModel({ tierCosts, ability }).sections[0].description)).toBe(
+            "4.2m and 58 and 1.8",
+        );
     });
 
     it("shows the imbuing item in the first section", () => {
@@ -280,7 +348,11 @@ describe("abilityTooltipModel sections", () => {
             ...lightningBall,
             sections: [...lightningBall.sections, section({ description: "Second." })],
         };
-        const model = abilityTooltipModel({ ability, imbuedBy: { name: "Ballistic Enchantment", icon: "be.png" } });
+        const model = abilityTooltipModel({
+            tierCosts,
+            ability,
+            imbuedBy: { name: "Ballistic Enchantment", icon: "be.png" },
+        });
         expect(model.sections[0].imbued).toEqual({
             name: "Ballistic Enchantment",
             icon: "be.png",
@@ -294,13 +366,13 @@ describe("abilityTooltipModel sections", () => {
             },
         });
         expect(model.sections[1].imbued).toBeNull();
-        expect(abilityTooltipModel({ ability }).sections[0].imbued).toBeNull();
+        expect(abilityTooltipModel({ tierCosts, ability }).sections[0].imbued).toBeNull();
     });
 });
 
 describe("abilityTooltipModel values", () => {
     it("adds the bonuses of trained tiers", () => {
-        const model = abilityTooltipModel({ ability: lightningBall, upgrades: ["has", "has", "has"] });
+        const model = abilityTooltipModel({ tierCosts, ability: lightningBall, upgrades: ["has", "has", "has"] });
         expect(text(model.charges?.value)).toBe("2");
         const [damage, radius] = cells(model);
         // 75 + 58.5 = 133.5 shows as 134; 4.25 + 1.75 = 6.
@@ -315,19 +387,128 @@ describe("abilityTooltipModel values", () => {
             upgrades: [
                 {
                     tier: 1,
-                    cost: 1,
                     description: null,
                     values: {},
                     bonuses: [{ property: prop("DPS", 0.25, "Damage Per Second"), kind: "addToScale" }],
                 },
             ],
         };
-        const [damage] = cells(abilityTooltipModel({ ability, upgrades: ["has"] }));
+        const [damage] = cells(abilityTooltipModel({ tierCosts, ability, upgrades: ["has"] }));
         expect(damage.kind === "value" && damage.scaling?.factor).toBe("0.75");
     });
 
+    it("multiplies the base by a trained percent bonus (Ground Strike tier 3)", () => {
+        const stomp = prop("StompDamagePerMeterPrimary", 5.5, "Damage Per Meter", {
+            cssClass: "tech_damage",
+            scale: { stat: "ETechPower", factor: 0.04, function: "scale_function_tech_damage" },
+        });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            sections: [section({ groups: [{ title: null, cells: [stomp] }] })],
+            upgrades: [
+                {
+                    tier: 1,
+                    description: null,
+                    values: {},
+                    bonuses: [
+                        { property: { ...stomp, value: 0.04, scale: null }, kind: "addToScale" },
+                        { property: { ...stomp, value: 120, scale: null }, kind: "multiplyBase" },
+                    ],
+                },
+            ],
+        };
+        const [cell] = cells(
+            abilityTooltipModel({ tierCosts, ability, upgrades: ["has"], heroStats: { ETechPower: 100 } }),
+        );
+        // 5.5 x (1 + 120/100) = 12.1, factor 0.04 + 0.04 = 0.08: 12.1 + 0.08 x 100 = 20.1.
+        expect(text(cell.value)).toBe("20");
+        expect(cell.kind === "value" && cell.scaling?.factor).toBe("0.08");
+    });
+
+    it("multiplies base and scale together (Baba's Brew tier 3)", () => {
+        const dps = prop("DamagePerSecond", 12, "Damage Per Second", {
+            cssClass: "tech_damage",
+            scale: { stat: "ETechPower", factor: 0.152, function: "scale_function_tech_damage" },
+        });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            sections: [section({ groups: [{ title: null, cells: [dps] }] })],
+            upgrades: [
+                {
+                    tier: 1,
+                    description: null,
+                    values: {},
+                    bonuses: [
+                        { property: { ...dps, value: 33.33, scale: null }, kind: "multiplyBase" },
+                        { property: { ...dps, value: 1.3333, scale: null }, kind: "multiplyScale" },
+                    ],
+                },
+            ],
+        };
+        const [cell] = cells(
+            abilityTooltipModel({ tierCosts, ability, upgrades: ["has"], heroStats: { ETechPower: 50 } }),
+        );
+        // 12 x 1.3333 = 16.0, 0.152 x 1.3333 = 0.2027: 16.0 + 0.2027 x 50 = 26.1.
+        expect(text(cell.value)).toBe("26");
+        expect(cell.kind === "value" && cell.scaling?.factor).toBe("0.2");
+    });
+
+    it("drops the scaling of a value a zero scale multiplier switches off", () => {
+        const melee = prop("Damage", 20, "Damage", {
+            cssClass: "melee_damage",
+            scale: { stat: "ELightMeleeDamage", factor: 0.6, function: "scale_function_single_stat" },
+        });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            sections: [section({ groups: [{ title: null, cells: [melee] }] })],
+            upgrades: [
+                {
+                    tier: 1,
+                    description: null,
+                    values: {},
+                    bonuses: [{ property: { ...melee, value: 0, scale: null }, kind: "multiplyScale" }],
+                },
+            ],
+        };
+        const [cell] = cells(
+            abilityTooltipModel({ tierCosts, ability, upgrades: ["has"], heroStats: { ELightMeleeDamage: 50 } }),
+        );
+        expect(text(cell.value)).toBe("20");
+        expect(cell.kind === "value" && cell.scaled).toBe(false);
+        expect(cell.kind === "value" && cell.scaling).toBeNull();
+    });
+
+    it("adds every trained bonus before it multiplies, whatever the tier order", () => {
+        const base = prop("Damage", 5, "Damage", { cssClass: "tech_damage" });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            sections: [section({ groups: [{ title: null, cells: [base] }] })],
+            upgrades: [
+                {
+                    tier: 1,
+                    description: null,
+                    values: {},
+                    bonuses: [{ property: { ...base, value: 100 }, kind: "multiplyBase" }],
+                },
+                {
+                    tier: 2,
+                    description: null,
+                    values: {},
+                    bonuses: [{ property: { ...base, value: 10 }, kind: "addToBase" }],
+                },
+            ],
+        };
+        const [cell] = cells(abilityTooltipModel({ tierCosts, ability, upgrades: ["has", "has"] }));
+        // (5 + 10) x 2, not 5 x 2 + 10.
+        expect(text(cell.value)).toBe("30");
+    });
+
     it("scales a value with a factor by the hero's stat", () => {
-        const model = abilityTooltipModel({ ability: lightningBall, heroStats: { ETechPower: 33, ETechRadius: 50 } });
+        const model = abilityTooltipModel({
+            tierCosts,
+            ability: lightningBall,
+            heroStats: { ETechPower: 33, ETechRadius: 50 },
+        });
         const [damage, radius] = cells(model);
         // 75 + 0.5 x 33 = 91.5 shows as 92.
         expect(text(damage.value)).toBe("92");
@@ -348,14 +529,19 @@ describe("abilityTooltipModel values", () => {
                 }),
             ],
         };
-        const rows = abilityTooltipModel({ ability }).sections[0].rows;
+        const rows = abilityTooltipModel({ tierCosts, ability }).sections[0].rows;
         expect(rows.map((r) => text(r.value))).toEqual(["+2m", "-30%"]);
     });
 });
 
 describe("abilityTooltipModel upgrades", () => {
+    it("takes each tier's ability point cost from the host", () => {
+        const model = abilityTooltipModel({ ability: lightningBall, tierCosts: [3, 4, 9] });
+        expect(model.upgrades.map((u) => u.cost)).toEqual(["3", "4", "9"]);
+    });
+
     it("shows each tier's cost and its bonuses, or its own description", () => {
-        const [t1, t2, t3] = abilityTooltipModel({ ability: lightningBall }).upgrades;
+        const [t1, t2, t3] = abilityTooltipModel({ tierCosts, ability: lightningBall }).upgrades;
         expect([t1.cost, t2.cost, t3.cost]).toEqual(["1", "2", "5"]);
         expect(t1.bonuses).toEqual([{ key: "AbilityCharges", amount: "+1", label: "Charges" }]);
         expect(t1.description).toBeNull();
@@ -368,25 +554,51 @@ describe("abilityTooltipModel upgrades", () => {
             ...lightningBall,
             upgrades: [{ ...lightningBall.upgrades[1], description: null }],
         };
-        expect(abilityTooltipModel({ ability }).upgrades[0].bonuses).toEqual([
+        expect(abilityTooltipModel({ tierCosts, ability }).upgrades[0].bonuses).toEqual([
             { key: "SlowPercent", amount: "-28%", label: "Move Speed" },
             { key: "MaxLifetime", amount: "+1s", label: "Lifetime" },
         ]);
     });
 
+    it("words multiply bonuses as a percent or a factor, not in the property's unit", () => {
+        const dps = prop("DamagePerSecond", 12, "Damage Per Second", { cssClass: "tech_damage", unit: "m" });
+        const ability: AbilityTooltip = {
+            ...lightningBall,
+            upgrades: [
+                {
+                    tier: 1,
+                    description: null,
+                    values: {},
+                    bonuses: [
+                        { property: { ...dps, value: 120 }, kind: "multiplyBase" },
+                        { property: { ...dps, value: 1.3333 }, kind: "multiplyScale" },
+                    ],
+                },
+            ],
+        };
+        expect(abilityTooltipModel({ tierCosts, ability }).upgrades[0].bonuses).toEqual([
+            { key: "DamagePerSecond", amount: "+120%", label: "Damage Per Second" },
+            { key: "DamagePerSecond", amount: "x1.33", label: "Damage Per Second" },
+        ]);
+    });
+
     it("takes each tier's state, untrained when not given", () => {
-        expect(abilityTooltipModel({ ability: lightningBall }).upgrades.map((u) => u.state)).toEqual([
+        expect(abilityTooltipModel({ tierCosts, ability: lightningBall }).upgrades.map((u) => u.state)).toEqual([
             "notTrained",
             "notTrained",
             "notTrained",
         ]);
-        const model = abilityTooltipModel({ ability: lightningBall, upgrades: ["has", "available", "cantAfford"] });
+        const model = abilityTooltipModel({
+            tierCosts,
+            ability: lightningBall,
+            upgrades: ["has", "available", "cantAfford"],
+        });
         expect(model.upgrades.map((u) => u.state)).toEqual(["has", "available", "cantAfford"]);
     });
 
     it("marks the recommended tier until it is trained", () => {
         const recommended = (upgrades: ("has" | "available")[]) =>
-            abilityTooltipModel({ ability: lightningBall, upgrades, recommendedTier: 2 }).upgrades.map(
+            abilityTooltipModel({ tierCosts, ability: lightningBall, upgrades, recommendedTier: 2 }).upgrades.map(
                 (u) => u.recommended,
             );
         expect(recommended(["has", "available"])).toEqual([false, true, false]);
@@ -394,7 +606,7 @@ describe("abilityTooltipModel upgrades", () => {
     });
 
     it("names its own text with game tokens", () => {
-        const model = abilityTooltipModel({ ability: lightningBall });
+        const model = abilityTooltipModel({ tierCosts, ability: lightningBall });
         expect(model.text).toEqual({
             statusEffect: {
                 key: "game_ui.ability_tooltip.status_effect",
@@ -413,6 +625,7 @@ describe("abilityTooltipModel upgrades", () => {
 describe("Lightning Ball against the in-game capture", () => {
     it("shows the capture's numbers in its order", () => {
         const model = abilityTooltipModel({
+            tierCosts,
             ability: lightningBall,
             upgrades: ["cantAfford", "cantAfford", "cantAfford"],
         });

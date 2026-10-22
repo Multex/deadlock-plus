@@ -17,8 +17,8 @@ mod ui_strings;
 mod vpk_source;
 
 pub use ability_tooltip::{
-    AbilityBonus, AbilityCellGroup, AbilitySection, AbilityTooltip, AbilityUpgrade, UpgradeKind, ABILITY_BUNDLES,
-    ABILITY_UPGRADE_COSTS,
+    AbilityBonus, AbilityCellGroup, AbilityProperty, AbilitySection, AbilityTooltip, AbilityUpgrade, UpgradeKind,
+    ABILITY_BUNDLES,
 };
 pub use art::{
     ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,

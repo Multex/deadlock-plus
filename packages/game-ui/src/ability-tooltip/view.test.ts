@@ -15,7 +15,6 @@ describe("upgradeArt", () => {
     it("picks the card body art by state, as the game's classes do", () => {
         expect(upgradeArt("cantAfford")).toBe("ability_upgrade_rect_cant_afford");
         expect(upgradeArt("available")).toBe("ability_upgrade_rect_available");
-        expect(upgradeArt("canAfford")).toBe("ability_upgrade_rect_default");
         expect(upgradeArt("notTrained")).toBe("ability_upgrade_rect_default");
         expect(upgradeArt("has")).toBe("ability_upgrade_rect_default");
     });
@@ -45,18 +44,6 @@ describe("upgradeCardStyle", () => {
             cost: gameColors.offWhite,
             bonus: { color: gameColors.offBlack, opacity: "1" },
             desc: { color: gameColors.offBlack, opacity: opacity(0.6, gameColors.offBlack, AVAILABLE_ART) },
-        });
-    });
-
-    it("dims an affordable card's text to colorCommonOffWhite at .5", () => {
-        expect(style("canAfford")).toEqual({
-            art: "ability_upgrade_rect_default",
-            body: null,
-            strip: gameColors.offBlack,
-            bolt: { art: "ability_point", wash: gameColors.deadlockGreen, size: 16 },
-            cost: gameColors.offWhite,
-            bonus: { color: commonOffWhite, opacity: opacity(0.5, commonOffWhite, DEFAULT_ART) },
-            desc: { color: commonOffWhite, opacity: opacity(0.5, commonOffWhite, DEFAULT_ART) },
         });
     });
 

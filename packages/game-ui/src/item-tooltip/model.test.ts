@@ -230,7 +230,7 @@ describe("itemTooltipModel cells", () => {
     it("marks only a value with a factor as scaling, with its stat arrow", () => {
         const cells = itemTooltipModel({ item: spiritBurnItem, sections: spiritBurn }).sections[1].blocks[0].cells;
         const scaling = cells.map((c) => (c.kind === "important" ? c.scaling : null));
-        expect(scaling).toEqual([null, null, { factor: "0.06", stat: "ETechPower", arrow: "spirit" }]);
+        expect(scaling).toEqual([null, null, { factor: "0.06", stat: "ETechPower", arrow: "spirit", heroIcon: null }]);
         expect(itemTooltipModel({ item: spiritBurnItem, sections: spiritBurn }).sections[1].blocks[0].scaling).toBe(
             true,
         );
@@ -275,6 +275,53 @@ describe("itemTooltipModel cells", () => {
                 return cell.kind === "important" ? cell.scaling?.arrow : undefined;
             });
         expect(arrows).toEqual(["spirit", "courage", "courage", "fortitude", "boon", "melee", "melee", null]);
+    });
+
+    it("puts the hero's portrait on a boon-scaled marker only", () => {
+        const scaled = (stat: string) => prop(stat, 300, "Barrier", { scale: { stat, factor: 5, function: "f" } });
+        const model = itemTooltipModel({
+            item: spiritBurnItem,
+            heroIcon: "hero_sm.png",
+            sections: [
+                {
+                    kind: "passive",
+                    cooldown: null,
+                    blocks: [
+                        block({
+                            important: [scaled("ELevelUpBoons"), scaled("ETechPower")],
+                            properties: [scaled("ELevelUpBoons")],
+                        }),
+                    ],
+                },
+            ],
+        });
+        const [boon, spirit] = model.sections[0].blocks[0].cells;
+        expect(boon.kind === "important" && boon.scaling?.heroIcon).toBe("hero_sm.png");
+        expect(spirit.kind === "important" && spirit.scaling?.heroIcon).toBeNull();
+        expect(model.sections[0].blocks[0].rows[0].scaling?.heroIcon).toBe("hero_sm.png");
+    });
+
+    it("leaves a boon marker without a portrait when the host has no hero", () => {
+        const model = itemTooltipModel({
+            item: spiritBurnItem,
+            sections: [
+                {
+                    kind: "passive",
+                    cooldown: null,
+                    blocks: [
+                        block({
+                            important: [
+                                prop("B", 300, "Barrier", {
+                                    scale: { stat: "ELevelUpBoons", factor: 5, function: "f" },
+                                }),
+                            ],
+                        }),
+                    ],
+                },
+            ],
+        });
+        const [boon] = model.sections[0].blocks[0].cells;
+        expect(boon.kind === "important" && boon.scaling?.heroIcon).toBeNull();
     });
 
     it("colours bullet damage as weapon and healing or health as vitality", () => {

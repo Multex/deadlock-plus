@@ -64,6 +64,7 @@ pub(crate) struct RawProperty {
     pub(crate) scale: Option<StatScale>,
     /// The value equals `m_strDisableValue`: the game hides the property.
     pub(crate) disabled: bool,
+    pub(crate) disable_value: Option<f64>,
     pub(crate) status_effect: bool,
     pub(crate) conditional: bool,
     pub(crate) negative: bool,
@@ -81,7 +82,7 @@ pub(crate) fn raw_property(name: &str, properties: &Object) -> Option<RawPropert
     let (value, metres) = number(property.get("m_strValue")?)?;
     let text = |field: &str| property.get(field).and_then(Value::as_str).filter(|s| !s.is_empty());
     let token = text("m_strLocTokenOverride").map_or(name, |t| t.trim_start_matches('#'));
-    let disabled = property.get("m_strDisableValue").and_then(number).is_some_and(|(off, _)| off == value);
+    let disable_value = property.get("m_strDisableValue").and_then(number).map(|(off, _)| off);
     Some(RawProperty {
         key: name.to_string(),
         token: token.to_string(),
@@ -91,7 +92,8 @@ pub(crate) fn raw_property(name: &str, properties: &Object) -> Option<RawPropert
         css_class: text("m_strCSSClass").map(str::to_string),
         display_type: text("m_eDisplayType").map(str::to_string),
         scale: property.get("m_subclassScaleFunction").and_then(stat_scale),
-        disabled,
+        disabled: disable_value == Some(value),
+        disable_value,
         status_effect: false,
         conditional: text("m_eStatsUsageFlags").is_some_and(|f| f.contains("ConditionallyApplied")),
         negative: property.get("m_bIsNegativeAttribute").and_then(Value::as_bool) == Some(true),
@@ -118,6 +120,7 @@ pub(crate) fn important_cell(cell: &Value, properties: Option<&Object>, with_val
         display_type: measured.as_ref().and_then(|m| m.display_type.clone()),
         scale: measured.as_ref().and_then(|m| m.scale.clone()),
         disabled: false,
+        disable_value: None,
         status_effect: true,
         conditional: measured.as_ref().is_some_and(|m| m.conditional),
         negative: measured.as_ref().is_some_and(|m| m.negative),
@@ -173,9 +176,16 @@ pub(crate) fn property_label<'a>(raw: &RawProperty, find: &Find<'a>) -> Option<&
     }
 }
 
-/// A shown property; a zero or the disable value shows nothing in the game: the property is switched off.
+impl RawProperty {
+    /// A zero or the disable value shows nothing in the game: the property is switched off.
+    pub(crate) fn shows(&self, value: f64) -> bool {
+        value != 0.0 && self.disable_value != Some(value)
+    }
+}
+
+/// A shown property, or None when the game hides it at its own value.
 pub(crate) fn localised_property(raw: &RawProperty, find: &Find<'_>) -> Option<TooltipProperty> {
-    if (raw.value == Some(0.0) || raw.disabled) && !raw.status_effect {
+    if !raw.status_effect && !raw.value.is_some_and(|v| raw.shows(v)) {
         return None;
     }
     labelled_property(raw, raw.value, find)

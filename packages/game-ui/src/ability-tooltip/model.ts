@@ -1,3 +1,4 @@
+import type { AbilityProperty } from "@deadlock-plus/ipc-types/AbilityProperty";
 import type { AbilitySection } from "@deadlock-plus/ipc-types/AbilitySection";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AbilityUpgrade } from "@deadlock-plus/ipc-types/AbilityUpgrade";
@@ -8,19 +9,22 @@ import { FACTOR_DECIMALS, formatShownNumber, roundHalfEven, shownDecimals } from
 
 /**
  * A tier's upgrade card state, as the game's classes name them: `has` (`hasUpgrade`, trained), `available`
- * (`UpgradeAvailable`), `canAfford` (`canAffordUpgrade`), `cantAfford` (`cantAffordUpgrade`), `notTrained`
- * (`abilityNotTrained`).
+ * (`UpgradeAvailable`), `cantAfford` (`cantAffordUpgrade`), `notTrained` (`abilityNotTrained`).
  */
-export type UpgradeState = "has" | "available" | "canAfford" | "cantAfford" | "notTrained";
+export type UpgradeState = "has" | "available" | "cantAfford" | "notTrained";
 
 export type AbilityTooltipInput = {
     ability: AbilityTooltip;
     /** Each tier's state, tier 1 first; a missing tier is `notTrained`. Trained tiers add their bonuses and sections. */
     upgrades?: readonly UpgradeState[];
+    /** Ability points each tier costs, tier 1 first. The game files do not carry them. */
+    tierCosts: readonly number[];
     /** The tier a build suggests next; its card shows "Recommended" until it is trained. */
     recommendedTier?: number | null;
     /** The hero's current stats keyed by the game's stat enum (`ETechPower`), for values with a scaling factor. */
     heroStats?: Partial<Record<string, number>>;
+    /** The hero's portrait, drawn on boon-scaled markers. */
+    heroIcon?: string | null;
     /** The imbue item imbued on this ability. */
     imbuedBy?: { name: string; icon?: string | null } | null;
 };
@@ -137,26 +141,30 @@ const SCALING_STYLES: Partial<Record<string, ScalingStyle>> = {
     ELevelUpBoons: "boon",
 };
 
-type Bonus = { base: number; scale: number };
+type Bonus = { base: number; scale: number; baseMultiplier: number; scaleMultiplier: number };
 
 type Context = {
     bonuses: Map<string, Bonus>;
     heroStats: AbilityTooltipInput["heroStats"];
+    heroIcon: string | null;
     /** Each known property's css class, for the decimals of a description placeholder. */
     classes: Map<string, string | null>;
 };
 
-/** The added base and scale of every trained tier, keyed by property. */
+/** The added and multiplied base and scale of every trained tier, keyed by property. */
 function trainedBonuses(upgrades: readonly AbilityUpgrade[], states: readonly UpgradeState[]): Map<string, Bonus> {
     const out = new Map<string, Bonus>();
     for (const upgrade of upgrades) {
         if (states[upgrade.tier - 1] !== "has") continue;
         for (const { property, kind } of upgrade.bonuses) {
             if (property.value === null) continue;
-            const bonus = out.get(property.key) ?? { base: 0, scale: 0 };
-            // The multiply kinds' maths is not in the game files; such bonuses are left out.
+            const bonus = out.get(property.key) ?? { base: 0, scale: 0, baseMultiplier: 1, scaleMultiplier: 1 };
+            // `EMultiplyBase` is a percent (Ground Strike's 120 reads "+120%"); `EMultiplyScale` is a plain factor,
+            // where 0 switches the scaling off.
             if (kind === "addToBase") bonus.base += property.value;
             else if (kind === "addToScale") bonus.scale += property.value;
+            else if (kind === "multiplyBase") bonus.baseMultiplier *= 1 + property.value / 100;
+            else bonus.scaleMultiplier *= property.value;
             out.set(property.key, bonus);
         }
     }
@@ -165,11 +173,14 @@ function trainedBonuses(upgrades: readonly AbilityUpgrade[], states: readonly Up
 
 type Shown = { value: number | null; factor: number | null; scaled: boolean };
 
+/** Adds come before multiplies so the result does not depend on the tiers' order. */
 function shownOf(property: TooltipProperty, context: Context): Shown {
     const bonus = context.bonuses.get(property.key);
-    const factor = property.scale?.factor == null ? null : property.scale.factor + (bonus?.scale ?? 0);
+    const rawFactor = property.scale?.factor;
+    const scaledFactor = rawFactor == null ? null : (rawFactor + (bonus?.scale ?? 0)) * (bonus?.scaleMultiplier ?? 1);
+    const factor = scaledFactor === 0 ? null : scaledFactor;
     if (property.value === null) return { value: null, factor, scaled: false };
-    const base = property.value + (bonus?.base ?? 0);
+    const base = (property.value + (bonus?.base ?? 0)) * (bonus?.baseMultiplier ?? 1);
     const stat = property.scale?.stat;
     const heroStat = stat != null ? context.heroStats?.[stat] : undefined;
     if (factor !== null && heroStat !== undefined) return { value: base + factor * heroStat, factor, scaled: true };
@@ -186,13 +197,15 @@ function valueText(property: TooltipProperty, value: number): ValueText {
 
 const EMPTY_VALUE: ValueText = { prefix: "", number: "", postfix: "" };
 
-function scalingOf(property: TooltipProperty, factor: number | null): ScalingMarker | null {
+function scalingOf(property: TooltipProperty, factor: number | null, context: Context): ScalingMarker | null {
     if (factor === null) return null;
     const stat = property.scale?.stat ?? null;
     return {
         factor: formatShownNumber(factor, FACTOR_DECIMALS),
         stat,
         arrow: (stat !== null && SCALING_ARROWS[stat]) || null,
+        // Only the boon arrow art leaves room for the portrait (`.ScalingStat_ELevelUpBoons #HeroImage`).
+        heroIcon: stat === "ELevelUpBoons" ? context.heroIcon : null,
     };
 }
 
@@ -210,7 +223,7 @@ function chipOf(property: TooltipProperty | null, context: Context, styled: bool
         icon: property.cssClass,
         value: shown.value === null ? EMPTY_VALUE : valueText(property, shown.value),
         label: property.label,
-        scaling: scalingOf(property, shown.factor),
+        scaling: scalingOf(property, shown.factor, context),
         style: styled && shown.factor !== null ? "spirit" : null,
         scaled: shown.scaled,
     };
@@ -233,7 +246,7 @@ function cellOf(property: TooltipProperty, context: Context): PromotedCellView |
         icon: property.cssClass,
         value: shown.value === null ? EMPTY_VALUE : valueText(property, shown.value),
         label: property.label,
-        scaling: scalingOf(property, shown.factor),
+        scaling: scalingOf(property, shown.factor, context),
         style: styleOf(property, shown.factor),
         scaled: shown.scaled,
     };
@@ -245,7 +258,7 @@ function rowOf(property: TooltipProperty, context: Context): BasicRowView {
         key: property.key,
         value: shown.value === null ? EMPTY_VALUE : valueText(property, shown.value),
         label: property.label,
-        scaling: scalingOf(property, shown.factor),
+        scaling: scalingOf(property, shown.factor, context),
         scaled: shown.scaled,
     };
 }
@@ -271,11 +284,17 @@ function sectionValues(section: AbilitySection, properties: Map<string, TooltipP
     return roundedValues(current, context);
 }
 
+/** A property an upgrade switches on shows only once that tier is trained. */
+function unlocked(property: AbilityProperty, states: readonly UpgradeState[]): boolean {
+    return property.requiredTier === undefined || states[property.requiredTier - 1] === "has";
+}
+
 function sectionView(
     section: AbilitySection,
     properties: Map<string, TooltipProperty>,
     context: Context,
     imbued: ImbuedView | null,
+    states: readonly UpgradeState[],
 ): AbilitySectionView {
     return {
         description: section.description
@@ -284,17 +303,20 @@ function sectionView(
         imbued,
         groups: section.groups.map((group) => ({
             title: group.title,
-            cells: group.cells.map((cell) => cellOf(cell, context)),
+            cells: group.cells.filter((cell) => unlocked(cell, states)).map((cell) => cellOf(cell, context)),
         })),
-        rows: section.properties.map((row) => rowOf(row, context)),
+        rows: section.properties.filter((row) => unlocked(row, states)).map((row) => rowOf(row, context)),
     };
 }
 
-function bonusView({ property }: AbilityUpgrade["bonuses"][number]): UpgradeBonusView {
+function bonusView({ property, kind }: AbilityUpgrade["bonuses"][number]): UpgradeBonusView {
     const value = property.value ?? 0;
     const prefix = property.prefix ?? (value >= 0 ? "+" : "");
+    const base = { key: property.key, label: property.label };
+    // A multiply bonus is a percent of the base or a factor on the scale, never a value in the property's unit.
+    if (kind === "multiplyScale") return { ...base, amount: `x${formatShownNumber(value, FACTOR_DECIMALS)}` };
     const number = formatShownNumber(value, shownDecimals(property.cssClass));
-    return { key: property.key, amount: `${prefix}${number}${property.unit ?? ""}`, label: property.label };
+    return { ...base, amount: `${prefix}${number}${kind === "multiplyBase" ? "%" : (property.unit ?? "")}` };
 }
 
 function allProperties(ability: AbilityTooltip): TooltipProperty[] {
@@ -307,13 +329,18 @@ function allProperties(ability: AbilityTooltip): TooltipProperty[] {
 
 /** Builds everything a hero ability tooltip view draws, in the game's order. */
 export function abilityTooltipModel(input: AbilityTooltipInput): AbilityTooltipModel {
-    const { ability, upgrades: states = [], recommendedTier = null, imbuedBy = null } = input;
+    const { ability, upgrades: states = [], tierCosts, recommendedTier = null, imbuedBy = null } = input;
     const properties = new Map(allProperties(ability).map((p) => [p.key, p]));
     const classes = new Map<string, string | null>();
     for (const bonus of ability.upgrades.flatMap((u) => u.bonuses))
         classes.set(bonus.property.key, bonus.property.cssClass);
     for (const [key, property] of properties) classes.set(key, property.cssClass);
-    const context: Context = { bonuses: trainedBonuses(ability.upgrades, states), heroStats: input.heroStats, classes };
+    const context: Context = {
+        bonuses: trainedBonuses(ability.upgrades, states),
+        heroStats: input.heroStats,
+        heroIcon: input.heroIcon ?? null,
+        classes,
+    };
 
     const visible = ability.sections.filter((s) => s.requiredTier === null || states[s.requiredTier - 1] === "has");
     const imbued: ImbuedView | null = imbuedBy
@@ -326,18 +353,21 @@ export function abilityTooltipModel(input: AbilityTooltipInput): AbilityTooltipM
           }
         : null;
 
+    const shown = (p: AbilityProperty | null) => (p !== null && unlocked(p, states) ? p : null);
+
     return {
         name: ability.name,
-        chips: ability.header.flatMap((p) => chipOf(p, context, true) ?? []),
-        charges: chipOf(ability.charges, context, false),
-        chargeCooldown: chipOf(ability.chargeCooldown, context, false),
-        cooldown: chipOf(ability.cooldown, context, false),
-        sections: visible.map((s, i) => sectionView(s, properties, context, i === 0 ? imbued : null)),
+        chips: ability.header.flatMap((p) => chipOf(shown(p), context, true) ?? []),
+        charges: chipOf(shown(ability.charges), context, false),
+        chargeCooldown: chipOf(shown(ability.chargeCooldown), context, false),
+        cooldown: chipOf(shown(ability.cooldown), context, false),
+        sections: visible.map((s, i) => sectionView(s, properties, context, i === 0 ? imbued : null, states)),
         upgrades: ability.upgrades.map((upgrade) => {
             const state = states[upgrade.tier - 1] ?? "notTrained";
+            const cost = tierCosts[upgrade.tier - 1];
             return {
                 tier: upgrade.tier,
-                cost: formatShownNumber(upgrade.cost, 0),
+                cost: cost === undefined ? "" : formatShownNumber(cost, 0),
                 state,
                 recommended: recommendedTier === upgrade.tier && state !== "has",
                 bonuses: upgrade.description === null ? upgrade.bonuses.map(bonusView) : [],
