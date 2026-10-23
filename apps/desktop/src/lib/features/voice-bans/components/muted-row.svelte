@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { ExternalLink } from "@lucide/svelte";
+    import { ChartNoAxesColumn, User } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
+    import { openProfile, steam64ToSteam32 } from "$lib/core/player-links";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
@@ -43,11 +44,19 @@
     </div>
     <IconButton
         size="sm"
+        label={t("player_links.steam_of", { name: profile?.name ?? id })}
+        title={t("player_links.steam")}
+        onclick={() => void openProfile("steam", Number(steam64ToSteam32(id)))}
+    >
+        <User />
+    </IconButton>
+    <IconButton
+        size="sm"
         label={t("voice_bans.row.open_named_aria", { name: profile?.name ?? id })}
         title={t("voice_bans.row.open_title")}
         onclick={onopen}
     >
-        <ExternalLink />
+        <ChartNoAxesColumn />
     </IconButton>
     <Button
         size="sm"
