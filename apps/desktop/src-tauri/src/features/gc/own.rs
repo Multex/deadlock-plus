@@ -426,7 +426,9 @@ impl Run {
         inner.driving = false;
         let p = inner.saved.queue.progress();
         let outcome = match end {
-            RunEnd::Done if p.failed > 0 || !drive.skipped.is_empty() => Some(OwnRecoveryOutcome::Incomplete),
+            RunEnd::Done if p.failed > 0 || !drive.skipped.is_empty() || !drive.history_failed.is_empty() => {
+                Some(OwnRecoveryOutcome::Incomplete)
+            }
             RunEnd::Done => Some(OwnRecoveryOutcome::Done),
             RunEnd::Unreachable => Some(OwnRecoveryOutcome::Incomplete),
             RunEnd::Failed => Some(OwnRecoveryOutcome::Failed),
@@ -466,6 +468,9 @@ struct Drive {
     accounts: Vec<u32>,
     /// Accounts that could not reach Steam this drive.
     skipped: HashSet<u32>,
+    /// Accounts whose history could not be read this drive. It stays unread, so the next drive
+    /// reads it again instead of the run moving on without it.
+    history_failed: HashSet<u32>,
     attempts: SaltAttempts,
     /// Fetched or read anything, or started the run.
     worked: bool,
@@ -549,8 +554,11 @@ impl Drive {
 
     /// An account whose history the run still has to read. Its missing details go before any replay.
     fn unread_history(&self, saved: &SavedRun) -> Option<u32> {
-        let unread = |id: &&u32| saved.with_history && !saved.histories_read.contains(id) && !self.skipped.contains(id);
-        self.accounts.iter().find(unread).copied()
+        self.accounts.iter().find(|&&id| self.reads_history(saved, id) && !self.skipped.contains(&id)).copied()
+    }
+
+    fn reads_history(&self, saved: &SavedRun, account: u32) -> bool {
+        saved.with_history && !saved.histories_read.contains(&account) && !self.history_failed.contains(&account)
     }
 
     fn pick(&self, inner: &RunInner, now: i64) -> Pick {
@@ -604,10 +612,7 @@ impl Drive {
         session: &E::Session,
         account: u32,
     ) -> Option<RunEnd> {
-        let unread = {
-            let saved = &run.lock().saved;
-            saved.with_history && !saved.histories_read.contains(&account)
-        };
+        let unread = self.reads_history(&run.lock().saved, account);
         if unread {
             if let Some(end) = self.read_history(run, env, session, account).await {
                 return Some(end);
@@ -716,8 +721,9 @@ impl Drive {
             }
             Err(SteamGcError::Yielded) => return Some(RunEnd::GameOpen),
             Err(e) => {
-                log::warn!("gc: could not read the history of account {account}: {e}");
-                (Vec::new(), Vec::new())
+                log::warn!("gc: could not read the history of account {account}, the next drive tries again: {e}");
+                self.history_failed.insert(account);
+                return None;
             }
         };
         let mut inner = run.lock();
@@ -839,8 +845,10 @@ impl<H: Fn() -> bool, S: Sink> RunEnv for AppEnv<'_, H, S> {
             log::info!("gc: Steam cut the history of account {account_id} short; the next run reads the rest");
         }
         let ids: Vec<u64> = matches.iter().map(|m| m.match_id).collect();
-        let (known, replays) =
-            futures::join!(api::known_match_ids(self.http, &ids), api::replay_match_ids(self.http, &ids));
+        let (known, replays) = futures::join!(
+            api::known_match_ids_with(self.http, &ids, api::Patience::Wait),
+            api::replay_match_ids(self.http, &ids)
+        );
         let mut with_details = known.map_err(|e| SteamGcError::Api(e.to_string()))?;
         let mut with_replay: HashSet<u64> = match replays {
             Ok(replays) => replays.into_iter().collect(),
@@ -966,6 +974,8 @@ mod tests {
         game_open: bool,
         accounts: Vec<u32>,
         histories: HashMap<u32, History>,
+        /// Accounts whose history read fails, as when deadlock-api keeps answering 429.
+        history_fails: HashSet<u32>,
         script: Rc<Script>,
         ledger: HashMap<u32, SaltQuota>,
         saved: Vec<serde_json::Value>,
@@ -1076,6 +1086,9 @@ mod tests {
         }
 
         async fn history(&mut self, _: &FakeSession, account_id: u32) -> Result<History, SteamGcError> {
+            if self.history_fails.contains(&account_id) {
+                return Err(SteamGcError::Api("429 Too Many Requests".into()));
+            }
             Ok(self.histories.remove(&account_id).unwrap_or_default())
         }
 
@@ -1333,6 +1346,37 @@ mod tests {
         let status = run.status(NOW);
         assert_eq!((status.done, status.total), (2, 2));
         assert_eq!(env.last_runs.len(), 2);
+    }
+
+    #[test]
+    fn a_history_that_cannot_be_read_stays_unread_for_the_next_drive() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        env.spent(A, FETCH_QUOTA_LIMIT - 1, NOW - 60);
+        env.history_fails.insert(A);
+        assert!(matches!(start(&mut env, &[1, 2]), RunEnd::DailyLimit { .. }));
+        assert_eq!(env.fetched(), [1]);
+        let saved = env.last_saved();
+        assert!(!saved.histories_read.contains(&A), "the next drive reads the history again");
+        assert_eq!(saved.queue.ids().collect::<Vec<_>>(), [2], "nothing from the history was queued");
+
+        env.history_fails.clear();
+        env.history(A, &[5, 6], &[6]);
+        env.ledger.clear();
+        assert!(run.claim_driver());
+        assert_eq!(resume_drive(&mut env), RunEnd::Done);
+        assert_eq!(env.fetched(), [1, 2, 5]);
+    }
+
+    #[test]
+    fn a_run_that_could_not_read_a_history_ends_incomplete() {
+        let run = Run::default();
+        let mut env = FakeEnv::new(&run, &[A]);
+        env.history_fails.insert(A);
+        assert_eq!(start(&mut env, &[]), RunEnd::Done);
+        assert!(env.fetched().is_empty());
+        assert!(!env.last_saved().histories_read.contains(&A));
+        assert_eq!(run.status(NOW).outcome, Some(OwnRecoveryOutcome::Incomplete));
     }
 
     #[test]
