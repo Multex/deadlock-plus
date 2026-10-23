@@ -111,6 +111,40 @@ describe("abilityTooltipVars", () => {
     ] as const)("draws %s over %s as the game does", (name, under, game) => {
         expect(distance(over(abilityTooltipVars()[name], under), game)).toBeLessThanOrEqual(4);
     });
+
+    // The between-charges chip keeps the panel's #ffffff05 and adds its container's #ffffff03 on top, so it
+    // comes out lighter than the charges chip beside it (Lightning Ball capture: #383838 next to #2e2e2e).
+    it("layers the between-charges chip over the chip backer", () => {
+        const vars = abilityTooltipVars();
+        const chip = over(vars["--at-chip"], "#161616");
+        expect(distance(over(vars["--at-chip-between"], chip), "#383838")).toBeLessThanOrEqual(4);
+    });
+
+    // `gradient( radial, 50% 50%, 0% 0%, 100% 100%, ...)`: the radii are the panel's full width and height, so a
+    // corner sits at 0.71 of the way.
+    it.each(["--at-spirit-fill", "--at-weapon-fill", "--at-boon-fill"])("sizes %s to the panel", (name) => {
+        expect(abilityTooltipVars()[name]).toMatch(/^radial-gradient\(100% 100% at 50% 50% in srgb-linear, /);
+    });
+
+    // Panorama mixes a gradient in linear light. The Lightning Ball capture's spirit cell: #261634 at 0.42 of the
+    // radius, #2a1939 at 0.5, #2f1c3f at 0.7.
+    it.each([
+        [0.42, "#261634"],
+        [0.5, "#2a1939"],
+        [0.7, "#2f1c3f"],
+    ])("draws the spirit cell fill at %s as the game does", (t, game) => {
+        const stops = /in srgb-linear, (#[0-9a-f]{6}), (#[0-9a-f]{6})\)$/.exec(
+            abilityTooltipVars()["--at-spirit-fill"],
+        );
+        expect(stops).not.toBeNull();
+        expect(distance(mixLinear(stops![1], stops![2], t), game)).toBeLessThanOrEqual(4);
+    });
+
+    // Panorama draws a border over the panel's own background: the capture's spirit cell border is #52326b on
+    // its #2b1b39 side.
+    it("draws the spirit cell border over the cell's fill", () => {
+        expect(distance(over(abilityTooltipVars()["--at-spirit-border"], "#2b1b39"), "#52326b")).toBeLessThanOrEqual(4);
+    });
 });
 
 describe("abilityNameSize", () => {
@@ -119,6 +153,23 @@ describe("abilityNameSize", () => {
         expect(abilityNameSize("An Exceedingly Long Ability Name Indeed")).toBeLessThan(36);
     });
 });
+
+/** What the browser draws for a two-stop `in srgb-linear` gradient at `t`. */
+function mixLinear(from: string, to: string, t: number): string {
+    const lin = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+    const enc = (l: number) => 255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * l ** (1 / 2.4) - 0.055);
+    const [a, b] = [rgb(from), rgb(to)];
+    return (
+        "#" +
+        a
+            .map((v, i) =>
+                Math.round(enc((1 - t) * lin(v) + t * lin(b[i])))
+                    .toString(16)
+                    .padStart(2, "0"),
+            )
+            .join("")
+    );
+}
 
 function rgb(hex: string): number[] {
     return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

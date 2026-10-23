@@ -57,14 +57,14 @@
     .m-diminish,
     .m-small_diminish {
         color: var(--tt-diminish);
-        font-size: calc(var(--u, 1px) * 15);
+        font-size: round(down, calc(var(--u, 1px) * 15 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 600;
     }
     /* Measured: 26 px a line at 1440p. */
     .block {
         display: block;
-        line-height: 1.3;
+        line-height: calc(var(--u, 1px) * 19.5);
     }
     .m-bold {
         font-weight: 700;

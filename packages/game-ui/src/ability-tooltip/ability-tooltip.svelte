@@ -29,12 +29,10 @@
         <div class="details">
             <div class="header">
                 <div class="left">
-                    <span class="name" style:font-size="calc(var(--u) * {abilityNameSize(model.name)})"
-                        >{model.name}</span
-                    >
+                    <span class="name" style:--name-size={abilityNameSize(model.name)}>{model.name}</span>
                     {#if model.chips.length > 0}
                         <div class="chips">
-                            {#each model.chips as chip (chip.key)}<AbilityChip {chip} />{/each}
+                            {#each model.chips as chip (chip.key)}<AbilityChip {chip} framed />{/each}
                         </div>
                     {/if}
                 </div>
@@ -63,16 +61,28 @@
 </div>
 
 <style>
+    /* Panorama draws text at whole pixels, rounded down (Lightning Ball at 1440p: the 18s at 23, the 36 name at 47),
+       and sizes a line box by the font's own ascent and descent unless a rule sets a line-height. */
     .ability-tooltip {
         --u: calc(var(--game-ui-scale, 1) * 1px);
+        /* `.AbilityPropertyName` is 17 with `text-overflow: shrink` under `max-height: 20`: it shrinks until its
+           line box fits 20. Retail Demo's box is 1.343 em, so the capture's labels draw at 19 px. */
+        --at-name-size: round(
+            down,
+            min(
+                calc(var(--u) * 17 * var(--game-font-scale)),
+                calc(var(--u) * 20 / var(--game-font-sans-leading, 1.343))
+            ),
+            1px
+        );
         box-sizing: border-box;
-        width: calc(var(--u) * 560);
-        padding: calc(var(--u) * 10);
+        width: round(calc(var(--u) * 560), 1px);
+        padding: round(calc(var(--u) * 10), 1px);
         color: var(--game-off-white, #ffefd7);
         font-family: var(--game-font-sans);
-        font-size: calc(var(--u) * 18);
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
         font-weight: 400;
-        line-height: 1.2;
+        line-height: normal;
         pointer-events: none;
         text-align: left;
     }
@@ -84,7 +94,7 @@
     .backer {
         position: absolute;
         z-index: -1;
-        inset: calc(var(--u) * 10) 0;
+        inset: round(calc(var(--u) * 10), 1px) 0;
         background: var(--game-off-black, #10130d);
         box-shadow: 0 0 calc(var(--u) * 20) #000000;
     }
@@ -94,28 +104,31 @@
         filter: drop-shadow(0 0 calc(var(--u) * 20) #000000);
     }
     .details {
-        padding: calc(var(--u) * 10) 0;
+        padding: round(calc(var(--u) * 10), 1px) 0;
     }
     /* `.HeaderContainer`: the name and its chips on the left, charges and cooldown pinned top right. */
     .header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        padding: calc(var(--u) * 20) calc(var(--u) * 20) calc(var(--u) * 20) calc(var(--u) * 30);
+        padding: round(calc(var(--u) * 20), 1px) round(calc(var(--u) * 20), 1px) round(calc(var(--u) * 20), 1px)
+            round(calc(var(--u) * 30), 1px);
     }
     .left {
         display: flex;
         min-width: 0;
         flex-direction: column;
     }
-    /* `.AbilityName`: oracle bold 36, at most 370 wide. */
+    /* `.AbilityName`: oracle bold 36, at most 370 wide, in a 50 tall box. Measured (Lightning Ball): the game draws
+       it 2 px higher in that box than centred at 1440p, so 3 of the 50 move under the line. */
     .name {
-        max-width: calc(var(--u) * 370);
-        margin: 0 0 calc(var(--u) * 10) calc(var(--u) * 6);
+        max-width: round(calc(var(--u) * 370), 1px);
+        margin: 0 0 round(calc(var(--u) * 13), 1px) round(calc(var(--u) * 6), 1px);
         overflow: hidden;
         font-family: var(--game-font-oracle);
+        font-size: round(down, calc(var(--u) * var(--name-size) * var(--game-font-scale)), 1px);
         font-weight: 700;
-        line-height: calc(var(--u) * 50);
+        line-height: round(calc(var(--u) * 47), 1px);
         white-space: nowrap;
     }
     .chips {
@@ -128,12 +141,13 @@
         align-items: flex-end;
     }
     .sections {
-        padding: 0 calc(var(--u) * 30) calc(var(--u) * 20) calc(var(--u) * 40);
+        padding: 0 round(calc(var(--u) * 30), 1px) round(calc(var(--u) * 20), 1px) round(calc(var(--u) * 40), 1px);
     }
     /* `.AbilityList` (margin-top -14) and `CitadelAbilityUpgradeList` (padding 10 8 10 20). */
     .upgrades {
         display: flex;
-        margin-top: calc(var(--u) * -14);
-        padding: calc(var(--u) * 10) calc(var(--u) * 8) calc(var(--u) * 10) calc(var(--u) * 20);
+        margin-top: round(calc(var(--u) * -14), 1px);
+        padding: round(calc(var(--u) * 10), 1px) round(calc(var(--u) * 8), 1px) round(calc(var(--u) * 10), 1px)
+            round(calc(var(--u) * 20), 1px);
     }
 </style>

@@ -77,10 +77,11 @@
         z-index: 0;
         display: flex;
         width: max-content;
-        align-items: stretch;
+        /* A taller ALT column runs on below the paper, which keeps its own height (Enchanter's Emblem capture). */
+        align-items: flex-start;
         color: var(--game-off-white, #ffefd7);
         font-family: var(--game-font-sans);
-        font-size: calc(var(--u) * 18);
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
         font-weight: 400;
         line-height: 1.2;
         pointer-events: none;
@@ -122,7 +123,7 @@
         bottom: calc(var(--u) * 10);
         left: calc(var(--u) * 21);
         color: var(--tt-affix);
-        font-size: calc(var(--u) * 13);
+        font-size: round(down, calc(var(--u) * 13 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 600;
         line-height: calc(var(--u) * 16);

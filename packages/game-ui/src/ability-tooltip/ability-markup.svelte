@@ -67,7 +67,7 @@
         font-style: italic;
     }
     .m-small_diminish {
-        font-size: calc(var(--u, 1px) * 14);
+        font-size: round(down, calc(var(--u, 1px) * 14 * var(--game-font-scale)), 1px);
     }
     .m-bold {
         font-weight: 700;
@@ -81,7 +81,7 @@
     }
     .attribute-icon {
         display: inline-flex;
-        margin: 0 calc(var(--u, 1px) * 2) calc(var(--u, 1px) * 2);
+        margin: 0 round(calc(var(--u, 1px) * 2), 1px) round(calc(var(--u, 1px) * 2), 1px);
         vertical-align: middle;
     }
     /* `.PropertiesBlockHeaderLabel .InlineGlyph`: 20 square. */
@@ -91,9 +91,9 @@
     }
     .binding {
         display: inline-block;
-        padding: 0 calc(var(--u, 1px) * 5);
-        border: calc(var(--u, 1px) * 1) solid currentColor;
-        border-radius: calc(var(--u, 1px) * 3);
+        padding: 0 round(calc(var(--u, 1px) * 5), 1px);
+        border: round(calc(var(--u, 1px) * 1), 1px) solid currentColor;
+        border-radius: round(calc(var(--u, 1px) * 3), 1px);
         font-family: var(--game-font-sans);
         font-size: 0.85em;
         font-weight: 700;

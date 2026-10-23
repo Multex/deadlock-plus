@@ -147,8 +147,24 @@ function opacity(alpha: number, color: string, under: string): string {
     return String(Math.round(panoramaAlpha(alpha, color, under) * 1000) / 1000);
 }
 
-function radial(from: string, to: string, under: string): string {
-    return `radial-gradient(circle at 50% 50%, ${panoramaColor(from, under)}, ${panoramaColor(to, under)})`;
+/** A translucent Panorama colour (`name&xx` or `#rrggbbaa`) flattened onto `under` as Panorama blends it. */
+function flatten(value: string, under: string): string {
+    const [base, suffix] = value.split("&");
+    return suffix === undefined
+        ? panoramaBlend(value.slice(0, 7), parseInt(value.slice(7, 9), 16) / 255, under)
+        : panoramaBlend(base, parseInt(suffix, 16) / 255, under);
+}
+
+/**
+ * Panorama's `gradient( radial, 50% 50%, 0% 0%, 100% 100%, ...)` with the `border` drawn over it: radii of the
+ * full size, mixed in linear light. A side of the box sits halfway out, where the border blends over the fill.
+ */
+function scalingBox(border: string, from: string, to: string, under: string): { border: string; fill: string } {
+    const [inner, outer] = [flatten(from, under), flatten(to, under)];
+    return {
+        border: panoramaColor(border, panoramaBlend(outer, 0.5, inner)),
+        fill: `radial-gradient(100% 100% at 50% 50% in srgb-linear, ${inner}, ${outer})`,
+    };
 }
 
 // The typical (median) colour of `ability_tooltip_bg`, the panel every translucent colour of the tooltip
@@ -162,6 +178,10 @@ const PANEL = "#141414";
  */
 export function abilityTooltipVars(): Record<string, string> {
     const cell = panoramaBlend("offWhite", 0x08 / 255, PANEL);
+    const chip = panoramaBlend("#ffffff", 0x05 / 255, PANEL);
+    const spirit = scalingBox("spirit&40", "#00000080", "spiritDark&50", PANEL);
+    const weapon = scalingBox("courage&30", "#00000080", "courageDark&30", PANEL);
+    const boon = scalingBox("shard&10", "#00000080", "shard&10", PANEL);
     return {
         "--at-description": gameColors.silvered,
         "--at-highlight": gameColors.offWhite,
@@ -175,14 +195,15 @@ export function abilityTooltipVars(): Record<string, string> {
         "--at-diminish": panoramaColor("#bfbbb050", PANEL),
         "--at-affix": "#a4a4a4",
         "--at-chip": panoramaColor("#ffffff05", PANEL),
-        "--at-chip-dim": panoramaColor("#ffffff03", PANEL),
+        // The between-charges container's #ffffff03 sits on the chip panel's own #ffffff05.
+        "--at-chip-between": panoramaColor("#ffffff03", chip),
         "--at-cell": panoramaColor("offWhite&08", PANEL),
-        "--at-spirit-border": panoramaColor("spirit&40", PANEL),
-        "--at-spirit-fill": radial("#00000080", "spiritDark&50", PANEL),
-        "--at-weapon-border": panoramaColor("courage&30", PANEL),
-        "--at-weapon-fill": radial("#00000080", "courageDark&30", PANEL),
-        "--at-boon-border": panoramaColor("shard&10", PANEL),
-        "--at-boon-fill": radial("#00000080", "shard&10", PANEL),
+        "--at-spirit-border": spirit.border,
+        "--at-spirit-fill": spirit.fill,
+        "--at-weapon-border": weapon.border,
+        "--at-weapon-fill": weapon.fill,
+        "--at-boon-border": boon.border,
+        "--at-boon-fill": boon.fill,
         "--at-group-title": "#909090",
         "--at-imbued": gameColors.spiritBright,
         "--at-card": panoramaColor("offWhite&05", gameColors.offBlack),

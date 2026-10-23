@@ -44,7 +44,9 @@
         margin-right: calc(var(--u) * -2);
         margin-left: 0;
     }
-    /* `#ViewImpactBox`: 80 tall, 2 px #00000070 border, the slot's dark colour under its header band. */
+    /* `#ViewImpactBox`: 80 tall, 2 px #00000070 border, the slot's dark colour under its header band. The 14 bottom
+       padding and the label's 4 gap place the text as the 1440p captures do: label ink 22 below the box top, the key
+       12 below the label. */
     .box {
         position: relative;
         display: flex;
@@ -52,7 +54,7 @@
         height: calc(var(--u) * 80);
         flex-direction: column;
         justify-content: center;
-        padding: calc(var(--u) * 10) calc(var(--u) * 10) calc(var(--u) * 10) calc(var(--u) * 20);
+        padding: calc(var(--u) * 10) calc(var(--u) * 10) calc(var(--u) * 14) calc(var(--u) * 20);
         border: calc(var(--u) * 2) solid var(--tt-details-border);
         background: var(--tt-slot-dark);
         animation: flash 2s infinite;
@@ -75,25 +77,32 @@
         z-index: 1;
     }
     .label {
-        margin-bottom: calc(var(--u) * 2);
+        margin-bottom: calc(var(--u) * 4);
         font-family: var(--game-font-oracle);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 700;
         text-shadow: 0 0 calc(var(--u) * 3) #000000;
         white-space: nowrap;
     }
+    /* Measured in six 1440p captures: a 59x33 light cap, its label Valve Pulp 14 in offBlack. */
     .key {
+        display: flex;
+        box-sizing: border-box;
+        height: calc(var(--u) * 25);
+        align-items: center;
         align-self: center;
-        padding: 0 calc(var(--u) * 6);
-        border: calc(var(--u) * 1) solid currentColor;
+        padding: 0 calc(var(--u) * 8);
         border-radius: calc(var(--u) * 3);
-        font-family: var(--game-font-sans);
-        font-size: calc(var(--u) * 14);
+        background: #b5ac9d;
+        color: var(--game-off-black, #10130d);
+        font-family: var(--game-font-block);
+        font-size: round(down, calc(var(--u) * 14 * var(--game-font-scale)), 1px);
         font-weight: 700;
+        line-height: 1;
         text-transform: uppercase;
     }
     .left .box {
-        padding: calc(var(--u) * 10) calc(var(--u) * 20) calc(var(--u) * 10) calc(var(--u) * 10);
+        padding: calc(var(--u) * 10) calc(var(--u) * 20) calc(var(--u) * 14) calc(var(--u) * 10);
     }
 
     /* `viewDetailsFlash`. */

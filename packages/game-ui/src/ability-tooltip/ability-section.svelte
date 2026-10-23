@@ -53,46 +53,53 @@
 </div>
 
 <style>
+    /* A column so the description's margin-bottom and the cells' margin-top add up as Panorama's do. */
     .block {
-        margin-bottom: calc(var(--u) * 5);
+        display: flex;
+        flex-direction: column;
+        margin-bottom: round(calc(var(--u) * 5), 1px);
     }
     /* `.PropertiesBlockHeaderLabel`: medium 18 silvered, line-height 130%. */
     .description {
-        margin: 0 0 calc(var(--u) * 8);
+        margin: 0 0 round(calc(var(--u) * 8), 1px);
         color: var(--at-description);
-        font-size: calc(var(--u) * 18);
+        /* The game draws 23 px with whole-pixel advances (Lightning Ball line 1: 570 px); the browser's
+           fractional advances need 1.7% more for the same line widths and breaks. */
+        font-size: calc(round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px) * 1.017);
         font-weight: 500;
-        line-height: 1.3;
+        /* 130% of the unrounded size: the capture's lines are 31.5 apart. */
+        line-height: calc(var(--u) * 18 * 1.3);
     }
     /* `.ImbueBlock` and `.ImbuedLabel`. The mod icon's size is not in the ability files. */
     .imbued {
         display: flex;
         align-items: center;
-        padding: calc(var(--u) * 3);
+        padding: round(calc(var(--u) * 3), 1px);
     }
     .imbued-icon {
-        width: calc(var(--u) * 32);
-        height: calc(var(--u) * 32);
+        width: round(calc(var(--u) * 32), 1px);
+        height: round(calc(var(--u) * 32), 1px);
         flex: none;
         background: var(--icon) center / contain no-repeat;
     }
     .imbued-label {
-        margin-left: calc(var(--u) * 10);
+        margin-left: round(calc(var(--u) * 10), 1px);
         color: var(--at-imbued);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 700;
     }
     .promoted {
         display: flex;
-        margin-top: calc(var(--u) * 5);
+        margin-top: round(calc(var(--u) * 5), 1px);
     }
     /* `#BasicPropertiesContainer`: offWhite&08, cells 49% x 35 wrapping two to a row. */
     .basic {
         display: flex;
         flex-wrap: wrap;
-        margin: calc(var(--u) * 3) calc(var(--u) * 1) calc(var(--u) * 1) calc(var(--u) * 2);
-        padding: calc(var(--u) * 8) calc(var(--u) * 5);
+        margin: round(calc(var(--u) * 3), 1px) round(calc(var(--u) * 1), 1px) round(calc(var(--u) * 1), 1px)
+            round(calc(var(--u) * 2), 1px);
+        padding: round(calc(var(--u) * 8), 1px) round(calc(var(--u) * 5), 1px);
         background: var(--at-cell);
     }
     .row {
@@ -104,14 +111,14 @@
         display: flex;
         box-sizing: border-box;
         width: 49%;
-        height: calc(var(--u) * 35);
+        height: round(calc(var(--u) * 35), 1px);
         align-items: center;
-        gap: calc(var(--u) * 5);
-        padding: 0 calc(var(--u) * 10);
+        gap: round(calc(var(--u) * 5), 1px);
+        padding: 0 round(calc(var(--u) * 10), 1px);
     }
     .row-name {
         overflow: hidden;
-        font-size: calc(var(--u) * 17);
+        font-size: var(--at-name-size);
         font-weight: 400;
         opacity: var(--at-name-opacity);
         text-overflow: ellipsis;
@@ -119,7 +126,7 @@
     }
     .row-scaling {
         position: absolute;
-        top: calc(var(--u) * -8);
-        right: calc(var(--u) * -4);
+        top: round(calc(var(--u) * -8), 1px);
+        right: round(calc(var(--u) * -4), 1px);
     }
 </style>

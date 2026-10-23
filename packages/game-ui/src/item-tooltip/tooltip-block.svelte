@@ -48,9 +48,9 @@
         margin: 0;
         padding: calc(var(--u) * 1.5) calc(var(--u) * 10) 0 0;
         color: var(--tt-description);
-        font-size: calc(var(--u) * 18);
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
         font-weight: 500;
-        line-height: 1.35;
+        line-height: calc(var(--u) * 18 * 1.35);
         overflow-wrap: break-word;
     }
     .innate .description {

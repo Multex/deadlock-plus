@@ -61,9 +61,9 @@
         position: relative;
         display: flex;
         min-width: 0;
-        height: calc(var(--u) * 160);
+        height: round(calc(var(--u) * 160), 1px);
         flex: 1 1 0;
-        margin: 0 calc(var(--u) * 3);
+        margin: 0 round(calc(var(--u) * 3), 1px);
         background: var(--at-card);
     }
     .content {
@@ -80,11 +80,11 @@
     }
     .strip {
         display: flex;
-        height: calc(var(--u) * 30);
+        height: round(calc(var(--u) * 30), 1px);
         flex: none;
         align-items: center;
         justify-content: center;
-        margin: calc(var(--u) * 2);
+        margin: round(calc(var(--u) * 2), 1px);
         background: var(--strip);
     }
     .bolt {
@@ -102,8 +102,8 @@
         mask: none;
     }
     .cost {
-        margin-left: calc(var(--u) * 4);
-        font-size: calc(var(--u) * 20);
+        margin-left: round(calc(var(--u) * 4), 1px);
+        font-size: round(down, calc(var(--u) * 20 * var(--game-font-scale)), 1px);
         font-weight: 700;
         color: var(--cost);
     }
@@ -113,18 +113,22 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: calc(var(--u) * 3) calc(var(--u) * 8);
+        padding: round(calc(var(--u) * 3), 1px) round(calc(var(--u) * 8), 1px);
         text-align: center;
     }
     .bonus {
         color: var(--bonus);
-        font-size: calc(var(--u) * 22);
+        font-size: round(down, calc(var(--u) * 22 * var(--game-font-scale)), 1px);
         font-weight: 700;
         opacity: var(--bonus-opacity);
     }
+    /* `#upgradeDesc` is 16, which the game's font scale draws at 20 px at 1440p; the narrower box keeps the line
+       breaks all three Lightning Ball cards show. */
     .upgrade-desc {
+        max-width: calc(100% * 15 / 16);
         color: var(--desc);
-        font-size: calc(var(--u) * 16);
+        font-size: calc(var(--u) * 15);
+        line-height: calc(var(--u) * 15 * var(--game-font-sans-leading, 1.343));
         font-weight: 600;
         opacity: var(--desc-opacity);
     }
@@ -138,14 +142,14 @@
     /* `.build_next`: bold 14 uppercase on buildsDark, hanging 10 below the card. */
     .recommended {
         position: absolute;
-        bottom: calc(var(--u) * -10);
+        bottom: round(calc(var(--u) * -10), 1px);
         left: 50%;
-        max-width: calc(var(--u) * 110);
-        padding: 0 calc(var(--u) * 5) calc(var(--u) * 1);
+        max-width: round(calc(var(--u) * 110), 1px);
+        padding: 0 round(calc(var(--u) * 5), 1px) round(calc(var(--u) * 1), 1px);
         overflow: hidden;
-        border-radius: calc(var(--u) * 2);
+        border-radius: round(calc(var(--u) * 2), 1px);
         background: var(--at-recommended);
-        font-size: calc(var(--u) * 14);
+        font-size: round(down, calc(var(--u) * 14 * var(--game-font-scale)), 1px);
         font-weight: 700;
         text-overflow: ellipsis;
         text-transform: uppercase;

@@ -43,25 +43,29 @@
         flex-direction: column;
         align-items: flex-start;
         margin: calc(var(--u) * 3) calc(var(--u) * 10) 0;
-        padding: calc(var(--u) * 5) calc(var(--u) * 8);
+        /* A two-line note's box is 71 tall at 1440p, its first line's ink 13 below the top. */
+        padding: calc(var(--u) * 8) calc(var(--u) * 8) calc(var(--u) * 9);
         border-radius: calc(var(--u) * 5);
         background: var(--tt-build-note-bg);
     }
-    /* `.ModifiesLabel`: oracle bold 16 silvered, at most 60 tall (the game shrinks a longer note to fit). */
+    /*
+     * `.ModifiesLabel`: oracle bold 16 silvered, at most 60 tall. The game shrinks a longer note to fit; here it is
+     * cut at three whole lines (24 apart at 1440p) so no sliver of a fourth shows.
+     */
     .annotation {
-        max-height: calc(var(--u) * 60);
+        max-height: calc(var(--u) * 54);
         overflow: hidden;
         color: var(--game-silvered, #c6c6c6);
         font-family: var(--game-font-oracle);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 700;
-        line-height: calc(var(--u) * 20);
+        line-height: calc(var(--u) * 18);
         overflow-wrap: anywhere;
         white-space: pre-line;
     }
     /* `.SellPriorityLabel` keeps the base `Label`: sans 18 offWhite. */
     .sell {
-        font-size: calc(var(--u) * 18);
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
     }
     .imbue {
         display: flex;
@@ -69,7 +73,7 @@
     }
     /* `.ImbueTargetContainer Label`: semi-bold 16 offWhite, shadow 0 0 3 #00000090. */
     .imbue-label {
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 600;
         text-shadow: 0 0 calc(var(--u) * 3) var(--tt-build-note-shadow);
     }

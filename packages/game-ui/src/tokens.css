@@ -29,8 +29,21 @@
     /* The game's font stacks. Retail Text Demo is not bundled and falls back to Retail Demo, the game's own
        second choice for `sans`. */
     --game-font-sans: "Radiance", "Retail Demo", "Noto Sans", sans-serif;
+    /* `normal` line height of the sans face (hhea ascent + descent + gap over units per em). */
+    --game-font-sans-leading: 1.2;
     --game-font-sans-mono: "Retail Text Demo", "Retail Demo", "Noto Sans", sans-serif;
     --game-font-oracle: "Valve Oracle", "Retail Demo", sans-serif;
     --game-font-block: "Valve Pulp", "Noto Sans", sans-serif;
     --game-font-numeric-block: "Valve Pulp", "Noto Sans", sans-serif;
+    /* Panorama draws a font-size N at floor(N x ui scale x 0.982) whole pixels, for every face. At 1440p the
+       captures measure 12 -> 15, 14 -> 18, 15 -> 19, 16 -> 20, 18 -> 23, 20 -> 26, 22 -> 28, 26 -> 34 and
+       36 -> 47 px; 26 -> 34 needs at least 0.9808 and 16 -> 20 less than 0.984. */
+    --game-font-scale: 0.982;
+}
+
+/* The game's fonts.conf maps Radiance to Retail Demo for en-us and id-id. */
+:root:lang(en),
+:root:lang(id) {
+    --game-font-sans: "Retail Demo", "Noto Sans", sans-serif;
+    --game-font-sans-leading: 1.343;
 }

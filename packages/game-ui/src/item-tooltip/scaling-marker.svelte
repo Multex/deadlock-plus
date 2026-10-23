@@ -86,11 +86,13 @@
         margin: 0 0 0 calc(var(--u, 1px) * 4);
     }
     /* `.ScalingStatAltMultiply`: the Label default 18, oracle bold italic at 0.8 opacity. */
+    /* The game leaves a 4 px gap before the factor at 1440p ("x 0.06" on Spirit Burn, "x 0.5" on Lightning Ball). */
     .x {
+        margin-right: calc(var(--u, 1px) * 3);
         margin-bottom: calc(var(--u, 1px) * 2);
         color: var(--tt-scaling-x);
         font-family: var(--game-font-oracle);
-        font-size: calc(var(--u, 1px) * 18);
+        font-size: round(down, calc(var(--u, 1px) * 18 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 700;
         opacity: var(--tt-scaling-x-opacity);
@@ -98,7 +100,7 @@
     .factor {
         color: var(--stat);
         font-family: var(--game-font-sans);
-        font-size: calc(var(--u, 1px) * 14);
+        font-size: round(down, calc(var(--u, 1px) * 14 * var(--game-font-scale)), 1px);
         font-weight: 600;
     }
 </style>

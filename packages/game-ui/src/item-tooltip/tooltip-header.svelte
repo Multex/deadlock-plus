@@ -15,12 +15,17 @@
     const soul = $derived(cssUrl(ui.soul_icon));
     const check = $derived(cssUrl(ui.purchased_check));
     let failed = $state<string | null>(null);
+    const nameSize = $derived(headerNameSize(header.name, width));
     const abilityIcon = $derived(header.imbued?.icon && failed !== header.imbued.icon ? header.imbued.icon : null);
 </script>
 
 <!-- `.HeaderContainer`: at least 96 tall, padding 20 25, on the slot's painted band. -->
 <header class="header" class:painted={!!band} style:--band={band}>
-    <span class="name" style:font-size="calc(var(--u) * {headerNameSize(header.name, width)})">{header.name}</span>
+    <span
+        class="name"
+        style:font-size="round(down, calc(var(--u) * {nameSize} * var(--game-font-scale)), 1px)"
+        style:line-height="calc(var(--u) * {nameSize} * var(--tt-oracle-line))">{header.name}</span
+    >
     {#if header.cost !== null}
         <span class="state priced" class:cant-afford={header.cantAfford}>
             <span class="soul" class:fallback={!soul} style:--soul={soul} aria-hidden="true"></span>
@@ -61,17 +66,24 @@
     .header.painted {
         background: var(--band) center top / cover no-repeat;
     }
-    /* `.ModName`: oracle bold 36, shrunk to one line. */
+    /*
+     * `.ModName`: oracle bold 36, shrunk to one line. Panorama draws it higher in its label box than a browser
+     * centres it in a line: measured at 1440p against the paper's torn top edge, the name ink and the header's
+     * bottom both sit 2-3 px higher than a full line box gives.
+     */
     .name {
+        margin-top: calc(var(--u) * -2);
         font-family: var(--game-font-oracle);
         font-weight: 700;
-        line-height: var(--tt-oracle-line);
         text-shadow: calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--tt-name-shadow);
         white-space: nowrap;
     }
+    /* The header ends 1-2 px sooner below this line than its line box gives (1440p: Spirit Burn, Veil Walker,
+       Close Quarters, Warp Stone). */
     .state {
         display: flex;
         align-items: center;
+        margin-bottom: calc(var(--u) * -1);
     }
     .priced {
         align-items: flex-start;
@@ -100,16 +112,16 @@
      */
     .cost {
         align-self: center;
-        line-height: 1.375;
+        line-height: calc(var(--u) * 20 * 1.375);
         color: var(--game-shard, #99ffd6);
         font-family: var(--game-font-numeric-block);
-        font-size: calc(var(--u) * 20);
+        font-size: round(down, calc(var(--u) * 20 * var(--game-font-scale)), 1px);
         font-weight: 700;
     }
     .owned {
         margin-right: calc(var(--u) * 5);
         color: var(--tt-owned);
-        font-size: calc(var(--u) * 20);
+        font-size: round(down, calc(var(--u) * 20 * var(--game-font-scale)), 1px);
         font-weight: 700;
     }
     .check {
@@ -129,7 +141,7 @@
     .imbued {
         margin-right: calc(var(--u) * 3);
         color: var(--tt-imbued);
-        font-size: calc(var(--u) * 20);
+        font-size: round(down, calc(var(--u) * 20 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 700;
     }

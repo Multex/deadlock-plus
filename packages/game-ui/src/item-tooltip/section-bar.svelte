@@ -86,7 +86,7 @@
     }
     .stacks-label {
         margin-right: calc(var(--u) * 8);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 600;
         opacity: var(--tt-stacks-label-opacity);
     }

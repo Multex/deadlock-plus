@@ -39,10 +39,10 @@
         margin: calc(var(--u) * 8) calc(var(--u) * 8) calc(var(--u) * 8) calc(var(--u) * 10);
         color: var(--game-brand-green, #5fe69e);
         font-family: var(--game-font-oracle);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 500;
         /* Measured: this italic line sits taller than the other oracle labels. */
-        line-height: 1.48;
+        line-height: calc(var(--u) * 16 * 1.48);
     }
 </style>

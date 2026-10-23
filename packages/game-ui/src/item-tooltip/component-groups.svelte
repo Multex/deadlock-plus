@@ -43,10 +43,10 @@
     /* `.componentsLabel`: 14 bold uppercase #ffffff50 on offBlack&ea; the band measures 33 px at 1440p. */
     .label {
         padding: calc(var(--u) * 4) calc(var(--u) * 10) calc(var(--u) * 2);
-        line-height: 1.34;
+        line-height: calc(var(--u) * 14 * 1.34);
         background: var(--tt-component-label-bg);
         color: var(--tt-component-label);
-        font-size: calc(var(--u) * 14);
+        font-size: round(down, calc(var(--u) * 14 * var(--game-font-scale)), 1px);
         font-weight: 700;
         text-transform: uppercase;
     }
@@ -110,7 +110,7 @@
         max-width: calc(var(--u) * 200);
         overflow: hidden;
         color: var(--tt-component-name);
-        font-size: calc(var(--u) * 14);
+        font-size: round(down, calc(var(--u) * 14 * var(--game-font-scale)), 1px);
         font-weight: 700;
         text-overflow: ellipsis;
         white-space: nowrap;

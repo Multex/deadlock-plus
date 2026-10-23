@@ -15,18 +15,22 @@
     .value {
         color: var(--game-off-white, #ffefd7);
         font-family: var(--game-font-oracle);
-        font-size: calc(var(--u, 1px) * var(--value-size, 26));
+        font-size: round(down, calc(var(--u, 1px) * var(--value-size, 26) * var(--game-font-scale)), 1px);
         font-weight: 700;
+        /* `max-height: 36` is the line box (Lightning Ball cells: value baseline to name baseline 34 px). */
+        line-height: calc(var(--u, 1px) * 36);
         white-space: nowrap;
     }
+    /* The affixes' own font must not grow the value's line box. */
     .affix {
         color: var(--at-affix);
+        line-height: 0;
         font-family: var(--affix-font, inherit);
     }
     .prefix {
-        font-size: calc(var(--u, 1px) * var(--prefix-size, 18));
+        font-size: round(down, calc(var(--u, 1px) * var(--prefix-size, 18) * var(--game-font-scale)), 1px);
     }
     .postfix {
-        font-size: calc(var(--u, 1px) * var(--postfix-size, 18));
+        font-size: round(down, calc(var(--u, 1px) * var(--postfix-size, 18) * var(--game-font-scale)), 1px);
     }
 </style>
