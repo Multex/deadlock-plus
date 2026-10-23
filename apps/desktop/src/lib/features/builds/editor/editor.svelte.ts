@@ -318,9 +318,13 @@ export class BuildEditor {
             this.selection = [];
             this.#anchor = null;
         }
-        const count = next.modCategories.length;
-        if (this.activeCategory !== null && this.activeCategory >= count) {
-            this.activeCategory = count > 0 ? count - 1 : null;
+        if (this.activeCategory !== null) {
+            // Categories untouched by an edit keep their identity, so the active one is followed to its new
+            // index through removals, moves, undo and redo. An edited one is a new object and keeps its index.
+            const moved = next.modCategories.indexOf(this.build.modCategories[this.activeCategory]!);
+            const count = next.modCategories.length;
+            if (moved >= 0) this.activeCategory = moved;
+            else if (this.activeCategory >= count) this.activeCategory = count > 0 ? count - 1 : null;
         }
         this.build = next;
         this.#revision++;

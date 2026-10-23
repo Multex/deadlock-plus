@@ -15,7 +15,7 @@ vi.mock("$lib/features/gamedata/gamedata", () => ({ loadAbilityArt: vi.fn(), loa
 vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
 vi.mock("$lib/features/match-history/names", () => ({ playerNames: { resolve: vi.fn() } }));
 
-import { addItems, removeItems, updateItem } from "./document";
+import { addItems, moveCategory, removeCategory, removeItems, updateItem } from "./document";
 import { BuildEditor, type EditorApi } from "./editor.svelte";
 
 function cat(ids: number[]): ModCategoryView {
@@ -515,6 +515,51 @@ describe("BuildEditor selection", () => {
         e.select([r(1, 0)], "replace");
         e.apply({ ...e.build, modCategories: e.build.modCategories.slice(0, 1) });
         expect(e.activeCategory).toBe(0);
+    });
+
+    function three() {
+        const e = editor(fakeApi(), { build: build([cat([1]), cat([2]), cat([3])]) });
+        e.select([r(1, 0)], "replace");
+        return e;
+    }
+    const firstIds = (e: BuildEditor) => e.build.modCategories.map((c) => c.mods[0]?.abilityId);
+
+    it("keeps the same category active when one above it is removed", () => {
+        const e = three();
+        e.apply(removeCategory(e.build, 0));
+        expect(e.activeCategory).toBe(0);
+        expect(firstIds(e)[e.activeCategory!]).toBe(2);
+    });
+
+    it("keeps the index when a category below the active one is removed", () => {
+        const e = three();
+        e.apply(removeCategory(e.build, 2));
+        expect(e.activeCategory).toBe(1);
+    });
+
+    it("clamps when the active last category is removed", () => {
+        const e = three();
+        e.select([r(2, 0)], "replace");
+        e.apply(removeCategory(e.build, 2));
+        expect(e.activeCategory).toBe(1);
+    });
+
+    it("follows the active category through undo and redo of a removal above it", () => {
+        const e = three();
+        e.apply(removeCategory(e.build, 0));
+        e.undo();
+        expect(e.activeCategory).toBe(1);
+        e.redo();
+        expect(e.activeCategory).toBe(0);
+    });
+
+    it("follows the active category when it is moved or another moves past it", () => {
+        const e = three();
+        e.apply(moveCategory(e.build, 0, 3));
+        expect(firstIds(e)).toEqual([2, 3, 1]);
+        expect(e.activeCategory).toBe(0);
+        e.apply(moveCategory(e.build, 0, 3));
+        expect(e.activeCategory).toBe(2);
     });
 });
 
