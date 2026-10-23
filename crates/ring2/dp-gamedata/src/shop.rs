@@ -58,17 +58,29 @@ pub fn shop_items(abilities: &Document, generic_data: &Document) -> Result<Vec<S
     Ok(items)
 }
 
-/// Indexed by tier; index 0 is unused.
-fn price_per_tier(generic_data: &Document) -> Result<Vec<u32>, String> {
+/// Indexed by tier; index 0 is unused. An unusable price is `None` so only that tier's items drop out.
+fn price_per_tier(generic_data: &Document) -> Result<Vec<Option<u32>>, String> {
     let table = generic_data
         .root
         .get("m_nItemPricePerTier")
         .and_then(Value::as_array)
         .ok_or("generic_data.vdata: no m_nItemPricePerTier")?;
-    table.iter().map(|v| v.as_u32().ok_or_else(|| "generic_data.vdata: a tier price is not a number".into())).collect()
+    Ok(table
+        .iter()
+        .enumerate()
+        .map(|(tier, v)| {
+            let price = v.as_u32().or_else(|| {
+                v.as_f64().filter(|f| f.fract() == 0.0 && (0.0..=f64::from(u32::MAX)).contains(f)).map(|f| f as u32)
+            });
+            if price.is_none() {
+                log::warn!("generic_data.vdata: tier {tier} price {v:?} is not a whole number; its items are left out");
+            }
+            price
+        })
+        .collect())
 }
 
-fn shop_item(class_name: &str, entry: &Object, prices: &[u32]) -> Option<ShopItem> {
+fn shop_item(class_name: &str, entry: &Object, prices: &[Option<u32>]) -> Option<ShopItem> {
     // `_not_pickable` marks the per-slot and per-tier templates the real items inherit from.
     if entry.get("m_eAbilityType").and_then(Value::as_str) != Some("EAbilityType_Item")
         || entry.contains_key("_not_pickable")
@@ -82,7 +94,7 @@ fn shop_item(class_name: &str, entry: &Object, prices: &[u32]) -> Option<ShopIte
         _ => return None,
     };
     let tier: u8 = entry.get("m_iItemTier")?.as_str()?.strip_prefix("EModTier_")?.parse().ok()?;
-    let cost = *prices.get(usize::from(tier))?;
+    let cost = (*prices.get(usize::from(tier))?)?;
     let text = |key: &str| entry.get(key).and_then(Value::as_str).unwrap_or_default();
     let disabled = flag(entry, "m_bDisabled");
     let components = entry
@@ -280,7 +292,7 @@ mod tests {
 
     #[test]
     fn the_price_table_comes_from_generic_data() {
-        assert_eq!(price_per_tier(&doc(GENERIC)).unwrap(), [0, 800, 1600, 3200, 6400, 9999]);
+        assert_eq!(price_per_tier(&doc(GENERIC)).unwrap(), [0, 800, 1600, 3200, 6400, 9999].map(Some));
     }
 
     #[test]
@@ -421,6 +433,47 @@ mod tests {
         );
         let items = parse(&body);
         assert_eq!(items.iter().map(|i| i.class_name.as_str()).collect::<Vec<_>>(), ["upgrade_improved_spirit"]);
+    }
+
+    fn tier_items() -> Document {
+        let tier = |n: u8| {
+            item(&format!(
+                "m_eItemSlotType = \"EItemSlotType_Tech\"
+m_iItemTier = \"EModTier_{n}\""
+            ))
+        };
+        doc(&format!(
+            "{{
+t1 = {}
+t2 = {}
+t3 = {}
+t4 = {}
+}}",
+            tier(1),
+            tier(2),
+            tier(3),
+            tier(4)
+        ))
+    }
+
+    fn costs(generic: &str) -> Vec<(String, u32)> {
+        let items = shop_items(&tier_items(), &doc(generic)).expect("the shop survives a bad tier price");
+        let mut costs: Vec<(String, u32)> = items.into_iter().map(|i| (i.class_name, i.cost)).collect();
+        costs.sort();
+        costs
+    }
+
+    #[test]
+    fn a_whole_number_float_tier_price_reads_as_that_number() {
+        let generic = "{ m_nItemPricePerTier = [ 0, 800.0, 1600, 3200.0, 6400 ] }";
+        assert_eq!(costs(generic), [("t1".into(), 800), ("t2".into(), 1600), ("t3".into(), 3200), ("t4".into(), 6400)]);
+    }
+
+    #[test]
+    fn an_unusable_tier_price_drops_only_that_tier() {
+        let generic = "{ m_nItemPricePerTier = [ 0, 800, -5, \"x\", 6400 ] }";
+        assert_eq!(costs(generic), [("t1".into(), 800), ("t4".into(), 6400)]);
+        assert_eq!(costs("{ m_nItemPricePerTier = [ 0, 800.5, 1600 ] }"), [("t2".into(), 1600)]);
     }
 
     #[test]
