@@ -813,6 +813,21 @@ describe("itemTooltipModel ALT details panel", () => {
         });
     });
 
+    it("drops a phase line whose pick or win rate is missing instead of printing NaN", () => {
+        const details = {
+            ...closeQuartersDetails,
+            phases: [
+                { phase: "early", pickPercent: null, winPercent: 51.6 },
+                { phase: "mid", pickPercent: 5, winPercent: undefined },
+                { phase: "late", pickPercent: 3, winPercent: 48.49 },
+            ],
+        } as unknown as typeof closeQuartersDetails;
+        const phases = itemTooltipModel({ ...base, detailView: true, details }).details?.panel?.phases;
+        expect(phases?.lines.map((l) => l.phase)).toEqual(["late"]);
+        const none = { ...details, phases: [details.phases[0]] };
+        expect(itemTooltipModel({ ...base, detailView: true, details: none }).details?.panel?.phases).toBeNull();
+    });
+
     it("draws no phase block without phase data", () => {
         const details = { ...closeQuartersDetails, phases: [] };
         expect(itemTooltipModel({ ...base, detailView: true, details }).details?.panel?.phases).toBeNull();

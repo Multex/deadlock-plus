@@ -426,11 +426,13 @@ function detailGroup(group: StatGroup, condition: string | null): DetailGroup {
 const MODIFIES = uiText("modifies", {}, "Citadel_ItemModifies");
 
 function detailsPanel(details: ItemDetails, slot: ItemSlot, annotated: boolean): DetailsPanel {
-    const lines = details.phases.map((p) => ({
-        phase: p.phase,
-        label: uiText(`phase_${p.phase}`),
-        rates: uiText("phase_rates", { pick: Math.round(p.pickPercent), win: Math.round(p.winPercent) }),
-    }));
+    const lines = details.phases
+        .filter((p) => Number.isFinite(p.pickPercent) && Number.isFinite(p.winPercent))
+        .map((p) => ({
+            phase: p.phase,
+            label: uiText(`phase_${p.phase}`),
+            rates: uiText("phase_rates", { pick: Math.round(p.pickPercent), win: Math.round(p.winPercent) }),
+        }));
     return {
         heading: annotated ? MODIFIES : null,
         groups: details.groups.map((g) => detailGroup(g, details.condition)),
