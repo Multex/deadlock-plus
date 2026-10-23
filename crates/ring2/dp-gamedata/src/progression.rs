@@ -208,7 +208,7 @@ type Memo = (Option<PathBuf>, Option<SystemTime>, Option<Arc<HeroTable>>);
 pub struct HeroVdata<I: Install = SteamInstall, S: HeroesSource = VpkVdataSource> {
     install: I,
     source: S,
-    /// Failures are memoized too: the archive is re-read only once the install or its build changes.
+    /// Results, bad data included, are kept until the install or its build changes; failed reads are not.
     memo: Mutex<Option<Memo>>,
 }
 
@@ -232,12 +232,17 @@ impl<I: Install, S: HeroesSource> HeroVdata<I, S> {
                 return table.clone();
             }
         }
+        let mut read_failed = false;
         let table = dir.as_deref().and_then(|dir| {
             let abilities = self.source.read_abilities(dir).map_err(|e| log::warn!("hero weapons unavailable: {e}"));
-            let read = self.source.read(dir).and_then(|doc| HeroTable::from_documents(&doc, abilities.ok().as_ref()));
-            read.map_err(|e| log::warn!("hero progression unavailable: {e}")).ok().map(Arc::new)
+            let heroes = self.source.read(dir).map_err(|e| log::warn!("hero progression unavailable: {e}"));
+            read_failed = abilities.is_err() || heroes.is_err();
+            HeroTable::from_documents(&heroes.ok()?, abilities.ok().as_ref())
+                .map_err(|e| log::warn!("hero progression unavailable: {e}"))
+                .ok()
+                .map(Arc::new)
         });
-        *memo = Some((dir, stamp, table.clone()));
+        *memo = if read_failed { None } else { Some((dir, stamp, table.clone())) };
         table
     }
 }
@@ -513,17 +518,21 @@ mod tests {
 
     struct FakeSource {
         reads: Arc<AtomicUsize>,
-        text: Option<String>,
+        text: Mutex<Option<String>>,
+        abilities: Mutex<bool>,
     }
 
     impl HeroesSource for FakeSource {
         fn read(&self, _citadel_dir: &Path) -> Result<Document, String> {
             self.reads.fetch_add(1, Ordering::Relaxed);
-            let text = self.text.as_deref().ok_or("no archive")?;
-            Document::from_text(text).map_err(|e| e.to_string())
+            let text = self.text.lock().unwrap().clone().ok_or("no archive")?;
+            Document::from_text(&text).map_err(|e| e.to_string())
         }
 
         fn read_abilities(&self, _citadel_dir: &Path) -> Result<Document, String> {
+            if !*self.abilities.lock().unwrap() {
+                return Err("abilities locked".into());
+            }
             Document::from_text(ABILITIES_SHAPE).map_err(|e| e.to_string())
         }
     }
@@ -539,7 +548,8 @@ mod tests {
     fn vdata(dir: Option<&Path>, text: Option<String>) -> (HeroVdata<FakeInstall, FakeSource>, Arc<AtomicUsize>) {
         let reads = Arc::new(AtomicUsize::new(0));
         let install = FakeInstall(Mutex::new(dir.map(Path::to_path_buf)));
-        (HeroVdata::new(install, FakeSource { reads: Arc::clone(&reads), text }), reads)
+        let source = FakeSource { reads: Arc::clone(&reads), text: Mutex::new(text), abilities: Mutex::new(true) };
+        (HeroVdata::new(install, source), reads)
     }
 
     #[test]
@@ -566,9 +576,31 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_read_is_not_retried_for_the_same_build() {
+    fn a_failed_heroes_read_is_retried_for_the_same_build() {
         let dir = temp_install("failed");
         let (data, reads) = vdata(Some(&dir), None);
+        assert_eq!(data.table(), None);
+        assert_eq!(reads.load(Ordering::Relaxed), 1);
+        *data.source.text.lock().unwrap() = Some(heroes_6805_shape());
+        assert!(data.table().is_some());
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_failed_abilities_read_is_retried_for_the_same_build() {
+        let dir = temp_install("failed-abilities");
+        let (data, _) = vdata(Some(&dir), Some(heroes_6805_shape()));
+        *data.source.abilities.lock().unwrap() = false;
+        assert_eq!(data.table().unwrap().stats[&1].bullet_damage, None);
+        *data.source.abilities.lock().unwrap() = true;
+        assert_eq!(data.table().unwrap().stats[&1].bullet_damage, Some(5.5));
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_heroes_file_without_a_level_table_is_not_read_again_for_the_same_build() {
+        let dir = temp_install("no-levels");
+        let (data, reads) = vdata(Some(&dir), Some("{ hero_inferno = { m_HeroID = 1 } }".into()));
         assert_eq!(data.table(), None);
         assert_eq!(data.table(), None);
         assert_eq!(reads.load(Ordering::Relaxed), 1);

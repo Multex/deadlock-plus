@@ -142,12 +142,14 @@ struct Memo {
     labelled: HashMap<&'static str, Arc<Vec<ItemStats>>>,
     abilities: Option<HashMap<u32, RawAbility>>,
     ability_tooltips: HashMap<&'static str, Arc<Vec<AbilityTooltip>>>,
+    /// A vdata read failed (a locked or half-patched archive), so the next call reads again.
+    retry: bool,
 }
 
 pub struct ShopVdata<I: Install = SteamInstall, S: ShopSource = VpkVdataSource> {
     install: I,
     source: S,
-    /// Failures are memoized too: the archive is re-read only once the install or its build changes.
+    /// Results, bad data included, are kept until the install or its build changes; failed reads are not.
     memo: Mutex<Option<Memo>>,
 }
 
@@ -175,8 +177,11 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
             return Some(Arc::clone(list));
         }
         let (dir, stats) = (memo.dir.as_deref()?, memo.stats.as_ref()?);
-        let list = Arc::new(labelled(stats, &stat_localisation(dir, language)));
-        memo.labelled.insert(language, Arc::clone(&list));
+        let localisation = stat_localisation(dir, language);
+        let list = Arc::new(labelled(stats, &localisation));
+        if !localisation.is_empty() {
+            memo.labelled.insert(language, Arc::clone(&list));
+        }
         Some(list)
     }
 
@@ -189,8 +194,11 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
             return Some(Arc::clone(list));
         }
         let (dir, abilities) = (memo.dir.as_deref()?, memo.abilities.as_ref()?);
-        let list = Arc::new(localised_abilities(abilities, &bundle_localisation(dir, language, &ABILITY_BUNDLES)));
-        memo.ability_tooltips.insert(language, Arc::clone(&list));
+        let localisation = bundle_localisation(dir, language, &ABILITY_BUNDLES);
+        let list = Arc::new(localised_abilities(abilities, &localisation));
+        if !localisation.is_empty() {
+            memo.ability_tooltips.insert(language, Arc::clone(&list));
+        }
         Some(list)
     }
 
@@ -198,26 +206,33 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
         let dir = self.install.citadel_dir();
         let stamp = dir.as_deref().and_then(archive_stamp);
         let mut memo = self.memo.lock().unwrap_or_else(|e| e.into_inner());
-        if memo.as_ref().is_some_and(|m| m.dir == dir && m.stamp == stamp) {
+        if memo.as_ref().is_some_and(|m| !m.retry && m.dir == dir && m.stamp == stamp) {
             return memo;
         }
-        let (items, stats, abilities) = match dir.as_deref().map(|dir| (dir, self.source.read(dir, ABILITIES_PATH))) {
-            None => (None, None, None),
-            Some((_, Err(e))) => {
-                log::warn!("shop items unavailable: {e}");
-                (None, None, None)
-            }
-            Some((dir, Ok(abilities))) => {
-                let items = self
-                    .source
-                    .read(dir, GENERIC_DATA_PATH)
-                    .and_then(|generic| shop_items(&abilities, &generic))
-                    .map_err(|e| log::warn!("shop items unavailable: {e}"))
-                    .ok()
-                    .map(Arc::new);
-                (items, Some(raw_item_stats(&abilities)), Some(raw_abilities(&abilities)))
-            }
-        };
+        let (items, stats, abilities, retry) =
+            match dir.as_deref().map(|dir| (dir, self.source.read(dir, ABILITIES_PATH))) {
+                None => (None, None, None, false),
+                Some((_, Err(e))) => {
+                    log::warn!("shop items unavailable: {e}");
+                    (None, None, None, true)
+                }
+                Some((dir, Ok(abilities))) => {
+                    let (items, retry) = match self.source.read(dir, GENERIC_DATA_PATH) {
+                        Err(e) => {
+                            log::warn!("shop items unavailable: {e}");
+                            (None, true)
+                        }
+                        Ok(generic) => (
+                            shop_items(&abilities, &generic)
+                                .map_err(|e| log::warn!("shop items unavailable: {e}"))
+                                .ok()
+                                .map(Arc::new),
+                            false,
+                        ),
+                    };
+                    (items, Some(raw_item_stats(&abilities)), Some(raw_abilities(&abilities)), retry)
+                }
+            };
         *memo = Some(Memo {
             dir,
             stamp,
@@ -226,6 +241,7 @@ impl<I: Install, S: ShopSource> ShopVdata<I, S> {
             labelled: HashMap::new(),
             abilities,
             ability_tooltips: HashMap::new(),
+            retry,
         });
         memo
     }
@@ -473,15 +489,16 @@ mod tests {
 
     struct FakeSource {
         reads: Arc<AtomicUsize>,
-        abilities: Option<String>,
+        abilities: Mutex<Option<String>>,
+        generic: Mutex<Option<String>>,
     }
 
     impl ShopSource for FakeSource {
         fn read(&self, _citadel_dir: &Path, path: &str) -> Result<Document, String> {
             self.reads.fetch_add(1, Ordering::Relaxed);
             let text = match path {
-                ABILITIES_PATH => self.abilities.clone().ok_or("no archive")?,
-                GENERIC_DATA_PATH => GENERIC.to_string(),
+                ABILITIES_PATH => self.abilities.lock().unwrap().clone().ok_or("no archive")?,
+                GENERIC_DATA_PATH => self.generic.lock().unwrap().clone().ok_or("generic_data locked")?,
                 other => return Err(format!("unexpected path {other}")),
             };
             Document::from_text(&text).map_err(|e| e.to_string())
@@ -506,7 +523,12 @@ mod tests {
     fn vdata(dir: Option<&Path>, abilities: Option<String>) -> (ShopVdata<FakeInstall, FakeSource>, Arc<AtomicUsize>) {
         let reads = Arc::new(AtomicUsize::new(0));
         let install = FakeInstall(Mutex::new(dir.map(Path::to_path_buf)));
-        (ShopVdata::new(install, FakeSource { reads: Arc::clone(&reads), abilities }), reads)
+        let source = FakeSource {
+            reads: Arc::clone(&reads),
+            abilities: Mutex::new(abilities),
+            generic: Mutex::new(Some(GENERIC.to_string())),
+        };
+        (ShopVdata::new(install, source), reads)
     }
 
     #[test]
@@ -534,12 +556,35 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_read_is_not_retried_for_the_same_build() {
+    fn a_failed_abilities_read_is_retried_for_the_same_build() {
         let dir = temp_install("failed");
         let (data, reads) = vdata(Some(&dir), None);
         assert_eq!(data.items(), None);
-        assert_eq!(data.items(), None);
         assert_eq!(reads.load(Ordering::Relaxed), 1);
+        *data.source.abilities.lock().unwrap() = Some(one_item_abilities());
+        assert_eq!(data.items().map(|items| items.len()), Some(1));
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_failed_generic_data_read_is_retried_for_the_same_build() {
+        let dir = temp_install("generic");
+        let (data, _) = vdata(Some(&dir), Some(one_item_abilities()));
+        *data.source.generic.lock().unwrap() = None;
+        assert_eq!(data.items(), None);
+        *data.source.generic.lock().unwrap() = Some(GENERIC.to_string());
+        assert_eq!(data.items().map(|items| items.len()), Some(1));
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn genuinely_bad_generic_data_is_not_read_again_for_the_same_build() {
+        let dir = temp_install("bad-generic");
+        let (data, reads) = vdata(Some(&dir), Some(one_item_abilities()));
+        *data.source.generic.lock().unwrap() = Some("{ generic_data_type = \"CitadelGenericData_t\" }".into());
+        assert_eq!(data.items(), None);
+        assert_eq!(data.items(), None);
+        assert_eq!(reads.load(Ordering::Relaxed), 2);
         fs::remove_dir_all(dir).ok();
     }
 
@@ -580,6 +625,16 @@ mod tests {
     }
 
     #[test]
+    fn stat_labels_missing_on_the_first_read_are_read_again_once_they_appear() {
+        let dir = temp_install("late-labels");
+        let (data, _) = vdata(Some(&dir), Some(stat_abilities()));
+        assert!(data.item_stats("en").expect("the fake install has stats")[0].stats.is_empty());
+        write_labels(&dir, "english", "Bonus Health");
+        assert_eq!(data.item_stats("en").unwrap()[0].stats[0].label, "Bonus Health");
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
     fn without_an_install_there_are_no_item_stats() {
         let (data, reads) = vdata(None, Some(stat_abilities()));
         assert_eq!(data.item_stats("en"), None);
@@ -616,6 +671,19 @@ mod tests {
         assert!(Arc::ptr_eq(&german, &data.ability_tooltips("de-AT").unwrap()));
         data.item_stats("en");
         assert_eq!(reads.load(Ordering::Relaxed), 2);
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn ability_names_missing_on_the_first_read_are_read_again_once_they_appear() {
+        let dir = temp_install("late-names");
+        let (data, _) = vdata(Some(&dir), Some(ability_abilities()));
+        assert_eq!(
+            data.ability_tooltips("en").expect("the fake install has abilities")[0].name,
+            "citadel_ability_lightning_ball"
+        );
+        write_hero_tokens(&dir, "english", "Lightning Ball");
+        assert_eq!(data.ability_tooltips("en").unwrap()[0].name, "Lightning Ball");
         fs::remove_dir_all(dir).ok();
     }
 
