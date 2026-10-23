@@ -48,6 +48,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - See Details counts an item's always-on bonuses, such as Enchanter's Emblem's spirit power.
 - See Details counts an imbued item's bonus only for the ability it is imbued into.
 - Build notes in item tooltips show the build author's avatar, as in-game.
+- The game's shop art is prepared in the background at start and after a game update, so tooltips show it on first open.
 - Ability tooltips shorten cooldowns by your cooldown reduction, which stacks as in-game.
 - The build view's shop marks popular items with their pick and win rates.
 

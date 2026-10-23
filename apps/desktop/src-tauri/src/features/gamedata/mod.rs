@@ -9,14 +9,19 @@ use tauri::{AppHandle, Emitter};
 
 pub const ART_CHANGED_EVENT: &str = "game-art-changed";
 
-/// The art store, emitting `ART_CHANGED_EVENT` when the game build changes during this run.
+/// The art store, emitting `ART_CHANGED_EVENT` when the game build changes during this run and when
+/// background decoding of the shop UI art adds files, so pages already open pick them up.
 pub fn art_cache(app: &AppHandle, root: PathBuf) -> ArtCache {
-    let app = app.clone();
-    ArtCache::new(root).on_build_change(move || {
-        if let Err(e) = app.emit(ART_CHANGED_EVENT, ()) {
-            log::warn!("could not emit {ART_CHANGED_EVENT}: {e}");
+    let emit = |app: AppHandle| {
+        move || {
+            if let Err(e) = app.emit(ART_CHANGED_EVENT, ()) {
+                log::warn!("could not emit {ART_CHANGED_EVENT}: {e}");
+            }
         }
-    })
+    };
+    let cache = ArtCache::new(root).on_build_change(emit(app.clone()));
+    cache.warm_in_background(emit(app.clone()));
+    cache
 }
 
 /// `heroes.vdata` and the shop, read from the installed game and kept until its build changes.

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
 use std::time::UNIX_EPOCH;
 
 use deadlock_data::art::{Art, ArtArchive, HeroArtKind, ItemArtKind, MinimapArtKind, RankArtKind};
@@ -418,6 +418,22 @@ impl ShopUiImage {
     }
 
     /// The compiled file in `pak01_dir.vpk`, as the shop's stylesheets reference it.
+    /// The tooltip backgrounds: the largest images by far, so the slowest to decode.
+    fn large(self) -> bool {
+        matches!(
+            self,
+            ShopUiImage::TooltipBackerWeapon
+                | ShopUiImage::TooltipBackerVitality
+                | ShopUiImage::TooltipBackerSpirit
+                | ShopUiImage::TooltipBackerWeaponCorrupted
+                | ShopUiImage::TooltipBackerVitalityCorrupted
+                | ShopUiImage::TooltipBackerSpiritCorrupted
+                | ShopUiImage::TooltipModifiesBgWeapon
+                | ShopUiImage::TooltipModifiesBgVitality
+                | ShopUiImage::TooltipModifiesBgSpirit
+        )
+    }
+
     pub fn compiled_path(self) -> &'static str {
         self.entry().1
     }
@@ -781,6 +797,7 @@ struct Shared<I> {
     root: PathBuf,
     opener: Opener,
     on_change: OnceLock<Box<dyn Fn() + Send + Sync>>,
+    warm: OnceLock<mpsc::Sender<()>>,
     state: Mutex<State>,
 }
 
@@ -827,6 +844,11 @@ fn fingerprint(dir: &Path) -> Option<String> {
     Some(format!("{nanos:x}"))
 }
 
+fn shop_ui_file_name(image: ShopUiImage) -> String {
+    let extension = if ui_art::is_vector(image.compiled_path()) { "svg" } else { "png" };
+    format!("ui_{}.{extension}", image.key())
+}
+
 /// `panorama/images/icons/properties/range.vsvg_c` is cached as `ui_prop_icons_properties_range.svg`.
 fn icon_file_name(compiled: &str) -> Option<String> {
     let extension = if ui_art::is_vector(compiled) { "svg" } else { "png" };
@@ -841,7 +863,16 @@ fn file_safe(class_name: &str) -> bool {
 
 impl<I: Install> ArtCache<I> {
     pub fn with_opener(install: I, root: PathBuf, opener: Opener) -> Self {
-        Self { shared: Arc::new(Shared { install, root, opener, on_change: OnceLock::new(), state: Mutex::default() }) }
+        Self {
+            shared: Arc::new(Shared {
+                install,
+                root,
+                opener,
+                on_change: OnceLock::new(),
+                warm: OnceLock::new(),
+                state: Mutex::default(),
+            }),
+        }
     }
 
     /// Calls `f` when an art call finds a game build other than the one already served this run.
@@ -962,9 +993,8 @@ impl<I: Install> ArtCache<I> {
                 .into_iter()
                 .filter_map(|image| {
                     let compiled = image.compiled_path();
-                    let extension = if ui_art::is_vector(compiled) { "svg" } else { "png" };
-                    let name = format!("ui_{}.{extension}", image.key());
-                    let path = self.ensure(build, build_dir, name, |s, p| s.write_ui(compiled, p))?;
+                    let path =
+                        self.ensure(build, build_dir, shop_ui_file_name(image), |s, p| s.write_ui(compiled, p))?;
                     Some(ShopUiArt { image, path })
                 })
                 .collect()
@@ -972,23 +1002,77 @@ impl<I: Install> ArtCache<I> {
         .unwrap_or_default()
     }
 
+    /// Decodes the shop UI art and property icons the cache lacks, taking the lock once per image so other
+    /// art calls wait for one image at most. Card art comes first and the large tooltip backers last.
+    /// Returns how many files it wrote.
+    pub fn warm_ui_art(&self) -> usize {
+        let Some(rules) = self.with_build(|build, _| self.icon_rules(build)) else { return 0 };
+        let shop = |image: ShopUiImage| (shop_ui_file_name(image), image.compiled_path().to_string());
+        let (large, small): (Vec<_>, Vec<_>) = ShopUiImage::ALL.into_iter().partition(|i| i.large());
+        let icons = rules.into_iter().filter_map(|rule| Some((icon_file_name(&rule.image)?, rule.image)));
+        small
+            .into_iter()
+            .map(shop)
+            .chain(icons)
+            .chain(large.into_iter().map(shop))
+            .filter(|(name, compiled)| self.warm_one(name, compiled))
+            .count()
+    }
+
+    /// Starts the one thread that runs `warm_ui_art`: now, and again whenever an art call finds a new game
+    /// build. `on_ready` runs after each pass that wrote files. A second call does nothing.
+    pub fn warm_in_background(&self, on_ready: impl Fn() + Send + 'static) {
+        let (tx, rx) = mpsc::channel();
+        if self.shared.warm.set(tx.clone()).is_err() {
+            return;
+        }
+        // A weak handle lets the thread end once every cache handle, and so the sender, is gone.
+        let shared = Arc::downgrade(&self.shared);
+        let spawned = std::thread::Builder::new().name("game-art-warm".into()).spawn(move || {
+            while rx.recv().is_ok() {
+                while rx.try_recv().is_ok() {}
+                let Some(shared) = Weak::upgrade(&shared) else { return };
+                if (ArtCache { shared }).warm_ui_art() > 0 {
+                    on_ready();
+                }
+            }
+        });
+        match spawned {
+            Ok(_) => {
+                let _ = tx.send(());
+            }
+            Err(e) => log::warn!("could not start game art warming: {e}"),
+        }
+    }
+
+    fn warm_one(&self, name: &str, compiled: &str) -> bool {
+        self.with_build(|build, build_dir| {
+            !build_dir.join(name).is_file()
+                && self.ensure(build, build_dir, name.to_string(), |s, p| s.write_ui(compiled, p)).is_some()
+        })
+        .unwrap_or(false)
+    }
+
+    fn icon_rules(&self, build: &mut Build) -> Vec<IconRule> {
+        if build.icon_rules.is_none() {
+            let source = self.source(build);
+            let read = |path| source.as_ref().and_then(|s| s.ui_stylesheet(path));
+            let mut rules = read(STYLESHEET).as_deref().map(icon_rules).unwrap_or_default();
+            if let Some(base) = read(BASE_STYLESHEET) {
+                resolve_washes(&mut rules, &base);
+                rules.extend(inline_attribute_rules(&base));
+            }
+            build.icon_rules = Some(rules);
+        }
+        build.icon_rules.clone().unwrap_or_default()
+    }
+
     /// Local files for the icons the game's tooltips draw beside properties and status cells, by icon class,
     /// then beside description keywords, by keyword, as the installed game's stylesheets assign them. Images
     /// that will not decode are left out; this never fails.
     pub fn property_icon_art(&self) -> Vec<PropertyIconArt> {
         self.with_build(|build, build_dir| {
-            if build.icon_rules.is_none() {
-                let source = self.source(build);
-                let read = |path| source.as_ref().and_then(|s| s.ui_stylesheet(path));
-                let mut rules = read(STYLESHEET).as_deref().map(icon_rules).unwrap_or_default();
-                if let Some(base) = read(BASE_STYLESHEET) {
-                    resolve_washes(&mut rules, &base);
-                    rules.extend(inline_attribute_rules(&base));
-                }
-                build.icon_rules = Some(rules);
-            }
-            let rules = build.icon_rules.clone().unwrap_or_default();
-            rules
+            self.icon_rules(build)
                 .into_iter()
                 .filter_map(|rule| {
                     let name = icon_file_name(&rule.image)?;
@@ -1076,6 +1160,9 @@ impl<I: Install> ArtCache<I> {
         // The callback may call back into the cache, so it runs after the lock is released.
         drop(guard);
         if changed {
+            if let Some(warm) = self.shared.warm.get() {
+                let _ = warm.send(());
+            }
             if let Some(on_change) = self.shared.on_change.get() {
                 on_change();
             }
@@ -1151,6 +1238,7 @@ mod tests {
         stylesheet: Option<String>,
         base_stylesheet: Option<String>,
         stylesheet_reads: AtomicUsize,
+        ui_delay: std::time::Duration,
     }
 
     impl ArtSource for FakeSource {
@@ -1190,6 +1278,7 @@ mod tests {
 
         fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
             self.ui_paths.lock().unwrap().push(compiled_path.to_string());
+            std::thread::sleep(self.ui_delay);
             self.write_class(compiled_path, dest)
         }
 
@@ -2153,6 +2242,117 @@ mod tests {
         let cache =
             ArtCache::with_opener(FakeInstall(Mutex::new(None)), rig.root.clone(), Box::new(|_| panic!("no install")));
         assert!(cache.shop_ui_art().is_empty());
+    }
+
+    /// `ICON_CSS` names three distinct icon files: `distance` and `radius` share one.
+    const ICON_FILES: usize = 3;
+
+    const LARGE_UI: [ShopUiImage; 9] = [
+        ShopUiImage::TooltipBackerWeapon,
+        ShopUiImage::TooltipBackerVitality,
+        ShopUiImage::TooltipBackerSpirit,
+        ShopUiImage::TooltipBackerWeaponCorrupted,
+        ShopUiImage::TooltipBackerVitalityCorrupted,
+        ShopUiImage::TooltipBackerSpiritCorrupted,
+        ShopUiImage::TooltipModifiesBgWeapon,
+        ShopUiImage::TooltipModifiesBgVitality,
+        ShopUiImage::TooltipModifiesBgSpirit,
+    ];
+
+    fn warm_rig(name: &str) -> Rig {
+        rig_with_stylesheet(name, Some(ICON_CSS), &[])
+    }
+
+    fn reports(cache: &ArtCache<FakeInstall>) -> std::sync::mpsc::Receiver<()> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        cache.warm_in_background(move || {
+            let _ = tx.send(());
+        });
+        rx
+    }
+
+    const PASS: std::time::Duration = std::time::Duration::from_secs(10);
+
+    #[test]
+    fn warming_decodes_the_shop_ui_art_and_property_icons_once() {
+        let rig = warm_rig("warm");
+        let cache = rig.cache();
+        assert_eq!(cache.warm_ui_art(), ShopUiImage::ALL.len() + ICON_FILES);
+        let writes = rig.source.writes.load(Ordering::Relaxed);
+        assert_eq!(writes, ShopUiImage::ALL.len() + ICON_FILES);
+        assert_eq!(cache.shop_ui_art().len(), ShopUiImage::ALL.len());
+        assert_eq!(cache.property_icon_art().len(), 4);
+        assert_eq!(cache.warm_ui_art(), 0);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn warming_decodes_card_art_first_and_the_large_tooltip_backers_last() {
+        let rig = warm_rig("warm-order");
+        rig.cache().warm_ui_art();
+        let asked = rig.source.ui_paths.lock().unwrap().clone();
+        assert_eq!(asked.first().map(String::as_str), Some(ShopUiImage::CardBackerWeaponT1.compiled_path()));
+        let large: Vec<&str> = LARGE_UI.iter().map(|i| i.compiled_path()).collect();
+        let tail: HashSet<&str> = asked[asked.len().saturating_sub(large.len())..].iter().map(String::as_str).collect();
+        assert_eq!(tail, large.into_iter().collect::<HashSet<_>>());
+        assert!(asked.iter().any(|p| p == "panorama/images/icons/properties/range.vsvg_c"));
+    }
+
+    #[test]
+    fn art_calls_while_warming_decode_no_image_twice() {
+        let mut rig = warm_rig("warm-race");
+        Arc::get_mut(&mut rig.source).unwrap().ui_delay = std::time::Duration::from_millis(3);
+        let cache = rig.cache();
+        let warming = {
+            let cache = cache.clone();
+            std::thread::spawn(move || cache.warm_ui_art())
+        };
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        let shop = cache.shop_ui_art();
+        let icons = cache.property_icon_art();
+        let warmed = warming.join().unwrap();
+        assert!(warmed > 0, "the warm ran alongside the calls");
+        assert_eq!(shop.len(), ShopUiImage::ALL.len());
+        assert_eq!(icons.len(), 4);
+        assert!(shop.iter().all(|a| PathBuf::from(&a.path).is_file()));
+        let asked = rig.source.ui_paths.lock().unwrap().clone();
+        assert_eq!(asked.iter().collect::<HashSet<_>>().len(), asked.len(), "each image decoded once");
+        assert_eq!(asked.len(), ShopUiImage::ALL.len() + ICON_FILES);
+    }
+
+    #[test]
+    fn background_warming_runs_at_start_and_reports_the_new_art_once() {
+        let rig = warm_rig("warm-bg");
+        let cache = rig.cache();
+        let ready = reports(&cache);
+        ready.recv_timeout(PASS).expect("a first pass");
+        assert_eq!(rig.source.ui_paths.lock().unwrap().len(), ShopUiImage::ALL.len() + ICON_FILES);
+        assert!(ready.recv_timeout(std::time::Duration::from_millis(300)).is_err());
+    }
+
+    #[test]
+    fn a_warm_cache_is_not_reported() {
+        let rig = warm_rig("warm-noop");
+        let cache = rig.cache();
+        cache.shop_ui_art();
+        cache.property_icon_art();
+        let ready = reports(&cache);
+        assert!(ready.recv_timeout(std::time::Duration::from_millis(500)).is_err());
+    }
+
+    #[test]
+    fn a_new_game_build_is_warmed_again() {
+        let rig = warm_rig("warm-rebuild");
+        let cache = rig.cache();
+        let ready = reports(&cache);
+        ready.recv_timeout(PASS).expect("a first pass");
+        rig.touch_archive(120);
+        let heroes = cache.hero_art(&[hero(1, "hero_inferno")]);
+        ready.recv_timeout(PASS).expect("the new build is warmed");
+        let dir = build_dir(&heroes[0].sm);
+        assert!(dir.join("ui_card_backer_weapon_t1.png").is_file());
+        assert!(dir.join("ui_tooltip_backer_spirit.png").is_file());
+        assert!(dir.join("ui_prop_icons_properties_range.svg").is_file());
     }
 
     fn tag(key: &str) -> BuildTag {
