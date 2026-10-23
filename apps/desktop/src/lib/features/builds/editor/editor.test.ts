@@ -240,6 +240,15 @@ describe("BuildEditor saveToGame", () => {
         expect(e.origin).toEqual({ kind: "local", section: "Unpublished", base: "ab", buildId: 5 });
     });
 
+    it("drops the draft id on an unchanged save, since the backend deletes that draft too", async () => {
+        const api = fakeApi({ kind: "unchanged", buildId: 5 });
+        const e = editor(api, {
+            origin: { kind: "local", section: "Unpublished", base: "ab", buildId: 5 },
+            draftId: "d0",
+        });
+        await e.saveToGame();
+        expect(e.draftId).toBeUndefined();
+    });
 });
 
 describe("BuildEditor save conflicts", () => {

@@ -213,7 +213,7 @@ export class BuildEditor {
             this.conflict = result.kind === "conflict" ? this.#conflictOf(result.conflicts) : null;
             if (result.kind === "conflict") return result;
             if (result.kind === "queued") this.#queued = { id: result.id, buildId: result.buildId };
-            if (result.kind !== "unchanged") this.draftId = undefined;
+            this.draftId = undefined;
             if (result.kind === "written") await this.#followWritten(result.buildId);
             this.#clean = build;
             // A change made while the save ran still needs its draft.

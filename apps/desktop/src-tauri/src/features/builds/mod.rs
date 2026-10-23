@@ -136,7 +136,12 @@ fn record_history(dirs: &Dirs, account: u32, now: u64, planned: &Planned) {
 
 /// Drafts are a convenience too: the save already happened, so a failure here is logged only.
 fn drafts_after_save(dirs: &Dirs, account: u32, result: &SaveResult, draft_id: Option<&str>) {
-    let (SaveResult::Written { build_id, .. } | SaveResult::Queued { build_id, .. }) = result else { return };
+    let (SaveResult::Written { build_id, .. }
+    | SaveResult::Unchanged { build_id }
+    | SaveResult::Queued { build_id, .. }) = result
+    else {
+        return;
+    };
     let _guard = DRAFT_LOCK.lock_or_recover();
     if let Some(id) = draft_id {
         if let Err(e) = drafts::remove(&dirs.drafts, account, id) {
@@ -703,11 +708,22 @@ mod tests {
         store_draft(&dirs, "edit 4", local(4));
         store_draft(&dirs, "edit 5", local(5));
         drafts_after_save(&dirs, 7, &SaveResult::Conflict { conflicts: Vec::new() }, Some(&saved));
-        drafts_after_save(&dirs, 7, &SaveResult::Unchanged { build_id: 4 }, Some(&saved));
         assert_eq!(draft_names(&dirs).len(), 4);
         drafts_after_save(&dirs, 7, &SaveResult::Written { build_id: 4, backup: None }, Some(&saved));
         assert_eq!(draft_names(&dirs), vec!["edit 5", "other"]);
         drafts_after_save(&dirs, 7, &SaveResult::Queued { id: "q".into(), build_id: 5 }, None);
+        assert_eq!(draft_names(&dirs), vec!["other"]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_unchanged_save_drops_its_draft_too() {
+        let root = temp_dir("drafts-unchanged");
+        let dirs = Dirs::under(&root);
+        let local = |build_id| DraftSource::Local { section: Section::Unpublished, build_id, base: String::new() };
+        let saved = store_draft(&dirs, "edit 4", local(4));
+        store_draft(&dirs, "other", DraftSource::New);
+        drafts_after_save(&dirs, 7, &SaveResult::Unchanged { build_id: 4 }, Some(&saved));
         assert_eq!(draft_names(&dirs), vec!["other"]);
         let _ = std::fs::remove_dir_all(&root);
     }
