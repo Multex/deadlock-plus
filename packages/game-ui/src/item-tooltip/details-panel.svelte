@@ -84,6 +84,8 @@
 </div>
 
 <style>
+    /* The game tucks the column 17 px under the paper's right edge at 1440p, hiding its icons; ours meets the
+       paper's outermost torn point instead, which the stretched backer art puts 0.5-1.6 inside the box on every slot. */
     .column {
         position: relative;
         z-index: -1;
@@ -92,11 +94,11 @@
         flex: none;
         align-items: flex-start;
         margin-top: calc(var(--u) * 26);
-        margin-left: calc(var(--u) * -15);
+        margin-left: calc(var(--u) * -1);
     }
     .column.left {
         justify-content: flex-end;
-        margin-right: calc(var(--u) * -2);
+        margin-right: calc(var(--u) * -1);
         margin-left: 0;
     }
     .panel {
@@ -130,8 +132,8 @@
         line-height: calc(var(--u) * 24);
         white-space: nowrap;
     }
-    /* Right of the paper, the paper's torn edge covers part of the icons, as in the game. Padding and margins round
-       to whole pixels as Panorama's do: at 1440p groups sit 14 apart (54 for a one-row group), not 13.3. */
+    /* Padding and margins round to whole pixels as Panorama's do: at 1440p groups sit 14 apart (54 for a one-row
+       group), not 13.3. */
     .body {
         display: flex;
         flex-direction: column;
