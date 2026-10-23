@@ -3,11 +3,20 @@ import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
 import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
+import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 import { t } from "$lib/core/i18n.svelte";
 import type { Unlisten } from "$lib/core/tauri";
-import { buildsDraftDelete, buildsDraftSave, buildsLocal, buildsQueueCancel, buildsSave, onFlushed } from "../api";
+import {
+    buildsDraftDelete,
+    buildsDraftSave,
+    buildsLocal,
+    buildsQueueCancel,
+    buildsQueueResolve,
+    buildsSave,
+    onFlushed,
+} from "../api";
 import { pickLocal } from "../build-detail.svelte";
 import { updateBuild, type ItemRef } from "./document";
 import { History } from "./history";
@@ -36,6 +45,8 @@ export interface EditorApi {
     /** Resolves to false when the queued save is gone: written, or dropped on a conflict. */
     cancel(id: string): Promise<boolean>;
     draftDelete(id: string): Promise<boolean>;
+    /** Settles a queued save's conflict, then flushes the queue again. */
+    queueResolve(id: string, choice: ResolveChoice): Promise<FlushView>;
     onFlushed(handler: (view: FlushView) => void): Promise<Unlisten>;
 }
 
@@ -57,6 +68,7 @@ const defaultApi: EditorApi = {
     local: buildsLocal,
     cancel: buildsQueueCancel,
     draftDelete: buildsDraftDelete,
+    queueResolve: buildsQueueResolve,
     onFlushed,
 };
 
@@ -78,7 +90,7 @@ export class BuildEditor {
     saving = $state(false);
     /** Why the last autosave failed; cleared by the next one that works. */
     draftError = $state<unknown>(null);
-    /** What the game file holds instead, after a save made right away was refused; `keepMine` or `keepGame` settles it. */
+    /** What the game file holds instead of a refused save, right away or queued; `keepMine` or `keepGame` settles it. */
     conflict = $state.raw<ConflictView | null>(null);
     history: History<BuildView>;
 
@@ -228,6 +240,7 @@ export class BuildEditor {
     /** Saves this build over the game's version; the backend backs up what it replaces. */
     keepMine(): Promise<SaveResult> {
         const conflict = this.conflict;
+        if (conflict?.saveId != null) return this.#keepQueued(conflict.saveId, conflict.id);
         if (conflict) {
             this.origin =
                 conflict.gameBlob === null
@@ -242,6 +255,10 @@ export class BuildEditor {
         const conflict = this.conflict;
         if (!conflict) return true;
         this.#clearTimer();
+        if (conflict.saveId !== null) {
+            await this.#api.queueResolve(conflict.saveId, "game");
+            this.#queued = null;
+        }
         await this.#drafting;
         this.#pending = false;
         if (this.draftId !== undefined) {
@@ -283,15 +300,54 @@ export class BuildEditor {
         return conflicts.find((c) => c.id === id) ?? conflicts[0] ?? null;
     }
 
+    /** Keeps the queued save's version; the queue writes it at once while the game is closed. */
+    async #keepQueued(saveId: string, buildId: number): Promise<SaveResult> {
+        const queued = this.#queued ?? { id: saveId, buildId };
+        const view = await this.#api.queueResolve(saveId, "ours");
+        if (view.kind === "conflict" && flushOutcome(view, queued) === "conflict") {
+            this.#raise(view.conflicts, queued);
+            return { kind: "conflict", conflicts: view.conflicts };
+        }
+        this.#conflict = false;
+        this.conflict = null;
+        if (view.kind === "saved") {
+            // The flush writes the whole queue or nothing. A new build whose id the game took meanwhile is
+            // written under a fresh one, known only when this save was the only one queued.
+            const written = view.buildIds.includes(queued.buildId)
+                ? queued.buildId
+                : view.buildIds.length === 1
+                  ? view.buildIds[0]!
+                  : null;
+            await this.#written(written);
+            return { kind: "written", buildId: written ?? queued.buildId, backup: null };
+        }
+        if (view.kind === "failed") {
+            throw Object.assign(new Error(`queued save not written: ${view.code}`), { code: view.code });
+        }
+        return { kind: "queued", ...queued };
+    }
+
     async #flushed(view: FlushView): Promise<void> {
         const queued = this.#queued;
         if (!queued) return;
         const outcome = flushOutcome(view, queued);
-        if (outcome === "conflict") this.#conflict = true;
-        if (outcome !== "saved") return;
+        if (outcome === "conflict" && view.kind === "conflict") this.#raise(view.conflicts, queued);
+        if (outcome === "saved") await this.#written(queued.buildId);
+    }
+
+    #raise(conflicts: readonly ConflictView[], queued: QueuedSave): void {
+        const mine = conflicts.filter((c) => c.saveId === queued.id);
+        this.#conflict = true;
+        this.conflict = mine.find((c) => c.id === queued.buildId) ?? mine[0] ?? null;
+    }
+
+    /** The queue no longer holds this editor's save; `buildId` is the build it wrote, when known. */
+    async #written(buildId: number | null): Promise<void> {
         this.#queued = null;
         this.#conflict = false;
-        this.#following = this.#followWritten(queued.buildId);
+        this.conflict = null;
+        if (buildId === null) return;
+        this.#following = this.#followWritten(buildId);
         await this.#following;
     }
 

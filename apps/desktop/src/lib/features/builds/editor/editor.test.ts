@@ -3,6 +3,7 @@ import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
 import type { ModCategoryView } from "@deadlock-plus/ipc-types/ModCategoryView";
+import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
 import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,6 +69,10 @@ function fakeApi(result: SaveResult = { kind: "written", buildId: 9, backup: nul
     );
     const cancel = vi.fn(async (_id: string) => true);
     const draftDelete = vi.fn(async (_id: string) => true);
+    const queueResolve = vi.fn(async (_id: string, _choice: ResolveChoice): Promise<FlushView> => ({
+        kind: "saved",
+        buildIds: [9],
+    }));
     const unlisten = vi.fn();
     let flushed: ((view: FlushView) => void) | undefined;
     const onFlushed = vi.fn(async (handler: (view: FlushView) => void) => {
@@ -75,7 +80,11 @@ function fakeApi(result: SaveResult = { kind: "written", buildId: 9, backup: nul
         return unlisten;
     });
     const flush = (view: FlushView) => flushed!(view);
-    return { ...({ draftSave, save, local, cancel, draftDelete, onFlushed } satisfies EditorApi), unlisten, flush };
+    return {
+        ...({ draftSave, save, local, cancel, draftDelete, queueResolve, onFlushed } satisfies EditorApi),
+        unlisten,
+        flush,
+    };
 }
 
 let editors: BuildEditor[] = [];
@@ -438,11 +447,99 @@ describe("BuildEditor queued saves", () => {
         api.flush({
             kind: "conflict",
             conflicts: [
+                { saveId: "q0", id: 3, section: "Unpublished", ours: null, game: null, base: null, gameBlob: null },
                 { saveId: "q1", id: 9, section: "Unpublished", ours: null, game: null, base: null, gameBlob: null },
             ],
         });
         await vi.advanceTimersByTimeAsync(0);
         expect(e.status).toBe("conflict");
+        expect(e.conflict).toMatchObject({ saveId: "q1", id: 9 });
+    });
+
+    describe("settling a conflict the flush raised", () => {
+        const flushConflict: FlushView = {
+            kind: "conflict",
+            conflicts: [
+                { saveId: "q1", id: 9, section: "Unpublished", ours: null, game: null, base: null, gameBlob: "g" },
+            ],
+        };
+
+        async function conflicted() {
+            const api = fakeApi(queued("q1"));
+            const e = editor(api);
+            await e.saveToGame();
+            api.flush(flushConflict);
+            await vi.advanceTimersByTimeAsync(0);
+            return { api, e };
+        }
+
+        it("keeps mine by resolving the queued save, then follows the build it wrote", async () => {
+            const { api, e } = await conflicted();
+            expect(await e.keepMine()).toEqual({ kind: "written", buildId: 9, backup: null });
+            expect(api.queueResolve).toHaveBeenCalledWith("q1", "ours");
+            expect(api.save).toHaveBeenCalledTimes(1);
+            expect(e.conflict).toBeNull();
+            expect(e.status).toBe("saved");
+            expect(e.origin).toEqual({ kind: "local", section: "Unpublished", base: "b9", buildId: 9 });
+            await e.saveToGame();
+            expect(api.cancel).not.toHaveBeenCalled();
+        });
+
+        it("keeps mine queued when the game is running again", async () => {
+            const { api, e } = await conflicted();
+            api.queueResolve.mockResolvedValueOnce({ kind: "gameRunning" });
+            expect(await e.keepMine()).toEqual({ kind: "queued", id: "q1", buildId: 9 });
+            expect(api.save).toHaveBeenCalledTimes(1);
+            expect(e.conflict).toBeNull();
+            expect(e.status).toBe("queued");
+            await e.saveToGame();
+            expect(api.cancel).toHaveBeenCalledWith("q1");
+        });
+
+        it("follows the build a one-save flush wrote under a fresh id", async () => {
+            const { api, e } = await conflicted();
+            api.queueResolve.mockResolvedValueOnce({ kind: "saved", buildIds: [12] });
+            api.local.mockResolvedValue(
+                localBuilds([
+                    { section: "Unpublished", build: { ...build(), heroBuildId: 12 }, base: "b12", warnings: [] },
+                ]),
+            );
+            expect(await e.keepMine()).toEqual({ kind: "written", buildId: 12, backup: null });
+            expect(e.origin).toEqual({ kind: "local", section: "Unpublished", base: "b12", buildId: 12 });
+        });
+
+        it("keeps showing the conflict when the game changed it again", async () => {
+            const { api, e } = await conflicted();
+            api.queueResolve.mockResolvedValueOnce(flushConflict);
+            expect((await e.keepMine()).kind).toBe("conflict");
+            expect(e.conflict).toMatchObject({ saveId: "q1" });
+            expect(e.status).toBe("conflict");
+        });
+
+        it("reports a write that failed after keeping mine, with the save still queued", async () => {
+            const { api, e } = await conflicted();
+            api.queueResolve.mockResolvedValueOnce({ kind: "failed", code: "builds.write_failed" });
+            await expect(e.keepMine()).rejects.toMatchObject({ code: "builds.write_failed" });
+            expect(e.conflict).toBeNull();
+            expect(e.status).toBe("queued");
+        });
+
+        it("keeps the game's by dropping the queued save and showing the build from the file", async () => {
+            const { api, e } = await conflicted();
+            const gameBuild = { ...build([cat([42])]), heroBuildId: 9, name: "Game" };
+            api.queueResolve.mockResolvedValueOnce({ kind: "saved", buildIds: [] });
+            api.local.mockResolvedValue(
+                localBuilds([{ section: "Unpublished", build: gameBuild, base: "now", warnings: [] }]),
+            );
+            expect(await e.keepGame()).toBe(true);
+            expect(api.queueResolve).toHaveBeenCalledWith("q1", "game");
+            expect(e.build).toBe(gameBuild);
+            expect(e.conflict).toBeNull();
+            expect(e.status).toBe("saved");
+            await e.saveToGame();
+            expect(api.cancel).not.toHaveBeenCalled();
+            expect(api.save.mock.calls[1]![0]).toMatchObject({ kind: "edit", base: "now" });
+        });
     });
 
     it("stops listening on dispose", async () => {
