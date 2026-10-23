@@ -18,7 +18,8 @@ use crate::http::retry::{rate_limit_quota, Backoff, Reply};
 const API: &str = "https://api.deadlock-api.com/v1";
 const API_ROOT: &str = "https://api.deadlock-api.com";
 const REPLAY_CHUNK: usize = 10_000;
-const METADATA_CHUNK: usize = 100;
+/// deadlock-api takes up to 1000 IDs, but 1000 make a query string of about 9 KB and some proxies stop at 8 KB.
+const METADATA_CHUNK: usize = 500;
 const PLAYERS_CHUNK: usize = 1000;
 const CLAIM_COOKIE: &str = "to_fetch_claim";
 
@@ -547,6 +548,19 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(api.requests().len(), 1);
         assert!(waits.is_empty());
+    }
+
+    fn metadata_requests(ids: u64) -> usize {
+        let api = FakeApi::serve((0..ids).map(|_| Reply::json("[]")).collect());
+        let ids: Vec<u64> = (1..=ids).collect();
+        known(&api, &ids, Patience::FailFast).0.unwrap();
+        api.requests().len()
+    }
+
+    #[test]
+    fn five_hundred_ids_take_one_metadata_request() {
+        assert_eq!(metadata_requests(500), 1);
+        assert_eq!(metadata_requests(501), 2);
     }
 
     #[test]
