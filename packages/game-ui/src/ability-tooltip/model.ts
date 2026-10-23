@@ -173,17 +173,25 @@ function trainedBonuses(upgrades: readonly AbilityUpgrade[], states: readonly Up
 
 type Shown = { value: number | null; factor: number | null; scaled: boolean };
 
+const COOLDOWN_STAT = "ETechCooldown";
+
 /** Adds come before multiplies so the result does not depend on the tiers' order. */
 function shownOf(property: TooltipProperty, context: Context): Shown {
     const bonus = context.bonuses.get(property.key);
     const rawFactor = property.scale?.factor;
     const scaledFactor = rawFactor == null ? null : (rawFactor + (bonus?.scale ?? 0)) * (bonus?.scaleMultiplier ?? 1);
-    const factor = scaledFactor === 0 ? null : scaledFactor;
+    const stat = property.scale?.stat;
+    // Cooldown reduction takes `factor` x its percent off the value, the whole percent when there is no factor, and
+    // has no scaling label: the game's stat label styles cover the key stats only.
+    const cooldown = stat === COOLDOWN_STAT;
+    const factor = cooldown || scaledFactor === 0 ? null : scaledFactor;
     if (property.value === null) return { value: null, factor, scaled: false };
     const base = (property.value + (bonus?.base ?? 0)) * (bonus?.baseMultiplier ?? 1);
-    const stat = property.scale?.stat;
     const heroStat = stat != null ? context.heroStats?.[stat] : undefined;
-    if (factor !== null && heroStat !== undefined) return { value: base + factor * heroStat, factor, scaled: true };
+    if (heroStat === undefined) return { value: base, factor, scaled: false };
+    const share = scaledFactor ?? 1;
+    if (cooldown && share !== 0) return { value: base * (1 - (share * heroStat) / 100), factor, scaled: true };
+    if (factor !== null) return { value: base + factor * heroStat, factor, scaled: true };
     return { value: base, factor, scaled: false };
 }
 

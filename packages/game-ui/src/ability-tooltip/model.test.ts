@@ -517,6 +517,44 @@ describe("abilityTooltipModel values", () => {
         expect(radius.kind === "value" && radius.scaled).toBe(false);
     });
 
+    // Jar of Dead's Death Required and cooldown (capture 9Rl7z9P8wb): at 40% cooldown reduction 120 reads 72.
+    const cdr = (factor: number | null) => ({ stat: "ETechCooldown", factor, function: "scale_function_single_stat" });
+    const jar: AbilityTooltip = {
+        ...lightningBall,
+        header: [prop("Radius", 6, "Radius", { unit: "m", scale: cdr(1) })],
+        cooldown: prop("AbilityCooldown", 20, "Cooldown", { unit: "s", cssClass: "cooldown", scale: cdr(null) }),
+        sections: [
+            section({
+                groups: [{ title: null, cells: [prop("Cost", 50, "Cost", { scale: cdr(1) })] }],
+                properties: [
+                    prop("ResourceCost", 120, "Death Required", { scale: cdr(1) }),
+                    prop("Delay", 10, "Delay", { unit: "s", scale: cdr(0) }),
+                ],
+            }),
+        ],
+    };
+
+    it("takes cooldown reduction's share off the values it scales, the cooldown too", () => {
+        const model = abilityTooltipModel({ tierCosts, ability: jar, heroStats: { ETechCooldown: 40 } });
+        expect(model.sections[0].rows.map((r) => [text(r.value), r.scaled])).toEqual([
+            ["72", true],
+            ["10s", false],
+        ]);
+        expect(text(model.cooldown?.value)).toBe("12s");
+        expect(text(model.chips[0].value)).toBe("3.6m");
+        expect(text(cells(model)[0].value)).toBe("30");
+        expect(text(abilityTooltipModel({ tierCosts, ability: jar }).sections[0].rows[0].value)).toBe("120");
+    });
+
+    it("draws no scaling label or border on a value cooldown reduction scales", () => {
+        const model = abilityTooltipModel({ tierCosts, ability: jar, heroStats: { ETechCooldown: 40 } });
+        const [cell] = cells(model);
+        expect(cell.kind === "value" && [cell.scaling, cell.style]).toEqual([null, null]);
+        expect([model.chips[0].scaling, model.chips[0].style]).toEqual([null, null]);
+        expect(model.sections[0].rows.map((r) => r.scaling)).toEqual([null, null]);
+        expect(model.cooldown?.scaling).toBeNull();
+    });
+
     it("signs a value its property asks to sign, or puts its literal prefix first", () => {
         const ability: AbilityTooltip = {
             ...lightningBall,
