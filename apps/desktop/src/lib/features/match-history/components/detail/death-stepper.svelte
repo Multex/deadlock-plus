@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { tick } from "svelte";
+    import { tick, type Snippet } from "svelte";
     import { ChevronLeft, ChevronRight, Eye, StepForward } from "@lucide/svelte";
     import { t, tn } from "$lib/core/i18n.svelte";
     import { cn } from "@deadlock-plus/ui/utils";
@@ -10,7 +10,7 @@
         /** Zero-based; -1 when no death is selected. */
         index: number;
         count: number;
-        summary: string | null;
+        summary?: Snippet;
         onstep: (delta: -1 | 1) => void;
         onclear: () => void;
     }
@@ -101,7 +101,7 @@
             {t("match_history.detail.replay.step_show_all")}
         </Button>
         {#if summary}
-            <span class="text-muted-foreground" role="status">{summary}</span>
+            <span class="text-muted-foreground" role="status">{@render summary()}</span>
         {/if}
     {/if}
 </div>

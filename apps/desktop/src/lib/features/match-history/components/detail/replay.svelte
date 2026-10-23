@@ -25,6 +25,7 @@
         stepIndex,
         stepScene,
         stepTo,
+        type DeathFacts,
         type DeathRole,
         type DeathScope,
         type DeathStep,
@@ -45,6 +46,9 @@
     import { MAP_OBJECT_STEMS, mapObjects, type MapObjectIcons } from "@deadlock-plus/match/map-objects";
     import { decodePaths, WORLD_RADIUS } from "@deadlock-plus/match/paths";
     import { deathScopeItems, groupTeam, parseDeathScope, roleItems, speedOptions } from "../../player-menu";
+    import { accountOfSlot } from "../../replay-links";
+    import { textAround } from "$lib/core/text-around";
+    import PlayerNameMenu from "$lib/components/player-links/player-name-menu.svelte";
     import {
         DEFAULT_KINDS,
         SPEEDS,
@@ -355,6 +359,12 @@
             `${nameOf(facts.victimSlot)} · ${heroNameOf(facts.victimSlot)}`,
             clock(facts.timeS),
             t("match_history.detail.replay.killed_by", { killer }),
+            ...deathTail(facts),
+        ];
+    }
+
+    function deathTail(facts: DeathFacts): string[] {
+        return [
             ...(facts.respawnS === undefined
                 ? []
                 : [
@@ -418,6 +428,30 @@
         style:margin-left={effectiveFrom <= 0 ? "-8px" : undefined}
         style:margin-right={effectiveTo >= duration ? "-8px" : undefined}
     ></span>
+{/snippet}
+
+{#snippet playerName(slot: number)}
+    <PlayerNameMenu name={nameOf(slot)} accountId={accountOfSlot(detail, slot)} />
+{/snippet}
+
+{#snippet deathSummary()}
+    {#if step}
+        {@const facts = deathFacts(step)}
+        {@const [killedBefore, killedAfter] = textAround((killer) =>
+            t("match_history.detail.replay.killed_by", { killer }),
+        )}
+        {@render playerName(facts.victimSlot)} · {heroNameOf(facts.victimSlot)} · {clock(facts.timeS)} ·
+        {#if facts.killerKnown}
+            {killedBefore}{@render playerName(facts.killerSlot)} · {heroNameOf(facts.killerSlot)}{killedAfter}
+        {:else}
+            {t("match_history.detail.replay.killed_by", {
+                killer: t("match_history.detail.replay.killer_slot", { slot: facts.killerSlot }),
+            })}
+        {/if}
+        {#each deathTail(facts) as line, i (i)}
+            · {line}
+        {/each}
+    {/if}
 {/snippet}
 
 <Section class="replay flex flex-col gap-4" aria-labelledby="{uid}-heading">
@@ -557,7 +591,7 @@
             <DeathStepper
                 index={stepIndex(steps, step?.event ?? null)}
                 count={steps.length}
-                summary={step ? deathLines(step).join(" · ") : null}
+                summary={step ? deathSummary : undefined}
                 onstep={(delta) => onselect(stepTo(steps, step?.event ?? null, delta))}
                 onclear={() => (selected = null)}
             />
