@@ -2,13 +2,14 @@
     import { ArrowLeft, Info, LoaderCircle } from "@lucide/svelte";
     import { tick } from "svelte";
     import { toast } from "svelte-sonner";
-    import { beforeNavigate, goto } from "$app/navigation";
+    import { beforeNavigate, goto, replaceState } from "$app/navigation";
     import { page } from "$app/state";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { failureText } from "$lib/core/errors";
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { buildsDrafts, buildsLocal } from "$lib/features/builds/api";
     import { chipFor, loadKit, loadPublic, type HeroKit } from "$lib/features/builds/build-detail.svelte";
+    import { shownHref } from "$lib/features/builds/edit-page";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import { loadShopCatalog, type ShopCatalog } from "$lib/features/builds/catalog";
     import AbilityBar from "$lib/features/builds/components/editor/ability-bar.svelte";
@@ -114,6 +115,15 @@
                 opened.dispose();
             }
         };
+    });
+
+    // Shallow, so `page.url` and the target keep the editor that is open instead of reloading it from the URL.
+    $effect(() => {
+        if (!editor) return;
+        const href = shownHref(editor.origin, editor.draftId);
+        if (href && location.pathname === "/builds/edit" && href !== location.pathname + location.search) {
+            replaceState(href, {});
+        }
     });
 
     beforeNavigate(() => {
