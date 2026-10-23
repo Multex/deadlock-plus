@@ -1,12 +1,12 @@
 import { untrack } from "svelte";
 import { failureText } from "$lib/core/errors";
 import { i18n, t } from "$lib/core/i18n.svelte";
+import { parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
 import { onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 import { live } from "$lib/features/live/live.svelte";
 import { playerNames } from "$lib/features/match-history/names";
 import { stats } from "$lib/features/stats/stats.svelte";
 import { searchPlayers, type Profile } from "$lib/features/voice-bans/profiles";
-import { parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
 import { buildsLocal } from "./api";
 import { BuildDetail } from "./build-detail.svelte";
 import { loadHeroFlags, loadPlayableHeroes, playableHeroes } from "./heroes";
@@ -209,10 +209,13 @@ export class BuildBrowser {
     }
 
     private async loadAuthors(accountIds: readonly number[]) {
-        const ids = [...new Set(accountIds)].filter((id) => !this.authors.has(id));
+        // `readFilters` runs this inside the page's URL effect, which must not rerun when names arrive.
+        const ids = untrack(() => [...new Set(accountIds)].filter((id) => !this.authors.has(id)));
         if (ids.length === 0) return;
         try {
             const names = await playerNames.resolve(ids);
+            // A private profile resolves to no name; reassigning anyway would rerun every effect that reads `authors`.
+            if (names.size === 0) return;
             this.authors = new Map([...this.authors, ...names]);
         } catch {
             // Cards show no author until a later load resolves the names.
