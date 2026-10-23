@@ -1,4 +1,5 @@
 import { untrack } from "svelte";
+import { onBeforeExit } from "$lib/core/exit";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { editHref, protoLanguage, type LoadDeps } from "./editor/load";
 import type { EditOrigin } from "./editor/session";
@@ -19,4 +20,25 @@ export function sessionText(): Pick<LoadDeps, "language" | "copyName" | "categor
         copyName: (name: string) => t("builds.mine.copy_name", { name }),
         categoryName: t("builds.editor.first_category"),
     }));
+}
+
+/**
+ * Under the backend's 2 s quit grace, so the page still answers the quit itself, and a bound on the updater,
+ * which waits on the same tasks with none of its own. A draft is one small local file write.
+ */
+export const EXIT_FLUSH_MS = 1500;
+
+/** Stores the open editor's last edits, still inside the autosave debounce, before the app quits. */
+export function flushOnExit(current: () => { flushDraft(): Promise<void> } | null): () => void {
+    return onBeforeExit(async () => {
+        const flushing = current()?.flushDraft();
+        if (!flushing) return;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const bound = new Promise<void>((resolve) => (timer = setTimeout(resolve, EXIT_FLUSH_MS)));
+        try {
+            await Promise.race([flushing, bound]);
+        } finally {
+            clearTimeout(timer);
+        }
+    });
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { ArrowLeft, Info, LoaderCircle } from "@lucide/svelte";
-    import { tick, untrack } from "svelte";
+    import { onMount, tick, untrack } from "svelte";
     import { toast } from "svelte-sonner";
     import { beforeNavigate, goto, replaceState } from "$app/navigation";
     import { page } from "$app/state";
@@ -9,7 +9,7 @@
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { buildsDrafts, buildsLocal } from "$lib/features/builds/api";
     import { chipFor, loadKit, loadPublic, type HeroKit } from "$lib/features/builds/build-detail.svelte";
-    import { sessionText, shownHref } from "$lib/features/builds/edit-page";
+    import { flushOnExit, sessionText, shownHref } from "$lib/features/builds/edit-page";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import { loadShopCatalog, type ShopCatalog } from "$lib/features/builds/catalog";
     import AbilityBar from "$lib/features/builds/components/editor/ability-bar.svelte";
@@ -137,6 +137,7 @@
     beforeNavigate(() => {
         void editor?.flushDraft();
     });
+    onMount(() => flushOnExit(() => editor));
 
     const build = $derived(editor?.build ?? null);
     const published = $derived(
