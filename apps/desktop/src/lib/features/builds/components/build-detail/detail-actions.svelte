@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import { Check, Clock, Copy, LoaderCircle, Pencil, Star, Trash2, TriangleAlert } from "@lucide/svelte";
+    import { Check, Clock, Copy, Hammer, LoaderCircle, Pencil, Star, Trash2, TriangleAlert } from "@lucide/svelte";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
     import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
@@ -8,10 +8,12 @@
     import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
+    import { openBuildOnBuildlocker } from "$lib/core/player-links";
     import { detailExportRequest } from "../../build-code.svelte";
     import type { BuildDetail } from "../../build-detail.svelte";
     import CopyForGame from "../build-code/copy-for-game.svelte";
     import { editHref, editsInPlace } from "../../editor/load";
+    import { buildlockerBuildId } from "./links";
 
     let {
         detail,
@@ -29,6 +31,7 @@
     const build = $derived(detail.build!);
     const copy = $derived(detail.copy);
     const favourite = $derived(detail.favourite);
+    const buildlockerId = $derived(buildlockerBuildId(detail));
     const column = $derived(layout === "column");
     const size = $derived(column ? "default" : "sm");
     const width = $derived(column ? "w-full" : "");
@@ -155,6 +158,19 @@
     </Button>
 {/snippet}
 
+{#snippet buildlockerButton(id: number)}
+    <Button
+        class={width}
+        variant="outline"
+        {size}
+        data-testid="open-on-buildlocker"
+        onclick={() => void openBuildOnBuildlocker(id)}
+    >
+        <Hammer aria-hidden="true" />
+        {t("player_links.build_on_buildlocker")}
+    </Button>
+{/snippet}
+
 {#snippet discardButton()}
     <Button
         class={cn(width, "text-destructive hover:text-destructive")}
@@ -180,6 +196,7 @@
             {@render favouriteButton()}
             {@render favouriteStatus()}
         {/if}
+        {#if buildlockerId !== null}{@render buildlockerButton(buildlockerId)}{/if}
         {#if detail.draft}{@render discardButton()}{/if}
     </div>
 {:else}
@@ -190,6 +207,7 @@
             {@render copyButton()}
             {@render gameCodeButton()}
             {#if detail.canFavourite}{@render favouriteButton()}{/if}
+            {#if buildlockerId !== null}{@render buildlockerButton(buildlockerId)}{/if}
             {#if detail.draft}{@render discardButton()}{/if}
         </div>
         {@render copyStatus()}

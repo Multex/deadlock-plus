@@ -1,10 +1,15 @@
 <script lang="ts">
-    import { Heart } from "@lucide/svelte";
+    import { Heart, Search } from "@lucide/svelte";
+    import { goto } from "$app/navigation";
     import Card from "@deadlock-plus/ui/card.svelte";
+    import PlayerNameMenu from "$lib/components/player-links/player-name-menu.svelte";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
+    import { hasProfile, type ProfileSite } from "$lib/core/player-links";
     import type { BuildDetail } from "../../build-detail.svelte";
     import StatusBadge from "../my-builds/status-badge.svelte";
     import DetailActions from "./detail-actions.svelte";
+    import { textAround } from "$lib/core/text-around";
+    import { authorBuildsHref } from "../../builds-page";
 
     let { detail, ownAccountId }: { detail: BuildDetail; ownAccountId: number | null } = $props();
 
@@ -13,12 +18,20 @@
     let portraitFailed = $state(false);
     const art = $derived(portraitFailed ? (hero?.icon ?? null) : (hero?.portrait ?? hero?.icon ?? null));
 
-    const author = $derived(
-        build.authorAccountId === ownAccountId
-            ? t("builds.view.by_you")
-            : detail.author
-              ? t("builds.browser.by", { name: detail.author })
-              : null,
+    const AUTHOR_SITES: readonly ProfileSite[] = ["steam", "statlocker", "buildlocker"];
+
+    const own = $derived(build.authorAccountId === ownAccountId);
+    const byText = $derived(textAround((name) => t("builds.browser.by", { name })));
+    const authorLeading = $derived(
+        detail.author && hasProfile(build.authorAccountId)
+            ? [
+                  {
+                      label: t("player_links.builds_by", { name: detail.author }),
+                      icon: Search,
+                      onSelect: () => void goto(authorBuildsHref(build.authorAccountId, build.heroId)),
+                  },
+              ]
+            : [],
     );
     const updated = $derived(
         build.lastUpdatedTimestamp
@@ -58,8 +71,17 @@
                 {#if hero}
                     <span class="font-medium text-foreground">{hero.name}</span>
                 {/if}
-                {#if author}
-                    <span>{author}</span>
+                {#if own}
+                    <span>{t("builds.view.by_you")}</span>
+                {:else if detail.author}
+                    <span>
+                        {byText[0]}<PlayerNameMenu
+                            name={detail.author}
+                            accountId={build.authorAccountId}
+                            sites={AUTHOR_SITES}
+                            leading={authorLeading}
+                        />{byText[1]}
+                    </span>
                 {/if}
                 {#if updated}
                     <span>{updated}</span>
