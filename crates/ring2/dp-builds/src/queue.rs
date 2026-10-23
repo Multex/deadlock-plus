@@ -281,8 +281,21 @@ fn with_build_id(blob: &[u8], id: u32) -> Result<Vec<u8>, QueueError> {
     Ok(build.encode())
 }
 
+/// A corrupt queue is moved aside so it stops blocking every builds command; a newer app's queue
+/// is left alone and reported, since this build cannot read it but that one still can.
 fn load(path: &Path) -> Result<Vec<QueuedSave>, QueueError> {
-    Ok(dp_versioned::read(path, MIGRATIONS).map_err(QueueError::Read)?.unwrap_or_default())
+    match dp_versioned::read(path, MIGRATIONS) {
+        Ok(saves) => Ok(saves.unwrap_or_default()),
+        Err(ReadError::Corrupt(e)) => {
+            let mut aside = path.as_os_str().to_owned();
+            aside.push(".corrupt");
+            let aside = PathBuf::from(aside);
+            log::error!("{} is unreadable ({e}); moved to {} and starting empty", path.display(), aside.display());
+            std::fs::rename(path, &aside).map_err(QueueError::Io)?;
+            Ok(Vec::new())
+        }
+        Err(e) => Err(QueueError::Read(e)),
+    }
 }
 
 fn store(path: &Path, saves: &[QueuedSave]) -> Result<(), QueueError> {
@@ -677,17 +690,26 @@ mod tests {
     }
 
     #[test]
-    fn a_corrupt_queue_is_reported_and_left_alone() {
+    fn a_corrupt_queue_is_moved_aside_and_starts_empty() {
         let env = Env::new("corrupt");
         let path = queue_path(&env.dir, ACCOUNT);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "{ nope").unwrap();
-        assert!(matches!(pending(&env.dir, ACCOUNT), Err(QueueError::Read(_))));
-        assert!(matches!(enqueue(&env.dir, ACCOUNT, edit(1, "a", blob(1, "a"), None)), Err(QueueError::Read(_))));
-        assert!(matches!(cancel(&env.dir, ACCOUNT, "x"), Err(QueueError::Read(_))));
-        let flushed = flush(&env.dir, ACCOUNT, &env.file, &env.backups, 1, &|| false, &env.history);
-        assert!(matches!(flushed, Err(QueueError::Read(_))));
-        assert_eq!(fs::read_to_string(&path).unwrap(), "{ nope");
+        assert!(env.pending().is_empty());
+        assert_eq!(fs::read_to_string(path.with_file_name("queue.json.corrupt")).unwrap(), "{ nope");
+        env.enqueue(edit(1, "a", blob(1, "a"), None));
+        assert_eq!(labels(&env.pending()), vec!["a"]);
+    }
+
+    #[test]
+    fn a_newer_queue_is_reported_and_left_alone() {
+        let env = Env::new("newer");
+        let path = queue_path(&env.dir, ACCOUNT);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let newer = r#"{"data":[],"schema_version":99}"#;
+        fs::write(&path, newer).unwrap();
+        assert!(matches!(pending(&env.dir, ACCOUNT), Err(QueueError::Read(ReadError::Newer { .. }))));
+        assert_eq!(fs::read_to_string(&path).unwrap(), newer);
     }
 
     fn named(id: u32, name: &str) -> Vec<u8> {
