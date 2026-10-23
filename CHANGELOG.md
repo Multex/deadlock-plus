@@ -44,6 +44,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Reloading the app keeps you on the page you were on.
 - Reloading the app no longer opens What's New.
 - What's New counts as read once you leave it, without scrolling to the end.
+- Match recovery waits out deadlock-api rate limits instead of skipping an account for that run.
+- An account whose match history could not be checked is checked again on the next recovery run.
+- Friend matches that could not be checked are sent on a later pass, so no Steam requests go to matches deadlock-api already has.
 
 ## [0.13.2] - 2026-10-21
 
