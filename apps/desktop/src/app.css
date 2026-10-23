@@ -5,6 +5,7 @@
 @import "@fontsource/atkinson-hyperlegible/latin-700.css";
 @import "@deadlock-plus/ui/fonts.css";
 @import "@deadlock-plus/ui/theme.css";
+@import "@deadlock-plus/game-ui/tokens.css";
 
 @source "../../../packages/ui/src";
 

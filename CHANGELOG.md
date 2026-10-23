@@ -6,6 +6,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Hero rows on the Stats page link to that hero's builds.
+
+#### Builds
+
+- A new Builds page lists public builds for your last played hero, with this week's favourites first.
+- Filter builds by hero, tag, language, author, name and more.
+- Builds show their win rate once they have enough recent matches.
+- The Mine tab lists your own builds, drafts and favourites.
+- Opening a build shows its shop and ability order exactly as the game draws them.
+- Hover an item or ability for the game's own tooltip, with your stats at that point in the build.
+- Hold Alt over an item for the game's See Details, plus its pick and win rates for each game phase.
+- Item tooltips show the build author's note, sell priority and imbue suggestion.
+- Favourite a public build and it shows in your favourites in-game.
+- Copy for game and Paste code move builds between Deadlock+ and the game's Create New Build.
+
+#### Build editor
+
+- Edit any build, yours or a public one, on a copy of the game's shop page and save it to your game files.
+- Drag items in from the shop and drag a category's edges to resize it.
+- Sizes snap so categories look the same at 1080p, 1440p, 4K and in the Build Browser.
+- A layout check finds categories that look different at another resolution and fixes them in one click.
+- Preview a build at 1080p, 1440p, 4K or as the Build Browser shows it.
+- A souls timeline shows when each item and ability step becomes affordable.
+- Set the ability order by clicking abilities; orders the game would reject are blocked.
+- Undo and redo every change, and restore any of the last 20 saved versions.
+- Unsaved changes stay as a draft until you save or discard them.
+- Builds saved while Deadlock is running are written when the game closes.
+- If the game changed a build you are saving, you choose which version to keep.
+- Deadlock+ backs up your build file before every write and keeps the last 10 backups.
+- Turn on Support Deadlock+ to add a "Made with Deadlock+" line under a build's description.
+
+### Fixed
+
+- Reloading the app keeps you on the page you were on.
+- Reloading the app no longer opens What's New.
+- What's New counts as read once you leave it, without scrolling to the end.
+
 ## [0.13.2] - 2026-10-21
 
 ### Fixed

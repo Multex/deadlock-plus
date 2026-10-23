@@ -26,6 +26,7 @@
 ## Ring 2, domain
 
 - [dp-storage](ring2/dp-storage/README.md): Sizes and clears the files the game and app keep.
+- [dp-builds](ring2/dp-builds/README.md): Reads and writes the game's local hero build file.
 - [dp-voice-bans](ring2/dp-voice-bans/README.md): Backs up and rewrites the mute list.
 - [dp-demos](ring2/dp-demos/README.md): Lists, pins, cleans up and deletes replays.
 - [dp-server-picker](ring2/dp-server-picker/README.md): Relay groups, pings, block validation and block sync.

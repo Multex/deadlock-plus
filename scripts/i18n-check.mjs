@@ -7,6 +7,8 @@ const KEY_CALL = /(?<![\w$])(tn?)\(\s*(["'])([\w.]+)\2/g;
 const TEMPLATE_KEY_CALL = /(?<![\w$])tn?\(\s*`([^`$]+)\$\{/g;
 const STRING_LITERAL = /(["'])([\w.]+)\1/g;
 const PLACEHOLDER = /\{(\w+)\}/g;
+const NAMESPACE_CONST = /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(["'])(\w+(?:\.\w+)+)\2/g;
+const NAMESPACE_TEMPLATE = /`\$\{([A-Za-z_$][\w$]*)\}\.\$\{/g;
 const RUST_KEY_PREFIXES = ["errors.", "tray.", "notifications.", "storage.owners.", "storage.kinds."];
 
 export function flatten(node, prefix = "") {
@@ -25,6 +27,15 @@ export function extractKeys(source) {
 
 export function extractTemplatePrefixes(source) {
     return [...source.matchAll(TEMPLATE_KEY_CALL)].map((m) => m[1]);
+}
+
+// Keys built as `${NS}.${key}` from a `const NS = "a.b"` in the same file count everything under `a.b.` as used.
+export function extractNamespacePrefixes(source) {
+    const namespaces = new Map([...source.matchAll(NAMESPACE_CONST)].map((m) => [m[1], m[3]]));
+    const prefixes = [...source.matchAll(NAMESPACE_TEMPLATE)]
+        .filter((m) => namespaces.has(m[1]))
+        .map((m) => `${namespaces.get(m[1])}.`);
+    return [...new Set(prefixes)];
 }
 
 export function extractKeyLiterals(source, known) {
@@ -110,7 +121,7 @@ function main() {
     const known = new Set(Object.keys(flatten(catalogs.en)).flatMap((key) => [key, key.replace(PLURAL_SUFFIX, "")]));
     const referenced = {
         literals: new Set(sources.flatMap(({ text }) => extractKeyLiterals(text, known))),
-        prefixes: sources.flatMap(({ text }) => extractTemplatePrefixes(text)),
+        prefixes: sources.flatMap(({ text }) => [...extractTemplatePrefixes(text), ...extractNamespacePrefixes(text)]),
     };
     const { errors, warnings } = checkCatalogs(catalogs, used, referenced);
     for (const line of warnings) console.warn(`warning: ${line}`);

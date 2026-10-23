@@ -1,0 +1,20 @@
+﻿"lang"
+{
+	"Language"		"german"
+	"Tokens"
+	{
+		"citadel_build_tag_label"						"{s:tag_name}"
+		"citadel_build_tag_weapon"						"Waffe"
+		"citadel_build_tag_vitality"					"Vitalität"
+		"citadel_build_tag_spirit"						"Magie"
+		"citadel_build_tag_complexity_1"				"Für neue Spieler"
+		"citadel_build_tag_complexity_2"				"Für fortgeschr. Spieler"
+		"citadel_build_tag_complexity_3"				"Für erfahrene Spieler"
+		"citadel_build_tag_damage"						"Schaden"
+		"citadel_build_tag_utility"						"Unterstützung"
+		"citadel_build_tag_healing"						"Heilung"
+		"citadel_build_tag_crowd_control"				"Massenkontrolle"
+		"citadel_build_tag_mobility"					"Mobilität"
+		"citadel_build_tag_melee"						"Nahkampf"
+	}
+}

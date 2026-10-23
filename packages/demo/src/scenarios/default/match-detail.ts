@@ -1,7 +1,14 @@
+import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AccoladeEntry } from "@deadlock-plus/ipc-types/AccoladeEntry";
+import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
+import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { ClassArt } from "@deadlock-plus/ipc-types/ClassArt";
+import type { HeroAbilities } from "@deadlock-plus/ipc-types/HeroAbilities";
 import type { HeroArt } from "@deadlock-plus/ipc-types/HeroArt";
+import type { HeroProgression } from "@deadlock-plus/ipc-types/HeroProgression";
 import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
+import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
+import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import type { LaneLine } from "@deadlock-plus/ipc-types/LaneLine";
 import type { MapItem } from "@deadlock-plus/ipc-types/MapItem";
 import type { MapItemsPayload } from "@deadlock-plus/ipc-types/MapItemsPayload";
@@ -10,11 +17,29 @@ import type { MinimapArtResult } from "@deadlock-plus/ipc-types/MinimapArtResult
 import type { MinimapIcon } from "@deadlock-plus/ipc-types/MinimapIcon";
 import type { MinimapIconArt } from "@deadlock-plus/ipc-types/MinimapIconArt";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
+import type { PopularItem } from "@deadlock-plus/ipc-types/PopularItem";
+import type { PopularItems } from "@deadlock-plus/ipc-types/PopularItems";
+import type { PropertyIconArt } from "@deadlock-plus/ipc-types/PropertyIconArt";
 import type { ProvisionalMatch } from "@deadlock-plus/ipc-types/ProvisionalMatch";
+import type { ShopItem } from "@deadlock-plus/ipc-types/ShopItem";
+import type { ShopSlot } from "@deadlock-plus/ipc-types/ShopSlot";
+import type { ShopUiArt } from "@deadlock-plus/ipc-types/ShopUiArt";
+import type { ShopUiImage } from "@deadlock-plus/ipc-types/ShopUiImage";
 
 import type { Handlers } from "../../backend";
 import { seeded } from "../../random";
 import type { Identity, Module } from "../../scenario";
+import {
+    abilityTooltips,
+    alwaysOnStat,
+    gameUiStrings,
+    heroStats,
+    imbueOnlyStat,
+    itemTooltip,
+    propertyIconArt,
+    type GameAssetHero,
+    type GameAssetItem,
+} from "./builds-gamedata";
 import { fakeAccountId, fakeName } from "./identity";
 import { demoGrade } from "./match-grades";
 import { historyRows, type HistoryRow } from "./progress";
@@ -29,6 +54,24 @@ export interface MatchDetailOptions {
 
 type Rng = () => number;
 type Side = 0 | 1;
+
+/** English names from `citadel_main_english.txt`; ids are MurmurHash2 (seed 0x31415926) of `citadel_build_tag_<key>`. */
+const BUILD_TAGS: BuildTag[] = [
+    { key: "weapon", id: 47026193, name: "Weapon" },
+    { key: "vitality", id: 4213205702, name: "Vitality" },
+    { key: "spirit", id: 36498494, name: "Spirit" },
+    { key: "complexity_1", id: 1052421347, name: "For New Players" },
+    { key: "complexity_2", id: 1150155374, name: "For Intermediate Players" },
+    { key: "complexity_3", id: 3797987367, name: "For Advanced Players" },
+    { key: "damage", id: 2592289373, name: "Damage" },
+    { key: "utility", id: 953263904, name: "Utility" },
+    { key: "healing", id: 38758251, name: "Healing" },
+    { key: "crowd_control", id: 4216803923, name: "Crowd Control" },
+    { key: "mobility", id: 3238474489, name: "Mobility" },
+    { key: "melee", id: 3401565923, name: "Melee" },
+    { key: "headshots", id: 2579669585, name: "Headshots" },
+    { key: "debuff", id: 255841590, name: "Debuff" },
+];
 
 const int = (rng: Rng, lo: number, hi: number) => lo + Math.floor(rng() * (hi - lo + 1));
 const range = (rng: Rng, lo: number, hi: number) => lo + rng() * (hi - lo);
@@ -1294,7 +1337,7 @@ function assetLoader(): AssetLoader {
     };
 }
 
-interface AssetItem {
+interface AssetItem extends GameAssetItem {
     id: number;
     class_name: string;
     name: string;
@@ -1303,7 +1346,41 @@ interface AssetItem {
     image_webp?: string | null;
     shop_image?: string | null;
     shop_image_webp?: string | null;
+    item_slot_type?: string;
+    item_tier?: number;
+    cost?: number;
+    is_active_item?: boolean;
+    shopable?: boolean;
+    disabled?: boolean;
+    component_items?: string[];
+    /** Set on items that imbue an ability: the kind of ability they target. */
+    imbue?: string | null;
+    properties?: Record<string, AssetProperty>;
+    tooltip_sections?: AssetTooltipSection[];
 }
+
+interface AssetProperty {
+    value?: string | number;
+    label?: string;
+    postvalue_label?: string;
+    postfix?: string;
+    provided_property_type?: string;
+    usage_flags?: string[];
+    /** The game's apply filter, as the condition it names ("against NPCs"). */
+    conditional?: string;
+}
+
+interface AssetTooltipSection {
+    section_type?: string;
+    section_attributes?: Partial<Record<(typeof SHOWN_LISTS)[number], (string | { name: string })[]>>[];
+}
+
+const SHOWN_LISTS = [
+    "properties",
+    "elevated_properties",
+    "important_properties",
+    "important_properties_with_icon",
+] as const;
 
 interface AssetAccolade {
     id: number;
@@ -1312,9 +1389,24 @@ interface AssetAccolade {
     tracked_stat_name: string | null;
 }
 
-interface AssetHero {
+interface AssetHero extends GameAssetHero {
     id: number;
     images?: { minimap_image_webp?: string | null };
+    items?: Record<string, string>;
+    level_info?: Record<string, { required_gold: number; bonus_currencies?: string[] }>;
+    popular_items?: {
+        timestamp: number;
+        early_game?: AssetPopularItem[];
+        mid_game?: AssetPopularItem[];
+        late_game?: AssetPopularItem[];
+    } | null;
+}
+
+interface AssetPopularItem {
+    item_id: number;
+    class_name: string;
+    pick_pct: number;
+    winrate_pct: number;
 }
 
 interface AssetMap {
@@ -1322,8 +1414,192 @@ interface AssetMap {
     images?: { minimap?: string | null };
 }
 
-interface AssetIcons {
+interface IconTree {
+    [name: string]: string | IconTree | undefined;
+}
+
+interface AssetIcons extends IconTree {
     minimap?: Record<string, string>;
+}
+
+/** The url at `path` in the icons asset's folder tree, or null. */
+function iconAt(icons: IconTree, path: readonly string[]): string | null {
+    let at: string | IconTree | undefined = icons;
+    for (const name of path) at = typeof at === "object" ? at[name] : undefined;
+    return typeof at === "string" ? at : null;
+}
+
+/** Every file url in the icons asset's folder tree. */
+function iconFiles(icons: IconTree): Set<string> {
+    const files = new Set<string>();
+    const walk = (tree: IconTree) => {
+        for (const entry of Object.values(tree)) {
+            if (typeof entry === "string") files.add(entry);
+            else if (entry) walk(entry);
+        }
+    };
+    walk(icons);
+    return files;
+}
+
+/** The shop UI images the public icon set also has: only the vector ones. The textures are the game's own. */
+const SHOP_UI_ICONS: readonly (readonly [ShopUiImage, readonly string[]])[] = [
+    ["tier_corner", ["shop", "tier_corner_cap.svg"]],
+    ["tier_number_1", ["upgrades", "tier_numbers_small_01.svg"]],
+    ["tier_number_2", ["upgrades", "tier_numbers_small_02.svg"]],
+    ["tier_number_3", ["upgrades", "tier_numbers_small_03.svg"]],
+    ["tier_number_4", ["upgrades", "tier_numbers_small_04.svg"]],
+    ["popular_thumb", ["shop", "catalog", "filters", "icon_recommend_up.svg"]],
+    ["filter_tab_fill", ["shop", "catalog", "filters", "top_level_filter_fill.svg"]],
+];
+
+/** The id Source 2 gives a class name: MurmurHash2, seed 0x31415926, over the ASCII-lowercased name. */
+function abilityId(className: string): number {
+    const M = 0x5bd1e995;
+    const data = Array.from(className, (c) => c.toLowerCase().charCodeAt(0) & 0xff);
+    let h = (0x31415926 ^ data.length) >>> 0;
+    let i = 0;
+    for (; i + 4 <= data.length; i += 4) {
+        let k = data[i]! | (data[i + 1]! << 8) | (data[i + 2]! << 16) | (data[i + 3]! << 24);
+        k = Math.imul(k, M);
+        k ^= k >>> 24;
+        h = Math.imul(h, M) ^ Math.imul(k, M);
+    }
+    if (i < data.length) {
+        for (let j = 0; i + j < data.length; j++) h ^= data[i + j]! << (8 * j);
+        h = Math.imul(h, M);
+    }
+    h ^= h >>> 13;
+    h = Math.imul(h, M);
+    return (h ^ (h >>> 15)) >>> 0;
+}
+
+const SHOP_SLOTS = new Set<string>(["weapon", "vitality", "spirit"] satisfies ShopSlot[]);
+
+/** The installed game's answers come from the public assets; when those cannot be fetched, as with no game. */
+async function orNoGame<T>(read: () => Promise<T>, none: T): Promise<T> {
+    try {
+        return await read();
+    } catch {
+        return none;
+    }
+}
+
+function shopItems(items: readonly AssetItem[]): ShopItem[] {
+    return items
+        .flatMap((item): ShopItem[] =>
+            item.type === "upgrade" && SHOP_SLOTS.has(item.item_slot_type ?? "") && item.item_tier !== undefined
+                ? [
+                      {
+                          id: item.id,
+                          className: item.class_name,
+                          slot: item.item_slot_type as ShopSlot,
+                          tier: item.item_tier,
+                          cost: item.cost ?? 0,
+                          active: item.is_active_item ?? false,
+                          components: (item.component_items ?? []).map(abilityId),
+                          disabled: item.disabled ?? false,
+                          shopable: item.shopable ?? false,
+                          imbue: typeof item.imbue === "string" && item.imbue !== "",
+                          shopFilters: [],
+                          disabledShopFilters: [],
+                      },
+                  ]
+                : [],
+        )
+        .sort((a, b) => a.id - b.id);
+}
+
+const STAT_SECTIONS = new Set<string>(["innate", "passive", "active"] satisfies ItemStat["section"][]);
+
+/**
+ * The game's tooltip stat rule applied to the asset's copy of the abilities file. The asset leaves out
+ * the intrinsic modifier list, so only stats a tooltip section shows are listed.
+ */
+function itemStats(items: readonly AssetItem[]): ItemStats[] {
+    return items
+        .flatMap((item): ItemStats[] => {
+            if (item.type !== "upgrade") return [];
+            const sections = (item.tooltip_sections ?? []).flatMap((section) =>
+                (section.section_attributes ?? []).flatMap((attributes) =>
+                    SHOWN_LISTS.flatMap((list) =>
+                        (attributes[list] ?? []).map((name) => ({
+                            kind: section.section_type ?? "",
+                            name: typeof name === "string" ? name : name.name,
+                        })),
+                    ),
+                ),
+            );
+            const tooltip = itemTooltip(item);
+            const stats = Object.entries(item.properties ?? {}).flatMap(([key, property]): ItemStat[] => {
+                const shownIn = sections.filter((s) => s.name === key).map((s) => s.kind);
+                const text = String(property.value ?? "").trim();
+                const metres = text.endsWith("m");
+                const value = Number(metres ? text.slice(0, -1) : text);
+                const label = property.label || property.postvalue_label;
+                if (shownIn.length === 0 || text === "" || !Number.isFinite(value) || value === 0 || !label) return [];
+                const provides = property.provided_property_type ?? null;
+                const owner = { imbue: item.imbue, condition: tooltip.condition };
+                const flat = alwaysOnStat(property, shownIn, owner);
+                const first = shownIn[0]!;
+                return [
+                    {
+                        key,
+                        value,
+                        unit: property.postfix || (metres ? "m" : null),
+                        label,
+                        flat,
+                        ...(imbueOnlyStat(property, shownIn, owner) ? { onlyIfImbued: true } : {}),
+                        provides,
+                        section: STAT_SECTIONS.has(first) ? (first as ItemStat["section"]) : null,
+                    },
+                ];
+            });
+            return stats.length > 0 || tooltip.sections.length > 0 ? [{ itemId: item.id, stats, ...tooltip }] : [];
+        })
+        .sort((a, b) => a.itemId - b.itemId);
+}
+
+/** Every hero shares one level table; the asset repeats it per hero. */
+function heroProgression(heroes: readonly AssetHero[]): HeroProgression {
+    const info = heroes.find((hero) => hero.level_info)?.level_info ?? {};
+    const levels = Object.entries(info).map(([level, row]) => ({
+        level: Number(level),
+        souls: row.required_gold,
+        ap: row.bonus_currencies?.includes("EAbilityPoints") ? 1 : 0,
+        unlocks: row.bonus_currencies?.includes("EAbilityUnlocks") ? 1 : 0,
+    }));
+    return { levels: levels.sort((a, b) => a.level - b.level) };
+}
+
+function heroAbilities(heroes: readonly AssetHero[]): HeroAbilities[] {
+    return heroes
+        .flatMap((hero): HeroAbilities[] => {
+            const slots = [1, 2, 3, 4].map((n) => hero.items?.[`signature${n}`]);
+            if (slots.some((slot) => slot === undefined)) return [];
+            const [a, b, c, d] = (slots as string[]).map(abilityId);
+            return [{ heroId: hero.id, abilityIds: [a!, b!, c!, d!] }];
+        })
+        .sort((a, b) => a.heroId - b.heroId);
+}
+
+function popularItems(heroes: readonly AssetHero[], heroId: unknown): PopularItems | null {
+    const popular = heroes.find((hero) => hero.id === heroId)?.popular_items;
+    if (!popular) return null;
+    const phase = (items: AssetPopularItem[] | undefined): PopularItem[] =>
+        (items ?? []).map((item) => ({
+            id: item.item_id,
+            className: item.class_name,
+            pickPct: item.pick_pct,
+            winPct: item.winrate_pct,
+        }));
+    const out = {
+        timestamp: popular.timestamp,
+        earlyGame: phase(popular.early_game),
+        midGame: phase(popular.mid_game),
+        lateGame: phase(popular.late_game),
+    };
+    return out.earlyGame.length + out.midGame.length + out.lateGame.length > 0 ? out : null;
 }
 
 async function classArt(
@@ -1422,6 +1698,49 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                             : (item.image_webp ?? item.image),
                     ),
                 game_ability_art: (args) => classArt(asset, args.names, (item) => item.image_webp ?? item.image),
+                game_shop_items: () => orNoGame(async () => shopItems(await asset<AssetItem[]>("items")), []),
+                game_item_stats: () => orNoGame(async () => itemStats(await asset<AssetItem[]>("items")), []),
+                game_hero_progression: () =>
+                    orNoGame(async () => heroProgression(await asset<AssetHero[]>("heroes")), { levels: [] }),
+                game_hero_abilities: () => orNoGame(async () => heroAbilities(await asset<AssetHero[]>("heroes")), []),
+                game_popular_items: (args) =>
+                    orNoGame(async () => popularItems(await asset<AssetHero[]>("heroes"), args.heroId), null),
+                game_build_tags: async (): Promise<BuildTag[]> => {
+                    const icons = await orNoGame(() => asset<AssetIcons>("icons"), {});
+                    return BUILD_TAGS.map((tag) => {
+                        const icon = iconAt(icons, ["builds", `citadel_build_tag_${tag.key}.svg`]);
+                        return icon ? { ...tag, icon } : { ...tag };
+                    });
+                },
+                game_shop_ui_art: async (): Promise<ShopUiArt[]> => {
+                    const icons = await orNoGame(() => asset<AssetIcons>("icons"), {});
+                    return SHOP_UI_ICONS.flatMap(([image, path]) => {
+                        const file = iconAt(icons, path);
+                        return file ? [{ image, path: file }] : [];
+                    });
+                },
+                game_property_icon_art: () =>
+                    orNoGame(async (): Promise<PropertyIconArt[]> => {
+                        const [items, icons] = await Promise.all([
+                            asset<AssetItem[]>("items"),
+                            asset<AssetIcons>("icons"),
+                        ]);
+                        return propertyIconArt(items, iconFiles(icons));
+                    }, []),
+                game_ability_tooltips: () =>
+                    orNoGame(
+                        async (): Promise<AbilityTooltip[]> => abilityTooltips(await asset<AssetItem[]>("items")),
+                        [],
+                    ),
+                game_hero_stats: (args) =>
+                    orNoGame(async () => {
+                        const [heroes, items] = await Promise.all([
+                            asset<AssetHero[]>("heroes"),
+                            asset<AssetItem[]>("items"),
+                        ]);
+                        return heroStats(heroes, items, args.heroId);
+                    }, null),
+                game_ui_strings: async (args): Promise<GameUiStrings> => gameUiStrings(args.locale),
                 game_accolades: async (): Promise<AccoladeEntry[]> =>
                     (await asset<AssetAccolade[]>("accolades")).map((a) => ({
                         id: a.id,

@@ -1,5 +1,56 @@
 import { describe, expect, it } from "vitest";
-import { knownPaths, routeToRestore, routeToSave } from "./last-route";
+import { claimLaunch, knownPaths, launchCheck, routeToRestore, routeToSave } from "./last-route";
+
+function memoryStorage() {
+    const items = new Map<string, string>();
+    return {
+        getItem: (key: string) => items.get(key) ?? null,
+        setItem: (key: string, value: string) => void items.set(key, value),
+    };
+}
+
+describe("claimLaunch", () => {
+    it("treats the first load of a webview session as the launch", () => {
+        expect(claimLaunch(memoryStorage())).toBe(true);
+    });
+
+    it("treats a reload or an HMR re-run in the same session as no launch", () => {
+        const session = memoryStorage();
+        claimLaunch(session);
+        expect(claimLaunch(session)).toBe(false);
+        expect(claimLaunch(session)).toBe(false);
+    });
+
+    it("falls back to a launch when session storage is missing or throws", () => {
+        expect(claimLaunch(null)).toBe(true);
+        const broken = {
+            getItem: () => {
+                throw new Error("denied");
+            },
+            setItem: () => {
+                throw new Error("denied");
+            },
+        };
+        expect(claimLaunch(broken)).toBe(true);
+    });
+});
+
+describe("launchCheck", () => {
+    it("gives every startup step of one page load the same answer", () => {
+        const session = memoryStorage();
+        const isLaunch = launchCheck(() => session);
+        expect(isLaunch()).toBe(true);
+        expect(isLaunch()).toBe(true);
+    });
+
+    it("answers no launch after a reload of the same session", () => {
+        const session = memoryStorage();
+        launchCheck(() => session)();
+        const afterReload = launchCheck(() => session);
+        expect(afterReload()).toBe(false);
+        expect(afterReload()).toBe(false);
+    });
+});
 
 describe("routeToSave", () => {
     it("keeps the path and the query", () => {

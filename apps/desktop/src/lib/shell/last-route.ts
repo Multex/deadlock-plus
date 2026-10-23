@@ -2,6 +2,42 @@ const ONBOARDING = "/onboarding";
 
 const isOnboarding = (pathname: string) => pathname === ONBOARDING || pathname.startsWith(`${ONBOARDING}/`);
 
+const LAUNCH_MARK = "last-route:launch-handled";
+
+type SessionStore = Pick<Storage, "getItem" | "setItem">;
+
+/**
+ * True only for the first page load of this webview. Session storage survives a reload and an HMR re-run of the
+ * startup code, but a new app process starts with it empty, so only a real launch gets the saved route.
+ */
+export function claimLaunch(storage: SessionStore | null): boolean {
+    if (!storage) return true;
+    try {
+        if (storage.getItem(LAUNCH_MARK) !== null) return false;
+        storage.setItem(LAUNCH_MARK, "1");
+    } catch {
+        // Without session storage a reload cannot be told apart from a launch.
+    }
+    return true;
+}
+
+/** Claims once per page load, so every startup step of one load gets the same answer. */
+export function launchCheck(storage: () => SessionStore | null): () => boolean {
+    let launch: boolean | undefined;
+    return () => (launch ??= claimLaunch(storage()));
+}
+
+function sessionStore(): Storage | null {
+    try {
+        return window.sessionStorage;
+    } catch {
+        return null;
+    }
+}
+
+/** Whether this page load is the app's launch rather than a reload or an HMR re-run. */
+export const isLaunch = launchCheck(sessionStore);
+
 export function routeToSave(url: { pathname: string; search: string }): string | null {
     return isOnboarding(url.pathname) ? null : url.pathname + url.search;
 }

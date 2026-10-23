@@ -1,4 +1,16 @@
-import { Bell, ChartColumn, Film, Globe, Gauge, History, House, MessageCircle, Swords, VolumeX } from "@lucide/svelte";
+import {
+    Bell,
+    ChartColumn,
+    Film,
+    Globe,
+    Gauge,
+    Hammer,
+    History,
+    House,
+    MessageCircle,
+    Swords,
+    VolumeX,
+} from "@lucide/svelte";
 import type { Component } from "svelte";
 import { installFrontendLogging } from "./logging/frontend";
 import { adminAccess } from "./admin-access/admin-access.svelte";
@@ -98,6 +110,17 @@ export const FEATURES: FeatureNavEntry[] = [
             return t("shell.nav_description.match_history");
         },
         icon: History,
+    },
+    {
+        id: "builds",
+        get label() {
+            return t("shell.nav.builds");
+        },
+        href: "/builds",
+        get description() {
+            return t("shell.nav_description.builds");
+        },
+        icon: Hammer,
     },
     {
         id: "alerts",

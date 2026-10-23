@@ -20,6 +20,7 @@ describe("createDeadlockApi", () => {
     it("requests each endpoint with the URL alone", async () => {
         const { fetch, api } = setup();
         await api.heroes();
+        await api.items();
         await api.ranks();
         await api.playerMatchHistory(77);
         await api.playerRank(77);
@@ -28,6 +29,7 @@ describe("createDeadlockApi", () => {
         await api.matchMetadata(42);
         expect(fetch.mock.calls).toEqual([
             [`${BASE}/assets/heroes`],
+            [`${BASE}/assets/items`],
             [`${BASE}/assets/ranks`],
             [`${BASE}/players/77/match-history`],
             [`${BASE}/players/77/rank`],
@@ -49,6 +51,38 @@ describe("createDeadlockApi", () => {
         expect(await api.steamProfiles([5])).toEqual([{ account_id: 5, personaname: "Ada" }]);
     });
 
+    it("returns the shop item and hero level rows typed as the API sends them", async () => {
+        const item = {
+            id: 709540378,
+            class_name: "upgrade_non_player_bonus_sacrifice",
+            name: "Cultist Sacrifice",
+            type: "upgrade" as const,
+            item_slot_type: "weapon" as const,
+            item_tier: 3,
+            cost: 3200,
+            is_active_item: true,
+            shopable: true,
+            component_items: ["upgrade_non_player_bonus"],
+            shop_image_webp: "https://x/a.webp",
+        };
+        const hero = {
+            id: 1,
+            name: "Infernus",
+            items: { signature1: "ability_incendiary_projectile" },
+            level_info: { "1": { bonus_currencies: ["EAbilityUnlocks"], required_gold: 0 } },
+        };
+        const { api: itemsApi } = setup(() => Response.json([item]));
+        const [row] = await itemsApi.items();
+        expect(row?.component_items?.[0]).toBe("upgrade_non_player_bonus");
+        expect(row?.item_slot_type).toBe("weapon");
+        expect(row).toEqual(item);
+        const { api: heroApi } = setup(() => Response.json([hero]));
+        const [h] = await heroApi.heroes();
+        expect(h?.items?.signature1).toBe("ability_incendiary_projectile");
+        expect(h?.level_info?.["1"]?.required_gold).toBe(0);
+        expect(h?.level_info?.["1"]?.bonus_currencies).toEqual(["EAbilityUnlocks"]);
+    });
+
     it("returns match metadata as the raw text", async () => {
         const { api } = setup(() => new Response('{"a": 1}'));
         expect(await api.matchMetadata(1)).toBe('{"a": 1}');
@@ -59,6 +93,7 @@ describe("createDeadlockApi", () => {
         for (const call of [
             () => api.health(),
             () => api.heroes(),
+            () => api.items(),
             () => api.ranks(),
             () => api.playerRank(1),
             () => api.steamProfiles([1]),
@@ -167,6 +202,160 @@ describe("createDeadlockApi", () => {
                 expect(error).toBeInstanceOf(DeadlockApiError);
                 expect((error as DeadlockApiError).status).toBe(429);
             }
+        });
+    });
+
+    describe("builds", () => {
+        it("requests builds without a query by default", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/builds`);
+        });
+
+        it("sends each parameter under its spec name, in a fixed order", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({
+                minUnixTimestamp: 1,
+                maxUnixTimestamp: 2,
+                minPublishedUnixTimestamp: 3,
+                maxPublishedUnixTimestamp: 4,
+                sortBy: "weekly_favorites",
+                start: 5,
+                limit: 6,
+                sortDirection: "asc",
+                searchName: "a b&c",
+                searchDescription: "d e",
+                onlyLatest: true,
+                language: 0,
+                buildLanguage: "German",
+                buildId: 7,
+                version: 8,
+                heroId: 9,
+                tag: 10,
+                rollupCategory: 11,
+                authorId: 12,
+            });
+            expect(fetch).toHaveBeenCalledWith(
+                `${BASE}/builds?min_unix_timestamp=1&max_unix_timestamp=2&min_published_unix_timestamp=3` +
+                    "&max_published_unix_timestamp=4&sort_by=weekly_favorites&start=5&limit=6&sort_direction=asc" +
+                    "&search_name=a%20b%26c&search_description=d%20e&only_latest=true&language=0" +
+                    "&build_language=German&build_id=7&version=8&hero_id=9&tag=10&rollup_category=11&author_id=12",
+            );
+        });
+
+        it("keeps zero and false values and drops undefined ones", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.builds({ heroId: 0, start: 0, onlyLatest: false, searchName: undefined });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/builds?start=0&only_latest=false&hero_id=0`);
+        });
+
+        it("returns the builds as they came and rejects a failed status", async () => {
+            const body = [{ hero_build: { hero_id: 1, details: { mod_categories: [] } }, num_favorites: null }];
+            expect(await setup(() => Response.json(body)).api.builds({})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.builds({})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
+        });
+    });
+
+    describe("hero build stats", () => {
+        it("requests one hero's build stats with the API's defaults", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.heroBuildStats(13, {});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/hero-build-stats/13`);
+        });
+
+        it("sends the minimum match count", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.heroBuildStats(13, { minMatches: 200 });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/hero-build-stats/13?min_matches=200`);
+        });
+
+        it("returns the rows as they came and rejects a failed status", async () => {
+            const body = [
+                { hero_id: 13, hero_build_id: 381204, bucket: 0, wins: 6, losses: 4, matches: 10, players: 9 },
+            ];
+            expect(await setup(() => Response.json(body)).api.heroBuildStats(13, {})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.heroBuildStats(13, {})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
+        });
+    });
+
+    describe("item stats", () => {
+        it("requests item stats without a query by default", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({});
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/item-stats`);
+        });
+
+        it("sends the shared analytics filter first, then the item parameters", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({
+                heroIds: [7],
+                gameMode: "normal",
+                matchMode: ["ranked"],
+                minAverageBadge: 61,
+                maxAverageBadge: 100,
+                bucket: "game_time_min",
+                enemyHeroIds: [1, 2],
+                enemyHeroIdsAllMatch: true,
+                minEnemyNetworth: 10,
+                maxEnemyNetworth: 20,
+                sameLaneFilter: false,
+                minUnixTimestamp: 30,
+                maxUnixTimestamp: 40,
+                minDurationS: 50,
+                maxDurationS: 60,
+                minNetworth: 70,
+                maxNetworth: 80,
+                minMatchId: 90,
+                maxMatchId: 100,
+                includeItemIds: [3, 4],
+                excludeItemIds: [5],
+                abilityOrderPrefix: [6, 7],
+                abilityUnlockOrderPrefix: [8, 9],
+                heroBuildId: 110,
+                minMatches: 120,
+                maxMatches: 130,
+                accountIds: [140, 150],
+                minBoughtAtS: 160,
+                maxBoughtAtS: 170,
+                itemOrder: [
+                    [1, 2],
+                    [3, 4, 5],
+                ],
+                corruptedItems: "only",
+                enhancedItems: "exclude",
+            });
+            expect(fetch).toHaveBeenCalledWith(
+                `${BASE}/analytics/item-stats?hero_ids=7&game_mode=normal&match_mode=ranked` +
+                    "&min_average_badge=61&max_average_badge=100&bucket=game_time_min&enemy_hero_ids=1,2" +
+                    "&enemy_hero_ids_all_match=true&min_enemy_networth=10&max_enemy_networth=20" +
+                    "&same_lane_filter=false&min_unix_timestamp=30&max_unix_timestamp=40&min_duration_s=50" +
+                    "&max_duration_s=60&min_networth=70&max_networth=80&min_match_id=90&max_match_id=100" +
+                    "&include_item_ids=3,4&exclude_item_ids=5&ability_order_prefix=6,7" +
+                    "&ability_unlock_order_prefix=8,9&hero_build_id=110&min_matches=120&max_matches=130" +
+                    "&account_ids=140,150&min_bought_at_s=160&max_bought_at_s=170&item_order=1,2&item_order=3,4,5" +
+                    "&corrupted_items=only&enhanced_items=exclude",
+            );
+        });
+
+        it("drops empty lists and keeps zero values", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.itemStats({ includeItemIds: [], itemOrder: [], minBoughtAtS: 0, minMatches: 1 });
+            expect(fetch).toHaveBeenCalledWith(`${BASE}/analytics/item-stats?min_matches=1&min_bought_at_s=0`);
+        });
+
+        it("returns the rows as they came and rejects a failed status", async () => {
+            const body = [{ item_id: 1, bucket: 0, wins: 2, losses: 1, matches: 3, players: 3 }];
+            expect(await setup(() => Response.json(body)).api.itemStats({})).toEqual(body);
+            const error = await setup(() => new Response("", { status: 500 }))
+                .api.itemStats({})
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(500);
         });
     });
 });

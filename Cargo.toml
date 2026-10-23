@@ -24,3 +24,34 @@ lto = true
 opt-level = 3
 panic = "unwind"
 strip = true
+
+# Unoptimized, decoding the game's shop art takes ~35 s in dev builds; optimizing the texture, PNG and archive
+# crates brings it to ~5 s.
+[profile.dev.package.source2]
+opt-level = 3
+[profile.dev.package.source2-texture]
+opt-level = 3
+[profile.dev.package.source2-resource]
+opt-level = 3
+[profile.dev.package.source2-vpk]
+opt-level = 3
+[profile.dev.package.source2-kv3]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.flate2]
+opt-level = 3
+[profile.dev.package.crc32fast]
+opt-level = 3
+[profile.dev.package.adler2]
+opt-level = 3
+[profile.dev.package.lz4_flex]
+opt-level = 3
+[profile.dev.package.ruzstd]
+opt-level = 3
+[profile.dev.package.zstd-rs]
+opt-level = 3

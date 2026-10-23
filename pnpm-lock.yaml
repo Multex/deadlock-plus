@@ -30,9 +30,15 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@deadlock-plus/build-layout':
+        specifier: workspace:*
+        version: link:../../packages/build-layout
       '@deadlock-plus/deadlock-api':
         specifier: workspace:*
         version: link:../../packages/deadlock-api
+      '@deadlock-plus/game-ui':
+        specifier: workspace:*
+        version: link:../../packages/game-ui
       '@deadlock-plus/ipc-types':
         specifier: workspace:*
         version: link:../../packages/ipc-types
@@ -263,6 +269,8 @@ importers:
 
   packages/analytics: {}
 
+  packages/build-layout: {}
+
   packages/costs: {}
 
   packages/deadlock-api: {}
@@ -274,6 +282,18 @@ importers:
         version: link:../ipc-types
 
   packages/discord-messages: {}
+
+  packages/game-ui:
+    dependencies:
+      '@deadlock-plus/ipc-types':
+        specifier: workspace:*
+        version: link:../ipc-types
+      '@deadlock-plus/ui':
+        specifier: workspace:*
+        version: link:../ui
+      svelte:
+        specifier: ^5.56.3
+        version: 5.57.2
 
   packages/ipc-types: {}
 

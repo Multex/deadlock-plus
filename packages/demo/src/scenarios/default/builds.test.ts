@@ -1,0 +1,675 @@
+import type { BuildBackup } from "@deadlock-plus/ipc-types/BuildBackup";
+import type { BuildVersionMeta } from "@deadlock-plus/ipc-types/BuildVersionMeta";
+import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
+import type { CurrencyChangeView } from "@deadlock-plus/ipc-types/CurrencyChangeView";
+import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
+import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
+import type { LocalBuild } from "@deadlock-plus/ipc-types/LocalBuild";
+import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
+import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
+import { afterEach, describe, expect, it } from "vitest";
+import { install, type DemoHandle, type Scenario } from "../../scenario";
+import { liveMatchScenario } from "../live-match";
+import { newUserScenario } from "../new-user";
+import { offlineScenario } from "../offline";
+import { IDENTITY } from "./identity";
+import { defaultScenario } from "./index";
+import { historyRows } from "./progress";
+
+const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
+const API = "https://api.deadlock-api.com/v1";
+const HAZE = 13;
+
+interface PublicBuild {
+    hero_build: {
+        hero_id: number;
+        hero_build_id: number;
+        author_account_id: number;
+        name: string;
+        language: number;
+        version: number;
+        last_updated_timestamp?: number | null;
+        publish_timestamp?: number | null;
+        tags: number[];
+        details: { mod_categories: unknown[]; ability_order?: { currency_changes?: unknown[] | null } | null };
+    };
+    num_favorites?: number | null;
+    num_weekly_favorites?: number | null;
+}
+
+interface HeroBuildStatsRow {
+    hero_id: number;
+    hero_build_id: number;
+    bucket: number;
+    wins: number;
+    losses: number;
+    matches: number;
+    players: number;
+}
+
+/** MurmurHash2 (seed 0x31415926) of `citadel_build_tag_<key>`, as builds store their tags. */
+const DAMAGE_TAG = 2592289373;
+const BUILD_TAG_IDS = [
+    47026193,
+    4213205702,
+    36498494,
+    1052421347,
+    1150155374,
+    3797987367,
+    DAMAGE_TAG,
+    953263904,
+    38758251,
+    4216803923,
+    3238474489,
+    3401565923,
+    2579669585,
+    255841590,
+];
+
+const handles: DemoHandle[] = [];
+function start(scenario: Scenario): DemoHandle {
+    const handle = install(scenario);
+    handles.push(handle);
+    return handle;
+}
+afterEach(() => {
+    while (handles.length) handles.pop()!.uninstall();
+});
+
+const local = (handle: DemoHandle) => handle.invoke("builds_local", {}) as LocalBuilds;
+const ids = (builds: LocalBuilds) => builds.builds.map((b) => b.build.heroBuildId);
+const find = (builds: LocalBuilds, id: number) => builds.builds.find((b) => b.build.heroBuildId === id);
+
+async function publicBuilds(query: string): Promise<PublicBuild[]> {
+    const response = await fetch(`${API}/builds${query}`);
+    expect(response.status).toBe(200);
+    return (await response.json()) as PublicBuild[];
+}
+
+/** The ability order rules the editor enforces: 4 unlocks of -1, the ultimate last, AP in 1/2/5 tiers after unlock. */
+function orderProblems(order: readonly CurrencyChangeView[]): string[] {
+    const problems: string[] = [];
+    const unlocked: number[] = [];
+    const tiers = new Map<number, number>();
+    for (const step of order) {
+        if (step.currencyType === 2) {
+            if (step.delta !== -1) problems.push(`unlock delta ${step.delta}`);
+            unlocked.push(step.abilityId);
+        } else if (step.currencyType === 1) {
+            if (!unlocked.includes(step.abilityId)) problems.push(`AP before unlock on ${step.abilityId}`);
+            const tier = (tiers.get(step.abilityId) ?? 0) + 1;
+            tiers.set(step.abilityId, tier);
+            if (step.delta !== [-1, -2, -5][tier - 1]) problems.push(`tier ${tier} delta ${step.delta}`);
+        } else problems.push(`currency ${step.currencyType}`);
+    }
+    if (unlocked.length !== 4) problems.push(`${unlocked.length} unlocks`);
+    if (new Set(unlocked).size !== unlocked.length) problems.push("an ability unlocked twice");
+    return problems;
+}
+
+function draft(heroId: number, name: string): BuildView {
+    return {
+        heroBuildId: 0,
+        heroId,
+        authorAccountId: 0,
+        lastUpdatedTimestamp: null,
+        name,
+        description: "",
+        language: 0,
+        version: 0,
+        originBuildId: null,
+        modCategories: [
+            {
+                name: "Lane",
+                description: "",
+                width: 176,
+                height: null,
+                optional: false,
+                mods: [
+                    {
+                        abilityId: 1548066885,
+                        annotation: null,
+                        requiredFlexSlots: null,
+                        sellPriority: null,
+                        imbueTargetAbilityId: null,
+                    },
+                ],
+            },
+        ],
+        abilityOrder: [],
+        tags: [],
+        developmentBuild: false,
+        publishTimestamp: null,
+        favorited: false,
+    };
+}
+
+describe("builds in the default scenario", () => {
+    it("lists the player's builds in all three sections of an existing file", () => {
+        const builds = local(start(defaultScenario(OPTIONS)));
+        expect(builds).toMatchObject({ accountId: IDENTITY.accountId, exists: true, gameRunning: false, queue: [] });
+
+        const section = (name: string) => builds.builds.filter((b) => b.section === name);
+        const unpublished = section("Unpublished");
+        expect(unpublished.length).toBeGreaterThanOrEqual(2);
+        for (const b of unpublished) {
+            expect(b.build.heroBuildId).toBeLessThan(1000);
+            expect(b.build.authorAccountId).toBe(IDENTITY.accountId);
+        }
+        const favourites = section("Favorites");
+        expect(
+            favourites.some((b) => b.build.heroBuildId >= 1000 && b.build.authorAccountId !== IDENTITY.accountId),
+        ).toBe(true);
+        for (const b of favourites) expect(b.build.favorited).toBe(true);
+        const lastUsed = section("SavedLastUsed");
+        expect(lastUsed).toHaveLength(1);
+        expect(lastUsed[0]!.build.heroBuildId).toBeGreaterThanOrEqual(1000);
+        expect(lastUsed[0]!.build.authorAccountId).toBe(IDENTITY.accountId);
+
+        expect(new Set(builds.builds.map((b) => b.build.heroId)).size).toBeGreaterThanOrEqual(2);
+        const localIds = builds.builds.map((b) => b.build.heroBuildId).filter((id) => id < 1000);
+        expect(builds.nextLocalId).toBe(Math.max(...localIds) + 1);
+        expect(builds.lastUsed.length).toBeGreaterThan(0);
+    });
+
+    it("gives every build a hex base and an ability order the editor accepts", () => {
+        const builds = local(start(defaultScenario(OPTIONS)));
+        for (const b of builds.builds) {
+            expect(b.base).toMatch(/^([0-9a-f]{2})+$/);
+            expect(orderProblems(b.build.abilityOrder), b.build.name).toEqual([]);
+            expect(b.build.modCategories.length).toBeGreaterThan(0);
+        }
+        expect(new Set(builds.builds.map((b) => b.base)).size).toBe(builds.builds.length);
+    });
+
+    it("writes a new build, then lists it, points the hero at it and keeps a version and a backup", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const before = local(handle);
+        const backups = handle.invoke("builds_backups", {}) as BuildBackup[];
+
+        const result = handle.invoke("builds_save", {
+            request: { kind: "new", build: draft(HAZE, "Gun Haze") },
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "written", buildId: before.nextLocalId, backup: expect.any(String) });
+
+        const after = local(handle);
+        const saved = find(after, before.nextLocalId!)!;
+        expect(saved).toMatchObject({ section: "Unpublished", build: { name: "Gun Haze", version: 0, heroId: HAZE } });
+        expect(saved.build.authorAccountId).toBe(IDENTITY.accountId);
+        expect(after.nextLocalId).toBe(before.nextLocalId! + 1);
+        expect(after.lastUsed).toContainEqual({ heroClass: "hero_haze", buildId: before.nextLocalId });
+
+        const history = handle.invoke("builds_history", { buildId: saved.build.heroBuildId }) as BuildVersionMeta[];
+        expect(history).toHaveLength(1);
+        const version = handle.invoke("builds_history_get", {
+            buildId: saved.build.heroBuildId,
+            versionId: history[0]!.id,
+        }) as BuildView;
+        expect(version.name).toBe("Gun Haze");
+        expect((handle.invoke("builds_backups", {}) as BuildBackup[]).length).toBe(backups.length + 1);
+    });
+
+    it("edits a build against its base, adds a version per save and reports a stale base as a conflict", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const draftBuild = local(handle).builds.find((b) => b.section === "Unpublished")!;
+        const edit = (base: string, name: string) =>
+            handle.invoke("builds_save", {
+                request: { kind: "edit", section: "Unpublished", base, build: { ...draftBuild.build, name } },
+            }) as SaveResult;
+
+        expect(edit(draftBuild.base, "Renamed")).toMatchObject({
+            kind: "written",
+            buildId: draftBuild.build.heroBuildId,
+        });
+        const renamed = find(local(handle), draftBuild.build.heroBuildId)!;
+        expect(renamed.build.name).toBe("Renamed");
+        expect(renamed.base).not.toBe(draftBuild.base);
+        expect(edit(renamed.base, "Twice")).toMatchObject({ kind: "written" });
+        const history = handle.invoke("builds_history", {
+            buildId: draftBuild.build.heroBuildId,
+        }) as BuildVersionMeta[];
+        expect(history.slice(0, 2).map((v) => v.name)).toEqual(["Twice", "Renamed"]);
+
+        const stale = edit(draftBuild.base, "Lost");
+        expect(stale).toMatchObject({ kind: "conflict" });
+        if (stale.kind !== "conflict") return;
+        expect(stale.conflicts[0]).toMatchObject({ id: draftBuild.build.heroBuildId, game: { name: "Twice" } });
+    });
+
+    it("writes an edit of a published favourite into SavedLastUsed, one per hero", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const before = local(handle);
+        const fav = before.builds.find((b) => b.section === "Favorites" && b.build.heroBuildId >= 1000)!;
+        const result = handle.invoke("builds_save", {
+            request: { kind: "edit", section: "Favorites", base: fav.base, build: { ...fav.build, name: "My take" } },
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "written", buildId: fav.build.heroBuildId });
+        const after = local(handle);
+        const saved = after.builds.filter((b) => b.section === "SavedLastUsed" && b.build.heroId === fav.build.heroId);
+        expect(saved.map((b) => [b.build.heroBuildId, b.build.name])).toEqual([[fav.build.heroBuildId, "My take"]]);
+    });
+
+    it("copies a build as a new local one that points at its published origin", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const before = local(handle);
+        const fav = before.builds.find((b) => b.section === "Favorites" && b.build.heroBuildId >= 1000)!;
+        const result = handle.invoke("builds_save", {
+            request: { kind: "copy", source: fav.base, build: { ...fav.build, name: "Copy" } },
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "written", buildId: before.nextLocalId });
+        expect(find(local(handle), before.nextLocalId!)!.build).toMatchObject({
+            originBuildId: fav.build.heroBuildId,
+            authorAccountId: IDENTITY.accountId,
+            favorited: false,
+        });
+    });
+
+    it("copies a public build known only as a view", async () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const before = local(handle);
+        const row = (await publicBuilds(`?hero_id=${HAZE}&limit=1`))[0]!.hero_build;
+        const source = { ...draft(HAZE, "From the browser"), heroBuildId: row.hero_build_id, authorAccountId: 1 };
+        const result = handle.invoke("builds_save", { request: { kind: "copyView", build: source } }) as SaveResult;
+        expect(result).toMatchObject({ kind: "written", buildId: before.nextLocalId });
+        expect(find(local(handle), before.nextLocalId!)!.build).toMatchObject({
+            name: "From the browser",
+            originBuildId: row.hero_build_id,
+            authorAccountId: IDENTITY.accountId,
+            version: 0,
+        });
+    });
+
+    it("exports a build as a code that imports back as a copy of it", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const build = { ...draft(HAZE, "Shared"), heroBuildId: 446250, version: 3 };
+        const code = handle.invoke("build_code_export", { request: { kind: "copyView", build } }) as string;
+        expect(code).toMatch(/^[A-Za-z0-9+/]+=*$/);
+        const back = handle.invoke("build_code_import", { code: ` ${code}\n` }) as BuildView;
+        expect(back).toMatchObject({ name: "Shared", heroId: HAZE, heroBuildId: 0, originBuildId: 446250, version: 0 });
+    });
+
+    it("refuses a bad build code with its own error", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const refused = (code: string) => expect(() => handle.invoke("build_code_import", { code }));
+        refused(" ").toThrow(expect.objectContaining({ code: "builds.code_empty" }));
+        refused("not a code!").toThrow(expect.objectContaining({ code: "builds.code_invalid" }));
+        refused("aGVsbG8=").toThrow(expect.objectContaining({ code: "builds.code_incomplete" }));
+        refused(btoa("{}")).toThrow(expect.objectContaining({ code: "builds.code_damaged" }));
+    });
+
+    it("deletes a local build and refuses a published one", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const before = local(handle);
+        const draftBuild = before.builds.find((b) => b.section === "Unpublished")!;
+        const id = draftBuild.build.heroBuildId;
+        expect(handle.invoke("builds_delete", { section: "Unpublished", id, base: draftBuild.base })).toMatchObject({
+            kind: "written",
+            buildId: id,
+        });
+        expect(ids(local(handle))).not.toContain(id);
+
+        const published = before.builds.find((b) => b.section === "SavedLastUsed")!;
+        expect(() =>
+            handle.invoke("builds_delete", {
+                section: "SavedLastUsed",
+                id: published.build.heroBuildId,
+                base: published.base,
+            }),
+        ).toThrow(expect.objectContaining({ code: "builds.published_delete_in_game" }));
+    });
+
+    it("favourites a local build by id and unfavourites it", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const draftBuild = local(handle).builds.find((b) => b.section === "Unpublished")!;
+        const id = draftBuild.build.heroBuildId;
+        const favourites = (builds: LocalBuilds): LocalBuild[] =>
+            builds.builds.filter((b) => b.section === "Favorites" && b.build.heroBuildId === id);
+
+        expect(handle.invoke("builds_favourite", { id })).toMatchObject({ kind: "written", buildId: id });
+        expect(favourites(local(handle)).map((b) => b.build.favorited)).toEqual([true]);
+        expect(handle.invoke("builds_unfavourite", { id })).toMatchObject({ kind: "written", buildId: id });
+        expect(favourites(local(handle))).toEqual([]);
+        expect(handle.invoke("builds_unfavourite", { id })).toEqual({ kind: "unchanged", buildId: id });
+    });
+
+    it("has nothing queued to flush while the game is closed", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        expect(handle.invoke("builds_flush", {}) as FlushView).toEqual({ kind: "saved", buildIds: [] });
+    });
+
+    it("keeps each install's builds to itself", () => {
+        const first = start(defaultScenario(OPTIONS));
+        first.invoke("builds_save", { request: { kind: "new", build: draft(HAZE, "Only here") } });
+        const second = start(defaultScenario(OPTIONS));
+        expect(local(second).builds.map((b) => b.build.name)).not.toContain("Only here");
+    });
+});
+
+describe("drafts in the default scenario", () => {
+    const drafts = (handle: DemoHandle) => handle.invoke("builds_drafts", {}) as DraftView[];
+    const store = (handle: DemoHandle, draft: Partial<DraftView> & Pick<DraftView, "build">) =>
+        handle.invoke("builds_draft_save", {
+            draft: { id: "", updatedAt: 0, heroId: 0, source: { kind: "new" }, ...draft },
+        }) as DraftView;
+
+    it("has one draft: a renamed edit of local build 3, made from its current base", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const listed = drafts(handle);
+        expect(listed).toHaveLength(1);
+        const saved = find(local(handle), 3)!;
+        const [seeded] = listed;
+        expect(seeded).toMatchObject({
+            id: expect.stringMatching(/.+/),
+            heroId: saved.build.heroId,
+            source: { kind: "local", section: "Unpublished", buildId: 3, base: saved.base },
+            build: { heroBuildId: 3, heroId: saved.build.heroId },
+        });
+        expect(seeded!.build.name).not.toBe(saved.build.name);
+        expect(seeded!.updatedAt).toBeGreaterThan(saved.build.lastUpdatedTimestamp!);
+    });
+
+    it("stores a new draft under a fresh id, replaces it by id, lists newest first and deletes it", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const first = store(handle, { build: draft(HAZE, "Idea") });
+        expect(first).toMatchObject({ heroId: HAZE, source: { kind: "new" }, build: { name: "Idea" } });
+        expect(first.id).not.toBe("");
+        const second = store(handle, { build: draft(HAZE, "Other") });
+        expect(second.id).not.toBe(first.id);
+        store(handle, { ...first, build: draft(HAZE, "Idea 2") });
+        expect(
+            drafts(handle)
+                .map((d) => d.build.name)
+                .slice(0, 2),
+        ).toEqual(["Idea 2", "Other"]);
+
+        expect(handle.invoke("builds_draft_delete", { id: first.id })).toBe(true);
+        expect(handle.invoke("builds_draft_delete", { id: first.id })).toBe(false);
+        expect(drafts(handle).map((d) => d.id)).not.toContain(first.id);
+    });
+
+    it("drops the saved draft and the build's own drafts after a written save, and keeps them after a conflict", () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const [seeded] = drafts(handle);
+        const other = store(handle, { build: draft(HAZE, "Other") });
+        const stale = find(local(handle), 3)!.base;
+        const edit = (base: string, name: string, draftId?: string) =>
+            handle.invoke("builds_save", {
+                request: { kind: "edit", section: "Unpublished", base, build: { ...seeded!.build, name } },
+                draftId,
+            }) as SaveResult;
+
+        expect(edit(stale, "Saved")).toMatchObject({ kind: "written", buildId: 3 });
+        expect(drafts(handle).map((d) => d.id)).toEqual([other.id]);
+
+        const again = store(handle, { source: seeded!.source, build: { ...seeded!.build, name: "Again" } });
+        expect(edit(stale, "Lost", again.id)).toMatchObject({ kind: "conflict" });
+        expect(drafts(handle).map((d) => d.id)).toEqual([again.id, other.id]);
+
+        const fresh = handle.invoke("builds_save", {
+            request: { kind: "new", build: other.build },
+            draftId: other.id,
+        }) as SaveResult;
+        expect(fresh).toMatchObject({ kind: "written" });
+        expect(drafts(handle).map((d) => d.id)).toEqual([again.id]);
+    });
+
+    it("keeps each install's drafts to itself", () => {
+        const first = start(defaultScenario(OPTIONS));
+        store(first, { build: draft(HAZE, "Only here") });
+        const second = start(defaultScenario(OPTIONS));
+        expect(drafts(second).map((d) => d.build.name)).not.toContain("Only here");
+    });
+
+    it("favourites a published build known only as a view, and refuses a local id", async () => {
+        const handle = start(defaultScenario(OPTIONS));
+        const row = (await publicBuilds(`?hero_id=${HAZE}&sort_by=favorites`)).find(
+            (b) => !find(local(handle), b.hero_build.hero_build_id),
+        )!.hero_build;
+        const view = { ...draft(HAZE, row.name), heroBuildId: row.hero_build_id, authorAccountId: 1 };
+        expect(handle.invoke("builds_favourite", { base: null, id: null, view })).toMatchObject({
+            kind: "written",
+            buildId: row.hero_build_id,
+        });
+        expect(find(local(handle), row.hero_build_id)).toMatchObject({
+            section: "Favorites",
+            build: { name: row.name, favorited: true },
+        });
+        expect(() => handle.invoke("builds_favourite", { view: { ...view, heroBuildId: 3 } })).toThrow(
+            expect.objectContaining({ code: "builds.bad_base" }),
+        );
+    });
+});
+
+describe("drafts in other scenarios", () => {
+    it("drops a draft once its save is queued while the game runs", () => {
+        const handle = start(liveMatchScenario(OPTIONS));
+        const stored = handle.invoke("builds_draft_save", {
+            draft: { id: "", updatedAt: 0, heroId: 0, source: { kind: "new" }, build: draft(HAZE, "Later") },
+        }) as DraftView;
+        const result = handle.invoke("builds_save", {
+            request: { kind: "new", build: stored.build },
+            draftId: stored.id,
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "queued" });
+        expect((handle.invoke("builds_drafts", {}) as DraftView[]).map((d) => d.id)).not.toContain(stored.id);
+    });
+
+    it("has no drafts for a new user", () => {
+        expect(start(newUserScenario(OPTIONS)).invoke("builds_drafts", {})).toEqual([]);
+    });
+});
+
+describe("builds in other scenarios", () => {
+    it("queues saves while the game runs and leaves the file as it was", () => {
+        const handle = start(liveMatchScenario(OPTIONS));
+        const before = local(handle);
+        expect(before.gameRunning).toBe(true);
+
+        const result = handle.invoke("builds_save", {
+            request: { kind: "new", build: draft(HAZE, "Later") },
+        }) as SaveResult;
+        expect(result).toMatchObject({ kind: "queued", id: expect.any(String), buildId: before.nextLocalId });
+        if (result.kind !== "queued") return;
+
+        const after = local(handle);
+        expect(ids(after)).toEqual(ids(before));
+        expect(after.queue).toContainEqual(
+            expect.objectContaining({ id: result.id, label: "Later", buildId: result.buildId }),
+        );
+        expect(after.nextLocalId).toBe(before.nextLocalId! + 1);
+        expect(handle.invoke("builds_flush", {})).toEqual({ kind: "gameRunning" });
+
+        expect(handle.invoke("builds_queue_cancel", { id: result.id })).toBe(true);
+        expect(local(handle).queue.map((q) => q.id)).not.toContain(result.id);
+        expect(handle.invoke("builds_queue_cancel", { id: result.id })).toBe(false);
+    });
+
+    it("has no build file for a new user", () => {
+        const builds = local(start(newUserScenario(OPTIONS)));
+        expect(builds).toMatchObject({ exists: false, builds: [], lastUsed: [], queue: [], nextLocalId: 1 });
+    });
+
+    it("keeps the local builds when the Deadlock API is unreachable", () => {
+        const offline = local(start(offlineScenario(OPTIONS)));
+        handles.pop()!.uninstall();
+        const online = local(start(defaultScenario(OPTIONS)));
+        expect(offline).toEqual(online);
+    });
+});
+
+describe("public builds route", () => {
+    it("answers builds of two or more heroes shaped as the API's rows", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        expect(all.length).toBeGreaterThanOrEqual(6);
+        expect(all.length).toBeLessThanOrEqual(14);
+        expect(new Set(all.map((b) => b.hero_build.hero_id)).size).toBeGreaterThanOrEqual(2);
+        for (const b of all) {
+            expect(b.hero_build.hero_build_id).toBeGreaterThanOrEqual(1000);
+            expect(b.hero_build.details.mod_categories.length).toBeGreaterThan(0);
+            expect(b.hero_build.details.ability_order?.currency_changes?.length).toBeGreaterThan(0);
+        }
+    });
+
+    it("filters by hero, author and language and honours sort and limit", async () => {
+        start(defaultScenario(OPTIONS));
+        const haze = await publicBuilds(`?hero_id=${HAZE}`);
+        expect(haze.length).toBeGreaterThan(0);
+        expect(haze.every((b) => b.hero_build.hero_id === HAZE)).toBe(true);
+
+        const own = await publicBuilds(`?author_id=${IDENTITY.accountId}`);
+        expect(own).toHaveLength(1);
+        const lastUsed = local(handles[0]!).builds.find((b) => b.section === "SavedLastUsed")!;
+        expect(own[0]!.hero_build.hero_build_id).toBe(lastUsed.build.heroBuildId);
+
+        const english = await publicBuilds("?build_language=English");
+        const all = await publicBuilds("");
+        expect(english.length).toBeGreaterThan(0);
+        expect(english.length).toBeLessThan(all.length);
+        expect(english.every((b) => b.hero_build.language === 0)).toBe(true);
+
+        const weekly = (await publicBuilds("?sort_by=weekly_favorites")).map((b) => b.num_weekly_favorites ?? 0);
+        expect(weekly).toEqual([...weekly].sort((a, b) => b - a));
+        const updated = (await publicBuilds("?sort_by=updated_at&sort_direction=asc")).map(
+            (b) => b.hero_build.last_updated_timestamp ?? 0,
+        );
+        expect(updated).toEqual([...updated].sort((a, b) => a - b));
+        expect(await publicBuilds("?limit=2")).toHaveLength(2);
+    });
+
+    it("has at least three builds for the hero of the newest match, the one the Builds page opens on", async () => {
+        const scenario = defaultScenario(OPTIONS);
+        start(scenario);
+        const newest = historyRows(scenario)[0]!.hero_id;
+        const found = await publicBuilds(`?hero_id=${newest}`);
+        expect(found.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(found.map((b) => b.hero_build.name)).size).toBe(found.length);
+        expect(new Set(found.map((b) => b.num_favorites)).size).toBe(found.length);
+        for (const b of found) {
+            expect(b.hero_build.details.ability_order?.currency_changes?.length).toBeGreaterThan(0);
+            for (const c of b.hero_build.details.mod_categories as { width: number }[]) {
+                expect((c.width - 12) % 82).toBe(0);
+            }
+        }
+        expect(
+            found.some((b) => (b.hero_build.details.mod_categories as { optional: boolean }[]).some((c) => c.optional)),
+        ).toBe(true);
+    });
+
+    it("filters by build name, ignoring case", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        const found = await publicBuilds("?search_name=ABRAMS");
+        expect(found.length).toBeGreaterThan(0);
+        expect(found.length).toBeLessThan(all.length);
+        expect(found.every((b) => b.hero_build.name.toLowerCase().includes("abrams"))).toBe(true);
+        expect(await publicBuilds("?search_name=no%20such%20build")).toEqual([]);
+    });
+
+    it("filters by update and publish time, both ends inclusive", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        const updated = all.map((b) => b.hero_build.last_updated_timestamp!).sort((a, b) => a - b);
+        const published = all.map((b) => b.hero_build.publish_timestamp!).sort((a, b) => a - b);
+        const mid = (values: number[]) => values[Math.floor(values.length / 2)]!;
+
+        const since = await publicBuilds(`?min_unix_timestamp=${mid(updated)}`);
+        expect(since.length).toBeGreaterThan(0);
+        expect(since.length).toBeLessThan(all.length);
+        expect(since.every((b) => b.hero_build.last_updated_timestamp! >= mid(updated))).toBe(true);
+        const until = await publicBuilds(`?max_unix_timestamp=${mid(updated)}`);
+        expect(until.every((b) => b.hero_build.last_updated_timestamp! <= mid(updated))).toBe(true);
+        expect(since.length + until.length).toBe(all.length + updated.filter((t) => t === mid(updated)).length);
+
+        const newer = await publicBuilds(`?min_published_unix_timestamp=${mid(published)}`);
+        expect(newer.length).toBeGreaterThan(0);
+        expect(newer.length).toBeLessThan(all.length);
+        expect(newer.every((b) => b.hero_build.publish_timestamp! >= mid(published))).toBe(true);
+        const older = await publicBuilds(`?max_published_unix_timestamp=${mid(published)}`);
+        expect(older.length).toBeGreaterThan(0);
+        expect(older.every((b) => b.hero_build.publish_timestamp! <= mid(published))).toBe(true);
+    });
+
+    it("tags some builds with the game's tag ids and filters by one tag", async () => {
+        start(defaultScenario(OPTIONS));
+        const all = await publicBuilds("");
+        expect(all.find((b) => b.hero_build.hero_build_id === 381204)!.hero_build.tags).toContain(DAMAGE_TAG);
+        expect(all.filter((b) => b.hero_build.tags.length > 0).length).toBeGreaterThanOrEqual(3);
+        expect(all.flatMap((b) => b.hero_build.tags).every((tag) => BUILD_TAG_IDS.includes(tag))).toBe(true);
+
+        const damage = await publicBuilds(`?tag=${DAMAGE_TAG}`);
+        expect(damage.length).toBeGreaterThan(0);
+        expect(damage.length).toBeLessThan(all.length);
+        expect(damage.every((b) => b.hero_build.tags.includes(DAMAGE_TAG))).toBe(true);
+    });
+
+    it("leaves the favourite count out of a couple of rows and sorts them as zero", async () => {
+        start(defaultScenario(OPTIONS));
+        const byUpdate = await publicBuilds("?sort_by=updated_at");
+        const missing = byUpdate.filter((b) => b.num_favorites === null);
+        expect(missing.length).toBeGreaterThanOrEqual(2);
+        expect(missing.length).toBeLessThan(byUpdate.length / 2);
+
+        const favorites = (await publicBuilds("?sort_by=favorites")).map((b) => b.num_favorites ?? 0);
+        expect(favorites).toEqual([...favorites].sort((a, b) => b - a));
+        expect(favorites.slice(-missing.length)).toEqual(missing.map(() => 0));
+    });
+
+    it("sorts by publish time and version in either direction", async () => {
+        start(defaultScenario(OPTIONS));
+        const published = (await publicBuilds("?sort_by=published_at")).map((b) => b.hero_build.publish_timestamp!);
+        expect(published).toEqual([...published].sort((a, b) => b - a));
+        const versions = (await publicBuilds("?sort_by=version&sort_direction=asc")).map((b) => b.hero_build.version);
+        expect(versions).toEqual([...versions].sort((a, b) => a - b));
+        expect(new Set(versions).size).toBeGreaterThan(1);
+    });
+
+    it("fails like every other Deadlock API path when offline", async () => {
+        start(offlineScenario(OPTIONS));
+        await expect(fetch(`${API}/builds?hero_id=${HAZE}`)).rejects.toThrow("Failed to fetch");
+    });
+});
+
+describe("hero build stats route", () => {
+    async function stats(heroId: number, query = ""): Promise<HeroBuildStatsRow[]> {
+        const response = await fetch(`${API}/analytics/hero-build-stats/${heroId}${query}`);
+        expect(response.status).toBe(200);
+        return (await response.json()) as HeroBuildStatsRow[];
+    }
+
+    it("answers one row per public build of the hero, shaped as the API's rows", async () => {
+        start(defaultScenario(OPTIONS));
+        const rows = await stats(HAZE);
+        const hazeIds = (await publicBuilds(`?hero_id=${HAZE}`)).map((b) => b.hero_build.hero_build_id);
+        expect(rows.length).toBeGreaterThan(0);
+        expect(rows.map((r) => r.hero_build_id).every((id) => hazeIds.includes(id))).toBe(true);
+        expect(new Set(rows.map((r) => r.hero_build_id)).size).toBe(rows.length);
+        for (const row of rows) {
+            expect(row.hero_id).toBe(HAZE);
+            expect(row.bucket).toBe(0);
+            expect(row.matches).toBe(row.wins + row.losses);
+            expect(row.players).toBeGreaterThan(0);
+            expect(row.players).toBeLessThanOrEqual(row.matches);
+        }
+        expect(rows.find((r) => r.hero_build_id === 381204)).toMatchObject({ wins: 1200, losses: 1000, matches: 2200 });
+    });
+
+    it("has a build under 200 matches that min_matches leaves out", async () => {
+        start(defaultScenario(OPTIONS));
+        const heroes = [...new Set((await publicBuilds("")).map((b) => b.hero_build.hero_id))];
+        const all = (await Promise.all(heroes.map((hero) => stats(hero)))).flat();
+        const few = all.filter((r) => r.matches < 200);
+        expect(few.length).toBeGreaterThanOrEqual(1);
+
+        const hero = few[0]!.hero_id;
+        const kept = await stats(hero, "?min_matches=200");
+        expect(kept.length).toBeGreaterThan(0);
+        expect(kept.every((r) => r.matches >= 200)).toBe(true);
+        expect(kept.map((r) => r.hero_build_id)).not.toContain(few[0]!.hero_build_id);
+    });
+
+    it("answers no rows for a hero without public builds", async () => {
+        start(defaultScenario(OPTIONS));
+        expect(await stats(2)).toEqual([]);
+    });
+});

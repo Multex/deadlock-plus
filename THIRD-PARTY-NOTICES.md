@@ -13,6 +13,7 @@ owner asks for one to be removed, it will be removed and the app falls back to s
 | --- | --- | --- |
 | Retail Demo | `retaildemo-*.otf` | (c) Copyright OH no Type Company, LLC. 2021. All rights reserved. Ohno Humanist is a trademark of OH no Type Company, LLC. Designer: James Edmondson. Licence: http://ohnotype.co/license |
 | Valve Oracle | `valveoracle-*.ttf` | Copyright 2025 Valve Corporation. See license metadata for details. Version 1.006, YWFT. |
+| Radiance | `radiance-*.otf` | Copyright 2013 Valve Corp. All Rights Reserved. "Like other Valve game content, you may use this font to create Fan Art, as described in the Steam Subscriber Agreement." |
 | Valve Pulp | `valvepulp-bold.ttf` | Copyright 2025 Valve Corp. All Rights Reserved. Valve Pulp is a trademark of Valve Corporation, originally created for Valve by YouWorkForThem / Nicolas Massi. "Like other Valve game content, you may use this font to create Fan Art, as described in the Steam Subscriber Agreement." |
 
 ## Fonts from npm packages (SIL Open Font License 1.1)
