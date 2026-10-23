@@ -2,7 +2,7 @@
     import { formatDate, t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Dialog from "@deadlock-plus/ui/dialog";
-    import { conflictSides, type ConflictSide } from "$lib/features/builds/my-builds";
+    import { conflictDescriptionKey, conflictSides, type ConflictSide } from "$lib/features/builds/my-builds";
     import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
 
@@ -21,7 +21,9 @@
         open = conflict !== null;
     });
 
-    const sides = $derived(conflict ? conflictSides(conflict) : null);
+    const sides = $derived(
+        conflict ? { ...conflictSides(conflict), description: conflictDescriptionKey(conflict) } : null,
+    );
 
     const when = (side: ConflictSide) =>
         side.deleted
@@ -41,13 +43,13 @@
     </div>
 {/snippet}
 
-<!-- Closing without a choice keeps the save queued; the dialog comes back with the next flush. -->
+<!-- Closing without a choice changes nothing: a queued save stays queued, and the dialog comes back with the next flush or save. -->
 <Dialog.Root bind:open>
     <Dialog.Content class="max-w-md">
         <Dialog.Title>{t("builds.mine.conflict.title")}</Dialog.Title>
         {#if sides}
             <Dialog.Description class="text-sm text-muted-foreground">
-                {t("builds.mine.conflict.description", { name: sides.ours.name })}
+                {t(sides.description, { name: sides.ours.name })}
             </Dialog.Description>
             <div class="flex gap-3">
                 {@render version(t("builds.mine.conflict.mine"), sides.ours)}

@@ -67,6 +67,7 @@ function fakeApi(result: SaveResult = { kind: "written", buildId: 9, backup: nul
         localBuilds([{ section: "Unpublished", build: { ...build(), heroBuildId: 9 }, base: "b9", warnings: [] }]),
     );
     const cancel = vi.fn(async (_id: string) => true);
+    const draftDelete = vi.fn(async (_id: string) => true);
     const unlisten = vi.fn();
     let flushed: ((view: FlushView) => void) | undefined;
     const onFlushed = vi.fn(async (handler: (view: FlushView) => void) => {
@@ -74,7 +75,7 @@ function fakeApi(result: SaveResult = { kind: "written", buildId: 9, backup: nul
         return unlisten;
     });
     const flush = (view: FlushView) => flushed!(view);
-    return { ...({ draftSave, save, local, cancel, onFlushed } satisfies EditorApi), unlisten, flush };
+    return { ...({ draftSave, save, local, cancel, draftDelete, onFlushed } satisfies EditorApi), unlisten, flush };
 }
 
 let editors: BuildEditor[] = [];
@@ -237,6 +238,78 @@ describe("BuildEditor saveToGame", () => {
         expect((await e.saveToGame()).kind).toBe("conflict");
         expect(e.dirty).toBe(true);
         expect(e.origin).toEqual({ kind: "local", section: "Unpublished", base: "ab", buildId: 5 });
+    });
+
+});
+
+describe("BuildEditor save conflicts", () => {
+    const STALE = { kind: "local", section: "Unpublished", base: "stale", buildId: 5 } as const;
+    const conflictOn = (gameBlob: string | null): SaveResult => ({
+        kind: "conflict",
+        conflicts: [{ saveId: null, id: 5, section: "Unpublished", ours: null, game: null, base: null, gameBlob }],
+    });
+    const written: SaveResult = { kind: "written", buildId: 5, backup: "bk" };
+    const gameBuild = { ...build([cat([42])]), heroBuildId: 5, name: "Game" };
+
+    function conflicted(gameBlob: string | null) {
+        const api = fakeApi();
+        api.save.mockResolvedValueOnce(conflictOn(gameBlob)).mockResolvedValueOnce(written);
+        api.local.mockResolvedValue(
+            localBuilds([{ section: "Unpublished", build: gameBuild, base: "now", warnings: [] }]),
+        );
+        const e = editor(api, { origin: STALE, draftId: "d0" });
+        return { api, e };
+    }
+
+    it("holds the conflict a save right away raised", async () => {
+        const { e } = conflicted("now");
+        await e.saveToGame();
+        expect(e.status).toBe("conflict");
+        expect(e.conflict).toMatchObject({ id: 5, gameBlob: "now" });
+    });
+
+    it("keeps mine by saving again on top of what the file holds now", async () => {
+        const { api, e } = conflicted("now");
+        await e.saveToGame();
+        const result = await e.keepMine();
+        expect(result).toEqual(written);
+        expect(api.save.mock.calls[1]![0]).toMatchObject({ kind: "edit", section: "Unpublished", base: "now" });
+        expect(api.save.mock.calls[1]![1]).toBe("d0");
+        expect(e.conflict).toBeNull();
+        expect(e.status).toBe("saved");
+    });
+
+    it("keeps mine as a new build when the game deleted it", async () => {
+        const { api, e } = conflicted(null);
+        await e.saveToGame();
+        await e.keepMine();
+        expect(api.save.mock.calls[1]![0]).toMatchObject({ kind: "copyView" });
+        expect(e.status).not.toBe("conflict");
+    });
+
+    it("keeps the game's by dropping the draft and showing the build from the file", async () => {
+        const { api, e } = conflicted("now");
+        await e.saveToGame();
+        expect(await e.keepGame()).toBe(true);
+        expect(api.draftDelete).toHaveBeenCalledWith("d0");
+        expect(e.draftId).toBeUndefined();
+        expect(e.build).toBe(gameBuild);
+        expect(e.origin).toEqual({ kind: "local", section: "Unpublished", base: "now", buildId: 5 });
+        expect(e.conflict).toBeNull();
+        expect(e.dirty).toBe(false);
+        expect(e.canUndo).toBe(false);
+        expect(e.status).toBe("saved");
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(api.draftSave).not.toHaveBeenCalled();
+    });
+
+    it("keeps the game's deletion by reporting the build is gone", async () => {
+        const { api, e } = conflicted(null);
+        api.local.mockResolvedValue(localBuilds([]));
+        await e.saveToGame();
+        expect(await e.keepGame()).toBe(false);
+        expect(api.draftDelete).toHaveBeenCalledWith("d0");
+        expect(e.status).not.toBe("conflict");
     });
 });
 

@@ -1,4 +1,5 @@
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
+import type { ConflictView } from "@deadlock-plus/ipc-types/ConflictView";
 import type { DraftView } from "@deadlock-plus/ipc-types/DraftView";
 import type { FlushView } from "@deadlock-plus/ipc-types/FlushView";
 import type { LocalBuilds } from "@deadlock-plus/ipc-types/LocalBuilds";
@@ -6,7 +7,8 @@ import type { SaveRequest } from "@deadlock-plus/ipc-types/SaveRequest";
 import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 import { t } from "$lib/core/i18n.svelte";
 import type { Unlisten } from "$lib/core/tauri";
-import { buildsDraftSave, buildsLocal, buildsQueueCancel, buildsSave, onFlushed } from "../api";
+import { buildsDraftDelete, buildsDraftSave, buildsLocal, buildsQueueCancel, buildsSave, onFlushed } from "../api";
+import { pickLocal } from "../build-detail.svelte";
 import { updateBuild, type ItemRef } from "./document";
 import { History } from "./history";
 import {
@@ -33,6 +35,7 @@ export interface EditorApi {
     local(): Promise<LocalBuilds>;
     /** Resolves to false when the queued save is gone: written, or dropped on a conflict. */
     cancel(id: string): Promise<boolean>;
+    draftDelete(id: string): Promise<boolean>;
     onFlushed(handler: (view: FlushView) => void): Promise<Unlisten>;
 }
 
@@ -53,6 +56,7 @@ const defaultApi: EditorApi = {
     save: buildsSave,
     local: buildsLocal,
     cancel: buildsQueueCancel,
+    draftDelete: buildsDraftDelete,
     onFlushed,
 };
 
@@ -74,6 +78,8 @@ export class BuildEditor {
     saving = $state(false);
     /** Why the last autosave failed; cleared by the next one that works. */
     draftError = $state<unknown>(null);
+    /** What the game file holds instead, after a save made right away was refused; `keepMine` or `keepGame` settles it. */
+    conflict = $state.raw<ConflictView | null>(null);
     history: History<BuildView>;
 
     /** The build as the game file holds it; `null` when that is unknown, as for a stored draft. */
@@ -204,6 +210,7 @@ export class BuildEditor {
             if (queued && !(await this.#cancel(queued))) await this.#followWritten(queued.buildId);
             const result = await this.#api.save(saveRequest(this.origin, build), this.draftId);
             this.#conflict = result.kind === "conflict";
+            this.conflict = result.kind === "conflict" ? this.#conflictOf(result.conflicts) : null;
             if (result.kind === "conflict") return result;
             if (result.kind === "queued") this.#queued = { id: result.id, buildId: result.buildId };
             if (result.kind !== "unchanged") this.draftId = undefined;
@@ -216,6 +223,43 @@ export class BuildEditor {
             this.saving = false;
             if (this.#pending) this.#schedule();
         }
+    }
+
+    /** Saves this build over the game's version; the backend backs up what it replaces. */
+    keepMine(): Promise<SaveResult> {
+        const conflict = this.conflict;
+        if (conflict) {
+            this.origin =
+                conflict.gameBlob === null
+                    ? { kind: "copyView" }
+                    : { kind: "local", section: conflict.section, base: conflict.gameBlob, buildId: conflict.id };
+        }
+        return this.saveToGame();
+    }
+
+    /** Drops the draft and shows the build as the file holds it; false when the game deleted it. */
+    async keepGame(): Promise<boolean> {
+        const conflict = this.conflict;
+        if (!conflict) return true;
+        this.#clearTimer();
+        await this.#drafting;
+        this.#pending = false;
+        if (this.draftId !== undefined) {
+            await this.#api.draftDelete(this.draftId);
+            this.draftId = undefined;
+        }
+        const builds = (await this.#api.local()).builds;
+        const entry =
+            builds.find((b) => b.section === conflict.section && b.build.heroBuildId === conflict.id) ??
+            pickLocal(builds, conflict.id);
+        this.#conflict = false;
+        this.conflict = null;
+        if (!entry) return false;
+        this.origin = { kind: "local", section: entry.section, base: entry.base, buildId: entry.build.heroBuildId };
+        this.history = new History(entry.build);
+        this.#clean = entry.build;
+        this.#show(entry.build);
+        return true;
     }
 
     dispose(): void {
@@ -232,6 +276,11 @@ export class BuildEditor {
             this.#queued = queued;
             throw e;
         }
+    }
+
+    #conflictOf(conflicts: readonly ConflictView[]): ConflictView | null {
+        const id = this.origin.kind === "local" ? this.origin.buildId : this.build.heroBuildId;
+        return conflicts.find((c) => c.id === id) ?? conflicts[0] ?? null;
     }
 
     async #flushed(view: FlushView): Promise<void> {

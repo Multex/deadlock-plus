@@ -2,15 +2,17 @@
     import { ArrowLeft, Info, LoaderCircle } from "@lucide/svelte";
     import { tick } from "svelte";
     import { toast } from "svelte-sonner";
-    import { beforeNavigate } from "$app/navigation";
+    import { beforeNavigate, goto } from "$app/navigation";
     import { page } from "$app/state";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import { failureText } from "$lib/core/errors";
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { buildsDrafts, buildsLocal } from "$lib/features/builds/api";
     import { chipFor, loadKit, loadPublic, type HeroKit } from "$lib/features/builds/build-detail.svelte";
+    import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import { loadShopCatalog, type ShopCatalog } from "$lib/features/builds/catalog";
     import AbilityBar from "$lib/features/builds/components/editor/ability-bar.svelte";
+    import ConflictDialog from "$lib/features/builds/components/my-builds/conflict-dialog.svelte";
     import CategoryMenu from "$lib/features/builds/components/editor/category-menu.svelte";
     import EditCanvas from "$lib/features/builds/components/editor/edit-canvas.svelte";
     import EditorToolbar from "$lib/features/builds/components/editor/editor-toolbar.svelte";
@@ -139,9 +141,31 @@
         }
         try {
             const result = await editor.saveToGame();
-            if (result.kind === "conflict") toast.error(t("builds.mine.changed_in_game"));
+            if (result.kind === "conflict" && !editor.conflict) toast.error(t("builds.mine.changed_in_game"));
         } catch (e) {
             toast.error(failureText(e, t("builds.editor.save_failed")));
+        }
+    }
+
+    let resolving = $state(false);
+
+    async function resolveConflict(choice: ResolveChoice) {
+        const active = editor;
+        if (!active || resolving) return;
+        resolving = true;
+        try {
+            if (choice === "ours") {
+                const result = await active.keepMine();
+                if (result.kind === "conflict" && !active.conflict) toast.error(t("builds.mine.changed_in_game"));
+            } else if (!(await active.keepGame())) {
+                await goto("/builds");
+            }
+        } catch (e) {
+            toast.error(
+                failureText(e, t(choice === "ours" ? "builds.editor.save_failed" : "builds.editor.load_failed")),
+            );
+        } finally {
+            resolving = false;
         }
     }
 
@@ -355,5 +379,10 @@
                 </div>
             </div>
         </div>
+        <ConflictDialog
+            conflict={editor.conflict}
+            busy={resolving || editor.saving}
+            onresolve={(choice) => void resolveConflict(choice)}
+        />
     {/if}
 </div>

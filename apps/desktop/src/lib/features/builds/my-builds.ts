@@ -515,6 +515,10 @@ export function conflictSides(c: ConflictView): { ours: ConflictSide; game: Conf
     return { ours: side(c.ours), game: side(c.game) };
 }
 
+export function conflictDescriptionKey(c: ConflictView): string {
+    return c.saveId === null ? "builds.mine.conflict.description_now" : "builds.mine.conflict.description";
+}
+
 export function flushFailure(flush: FlushView): { code: string } | null {
     return flush.kind === "failed" ? { code: flush.code } : null;
 }

@@ -1815,6 +1815,7 @@
             "conflict": {
                 "title": "Deadlock changed this build",
                 "description": "{name} changed in the game while your save waited. Pick the version to keep.",
+                "description_now": "{name} changed in the game since you started editing it. Pick the version to keep.",
                 "mine": "Yours",
                 "game": "The game's",
                 "deleted": "Deleted",

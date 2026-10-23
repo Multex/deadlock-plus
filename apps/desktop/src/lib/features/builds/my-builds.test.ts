@@ -44,6 +44,7 @@ import { MyBuildsStore } from "./my-builds.svelte";
 
 import {
     canDelete,
+    conflictDescriptionKey,
     conflictSides,
     conflictsOf,
     copyRequest,
@@ -750,6 +751,11 @@ describe("conflict flow", () => {
             deleted: true,
         });
         expect(conflictSides(conflict({ game: null })).game).toEqual({ name: "Mine", updatedAt: null, deleted: true });
+    });
+
+    it("words a queued save's conflict apart from one a save made right away raised", () => {
+        expect(conflictDescriptionKey(conflict())).toBe("builds.mine.conflict.description");
+        expect(conflictDescriptionKey(conflict({ saveId: null }))).toBe("builds.mine.conflict.description_now");
     });
 
     it("reports a failed flush by its code only", () => {
