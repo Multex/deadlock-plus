@@ -6,7 +6,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import ItemTip from "./item-tip.svelte";
 
-    type Popular = { color: string; minimap?: string };
+    type Popular = { minimap?: string };
 
     let {
         item,

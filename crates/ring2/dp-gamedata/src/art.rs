@@ -226,8 +226,6 @@ pub enum ShopUiImage {
     TierNumber4,
     /// `.PopularityContainer .thumb_icon`, washed `armorColor`.
     PopularThumb,
-    /// `.PopularityContainer .recommendatations_hero_bg`.
-    PopularBacker,
     /// `.PopularItemPhase.Early|Mid|Late`.
     PhaseEarly,
     PhaseMid,
@@ -323,7 +321,7 @@ pub enum ShopUiImage {
 }
 
 impl ShopUiImage {
-    pub const ALL: [ShopUiImage; 89] = [
+    pub const ALL: [ShopUiImage; 88] = [
         ShopUiImage::CardBackerWeaponT1,
         ShopUiImage::CardBackerWeaponT2,
         ShopUiImage::CardBackerWeaponT3,
@@ -350,7 +348,6 @@ impl ShopUiImage {
         ShopUiImage::TierNumber3,
         ShopUiImage::TierNumber4,
         ShopUiImage::PopularThumb,
-        ShopUiImage::PopularBacker,
         ShopUiImage::PhaseEarly,
         ShopUiImage::PhaseMid,
         ShopUiImage::PhaseLate,
@@ -476,9 +473,6 @@ impl ShopUiImage {
             ShopUiImage::TierNumber3 => ("tier_number_3", "panorama/images/upgrades/tier_numbers_small_03.vsvg_c"),
             ShopUiImage::TierNumber4 => ("tier_number_4", "panorama/images/upgrades/tier_numbers_small_04.vsvg_c"),
             ShopUiImage::PopularThumb => ("popular_thumb", filters!("icon_recommend_up.vsvg_c")),
-            ShopUiImage::PopularBacker => {
-                ("popular_backer", "panorama/images/shop/catalog/backer_star_test_png.vtex_c")
-            }
             ShopUiImage::PhaseEarly => ("phase_early", filters!("icon_early_game_png.vtex_c")),
             ShopUiImage::PhaseMid => ("phase_mid", filters!("icon_mid_game_png.vtex_c")),
             ShopUiImage::PhaseLate => ("phase_late", filters!("icon_late_game_png.vtex_c")),
@@ -1900,7 +1894,7 @@ mod tests {
     fn every_shop_ui_image_has_its_own_wire_name_and_compiled_file() {
         let images: HashSet<ShopUiImage> = ShopUiImage::ALL.into_iter().collect();
         assert_eq!(images.len(), ShopUiImage::ALL.len(), "ALL has no repeats");
-        assert_eq!(ShopUiImage::ALL.len(), 89);
+        assert_eq!(ShopUiImage::ALL.len(), 88);
         assert!(ShopUiImage::ALL.iter().all(|i| !i.key().starts_with("paper_wear")));
         let keys: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.key()).collect();
         let paths: HashSet<&str> = ShopUiImage::ALL.iter().map(|i| i.compiled_path()).collect();
@@ -1934,7 +1928,6 @@ mod tests {
             (ShopUiImage::TierCorner, "panorama/images/shop/tier_corner_cap.vsvg_c".into()),
             (ShopUiImage::TierNumber3, "panorama/images/upgrades/tier_numbers_small_03.vsvg_c".into()),
             (ShopUiImage::PopularThumb, format!("{filters}/icon_recommend_up.vsvg_c")),
-            (ShopUiImage::PopularBacker, "panorama/images/shop/catalog/backer_star_test_png.vtex_c".into()),
             (ShopUiImage::PhaseLate, format!("{filters}/icon_late_game_png.vtex_c")),
             (ShopUiImage::RecommendedStar, "panorama/images/upgrades/recommended_star_psd.vtex_c".into()),
             (ShopUiImage::SlotVitality, "panorama/images/hud/core/core_armor_icon_psd.vtex_c".into()),

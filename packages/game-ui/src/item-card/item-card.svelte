@@ -28,7 +28,7 @@
         type PopularPhase,
     } from "./card";
 
-    type Popular = { color: string; minimap?: string } | { phase: PopularPhase };
+    type Popular = { minimap?: string } | { phase: PopularPhase };
 
     type Props = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
         /** Undefined when a build holds an item the game no longer has. */
@@ -44,7 +44,7 @@
         usedAsComponent?: boolean;
         disabled?: boolean;
         isNew?: boolean;
-        /** A hero's popular item (hero colour + minimap icon), or the Popular tab's phase icon. */
+        /** A hero's popular item (its minimap head), or the Popular tab's phase icon. */
         popular?: Popular;
         /** How often the build holds this item; the badge shows above 0. */
         count?: number;
@@ -141,6 +141,8 @@
             style:--card-mask={url(ui.card_base_mask)}
         >
             {#if backer}<span class="backer" style:background-image={url(backer)}></span>{/if}
+            <span class="art-shadow" style:--icon-shadow={panoramaColor("offBlack&60", plate ?? gameColors.offBlack)}
+            ></span>
             <div
                 class="art"
                 class:masked={!!iconMask}
@@ -150,7 +152,6 @@
                     BRIGHT[item.slot],
                     plate ?? gameColors.offBlack,
                 )})"
-                style:--icon-shadow={panoramaColor("offBlack&60", plate ?? gameColors.offBlack)}
                 style:filter={look.artBrightness < 1 ? `brightness(${look.artBrightness})` : undefined}
             >
                 {#if showArt}
@@ -244,20 +245,16 @@
                 ></span>
             </span>
         {:else}
-            {@const star = ui.popular_backer}
             {@const thumb = ui.popular_thumb}
-            <span class="popular" aria-hidden="true" style:--hero={popular.color}>
-                <span class="badge">
-                    <span class="star" class:fallback={!star} style:--star={url(star)}></span>
-                    {#if popular.minimap}
-                        <img class="hero" src={popular.minimap} alt="" draggable="false" />
-                    {/if}
-                    {#if thumb}
-                        <span class="thumb" style:--thumb={url(thumb)}></span>
-                    {:else}
-                        <svg class="thumb" viewBox="0 0 12 14"><path d="M6 0 12 7H8.5v7h-5V7H0Z" /></svg>
-                    {/if}
-                </span>
+            <span class="popular" aria-hidden="true">
+                {#if popular.minimap}
+                    <img class="hero" src={popular.minimap} alt="" draggable="false" />
+                {/if}
+                {#if thumb}
+                    <span class="thumb" style:--thumb={url(thumb)}></span>
+                {:else}
+                    <svg class="thumb" viewBox="0 0 12 14"><path d="M6 0 12 7H8.5v7h-5V7H0Z" /></svg>
+                {/if}
             </span>
         {/if}
     {/if}
@@ -321,17 +318,31 @@
     }
 
     /* `#ModIconImage`: 70 tall with a 1 margin; active items round it into an ellipse and skip the mask. */
-    .art {
+    .art,
+    .art-shadow {
         position: absolute;
         top: calc(var(--u) * 1);
         right: calc(var(--u) * 1);
         left: calc(var(--u) * 1);
-        display: flex;
         height: calc(var(--u) * 70);
+    }
+    .art {
+        display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: calc(var(--u) * 2) calc(var(--u) * 2) calc(var(--u) * 5) var(--icon-shadow, transparent);
+    }
+    /*
+     * The game's `box-shadow: 2px 2px 5px offBlack&60`, drawn unmasked so the shop grid's icon masks keep it.
+     * Panorama's blur is tighter than a browser's: the 1440p captures put the shadow's half-dark edge 4.7 px
+     * under the art and 1.5 px right of its left side, fading over ~1.4 px.
+     */
+    .art-shadow {
+        box-shadow: calc(var(--u) * 2.3) calc(var(--u) * 2.3) calc(var(--u) * 2.1) calc(var(--u) * 1.2)
+            var(--icon-shadow);
+    }
+    .item-card.active .art-shadow {
+        border-radius: 50%;
     }
     .art.masked {
         mask-image: var(--icon-mask), linear-gradient(var(--icon-mask-floor), var(--icon-mask-floor));
@@ -341,10 +352,15 @@
     .item-card.active .art {
         border-radius: 50%;
     }
+    /* The captures show the art's top and sides blending into the paper over ~2 px: half at the first pixel. */
     .art img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        mask:
+            linear-gradient(90deg, #0005, #000 calc(var(--u) * 1.5), #000 calc(100% - var(--u) * 1.5), #0005),
+            linear-gradient(#0005, #000 calc(var(--u) * 1.5));
+        mask-composite: intersect;
     }
     .initials {
         color: color-mix(in srgb, var(--off-black) 45%, transparent);
@@ -478,6 +494,9 @@
         font-family: var(--game-font-oracle, "Valve Oracle", sans-serif);
         font-weight: 700;
         text-align: center;
+        /* The browser draws the name ~13% heavier than the 1440p captures (summed ink over 36 cards); a
+           plate-coloured stroke trims the glyph edges back to ~5%. */
+        -webkit-text-stroke: calc(var(--u) * 0.1) var(--plate);
     }
     .line {
         display: block;
@@ -494,6 +513,7 @@
     }
     .item-card.removed .name {
         color: var(--warning, #f3b13c);
+        -webkit-text-stroke: 0;
     }
     .warn {
         width: calc(var(--u) * 28);
@@ -505,7 +525,10 @@
         stroke-width: 2;
     }
 
-    /* `PopularityContainer`: 36 square, 2 past the top right corner, its content at 80% ui-scale. */
+    /*
+     * `PopularityContainer`: 36 square, 2 past the top right corner, its content at 80% ui-scale (sizes and
+     * margins x 0.8 inside the full 36). The hero-coloured star behind it is collapsed in the game's CSS.
+     */
     .popular {
         position: absolute;
         top: calc(var(--u) * -2);
@@ -515,37 +538,24 @@
         height: calc(var(--u) * 36);
         pointer-events: none;
     }
-    .badge {
-        position: absolute;
-        inset: 10%;
-    }
-    .star {
-        position: absolute;
-        inset: 0;
-        background: var(--hero);
-        filter: drop-shadow(0 0 calc(var(--u) * 10) rgb(16 19 13 / 0.3));
-        mask: var(--star) center / cover no-repeat;
-    }
-    .star.fallback {
-        border-radius: 50%;
-        mask: none;
-    }
+    /* The 1440p capture's head spans ~27 x 24 px inside its outline, centred on the container. */
     .hero {
         position: absolute;
-        top: 25%;
-        left: 25%;
-        width: 50%;
-        height: 50%;
+        top: 50%;
+        left: 50%;
+        width: calc(var(--u) * 20);
+        height: calc(var(--u) * 20);
+        translate: -50% -50%;
         object-fit: contain;
         filter: drop-shadow(0 0 calc(var(--u) * 1) var(--off-black))
             drop-shadow(0 0 calc(var(--u) * 1) var(--off-black));
     }
     .thumb {
         position: absolute;
-        right: calc(var(--u) * 2);
-        bottom: calc(var(--u) * 7);
-        width: calc(var(--u) * 12);
-        height: calc(var(--u) * 14);
+        right: calc(var(--u) * 2 * 0.8);
+        bottom: calc(var(--u) * 7 * 0.8);
+        width: calc(var(--u) * 12 * 0.8);
+        height: calc(var(--u) * 14 * 0.8);
         rotate: 15deg;
         fill: #00ff99;
         filter: drop-shadow(0 0 calc(var(--u) * 1.5) var(--off-black));

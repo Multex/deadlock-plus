@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { gameColors } from "@deadlock-plus/game-ui/colors";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { ShopItem } from "../../../catalog";
@@ -33,10 +32,7 @@
     let width = $state(0);
     const popular = $derived(popularity.isPopular(item.id));
     const card = $derived(gameItem(item));
-    // No game file names a hero colour for the popular badge, so it takes the game's own brand green.
-    const marker = $derived(
-        popular ? { color: gameColors.brandGreen, ...(popularity.icon && { minimap: popularity.icon }) } : undefined,
-    );
+    const marker = $derived(popular ? { ...(popularity.icon && { minimap: popularity.icon }) } : undefined);
 
     function pointerDown(event: PointerEvent) {
         drag.begin({ kind: "new", abilityIds: [item.id] }, event, { art: item.art, label: item.name });
