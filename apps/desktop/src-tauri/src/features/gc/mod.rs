@@ -558,19 +558,34 @@ async fn friend_matches(
     }
 
     let found = history_loop(session, host, picks, state, cooldowns).await;
-    let mut ids = fresh_newest_first(found, processed, usize::MAX);
+    let ids = fresh_newest_first(found, processed, usize::MAX);
     if ids.is_empty() {
         return ids;
     }
-    match api::known_match_ids(http, &ids).await {
-        Ok(known) => {
-            ids.retain(|id| !known.contains(id));
-            ledger_attempts.forget(&known);
-        }
-        Err(e) => log::warn!("gc: could not check which friend matches are known: {e}"),
-    }
+    let known = api::known_match_ids_with(http, &ids, api::Patience::Wait).await;
+    let ids = unknown_friend_matches(ids, known, ledger_attempts);
     log::debug!("gc: found {} new friend match(es)", ids.len());
     ids
+}
+
+/// None when the lookup failed: fetching them blind can spend GC quota on matches the API already
+/// has, and a later pass can find them again in the friend's history.
+fn unknown_friend_matches(
+    mut ids: Vec<u64>,
+    known: Result<HashSet<u64>, AppError>,
+    attempts: &mut SaltAttempts,
+) -> Vec<u64> {
+    match known {
+        Ok(known) => {
+            ids.retain(|id| !known.contains(id));
+            attempts.forget(&known);
+            ids
+        }
+        Err(e) => {
+            log::warn!("gc: could not check which friend matches are known, skipping them this pass: {e}");
+            Vec::new()
+        }
+    }
 }
 
 /// Whether a pass goes on to the next account.
@@ -948,6 +963,18 @@ Content-Length: 2
         }));
         let routes: Vec<_> = api.requests().into_iter().map(|r| r.route).collect();
         assert_eq!(routes, vec!["GET /matches/to-fetch", "POST /matches/to-fetch/release"]);
+    }
+
+    #[test]
+    fn friend_matches_the_api_has_are_dropped() {
+        let known = Ok(HashSet::from([2]));
+        assert_eq!(unknown_friend_matches(vec![3, 2, 1], known, &mut SaltAttempts::default()), [3, 1]);
+    }
+
+    #[test]
+    fn friend_matches_wait_for_a_later_pass_when_the_lookup_fails() {
+        let known = Err(AppError::network("429 Too Many Requests"));
+        assert!(unknown_friend_matches(vec![3, 2, 1], known, &mut SaltAttempts::default()).is_empty());
     }
 
     #[test]
