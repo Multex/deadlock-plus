@@ -672,6 +672,17 @@
         "open_link_failed": "",
         "link_open_failed": ""
     },
+    "player_links": {
+        "menu": "",
+        "steam": "",
+        "statlocker": "",
+        "buildlocker": "",
+        "steam_of": "",
+        "statlocker_of": "",
+        "buildlocker_of": "",
+        "builds_by": "",
+        "build_on_buildlocker": ""
+    },
     "platform": {
         "windows": "",
         "macos": "",
