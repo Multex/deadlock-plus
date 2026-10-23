@@ -220,12 +220,23 @@ describe("tipInput in a build", () => {
             text: "  Rush it  ",
             sellPriority: 2,
             imbueTarget: null,
+            avatar: null,
         });
         expect(tipInput({ catalog: CATALOG, build: BUILD, kit }, HEADSHOT_BOOSTER, host())!.buildNote).toEqual({
             text: null,
             sellPriority: null,
             imbueTarget: { name: "Burst Fire", icon: "burst.png" },
+            avatar: null,
         });
+    });
+
+    it("draws the build author's avatar the host found beside the note", () => {
+        const input = tipInput(
+            { catalog: CATALOG, build: BUILD, kit },
+            EXTRA_HEALTH,
+            host({ authorAvatar: "me.png" }),
+        )!;
+        expect(input.buildNote?.avatar).toBe("me.png");
     });
 
     it("drops an imbue suggestion for an ability the hero does not have", () => {

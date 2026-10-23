@@ -174,6 +174,8 @@ export interface TipHost {
     detailView: boolean;
     /** The game's hero ability tooltips, for the item's effect on the hero's abilities. */
     abilityTooltips?: ReadonlyMap<number, AbilityTooltip>;
+    /** The build author's Steam avatar, drawn beside the build's notes. */
+    authorAvatar?: string | null;
 }
 
 type TipPopularity = Pick<HeroPopularity, "game" | "icon"> & { api: PhaseStats | null };
@@ -197,12 +199,13 @@ function buildEntry(build: BuildView, id: number, at?: { category: number; index
     return null;
 }
 
-function buildNote(entry: ModEntryView, kit: TipSourceData["kit"]): BuildNoteInput {
+function buildNote(entry: ModEntryView, kit: TipSourceData["kit"], avatar: string | null): BuildNoteInput {
     const ability = entry.imbueTargetAbilityId === null ? undefined : kit?.abilities.get(entry.imbueTargetAbilityId);
     return {
         text: entry.annotation,
         sellPriority: entry.sellPriority,
         imbueTarget: ability ? { name: ability.name, icon: ability.art ?? null } : null,
+        avatar,
     };
 }
 
@@ -219,7 +222,7 @@ type TipPoint = {
  * Where in the build the tooltip stands. An item in the build's Quick Buy order stands at its purchase, owned by then;
  * any other item is bought after the whole order. Outside a build, the hero is at level 1 with nothing.
  */
-function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null): TipPoint {
+function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null, avatar: string | null): TipPoint {
     const { catalog, build, kit } = source;
     const stats = (level: number, itemIds: number[]) =>
         hero ? heroStatsAt(hero, { level, itemIds }, catalog) : undefined;
@@ -230,7 +233,7 @@ function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null)
     const index = entries.findIndex((e) => e.abilityId === id);
     const placed = entries[index];
     const entry = buildEntry(build, id, placed?.ref);
-    const note = entry ? buildNote(entry, kit) : null;
+    const note = entry ? buildNote(entry, kit, avatar) : null;
     const imbuesOf = (owned: typeof entries) =>
         new Map(
             owned.flatMap((e): [number, number][] => {
@@ -324,7 +327,7 @@ function itemGroups(catalog: TipCatalog, ownedIds: readonly number[]): GroupsOf 
 export function tipInput(source: TipSourceData, id: number, host: TipHost): ItemTooltipInput | null {
     const { hero } = host;
     const popularity = source.popularity ?? null;
-    const point = tipPoint(source, id, hero);
+    const point = tipPoint(source, id, hero, host.authorAvatar ?? null);
     const phases = phaseStatsFor(popularity?.api ?? null, id);
     const details: ItemDetails | null = hero
         ? itemDetails({

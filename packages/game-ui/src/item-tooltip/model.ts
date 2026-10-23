@@ -73,6 +73,8 @@ export type BuildNoteInput = {
     text?: string | null;
     sellPriority?: number | null;
     imbueTarget?: AbilityRef | null;
+    /** The build author's Steam avatar; null while it is unknown. */
+    avatar?: string | null;
 };
 
 /** `.BuildInfoContainer`'s lines; each is null when the build leaves it unset. */
@@ -80,6 +82,7 @@ export type BuildNoteView = {
     text: string | null;
     sellPriority: UiText | null;
     imbueTarget: (AbilityRef & { label: UiText }) | null;
+    avatar: string | null;
 };
 
 /** A value split so the prefix and postfix can be drawn muted. */
@@ -453,6 +456,7 @@ function buildNoteView(note: BuildNoteInput): BuildNoteView | null {
             target === null
                 ? null
                 : { label: uiText("imbue_suggestion", {}, "Citadel_Item_Build_ImbueTarget"), ...target },
+        avatar: note.avatar ?? null,
     };
 }
 

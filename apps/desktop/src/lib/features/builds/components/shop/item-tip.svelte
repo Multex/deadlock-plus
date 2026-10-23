@@ -7,6 +7,7 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { i18n } from "$lib/core/i18n.svelte";
     import { abilityTooltipsRevision, heroAbilityTooltips } from "../../ability-tooltip";
+    import { authorAvatar } from "../../author-avatar.svelte";
     import { drag } from "../../editor/drag.svelte";
     import { buildsHero } from "../../game-ui-host.svelte";
     import {
@@ -44,6 +45,7 @@
 
     const heroId = $derived(current?.build?.heroId ?? current?.popularity?.heroId ?? null);
     const hero = $derived(open && heroId !== null ? buildsHero(heroId) : null);
+    const avatar = $derived(open && current?.build ? authorAvatar(current.build.authorAccountId) : null);
 
     let abilityTooltips = $state.raw<ReadonlyMap<number, AbilityTooltip> | undefined>(undefined);
     $effect(() => {
@@ -88,6 +90,7 @@
                     position: tipSide(props["data-side"]),
                     detailView: alt,
                     abilityTooltips,
+                    authorAvatar: avatar,
                 })}
                 <div {...wrapperProps}>
                     <div {...props}>

@@ -216,7 +216,13 @@ describe("itemTooltipModel build note", () => {
 
     it("shows the author's note as written, trimmed", () => {
         const note = itemTooltipModel({ ...base, buildNote: { text: "  Rush this vs. Haze\n" } }).buildNote;
-        expect(note).toEqual({ text: "Rush this vs. Haze", sellPriority: null, imbueTarget: null });
+        expect(note).toEqual({ text: "Rush this vs. Haze", sellPriority: null, imbueTarget: null, avatar: null });
+    });
+
+    it("keeps the author's avatar beside the note, and shows no box for an avatar alone", () => {
+        const note = itemTooltipModel({ ...base, buildNote: { text: "Rush", avatar: "author.png" } }).buildNote;
+        expect(note?.avatar).toBe("author.png");
+        expect(itemTooltipModel({ ...base, buildNote: { avatar: "author.png" } }).buildNote).toBeNull();
     });
 
     it("words the sell priority with the game's string", () => {
