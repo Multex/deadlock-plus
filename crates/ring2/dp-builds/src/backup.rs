@@ -91,7 +91,7 @@ pub fn write_with_backup(
             log::error!("build backup failed, the file was not changed: {e}");
             WriteError::BackupFailed(e)
         })?;
-        prune(backups_dir, account_id32);
+        prune(backups_dir, account_id32, &backup);
         Some(backup)
     } else {
         None
@@ -110,8 +110,9 @@ pub fn write_with_backup(
     Ok(backup)
 }
 
-fn prune(backups_dir: &Path, account_id32: u32) {
-    for old in list_backups(backups_dir, account_id32).into_iter().skip(KEEP) {
+fn prune(backups_dir: &Path, account_id32: u32, fresh: &Path) {
+    let others = list_backups(backups_dir, account_id32).into_iter().filter(|b| b.path != fresh);
+    for old in others.skip(KEEP - 1) {
         if let Err(e) = std::fs::remove_file(&old.path) {
             log::warn!("could not remove old build backup {}: {e}", old.path.display());
         }
@@ -268,5 +269,20 @@ mod tests {
         let backups = dir.join("backups");
         assert_eq!(write_with_backup(&file, b"new", &backups, 7, 1).unwrap(), None);
         assert_eq!(fs::read_to_string(&file).unwrap(), "new");
+    }
+
+    #[test]
+    fn the_fresh_backup_survives_a_clock_stuck_at_zero() {
+        let dir = temp_dir("clock");
+        let file = target(&dir);
+        let backups = dir.join("backups");
+        fs::write(&file, "x").unwrap();
+        for ts in 100..110u64 {
+            write_with_backup(&file, b"x", &backups, 7, ts).unwrap();
+        }
+        assert_eq!(count_files(&backups.join("7")), 10);
+        let fresh = write_with_backup(&file, b"y", &backups, 7, 0).unwrap().unwrap();
+        assert!(fresh.is_file());
+        assert_eq!(count_files(&backups.join("7")), 10);
     }
 }
