@@ -29,7 +29,7 @@
 
 <Seo
     title="Rich Presence, Server Picker, Match History | Deadlock+"
-    description="Everything Deadlock+ does for Deadlock: Discord Rich Presence, a server picker, live match info, match history, stats, rank, replays and game performance."
+    description="Everything Deadlock+ does for Deadlock: Discord Rich Presence, a server picker, live match info, a build editor, match history, stats, replays and performance."
 />
 
 <Page>

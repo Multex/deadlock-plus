@@ -16,7 +16,7 @@
     const ref = $derived(currentRef(page.url));
 
     const description =
-        "Deadlock+ is a free companion app for Deadlock: Discord Rich Presence, a server picker, match history, rank and stats. No account needed.";
+        "Deadlock+ is a free companion app for Deadlock: Discord Rich Presence, a server picker, a build editor, match history, rank and stats. No account needed.";
 
     const trust = [
         {
@@ -47,7 +47,8 @@
         </h1>
         <p class="mt-4 max-w-2xl text-lg text-muted-foreground">
             Show friends what you are playing on Discord, pick which servers you play on, follow your match as it
-            happens, look back at your matches and rank, and tidy up mutes, replays and disk space. One app, no account.
+            happens, find and edit item builds, look back at your matches and rank, and tidy up mutes, replays and disk
+            space. One app, no account.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
             <a href={withRef("/download", ref)} class={buttonVariants({ size: "lg" })}>

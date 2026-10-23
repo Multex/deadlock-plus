@@ -31,6 +31,8 @@ export interface Shot {
     /** Id of the demo scenario the page runs on. */
     scenario: string;
     route: string;
+    /** Viewport width when the page needs more than the default. */
+    width?: number;
     /** Viewport height when the page needs more than the default. */
     height?: number;
     /** Runs after the page settles, before the picture. */
@@ -105,8 +107,75 @@ export const SHOTS: Shot[] = [
         height: 1523,
         detail: { target: { role: "table", name: "Scoreboard" }, width: 472, padding: 4 },
     },
-    { name: "builds", scenario: "default", route: "/builds", websiteOnly: true },
-    { name: "build", scenario: "default", route: "/builds/view?source=local&id=3", websiteOnly: true },
+    {
+        name: "builds",
+        scenario: "default",
+        route: "/builds",
+        // Tall enough for the open build's pane to end below its shop, above the ability order.
+        height: 1030,
+        websiteOnly: true,
+        detail: {
+            target: { role: "heading", name: /^Builds$/ },
+            anchor: "start",
+            viewport: 640,
+            width: 568,
+            padding: 10,
+            steps: collapseSidebar,
+        },
+    },
+    {
+        name: "build",
+        scenario: "default",
+        route: "/builds/view?source=local&id=3",
+        height: 1160,
+        websiteOnly: true,
+        detail: {
+            target: { role: "region", name: /^Shop$/ },
+            anchor: "start",
+            // Lane, Mid game and Late game side by side take the page's whole left column. The crop stops before
+            // the shop's cost badge and the abilities panel, and the page's bottom edge moves it up to the header.
+            width: 823,
+            padding: 6,
+        },
+    },
+    {
+        name: "build-editor",
+        scenario: "default",
+        route: "/builds/edit?source=public&id=402117",
+        // Wide enough, with the sidebar collapsed, for the ability order to show all 16 steps. Tall enough for
+        // the canvas to hold the categories at Fit without scrolling.
+        width: 1680,
+        height: 1115,
+        websiteOnly: true,
+        steps: async (page) => {
+            await collapseSidebar(page);
+            for (const [slot, tag] of [
+                [1, "Spirit"],
+                [2, "Damage"],
+                [3, "Afterburn"],
+            ] as const) {
+                await page.getByRole("button", { name: `Tag ${slot}: empty` }).click();
+                await page.getByRole("menuitem", { name: tag, exact: true }).click();
+            }
+            // The demo's builds keep category sizes the editor flags as layout issues. Fix all keeps the
+            // columns each category shows, so the layout stays the game's.
+            await page.getByRole("button", { name: /layout issue/ }).click();
+            await page.getByRole("menuitem", { name: /^Fix all/ }).click();
+            await expect(page.getByRole("button", { name: /layout issue/ })).toHaveCount(0);
+            await expect(page.getByTestId("editor-status")).toHaveAttribute("data-state", "draft");
+            const zoomIn = page.getByTestId("toolbar-zoom-in");
+            while (await zoomIn.isEnabled()) await zoomIn.click();
+            await expect(page.getByTestId("toolbar-zoom")).toContainText("Fit");
+            await page.mouse.move(0, 0);
+        },
+        detail: {
+            target: { role: "application", name: "Build items" },
+            anchor: "start",
+            // Ends between Mid game and Late game, and below the souls timeline's axis.
+            width: 618,
+            padding: 6,
+        },
+    },
     {
         name: "stats",
         scenario: "default",
@@ -225,7 +294,7 @@ export const SHOTS: Shot[] = [
 
 /** Takes a page that runs the shot's scenario to the state the picture is taken in. */
 export async function openShot(page: Page, shot: Shot): Promise<void> {
-    await page.setViewportSize({ width: WIDTH, height: shot.height ?? HEIGHT });
+    await page.setViewportSize({ width: shot.width ?? WIDTH, height: shot.height ?? HEIGHT });
     await page.goto(shot.route);
     await settle(page);
     await shot.steps?.(page);

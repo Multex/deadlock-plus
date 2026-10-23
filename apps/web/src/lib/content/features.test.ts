@@ -42,6 +42,19 @@ describe("features", () => {
         expect(GROUPS.at(0)?.id).toBe("match");
     });
 
+    it("presents Builds and the build editor in their own group, with phone crops, and highlights the editor", () => {
+        expect(featuresIn("builds").map((f) => [f.id, f.shot, f.detailShot])).toEqual([
+            ["builds", "builds", "builds-mobile"],
+            ["build-editor", "build-editor", "build-editor-mobile"],
+        ]);
+        expect(GROUPS.at(1)?.id).toBe("builds");
+        expect(HIGHLIGHTS).toContain("build-editor");
+    });
+
+    it("fills every row of the landing grid at two and three columns", () => {
+        expect(HIGHLIGHTS.length % 6).toBe(0);
+    });
+
     it("resolves every landing page highlight to a feature", () => {
         expect(highlights().map((f) => f.id)).toEqual([...HIGHLIGHTS]);
     });

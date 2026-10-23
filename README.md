@@ -3,7 +3,7 @@
 # Deadlock+
 
 **A free companion app for [Deadlock](https://store.steampowered.com/app/1422450/).**
-Rich Presence, a server picker, live match stats, your match history and more, in one app.
+Rich Presence, a server picker, live match stats, builds, your match history and more, in one app.
 
 [![Latest release](https://img.shields.io/github/v/release/deadlock-plus/deadlock-plus?label=latest)](https://github.com/deadlock-plus/deadlock-plus/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/deadlock-plus/deadlock-plus/total?label=downloads)](https://github.com/deadlock-plus/deadlock-plus/releases)
@@ -74,6 +74,26 @@ Show your hero, mode and match timer on your Discord profile, with your rank bad
 Both teams in your current match: ranks, souls, K/D/A and damage. Plus your server, ping and packet loss.
 
 <img src="apps/web/static/screenshots/live.webp" alt="The Live page during a ranked match" width="100%">
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🛒 Builds
+
+Browse public builds for your hero, with this week's favourites first. Open one to see its shop and ability order as the game draws them.
+
+<img src="apps/web/static/screenshots/builds.webp" alt="The Builds page listing public builds for a hero" width="100%">
+
+</td>
+<td valign="top">
+
+### 🛠️ Build editor
+
+Edit any build on a copy of the game's shop page and save it to your game files. A souls timeline shows when each item becomes affordable.
+
+<img src="apps/web/static/screenshots/build-editor.webp" alt="The build editor on a copy of the game's shop page" width="100%">
 
 </td>
 </tr>

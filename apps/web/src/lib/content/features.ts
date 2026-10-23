@@ -1,4 +1,4 @@
-export type GroupId = "match" | "progress" | "upkeep";
+export type GroupId = "match" | "builds" | "progress" | "upkeep";
 
 export interface Feature {
     id: string;
@@ -18,6 +18,7 @@ export const GROUPS: readonly { id: GroupId; name: string; blurb: string }[] = [
         name: "Around the match",
         blurb: "Show friends what you are playing, pick where you play and follow your match as it happens.",
     },
+    { id: "builds", name: "Item builds", blurb: "Find a build for your hero, then make it your own." },
     { id: "progress", name: "Your progress", blurb: "See how you are doing, match by match and over time." },
     { id: "upkeep", name: "Upkeep", blurb: "The chores around the game, in one place." },
 ];
@@ -61,6 +62,38 @@ export const FEATURES: readonly Feature[] = [
             "A scoreboard for both teams: rank, souls, kills, deaths, assists and damage.",
             "The server you are on and your ping while you play.",
             "Follows the game from queue to results, which land in your match history.",
+        ],
+    },
+    {
+        id: "builds",
+        shot: "builds",
+        detailShot: "builds-mobile",
+        group: "builds",
+        name: "Builds",
+        summary: "Public builds for any hero, starting with the one you played last.",
+        points: [
+            "This week's favourites come first. Filter by hero, tag, language, author and name.",
+            "A build shows its win rate once it has enough recent matches.",
+            "Open a build to see its shop and ability order as the game draws them.",
+            "Hover an item or ability for the game's tooltip, with your stats at that point in the build.",
+            "Favourite a public build and it shows in the Mine tab and in your favourites in the game.",
+            "Copy for game and Paste code move builds between Deadlock+ and the game's Create New Build.",
+        ],
+    },
+    {
+        id: "build-editor",
+        shot: "build-editor",
+        detailShot: "build-editor-mobile",
+        group: "builds",
+        name: "Build editor",
+        summary: "Edit any build, yours or a public one, on a copy of the game's shop page.",
+        points: [
+            "Drag items in from the shop and drag a category's edges to resize it.",
+            "Sizes snap so categories look the same at 1080p, 1440p, 4K and in the Build Browser.",
+            "A souls timeline shows when each item and ability step becomes affordable.",
+            "Click abilities to set the ability order. Orders the game would reject are blocked.",
+            "Undo and redo every change, and restore any of the last 20 saved versions.",
+            "Saves go to your game files, with a backup of the file before every write.",
         ],
     },
     {
@@ -153,11 +186,11 @@ export const HERO_DETAIL_SHOT = "match-mobile";
 
 export const HIGHLIGHTS = [
     "discord-presence",
+    "build-editor",
     "live",
     "server-picker",
     "match-history",
     "stats",
-    "performance",
 ] as const;
 
 export function featuresIn(group: GroupId): Feature[] {
