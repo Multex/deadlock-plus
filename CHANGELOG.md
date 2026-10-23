@@ -8,76 +8,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- Hero rows on the Stats page link to that hero's builds.
+
 #### Builds
 
 - A new Builds page lists public builds for your last played hero, with this week's favourites first.
-- Pick a build in the list to see its full shop, ability order and description beside it.
-- Filter public builds by sort, update date, tag, language, favourites, author and name.
-- Public and your own builds show their win rate when they have enough recent matches.
-- Builds show in your game's language plus English.
-- The Mine tab lists your own builds the same way, filterable by hero, status, tag, language and name.
-- Your builds say Public or Local, with their favourites and version.
-- Builds by other players that you favourited sit under Favourites in the Mine tab.
-- Heroes still in development are left out.
-- Opening a build shows its shop exactly as the game lays it out at 1440p.
-- Item cards are drawn with the game's own art, fonts and colours.
-- Hovering an item shows the game's tooltip: the same sections, stats, descriptions and upgrade paths.
-- Tooltip labels use your game's own wording in your language.
-- Hovering a hero ability shows the game's ability tooltip with its three upgrades.
-- Long category names wrap and descriptions sit next to the name, as in-game.
-- The build view shows the ability order with the hero's abilities and the level of each step.
-- The build view previews 1080p and 4K too, marked as unmeasured.
-- Copy as new saves any build, public or your own, as a new build in your game files.
-- Builds you save while Deadlock is running are written when the game closes.
-- If the game changed a build while a save was waiting, you choose which version to keep.
-- Deadlock+ backs up your build file before every write and keeps the last 10 backups.
-- Unsaved changes to a build are kept as a draft until you save or discard them.
-- You can favourite any public build from its page, and it shows in your favourites in-game.
-- Shop items, prices and hero levels come from your Deadlock install.
-- Hero rows on the Stats page link to that hero's builds.
-- Copy for game puts a build on your clipboard as a code Deadlock's Create New Build accepts.
-- Paste code on the Builds page opens a code copied in Deadlock as a new build in the editor.
-- Ability tooltips show values an upgrade switches on only from that tier.
-- Ability upgrades that multiply a value are counted and worded as in-game.
-- Boon-scaled values show the hero's portrait, as in-game.
-- Hold Alt over an item to see how it changes your hero's stats, as the game's See Details does.
-- See Details also lists Deadlock+'s pick and win rates for each game phase.
-- Item tooltips show the build's note, sell priority and imbue suggestion for that item.
-- Ability and item tooltips use your hero's stats at that point in the build.
-- See Details groups its rows under each ability, owned item and stat, with their icons, as in-game.
-- See Details counts an item's always-on bonuses, such as Enchanter's Emblem's spirit power.
-- See Details counts an imbued item's bonus only for the ability it is imbued into.
-- Build notes in item tooltips show the build author's avatar, as in-game.
-- The game's shop art is prepared in the background at start and after a game update, so tooltips show it on first open.
-- Ability tooltips shorten cooldowns by your cooldown reduction, which stacks as in-game.
-- The build view's shop marks popular items with their pick and win rates.
+- Filter builds by hero, tag, language, author, name and more.
+- Builds show their win rate once they have enough recent matches.
+- The Mine tab lists your own builds, drafts and favourites.
+- Opening a build shows its shop and ability order exactly as the game draws them.
+- Hover an item or ability for the game's own tooltip, with your stats at that point in the build.
+- Hold Alt over an item for the game's See Details, plus its pick and win rates for each game phase.
+- Item tooltips show the build author's note, sell priority and imbue suggestion.
+- Favourite a public build and it shows in your favourites in-game.
+- Copy for game and Paste code move builds between Deadlock+ and the game's Create New Build.
 
 #### Build editor
 
-- Edit any build on a copy of the game's shop page, then save it to your game files.
-- Drag a category's edges to resize it; sizes snap to ones that keep their columns at 1080p, 1440p and 4K.
-- Snapped sizes also keep every column in the game's Build Browser preview.
-- Resizing stops at the edge of the row instead of pushing a category onto a new row by accident.
-- Turn snapping off for free sizes, or hold Alt for one drag.
-- A layout check lists categories that look different at another resolution or in the preview, and fixes them in one click.
+- Edit any build, yours or a public one, on a copy of the game's shop page and save it to your game files.
+- Drag items in from the shop and drag a category's edges to resize it.
+- Sizes snap so categories look the same at 1080p, 1440p, 4K and in the Build Browser.
+- A layout check finds categories that look different at another resolution and fixes them in one click.
 - Preview a build at 1080p, 1440p, 4K or as the Build Browser shows it.
-- Zoom the shop canvas from the toolbar or with Ctrl+mouse wheel.
-- Drag items in from the shop, between categories, or hold Ctrl to copy them.
-- An item can sit in a build more than once, which the game's own editor does not allow.
-- A souls timeline shows when each item and ability step becomes affordable, with the stats you have by then.
-- Set the ability order by clicking the hero's abilities; orders the game would reject are blocked.
-- Name, description, tags and language sit next to the shop, with the game's own limits.
-- The shop shows which items are popular on the hero, and their pick and win rates.
-- The shop's Popular and Search tabs are laid out like the game's, by item type and price.
-- Search shows every item before you type, with the game's Physical, Spirit, Defense, Mobility, Disruption and Misc filters.
-- Tags show the game's icons.
-- Fix all also grows a category whose wrapped name would hide items.
+- A souls timeline shows when each item and ability step becomes affordable.
+- Set the ability order by clicking abilities; orders the game would reject are blocked.
 - Undo and redo every change, and restore any of the last 20 saved versions.
-- Ability steps show the level the game takes them at, with unlocks and ability points taken separately.
-- Unlocks first moves every unlock to the front of the ability order; only Deadlock's build preview changes.
-- The souls timeline adds slot investment bonuses to weapon damage, spirit power and max health.
-- Turn on Support Deadlock+ to add a "Made with Deadlock+ - deadlockplus.app" line under a build's description.
-- New builds start with that line if you left it on last time.
+- Unsaved changes stay as a draft until you save or discard them.
+- Builds saved while Deadlock is running are written when the game closes.
+- If the game changed a build you are saving, you choose which version to keep.
+- Deadlock+ backs up your build file before every write and keeps the last 10 backups.
+- Turn on Support Deadlock+ to add a "Made with Deadlock+" line under a build's description.
 
 ### Fixed
 
