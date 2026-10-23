@@ -38,8 +38,15 @@ function sessionStore(): Storage | null {
 /** Whether this page load is the app's launch rather than a reload or an HMR re-run. */
 export const isLaunch = launchCheck(sessionStore);
 
+// The editor's draft or new build can be gone by the next launch, which would reopen it as "missing" or blank.
+const EDITOR = "/builds/edit";
+const EDITOR_FALLBACK = "/builds";
+
+const isEditor = (pathname: string) => pathname === EDITOR || pathname.startsWith(`${EDITOR}/`);
+
 export function routeToSave(url: { pathname: string; search: string }): string | null {
-    return isOnboarding(url.pathname) ? null : url.pathname + url.search;
+    if (isOnboarding(url.pathname)) return null;
+    return isEditor(url.pathname) ? EDITOR_FALLBACK : url.pathname + url.search;
 }
 
 /** Paths of the app's pages, from the keys of a glob over `+page.svelte` files. Route groups do not appear in URLs. */
@@ -90,6 +97,7 @@ export interface RestoreInput {
 function restorable(route: unknown, known: Set<string>): string | null {
     if (typeof route !== "string" || !route.startsWith("/") || route.startsWith("//")) return null;
     const pathname = route.split(/[?#]/, 1)[0]!;
+    if (isEditor(pathname)) return isKnown(known, EDITOR_FALLBACK) ? EDITOR_FALLBACK : null;
     if (pathname === "/" || isOnboarding(pathname) || !isKnown(known, pathname)) return null;
     return route;
 }

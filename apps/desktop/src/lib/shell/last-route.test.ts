@@ -62,6 +62,12 @@ describe("routeToSave", () => {
         expect(routeToSave({ pathname: "/onboarding", search: "" })).toBeNull();
         expect(routeToSave({ pathname: "/onboarding/", search: "?step=2" })).toBeNull();
     });
+
+    it("saves the builds list instead of the editor, whose draft or new build may be gone by the next launch", () => {
+        expect(routeToSave({ pathname: "/builds/edit", search: "?source=draft&id=4" })).toBe("/builds");
+        expect(routeToSave({ pathname: "/builds/edit", search: "?new=12" })).toBe("/builds");
+        expect(routeToSave({ pathname: "/builds/view", search: "?id=7" })).toBe("/builds/view?id=7");
+    });
 });
 
 describe("knownPaths", () => {
@@ -118,6 +124,12 @@ describe("routeToRestore", () => {
         expect(routeToRestore({ ...input, stored: "/match-history/1/2" })).toBeNull();
         expect(routeToRestore({ ...input, stored: "/match-history/" })).toBeNull();
         expect(routeToRestore({ ...input, stored: "/other/1" })).toBeNull();
+    });
+
+    it("opens the builds list for an editor route saved earlier", () => {
+        const withBuilds = { ...base, known: new Set([...known, "/builds", "/builds/edit"]) };
+        expect(routeToRestore({ ...withBuilds, stored: "/builds/edit?source=draft&id=4" })).toBe("/builds");
+        expect(routeToRestore({ ...withBuilds, stored: "/builds/edit?new=12" })).toBe("/builds");
     });
 
     it("never restores into onboarding", () => {
