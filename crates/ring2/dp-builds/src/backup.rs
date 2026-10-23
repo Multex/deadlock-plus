@@ -96,6 +96,12 @@ pub fn write_with_backup(
     } else {
         None
     };
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            log::error!("build file folder could not be created: {e}");
+            WriteError::WriteFailed { backup: backup.clone(), source: e }
+        })?;
+    }
     dp_atomic::write_atomic(path, bytes).map_err(|e| {
         log::error!("build file write failed: {e}");
         WriteError::WriteFailed { backup: backup.clone(), source: e }
@@ -253,5 +259,14 @@ mod tests {
         }
         assert!(matches!(write_with_backup(&file, b"new", &backups, 7, 9), Err(WriteError::NoBackupName)));
         assert_eq!(fs::read_to_string(&file).unwrap(), "old");
+    }
+
+    #[test]
+    fn creates_the_missing_cfg_folder_on_first_save() {
+        let dir = temp_dir("nocfg");
+        let file = dir.join("userdata").join("1422450").join("remote").join("cfg").join("cached_hero_builds.kv3");
+        let backups = dir.join("backups");
+        assert_eq!(write_with_backup(&file, b"new", &backups, 7, 1).unwrap(), None);
+        assert_eq!(fs::read_to_string(&file).unwrap(), "new");
     }
 }
