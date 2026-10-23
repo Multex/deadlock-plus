@@ -120,13 +120,15 @@ fn raw_stats(entry: &Object) -> Vec<RawStat> {
             if value == 0.0 {
                 return None;
             }
-            // Range- and proc-gated bonuses sit in the passive section with no usage flag, so only
-            // a stat shown solely as innate (or registered on the item and shown nowhere) is flat.
-            let always_on = if shown_in.is_empty() { intrinsic } else { shown_in.iter().all(|s| *s == INNATE) };
-            let flat = provided
-                && always_on
-                && !text("m_eStatsUsageFlags").contains("Conditionally")
-                && !property.contains_key("m_eApplyFilter");
+            // Range- and proc-gated bonuses sit in the passive section with no usage flag, so an unflagged
+            // stat is flat only when shown solely as innate (or registered on the item and shown nowhere).
+            // `IntrinsicallyProvidedInAbility` marks a passive the game counts in the ALT "after" value
+            // (Enchanter's Emblem's Spirit Power and cooldown reduction).
+            let flags = text("m_eStatsUsageFlags");
+            let always_on = flags.contains("IntrinsicallyProvidedInAbility")
+                || if shown_in.is_empty() { intrinsic } else { shown_in.iter().all(|s| *s == INNATE) };
+            let flat =
+                provided && always_on && !flags.contains("Conditionally") && !property.contains_key("m_eApplyFilter");
             let token = match text("m_strLocTokenOverride") {
                 "" => key,
                 token => token.trim_start_matches('#'),
@@ -344,12 +346,51 @@ mod tests {
         assert_eq!(flat_of(&stats(&entry(&props, &sections, &[]))), [("BonusFireRate", false), ("TechPower", false)]);
     }
 
+    // Shaped after `upgrade_close_range` in `scripts/abilities.vdata_c`, game build 6810.
     #[test]
-    fn a_passive_section_property_is_not_flat_even_when_unflagged() {
+    fn a_passive_section_property_is_not_flat_when_unflagged() {
         // The game leaves `m_eStatsUsageFlags` empty on range- and proc-gated bonuses; only the section says so.
-        let props = typed("TechPower", "15", "MODIFIER_VALUE_TECH_POWER", "IntrinsicallyProvidedInAbility");
-        let body = entry(&props, &section("EArea_Passive", &["TechPower"]), &["TechPower"]);
-        assert_eq!(flat_of(&stats(&body)), [("TechPower", false)]);
+        let props = typed("CloseRangeBonusWeaponPower", "20", "MODIFIER_VALUE_CLOSE_RANGE_WEAPON_DAMAGE_INCREASE", "");
+        let body =
+            entry(&props, &section("EArea_Passive", &["CloseRangeBonusWeaponPower"]), &["CloseRangeBonusWeaponPower"]);
+        let loc = english("\"CloseRangeBonusWeaponPower_label\" \"Weapon Damage\"");
+        assert_eq!(flat_of(&stats_of("upgrade_x", &body, &[loc])), [("CloseRangeBonusWeaponPower", false)]);
+    }
+
+    // Shaped after `upgrade_magic_shield` (Enchanter's Emblem) in `scripts/abilities.vdata_c`, game build 6810: its
+    // ALT "See Details" counts the passive +15 Spirit Power and +5% cooldown reduction in the value after purchase.
+    #[test]
+    fn an_intrinsically_provided_property_is_flat_in_any_section() {
+        let props = [
+            typed("TechPower", "15", "MODIFIER_VALUE_TECH_POWER", "IntrinsicallyProvidedInAbility"),
+            typed(
+                "CooldownReduction",
+                "5",
+                "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE",
+                "IntrinsicallyProvidedInAbility",
+            ),
+            typed("BonusFireRate", "7", "MODIFIER_VALUE_FIRE_RATE", "ConditionallyApplied"),
+        ]
+        .join("\n");
+        let body = entry(&props, &section("EArea_Passive", &["TechPower", "CooldownReduction", "BonusFireRate"]), &[]);
+        let loc = english("\"CooldownReduction_label\" \"Cooldown Reduction\"");
+        let parsed = stats_of("upgrade_x", &body, &[labels(), loc]);
+        assert_eq!(flat_of(&parsed), [("TechPower", true), ("CooldownReduction", true), ("BonusFireRate", false)]);
+    }
+
+    #[test]
+    fn an_intrinsically_provided_property_with_an_apply_filter_is_not_flat() {
+        let props = property(
+            "TechPower",
+            "15",
+            "m_eProvidedPropertyType = \"MODIFIER_VALUE_TECH_POWER\"\n\
+             m_eStatsUsageFlags = \"IntrinsicallyProvidedInAbility\"\n\
+             m_eApplyFilter = \"EApplyFilter_OnlyIfImbued\"",
+        );
+        assert_eq!(
+            flat_of(&stats(&entry(&props, &section("EArea_Passive", &["TechPower"]), &[]))),
+            [("TechPower", false)]
+        );
     }
 
     #[test]
@@ -695,6 +736,27 @@ mod installed_tests {
             (provides("MODIFIER_VALUE_STATUS_RESISTANCE"), Some(StatSection::Active))
         );
         assert_eq!(stat(blood_tribute, "BonusMoveSpeed").unit.as_deref(), Some("m"));
+    }
+
+    // Checked against the ALT "See Details" rows in game at 1440p (Enchanter's Emblem, Close Quarters), build 6810.
+    #[test]
+    fn the_installed_items_count_intrinsically_provided_passives_but_not_conditions() {
+        let Some(dir) = installed() else { return };
+        let abilities = ShopSource::read(&VpkVdataSource, &dir, ABILITIES_PATH).expect("abilities.vdata reads");
+        let all = item_stats(&abilities, &stat_localisation(&dir, "english"));
+        let of = |class: &str| all.get(&ability_id(class)).unwrap_or_else(|| panic!("{class} missing"));
+
+        let emblem = of("upgrade_magic_shield");
+        let shown = |s: &ItemStat| (s.key.clone(), s.value, s.flat, s.section);
+        assert_eq!(shown(stat(emblem, "TechPower")), ("TechPower".into(), 15.0, true, Some(StatSection::Passive)));
+        assert_eq!(
+            shown(stat(emblem, "CooldownReduction")),
+            ("CooldownReduction".into(), 5.0, true, Some(StatSection::Passive))
+        );
+        assert!(stat(emblem, "TechResist").flat);
+
+        assert!(!stat(of("upgrade_close_range"), "CloseRangeBonusWeaponPower").flat, "within Range");
+        assert!(!stat(of("upgrade_regenerating_bullet_shield"), "BonusFireRate").flat, "ConditionallyApplied");
     }
 
     // Checked against the ALT "See Details" sub-text in game at 1440p (Close Quarters, Monster Rounds), build 6810.

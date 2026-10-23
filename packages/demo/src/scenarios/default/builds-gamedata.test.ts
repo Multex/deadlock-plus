@@ -309,6 +309,44 @@ const STATUS_ONLY = {
     ],
 };
 
+// Shaped after `upgrade_magic_shield` (Enchanter's Emblem) in the public items asset: the game's ALT "See Details"
+// counts its passive Spirit Power and cooldown reduction in the value after purchase.
+const ENCHANTERS_EMBLEM = {
+    id: 3970837787,
+    class_name: "upgrade_magic_shield",
+    name: "Enchanter's Emblem",
+    type: "upgrade",
+    item_slot_type: "vitality",
+    item_tier: 2,
+    cost: 1600,
+    properties: {
+        TechPower: {
+            value: "15",
+            provided_property_type: "MODIFIER_VALUE_TECH_POWER",
+            usage_flags: ["IntrinsicallyProvidedInAbility"],
+            label: "Spirit Power",
+        },
+        CooldownReduction: {
+            value: "5",
+            provided_property_type: "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE",
+            usage_flags: ["IntrinsicallyProvidedInAbility"],
+            label: "Ability Cooldown Reduction",
+            postfix: "%",
+        },
+        TechResist: {
+            value: "18",
+            provided_property_type: "MODIFIER_VALUE_TECH_RESIST",
+            label: "Spirit Resist",
+            postfix: "%",
+        },
+        LifeThreshold: { value: "65", postfix: "%" },
+    },
+    tooltip_sections: [
+        { section_type: "innate", section_attributes: [{ elevated_properties: ["TechResist"] }] },
+        { section_type: "passive", section_attributes: [{ important_properties: ["TechPower", "CooldownReduction"] }] },
+    ],
+};
+
 const INFERNO_WEAPON = {
     id: 2,
     class_name: "citadel_weapon_inferno_set",
@@ -335,7 +373,7 @@ const ICONS = {
     upgrades: file(`${RES}/icons/upgrades/property_range.svg`),
 };
 
-const ITEMS = [NAPALM, SHOULDER_CHARGE, CLOSE_QUARTERS, SILENCER, STATUS_ONLY, INFERNO_WEAPON];
+const ITEMS = [NAPALM, SHOULDER_CHARGE, CLOSE_QUARTERS, SILENCER, STATUS_ONLY, ENCHANTERS_EMBLEM, INFERNO_WEAPON];
 
 const tier = (gold_threshold: number, bonus: number, percent_on_graph: number) => ({
     gold_threshold,
@@ -349,7 +387,7 @@ const HEROES = [
         id: 1,
         class_name: "hero_inferno",
         name: "Infernus",
-        items: { weapon_primary: "citadel_weapon_inferno_set" },
+        items: { weapon_primary: "citadel_weapon_inferno_set", weapon_melee: "ability_melee_inferno" },
         starting_stats: {
             max_move_speed: { value: 6.7, display_stat_name: "EMaxMoveSpeed" },
             light_melee_damage: { value: 50, display_stat_name: "ELightMeleeDamage" },
@@ -554,6 +592,22 @@ describe("build editor game data from the default scenario", () => {
         ]);
     });
 
+    it("counts an intrinsically provided passive as always on, and leaves a conditional bonus out", async () => {
+        const stats = (await start().invoke("game_item_stats", { locale: "en" })) as ItemStats[];
+        const flat = (id: number) =>
+            stats.find((s) => s.itemId === id)!.stats.map((s) => [s.key, s.section, s.flat] as const);
+        expect(flat(ENCHANTERS_EMBLEM.id)).toEqual([
+            ["TechPower", "passive", true],
+            ["CooldownReduction", "passive", true],
+            ["TechResist", "innate", true],
+        ]);
+        expect(flat(CLOSE_QUARTERS.id)).toEqual([
+            ["CloseRangeBonusWeaponPower", "passive", false],
+            ["CloseRangeBonusDamageRange", "passive", false],
+            ["MeleeResistPercent", "innate", true],
+        ]);
+    });
+
     it("moves a section's cooldown into its header, a proc cooldown first", async () => {
         const stats = (await start().invoke("game_item_stats", { locale: "en" })) as ItemStats[];
         const silencer = stats.find((s) => s.itemId === SILENCER.id)!;
@@ -616,7 +670,7 @@ describe("build editor game data from the default scenario", () => {
         ]);
     });
 
-    it("gives a hero's starting stats, level gains, slot investment and bullet damage", async () => {
+    it("gives a hero's starting stats, level gains, slot investment, bullet damage and weapon abilities", async () => {
         expect(await start().invoke("game_hero_stats", { heroId: 1 })).toEqual({
             heroId: 1,
             base: { EMaxMoveSpeed: 6.7, ELightMeleeDamage: 50, EMaxHealth: 830, EBaseHealthRegen: 2 },
@@ -637,12 +691,14 @@ describe("build editor game data from the default scenario", () => {
                 vitality: [{ souls: 800, bonus: 9, percentOnGraph: 7 }],
             },
             bulletDamage: 5.5,
+            weaponAbility: "citadel_weapon_inferno_set",
+            meleeAbility: "ability_melee_inferno",
         });
     });
 
     it("gives a hero without tables empty ones, and no stats for an unknown hero", async () => {
         const handle = start();
-        expect(await handle.invoke("game_hero_stats", { heroId: 2 })).toEqual({
+        expect(await handle.invoke("game_hero_stats", { heroId: 2 })).toStrictEqual({
             heroId: 2,
             base: {},
             perLevel: {},
@@ -655,8 +711,9 @@ describe("build editor game data from the default scenario", () => {
     it("gives the game's English UI strings for English, and none for another language", async () => {
         const handle = start();
         const english = (await handle.invoke("game_ui_strings", { locale: "en" })) as Record<string, string>;
-        expect(Object.keys(english)).toHaveLength(20);
+        expect(Object.keys(english)).toHaveLength(21);
         expect(english.Citadel_ItemViewImpact).toBe("See Details");
+        expect(english.Citadel_ItemModifies).toBe("Modifies");
         expect(english.Citadel_Mod_Tooltip_Passive).toBe("Passive");
         expect(english.Citadel_PopularityLabel_Early).toBe("Purchased early game in {d:popular_pct}% of matches.");
         expect(english.StatDesc_BulletDamage).toBe("Bullet Damage");

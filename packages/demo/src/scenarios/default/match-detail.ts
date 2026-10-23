@@ -31,6 +31,7 @@ import { seeded } from "../../random";
 import type { Identity, Module } from "../../scenario";
 import {
     abilityTooltips,
+    alwaysOnStat,
     gameUiStrings,
     heroStats,
     itemTooltip,
@@ -1536,11 +1537,7 @@ function itemStats(items: readonly AssetItem[]): ItemStats[] {
                 const label = property.label || property.postvalue_label;
                 if (shownIn.length === 0 || text === "" || !Number.isFinite(value) || value === 0 || !label) return [];
                 const provides = property.provided_property_type ?? null;
-                const flat =
-                    provides !== null &&
-                    shownIn.every((kind) => kind === "innate") &&
-                    !(property.usage_flags ?? []).some((flag) => flag.includes("Conditionally")) &&
-                    property.conditional === undefined;
+                const flat = alwaysOnStat(property, shownIn);
                 const first = shownIn[0]!;
                 return [
                     {

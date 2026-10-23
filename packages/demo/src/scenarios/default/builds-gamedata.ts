@@ -489,7 +489,10 @@ export function propertyIconArt(items: readonly GameAssetItem[], available: Read
 const numbers = (table: Record<string, unknown> | undefined): Record<string, number> =>
     Object.fromEntries(Object.entries(table ?? {}).filter((e): e is [string, number] => typeof e[1] === "number"));
 
-/** A hero's starting stats, level gains, slot investment and primary weapon bullet damage; null for no such hero. */
+/**
+ * A hero's starting stats, level gains, slot investment, primary weapon bullet damage and weapon and melee ability
+ * class names; null for no such hero.
+ */
 export function heroStats(
     heroes: readonly GameAssetHero[],
     items: readonly GameAssetItem[],
@@ -512,6 +515,8 @@ export function heroStats(
         perLevel: numbers(hero.standard_level_up_upgrades),
         investment: { weapon: tiers("weapon"), spirit: tiers("spirit"), vitality: tiers("vitality") },
         bulletDamage: weapon?.weapon_info?.bullet_damage ?? null,
+        ...(hero.items?.weapon_primary ? { weaponAbility: hero.items.weapon_primary } : {}),
+        ...(hero.items?.weapon_melee ? { meleeAbility: hero.items.weapon_melee } : {}),
     };
 }
 
@@ -530,6 +535,7 @@ const ENGLISH_UI_STRINGS: GameUiStrings = {
     Citadel_PopularityLabel_Late: "Purchased late game in {d:popular_pct}% of matches.",
     Citadel_Shop_ConditionalAttribute: "Conditional",
     Citadel_ItemViewImpact: "See Details",
+    Citadel_ItemModifies: "Modifies",
     Citadel_HeroBuilds_AP_Next_Indicator: "Recommended",
     Citadel_StatusEffect: "Status Effect",
     StatDesc_BulletDamage: "Bullet Damage",
@@ -538,6 +544,22 @@ const ENGLISH_UI_STRINGS: GameUiStrings = {
     StatDesc_MaxHealth: "Max Health",
     StatDesc_TechPower: "Spirit Power",
 };
+
+/**
+ * Whether an item stat counts toward the hero's stats while the item is owned. Range- and proc-gated bonuses sit in
+ * the passive section with no usage flag, so an unflagged stat counts only when shown solely as innate;
+ * `IntrinsicallyProvidedInAbility` marks a passive the game counts in the ALT "after" value.
+ */
+export function alwaysOnStat(
+    property: { provided_property_type?: string; usage_flags?: string[]; conditional?: string },
+    shownIn: readonly string[],
+): boolean {
+    const flags = property.usage_flags ?? [];
+    const always =
+        flags.includes("IntrinsicallyProvidedInAbility") ||
+        (shownIn.every((kind) => kind === "innate") && property.conditional === undefined);
+    return property.provided_property_type != null && always && !flags.some((flag) => flag.includes("Conditionally"));
+}
 
 /** The demo game is installed in English only; other languages get the app's own labels, as a missing token does. */
 export function gameUiStrings(locale: unknown): GameUiStrings {

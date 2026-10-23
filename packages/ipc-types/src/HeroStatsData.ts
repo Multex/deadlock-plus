@@ -17,4 +17,12 @@ investment: SlotInvestment,
 /**
  * The primary weapon's `m_mapWeaponInfos.primary.m_flBulletDamage` from the abilities vdata ([`hero_bullet_damage`]); None until it is read.
  */
-bulletDamage: number | null, };
+bulletDamage: number | null, 
+/**
+ * Class name of the ability bound to `ESlot_Weapon_Primary`, for its icon (`m_strAbilityImage`).
+ */
+weaponAbility?: string, 
+/**
+ * Class name of the ability bound to `ESlot_Weapon_Melee`, for its icon (`m_strAbilityImage`).
+ */
+meleeAbility?: string, };

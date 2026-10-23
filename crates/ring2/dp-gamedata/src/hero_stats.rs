@@ -36,6 +36,14 @@ pub struct HeroStatsData {
     pub investment: SlotInvestment,
     /// The primary weapon's `m_mapWeaponInfos.primary.m_flBulletDamage` from the abilities vdata ([`hero_bullet_damage`]); None until it is read.
     pub bullet_damage: Option<f64>,
+    /// Class name of the ability bound to `ESlot_Weapon_Primary`, for its icon (`m_strAbilityImage`).
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weapon_ability: Option<String>,
+    /// Class name of the ability bound to `ESlot_Weapon_Melee`, for its icon (`m_strAbilityImage`).
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub melee_ability: Option<String>,
 }
 
 /// Every playable hero's stats; a hero's own entries override `hero_base`'s.
@@ -58,6 +66,8 @@ pub fn hero_stats(heroes: &Object) -> HashMap<u32, HeroStatsData> {
                         vitality: slot("EItemSlotType_Armor"),
                     },
                     bullet_damage: None,
+                    weapon_ability: bound_ability(&lineage, "ESlot_Weapon_Primary").map(str::to_string),
+                    melee_ability: bound_ability(&lineage, "ESlot_Weapon_Melee").map(str::to_string),
                 },
             ))
         })
@@ -71,10 +81,7 @@ pub fn hero_bullet_damage(heroes: &Object, abilities: &Object) -> HashMap<u32, f
         .values()
         .filter_map(|hero| {
             let hero_id = hero.get("m_HeroID").and_then(Value::as_u32).filter(|id| *id != 0)?;
-            let weapon = lineage(heroes, hero)
-                .iter()
-                .rev()
-                .find_map(|entry| entry.get("m_mapBoundAbilities")?.get("ESlot_Weapon_Primary")?.as_str())?;
+            let weapon = bound_ability(&lineage(heroes, hero), "ESlot_Weapon_Primary")?;
             let damage = abilities
                 .get(weapon)?
                 .get("m_mapWeaponInfos")?
@@ -84,6 +91,11 @@ pub fn hero_bullet_damage(heroes: &Object, abilities: &Object) -> HashMap<u32, f
             Some((hero_id, damage))
         })
         .collect()
+}
+
+/// The ability class name the nearest entry in `lineage` binds to `slot` in `m_mapBoundAbilities`.
+fn bound_ability<'a>(lineage: &[&'a Value], slot: &str) -> Option<&'a str> {
+    lineage.iter().rev().find_map(|entry| entry.get("m_mapBoundAbilities")?.get(slot)?.as_str())
 }
 
 /// Guards against a `_base` cycle; real heroes are one level deep.
@@ -272,6 +284,34 @@ mod tests {
         assert_eq!(hero_bullet_damage(&heroes, &abilities()), HashMap::from([(1, 5.5), (21, 12.98)]));
     }
 
+    // Shaped after `scripts/heroes.vdata_c`, game build 6810: `hero_base` binds Infernus's weapon and melee.
+    #[test]
+    fn the_weapon_and_melee_abilities_are_the_bound_class_names_inherited_or_own() {
+        let heroes = root(
+            "{
+                hero_base = {
+                    m_HeroID = 0
+                    m_mapBoundAbilities = {
+                        ESlot_Weapon_Primary = \"citadel_weapon_inferno_set\"
+                        ESlot_Weapon_Melee = \"ability_melee_inferno\"
+                    }
+                }
+                hero_inferno = { _base = \"hero_base\" m_HeroID = 1 }
+                hero_necro = {
+                    _base = \"hero_base\"
+                    m_HeroID = 66
+                    m_mapBoundAbilities = { ESlot_Weapon_Primary = \"citadel_weapon_necro_set\" }
+                }
+                hero_unbound = { m_HeroID = 5 }
+            }",
+        );
+        let stats = hero_stats(&heroes);
+        let bound = |id: u32| (stats[&id].weapon_ability.as_deref(), stats[&id].melee_ability.as_deref());
+        assert_eq!(bound(1), (Some("citadel_weapon_inferno_set"), Some("ability_melee_inferno")));
+        assert_eq!(bound(66), (Some("citadel_weapon_necro_set"), Some("ability_melee_inferno")));
+        assert_eq!(bound(5), (None, None));
+    }
+
     #[test]
     fn hero_stats_leave_bullet_damage_to_the_abilities_reader() {
         assert!(hero_stats(&heroes()).values().all(|s| s.bullet_damage.is_none()));
@@ -298,5 +338,7 @@ mod tests {
                 .unwrap();
         let damage = hero_bullet_damage(doc.root.as_object().unwrap(), abilities.root.as_object().unwrap());
         assert_eq!(damage.get(&2), Some(&10.8));
+        assert_eq!(stats[&2].weapon_ability.as_deref(), Some("citadel_weapon_gigawatt_set"));
+        assert_eq!(stats[&2].melee_ability.as_deref(), Some("citadel_ability_melee_gigawatt"));
     }
 }

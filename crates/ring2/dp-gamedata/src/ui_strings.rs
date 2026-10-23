@@ -6,7 +6,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 /// The game strings the game-ui labels use, with the bundle each lives in.
-pub const GAME_UI_TOKENS: [(&str, &str); 20] = [
+pub const GAME_UI_TOKENS: [(&str, &str); 21] = [
     ("citadel_main", "Citadel_Mod_Tooltip_Passive"),
     ("citadel_main", "Citadel_Mod_Tooltip_Active"),
     ("citadel_main", "Citadel_Shop_Purchased"),
@@ -20,6 +20,7 @@ pub const GAME_UI_TOKENS: [(&str, &str); 20] = [
     ("citadel_main", "Citadel_PopularityLabel_Late"),
     ("citadel_main", "Citadel_Shop_ConditionalAttribute"),
     ("citadel_main", "Citadel_ItemViewImpact"),
+    ("citadel_main", "Citadel_ItemModifies"),
     ("citadel_main", "Citadel_HeroBuilds_AP_Next_Indicator"),
     ("citadel_attributes", "Citadel_StatusEffect"),
     ("citadel_attributes", "StatDesc_BulletDamage"),
@@ -193,9 +194,9 @@ mod tests {
         assert_eq!(german.get("Citadel_Mod_Tooltip_Passive").map(String::as_str), Some("Passiv"));
     }
 
-    // Game build 6810: the stat names the ALT "See Details" rows show.
+    // Game build 6810: the stat names the ALT "See Details" rows show, and the header over them.
     #[test]
-    fn the_installed_game_names_the_alt_column_stats_in_english() {
+    fn the_installed_game_names_the_alt_column_in_english() {
         use crate::catalog::{Install, SteamInstall};
         let dir = std::env::var_os("DEADLOCK_CITADEL_DIR").map(PathBuf::from).or_else(|| SteamInstall.citadel_dir());
         let Some(dir) =
@@ -211,6 +212,7 @@ mod tests {
         assert_eq!(named("StatDesc_HeavyMeleeDamage"), Some("Heavy Melee"));
         assert_eq!(named("StatDesc_MaxHealth"), Some("Max Health"));
         assert_eq!(named("StatDesc_TechPower"), Some("Spirit Power"));
+        assert_eq!(named("Citadel_ItemModifies"), Some("Modifies"));
     }
 
     #[test]
