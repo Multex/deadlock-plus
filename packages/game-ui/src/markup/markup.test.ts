@@ -158,6 +158,10 @@ describe("parseMarkup", () => {
         ]);
     });
 
+    it("leaves an out-of-range numeric entity as its literal text", () => {
+        expect(parseMarkup("a &#99999999; b &#xFFFFFFFF; c &#65;")).toEqual([text("a &#99999999; b &#xFFFFFFFF; c A")]);
+    });
+
     it("returns nothing for an empty source", () => {
         expect(parseMarkup("")).toEqual([]);
     });

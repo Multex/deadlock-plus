@@ -70,10 +70,14 @@ const GAME_TOKEN = /^\{g:(citadel_inline_attribute|citadel_binding):'([A-Za-z0-9
 const ENTITY = /&(?:#(\d+)|#x([0-9a-f]+)|(amp|lt|gt|quot|apos|nbsp|#39));/gi;
 const NAMED_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
+function codePointText(code: number): string | null {
+    return Number.isInteger(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : null;
+}
+
 function decodeEntities(text: string): string {
     return text.replace(ENTITY, (whole, dec: string | undefined, hex: string | undefined, name: string | undefined) => {
-        if (dec !== undefined) return String.fromCodePoint(Number(dec));
-        if (hex !== undefined) return String.fromCodePoint(parseInt(hex, 16));
+        if (dec !== undefined) return codePointText(Number(dec)) ?? whole;
+        if (hex !== undefined) return codePointText(parseInt(hex, 16)) ?? whole;
         if (name === "#39") return "'";
         return NAMED_ENTITIES[name?.toLowerCase() ?? ""] ?? whole;
     });
