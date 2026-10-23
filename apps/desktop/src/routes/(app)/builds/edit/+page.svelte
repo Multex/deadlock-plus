@@ -1,6 +1,6 @@
 <script lang="ts">
     import { ArrowLeft, Info, LoaderCircle } from "@lucide/svelte";
-    import { tick } from "svelte";
+    import { tick, untrack } from "svelte";
     import { toast } from "svelte-sonner";
     import { beforeNavigate, goto, replaceState } from "$app/navigation";
     import { page } from "$app/state";
@@ -9,7 +9,7 @@
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { buildsDrafts, buildsLocal } from "$lib/features/builds/api";
     import { chipFor, loadKit, loadPublic, type HeroKit } from "$lib/features/builds/build-detail.svelte";
-    import { shownHref } from "$lib/features/builds/edit-page";
+    import { sessionText, shownHref } from "$lib/features/builds/edit-page";
     import type { ResolveChoice } from "@deadlock-plus/ipc-types/ResolveChoice";
     import { loadShopCatalog, type ShopCatalog } from "$lib/features/builds/catalog";
     import AbilityBar from "$lib/features/builds/components/editor/ability-bar.svelte";
@@ -28,7 +28,7 @@
     import SoulsTimeline from "$lib/features/builds/components/editor/souls-timeline.svelte";
     import { addCategory, type ItemRef } from "$lib/features/builds/editor/document";
     import { BuildEditor } from "$lib/features/builds/editor/editor.svelte";
-    import { loadEditSession, parseEditTarget, protoLanguage } from "$lib/features/builds/editor/load";
+    import { loadEditSession, parseEditTarget } from "$lib/features/builds/editor/load";
     import { HeroPopularity } from "$lib/features/builds/editor/popularity.svelte";
     import { LOCAL_ID_LIMIT } from "$lib/features/builds/my-builds";
     import { MEASURED_RESOLUTION, SHOP_SCREENS, type ShopResolution } from "$lib/features/builds/shop-view";
@@ -76,9 +76,7 @@
                     local: buildsLocal,
                     drafts: buildsDrafts,
                     published: async (id) => (await loadPublic(id))?.build ?? null,
-                    language: protoLanguage(i18n.locale),
-                    copyName: (name) => t("builds.mine.copy_name", { name }),
-                    categoryName: t("builds.editor.first_category"),
+                    ...sessionText(),
                 });
                 if (!live) return;
                 if (!session) {
@@ -90,10 +88,6 @@
                 status = "ready";
                 const heroId = session.build.heroId;
                 void popularity.load(heroId);
-                void loadShopCatalog(i18n.locale).then(
-                    (loaded) => live && (catalog = loaded),
-                    () => live && (catalogFailed = true),
-                );
                 void loadKit(heroId).then(
                     (loaded: HeroKit) => live && (kit = loaded),
                     () => {},
@@ -114,6 +108,20 @@
                 void opened.flushDraft();
                 opened.dispose();
             }
+        };
+    });
+
+    // Its own effect, so a locale change renames the shop without reopening the editor.
+    $effect(() => {
+        if (status !== "ready") return;
+        const locale = i18n.locale;
+        let live = true;
+        void untrack(() => loadShopCatalog(locale)).then(
+            (loaded) => live && (catalog = loaded),
+            () => live && !untrack(() => catalog) && (catalogFailed = true),
+        );
+        return () => {
+            live = false;
         };
     });
 
