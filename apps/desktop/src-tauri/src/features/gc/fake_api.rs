@@ -14,20 +14,31 @@ pub struct Request {
 pub struct Reply {
     status: &'static str,
     set_cookie: Option<&'static str>,
+    retry_after: Option<&'static str>,
     body: &'static str,
 }
 
 impl Reply {
     pub fn json(body: &'static str) -> Self {
-        Self { status: "200 OK", set_cookie: None, body }
+        Self { status: "200 OK", set_cookie: None, retry_after: None, body }
     }
 
     pub fn status(status: &'static str) -> Self {
-        Self { status, set_cookie: None, body: "" }
+        Self { status, set_cookie: None, retry_after: None, body: "" }
     }
 
     pub fn set_cookie(mut self, header: &'static str) -> Self {
         self.set_cookie = Some(header);
+        self
+    }
+
+    pub fn retry_after(mut self, secs: &'static str) -> Self {
+        self.retry_after = Some(secs);
+        self
+    }
+
+    pub fn body(mut self, body: &'static str) -> Self {
+        self.body = body;
         self
     }
 }
@@ -52,8 +63,9 @@ impl FakeApi {
                 log.lock().unwrap().push(request);
                 let reply = replies.pop_front().unwrap_or(Reply::status("404 Not Found"));
                 let cookie = reply.set_cookie.map(|c| format!("Set-Cookie: {c}\r\n")).unwrap_or_default();
+                let retry_after = reply.retry_after.map(|s| format!("Retry-After: {s}\r\n")).unwrap_or_default();
                 let head = format!(
-                    "HTTP/1.1 {}\r\n{cookie}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    "HTTP/1.1 {}\r\n{cookie}{retry_after}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                     reply.status,
                     reply.body.len()
                 );

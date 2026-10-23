@@ -1,33 +1,19 @@
 use std::time::Duration;
 
-const BASE_BACKOFF: Duration = Duration::from_secs(30);
-const MAX_BACKOFF: Duration = Duration::from_secs(30 * 60);
-/// A `Retry-After` longer than this is treated as a mistake and clamped.
-const MAX_RETRY_AFTER: Duration = Duration::from_secs(60 * 60);
+use crate::http::retry::Backoff;
+pub use crate::http::retry::Reply;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Reply {
-    Ok,
-    /// 404: the API has not ingested the match yet. Normal for a new match; try again on a later run.
-    NotYet,
-    /// 429, 5xx or a timeout: wait this long before the next call to the API.
-    Wait(Duration),
-    Fail,
-}
+/// A failed call is retried on a later run, so the waits are long and a `Retry-After` up to an hour is honoured.
+const MVP: Backoff = Backoff {
+    base: Duration::from_secs(30),
+    max: Duration::from_secs(30 * 60),
+    max_retry_after: Duration::from_secs(60 * 60),
+    min_retry_after: Duration::ZERO,
+};
 
 /// `attempt` counts earlier failures of the same call, starting at 0.
 pub fn classify(status: u16, retry_after: Option<&str>, attempt: u32) -> Reply {
-    match status {
-        200..=299 => Reply::Ok,
-        404 => Reply::NotYet,
-        429 | 500..=599 => Reply::Wait(retry_after.and_then(retry_after_secs).unwrap_or_else(|| backoff(attempt))),
-        _ => Reply::Fail,
-    }
-}
-
-/// Only the delay-seconds form; the HTTP-date form falls back to the backoff.
-fn retry_after_secs(value: &str) -> Option<Duration> {
-    value.trim().parse::<u64>().ok().map(|s| Duration::from_secs(s).min(MAX_RETRY_AFTER))
+    MVP.classify(status, retry_after, attempt)
 }
 
 /// A request that never got a status (timeout, connection reset) backs off like a 5xx.
@@ -36,7 +22,7 @@ pub fn transport_failure(attempt: u32) -> Reply {
 }
 
 pub fn backoff(attempt: u32) -> Duration {
-    BASE_BACKOFF.saturating_mul(1u32.checked_shl(attempt).unwrap_or(u32::MAX)).min(MAX_BACKOFF)
+    MVP.after(attempt)
 }
 
 #[cfg(test)]

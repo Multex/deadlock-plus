@@ -1,3 +1,5 @@
+pub mod retry;
+
 pub struct Http(pub reqwest::Client);
 
 impl Default for Http {
