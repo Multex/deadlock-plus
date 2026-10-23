@@ -46,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Ability and item tooltips use your hero's stats at that point in the build.
 - See Details groups its rows under each ability, owned item and stat, with their icons, as in-game.
 - See Details counts an item's always-on bonuses, such as Enchanter's Emblem's spirit power.
+- See Details counts an imbued item's bonus only for the ability it is imbued into.
 - Ability tooltips shorten cooldowns by your cooldown reduction, which stacks as in-game.
 - The build view's shop marks popular items with their pick and win rates.
 

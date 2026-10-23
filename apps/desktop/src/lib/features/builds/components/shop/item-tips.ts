@@ -16,7 +16,7 @@ import { levelAt, placeItems } from "../../editor/timeline";
 import { phaseStatsFor, type PhaseStats } from "../../editor/popularity";
 import type { HeroPopularity } from "../../editor/popularity.svelte";
 import { itemTooltipInput, popularityFor, type TooltipCatalog } from "../../game-item";
-import { heroStatsAt, itemDetails, type GroupsOf } from "../../hero-stats";
+import { heroStatsAt, itemDetails, type AbilityGroupsOf, type GroupsOf } from "../../hero-stats";
 import { heroStatsAtNetWorth } from "../../hero-timeline";
 import { itemsStillOwned } from "../../stats";
 
@@ -211,8 +211,8 @@ type TipPoint = {
     ownedIds: number[];
     heroStats: HeroStats | undefined;
     note: BuildNoteInput | null;
-    /** Abilities an owned imbue item is imbued on. */
-    imbued: ReadonlySet<number>;
+    /** Each owned imbue item's target ability, by item id. */
+    imbues: ReadonlyMap<number, number>;
 };
 
 /**
@@ -223,7 +223,7 @@ function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null)
     const { catalog, build, kit } = source;
     const stats = (level: number, itemIds: number[]) =>
         hero ? heroStatsAt(hero, { level, itemIds }, catalog) : undefined;
-    if (!build) return { level: 1, ownedIds: [], heroStats: stats(1, []), note: null, imbued: new Set() };
+    if (!build) return { level: 1, ownedIds: [], heroStats: stats(1, []), note: null, imbues: new Map() };
 
     const levels = kit?.levels ?? [];
     const entries = placeItems(build, catalog.byId);
@@ -231,22 +231,22 @@ function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null)
     const placed = entries[index];
     const entry = buildEntry(build, id, placed?.ref);
     const note = entry ? buildNote(entry, kit) : null;
-    const imbuedBy = (owned: typeof entries) =>
-        new Set(
-            owned.flatMap((e) => {
+    const imbuesOf = (owned: typeof entries) =>
+        new Map(
+            owned.flatMap((e): [number, number][] => {
                 const target = catalog.byId.get(e.abilityId)?.imbue ? buildEntry(build, e.abilityId, e.ref) : null;
-                return target?.imbueTargetAbilityId != null ? [target.imbueTargetAbilityId] : [];
+                return target?.imbueTargetAbilityId != null ? [[e.abilityId, target.imbueTargetAbilityId]] : [];
             }),
         );
     if (placed) {
         const level = levelAt(levels, placed.netWorth) ?? 1;
         const heroStats = hero ? heroStatsAtNetWorth({ hero, entries, levels, catalog }, placed.netWorth) : undefined;
         const owned = entries.slice(0, index);
-        return { level, ownedIds: owned.map((e) => e.abilityId), heroStats, note, imbued: imbuedBy(owned) };
+        return { level, ownedIds: owned.map((e) => e.abilityId), heroStats, note, imbues: imbuesOf(owned) };
     }
     const ownedIds = entries.map((e) => e.abilityId);
     const level = levelAt(levels, chainCost(catalog.byId, [...ownedIds, id]).total) ?? 1;
-    return { level, ownedIds, heroStats: stats(level, ownedIds), note, imbued: imbuedBy(entries) };
+    return { level, ownedIds, heroStats: stats(level, ownedIds), note, imbues: imbuesOf(entries) };
 }
 
 /** Each ability's highest tier the build has trained by `level`; 0 for one it has not. */
@@ -261,19 +261,24 @@ function tiersAt(source: TipSourceData, level: number): Map<number, number> {
     return tiers;
 }
 
-/** Per hero ability in slot order, under its icon, the values the item changes; abilities with none are left out. */
-function abilityGroups(source: TipSourceData, host: TipHost, point: TipPoint): GroupsOf | undefined {
+/**
+ * Per hero ability in slot order, under its icon, the values the item changes; abilities with none are left out. An
+ * ability is backed as imbued while an imbue item is still on it after the purchase.
+ */
+function abilityGroups(source: TipSourceData, host: TipHost, point: TipPoint): AbilityGroupsOf | undefined {
     const tooltips = host.abilityTooltips;
     const abilities = source.kit?.abilities;
     if (!tooltips || !abilities) return undefined;
     const tiers = tiersAt(source, point.level);
-    return (before, after) =>
+    return (heroFor) =>
         [...abilities.values()].flatMap((info): StatGroup[] => {
             const ability = tooltips.get(info.id);
-            const changes = ability ? abilityChanges(ability, tiers.get(info.id) ?? 0, before, after) : [];
+            if (!ability) return [];
+            const { before, after, imbued } = heroFor(info.id);
+            const changes = abilityChanges(ability, tiers.get(info.id) ?? 0, before, after);
             if (changes.length === 0) return [];
             const group: StatGroup = { kind: "ability", icon: info.art ?? null, changes };
-            return [point.imbued.has(info.id) ? { ...group, imbued: true } : group];
+            return [imbued ? { ...group, imbued: true } : group];
         });
 }
 
@@ -331,6 +336,7 @@ export function tipInput(source: TipSourceData, id: number, host: TipHost): Item
               label: host.label,
               icon: host.icon,
               weaponIcon: host.weaponIcon ?? null,
+              imbues: point.imbues,
               abilityGroups: abilityGroups(source, host, point),
               itemGroups: itemGroups(source.catalog, point.ownedIds),
               condition: source.catalog.conditionById?.get(id) ?? null,

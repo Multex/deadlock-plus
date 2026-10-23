@@ -125,11 +125,12 @@ class StatSheet {
 
 /**
  * The hero at `level` owning `itemIds` (bought in order): base stats, level-up gains, the items' always-on stats and
- * slot investment, keyed by the game's stat enum. Conditional item bonuses are left out.
+ * slot investment, keyed by the game's stat enum. Conditional item bonuses are left out. `imbued` names the owned
+ * items imbued on the one ability being valued, whose imbue-only stats then count too.
  */
 export function heroStatsAt(
     hero: HeroStatsData,
-    at: { level: number; itemIds: readonly number[] },
+    at: { level: number; itemIds: readonly number[]; imbued?: ReadonlySet<number> },
     catalog: StatCatalog,
 ): HeroStats {
     const levelsGained = Math.max(0, at.level - 1);
@@ -146,8 +147,10 @@ export function heroStatsAt(
 
     // One stat at a time: stacking percents cannot be summed first.
     for (const id of itemsStillOwned(catalog.byId, at.itemIds)) {
-        for (const { flat, provides, value } of catalog.statsById.get(id) ?? []) {
-            const effect = flat && provides !== null ? MODIFIER_STATS[provides] : undefined;
+        const imbued = at.imbued?.has(id) === true;
+        for (const { flat, onlyIfImbued, provides, value } of catalog.statsById.get(id) ?? []) {
+            const counts = flat || (imbued && onlyIfImbued === true);
+            const effect = counts && provides !== null ? MODIFIER_STATS[provides] : undefined;
             if (effect) sheet.apply(effect, value);
         }
     }
@@ -174,6 +177,15 @@ const STAT_ROWS: readonly StatRow[] = [{ stat: "ETechArmorDamageReduction", deci
 
 export type GroupsOf = (before: HeroStats, after: HeroStats) => readonly StatGroup[];
 
+/** The hero as one ability sees it before and after the purchase, and whether an owned item is imbued on it after. */
+export interface AbilityHero {
+    before: HeroStats;
+    after: HeroStats;
+    imbued: boolean;
+}
+
+export type AbilityGroupsOf = (heroFor: (abilityId: number) => AbilityHero) => readonly StatGroup[];
+
 export interface ItemDetailsInput {
     hero: HeroStatsData;
     level: number;
@@ -186,8 +198,13 @@ export interface ItemDetailsInput {
     icon?: (stat: string) => string | null;
     /** The hero's weapon ability image, which the game draws beside bullet damage. */
     weaponIcon?: string | null;
+    /**
+     * Each owned imbue item's target ability, by item id. The item being bought is imbued on nothing yet: the game
+     * shows Compress Cooldown no ALT panel.
+     */
+    imbues?: ReadonlyMap<number, number>;
     /** The hero's other ability groups, in slot order. */
-    abilityGroups?: GroupsOf;
+    abilityGroups?: AbilityGroupsOf;
     /** A group per owned item whose values the item changes. */
     itemGroups?: GroupsOf;
     /** The item's own condition text, which the game repeats under every row. */
@@ -220,12 +237,24 @@ function statChange(
  */
 export function itemDetails(input: ItemDetailsInput): ItemDetails | null {
     if (!input.catalog.byId.has(input.itemId)) return null;
-    const before = heroStatsAt(input.hero, { level: input.level, itemIds: input.ownedIds }, input.catalog);
-    const after = heroStatsAt(
-        input.hero,
-        { level: input.level, itemIds: [...input.ownedIds, input.itemId] },
-        input.catalog,
-    );
+    const { hero, level, catalog } = input;
+    const boughtIds = [...input.ownedIds, input.itemId];
+    const before = heroStatsAt(hero, { level, itemIds: input.ownedIds }, catalog);
+    const after = heroStatsAt(hero, { level, itemIds: boughtIds }, catalog);
+    const stillOwned = new Set(itemsStillOwned(catalog.byId, boughtIds));
+    // A purchase that uses the imbued item up as a component ends the imbue: Superior Cooldown takes Compress
+    // Cooldown's 18% off Grasping Hands (28 -> 27s) and the game draws the group without its imbued background.
+    const heroFor = (abilityId: number): AbilityHero => {
+        const imbued = new Set(
+            [...(input.imbues ?? [])].filter(([, target]) => target === abilityId).map(([id]) => id),
+        );
+        if (imbued.size === 0) return { before, after, imbued: false };
+        return {
+            before: heroStatsAt(hero, { level, itemIds: input.ownedIds, imbued }, catalog),
+            after: heroStatsAt(hero, { level, itemIds: boughtIds, imbued }, catalog),
+            imbued: [...imbued].some((id) => stillOwned.has(id)),
+        };
+    };
     const bullet = statChange("EBulletDamage", before, after, {
         label: input.label("EBulletDamage"),
         decimals: 1,
@@ -239,7 +268,7 @@ export function itemDetails(input: ItemDetailsInput): ItemDetails | null {
     return {
         groups: [
             ...weapon,
-            ...(input.abilityGroups?.(before, after) ?? []),
+            ...(input.abilityGroups?.(heroFor) ?? []),
             ...(input.itemGroups?.(before, after) ?? []),
             ...stats,
         ],

@@ -11,6 +11,10 @@ key: string, value: number, unit: string | null, label: string,
  */
 flat: boolean, 
 /**
+ * Counts like a flat stat, but only on the ability the item is imbued on (`EApplyFilter_OnlyIfImbued`).
+ */
+onlyIfImbued?: boolean, 
+/**
  * The game's `m_eProvidedPropertyType`; stats with different keys can provide the same thing.
  */
 provides: string | null, 

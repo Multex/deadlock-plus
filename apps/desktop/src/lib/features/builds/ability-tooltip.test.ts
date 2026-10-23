@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AbilityProperty } from "@deadlock-plus/ipc-types/AbilityProperty";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { AbilityUpgrade } from "@deadlock-plus/ipc-types/AbilityUpgrade";
+import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
+import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { loadAbilityTooltips } from "$lib/features/gamedata/vdata";
+import type { ShopItem } from "./catalog";
 import type { OrderStep } from "./editor/ability-order";
+import { itemDetails, type StatCatalog } from "./hero-stats";
 
 vi.mock("$lib/features/gamedata/vdata", () => ({ loadAbilityTooltips: vi.fn() }));
 vi.mock("$lib/features/gamedata/art-refresh", () => ({ onGameArtChanged: vi.fn() }));
@@ -250,6 +254,136 @@ describe("abilityChanges", () => {
             ["ability:8:AbilityCooldown", "12.0", "11.4"],
         ]);
         expect(changes[2]).toMatchObject({ label: "AbilityCooldown label", postfix: "s", decimals: 1 });
+    });
+
+    // Superior Cooldown on Graves with Compress Cooldown owned (capture nUeFQZwFv9): Death Required 120 -> 96,
+    // Grasping Hands' cooldown 28 -> 27s, Borrowed Decree's 140 -> 112s. Values from `scripts/abilities.vdata_c`.
+    describe("Superior Cooldown on Graves", () => {
+        const COMPRESS = 1;
+        const SUPERIOR = 2;
+        const shopItem = (id: number, tier: 2 | 3, componentIds: number[], imbue: boolean): ShopItem => ({
+            id,
+            className: `upgrade_${id}`,
+            name: `Item ${id}`,
+            slot: "spirit",
+            tier,
+            cost: tier === 2 ? 1600 : 3200,
+            active: false,
+            shopable: true,
+            disabled: false,
+            imbue,
+            shopFilters: [],
+            disabledShopFilters: [],
+            componentIds,
+        });
+        const itemStat = (key: string, value: number, provides: string, flat: boolean): ItemStat => ({
+            key,
+            value,
+            unit: null,
+            label: key,
+            flat,
+            provides,
+            section: "passive",
+        });
+        const cdrProvided = "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE";
+        // As dp-gamedata reads them: Compress Cooldown's 18% applies only to the imbued ability.
+        const catalog: StatCatalog = {
+            byId: new Map([
+                [COMPRESS, shopItem(COMPRESS, 2, [], true)],
+                [SUPERIOR, shopItem(SUPERIOR, 3, [COMPRESS], false)],
+            ]),
+            statsById: new Map([
+                [COMPRESS, [{ ...itemStat("CooldownReduction", 18, cdrProvided, false), onlyIfImbued: true }]],
+                [
+                    SUPERIOR,
+                    [
+                        itemStat("CooldownReduction", 20, cdrProvided, true),
+                        itemStat("OutOfCombatHealthRegen", 4, "MODIFIER_VALUE_OUT_OF_COMBAT_HEALTH_REGEN", true),
+                    ],
+                ],
+            ]),
+        };
+        const graves: HeroStatsData = {
+            heroId: 1,
+            base: {},
+            perLevel: {},
+            investment: { weapon: [], spirit: [], vitality: [] },
+            bulletDamage: null,
+        };
+        const cooldown = (value: number) =>
+            property("AbilityCooldown", { value, unit: "s", cssClass: "cooldown", scale: cdr(null) });
+        // Jar of Dead has charges: no cooldown, and a charge delay no stat scales.
+        const jarOfDead: AbilityTooltip = {
+            ...ability(11, "Jar of Dead"),
+            charges: property("AbilityCharges", { value: 4, cssClass: "cast", scale: null }),
+            chargeCooldown: property("AbilityCooldownBetweenCharge", {
+                value: 13,
+                unit: "s",
+                cssClass: "charge_cooldown",
+                scale: null,
+            }),
+            sections: [
+                {
+                    description: null,
+                    values: {},
+                    groups: [],
+                    properties: [
+                        property("ResourceCost", {
+                            value: 120,
+                            label: "Death Required",
+                            cssClass: "cast",
+                            scale: cdr(1),
+                        }),
+                    ],
+                    requiredTier: null,
+                },
+            ],
+        };
+        const hands: AbilityTooltip = { ...ability(12, "Grasping Hands"), cooldown: cooldown(34) };
+        const theft: AbilityTooltip = ability(13, "Essence Theft");
+        const decree: AbilityTooltip = { ...ability(14, "Borrowed Decree"), cooldown: cooldown(140) };
+
+        const round = (n: number) => Math.round(n * 100) / 100;
+
+        async function rows(imbues: ReadonlyMap<number, number>) {
+            const { abilityChanges } = await adapter();
+            const details = itemDetails({
+                hero: graves,
+                level: 20,
+                ownedIds: [COMPRESS],
+                itemId: SUPERIOR,
+                catalog,
+                label: (stat) => stat,
+                imbues,
+                abilityGroups: (heroFor) =>
+                    [jarOfDead, hands, theft, decree].flatMap((a) => {
+                        const { before, after, imbued } = heroFor(a.abilityId);
+                        const changes = abilityChanges(a, 0, before, after);
+                        return changes.length > 0 ? [{ kind: "ability" as const, icon: a.name, imbued, changes }] : [];
+                    }),
+            })!;
+            return details.groups.map((g) => [
+                g.icon,
+                g.imbued,
+                g.changes.map((c) => [c.label, round(c.before), round(c.after)]),
+            ]);
+        }
+
+        // The game shows Grasping Hands 28 -> 27s: 34 x 0.82 = 27.88 while Compress Cooldown is imbued on it, and
+        // 34 x 0.8 = 27.2 once Superior Cooldown has used Compress Cooldown up. No imbued background after. The tooltip
+        // model rounds a cooldown to one decimal, so 27.88 reads 27.9 here; the whole-number display is not modelled.
+        it("lists each value the purchase changes, counting the imbued 18% on Grasping Hands until it is used up", async () => {
+            expect(await rows(new Map([[COMPRESS, hands.abilityId]]))).toEqual([
+                ["Jar of Dead", false, [["Death Required", 120, 96]]],
+                ["Grasping Hands", false, [["AbilityCooldown label", 27.9, 27.2]]],
+                ["Borrowed Decree", false, [["AbilityCooldown label", 140, 112]]],
+            ]);
+        });
+
+        it("counts Compress Cooldown's 18% on no ability when it is imbued on none", async () => {
+            const hands = (await rows(new Map())).find(([icon]) => icon === "Grasping Hands");
+            expect(hands).toEqual(["Grasping Hands", false, [["AbilityCooldown label", 34, 27.2]]]);
+        });
     });
 });
 

@@ -373,7 +373,70 @@ const ICONS = {
     upgrades: file(`${RES}/icons/upgrades/property_range.svg`),
 };
 
-const ITEMS = [NAPALM, SHOULDER_CHARGE, CLOSE_QUARTERS, SILENCER, STATUS_ONLY, ENCHANTERS_EMBLEM, INFERNO_WEAPON];
+// Shaped after `upgrade_cooldown_reduction` (Superior Cooldown) in the public items asset: an empty usage flag is
+// left out.
+const SUPERIOR_COOLDOWN = {
+    id: 2463960640,
+    class_name: "upgrade_cooldown_reduction",
+    name: "Superior Cooldown",
+    type: "upgrade",
+    item_slot_type: "spirit",
+    item_tier: 3,
+    cost: 3200,
+    properties: {
+        CooldownReduction: {
+            value: "20",
+            provided_property_type: "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE",
+            postvalue_label: "Ability Cooldown Reduction",
+            postfix: "%",
+        },
+        OutOfCombatHealthRegen: {
+            value: "4",
+            provided_property_type: "MODIFIER_VALUE_OUT_OF_COMBAT_HEALTH_REGEN",
+            postvalue_label: "Out of Combat Regen",
+        },
+    },
+    tooltip_sections: [
+        { section_type: "innate", section_attributes: [{ properties: ["OutOfCombatHealthRegen"] }] },
+        { section_type: "passive", section_attributes: [{ elevated_properties: ["CooldownReduction"] }] },
+    ],
+};
+
+// Shaped after `upgrade_magic_tempo` (Compress Cooldown) in the public items asset: the asset marks the imbue on the
+// item, not the property.
+const COMPRESS_COOLDOWN = {
+    id: 3133167885,
+    class_name: "upgrade_magic_tempo",
+    name: "Compress Cooldown",
+    type: "upgrade",
+    item_slot_type: "spirit",
+    item_tier: 2,
+    cost: 1600,
+    imbue: "imbue_modifier_value",
+    properties: {
+        CooldownReduction: {
+            value: "18",
+            provided_property_type: "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE",
+            postvalue_label: "Ability Cooldown Reduction",
+            postfix: "%",
+        },
+    },
+    tooltip_sections: [
+        { section_type: "passive", section_attributes: [{ elevated_properties: ["CooldownReduction"] }] },
+    ],
+};
+
+const ITEMS = [
+    NAPALM,
+    SHOULDER_CHARGE,
+    CLOSE_QUARTERS,
+    SILENCER,
+    STATUS_ONLY,
+    ENCHANTERS_EMBLEM,
+    INFERNO_WEAPON,
+    SUPERIOR_COOLDOWN,
+    COMPRESS_COOLDOWN,
+];
 
 const tier = (gold_threshold: number, bonus: number, percent_on_graph: number) => ({
     gold_threshold,
@@ -606,6 +669,32 @@ describe("build editor game data from the default scenario", () => {
             ["CloseRangeBonusDamageRange", "passive", false],
             ["MeleeResistPercent", "innate", true],
         ]);
+    });
+
+    // Superior Cooldown's ALT panel counts its passive +20% (Borrowed Decree 140 -> 112s); Compress Cooldown, which
+    // reduces only the imbued ability, has no ALT panel.
+    it("counts an unflagged passive while the item names no condition and imbues nothing", async () => {
+        const stats = (await start().invoke("game_item_stats", { locale: "en" })) as ItemStats[];
+        const flat = (id: number) =>
+            stats.find((s) => s.itemId === id)!.stats.map((s) => [s.key, s.section, s.flat] as const);
+        expect(flat(SUPERIOR_COOLDOWN.id)).toEqual([
+            ["CooldownReduction", "passive", true],
+            ["OutOfCombatHealthRegen", "innate", true],
+        ]);
+        expect(flat(COMPRESS_COOLDOWN.id)).toEqual([["CooldownReduction", "passive", false]]);
+    });
+
+    // Compress Cooldown's 18% takes Graves' Grasping Hands from 34 to 28s while imbued on it.
+    it("counts an imbue item's unflagged passive on the imbued ability only", async () => {
+        const stats = (await start().invoke("game_item_stats", { locale: "en" })) as ItemStats[];
+        const imbueOnly = (id: number) =>
+            stats.find((s) => s.itemId === id)!.stats.map((s) => [s.key, s.onlyIfImbued] as const);
+        expect(imbueOnly(COMPRESS_COOLDOWN.id)).toEqual([["CooldownReduction", true]]);
+        expect(imbueOnly(SUPERIOR_COOLDOWN.id)).toEqual([
+            ["CooldownReduction", undefined],
+            ["OutOfCombatHealthRegen", undefined],
+        ]);
+        expect(imbueOnly(CLOSE_QUARTERS.id).every(([, only]) => only === undefined)).toBe(true);
     });
 
     it("moves a section's cooldown into its header, a proc cooldown first", async () => {

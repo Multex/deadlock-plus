@@ -405,6 +405,51 @@ describe("tipInput ALT details", () => {
         expect(plain.details!.groups[0]!.imbued).toBeUndefined();
     });
 
+    // Graves with Compress Cooldown imbued on Grasping Hands, buying Superior Cooldown (capture nUeFQZwFv9).
+    describe("with an imbue-only stat", () => {
+        const COMPRESS = 20;
+        const SUPERIOR = 21;
+        const cdr = "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE";
+        const catalog = {
+            ...CATALOG,
+            byId: new Map(CATALOG.byId)
+                .set(COMPRESS, { ...item(COMPRESS, "spirit", 1600), imbue: true })
+                .set(SUPERIOR, { ...item(SUPERIOR, "spirit", 3200), componentIds: [COMPRESS] }),
+            statsById: new Map([
+                [COMPRESS, [{ ...stat(cdr, 18), flat: false, onlyIfImbued: true }]],
+                [SUPERIOR, [stat(cdr, 20)]],
+            ]),
+        };
+        const hands: AbilityTooltip = {
+            ...tooltip(BURST, []),
+            cooldown: {
+                ...property("AbilityCooldown", null),
+                value: 34,
+                unit: "s",
+                cssClass: "cooldown",
+                scale: { stat: "ETechCooldown", factor: null, function: "scale_function_single_stat" },
+            },
+        };
+        const owning = build([{ mods: [mod(COMPRESS, { imbueTargetAbilityId: BURST }), mod(SUPERIOR)] }]);
+        const groupsFor = (id: number) =>
+            tipInput({ catalog, build: owning, kit }, id, host({ abilityTooltips: new Map([[BURST, hands]]) }))!;
+
+        it("counts it on the imbued ability until the purchase uses its item up, then drops the imbued background", () => {
+            const groups = groupsFor(SUPERIOR).details!.groups;
+            expect(groups.map((g) => [g.kind, g.icon, g.imbued])).toEqual([["ability", "burst.png", undefined]]);
+            const [cooldown] = groups[0]!.changes;
+            // 34 x 0.82 = 27.88 and 34 x 0.8 = 27.2, at the tooltip's one cooldown decimal.
+            expect([cooldown!.before, cooldown!.after]).toEqual([27.9, 27.2]);
+        });
+
+        // The game shows no ALT panel for Compress Cooldown: its target is picked when it is bought.
+        it("shows no ALT panel for the imbue item itself", () => {
+            const input = groupsFor(COMPRESS);
+            expect(input.details!.groups).toEqual([]);
+            expect(input.hasDetails).toBe(false);
+        });
+    });
+
     // Enchanter's Emblem lists owned Toxic Bullets' Bleed Damage 3.6 -> 3.6% DPS under its art.
     const scaled = (key: string, value: number, factor: number, unit: string | null) => ({
         ...property(key, factor),

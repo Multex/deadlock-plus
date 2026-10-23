@@ -34,6 +34,7 @@ import {
     alwaysOnStat,
     gameUiStrings,
     heroStats,
+    imbueOnlyStat,
     itemTooltip,
     propertyIconArt,
     type GameAssetHero,
@@ -1529,6 +1530,7 @@ function itemStats(items: readonly AssetItem[]): ItemStats[] {
                     ),
                 ),
             );
+            const tooltip = itemTooltip(item);
             const stats = Object.entries(item.properties ?? {}).flatMap(([key, property]): ItemStat[] => {
                 const shownIn = sections.filter((s) => s.name === key).map((s) => s.kind);
                 const text = String(property.value ?? "").trim();
@@ -1537,7 +1539,8 @@ function itemStats(items: readonly AssetItem[]): ItemStats[] {
                 const label = property.label || property.postvalue_label;
                 if (shownIn.length === 0 || text === "" || !Number.isFinite(value) || value === 0 || !label) return [];
                 const provides = property.provided_property_type ?? null;
-                const flat = alwaysOnStat(property, shownIn);
+                const owner = { imbue: item.imbue, condition: tooltip.condition };
+                const flat = alwaysOnStat(property, shownIn, owner);
                 const first = shownIn[0]!;
                 return [
                     {
@@ -1546,12 +1549,12 @@ function itemStats(items: readonly AssetItem[]): ItemStats[] {
                         unit: property.postfix || (metres ? "m" : null),
                         label,
                         flat,
+                        ...(imbueOnlyStat(property, shownIn, owner) ? { onlyIfImbued: true } : {}),
                         provides,
                         section: STAT_SECTIONS.has(first) ? (first as ItemStat["section"]) : null,
                     },
                 ];
             });
-            const tooltip = itemTooltip(item);
             return stats.length > 0 || tooltip.sections.length > 0 ? [{ itemId: item.id, stats, ...tooltip }] : [];
         })
         .sort((a, b) => a.itemId - b.itemId);

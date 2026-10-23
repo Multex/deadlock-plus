@@ -546,19 +546,39 @@ const ENGLISH_UI_STRINGS: GameUiStrings = {
 };
 
 /**
- * Whether an item stat counts toward the hero's stats while the item is owned. Range- and proc-gated bonuses sit in
- * the passive section with no usage flag, so an unflagged stat counts only when shown solely as innate;
- * `IntrinsicallyProvidedInAbility` marks a passive the game counts in the ALT "after" value.
+ * Whether an item stat counts toward the hero's stats while the item is owned. An unflagged passive counts unless
+ * the item names a condition (Close Quarters' "within Range") or imbues an ability (Compress Cooldown);
+ * `IntrinsicallyProvidedInAbility` marks a passive the game counts in the ALT "after" value. The asset leaves out
+ * which modifier holds a bonus, so a proc's passive bonus (Mystic Conduit) counts here though the game skips it.
  */
 export function alwaysOnStat(
     property: { provided_property_type?: string; usage_flags?: string[]; conditional?: string },
     shownIn: readonly string[],
+    item: { imbue?: string | null; condition?: string },
 ): boolean {
     const flags = property.usage_flags ?? [];
     const always =
         flags.includes("IntrinsicallyProvidedInAbility") ||
-        (shownIn.every((kind) => kind === "innate") && property.conditional === undefined);
+        (shownIn.every((kind) => kind === "innate") && property.conditional === undefined) ||
+        (shownIn.every((kind) => kind === "innate" || kind === "passive") && !item.condition && !item.imbue);
     return property.provided_property_type != null && always && !flags.some((flag) => flag.includes("Conditionally"));
+}
+
+/**
+ * Whether an imbue item's stat counts on the ability it is imbued on alone (Compress Cooldown's 18%). The asset has
+ * no apply filter, so a stat the item would count if it imbued nothing stands in for the game's
+ * `EApplyFilter_OnlyIfImbued`.
+ */
+export function imbueOnlyStat(
+    property: Parameters<typeof alwaysOnStat>[0],
+    shownIn: readonly string[],
+    item: { imbue?: string | null; condition?: string },
+): boolean {
+    return (
+        !!item.imbue &&
+        !alwaysOnStat(property, shownIn, item) &&
+        alwaysOnStat(property, shownIn, { condition: item.condition })
+    );
 }
 
 /** The demo game is installed in English only; other languages get the app's own labels, as a missing token does. */

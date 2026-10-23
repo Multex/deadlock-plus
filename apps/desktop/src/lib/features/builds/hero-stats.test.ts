@@ -9,6 +9,7 @@ import {
     investmentBonus,
     itemDetails,
     slotSpend,
+    type AbilityHero,
     type ItemDetailsInput,
     type StatCatalog,
 } from "./hero-stats";
@@ -68,6 +69,12 @@ const stat = (provides: string, value: number, flat = true): ItemStat => ({
     section: "innate",
 });
 
+const imbueOnly = (provides: string, value: number): ItemStat => ({
+    ...stat(provides, value, false),
+    section: "passive",
+    onlyIfImbued: true,
+});
+
 const HEADSHOT_BOOSTER = 1;
 const EXTRA_SPIRIT = 2;
 const IMPROVED_SPIRIT = 3;
@@ -78,6 +85,8 @@ const SPIRIT_RESILIENCE = 7;
 const EMBLEM = 8;
 const COOLDOWN = 9;
 const SLIVER = 10;
+const COMPRESS = 11;
+const SUPERIOR = 12;
 
 const CATALOG: StatCatalog = {
     byId: new Map([
@@ -91,6 +100,8 @@ const CATALOG: StatCatalog = {
         [EMBLEM, item(EMBLEM, "vitality", 1600)],
         [COOLDOWN, item(COOLDOWN, "spirit", 3200)],
         [SLIVER, item(SLIVER, "vitality", 3200)],
+        [COMPRESS, { ...item(COMPRESS, "spirit", 1600), imbue: true }],
+        [SUPERIOR, item(SUPERIOR, "spirit", 3200, [COMPRESS])],
     ]),
     statsById: new Map([
         [HEADSHOT_BOOSTER, [stat("MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE", 40, false)]],
@@ -110,6 +121,8 @@ const CATALOG: StatCatalog = {
         ],
         [COOLDOWN, [stat("MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", 40)]],
         [SLIVER, [stat("MODIFIER_VALUE_TECH_RESIST", 0.1)]],
+        [COMPRESS, [imbueOnly("MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", 18)]],
+        [SUPERIOR, [stat("MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", 20)]],
     ]),
 };
 
@@ -199,6 +212,20 @@ describe("heroStatsAt", () => {
         expect(stats.ETechArmorDamageReduction).toBeCloseTo(100 - 45 * 0.82);
     });
 
+    // Compress Cooldown's 18% reduces only the cooldowns of the ability it is imbued on.
+    it("counts an imbue-only stat only for the ability its item is imbued on", () => {
+        expect(heroStatsAt(SEVEN, { level: 1, itemIds: [COMPRESS] }, CATALOG).ETechCooldown).toBeUndefined();
+        const imbued = { level: 1, itemIds: [COOLDOWN, COMPRESS], imbued: new Set([COMPRESS]) };
+        expect(heroStatsAt(SEVEN, imbued, CATALOG).ETechCooldown).toBeCloseTo(100 - 60 * 0.82);
+        const elsewhere = { level: 1, itemIds: [COMPRESS], imbued: new Set([EMBLEM]) };
+        expect(heroStatsAt(SEVEN, elsewhere, CATALOG).ETechCooldown).toBeUndefined();
+    });
+
+    it("drops an imbue-only stat once its item is used up as a component", () => {
+        const at = { level: 1, itemIds: [COMPRESS, SUPERIOR], imbued: new Set([COMPRESS]) };
+        expect(heroStatsAt(SEVEN, at, CATALOG).ETechCooldown).toBeCloseTo(20);
+    });
+
     it("has no bullet damage while the hero's weapon is unknown", () => {
         const stats = heroStatsAt({ ...SEVEN, bulletDamage: null }, { level: 5, itemIds: [] }, CATALOG);
         expect(stats.EBulletDamage).toBeUndefined();
@@ -284,7 +311,8 @@ describe("itemDetails", () => {
     it("hands the ability and item groups the hero before and after the item", () => {
         const seen: [number | undefined, number | undefined][] = [];
         details(EMBLEM, {
-            abilityGroups: (before, after) => {
+            abilityGroups: (heroFor) => {
+                const { before, after } = heroFor(1);
                 seen.push([before.ETechPower, after.ETechPower]);
                 return [];
             },
@@ -295,6 +323,50 @@ describe("itemDetails", () => {
         });
         expect(seen[0]).toEqual([0, 15]);
         expect(seen[1]![1]).toBeCloseTo(5);
+    });
+
+    // Graves with Compress Cooldown imbued on Grasping Hands (34s), buying Superior Cooldown (capture nUeFQZwFv9).
+    describe("an owned imbue item", () => {
+        const HANDS = 12;
+        const OTHER = 13;
+        const heroes = (itemId: number, imbues: ReadonlyMap<number, number>) => {
+            const seen = new Map<number, AbilityHero>();
+            details(itemId, {
+                ownedIds: [COMPRESS],
+                imbues,
+                abilityGroups: (heroFor) => {
+                    for (const id of [HANDS, OTHER]) seen.set(id, heroFor(id));
+                    return [];
+                },
+            });
+            return seen;
+        };
+
+        it("counts its imbue-only stat on its ability alone, before the purchase", () => {
+            const seen = heroes(SUPERIOR, new Map([[COMPRESS, HANDS]]));
+            expect(seen.get(HANDS)!.before.ETechCooldown).toBeCloseTo(18);
+            expect(34 * (1 - seen.get(HANDS)!.before.ETechCooldown! / 100)).toBeCloseTo(27.88);
+            expect(seen.get(OTHER)!.before.ETechCooldown).toBeUndefined();
+            expect(seen.get(OTHER)!.after.ETechCooldown).toBeCloseTo(20);
+        });
+
+        it("stops counting once the purchase uses it up, and its ability is then no longer imbued", () => {
+            const hands = heroes(SUPERIOR, new Map([[COMPRESS, HANDS]])).get(HANDS)!;
+            expect(hands.after.ETechCooldown).toBeCloseTo(20);
+            expect(34 * (1 - hands.after.ETechCooldown! / 100)).toBeCloseTo(27.2);
+            expect(hands.imbued).toBe(false);
+        });
+
+        it("stays imbued, counting on, through a purchase that keeps it", () => {
+            const hands = heroes(EMBLEM, new Map([[COMPRESS, HANDS]])).get(HANDS)!;
+            expect(hands.after.ETechCooldown).toBeCloseTo(100 - 82 * 0.95);
+            expect(hands.imbued).toBe(true);
+        });
+
+        it("leaves the abilities alone without the build's imbue targets", () => {
+            const hands = heroes(SUPERIOR, new Map()).get(HANDS)!;
+            expect([hands.before.ETechCooldown, hands.imbued]).toEqual([undefined, false]);
+        });
     });
 
     it("leaves the weapon group out while the hero's bullet damage is unknown", () => {

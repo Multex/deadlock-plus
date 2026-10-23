@@ -21,6 +21,9 @@ pub struct ItemStat {
     pub label: String,
     /// Always on while the item is owned, so it sums with the same key on other items.
     pub flat: bool,
+    /// Counts like a flat stat, but only on the ability the item is imbued on (`EApplyFilter_OnlyIfImbued`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub only_if_imbued: bool,
     /// The game's `m_eProvidedPropertyType`; stats with different keys can provide the same thing.
     pub provides: Option<String>,
     /// The first tooltip section that shows the stat.
@@ -77,6 +80,9 @@ pub(crate) struct RawStat {
     value: f64,
     metres: bool,
     flat: bool,
+    only_if_imbued: bool,
+    /// Flat only while the item names no condition.
+    unless_condition: bool,
     provides: Option<String>,
     section: Option<StatSection>,
 }
@@ -120,15 +126,21 @@ fn raw_stats(entry: &Object) -> Vec<RawStat> {
             if value == 0.0 {
                 return None;
             }
-            // Range- and proc-gated bonuses sit in the passive section with no usage flag, so an unflagged
-            // stat is flat only when shown solely as innate (or registered on the item and shown nowhere).
+            // Proc and aura bonuses live on other modifiers, so an unflagged passive counts only when the item's
+            // always-present modifier registers it (Superior Cooldown). Range bonuses are registered too and
+            // differ only by the condition the item names ("within Range"), which `labelled` reads.
             // `IntrinsicallyProvidedInAbility` marks a passive the game counts in the ALT "after" value
             // (Enchanter's Emblem's Spirit Power and cooldown reduction).
             let flags = text("m_eStatsUsageFlags");
-            let always_on = flags.contains("IntrinsicallyProvidedInAbility")
-                || if shown_in.is_empty() { intrinsic } else { shown_in.iter().all(|s| *s == INNATE) };
-            let flat =
-                provided && always_on && !flags.contains("Conditionally") && !property.contains_key("m_eApplyFilter");
+            let flagged = flags.contains("IntrinsicallyProvidedInAbility");
+            let innate_only = !shown_in.is_empty() && shown_in.iter().all(|s| *s == INNATE);
+            let registered = intrinsic && !shown_in.contains(&ACTIVE);
+            // `m_eApplyFilter` narrows where a counted bonus applies: `EApplyFilter_OnlyIfImbued` to the ability the
+            // item is imbued on (Compress Cooldown), any other filter to nothing the ALT panel shows.
+            let counted = provided && (flagged || innate_only || registered) && !flags.contains("Conditionally");
+            let flat = counted && !property.contains_key("m_eApplyFilter");
+            let only_if_imbued = counted && text("m_eApplyFilter") == "EApplyFilter_OnlyIfImbued";
+            let unless_condition = !flagged && !innate_only && !shown_in.is_empty();
             let token = match text("m_strLocTokenOverride") {
                 "" => key,
                 token => token.trim_start_matches('#'),
@@ -136,16 +148,27 @@ fn raw_stats(entry: &Object) -> Vec<RawStat> {
             let section = shown_in.first().and_then(|kind| match *kind {
                 INNATE => Some(StatSection::Innate),
                 "EArea_Passive" => Some(StatSection::Passive),
-                "EArea_Active" => Some(StatSection::Active),
+                ACTIVE => Some(StatSection::Active),
                 _ => None,
             });
             let provides = property.get("m_eProvidedPropertyType").and_then(Value::as_str).map(str::to_string);
-            Some(RawStat { key: key.to_string(), token: token.to_string(), value, metres, flat, provides, section })
+            Some(RawStat {
+                key: key.to_string(),
+                token: token.to_string(),
+                value,
+                metres,
+                flat,
+                only_if_imbued,
+                unless_condition,
+                provides,
+                section,
+            })
         })
         .collect()
 }
 
 const INNATE: &str = "EArea_Innate";
+const ACTIVE: &str = "EArea_Active";
 
 /// Each shown property's `m_strConditionalLocTokenOverride`, else its `<property>_conditional` token, in tooltip
 /// order. Only conditional properties have such a token, so the first one the language has is the condition.
@@ -213,27 +236,32 @@ pub(crate) fn labelled(raw: &HashMap<u32, RawItem>, localisation: &[Localization
     let find = |token: &str, suffix: &str| lookup(&format!("{token}{suffix}")).filter(|t| !t.is_empty());
     let mut list: Vec<ItemStats> = raw
         .iter()
-        .map(|(&item_id, item)| ItemStats {
-            item_id,
-            sections: Some(localised(&item.sections, &item.values, &lookup)),
-            condition: item.condition_tokens.iter().find_map(|t| find(t, "")).map(str::to_string),
-            stats: item
-                .stats
-                .iter()
-                .filter_map(|s| {
-                    let label = find(&s.token, "_label").or_else(|| find(&s.token, "_postvalue_label"))?;
-                    let unit = find(&s.token, "_postfix").map(str::to_string).or_else(|| s.metres.then(|| "m".into()));
-                    Some(ItemStat {
-                        key: s.key.clone(),
-                        value: s.value,
-                        unit,
-                        label: label.to_string(),
-                        flat: s.flat,
-                        provides: s.provides.clone(),
-                        section: s.section,
+        .map(|(&item_id, item)| {
+            let condition = item.condition_tokens.iter().find_map(|t| find(t, ""));
+            ItemStats {
+                item_id,
+                sections: Some(localised(&item.sections, &item.values, &lookup)),
+                condition: condition.map(str::to_string),
+                stats: item
+                    .stats
+                    .iter()
+                    .filter_map(|s| {
+                        let label = find(&s.token, "_label").or_else(|| find(&s.token, "_postvalue_label"))?;
+                        let unit =
+                            find(&s.token, "_postfix").map(str::to_string).or_else(|| s.metres.then(|| "m".into()));
+                        Some(ItemStat {
+                            key: s.key.clone(),
+                            value: s.value,
+                            unit,
+                            label: label.to_string(),
+                            flat: s.flat && !(s.unless_condition && condition.is_some()),
+                            only_if_imbued: s.only_if_imbued && !(s.unless_condition && condition.is_some()),
+                            provides: s.provides.clone(),
+                            section: s.section,
+                        })
                     })
-                })
-                .collect(),
+                    .collect(),
+            }
         })
         .filter(|i| !i.stats.is_empty() || i.sections.as_ref().is_some_and(|s| !s.is_empty()))
         .collect();
@@ -313,6 +341,22 @@ mod tests {
         stats.iter().map(|s| (s.key.as_str(), s.flat)).collect()
     }
 
+    /// `(key, flat, only_if_imbued)` per stat.
+    fn counted_of(stats: &[ItemStat]) -> Vec<(&str, bool, bool)> {
+        stats.iter().map(|s| (s.key.as_str(), s.flat, s.only_if_imbued)).collect()
+    }
+
+    fn imbue_only(name: &str, value: &str, kind: &str, flags: &str) -> String {
+        property(
+            name,
+            value,
+            &format!(
+                "m_eProvidedPropertyType = \"{kind}\"\nm_eStatsUsageFlags = \"{flags}\"\n\
+                 m_eApplyFilter = \"EApplyFilter_OnlyIfImbued\""
+            ),
+        )
+    }
+
     #[test]
     fn an_innate_provided_property_is_a_flat_stat() {
         let body = entry(
@@ -328,6 +372,7 @@ mod tests {
                 unit: None,
                 label: "Bonus Health".into(),
                 flat: true,
+                only_if_imbued: false,
                 provides: Some("MODIFIER_VALUE_HEALTH_MAX".into()),
                 section: Some(StatSection::Innate),
             }]
@@ -346,15 +391,115 @@ mod tests {
         assert_eq!(flat_of(&stats(&entry(&props, &sections, &[]))), [("BonusFireRate", false), ("TechPower", false)]);
     }
 
-    // Shaped after `upgrade_close_range` in `scripts/abilities.vdata_c`, game build 6810.
+    // Shaped after `upgrade_close_range` in `scripts/abilities.vdata_c`, game build 6810: its ALT "after" value
+    // leaves the bonus out, and every row says "within Range".
     #[test]
-    fn a_passive_section_property_is_not_flat_when_unflagged() {
-        // The game leaves `m_eStatsUsageFlags` empty on range- and proc-gated bonuses; only the section says so.
-        let props = typed("CloseRangeBonusWeaponPower", "20", "MODIFIER_VALUE_CLOSE_RANGE_WEAPON_DAMAGE_INCREASE", "");
-        let body =
-            entry(&props, &section("EArea_Passive", &["CloseRangeBonusWeaponPower"]), &["CloseRangeBonusWeaponPower"]);
-        let loc = english("\"CloseRangeBonusWeaponPower_label\" \"Weapon Damage\"");
-        assert_eq!(flat_of(&stats_of("upgrade_x", &body, &[loc])), [("CloseRangeBonusWeaponPower", false)]);
+    fn a_registered_passive_property_is_not_flat_while_the_item_names_a_condition() {
+        let props = [
+            typed("CloseRangeBonusWeaponPower", "20", "MODIFIER_VALUE_CLOSE_RANGE_WEAPON_DAMAGE_INCREASE", ""),
+            typed("CloseRangeBonusDamageRange", "15m", "MODIFIER_VALUE_BONUS_WEAPON_DAMAGE_CLOSE_RANGE_MAX_RANGE", ""),
+            typed("MeleeResistPercent", "20", "MODIFIER_VALUE_MELEE_RESIST", ""),
+        ]
+        .join("\n");
+        let sections = [
+            section("EArea_Innate", &["MeleeResistPercent"]),
+            section("EArea_Passive", &["CloseRangeBonusWeaponPower", "CloseRangeBonusDamageRange"]),
+        ]
+        .join("\n");
+        let body = entry(
+            &props,
+            &sections,
+            &["CloseRangeBonusDamageRange", "CloseRangeBonusWeaponPower", "MeleeResistPercent"],
+        );
+        let loc = english(
+            "\"CloseRangeBonusWeaponPower_label\" \"Weapon Damage\"\n\
+             \"CloseRangeBonusWeaponPower_conditional\" \"within Range\"\n\
+             \"CloseRangeBonusDamageRange_label\" \"Close Range\"\n\"MeleeResistPercent_label\" \"Melee Resist\"",
+        );
+        assert_eq!(
+            flat_of(&stats_of("upgrade_x", &body, &[loc])),
+            [
+                ("CloseRangeBonusWeaponPower", false),
+                ("CloseRangeBonusDamageRange", false),
+                ("MeleeResistPercent", true)
+            ]
+        );
+    }
+
+    // Shaped after `upgrade_cooldown_reduction` (Superior Cooldown) in `scripts/abilities.vdata_c`, game build 6810:
+    // its ALT "after" value counts the passive +20% cooldown reduction (Graves' Borrowed Decree 140 -> 112s).
+    #[test]
+    fn a_passive_property_the_items_modifier_registers_is_flat() {
+        let props = [
+            typed("CooldownReduction", "20", "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", ""),
+            typed("OutOfCombatHealthRegen", "4", "MODIFIER_VALUE_OUT_OF_COMBAT_HEALTH_REGEN", ""),
+        ]
+        .join("\n");
+        let sections =
+            [section("EArea_Innate", &["OutOfCombatHealthRegen"]), section("EArea_Passive", &["CooldownReduction"])]
+                .join("\n");
+        let body = entry(&props, &sections, &["CooldownReduction", "OutOfCombatHealthRegen"]);
+        let loc = english(
+            "\"CooldownReduction_label\" \"Ability Cooldown Reduction\"\n\
+             \"OutOfCombatHealthRegen_label\" \"Out of Combat Regen\"",
+        );
+        assert_eq!(
+            flat_of(&stats_of("upgrade_x", &body, &[loc])),
+            [("CooldownReduction", true), ("OutOfCombatHealthRegen", true)]
+        );
+    }
+
+    // Shaped after `upgrade_patrons_blessing` (Mystic Conduit) in `scripts/abilities.vdata_c`, game build 6810: a
+    // proc's modifier holds the bonus, not the item's always-present one.
+    #[test]
+    fn an_unregistered_unflagged_passive_property_is_not_flat() {
+        let props = property(
+            "CooldownReduction",
+            "40",
+            "m_eProvidedPropertyType = \"MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE\"",
+        );
+        let body = entry(&props, &section("EArea_Passive", &["CooldownReduction"]), &[]);
+        let loc = english("\"CooldownReduction_label\" \"Ability Cooldown Reduction\"");
+        assert_eq!(flat_of(&stats_of("upgrade_x", &body, &[loc])), [("CooldownReduction", false)]);
+    }
+
+    // Shaped after `upgrade_magic_tempo` (Compress Cooldown) in `scripts/abilities.vdata_c`, game build 6810: it
+    // reduces only the imbued ability's cooldown (Graves' Grasping Hands 34 -> 28s while imbued).
+    #[test]
+    fn a_registered_passive_property_for_the_imbued_ability_only_counts_only_if_imbued() {
+        let props = imbue_only("CooldownReduction", "18", "MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", "");
+        let body = entry(&props, &section("EArea_Passive", &["CooldownReduction"]), &["CooldownReduction"]);
+        let loc = english("\"CooldownReduction_label\" \"Ability Cooldown Reduction\"");
+        assert_eq!(counted_of(&stats_of("upgrade_x", &body, &[loc])), [("CooldownReduction", false, true)]);
+    }
+
+    #[test]
+    fn an_imbue_only_property_the_item_would_not_count_anyway_is_not_counted_on_the_imbued_ability() {
+        let props = [
+            imbue_only("TechPower", "15", "MODIFIER_VALUE_TECH_POWER", "ConditionallyApplied"),
+            imbue_only("BonusFireRate", "10", "MODIFIER_VALUE_FIRE_RATE", ""),
+            property(
+                "StatusResistancePercent",
+                "20",
+                "m_eProvidedPropertyType = \"MODIFIER_VALUE_STATUS_RESISTANCE\"\n\
+                 m_eApplyFilter = \"EApplyFilter_SomethingElse\"",
+            ),
+        ]
+        .join("\n");
+        let shown = section("EArea_Passive", &["TechPower", "BonusFireRate", "StatusResistancePercent"]);
+        let body = entry(&props, &shown, &["TechPower", "StatusResistancePercent"]);
+        assert_eq!(
+            counted_of(&stats(&body)),
+            [("TechPower", false, false), ("BonusFireRate", false, false), ("StatusResistancePercent", false, false)]
+        );
+    }
+
+    #[test]
+    fn an_imbue_only_property_is_not_counted_while_the_item_names_a_condition() {
+        let props = imbue_only("BonusFireRate", "10", "MODIFIER_VALUE_FIRE_RATE", "");
+        let body = entry(&props, &section("EArea_Passive", &["BonusFireRate"]), &["BonusFireRate"]);
+        let loc = english("\"BonusFireRate_label\" \"Fire Rate\"\n\"BonusFireRate_conditional\" \"after proc\"");
+        assert_eq!(counted_of(&stats_of("upgrade_x", &body, &[loc])), [("BonusFireRate", false, false)]);
     }
 
     // Shaped after `upgrade_magic_shield` (Enchanter's Emblem) in `scripts/abilities.vdata_c`, game build 6810: its
@@ -379,17 +524,11 @@ mod tests {
     }
 
     #[test]
-    fn an_intrinsically_provided_property_with_an_apply_filter_is_not_flat() {
-        let props = property(
-            "TechPower",
-            "15",
-            "m_eProvidedPropertyType = \"MODIFIER_VALUE_TECH_POWER\"\n\
-             m_eStatsUsageFlags = \"IntrinsicallyProvidedInAbility\"\n\
-             m_eApplyFilter = \"EApplyFilter_OnlyIfImbued\"",
-        );
+    fn an_intrinsically_provided_property_with_an_imbue_filter_counts_only_if_imbued() {
+        let props = imbue_only("TechPower", "15", "MODIFIER_VALUE_TECH_POWER", "IntrinsicallyProvidedInAbility");
         assert_eq!(
-            flat_of(&stats(&entry(&props, &section("EArea_Passive", &["TechPower"]), &[]))),
-            [("TechPower", false)]
+            counted_of(&stats(&entry(&props, &section("EArea_Passive", &["TechPower"]), &[]))),
+            [("TechPower", false, true)]
         );
     }
 
@@ -476,15 +615,11 @@ mod tests {
     }
 
     #[test]
-    fn an_apply_filter_makes_a_property_not_flat() {
-        let props = property(
-            "TechPower",
-            "28",
-            "m_eProvidedPropertyType = \"MODIFIER_VALUE_TECH_POWER\"\nm_eApplyFilter = \"EApplyFilter_OnlyIfImbued\"",
-        );
+    fn an_imbue_filter_makes_an_innate_property_count_only_if_imbued() {
+        let props = imbue_only("TechPower", "28", "MODIFIER_VALUE_TECH_POWER", "");
         assert_eq!(
-            flat_of(&stats(&entry(&props, &section("EArea_Innate", &["TechPower"]), &[]))),
-            [("TechPower", false)]
+            counted_of(&stats(&entry(&props, &section("EArea_Innate", &["TechPower"]), &[]))),
+            [("TechPower", false, true)]
         );
     }
 
@@ -757,6 +892,38 @@ mod installed_tests {
 
         assert!(!stat(of("upgrade_close_range"), "CloseRangeBonusWeaponPower").flat, "within Range");
         assert!(!stat(of("upgrade_regenerating_bullet_shield"), "BonusFireRate").flat, "ConditionallyApplied");
+    }
+
+    // Checked against the ALT "See Details" rows in game at 1440p: Superior Cooldown on Graves (Borrowed Decree
+    // 140 -> 112s), and the user's word that Compress Cooldown has no ALT panel, game build 6810.
+    #[test]
+    fn the_installed_items_count_registered_passives_but_not_imbue_proc_or_range_bonuses() {
+        let Some(dir) = installed() else { return };
+        let abilities = ShopSource::read(&VpkVdataSource, &dir, ABILITIES_PATH).expect("abilities.vdata reads");
+        let all = item_stats(&abilities, &stat_localisation(&dir, "english"));
+        let of = |class: &str| all.get(&ability_id(class)).unwrap_or_else(|| panic!("{class} missing"));
+        let counted = |class: &str, key: &str| {
+            let s = stat(of(class), key);
+            (s.value, s.flat, s.section)
+        };
+
+        assert_eq!(
+            counted("upgrade_cooldown_reduction", "CooldownReduction"),
+            (20.0, true, Some(StatSection::Passive))
+        );
+        assert_eq!(
+            counted("upgrade_transcendent_cooldown", "CooldownReduction"),
+            (25.0, true, Some(StatSection::Passive))
+        );
+        assert!(stat(of("upgrade_transcendent_cooldown"), "ItemCooldownReduction").flat);
+        assert_eq!(counted("upgrade_magic_tempo", "CooldownReduction"), (18.0, false, Some(StatSection::Passive)));
+        assert!(stat(of("upgrade_magic_tempo"), "CooldownReduction").only_if_imbued, "Grasping Hands 34 -> 28s");
+        assert!(!stat(of("upgrade_cooldown_reduction"), "CooldownReduction").only_if_imbued);
+        assert!(!stat(of("upgrade_patrons_blessing"), "CooldownReduction").flat, "a proc's bonus");
+        let quarters = of("upgrade_close_range");
+        assert!(!stat(quarters, "CloseRangeBonusWeaponPower").flat, "within Range");
+        assert!(!stat(quarters, "CloseRangeBonusDamageRange").flat, "the range the condition names");
+        assert!(stat(quarters, "MeleeResistPercent").flat);
     }
 
     // Checked against the ALT "See Details" sub-text in game at 1440p (Close Quarters, Monster Rounds), build 6810.
