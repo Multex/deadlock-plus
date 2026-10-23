@@ -1208,6 +1208,7 @@ dependencies = [
  "dp-alerts",
  "dp-atomic",
  "dp-autostart",
+ "dp-builds",
  "dp-connection",
  "dp-crash",
  "dp-demos",
@@ -1535,6 +1536,24 @@ name = "dp-autostart"
 version = "0.13.2"
 
 [[package]]
+name = "dp-builds"
+version = "0.13.2"
+dependencies = [
+ "base64 0.23.1",
+ "dp-atomic",
+ "dp-game",
+ "dp-steam",
+ "dp-sync",
+ "dp-versioned",
+ "log",
+ "serde",
+ "serde_json",
+ "source2-kv3",
+ "ts-rs",
+ "zstd-rs",
+]
+
+[[package]]
 name = "dp-connection"
 version = "0.13.2"
 dependencies = [
@@ -1664,6 +1683,8 @@ dependencies = [
  "dp-steam",
  "log",
  "serde",
+ "source2",
+ "source2-kv3",
  "ts-rs",
 ]
 

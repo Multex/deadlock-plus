@@ -3,6 +3,7 @@ import {
     checkCatalogs,
     extractKeyLiterals,
     extractKeys,
+    extractNamespacePrefixes,
     extractTemplatePrefixes,
     flatten,
     sourceDirs,
@@ -37,6 +38,18 @@ describe("extractTemplatePrefixes", () => {
 
     it("skips templates with no static prefix and calls that are not t or tn", () => {
         expect(extractTemplatePrefixes("t(`${a}.b`); format(`x.${y}`); split(`k.${z}`)")).toEqual([]);
+    });
+});
+
+describe("extractNamespacePrefixes", () => {
+    it("resolves a key built from a namespace constant and a template", () => {
+        const source = 'const NS = "game_ui.item_tooltip";\nfunction k(key) { return { key: `${NS}.${key}` }; }';
+        expect(extractNamespacePrefixes(source)).toEqual(["game_ui.item_tooltip."]);
+    });
+
+    it("ignores a constant no template builds a key from, and a template over an unknown name", () => {
+        const source = 'const NS = "a.b"; const x = `${OTHER}.${y}`; const z = `${NS}-${y}`;';
+        expect(extractNamespacePrefixes(source)).toEqual([]);
     });
 });
 

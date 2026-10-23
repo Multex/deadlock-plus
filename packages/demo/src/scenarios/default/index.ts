@@ -1,6 +1,7 @@
 import { defineScenario, type Scenario } from "../../scenario";
 import type { ApiRoute } from "../../fetch";
 import { adminAccessModule, type AdminAccessOptions } from "./admin-access";
+import { buildsModule } from "./builds";
 import { IDENTITY, NOW_MS, SEED } from "./identity";
 import { matchDetailModule, type MatchDetailOptions } from "./match-detail";
 import { RECOVERY_PRESETS, showsRecovery, spreadStartTimes, type RecoverySession } from "./recovery";
@@ -51,6 +52,7 @@ function scenarioNamed(id: string, base: ScenarioOptions): Scenario {
             matchDetailModule(options),
             upkeepModule,
             adminAccessModule(options.adminAccess),
+            buildsModule,
         ],
     });
 }

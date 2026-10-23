@@ -73,7 +73,8 @@ export function checkLayers(files, allowlist = LAYER_ALLOWLIST) {
 const APP_ONLY = /^(@sveltejs\/|@tauri-apps\/|\$lib\/|\$app\/)/;
 const SVELTE = /^svelte(\/|$)/;
 const UI_PACKAGE = /^@deadlock-plus\/ui(\/|$)/;
-const NOT_PLAIN = new Set(["ui", "ipc-types"]);
+const GAME_UI_PACKAGE = /^@deadlock-plus\/game-ui(\/|$)/;
+const NOT_PLAIN = new Set(["ui", "game-ui", "ipc-types"]);
 
 // `files` are named from the repository root.
 function packageViolations(files, banned, why) {
@@ -92,7 +93,7 @@ function packageViolations(files, banned, why) {
     return violations;
 }
 
-// Every folder in packages/ holds plain code, except the Svelte components and the generated IPC types.
+// Every folder in packages/ holds plain code, except the two Svelte component packages and the generated IPC types.
 export function plainPackages(names) {
     return names.filter((name) => !NOT_PLAIN.has(name));
 }
@@ -102,15 +103,25 @@ export function plainPackages(names) {
 export function checkPackageLayers(files) {
     return packageViolations(
         files,
-        [SVELTE, UI_PACKAGE, APP_ONLY],
+        [SVELTE, UI_PACKAGE, GAME_UI_PACKAGE, APP_ONLY],
         "a package may not use Svelte, SvelteKit, Tauri or app aliases",
     );
 }
 
 // The UI package is Svelte components shared by several apps. An app alias would tie it to one of them, and is
-// also the only way to the desktop app's translation catalog.
+// also the only way to the desktop app's translation catalog. The game UI package builds on it, not the reverse.
 export function checkUiPackageLayers(files) {
-    return packageViolations(files, [APP_ONLY], "the UI package may not use SvelteKit, Tauri or app aliases");
+    return packageViolations(
+        files,
+        [APP_ONLY, GAME_UI_PACKAGE],
+        "the UI package may not use SvelteKit, Tauri, app aliases or the game UI package",
+    );
+}
+
+// The game UI package draws the game's own panels (item cards, tooltips) for several apps, on top of the UI
+// package and the IPC types. It takes its data and its text as props.
+export function checkGameUiPackageLayers(files) {
+    return packageViolations(files, [APP_ONLY], "the game UI package may not use SvelteKit, Tauri or app aliases");
 }
 
 function* walk(dir, sources) {
@@ -143,10 +154,15 @@ function main() {
         })),
     );
     const uiFiles = scan(uiDir).map(({ file, imports }) => ({ file: `packages/ui/src/${file}`, imports }));
+    const gameUiFiles = scan(path.join(packagesDir, "game-ui/src")).map(({ file, imports }) => ({
+        file: `packages/game-ui/src/${file}`,
+        imports,
+    }));
     const violations = [
         ...checkLayers(scan(srcDir)),
         ...checkPackageLayers(plainFiles),
         ...checkUiPackageLayers(uiFiles),
+        ...checkGameUiPackageLayers(gameUiFiles),
     ];
     if (violations.length) {
         for (const line of violations) console.error(line);

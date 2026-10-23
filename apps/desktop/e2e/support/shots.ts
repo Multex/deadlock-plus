@@ -105,6 +105,8 @@ export const SHOTS: Shot[] = [
         height: 1523,
         detail: { target: { role: "table", name: "Scoreboard" }, width: 472, padding: 4 },
     },
+    { name: "builds", scenario: "default", route: "/builds", websiteOnly: true },
+    { name: "build", scenario: "default", route: "/builds/view?source=local&id=3", websiteOnly: true },
     {
         name: "stats",
         scenario: "default",

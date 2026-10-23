@@ -3,6 +3,7 @@ pub mod admin_access;
 pub mod alerts;
 pub mod app_window;
 pub mod autostart;
+pub mod builds;
 pub mod context_menu;
 pub mod crash;
 pub mod demos;

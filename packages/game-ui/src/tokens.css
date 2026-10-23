@@ -1,0 +1,49 @@
+/* Colours from the game's `citadel_base_styles`, the same values as `gameColors` in colors.ts. A Panorama alpha
+   (`offWhite&90`) does not map to a plain CSS alpha: use `panoramaColor` from panorama.ts with the colour
+   under it. */
+:root {
+    --game-off-white: #ffefd7;
+    --game-off-black: #10130d;
+    --game-silvered: #c6c6c6;
+    --game-shard: #99ffd6;
+    --game-courage-light: #ffd18d;
+    --game-courage-bright: #ec9719;
+    --game-courage: #9d620b;
+    --game-courage-dark: #7f540e;
+    --game-spirit-light: #e7c8ff;
+    --game-spirit-bright: #ce90ff;
+    --game-spirit: #8a55b3;
+    --game-spirit-dark: #613484;
+    --game-fortitude-light: #d3fc96;
+    --game-fortitude-bright: #7bba1d;
+    --game-fortitude: #649717;
+    --game-fortitude-dark: #4c7113;
+    --game-armor: #00ff99;
+    --game-tech: #00ddff;
+    --game-brand-green: #5fe69e;
+    --game-deadlock-green: #69e799;
+    --game-deadlock-green-darker: #2b7047;
+    --game-enemy: #ff410d;
+    --game-builds-dark: #365b92;
+
+    /* The game's font stacks. Retail Text Demo is not bundled and falls back to Retail Demo, the game's own
+       second choice for `sans`. */
+    --game-font-sans: "Radiance", "Retail Demo", "Noto Sans", sans-serif;
+    /* `normal` line height of the sans face (hhea ascent + descent + gap over units per em). */
+    --game-font-sans-leading: 1.2;
+    --game-font-sans-mono: "Retail Text Demo", "Retail Demo", "Noto Sans", sans-serif;
+    --game-font-oracle: "Valve Oracle", "Retail Demo", sans-serif;
+    --game-font-block: "Valve Pulp", "Noto Sans", sans-serif;
+    --game-font-numeric-block: "Valve Pulp", "Noto Sans", sans-serif;
+    /* Panorama draws a font-size N at floor(N x ui scale x 0.982) whole pixels, for every face. At 1440p the
+       captures measure 12 -> 15, 14 -> 18, 15 -> 19, 16 -> 20, 18 -> 23, 20 -> 26, 22 -> 28, 26 -> 34 and
+       36 -> 47 px; 26 -> 34 needs at least 0.9808 and 16 -> 20 less than 0.984. */
+    --game-font-scale: 0.982;
+}
+
+/* The game's fonts.conf maps Radiance to Retail Demo for en-us and id-id. */
+:root:lang(en),
+:root:lang(id) {
+    --game-font-sans: "Retail Demo", "Noto Sans", sans-serif;
+    --game-font-sans-leading: 1.343;
+}

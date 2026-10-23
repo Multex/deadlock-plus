@@ -42,8 +42,61 @@
     font-display: swap;
 }
 @font-face {
+    font-family: "Valve Oracle";
+    src: url("./fonts/valveoracle-mediumitalic.ttf");
+    font-weight: 500;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Valve Oracle";
+    src: url("./fonts/valveoracle-semibolditalic.ttf");
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
     font-family: "Valve Pulp";
     src: url("./fonts/valvepulp-bold.ttf");
     font-weight: 700;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-regular.otf");
+    font-weight: 400;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-regularitalic.otf");
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-semibold.otf");
+    font-weight: 600;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-semibolditalic.otf");
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-bold.otf");
+    font-weight: 700;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Radiance";
+    src: url("./fonts/radiance-bolditalic.otf");
+    font-weight: 700;
+    font-style: italic;
     font-display: swap;
 }

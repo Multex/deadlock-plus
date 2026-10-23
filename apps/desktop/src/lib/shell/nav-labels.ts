@@ -22,6 +22,8 @@ export function navLabel(id: string, fallback: string): string {
             return t("shell.nav.presence");
         case "match-history":
             return t("shell.nav.match_history");
+        case "builds":
+            return t("shell.nav.builds");
         default:
             return fallback;
     }
