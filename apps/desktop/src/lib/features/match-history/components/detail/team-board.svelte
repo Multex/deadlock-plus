@@ -26,6 +26,7 @@
     import { higherIsBetter, type Versus, type VersusKey, type VersusStat } from "@deadlock-plus/match/versus";
     import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import PlayerNameMenu from "$lib/components/player-links/player-name-menu.svelte";
     import { gradeBySlot } from "../../mvp";
     import GradeChip from "./grade-chip.svelte";
     import ItemTile from "./item-tile.svelte";
@@ -201,7 +202,9 @@
                 {/if}
                 {#if c.own}<span class="you">{t("match_history.detail.you")}</span>{/if}
             </span>
-            <span class="nm" title={playerName(c)}>{playerName(c)}</span>
+            <span class="nm">
+                <PlayerNameMenu name={playerName(c)} accountId={c.player.accountId} align="end" />
+            </span>
         </span>
     </th>
 {/snippet}
@@ -520,6 +523,9 @@
         white-space: nowrap;
         font-size: 12px;
         line-height: 16px;
+    }
+    .nm > :global(*) {
+        vertical-align: top;
     }
     .you {
         position: absolute;
