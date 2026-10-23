@@ -29,6 +29,9 @@ export type SlotState =
 
 export type Edit = { ok: true; order: CurrencyChangeView[] } | { ok: false; reason: BlockReason };
 
+/** `changed` is false when the move leaves the order as it was: same index, or a drop outside the order. */
+export type MoveEdit = { ok: true; order: CurrencyChangeView[]; changed: boolean } | { ok: false; reason: BlockReason };
+
 interface Rules {
     abilities: readonly number[];
     ultimateId: number | null;
@@ -293,12 +296,12 @@ export function moveStep(
     to: number,
     abilities: readonly number[],
     ultimateId: number | null,
-): Edit {
+): MoveEdit {
     const steps = bought(order);
     const next = [...order];
     const [moved] = next.splice(from, 1);
     const [movedStep] = steps.splice(from, 1);
-    if (!moved || to < 0 || to > next.length) return { ok: true, order: [...order] };
+    if (!moved || to < 0 || to > next.length || to === from) return { ok: true, order: [...order], changed: false };
     next.splice(to, 0, moved);
     steps.splice(to, 0, movedStep!);
     const walk = new Walk({ abilities, ultimateId });
@@ -309,7 +312,7 @@ export function moveStep(
         if (reason !== null) return { ok: false, reason };
         walk.take(b);
     }
-    return { ok: true, order: next };
+    return { ok: true, order: next, changed: true };
 }
 
 /**

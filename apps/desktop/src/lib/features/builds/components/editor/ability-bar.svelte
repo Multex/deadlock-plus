@@ -99,6 +99,7 @@
             refusal = edit.reason;
             return false;
         }
+        if (!edit.changed) return false;
         commit(edit.order);
         return true;
     }

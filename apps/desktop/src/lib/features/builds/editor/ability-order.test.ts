@@ -311,12 +311,12 @@ describe("removeStep", () => {
 describe("moveStep", () => {
     it("moves a step to its new index and keeps its annotation", () => {
         const edit = moveStep([unlock(10, "first"), unlock(20), ap(10, -1)], 0, 1, ABILITIES, ULT);
-        expect(edit).toEqual({ ok: true, order: [unlock(20), unlock(10, "first"), ap(10, -1)] });
+        expect(edit).toEqual({ ok: true, order: [unlock(20), unlock(10, "first"), ap(10, -1)], changed: true });
     });
 
     it("moves a step across the other currency's steps, which changes only the preview", () => {
         const edit = moveStep([unlock(10), ap(10, -1)], 1, 0, ABILITIES, ULT);
-        expect(edit).toEqual({ ok: true, order: [ap(10, -1), unlock(10)] });
+        expect(edit).toEqual({ ok: true, order: [ap(10, -1), unlock(10)], changed: true });
         expect(edit.ok && levelOf(orderSteps(edit.order, GAME_LEVELS))).toEqual(
             levelOf(orderSteps([unlock(10), ap(10, -1)], GAME_LEVELS)),
         );
@@ -332,6 +332,23 @@ describe("moveStep", () => {
         const edit = moveStep([unlock(10), unlock(20), unlock(30), ap(20, -1)], 1, 3, ABILITIES, ULT);
         expect(edit.ok && ids(edit.order)).toEqual(["10:U", "30:U", "20:1", "20:U"]);
         expect(edit.ok && orderSteps(edit.order, GAME_LEVELS).map((s) => s.level)).toEqual([1, 3, 5, 5]);
+    });
+
+    it("reports a move to the same index as unchanged", () => {
+        const order = [unlock(10), unlock(20), ap(10, -1)];
+        expect(moveStep(order, 1, 1, ABILITIES, ULT)).toEqual({ ok: true, order, changed: false });
+    });
+
+    it("reports a drop outside the order as unchanged", () => {
+        const order = [unlock(10), unlock(20), ap(10, -1)];
+        expect(moveStep(order, 1, 9, ABILITIES, ULT)).toEqual({ ok: true, order, changed: false });
+        expect(moveStep(order, 1, -1, ABILITIES, ULT)).toEqual({ ok: true, order, changed: false });
+        expect(moveStep(order, 7, 0, ABILITIES, ULT)).toEqual({ ok: true, order, changed: false });
+    });
+
+    it("reports a real move as changed", () => {
+        const edit = moveStep([unlock(10), unlock(20)], 0, 1, ABILITIES, ULT);
+        expect(edit.ok && edit.changed).toBe(true);
     });
 
     it("refuses tiers out of order", () => {
