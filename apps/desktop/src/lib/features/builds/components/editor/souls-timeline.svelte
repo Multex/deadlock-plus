@@ -233,6 +233,7 @@
                 heroIcon: hero?.icon ?? null,
                 label: statLabel,
                 icon: statIcon,
+                weaponIcon: hero?.weaponIcon ?? null,
                 position: tipAt.side,
                 detailView: alt,
                 abilityTooltips,

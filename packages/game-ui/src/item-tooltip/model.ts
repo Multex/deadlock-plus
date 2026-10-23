@@ -4,7 +4,7 @@ import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
 import type { TooltipSection } from "@deadlock-plus/ipc-types/TooltipSection";
 import { formatShownNumber } from "../number";
 import { gameColors } from "../colors";
-import type { HeroStats, ItemDetails, StatGroup } from "../hero";
+import type { HeroStats, ItemDetails, StatGroup, StatGroupKind } from "../hero";
 import type { GameItem, ItemSlot } from "../item";
 import { formatGameNumber, parseMarkup, type MarkupNode } from "../markup/markup";
 
@@ -179,13 +179,21 @@ export type DetailRow = {
     postfix: string;
 };
 
-export type DetailGroup = { icon: string | null; rows: DetailRow[] };
+export type DetailGroup = {
+    kind: StatGroupKind;
+    icon: string | null;
+    /** `.IsImbued.AffectedAbility`: only an ability group can be imbued. */
+    imbued: boolean;
+    rows: DetailRow[];
+};
 
 /** Deadlock+'s own match stats for a phase, drawn under the game's rows. */
 export type DetailPhaseLine = { phase: PopularityPhase; label: UiText; rates: UiText };
 
 /** What the ALT column draws while ALT is held, in place of its key prompt. */
 export type DetailsPanel = {
+    /** The header's "Modifies" label; null leaves the header a bare strip. */
+    heading: UiText | null;
     groups: DetailGroup[];
     /** `.AffectedValNew`'s colour by the item's slot. */
     valueColor: string;
@@ -397,7 +405,9 @@ const DETAIL_VALUE_COLORS: Record<ItemSlot, string> = {
 
 function detailGroup(group: StatGroup, condition: string | null): DetailGroup {
     return {
+        kind: group.kind,
         icon: group.icon,
+        imbued: group.kind === "ability" && group.imbued === true,
         rows: group.changes.map((c) => ({
             key: c.key,
             label: c.label,
@@ -409,13 +419,17 @@ function detailGroup(group: StatGroup, condition: string | null): DetailGroup {
     };
 }
 
-function detailsPanel(details: ItemDetails, slot: ItemSlot): DetailsPanel {
+// `.HasAnnotation .ModifiesLabel`: the header's label shares the build note's class, so it shows with the note's text.
+const MODIFIES = uiText("modifies", {}, "Citadel_ItemModifies");
+
+function detailsPanel(details: ItemDetails, slot: ItemSlot, annotated: boolean): DetailsPanel {
     const lines = details.phases.map((p) => ({
         phase: p.phase,
         label: uiText(`phase_${p.phase}`),
         rates: uiText("phase_rates", { pick: Math.round(p.pickPercent), win: Math.round(p.winPercent) }),
     }));
     return {
+        heading: annotated ? MODIFIES : null,
         groups: details.groups.map((g) => detailGroup(g, details.condition)),
         valueColor: DETAIL_VALUE_COLORS[slot],
         postfixColor: slot === "vitality" ? null : DETAIL_VALUE_COLORS[slot],
@@ -455,7 +469,9 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
         ["usedIn", input.usedIn, uiText("used_in", {}, "Citadel_ComponentUseIn")],
     ];
 
-    const panel = input.detailView && input.details ? detailsPanel(input.details, item.slot) : null;
+    const buildNote = input.buildNote ? buildNoteView(input.buildNote) : null;
+    const panel =
+        input.detailView && input.details ? detailsPanel(input.details, item.slot, buildNote?.text != null) : null;
     const column = hasDetails || panel !== null;
 
     const popularity = input.popularity ?? null;
@@ -497,7 +513,7 @@ export function itemTooltipModel(input: ItemTooltipInput): ItemTooltipModel {
                 items: (items ?? []).map((component) => ({ item: component, owned: ownedIds.has(component.id) })),
             })),
         details: column ? { side: position, label: uiText("see_details", {}, "Citadel_ItemViewImpact"), panel } : null,
-        buildNote: input.buildNote ? buildNoteView(input.buildNote) : null,
+        buildNote,
         text: { variesByHero: uiText("varies_by_hero") },
     };
 }

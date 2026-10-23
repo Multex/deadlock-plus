@@ -3,6 +3,7 @@
     import type { ItemSlot } from "../item";
     import { gameText } from "../text";
     import type { DetailsPanel } from "./model";
+    import { shrinkToFit } from "./shrink";
     import { cssUrl } from "./view";
 
     type Props = { panel: DetailsPanel; side: "left" | "right"; slot: ItemSlot };
@@ -27,18 +28,24 @@
         style:--postfix={panel.postfixColor}
         style:--arrow={arrow}
     >
-        <div class="header" style:--header-art={header}></div>
+        <div class="header" class:labelled={!!panel.heading} style:--header-art={header}>
+            {#if panel.heading}<span class="heading">{t(panel.heading)}</span>{/if}
+        </div>
         <div class="body">
             {#each panel.groups as group, g (g)}
-                <div class="group">
-                    <span class="icon">
-                        {#if group.icon}<img src={group.icon} alt="" draggable="false" />{/if}
+                <div class="group" class:imbued={group.imbued}>
+                    <span class="icon {group.kind}">
+                        {#if group.icon && group.kind !== "item"}
+                            <span class="glyph" style:--glyph={cssUrl(group.icon)}></span>
+                        {:else if group.icon}
+                            <img src={group.icon} alt="" draggable="false" />
+                        {/if}
                     </span>
                     <div class="rows">
                         {#each group.rows as row (row.key)}
                             <div class="row">
                                 <div class="names">
-                                    <span class="name">{row.label}</span>
+                                    <span class="name" use:shrinkToFit={row.label}>{row.label}</span>
                                     {#if row.subText}<span class="sub">{row.subText}</span>{/if}
                                 </div>
                                 <div class="values">
@@ -96,38 +103,52 @@
         display: flex;
         width: 100%;
         flex-direction: column;
+        /* Top-anchored: a short column shows the art's lighter top rows, as the 1440p captures do. */
         background:
-            var(--body-art, none) center / cover no-repeat,
+            var(--body-art, none) center top / cover no-repeat,
             var(--tt-modifies-body);
         box-shadow: 0 0 calc(var(--u) * 20) var(--tt-modifies-shadow);
     }
-    /* `.AffectedAbilitiesHeader`: 10 padding and no label, so a 20 tall strip. */
+    /* `.AffectedAbilitiesHeader`: 10 padding around a label that only shows with a build note, else a 20 tall strip.
+       The art is drawn at its own 781x200 from the top left, unstretched: the captures show only its left part. */
     .header {
-        height: calc(var(--u) * 20);
+        box-sizing: border-box;
+        min-height: calc(var(--u) * 20);
+        padding: calc(var(--u) * 10);
         background:
-            var(--header-art, none) center / 100% 100% no-repeat,
+            var(--header-art, none) left top / calc(var(--u) * 781) calc(var(--u) * 200) no-repeat,
             var(--tt-modifies-header);
     }
+    /* 59 tall at 1440p with the label, so the label's line is 24. `.AffectedAbilitiesHeader Label` is bold 18;
+       "Modifies" inks 87 wide there, which is Valve Oracle at 23 px. */
+    .heading {
+        display: block;
+        color: var(--game-off-white, #ffefd7);
+        font-family: var(--game-font-oracle);
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
+        font-weight: 700;
+        line-height: calc(var(--u) * 24);
+        white-space: nowrap;
+    }
+    /* Right of the paper, the paper's torn edge covers part of the icons, as in the game. Padding and margins round
+       to whole pixels as Panorama's do: at 1440p groups sit 14 apart (54 for a one-row group), not 13.3. */
     .body {
         display: flex;
         flex-direction: column;
-        padding: calc(var(--u) * 10);
-    }
-    /*
-     * Right of the paper the column tucks 15 under its torn edge, which would cover the start of a 10 padding (the
-     * game's own icons lose ~2 there). `#ViewImpactBox` pads 20 on that side for the same edge, so the rows do too.
-     */
-    .column:not(.left) .body {
-        padding-left: calc(var(--u) * 20);
+        padding: round(calc(var(--u) * 10), 1px);
     }
     .group {
         display: flex;
         align-items: flex-start;
-        margin: calc(var(--u) * 5) 0;
-        font-size: calc(var(--u) * 18);
+        margin: round(calc(var(--u) * 5), 1px) 0;
+        font-size: round(down, calc(var(--u) * 18 * var(--game-font-scale)), 1px);
+    }
+    .group.imbued {
+        background: var(--game-spirit-dark, #613484);
     }
     .icon {
         display: flex;
+        box-sizing: border-box;
         width: calc(var(--u) * 30);
         height: calc(var(--u) * 30);
         flex: none;
@@ -135,11 +156,26 @@
         justify-content: center;
         margin-right: calc(var(--u) * 10);
     }
+    /* `#AbilityImage`: an owned item's art. Ability and stat icons are glyphs, below. */
     .icon img {
         width: 100%;
         height: 100%;
+        border-radius: calc(var(--u) * 5);
         object-fit: contain;
         opacity: 0.6;
+    }
+    /* `.AffectedAbility #Icon`: a #ffffff60 disc around the glyph. A stat's glyph has no disc; both are washed
+       offBlack at full opacity (the Spirit Resist shield measures #0e110a-#13140c in the 1440p capture). */
+    .icon.ability {
+        padding: calc(var(--u) * 4);
+        border-radius: 50%;
+        background: var(--tt-details-disc);
+    }
+    .glyph {
+        width: 100%;
+        height: 100%;
+        background: var(--game-off-black, #10130d);
+        mask: var(--glyph) center / contain no-repeat;
     }
     /* `#AffectedPropertiesContainer` is 90% wide in the game, but its rows' values end inside the body's padding. */
     .rows {
@@ -159,20 +195,20 @@
         min-width: 0;
         flex-direction: column;
     }
+    /* `text-overflow: shrink`: `shrinkToFit` lowers the size of a name wider than 170. */
     .name {
         overflow: hidden;
         width: calc(var(--u) * 170);
         margin-right: calc(var(--u) * 8);
         color: var(--tt-details-name);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 600;
         line-height: calc(var(--u) * 22);
-        text-overflow: ellipsis;
         white-space: nowrap;
     }
     .sub {
         color: var(--tt-details-sub);
-        font-size: calc(var(--u) * 14);
+        font-size: round(down, calc(var(--u) * 14 * var(--game-font-scale)), 1px);
         font-style: italic;
         font-weight: 500;
         line-height: calc(var(--u) * 18);
@@ -189,11 +225,13 @@
         color: var(--tt-details-current);
         font-weight: 600;
     }
+    /* The game's margins are 4, but its ink gaps measure 12 before the arrow and 10 after it at 1440p (Close
+       Quarters, Monster Rounds, Enchanter's Emblem); 6 and 5 give those here. */
     .arrow {
         width: calc(var(--u) * 12);
         height: calc(var(--u) * 12);
         flex: none;
-        margin: calc(var(--u) * 2) calc(var(--u) * 4) 0;
+        margin: calc(var(--u) * 2) calc(var(--u) * 5) 0 calc(var(--u) * 6);
         background: var(--tt-details-arrow);
         mask: var(--arrow) center / contain no-repeat;
     }
@@ -218,7 +256,7 @@
     }
     .rates {
         color: var(--tt-details-current);
-        font-size: calc(var(--u) * 16);
+        font-size: round(down, calc(var(--u) * 16 * var(--game-font-scale)), 1px);
         font-weight: 600;
     }
 </style>

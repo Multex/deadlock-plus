@@ -189,6 +189,17 @@ describe("tooltip colours", () => {
         expect(distance(vars["--tt-details-sub"], "#ecdcc4")).toBeLessThanOrEqual(6);
     });
 
+    // Enchanter's Emblem's ALT column at 1440p (capture 9Rl7z9P8wb): the body beside the values measures #363b1f.
+    it("fades a vitality column's current values to the colour measured over its body", () => {
+        expect(distance(tooltipVars("vitality")["--tt-details-current"], "#bab9a9")).toBeLessThanOrEqual(6);
+    });
+
+    // `.AffectedAbility #Icon`'s #ffffff60 disc, measured #abaca7 over the #414525 body left of the rows.
+    it("lays an ability's disc over the column's body", () => {
+        const disc = over(tooltipVars("vitality")["--tt-details-disc"], "#414525");
+        expect(distance(disc, "#abaca7")).toBeLessThanOrEqual(4);
+    });
+
     it("fades whole elements by their colour over their backdrop", () => {
         const vars = tooltipVars("spirit");
         const paper = vars["--tt-paper"];

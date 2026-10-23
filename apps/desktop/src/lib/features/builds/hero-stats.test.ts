@@ -3,7 +3,15 @@ import type { InvestmentTier } from "@deadlock-plus/ipc-types/InvestmentTier";
 import type { ItemStat } from "@deadlock-plus/ipc-types/ItemStat";
 import { describe, expect, it } from "vitest";
 import type { ShopItem, ShopSlot } from "./catalog";
-import { heroStatsAt, investmentBonus, itemDetails, slotSpend, type StatCatalog } from "./hero-stats";
+import type { StatGroup } from "@deadlock-plus/game-ui/hero";
+import {
+    heroStatsAt,
+    investmentBonus,
+    itemDetails,
+    slotSpend,
+    type ItemDetailsInput,
+    type StatCatalog,
+} from "./hero-stats";
 
 const tiers = (rows: [number, number][]): InvestmentTier[] =>
     rows.map(([souls, bonus]) => ({ souls, bonus, percentOnGraph: 7 }));
@@ -66,6 +74,10 @@ const IMPROVED_SPIRIT = 3;
 const EXTRA_HEALTH = 4;
 const DURATION_EXTENDER = 5;
 const MYSTERY = 6;
+const SPIRIT_RESILIENCE = 7;
+const EMBLEM = 8;
+const COOLDOWN = 9;
+const SLIVER = 10;
 
 const CATALOG: StatCatalog = {
     byId: new Map([
@@ -75,6 +87,10 @@ const CATALOG: StatCatalog = {
         [EXTRA_HEALTH, item(EXTRA_HEALTH, "vitality", 800)],
         [DURATION_EXTENDER, item(DURATION_EXTENDER, "spirit", 800)],
         [MYSTERY, item(MYSTERY, "weapon", 800)],
+        [SPIRIT_RESILIENCE, item(SPIRIT_RESILIENCE, "vitality", 3200)],
+        [EMBLEM, item(EMBLEM, "vitality", 1600)],
+        [COOLDOWN, item(COOLDOWN, "spirit", 3200)],
+        [SLIVER, item(SLIVER, "vitality", 3200)],
     ]),
     statsById: new Map([
         [HEADSHOT_BOOSTER, [stat("MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE", 40, false)]],
@@ -83,6 +99,17 @@ const CATALOG: StatCatalog = {
         [EXTRA_HEALTH, [stat("MODIFIER_VALUE_HEALTH_MAX", 150)]],
         [DURATION_EXTENDER, [stat("MODIFIER_VALUE_BONUS_ABILITY_DURATION_PERCENTAGE", 13)]],
         [MYSTERY, [stat("MODIFIER_VALUE_NOT_A_HERO_STAT", 5)]],
+        [SPIRIT_RESILIENCE, [stat("MODIFIER_VALUE_TECH_RESIST", 55)]],
+        [
+            EMBLEM,
+            [
+                stat("MODIFIER_VALUE_TECH_RESIST", 18),
+                stat("MODIFIER_VALUE_TECH_POWER", 15),
+                stat("MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", 5),
+            ],
+        ],
+        [COOLDOWN, [stat("MODIFIER_VALUE_COOLDOWN_REDUCTION_PERCENTAGE", 40)]],
+        [SLIVER, [stat("MODIFIER_VALUE_TECH_RESIST", 0.1)]],
     ]),
 };
 
@@ -160,6 +187,18 @@ describe("heroStatsAt", () => {
         expect(stats.ETechPower).toBe(10 + 7);
     });
 
+    // Enchanter's Emblem capture: the HUD shows 40% ability cooldown before; +5% takes a 20s cooldown from 12 to
+    // 11.4 and Jar of Dead's 120 Death Required from 72 to 68 (68.4), which adding the percents (45%) cannot give.
+    it("stacks cooldown reduction multiplicatively", () => {
+        const stats = heroStatsAt(SEVEN, { level: 1, itemIds: [COOLDOWN, EMBLEM] }, CATALOG);
+        expect(stats.ETechCooldown).toBeCloseTo(100 - 60 * 0.95);
+    });
+
+    it("stacks spirit resist multiplicatively, 55% and 18% making 63%", () => {
+        const stats = heroStatsAt(SEVEN, { level: 1, itemIds: [SPIRIT_RESILIENCE, EMBLEM] }, CATALOG);
+        expect(stats.ETechArmorDamageReduction).toBeCloseTo(100 - 45 * 0.82);
+    });
+
     it("has no bullet damage while the hero's weapon is unknown", () => {
         const stats = heroStatsAt({ ...SEVEN, bulletDamage: null }, { level: 5, itemIds: [] }, CATALOG);
         expect(stats.EBulletDamage).toBeUndefined();
@@ -168,91 +207,104 @@ describe("heroStatsAt", () => {
 
 describe("itemDetails", () => {
     const label = (key: string) => `label:${key}`;
+    const icon = (key: string) => `icon:${key}`;
+    const details = (itemId: number, over: Partial<ItemDetailsInput> = {}) =>
+        itemDetails({ hero: SEVEN, level: 1, ownedIds: [], itemId, catalog: CATALOG, label, icon, ...over })!;
 
-    it("shows Seven's bullet damage going from 10.8 to 11.8 with 800 souls in weapon", () => {
-        const details = itemDetails({
-            hero: SEVEN,
-            level: 1,
-            ownedIds: [],
-            itemId: HEADSHOT_BOOSTER,
-            catalog: CATALOG,
-            label,
-        });
-        expect(details?.groups).toHaveLength(1);
-        const [row] = details!.groups[0]!.changes;
+    it("shows Seven's bullet damage going from 10.8 to 11.8 under the weapon ability", () => {
+        const { groups } = details(HEADSHOT_BOOSTER, { weaponIcon: "weapon_damage.png" });
+        expect(groups).toHaveLength(1);
+        expect(groups[0]).toMatchObject({ kind: "ability", icon: "weapon_damage.png" });
+        const [row] = groups[0]!.changes;
         expect(row).toMatchObject({ key: "EBulletDamage", label: "label:EBulletDamage", before: 10.8, decimals: 1 });
         expect(row!.after.toFixed(1)).toBe("11.8");
     });
 
     it("compares against what the build already owns at that level", () => {
-        const details = itemDetails({
-            hero: SEVEN,
-            level: 2,
-            ownedIds: [HEADSHOT_BOOSTER],
-            itemId: MYSTERY,
-            catalog: CATALOG,
-            label,
-        });
-        const row = details!.groups[0]!.changes[0]!;
+        const row = details(MYSTERY, { level: 2, ownedIds: [HEADSHOT_BOOSTER] }).groups[0]!.changes[0]!;
         expect(row.before).toBeCloseTo((10.8 + 0.24) * 1.09);
         expect(row.after).toBeCloseTo((10.8 + 0.24) * 1.12);
     });
 
-    it("predicts a vitality item's max health", () => {
-        const details = itemDetails({
-            hero: SEVEN,
-            level: 1,
-            ownedIds: [],
-            itemId: EXTRA_HEALTH,
-            catalog: CATALOG,
-            label,
-        });
-        expect(details!.groups.map((g) => g.changes.map((c) => [c.key, c.decimals]))).toEqual([[["EMaxHealth", 0]]]);
-        expect(details!.groups[0]!.changes[0]!.after).toBeCloseTo(880 * 1.09);
+    // Headshot Booster's +30 health had no Max Health row; Enchanter's Emblem's +15 spirit had no Spirit Power row.
+    it("has no Max Health or Spirit Power row", () => {
+        expect(details(EXTRA_HEALTH).groups).toEqual([]);
+        expect(details(EXTRA_SPIRIT).groups).toEqual([]);
     });
 
-    it("gives a spirit item its spirit power group and appends the host's groups", () => {
-        const details = itemDetails({
-            hero: SEVEN,
-            level: 1,
-            ownedIds: [],
-            itemId: EXTRA_SPIRIT,
-            catalog: CATALOG,
-            label,
-            condition: "within Range",
-            extraGroups: (before, after) => [
-                {
-                    icon: "ability.png",
-                    changes: [
-                        {
-                            key: "ability:1:Damage",
-                            label: "Damage",
-                            before: 24 + 0.06 * (before.ETechPower ?? 0),
-                            after: 24 + 0.06 * (after.ETechPower ?? 0),
-                            decimals: 0,
-                            postfix: null,
-                        },
-                    ],
-                },
-            ],
+    it("shows Spirit Resist under its stat icon as the Enchanter's Emblem capture: 55 -> 63%", () => {
+        const { groups } = details(EMBLEM, { ownedIds: [SPIRIT_RESILIENCE] });
+        expect(groups).toHaveLength(1);
+        expect(groups[0]).toMatchObject({ kind: "stat", icon: "icon:ETechArmorDamageReduction" });
+        const row = groups[0]!.changes[0]!;
+        expect(row).toMatchObject({
+            key: "ETechArmorDamageReduction",
+            label: "label:ETechArmorDamageReduction",
+            decimals: 0,
+            postfix: "%",
         });
-        expect(details!.condition).toBe("within Range");
-        expect(details!.phases).toEqual([]);
-        expect(details!.groups.map((g) => g.changes[0]!.key)).toEqual(["ETechPower", "ability:1:Damage"]);
-        expect(details!.groups[0]!.changes[0]).toMatchObject({ before: 0, after: 17 });
-        expect(details!.groups[1]!.changes[0]!.after).toBeCloseTo(24 + 0.06 * 17);
+        expect(row.before).toBeCloseTo(55);
+        expect(row.after).toBeCloseTo(63.1);
     });
 
-    it("leaves a weapon item's rows out while the hero's bullet damage is unknown", () => {
-        const details = itemDetails({
-            hero: { ...SEVEN, bulletDamage: null },
-            level: 1,
-            ownedIds: [],
-            itemId: HEADSHOT_BOOSTER,
-            catalog: CATALOG,
-            label,
+    it("counts a resist the hero has none of from 0", () => {
+        const row = details(EMBLEM).groups[0]!.changes[0]!;
+        expect([row.key, row.before, row.after]).toEqual(["ETechArmorDamageReduction", 0, 18]);
+    });
+
+    it("keeps a row whose before and after round to the same number", () => {
+        const row = details(SLIVER, { ownedIds: [SPIRIT_RESILIENCE] }).groups[0]!.changes[0]!;
+        expect([row.before.toFixed(0), row.after.toFixed(0)]).toEqual(["55", "55"]);
+    });
+
+    it("orders the weapon ability, the hero's other abilities, owned items, then stats", () => {
+        const group = (kind: StatGroup["kind"], icon: string): StatGroup => ({
+            kind,
+            icon,
+            changes: [{ key: icon, label: icon, before: 1, after: 2, decimals: 0, postfix: null }],
         });
-        expect(details!.groups).toEqual([]);
+        const { groups } = details(EMBLEM, {
+            ownedIds: [SPIRIT_RESILIENCE],
+            weaponIcon: "weapon.png",
+            abilityGroups: () => [group("ability", "jar.png")],
+            itemGroups: () => [group("item", "scourge.png")],
+        });
+        expect(groups.map((g) => [g.kind, g.icon])).toEqual([
+            ["ability", "jar.png"],
+            ["item", "scourge.png"],
+            ["stat", "icon:ETechArmorDamageReduction"],
+        ]);
+        const withWeapon = details(HEADSHOT_BOOSTER, {
+            weaponIcon: "weapon.png",
+            abilityGroups: () => [group("ability", "jar.png")],
+        }).groups;
+        expect(withWeapon.map((g) => g.icon)).toEqual(["weapon.png", "jar.png"]);
+    });
+
+    it("hands the ability and item groups the hero before and after the item", () => {
+        const seen: [number | undefined, number | undefined][] = [];
+        details(EMBLEM, {
+            abilityGroups: (before, after) => {
+                seen.push([before.ETechPower, after.ETechPower]);
+                return [];
+            },
+            itemGroups: (before, after) => {
+                seen.push([before.ETechCooldown, after.ETechCooldown]);
+                return [];
+            },
+        });
+        expect(seen[0]).toEqual([0, 15]);
+        expect(seen[1]![1]).toBeCloseTo(5);
+    });
+
+    it("leaves the weapon group out while the hero's bullet damage is unknown", () => {
+        expect(details(HEADSHOT_BOOSTER, { hero: { ...SEVEN, bulletDamage: null } }).groups).toEqual([]);
+    });
+
+    it("passes the condition and phases through", () => {
+        const out = details(HEADSHOT_BOOSTER, { condition: "within Range" });
+        expect(out.condition).toBe("within Range");
+        expect(out.phases).toEqual([]);
     });
 
     it("is null for an item the catalog does not know", () => {

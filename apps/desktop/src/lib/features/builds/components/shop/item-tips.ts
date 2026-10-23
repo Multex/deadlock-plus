@@ -1,13 +1,14 @@
 import type { GameArt } from "@deadlock-plus/game-ui/art";
-import type { HeroStats, ItemDetails, StatGroup } from "@deadlock-plus/game-ui/hero";
+import type { HeroStats, ItemDetails, StatChange, StatGroup } from "@deadlock-plus/game-ui/hero";
 import type { BuildNoteInput, ItemTooltipInput, UiText } from "@deadlock-plus/game-ui/item-tooltip/model";
 import type { GameText } from "@deadlock-plus/game-ui/text";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
 import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
 import type { ModEntryView } from "@deadlock-plus/ipc-types/ModEntryView";
+import { shownDecimals } from "@deadlock-plus/game-ui";
 import { getContext, setContext } from "svelte";
-import { spiritChanges } from "../../ability-tooltip";
+import { abilityChanges } from "../../ability-tooltip";
 import type { HeroKit } from "../../build-detail.svelte";
 import { chainCost, type ShopCatalog } from "../../catalog";
 import { readSteps } from "../../editor/ability-order";
@@ -15,8 +16,9 @@ import { levelAt, placeItems } from "../../editor/timeline";
 import { phaseStatsFor, type PhaseStats } from "../../editor/popularity";
 import type { HeroPopularity } from "../../editor/popularity.svelte";
 import { itemTooltipInput, popularityFor, type TooltipCatalog } from "../../game-item";
-import { heroStatsAt, itemDetails } from "../../hero-stats";
+import { heroStatsAt, itemDetails, type GroupsOf } from "../../hero-stats";
 import { heroStatsAtNetWorth } from "../../hero-timeline";
+import { itemsStillOwned } from "../../stats";
 
 export interface ItemTipSource {
     catalog: ShopCatalog;
@@ -44,8 +46,7 @@ export const TIP_BINDINGS: Partial<Record<string, string>> = { ExtraInfo: "ALT" 
 /** Per ALT row stat: the game's `citadel_attributes` name token, and the app's locale key for when it has none. */
 const HERO_STAT_NAMES: Partial<Record<string, { token: string; key: string }>> = {
     EBulletDamage: { token: "StatDesc_BulletDamage", key: "builds.hero_stat.bullet_damage" },
-    EMaxHealth: { token: "StatDesc_MaxHealth", key: "builds.hero_stat.max_health" },
-    ETechPower: { token: "StatDesc_TechPower", key: "builds.hero_stat.spirit_power" },
+    ETechArmorDamageReduction: { token: "StatDesc_TechArmorDamageReduction", key: "builds.hero_stat.spirit_resist" },
 };
 
 /** The name of an ALT row's hero stat; null for a stat neither the game nor the app has a name for. */
@@ -61,11 +62,12 @@ export function heroStatLabel(text: GameText): (stat: string) => string {
     };
 }
 
-/** The property icon class (`GameArt.propertyIcons` key) the game draws beside an ALT row's hero stat. */
+/**
+ * The property icon class (`GameArt.propertyIcons` key) beside a stat group. Spirit Resist takes the class items
+ * give their spirit resist cells (`tech_armor_up`); the game's own pick is in its code, not its files.
+ */
 const HERO_STAT_ICONS: Partial<Record<string, string>> = {
-    EBulletDamage: "bullet_damage",
-    EMaxHealth: "health",
-    ETechPower: "tech_power",
+    ETechArmorDamageReduction: "tech_armor_up",
 };
 
 export function heroStatIcon(art: () => GameArt): (stat: string) => string | null {
@@ -166,9 +168,11 @@ export interface TipHost {
     heroIcon: string | null;
     label: (stat: string) => string;
     icon: (stat: string) => string | null;
+    /** The hero's weapon ability image, beside bullet damage. */
+    weaponIcon?: string | null;
     position: TipSide;
     detailView: boolean;
-    /** The game's hero ability tooltips, for a spirit item's effect on the hero's abilities. */
+    /** The game's hero ability tooltips, for the item's effect on the hero's abilities. */
     abilityTooltips?: ReadonlyMap<number, AbilityTooltip>;
 }
 
@@ -202,7 +206,14 @@ function buildNote(entry: ModEntryView, kit: TipSourceData["kit"]): BuildNoteInp
     };
 }
 
-type TipPoint = { level: number; ownedIds: number[]; heroStats: HeroStats | undefined; note: BuildNoteInput | null };
+type TipPoint = {
+    level: number;
+    ownedIds: number[];
+    heroStats: HeroStats | undefined;
+    note: BuildNoteInput | null;
+    /** Abilities an owned imbue item is imbued on. */
+    imbued: ReadonlySet<number>;
+};
 
 /**
  * Where in the build the tooltip stands. An item in the build's Quick Buy order stands at its purchase, owned by then;
@@ -212,7 +223,7 @@ function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null)
     const { catalog, build, kit } = source;
     const stats = (level: number, itemIds: number[]) =>
         hero ? heroStatsAt(hero, { level, itemIds }, catalog) : undefined;
-    if (!build) return { level: 1, ownedIds: [], heroStats: stats(1, []), note: null };
+    if (!build) return { level: 1, ownedIds: [], heroStats: stats(1, []), note: null, imbued: new Set() };
 
     const levels = kit?.levels ?? [];
     const entries = placeItems(build, catalog.byId);
@@ -220,14 +231,22 @@ function tipPoint(source: TipSourceData, id: number, hero: HeroStatsData | null)
     const placed = entries[index];
     const entry = buildEntry(build, id, placed?.ref);
     const note = entry ? buildNote(entry, kit) : null;
+    const imbuedBy = (owned: typeof entries) =>
+        new Set(
+            owned.flatMap((e) => {
+                const target = catalog.byId.get(e.abilityId)?.imbue ? buildEntry(build, e.abilityId, e.ref) : null;
+                return target?.imbueTargetAbilityId != null ? [target.imbueTargetAbilityId] : [];
+            }),
+        );
     if (placed) {
         const level = levelAt(levels, placed.netWorth) ?? 1;
         const heroStats = hero ? heroStatsAtNetWorth({ hero, entries, levels, catalog }, placed.netWorth) : undefined;
-        return { level, ownedIds: entries.slice(0, index).map((e) => e.abilityId), heroStats, note };
+        const owned = entries.slice(0, index);
+        return { level, ownedIds: owned.map((e) => e.abilityId), heroStats, note, imbued: imbuedBy(owned) };
     }
     const ownedIds = entries.map((e) => e.abilityId);
     const level = levelAt(levels, chainCost(catalog.byId, [...ownedIds, id]).total) ?? 1;
-    return { level, ownedIds, heroStats: stats(level, ownedIds), note };
+    return { level, ownedIds, heroStats: stats(level, ownedIds), note, imbued: imbuedBy(entries) };
 }
 
 /** Each ability's highest tier the build has trained by `level`; 0 for one it has not. */
@@ -242,18 +261,55 @@ function tiersAt(source: TipSourceData, level: number): Map<number, number> {
     return tiers;
 }
 
-/** Per hero ability, under its icon, the spirit-scaled values a spirit item changes; abilities with none are left out. */
-function abilityGroups(source: TipSourceData, id: number, host: TipHost, level: number) {
+/** Per hero ability in slot order, under its icon, the values the item changes; abilities with none are left out. */
+function abilityGroups(source: TipSourceData, host: TipHost, point: TipPoint): GroupsOf | undefined {
     const tooltips = host.abilityTooltips;
     const abilities = source.kit?.abilities;
-    if (!tooltips || !abilities || source.catalog.byId.get(id)?.slot !== "spirit") return undefined;
-    const tiers = tiersAt(source, level);
-    return (before: HeroStats, after: HeroStats): StatGroup[] =>
-        [...abilities.values()].flatMap((info) => {
+    if (!tooltips || !abilities) return undefined;
+    const tiers = tiersAt(source, point.level);
+    return (before, after) =>
+        [...abilities.values()].flatMap((info): StatGroup[] => {
             const ability = tooltips.get(info.id);
-            const changes = ability ? spiritChanges(ability, tiers.get(info.id) ?? 0, before, after) : [];
-            return changes.length === 0 ? [] : [{ icon: info.art ?? null, changes }];
+            const changes = ability ? abilityChanges(ability, tiers.get(info.id) ?? 0, before, after) : [];
+            if (changes.length === 0) return [];
+            const group: StatGroup = { kind: "ability", icon: info.art ?? null, changes };
+            return [point.imbued.has(info.id) ? { ...group, imbued: true } : group];
         });
+}
+
+const SPIRIT_POWER = "ETechPower";
+
+/**
+ * Per owned item, under its art, the values that grow with spirit power and so change with the purchase. The game's
+ * order for these groups is not known; build order is used.
+ */
+function itemGroups(catalog: TipCatalog, ownedIds: readonly number[]): GroupsOf {
+    return (before, after) => {
+        const was = before[SPIRIT_POWER] ?? 0;
+        const now = after[SPIRIT_POWER] ?? 0;
+        if (was === now) return [];
+        return itemsStillOwned(catalog.byId, ownedIds).flatMap((id): StatGroup[] => {
+            const seen = new Set<string>();
+            const changes = (catalog.sectionsById.get(id) ?? [])
+                .flatMap((s) => s.blocks.flatMap((b) => [...b.elevated, ...b.important, ...b.properties]))
+                .flatMap((p): StatChange[] => {
+                    const factor = p.scale?.stat === SPIRIT_POWER ? p.scale.factor : null;
+                    if (!factor || p.value === null || seen.has(p.key)) return [];
+                    seen.add(p.key);
+                    return [
+                        {
+                            key: `item:${id}:${p.key}`,
+                            label: p.label,
+                            before: p.value + factor * was,
+                            after: p.value + factor * now,
+                            decimals: shownDecimals(p.cssClass),
+                            postfix: p.unit,
+                        },
+                    ];
+                });
+            return changes.length === 0 ? [] : [{ kind: "item", icon: catalog.byId.get(id)?.art ?? null, changes }];
+        });
+    };
 }
 
 /**
@@ -274,9 +330,11 @@ export function tipInput(source: TipSourceData, id: number, host: TipHost): Item
               catalog: source.catalog,
               label: host.label,
               icon: host.icon,
+              weaponIcon: host.weaponIcon ?? null,
+              abilityGroups: abilityGroups(source, host, point),
+              itemGroups: itemGroups(source.catalog, point.ownedIds),
               condition: source.catalog.conditionById?.get(id) ?? null,
               phases,
-              extraGroups: abilityGroups(source, id, host, point.level),
           })
         : phases.length > 0
           ? { groups: [], condition: null, phases }

@@ -1,6 +1,12 @@
-import { abilityTooltipModel, type AbilityTooltipModel, type UpgradeState } from "@deadlock-plus/game-ui";
+import {
+    abilityTooltipModel,
+    shownDecimals,
+    type AbilityTooltipModel,
+    type UpgradeState,
+} from "@deadlock-plus/game-ui";
 import type { HeroStats, StatChange } from "@deadlock-plus/game-ui/hero";
 import type { ValueText } from "@deadlock-plus/game-ui/item-tooltip/model";
+import type { AbilityProperty } from "@deadlock-plus/ipc-types/AbilityProperty";
 import type { AbilityTooltip } from "@deadlock-plus/ipc-types/AbilityTooltip";
 import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { loadAbilityTooltips } from "$lib/features/gamedata/vdata";
@@ -51,10 +57,10 @@ export function abilityTooltipAt(
     });
 }
 
-type ShownValue = { label: string; value: ValueText };
+type ShownValue = { label: string; value: ValueText; scaled: boolean; stat: string | null };
 
-/** Every value the tooltip scales by spirit power, by property, as the game prints it. */
-function spiritValues(model: AbilityTooltipModel): Map<string, ShownValue> {
+/** Every value the tooltip shows, by property, as the game prints it. */
+function shownValues(model: AbilityTooltipModel): Map<string, ShownValue> {
     const views = [
         ...model.chips,
         ...[model.charges, model.chargeCooldown, model.cooldown].filter((c) => c !== null),
@@ -65,38 +71,79 @@ function spiritValues(model: AbilityTooltipModel): Map<string, ShownValue> {
     ];
     const out = new Map<string, ShownValue>();
     for (const view of views) {
-        if (view.scaled && view.scaling?.stat === "ETechPower" && !out.has(view.key)) out.set(view.key, view);
+        if (out.has(view.key)) continue;
+        out.set(view.key, {
+            label: view.label,
+            value: view.value,
+            scaled: view.scaled,
+            stat: view.scaling?.stat ?? null,
+        });
     }
     return out;
 }
 
+/** The properties cooldown reduction shrinks, the ability's cooldowns last as the game lists them. */
+function cooldownScaled(ability: AbilityTooltip): AbilityProperty[] {
+    const cooldowns = [ability.chargeCooldown, ability.cooldown].filter((p) => p !== null);
+    const all = [
+        ...ability.header,
+        ...[ability.charges, ...cooldowns].filter((p) => p !== null),
+        ...ability.sections.flatMap((s) => [...s.groups.flatMap((g) => g.cells), ...s.properties]),
+    ].filter((p) => p.scale?.stat === COOLDOWN_STAT);
+    return [...all.filter((p) => !cooldowns.includes(p)), ...all.filter((p) => cooldowns.includes(p))];
+}
+
+const SPIRIT_STAT = "ETechPower";
+const COOLDOWN_STAT = "ETechCooldown";
+
 /**
- * The values of an ability at `tier` that grow with spirit power and read differently for the hero `after` than
- * `before`, rounded as the game's ability tooltip prints them.
+ * The values of an ability at `tier` that change between the hero `before` and `after`: the ones that grow with
+ * spirit power, then the ones cooldown reduction shrinks with the cooldown last. A value is listed whenever its stat
+ * changes, even when the shown number does not move, as the game does.
  */
-export function spiritChanges(
+export function abilityChanges(
     ability: AbilityTooltip,
     tier: number | null,
     before: HeroStats,
     after: HeroStats,
 ): StatChange[] {
-    const was = spiritValues(abilityTooltipAt(ability, tier, null, { stats: before }));
-    const now = spiritValues(abilityTooltipAt(ability, tier, null, { stats: after }));
-    return [...now].flatMap(([key, { label, value }]): StatChange[] => {
-        const old = was.get(key)?.value;
-        if (!old || old.number === value.number) return [];
-        return [
-            {
-                key: `ability:${ability.abilityId}:${key}`,
+    const key = (property: string) => `ability:${ability.abilityId}:${property}`;
+    const out: StatChange[] = [];
+    if ((before[SPIRIT_STAT] ?? 0) !== (after[SPIRIT_STAT] ?? 0)) {
+        const was = shownValues(abilityTooltipAt(ability, tier, null, { stats: before }));
+        const now = shownValues(abilityTooltipAt(ability, tier, null, { stats: after }));
+        for (const [property, { label, value, scaled, stat }] of now) {
+            const old = was.get(property)?.value;
+            if (!old || !scaled || stat !== SPIRIT_STAT) continue;
+            out.push({
+                key: key(property),
                 label,
                 before: Number(old.number),
                 after: Number(value.number),
                 // Already rounded to the property's own decimals; the game never shows more than one.
                 decimals: 1,
                 postfix: value.postfix || null,
-            },
-        ];
-    });
+            });
+        }
+    }
+    if ((before[COOLDOWN_STAT] ?? 0) !== (after[COOLDOWN_STAT] ?? 0)) {
+        const was = shownValues(abilityTooltipAt(ability, tier, null, { stats: before }));
+        const now = shownValues(abilityTooltipAt(ability, tier, null, { stats: after }));
+        for (const property of cooldownScaled(ability)) {
+            const old = was.get(property.key)?.value;
+            const shown = now.get(property.key);
+            if (!old || !shown || shown.value.number === "") continue;
+            out.push({
+                key: key(property.key),
+                label: shown.label,
+                before: Number(old.number),
+                after: Number(shown.value.number),
+                decimals: shownDecimals(property.cssClass),
+                postfix: shown.value.postfix || null,
+            });
+        }
+    }
+    return out;
 }
 
 const cache = new Map<string, Promise<ReadonlyMap<number, AbilityTooltip>>>();

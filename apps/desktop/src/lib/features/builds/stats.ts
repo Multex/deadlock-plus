@@ -28,7 +28,7 @@ export function normaliseSearchText(text: string): string {
  * The items of `order` still owned at the end, once each upgrade has used up its components. A copy
  * of an item listed earlier is skipped, as `chainCost` prices it at nothing.
  */
-function itemsStillOwned(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): number[] {
+export function itemsStillOwned(byId: ReadonlyMap<number, ShopItem>, order: readonly number[]): number[] {
     const owned = new Set<number>();
     const listed = new Set<number>();
     for (const id of order) {

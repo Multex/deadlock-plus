@@ -2,7 +2,7 @@ export { gameColors, type GameColor } from "./colors";
 export { panoramaAlpha, panoramaBlend, panoramaColor, scale } from "./panorama";
 export { gameArt, provideGameArt, type GameArt, type PropertyIcon, type UiArt } from "./art";
 export type { GameItem, ItemSlot } from "./item";
-export type { HeroStats, ItemDetails, PhaseStat, StatChange, StatGroup } from "./hero";
+export type { HeroStats, ItemDetails, PhaseStat, StatChange, StatGroup, StatGroupKind } from "./hero";
 export * from "./markup/markup";
 export * from "./item-tooltip/model";
 export { gameText, provideGameText, type GameText } from "./text";

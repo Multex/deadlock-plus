@@ -15,8 +15,20 @@ export type StatChange = {
     postfix: string | null;
 };
 
-/** A group of rows under one icon (a stat icon, or an ability's icon for ability values). */
-export type StatGroup = { icon: string | null; changes: readonly StatChange[] };
+/**
+ * What a group's icon stands for. The game draws an ability's icon in a light disc, an owned item's art faded with
+ * no disc, and a stat icon bare.
+ */
+export type StatGroupKind = "ability" | "item" | "stat";
+
+/** A group of rows under one icon. */
+export type StatGroup = {
+    kind: StatGroupKind;
+    icon: string | null;
+    /** An imbued ability, which the game backs in the spirit colour. */
+    imbued?: boolean;
+    changes: readonly StatChange[];
+};
 
 export type PhaseStat = { phase: PopularityPhase; pickPercent: number; winPercent: number };
 

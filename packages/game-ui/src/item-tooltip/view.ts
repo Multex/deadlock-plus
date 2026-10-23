@@ -222,12 +222,19 @@ const MODIFIES_BODY: Record<ItemSlot, string> = {
     spirit: "#362147",
 };
 
-// What the ALT column's labels sit on. Weapon is measured under the rows of a 1440p capture; spirit is its plain
-// colour; vitality's art is unmeasured, so its plain colour stands in.
+// What the ALT column's labels sit on: weapon and vitality measured beside the values in 1440p captures (the art
+// darkens toward the values); spirit has no art, so its plain colour.
 const MODIFIES_TEXT_BODY: Record<ItemSlot, string> = {
     weapon: "#6b4c28",
-    vitality: gameColors.fortitudeDark,
+    vitality: "#363b1f",
     spirit: "#362147",
+};
+
+// What the ALT column's icons sit on, left of the names: lighter than beside the values on vitality's art. The
+// ability disc is drawn solid over it, the game's colour on the median body.
+const MODIFIES_ICON_BODY: Record<ItemSlot, string> = {
+    ...MODIFIES_TEXT_BODY,
+    vitality: "#414525",
 };
 
 // `colorCommonOffWhite`, measured on the ALT column's row names, which draw it at full opacity.
@@ -302,6 +309,7 @@ export function tooltipVars(slot: ItemSlot): Record<string, string> {
         "--tt-details-current": panoramaBlend(COMMON_OFF_WHITE, 0.5, modifies),
         "--tt-details-arrow": panoramaBlend(COMMON_OFF_WHITE, DETAILS_ARROW_ALPHA, modifies),
         "--tt-details-sub": panoramaBlend("offWhite", 0.8, modifies),
+        "--tt-details-disc": panoramaBlend("#ffffff", 0x60 / 255, MODIFIES_ICON_BODY[slot]),
     };
 }
 

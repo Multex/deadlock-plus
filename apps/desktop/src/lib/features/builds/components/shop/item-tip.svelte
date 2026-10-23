@@ -84,6 +84,7 @@
                     heroIcon: hero?.icon ?? tip.popularity?.icon ?? null,
                     label,
                     icon,
+                    weaponIcon: hero?.weaponIcon ?? null,
                     position: tipSide(props["data-side"]),
                     detailView: alt,
                     abilityTooltips,

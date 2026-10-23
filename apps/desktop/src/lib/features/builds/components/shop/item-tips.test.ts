@@ -11,6 +11,7 @@ vi.mock("$lib/core/tauri", () => ({ command: vi.fn(), fileSrc: (p: string) => p 
 vi.mock("$lib/features/gamedata/gamedata", () => ({ loadItemArt: vi.fn() }));
 vi.mock("$lib/features/gamedata/art-refresh", () => ({ onGameArtChanged: vi.fn() }));
 
+import type { TooltipSection } from "@deadlock-plus/ipc-types/TooltipSection";
 import type { ShopItem, ShopSlot } from "../../catalog";
 import type { PhaseStats } from "../../editor/popularity";
 import type { Level } from "../../levels";
@@ -62,6 +63,9 @@ const HEADSHOT_BOOSTER = 1;
 const EXTRA_SPIRIT = 2;
 const EXTRA_HEALTH = 3;
 const MYSTIC_SHOT = 4;
+const TOXIC_BULLETS = 5;
+const SPIRIT_RESILIENCE = 6;
+const ALCHEMICAL_FIRE = 7;
 
 const CATALOG = {
     byId: new Map([
@@ -69,12 +73,16 @@ const CATALOG = {
         [EXTRA_SPIRIT, item(EXTRA_SPIRIT, "spirit", 800)],
         [EXTRA_HEALTH, item(EXTRA_HEALTH, "vitality", 800)],
         [MYSTIC_SHOT, item(MYSTIC_SHOT, "spirit", 800)],
+        [TOXIC_BULLETS, { ...item(TOXIC_BULLETS, "weapon", 1600), art: "toxic.png" }],
+        [SPIRIT_RESILIENCE, item(SPIRIT_RESILIENCE, "vitality", 800)],
+        [ALCHEMICAL_FIRE, { ...item(ALCHEMICAL_FIRE, "spirit", 800), art: "fire.png" }],
     ]),
     statsById: new Map([
         [EXTRA_SPIRIT, [stat("MODIFIER_VALUE_TECH_POWER", 10)]],
         [EXTRA_HEALTH, [stat("MODIFIER_VALUE_HEALTH_MAX", 150)]],
+        [SPIRIT_RESILIENCE, [stat("MODIFIER_VALUE_TECH_RESIST", 18)]],
     ]),
-    sectionsById: new Map(),
+    sectionsById: new Map<number, TooltipSection[]>(),
 };
 
 const level = (n: number, souls: number): Level => ({
@@ -136,6 +144,7 @@ const host = (over: Partial<TipHost> = {}): TipHost => ({
     heroIcon: "seven.png",
     label: (stat) => `label:${stat}`,
     icon: (stat) => `icon:${stat}`,
+    weaponIcon: "weapon.png",
     position: "right",
     detailView: false,
     ...over,
@@ -147,7 +156,7 @@ describe("tipInput outside a build", () => {
         const row = input.details!.groups[0]!.changes[0]!;
         expect(row).toMatchObject({ key: "EBulletDamage", label: "label:EBulletDamage", before: 10.8 });
         expect(row.after).toBeCloseTo(10.8 * 1.09);
-        expect(input.details!.groups[0]!.icon).toBe("icon:EBulletDamage");
+        expect(input.details!.groups[0]).toMatchObject({ kind: "ability", icon: "weapon.png" });
         expect(input.ownedIds).toEqual([]);
         expect(input.heroStats?.ETechPower ?? 0).toBe(0);
         expect(input.heroIcon).toBe("seven.png");
@@ -199,10 +208,8 @@ describe("tipInput in a build", () => {
     it("shows the hero at the item's point in Quick Buy order, owning what comes before it", () => {
         const input = tipInput({ catalog: CATALOG, build: BUILD, kit }, EXTRA_HEALTH, host())!;
         expect(input.ownedIds).toEqual([EXTRA_SPIRIT]);
-        const row = input.details!.groups[0]!.changes[0]!;
-        // Level 2 at 1600 net worth: 730 + 41 is not in SEVEN's per-level, so health only gains the item.
-        expect(row.before).toBe(730);
-        expect(row.after).toBeCloseTo((730 + 150) * 1.09);
+        // The game lists no Max Health row (Headshot Booster's +30 health had none).
+        expect(input.details!.groups).toEqual([]);
         // Owned at that point: the tooltip's scaled values count the item itself, as the souls timeline does.
         expect(input.heroStats!.ETechPower).toBeCloseTo(1.1 + 10 + 7);
         expect(input.heroStats!.EMaxHealth).toBeCloseTo((730 + 150) * 1.09);
@@ -231,9 +238,6 @@ describe("tipInput in a build", () => {
         expect(input.ownedIds).toEqual([EXTRA_SPIRIT, EXTRA_HEALTH, HEADSHOT_BOOSTER]);
         expect(input.buildNote).toBeNull();
         // 3200 net worth reaches level 3; the item is not owned yet, so it is left out of the hero.
-        const row = input.details!.groups[0]!.changes[0]!;
-        expect(row.key).toBe("ETechPower");
-        expect(row.before).toBeCloseTo(2 * 1.1 + 10 + 7);
         expect(input.heroStats!.ETechPower).toBeCloseTo(2 * 1.1 + 10 + 7);
     });
 
@@ -269,17 +273,16 @@ describe("heroStatText", () => {
             params: {},
             game: { token: "StatDesc_BulletDamage", params: {} },
         });
-        expect(heroStatText("EMaxHealth")?.game?.token).toBe("StatDesc_MaxHealth");
-        expect(heroStatText("ETechPower")).toMatchObject({
-            key: "builds.hero_stat.spirit_power",
-            game: { token: "StatDesc_TechPower" },
+        expect(heroStatText("ETechArmorDamageReduction")).toMatchObject({
+            key: "builds.hero_stat.spirit_resist",
+            game: { token: "StatDesc_TechArmorDamageReduction" },
         });
         expect(heroStatText("ESomethingNew")).toBeNull();
     });
 
     it("labels a stat through the host's game text, and an unknown one by its enum", () => {
         const label = heroStatLabel((text) => `game:${text.game?.token}`);
-        expect(label("ETechPower")).toBe("game:StatDesc_TechPower");
+        expect(label("ETechArmorDamageReduction")).toBe("game:StatDesc_TechArmorDamageReduction");
         expect(label("ESomethingNew")).toBe("ESomethingNew");
     });
 });
@@ -351,8 +354,9 @@ describe("tipInput ALT details", () => {
     it("lists a spirit item's effect on each ability's spirit-scaled values, at the tiers trained by then", () => {
         const input = tipInput({ catalog: CATALOG, build: trained, kit }, EXTRA_SPIRIT, host({ abilityTooltips }))!;
         // Level 2 at 1600 net worth: Burst Fire has tier 1, which doubles its spirit scaling.
-        expect(input.details!.groups.slice(1)).toEqual([
+        expect(input.details!.groups).toEqual([
             {
+                kind: "ability",
                 icon: "burst.png",
                 changes: [
                     {
@@ -370,15 +374,80 @@ describe("tipInput ALT details", () => {
 
     it("uses the base tier outside a build", () => {
         const input = tipInput({ catalog: CATALOG, kit }, EXTRA_SPIRIT, host({ abilityTooltips }))!;
-        const change = input.details!.groups[1]!.changes[0]!;
+        const change = input.details!.groups[0]!.changes[0]!;
         expect([change.before, change.after]).toEqual([30, 38]);
     });
 
-    it("adds no ability rows to other items or without the abilities' tooltips", () => {
+    it("lists the abilities any item changes, not only spirit items", () => {
         const spiritWeapon = new Map([[HEADSHOT_BOOSTER, [stat("MODIFIER_VALUE_TECH_POWER", 10)]]]);
         const source = { catalog: { ...CATALOG, statsById: spiritWeapon }, build: trained, kit };
-        expect(tipInput(source, HEADSHOT_BOOSTER, host({ abilityTooltips }))!.details!.groups).toHaveLength(1);
-        expect(tipInput(source, EXTRA_SPIRIT, host())!.details!.groups).toHaveLength(1);
+        const groups = tipInput(source, HEADSHOT_BOOSTER, host({ abilityTooltips }))!.details!.groups;
+        expect(groups.map((g) => [g.kind, g.icon])).toEqual([
+            ["ability", "weapon.png"],
+            ["ability", "burst.png"],
+        ]);
+    });
+
+    it("adds no ability rows without the abilities' tooltips", () => {
+        expect(tipInput({ catalog: CATALOG, build: trained, kit }, EXTRA_SPIRIT, host())!.details!.groups).toEqual([]);
+    });
+
+    it("marks an ability an owned imbue item is imbued on", () => {
+        const imbue = { ...item(MYSTIC_SHOT, "spirit", 800), imbue: true };
+        const catalog = { ...CATALOG, byId: new Map(CATALOG.byId).set(MYSTIC_SHOT, imbue) };
+        const imbued: BuildView = {
+            ...build([{ mods: [mod(MYSTIC_SHOT, { imbueTargetAbilityId: BURST }), mod(EXTRA_SPIRIT)] }]),
+            abilityOrder: trained.abilityOrder,
+        };
+        const input = tipInput({ catalog, build: imbued, kit }, EXTRA_SPIRIT, host({ abilityTooltips }))!;
+        expect(input.details!.groups[0]).toMatchObject({ kind: "ability", icon: "burst.png", imbued: true });
+        const plain = tipInput({ catalog, build: trained, kit }, EXTRA_SPIRIT, host({ abilityTooltips }))!;
+        expect(plain.details!.groups[0]!.imbued).toBeUndefined();
+    });
+
+    // Enchanter's Emblem lists owned Toxic Bullets' Bleed Damage 3.6 -> 3.6% DPS under its art.
+    const scaled = (key: string, value: number, factor: number, unit: string | null) => ({
+        ...property(key, factor),
+        value,
+        unit,
+        cssClass: null,
+    });
+    const sections = (properties: ReturnType<typeof scaled>[]): TooltipSection[] => [
+        {
+            kind: "passive",
+            cooldown: null,
+            blocks: [{ description: null, values: {}, elevated: [], important: [], properties }],
+        },
+    ];
+    const withSections = {
+        ...CATALOG,
+        sectionsById: new Map([
+            [TOXIC_BULLETS, sections([scaled("BleedDamage", 3.5, 0.005, "% DPS"), scaled("Flat", 2, 0, null)])],
+            [ALCHEMICAL_FIRE, sections([scaled("DPS", 30, 0.5, null)])],
+        ]),
+    };
+
+    it("lists each owned item's spirit-scaled values under the item's art, in build order", () => {
+        const owning = build([{ mods: [mod(TOXIC_BULLETS), mod(ALCHEMICAL_FIRE), mod(EXTRA_SPIRIT)] }]);
+        const input = tipInput({ catalog: withSections, build: owning, kit }, EXTRA_SPIRIT, host())!;
+        const groups = input.details!.groups;
+        expect(groups.map((g) => [g.kind, g.icon])).toEqual([
+            ["item", "toxic.png"],
+            ["item", "fire.png"],
+        ]);
+        const bleed = groups[0]!.changes;
+        expect(bleed.map((c) => [c.key, c.label, c.decimals, c.postfix])).toEqual([
+            [`item:${TOXIC_BULLETS}:BleedDamage`, "BleedDamage", 1, "% DPS"],
+        ]);
+        // Extra Spirit's 10; the 1600 souls in spirit reach no investment tier past the first.
+        expect(bleed[0]!.after - bleed[0]!.before).toBeCloseTo(0.005 * 10);
+    });
+
+    it("leaves out owned items the purchase does not change, and orders stats after them", () => {
+        const owning = build([{ mods: [mod(TOXIC_BULLETS), mod(ALCHEMICAL_FIRE), mod(SPIRIT_RESILIENCE)] }]);
+        const groups = tipInput({ catalog: withSections, build: owning, kit }, SPIRIT_RESILIENCE, host())!.details!
+            .groups;
+        expect(groups.map((g) => [g.kind, g.icon])).toEqual([["stat", "icon:ETechArmorDamageReduction"]]);
     });
 });
 

@@ -4,7 +4,7 @@ import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
 import { loadGameUiStrings, loadHeroStats, loadPropertyIcons, loadShopUiArt } from "$lib/features/gamedata/vdata";
 import { keepGameArt, onGameArtChanged } from "$lib/features/gamedata/art-refresh";
-import { loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
+import { loadAbilityArt, loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
 import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
 
 vi.mock("$lib/features/gamedata/vdata", () => ({
@@ -14,7 +14,7 @@ vi.mock("$lib/features/gamedata/vdata", () => ({
     loadHeroStats: vi.fn(),
 }));
 vi.mock("$lib/features/gamedata/art-refresh", () => ({ keepGameArt: vi.fn(), onGameArtChanged: vi.fn() }));
-vi.mock("$lib/features/gamedata/gamedata", () => ({ loadHeroMinimapArt: vi.fn() }));
+vi.mock("$lib/features/gamedata/gamedata", () => ({ loadHeroMinimapArt: vi.fn(), loadAbilityArt: vi.fn() }));
 vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
 
 const shopUiArt = vi.mocked(loadShopUiArt);
@@ -24,6 +24,7 @@ const gameStrings = vi.mocked(loadGameUiStrings);
 const artChanged = vi.mocked(onGameArtChanged);
 const heroStats = vi.mocked(loadHeroStats);
 const minimapArt = vi.mocked(loadHeroMinimapArt);
+const abilityArt = vi.mocked(loadAbilityArt);
 const heroes = vi.mocked(loadHeroes);
 
 /** An image that fails to decode when its url names it broken, as a missing file does in the webview. */
@@ -197,19 +198,30 @@ describe("buildsHero", () => {
         perLevel: {},
         investment: { weapon: [], spirit: [], vitality: [] },
         bulletDamage,
+        weaponAbility: "citadel_weapon_hornet_set",
+        meleeAbility: "ability_melee_hornet",
     });
 
     beforeEach(() => {
         heroStats.mockImplementation(async (heroId) => (heroId === 2 ? seven(10.8) : null));
         minimapArt.mockResolvedValue({ 2: "asset://seven_mm.png" });
+        abilityArt.mockImplementation(async (names): Promise<Record<string, string>> =>
+            names.includes("citadel_weapon_hornet_set")
+                ? { citadel_weapon_hornet_set: "asset://weapon_damage.png" }
+                : {},
+        );
         heroes.mockResolvedValue({ 4: { icon: "https://api/lady_geist.webp" } as Hero });
     });
 
-    it("is null until the hero loads, then its stats and minimap head", async () => {
+    it("is null until the hero loads, then its stats, minimap head and weapon ability image", async () => {
         const { buildsHero } = await host();
         expect(buildsHero(2)).toBeNull();
         await vi.waitFor(() => expect(buildsHero(2)).not.toBeNull());
-        expect(buildsHero(2)).toEqual({ stats: seven(10.8), icon: "asset://seven_mm.png" });
+        expect(buildsHero(2)).toEqual({
+            stats: seven(10.8),
+            icon: "asset://seven_mm.png",
+            weaponIcon: "asset://weapon_damage.png",
+        });
     });
 
     it("loads each hero once however many components read it", async () => {
@@ -224,7 +236,7 @@ describe("buildsHero", () => {
         const { buildsHero } = await host();
         buildsHero(4);
         await vi.waitFor(() => expect(buildsHero(4)).not.toBeNull());
-        expect(buildsHero(4)).toEqual({ stats: null, icon: "https://api/lady_geist.webp" });
+        expect(buildsHero(4)).toEqual({ stats: null, icon: "https://api/lady_geist.webp", weaponIcon: null });
     });
 
     it("reloads the loaded heroes after a game update", async () => {

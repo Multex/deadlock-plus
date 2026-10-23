@@ -5,7 +5,7 @@ import type { GameUiStrings } from "@deadlock-plus/ipc-types/GameUiStrings";
 import type { HeroStatsData } from "@deadlock-plus/ipc-types/HeroStatsData";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { keepGameArt, onGameArtChanged } from "$lib/features/gamedata/art-refresh";
-import { loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
+import { loadAbilityArt, loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
 import { loadGameUiStrings, loadHeroStats, loadPropertyIcons, loadShopUiArt } from "$lib/features/gamedata/vdata";
 import { loadHeroes } from "$lib/features/heroes/heroes";
 
@@ -95,6 +95,8 @@ export function gameUiText(text: UiText): string {
 export interface BuildsHero {
     stats: HeroStatsData | null;
     icon: string | null;
+    /** The weapon ability's image, which the ALT panel draws beside bullet damage. */
+    weaponIcon: string | null;
 }
 
 let heroes = $state.raw<ReadonlyMap<number, BuildsHero>>(new Map());
@@ -105,12 +107,18 @@ async function heroIcon(heroId: number): Promise<string | null> {
     return (await loadHeroMinimapArt())[heroId] ?? (await loadHeroes([heroId]))[heroId]?.icon ?? null;
 }
 
-async function loadHero(heroId: number): Promise<void> {
-    const [stats, icon] = await Promise.all([loadHeroStats(heroId), heroIcon(heroId).catch(() => null)]);
-    heroes = new Map(heroes).set(heroId, { stats, icon });
+async function abilityIcon(className: string | undefined): Promise<string | null> {
+    if (!className) return null;
+    return (await loadAbilityArt([className]).catch((): Record<string, string> => ({})))[className] ?? null;
 }
 
-/** A hero's stats and portrait for tooltips; null until loaded, reloaded after a game update. */
+async function loadHero(heroId: number): Promise<void> {
+    const [stats, icon] = await Promise.all([loadHeroStats(heroId), heroIcon(heroId).catch(() => null)]);
+    const weaponIcon = await abilityIcon(stats?.weaponAbility);
+    heroes = new Map(heroes).set(heroId, { stats, icon, weaponIcon });
+}
+
+/** A hero's stats, portrait and weapon image for tooltips; null until loaded, reloaded after a game update. */
 export function buildsHero(heroId: number): BuildsHero | null {
     if (!requestedHeroes.has(heroId)) {
         if (requestedHeroes.size === 0) {

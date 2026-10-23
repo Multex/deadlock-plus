@@ -2248,8 +2248,7 @@
         },
         "hero_stat": {
             "bullet_damage": "Bullet Damage",
-            "max_health": "Max Health",
-            "spirit_power": "Spirit Power"
+            "spirit_resist": "Spirit Resist"
         }
     },
     "alerts": {
@@ -3362,7 +3361,8 @@
             "phase_late": "Late game",
             "phase_rates": "Picked {pick}% / Won {win}%",
             "sell_priority": "Sell Priority: {priority}",
-            "imbue_suggestion": "Imbue Suggestion:"
+            "imbue_suggestion": "Imbue Suggestion:",
+            "modifies": "Modifies"
         },
         "ability_tooltip": {
             "imbued_by": "Imbued by {item}",

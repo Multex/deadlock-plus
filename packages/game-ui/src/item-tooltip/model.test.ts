@@ -3,7 +3,13 @@ import type { TooltipProperty } from "@deadlock-plus/ipc-types/TooltipProperty";
 import { gameColors } from "../colors";
 import type { ItemDetails, StatChange } from "../hero";
 import type { GameItem } from "../item";
-import { itemTooltipModel, type ItemTooltipBlock, type ItemTooltipProperty, type ItemTooltipSection } from "./model";
+import {
+    itemTooltipModel,
+    type ItemTooltipBlock,
+    type ItemTooltipInput,
+    type ItemTooltipProperty,
+    type ItemTooltipSection,
+} from "./model";
 
 function prop(key: string, value: number | null, label: string, extra: Partial<ItemTooltipProperty> = {}) {
     const base: TooltipProperty = {
@@ -645,8 +651,9 @@ function change(key: string, label: string, before: number, after: number, decim
 // Close Quarters on Seven (capture XcRb4u2xw0): bullet damage 1 decimal, melee whole.
 const closeQuartersDetails: ItemDetails = {
     groups: [
-        { icon: "bullet.png", changes: [change("EBulletDamage", "Bullet Damage", 10.8, 11.772, 1)] },
+        { kind: "ability", icon: "bullet.png", changes: [change("EBulletDamage", "Bullet Damage", 10.8, 11.772, 1)] },
         {
+            kind: "ability",
             icon: "melee.png",
             changes: [
                 change("ELightMeleeDamage", "Light Melee", 50, 53.4, 0),
@@ -673,7 +680,9 @@ describe("itemTooltipModel ALT details panel", () => {
         const panel = itemTooltipModel({ ...base, detailView: true }).details?.panel;
         expect(panel?.groups).toEqual([
             {
+                kind: "ability",
                 icon: "bullet.png",
+                imbued: false,
                 rows: [
                     {
                         key: "EBulletDamage",
@@ -686,7 +695,9 @@ describe("itemTooltipModel ALT details panel", () => {
                 ],
             },
             {
+                kind: "ability",
                 icon: "melee.png",
+                imbued: false,
                 rows: [
                     {
                         key: "ELightMeleeDamage",
@@ -711,7 +722,13 @@ describe("itemTooltipModel ALT details panel", () => {
 
     it("leaves the sub-text out when the item has no condition, and keeps a postfix", () => {
         const details: ItemDetails = {
-            groups: [{ icon: null, changes: [{ ...change("EFireRate", "Fire Rate", 5, 13, 0), postfix: "%" }] }],
+            groups: [
+                {
+                    kind: "stat",
+                    icon: null,
+                    changes: [{ ...change("EFireRate", "Fire Rate", 5, 13, 0), postfix: "%" }],
+                },
+            ],
             condition: null,
             phases: [],
         };
@@ -728,6 +745,41 @@ describe("itemTooltipModel ALT details panel", () => {
         expect(colours("weapon")).toEqual([gameColors.courageBright, gameColors.courageBright]);
         expect(colours("spirit")).toEqual([gameColors.spiritBright, gameColors.spiritBright]);
         expect(colours("vitality")).toEqual([gameColors.fortitudeBright, null]);
+    });
+
+    // Enchanter's Emblem (capture 9Rl7z9P8wb): an ability disc, owned items' faded art, a bare stat icon.
+    it("keeps each group's kind, and marks only an imbued ability group", () => {
+        const details: ItemDetails = {
+            groups: [
+                { kind: "ability", icon: "a.png", imbued: true, changes: [change("A", "Damage", 56, 59, 0)] },
+                { kind: "ability", icon: "b.png", changes: [change("B", "Wall Length", 32, 33, 0)] },
+                { kind: "item", icon: "c.png", imbued: true, changes: [change("C", "Bleed Damage", 3.6, 3.6, 1)] },
+                { kind: "stat", icon: "d.png", changes: [change("D", "Spirit Resist", 55, 63, 0)] },
+            ],
+            condition: null,
+            phases: [],
+        };
+        const groups = itemTooltipModel({ ...base, detailView: true, details }).details?.panel?.groups;
+        expect(groups?.map((g) => [g.kind, g.icon, g.imbued])).toEqual([
+            ["ability", "a.png", true],
+            ["ability", "b.png", false],
+            ["item", "c.png", false],
+            ["stat", "d.png", false],
+        ]);
+    });
+
+    // `.HasAnnotation .ModifiesLabel`: the header's "Modifies" label shares the build note's class and shows with it.
+    it("titles the column with the game's Modifies text only when the build has a note on the item", () => {
+        const heading = (buildNote: ItemTooltipInput["buildNote"]) =>
+            itemTooltipModel({ ...base, detailView: true, buildNote }).details?.panel?.heading;
+        expect(heading({ text: "Rush this vs. Haze" })).toEqual({
+            key: "game_ui.item_tooltip.modifies",
+            params: {},
+            game: { token: "Citadel_ItemModifies", params: {} },
+        });
+        expect(heading(null)).toBeNull();
+        expect(heading({ text: "  " })).toBeNull();
+        expect(heading({ sellPriority: 2 })).toBeNull();
     });
 
     it("flips with the tooltip and opens the column even without hasDetails", () => {
