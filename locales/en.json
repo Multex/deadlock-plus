@@ -674,6 +674,17 @@
         "open_link_failed": "Could not open the link: {error}",
         "link_open_failed": "Couldn't open the link."
     },
+    "player_links": {
+        "menu": "Profile links for {name}",
+        "steam": "Steam profile",
+        "statlocker": "Statlocker profile",
+        "buildlocker": "Buildlocker profile",
+        "steam_of": "Open Steam profile of {name}",
+        "statlocker_of": "Open {name} on Statlocker",
+        "buildlocker_of": "Open {name} on Buildlocker",
+        "builds_by": "Builds by {name}",
+        "build_on_buildlocker": "Open on Buildlocker"
+    },
     "platform": {
         "windows": "Windows",
         "macos": "macOS",
