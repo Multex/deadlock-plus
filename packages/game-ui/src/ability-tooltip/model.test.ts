@@ -546,6 +546,13 @@ describe("abilityTooltipModel values", () => {
         expect(text(abilityTooltipModel({ tierCosts, ability: jar }).sections[0].rows[0].value)).toBe("120");
     });
 
+    it("never shows a negative cooldown past 100% cooldown reduction", () => {
+        const model = abilityTooltipModel({ tierCosts, ability: jar, heroStats: { ETechCooldown: 150 } });
+        expect(text(model.cooldown?.value)).toBe("0s");
+        const full = abilityTooltipModel({ tierCosts, ability: jar, heroStats: { ETechCooldown: 100 } });
+        expect(text(full.cooldown?.value)).toBe("0s");
+    });
+
     it("draws no scaling label or border on a value cooldown reduction scales", () => {
         const model = abilityTooltipModel({ tierCosts, ability: jar, heroStats: { ETechCooldown: 40 } });
         const [cell] = cells(model);

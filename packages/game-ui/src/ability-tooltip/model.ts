@@ -190,7 +190,8 @@ function shownOf(property: TooltipProperty, context: Context): Shown {
     const heroStat = stat != null ? context.heroStats?.[stat] : undefined;
     if (heroStat === undefined) return { value: base, factor, scaled: false };
     const share = scaledFactor ?? 1;
-    if (cooldown && share !== 0) return { value: base * (1 - (share * heroStat) / 100), factor, scaled: true };
+    if (cooldown && share !== 0)
+        return { value: Math.max(0, base * (1 - (share * heroStat) / 100)), factor, scaled: true };
     if (factor !== null) return { value: base + factor * heroStat, factor, scaled: true };
     return { value: base, factor, scaled: false };
 }
