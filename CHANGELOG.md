@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 
 - Hero rows on the Stats page link to that hero's builds.
+- Click a player's name on the match page to open their Steam or Statlocker profile.
+- Player names in the replay's death view open the same profile links.
+- Mutes rows link to each player's Steam profile.
 
 #### Builds
 
@@ -22,6 +25,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Item tooltips show the build author's note, sell priority and imbue suggestion.
 - Favourite a public build and it shows in your favourites in-game.
 - Copy for game and Paste code move builds between Deadlock+ and the game's Create New Build.
+- Click a build author's name to list all their builds.
+- Hover a build for links to its author's Steam, Statlocker and Buildlocker profiles.
+- Open a public build on Buildlocker from its page.
 
 #### Build editor
 
