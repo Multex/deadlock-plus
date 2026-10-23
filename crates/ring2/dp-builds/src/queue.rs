@@ -7,9 +7,10 @@ use dp_versioned::{Migration, ReadError};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::file::{peek_build_id, BuildsFile, FileError, Section};
+use crate::file::{peek_build_id, BuildsFile, FileError, Section, LOCAL_ID_LIMIT};
 use crate::history::{self, Version};
 use crate::save::{save_with, Conflict, SaveError, SaveOp, SaveOutcome};
+use crate::wire::{HeroBuildResult, WireError};
 
 pub const QUEUE_FILE: &str = "queue.json";
 const MIGRATIONS: &[Migration] = &[];
@@ -71,6 +72,9 @@ pub enum QueueError {
     Read(ReadError),
     Io(io::Error),
     File(FileError),
+    /// A queued build's blob would not decode, so it could not be given a new id.
+    Build(WireError),
+    NoLocalId,
 }
 
 impl fmt::Display for QueueError {
@@ -79,6 +83,8 @@ impl fmt::Display for QueueError {
             Self::Read(e) => write!(f, "{e}"),
             Self::Io(e) => write!(f, "{e}"),
             Self::File(e) => write!(f, "{e}"),
+            Self::Build(e) => write!(f, "{e}"),
+            Self::NoLocalId => f.write_str("no local build id is free"),
         }
     }
 }
@@ -157,7 +163,8 @@ pub fn flush(
 }
 
 /// `KeepOurs` points the save's bases at what the file holds now (after the saves queued before it),
-/// so the next flush writes ours over the game's version. Returns false for an unknown id.
+/// so the next flush writes ours over the game's version. A new build whose local id the game has
+/// since taken gets a free id instead, so both builds survive. Returns false for an unknown id.
 pub fn resolve_conflict(dir: &Path, account: u32, path: &Path, id: &str, choice: Choice) -> Result<bool, QueueError> {
     let queue = queue_path(dir, account);
     let mut saves = load(&queue)?;
@@ -178,6 +185,7 @@ pub fn resolve_conflict(dir: &Path, account: u32, path: &Path, id: &str, choice:
                     state.insert(key, result);
                 }
             }
+            renumber_taken_new_builds(&file, &state, &mut saves, at)?;
             for op in &mut saves[at].ops {
                 if let Some((key, base)) = guard_mut(op) {
                     *base = state.get(&key).cloned().unwrap_or_else(|| file.get(key.0, key.1).map(<[u8]>::to_vec));
@@ -193,6 +201,85 @@ pub fn resolve_conflict(dir: &Path, account: u32, path: &Path, id: &str, choice:
 }
 
 type Key = (Section, u32);
+
+/// Gives each new local build in `saves[at]` whose id is held by another build a fresh id, above
+/// every local id in the file and in the queue, as the app picks one for a new build.
+fn renumber_taken_new_builds(
+    file: &BuildsFile,
+    state: &HashMap<Key, Option<Vec<u8>>>,
+    saves: &mut [QueuedSave],
+    at: usize,
+) -> Result<(), QueueError> {
+    let holder = |key: Key| state.get(&key).cloned().unwrap_or_else(|| file.get(key.0, key.1).map(<[u8]>::to_vec));
+    let mut renamed: HashMap<u32, u32> = HashMap::new();
+    let mut next = None;
+    for op in &saves[at].ops {
+        let SaveOp::Upsert { section, blob, base: None, .. } = op else { continue };
+        let Some(id) = peek_build_id(blob).filter(|&id| id < LOCAL_ID_LIMIT) else { continue };
+        // Already written by an earlier flush whose queue entry was not cleared.
+        if holder((*section, id)).as_ref() == Some(blob) || renamed.contains_key(&id) {
+            continue;
+        }
+        if [Section::Unpublished, Section::Favorites].iter().all(|&s| holder((s, id)).is_none()) {
+            continue;
+        }
+        let fresh = match next {
+            Some(n) => n,
+            None => first_free_local_id(file, saves).ok_or(QueueError::NoLocalId)?,
+        };
+        if fresh >= LOCAL_ID_LIMIT {
+            return Err(QueueError::NoLocalId);
+        }
+        renamed.insert(id, fresh);
+        next = Some(fresh + 1);
+    }
+    if renamed.is_empty() {
+        return Ok(());
+    }
+    let save = &mut saves[at];
+    for op in &mut save.ops {
+        match op {
+            SaveOp::Upsert { blob, .. } | SaveOp::Favourite { blob } => {
+                if let Some(&fresh) = peek_build_id(blob).and_then(|id| renamed.get(&id)) {
+                    *blob = with_build_id(blob, fresh)?;
+                }
+            }
+            SaveOp::SetLastUsed { id, .. } => {
+                if let Some(&fresh) = renamed.get(id) {
+                    *id = fresh;
+                }
+            }
+            SaveOp::Delete { .. } | SaveOp::Unfavourite { .. } => {}
+        }
+    }
+    if let Some(&fresh) = renamed.get(&save.build_id) {
+        save.build_id = fresh;
+    }
+    Ok(())
+}
+
+fn first_free_local_id(file: &BuildsFile, saves: &[QueuedSave]) -> Option<u32> {
+    let from_file = file.next_local_id()?;
+    let queued = saves
+        .iter()
+        .flat_map(|s| &s.ops)
+        .filter_map(|op| match op {
+            SaveOp::Upsert { blob, .. } | SaveOp::Favourite { blob } => peek_build_id(blob),
+            _ => None,
+        })
+        .filter(|&id| id < LOCAL_ID_LIMIT)
+        .max();
+    match queued {
+        Some(id) => Some(from_file.max(id + 1)),
+        None => Some(from_file),
+    }
+}
+
+fn with_build_id(blob: &[u8], id: u32) -> Result<Vec<u8>, QueueError> {
+    let mut build = HeroBuildResult::decode(blob).map_err(QueueError::Build)?;
+    build.hero_build.get_or_insert_with(Default::default).hero_build_id = Some(id);
+    Ok(build.encode())
+}
 
 fn load(path: &Path) -> Result<Vec<QueuedSave>, QueueError> {
     Ok(dp_versioned::read(path, MIGRATIONS).map_err(QueueError::Read)?.unwrap_or_default())
@@ -322,6 +409,7 @@ fn queue_path(dir: &Path, account: u32) -> PathBuf {
 mod tests {
     use super::*;
     use crate::backup::list_backups;
+    use crate::wire::HeroBuild;
     use std::cell::Cell;
     use std::fs;
 
@@ -600,5 +688,47 @@ mod tests {
         let flushed = flush(&env.dir, ACCOUNT, &env.file, &env.backups, 1, &|| false, &env.history);
         assert!(matches!(flushed, Err(QueueError::Read(_))));
         assert_eq!(fs::read_to_string(&path).unwrap(), "{ nope");
+    }
+
+    fn named(id: u32, name: &str) -> Vec<u8> {
+        HeroBuildResult {
+            hero_build: Some(HeroBuild { hero_build_id: Some(id), name: Some(name.into()), ..Default::default() }),
+            ..Default::default()
+        }
+        .encode()
+    }
+
+    #[test]
+    fn keep_ours_on_a_new_build_whose_id_the_game_took_saves_both() {
+        let env = Env::new("keep-ours-new");
+        env.write_file(&[(Section::Unpublished, named(3, "old"))]);
+        let mut save = edit(4, "ours", named(4, "ours"), None);
+        save.ops.push(SaveOp::SetLastUsed { hero_class: "hero_astro".into(), id: 4 });
+        let id = env.enqueue(save);
+        env.write_file(&[(Section::Unpublished, named(3, "old")), (Section::Favorites, named(4, "game"))]);
+        assert!(matches!(env.flush(1), FlushReport::Conflict(_)));
+        assert!(resolve_conflict(&env.dir, ACCOUNT, &env.file, &id, Choice::KeepOurs).unwrap());
+        assert_eq!(env.pending()[0].build_id, 5);
+        assert!(matches!(env.flush(2), FlushReport::Saved { .. }));
+        let file = env.read_file();
+        assert_eq!(file.get(Section::Favorites, 4), Some(named(4, "game").as_slice()));
+        assert_eq!(file.get(Section::Unpublished, 5), Some(named(5, "ours").as_slice()));
+        assert_eq!(file.get(Section::Unpublished, 4), None);
+        assert_eq!(file.last_used("hero_astro"), Some(5));
+    }
+
+    #[test]
+    fn keep_ours_on_a_new_build_skips_ids_other_queued_saves_took() {
+        let env = Env::new("keep-ours-queued");
+        let id = env.enqueue(edit(4, "ours", named(4, "ours"), None));
+        env.enqueue(edit(5, "next", named(5, "next"), None));
+        env.write_file(&[(Section::Unpublished, named(4, "game"))]);
+        assert!(matches!(env.flush(1), FlushReport::Conflict(_)));
+        assert!(resolve_conflict(&env.dir, ACCOUNT, &env.file, &id, Choice::KeepOurs).unwrap());
+        assert!(matches!(env.flush(2), FlushReport::Saved { .. }));
+        let file = env.read_file();
+        assert_eq!(file.get(Section::Unpublished, 4), Some(named(4, "game").as_slice()));
+        assert_eq!(file.get(Section::Unpublished, 5), Some(named(5, "next").as_slice()));
+        assert_eq!(file.get(Section::Unpublished, 6), Some(named(6, "ours").as_slice()));
     }
 }
