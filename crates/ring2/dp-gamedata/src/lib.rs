@@ -21,8 +21,8 @@ pub use ability_tooltip::{
     ABILITY_BUNDLES,
 };
 pub use art::{
-    ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, RankArt,
-    RankImage, ShopUiArt, ShopUiImage, MINIMAP_RADIUS,
+    ArtCache, ArtSource, ClassArt, HeroArt, HeroImage, ItemImage, MinimapError, MinimapIcon, MinimapIconArt, Miss,
+    RankArt, RankImage, ShopUiArt, ShopUiImage, MINIMAP_RADIUS,
 };
 pub use build_tags::{build_tags, BuildTag, BUILD_TAG_KEYS};
 pub use catalog::{AccoladeEntry, GameData, HeroEntry, Install, ItemEntry, SteamInstall};

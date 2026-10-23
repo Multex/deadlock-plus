@@ -641,54 +641,65 @@ pub struct ShopUiArt {
 /// Most class names one `ability_art` / `item_art` call decodes; the rest are ignored.
 pub const MAX_CLASS_BATCH: usize = 200;
 
-/// Where decoded images come from. Each `write_*` returns whether `dest` now holds a complete PNG;
-/// a missing texture and an undecodable one are both `false`.
+/// Why an `ArtSource` call produced nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Miss {
+    /// The archive lacks the file or its data will not decode; asking again gives the same answer
+    /// until the game build changes.
+    Absent,
+    /// A read or write failed in a way that can pass, such as a file held open by another program.
+    Transient,
+}
+
+/// Where decoded images come from. Each `write_*` returns `Ok` once `dest` holds a complete PNG.
 pub trait ArtSource: Send + Sync + 'static {
-    fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool;
-    fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool;
-    fn write_ability(&self, class_name: &str, dest: &Path) -> bool;
-    fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool;
-    fn write_minimap(&self, dest: &Path) -> bool;
-    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool;
+    fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss>;
+    fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss>;
+    fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss>;
+    fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss>;
+    fn write_minimap(&self, dest: &Path) -> Result<(), Miss>;
+    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss>;
     /// Writes the browser-ready form of a compiled Panorama image named by its archive path.
-    fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool;
-    /// The CSS source of a compiled Panorama stylesheet; None when it is missing or will not decode.
-    fn ui_stylesheet(&self, _compiled_path: &str) -> Option<String> {
-        None
+    fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss>;
+    /// The CSS source of a compiled Panorama stylesheet.
+    fn ui_stylesheet(&self, _compiled_path: &str) -> Result<String, Miss> {
+        Err(Miss::Absent)
     }
 }
 
 struct ArchiveSource {
     art: ArtArchive,
-    archive: PathBuf,
     /// `ArtArchive` keeps its own archive handle private, so UI images need a second one.
-    vpk: OnceLock<Option<Vpk>>,
+    vpk: Vpk,
 }
 
 impl ArchiveSource {
-    fn read_ui(&self, compiled_path: &str) -> Option<Vec<u8>> {
-        let vpk = self
-            .vpk
-            .get_or_init(|| Vpk::open(&self.archive).map_err(|e| log::debug!("game UI art unavailable: {e}")).ok());
-        vpk.as_ref().and_then(|vpk| vpk.read_path(compiled_path).ok())
+    fn read_ui(&self, compiled_path: &str) -> Result<Vec<u8>, Miss> {
+        self.vpk.read_path(compiled_path).map_err(|e| {
+            log::debug!("no game UI file {compiled_path}: {e}");
+            match e {
+                source2::vpk::Error::Io { .. } => Miss::Transient,
+                _ => Miss::Absent,
+            }
+        })
     }
 
-    fn write(&self, art: &Art<'_>, dest: &Path, what: &str) -> bool {
+    fn write(&self, art: &Art<'_>, dest: &Path, what: &str) -> Result<(), Miss> {
         if !self.art.contains(art) {
-            return false;
+            return Err(Miss::Absent);
         }
-        match self.art.write_png(art, dest) {
-            Ok(()) => true,
-            Err(e) => {
-                log::debug!("no local art for {what}: {e}");
-                false
+        self.art.write_png(art, dest).map_err(|e| {
+            log::debug!("no local art for {what}: {e}");
+            match e {
+                deadlock_data::Error::Io { .. } => Miss::Transient,
+                _ => Miss::Absent,
             }
-        }
+        })
     }
 }
 
 impl ArtSource for ArchiveSource {
-    fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool {
+    fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss> {
         let kind = match image {
             HeroImage::Sm => HeroArtKind::Sm,
             HeroImage::Card => HeroArtKind::Card,
@@ -697,7 +708,7 @@ impl ArtSource for ArchiveSource {
         self.write(&Art::hero(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
     }
 
-    fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool {
+    fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
         let kind = match image {
             RankImage::Lg => RankArtKind::Large,
             RankImage::Chalk => RankArtKind::Chalk,
@@ -705,11 +716,11 @@ impl ArtSource for ArchiveSource {
         self.write(&Art::rank(tier, kind), dest, &format!("rank {tier} {}", image.suffix()))
     }
 
-    fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+    fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
         self.write(&Art::ability(class_name), dest, class_name)
     }
 
-    fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool {
+    fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss> {
         let kind = match image {
             ItemImage::Icon => ItemArtKind::Icon,
             ItemImage::Shop => ItemArtKind::Shop,
@@ -717,25 +728,33 @@ impl ArtSource for ArchiveSource {
         self.write(&Art::item(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
     }
 
-    fn write_minimap(&self, dest: &Path) -> bool {
+    fn write_minimap(&self, dest: &Path) -> Result<(), Miss> {
         self.write(&Art::minimap(MinimapArtKind::Mid), dest, "minimap")
     }
 
-    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
-        let Ok(kind) = MinimapArtKind::icon(icon.stem()) else { return false };
+    fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss> {
+        let Ok(kind) = MinimapArtKind::icon(icon.stem()) else { return Err(Miss::Absent) };
         self.write(&Art::minimap(kind), dest, icon.stem())
     }
 
-    fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
-        let Some(bytes) = self.read_ui(compiled_path) else { return false };
-        let written = ui_art::browser_image(compiled_path, &bytes)
-            .and_then(|file| write_whole(dest, &file).map_err(|e| format!("{}: {e}", dest.display())));
-        written.map_err(|e| log::debug!("no local UI art: {e}")).is_ok()
+    fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss> {
+        let bytes = self.read_ui(compiled_path)?;
+        let file = ui_art::browser_image(compiled_path, &bytes).map_err(|e| {
+            log::debug!("no local UI art: {e}");
+            Miss::Absent
+        })?;
+        write_whole(dest, &file).map_err(|e| {
+            log::debug!("no local UI art: {}: {e}", dest.display());
+            Miss::Transient
+        })
     }
 
-    fn ui_stylesheet(&self, compiled_path: &str) -> Option<String> {
+    fn ui_stylesheet(&self, compiled_path: &str) -> Result<String, Miss> {
         let bytes = self.read_ui(compiled_path)?;
-        ui_art::stylesheet(compiled_path, &bytes).map_err(|e| log::debug!("no game stylesheet: {e}")).ok()
+        ui_art::stylesheet(compiled_path, &bytes).map_err(|e| {
+            log::debug!("no game stylesheet: {e}");
+            Miss::Absent
+        })
     }
 }
 
@@ -786,7 +805,12 @@ pub struct ClassArt {
 struct Build {
     dir: Option<PathBuf>,
     fingerprint: Option<String>,
-    source: Option<Option<Arc<dyn ArtSource>>>,
+    /// Only a source that opened is kept: the archive can be locked for a moment by Steam or antivirus.
+    source: Option<Arc<dyn ArtSource>>,
+    /// Whether this art call already tried to open the archive, so a locked archive costs one attempt per call.
+    tried_open: bool,
+    /// Whether an open has failed since the source was last opened.
+    open_failed: bool,
     failed: HashSet<String>,
     /// The icon stylesheet's rules then the base styles' inline attribute rules, read once per build.
     icon_rules: Option<Vec<IconRule>>,
@@ -826,17 +850,11 @@ impl ArtCache {
 }
 
 fn open_archive(citadel_dir: &Path) -> Option<Arc<dyn ArtSource>> {
-    match ArtArchive::open(citadel_dir) {
-        Ok(art) => Some(Arc::new(ArchiveSource {
-            art,
-            archive: citadel_dir.join(deadlock_data::vdata::ARCHIVE),
-            vpk: OnceLock::new(),
-        })),
-        Err(e) => {
-            log::debug!("game art unavailable: {e}");
-            None
-        }
-    }
+    let art = ArtArchive::open(citadel_dir).map_err(|e| log::debug!("game art unavailable: {e}")).ok()?;
+    let vpk = Vpk::open(citadel_dir.join(deadlock_data::vdata::ARCHIVE))
+        .map_err(|e| log::debug!("game UI art unavailable: {e}"))
+        .ok()?;
+    Some(Arc::new(ArchiveSource { art, vpk }))
 }
 
 fn fingerprint(dir: &Path) -> Option<String> {
@@ -1006,7 +1024,8 @@ impl<I: Install> ArtCache<I> {
     /// art calls wait for one image at most. Card art comes first and the large tooltip backers last.
     /// Returns how many files it wrote.
     pub fn warm_ui_art(&self) -> usize {
-        let Some(rules) = self.with_build(|build, _| self.icon_rules(build)) else { return 0 };
+        let rules = self.with_build(|build, _| self.source(build).is_some().then(|| self.icon_rules(build)));
+        let Some(rules) = rules.flatten() else { return 0 };
         let shop = |image: ShopUiImage| (shop_ui_file_name(image), image.compiled_path().to_string());
         let (large, small): (Vec<_>, Vec<_>) = ShopUiImage::ALL.into_iter().partition(|i| i.large());
         let icons = rules.into_iter().filter_map(|rule| Some((icon_file_name(&rule.image)?, rule.image)));
@@ -1054,17 +1073,21 @@ impl<I: Install> ArtCache<I> {
     }
 
     fn icon_rules(&self, build: &mut Build) -> Vec<IconRule> {
-        if build.icon_rules.is_none() {
-            let source = self.source(build);
-            let read = |path| source.as_ref().and_then(|s| s.ui_stylesheet(path));
-            let mut rules = read(STYLESHEET).as_deref().map(icon_rules).unwrap_or_default();
-            if let Some(base) = read(BASE_STYLESHEET) {
-                resolve_washes(&mut rules, &base);
-                rules.extend(inline_attribute_rules(&base));
-            }
-            build.icon_rules = Some(rules);
+        if let Some(rules) = &build.icon_rules {
+            return rules.clone();
         }
-        build.icon_rules.clone().unwrap_or_default()
+        let Some(source) = self.source(build) else { return Vec::new() };
+        let icons = source.ui_stylesheet(STYLESHEET);
+        let base = source.ui_stylesheet(BASE_STYLESHEET);
+        let mut rules = icons.as_deref().map(icon_rules).unwrap_or_default();
+        if let Ok(base) = &base {
+            resolve_washes(&mut rules, base);
+            rules.extend(inline_attribute_rules(base));
+        }
+        if icons != Err(Miss::Transient) && base != Err(Miss::Transient) {
+            build.icon_rules = Some(rules.clone());
+        }
+        rules
     }
 
     /// Local files for the icons the game's tooltips draw beside properties and status cells, by icon class,
@@ -1114,7 +1137,7 @@ impl<I: Install> ArtCache<I> {
         &self,
         class_names: &[String],
         file_name: impl Fn(&str) -> String,
-        write: impl Fn(&dyn ArtSource, &str, &Path) -> bool,
+        write: impl Fn(&dyn ArtSource, &str, &Path) -> Result<(), Miss>,
     ) -> Vec<ClassArt> {
         self.with_build(|build, build_dir| {
             let mut seen = HashSet::new();
@@ -1153,16 +1176,29 @@ impl<I: Install> ArtCache<I> {
                 }
                 state.served = Some(new.clone());
             }
-            state.build = Some(Build { dir, fingerprint, source: None, failed: HashSet::new(), icon_rules: None });
+            state.build = Some(Build {
+                dir,
+                fingerprint,
+                source: None,
+                tried_open: false,
+                open_failed: false,
+                failed: HashSet::new(),
+                icon_rules: None,
+            });
         }
         let build = state.build.as_mut().expect("set above");
+        build.tried_open = false;
         let out = build.fingerprint.as_ref().map(|f| self.shared.root.join(f)).map(|build_dir| f(build, &build_dir));
+        // A pass that found the archive locked wrote nothing, so warming runs again once it opens.
+        let reopened = build.source.is_some() && std::mem::take(&mut build.open_failed);
         // The callback may call back into the cache, so it runs after the lock is released.
         drop(guard);
-        if changed {
+        if changed || reopened {
             if let Some(warm) = self.shared.warm.get() {
                 let _ = warm.send(());
             }
+        }
+        if changed {
             if let Some(on_change) = self.shared.on_change.get() {
                 on_change();
             }
@@ -1175,24 +1211,29 @@ impl<I: Install> ArtCache<I> {
         build: &mut Build,
         build_dir: &Path,
         name: String,
-        write: impl FnOnce(&dyn ArtSource, &Path) -> bool,
+        write: impl FnOnce(&dyn ArtSource, &Path) -> Result<(), Miss>,
     ) -> Option<String> {
         let path = build_dir.join(&name);
-        let ready = path.is_file() || {
-            !build.failed.contains(&name) && {
-                let written = self.source(build).is_some_and(|s| write(s.as_ref(), &path));
-                if !written {
-                    build.failed.insert(name);
-                }
-                written
-            }
-        };
+        let ready = path.is_file()
+            || !build.failed.contains(&name)
+                && self.source(build).is_some_and(|s| match write(s.as_ref(), &path) {
+                    Ok(()) => true,
+                    Err(Miss::Absent) => {
+                        build.failed.insert(name);
+                        false
+                    }
+                    Err(Miss::Transient) => false,
+                });
         ready.then(|| path.to_string_lossy().into_owned())
     }
 
     fn source(&self, build: &mut Build) -> Option<Arc<dyn ArtSource>> {
-        let citadel = build.dir.clone();
-        build.source.get_or_insert_with(|| citadel.as_deref().and_then(|dir| (self.shared.opener)(dir))).clone()
+        if build.source.is_none() && !build.tried_open {
+            build.tried_open = true;
+            build.source = build.dir.as_deref().and_then(|dir| (self.shared.opener)(dir));
+            build.open_failed |= build.source.is_none();
+        }
+        build.source.clone()
     }
 
     fn remove_entries(&self, remove: impl Fn(&std::fs::DirEntry) -> bool) {
@@ -1239,67 +1280,68 @@ mod tests {
         base_stylesheet: Option<String>,
         stylesheet_reads: AtomicUsize,
         ui_delay: std::time::Duration,
+        /// Names whose next write fails as a read error that can pass.
+        flaky: Mutex<HashSet<&'static str>>,
     }
 
     impl ArtSource for FakeSource {
-        fn write_hero(&self, class_name: &str, _image: HeroImage, dest: &Path) -> bool {
-            self.writes.fetch_add(1, Ordering::Relaxed);
-            if self.failing.contains(class_name) {
-                return false;
-            }
-            fs::create_dir_all(dest.parent().unwrap()).unwrap();
-            fs::write(dest, b"png").is_ok()
+        fn write_hero(&self, class_name: &str, _image: HeroImage, dest: &Path) -> Result<(), Miss> {
+            self.write_class(class_name, dest)
         }
 
-        fn write_rank(&self, tier: u8, _image: RankImage, dest: &Path) -> bool {
+        fn write_rank(&self, tier: u8, _image: RankImage, dest: &Path) -> Result<(), Miss> {
             self.writes.fetch_add(1, Ordering::Relaxed);
             if self.failing_tiers.contains(&tier) {
-                return false;
+                return Err(Miss::Absent);
             }
             fs::create_dir_all(dest.parent().unwrap()).unwrap();
-            fs::write(dest, b"png").is_ok()
+            fs::write(dest, b"png").map_err(|_| Miss::Transient)
         }
 
-        fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+        fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.write_class(class_name, dest)
         }
 
-        fn write_item(&self, class_name: &str, _image: ItemImage, dest: &Path) -> bool {
+        fn write_item(&self, class_name: &str, _image: ItemImage, dest: &Path) -> Result<(), Miss> {
             self.write_class(class_name, dest)
         }
 
-        fn write_minimap(&self, dest: &Path) -> bool {
+        fn write_minimap(&self, dest: &Path) -> Result<(), Miss> {
             self.write_class("minimap", dest)
         }
 
-        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss> {
             self.write_class(icon.stem(), dest)
         }
 
-        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss> {
             self.ui_paths.lock().unwrap().push(compiled_path.to_string());
             std::thread::sleep(self.ui_delay);
             self.write_class(compiled_path, dest)
         }
 
-        fn ui_stylesheet(&self, compiled_path: &str) -> Option<String> {
+        fn ui_stylesheet(&self, compiled_path: &str) -> Result<String, Miss> {
             self.stylesheet_reads.fetch_add(1, Ordering::Relaxed);
-            match compiled_path {
+            let css = match compiled_path {
                 crate::property_icons::STYLESHEET => self.stylesheet.clone(),
                 crate::property_icons::BASE_STYLESHEET => self.base_stylesheet.clone(),
                 other => panic!("unexpected stylesheet {other}"),
-            }
+            };
+            css.ok_or(Miss::Absent)
         }
     }
 
     impl FakeSource {
-        fn write_class(&self, class_name: &str, dest: &Path) -> bool {
+        fn write_class(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.writes.fetch_add(1, Ordering::Relaxed);
             if self.failing.contains(class_name) {
-                return false;
+                return Err(Miss::Absent);
+            }
+            if self.flaky.lock().unwrap().remove(class_name) {
+                return Err(Miss::Transient);
             }
             fs::create_dir_all(dest.parent().unwrap()).unwrap();
-            fs::write(dest, b"png").is_ok()
+            fs::write(dest, b"png").map_err(|_| Miss::Transient)
         }
     }
 
@@ -1438,31 +1480,35 @@ mod tests {
     struct MmOnly(Arc<FakeSource>);
 
     impl ArtSource for MmOnly {
-        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool {
-            image == HeroImage::Mm && self.0.write_hero(class_name, image, dest)
+        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss> {
+            if image == HeroImage::Mm {
+                self.0.write_hero(class_name, image, dest)
+            } else {
+                Err(Miss::Absent)
+            }
         }
 
-        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool {
+        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_rank(tier, image, dest)
         }
 
-        fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+        fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ability(class_name, dest)
         }
 
-        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool {
+        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_item(class_name, image, dest)
         }
 
-        fn write_minimap(&self, dest: &Path) -> bool {
+        fn write_minimap(&self, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap(dest)
         }
 
-        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap_icon(icon, dest)
         }
 
-        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ui(compiled_path, dest)
         }
     }
@@ -1485,31 +1531,35 @@ mod tests {
     struct CardOnly(Arc<FakeSource>);
 
     impl ArtSource for CardOnly {
-        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool {
-            image == HeroImage::Card && self.0.write_hero(class_name, image, dest)
+        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss> {
+            if image == HeroImage::Card {
+                self.0.write_hero(class_name, image, dest)
+            } else {
+                Err(Miss::Absent)
+            }
         }
 
-        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool {
+        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_rank(tier, image, dest)
         }
 
-        fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+        fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ability(class_name, dest)
         }
 
-        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool {
+        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_item(class_name, image, dest)
         }
 
-        fn write_minimap(&self, dest: &Path) -> bool {
+        fn write_minimap(&self, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap(dest)
         }
 
-        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap_icon(icon, dest)
         }
 
-        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ui(compiled_path, dest)
         }
     }
@@ -1517,31 +1567,35 @@ mod tests {
     struct ChalkOnly(Arc<FakeSource>);
 
     impl ArtSource for ChalkOnly {
-        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> bool {
+        fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_hero(class_name, image, dest)
         }
 
-        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> bool {
-            image == RankImage::Chalk && self.0.write_rank(tier, image, dest)
+        fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
+            if image == RankImage::Chalk {
+                self.0.write_rank(tier, image, dest)
+            } else {
+                Err(Miss::Absent)
+            }
         }
 
-        fn write_ability(&self, class_name: &str, dest: &Path) -> bool {
+        fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ability(class_name, dest)
         }
 
-        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> bool {
+        fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss> {
             self.0.write_item(class_name, image, dest)
         }
 
-        fn write_minimap(&self, dest: &Path) -> bool {
+        fn write_minimap(&self, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap(dest)
         }
 
-        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> bool {
+        fn write_minimap_icon(&self, icon: MinimapIcon, dest: &Path) -> Result<(), Miss> {
             self.0.write_minimap_icon(icon, dest)
         }
 
-        fn write_ui(&self, compiled_path: &str, dest: &Path) -> bool {
+        fn write_ui(&self, compiled_path: &str, dest: &Path) -> Result<(), Miss> {
             self.0.write_ui(compiled_path, dest)
         }
     }
@@ -1808,6 +1862,75 @@ mod tests {
             Box::new(|_| None),
         );
         assert!(cache.hero_art(&[hero(1, "hero_inferno")]).is_empty());
+    }
+
+    /// An opener that fails its first `fails` opens, as when Steam or antivirus holds the archive.
+    fn flaky_cache(rig: &Rig, fails: usize) -> ArtCache<FakeInstall> {
+        let source = Arc::clone(&rig.source);
+        let opens = Arc::clone(&rig.opens);
+        ArtCache::with_opener(
+            FakeInstall(Mutex::new(Some(rig.citadel.clone()))),
+            rig.root.clone(),
+            Box::new(move |_| {
+                let n = opens.fetch_add(1, Ordering::Relaxed);
+                (n >= fails).then(|| Arc::clone(&source) as Arc<dyn ArtSource>)
+            }),
+        )
+    }
+
+    #[test]
+    fn an_archive_that_would_not_open_is_opened_again_by_the_next_call_in_the_same_build() {
+        let rig = Rig::new("reopen", &[]);
+        let cache = flaky_cache(&rig, 1);
+        let heroes = [hero(1, "hero_inferno")];
+        assert!(cache.hero_art(&heroes).is_empty());
+        let art = cache.hero_art(&heroes);
+        assert_eq!(art.len(), 1);
+        assert!(art[0].sm.is_some() && art[0].card.is_some() && art[0].mm.is_some());
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn an_archive_that_will_not_open_is_tried_once_per_call() {
+        let rig = Rig::new("reopen-once", &[]);
+        let cache = flaky_cache(&rig, usize::MAX);
+        assert!(cache.hero_art(&[hero(1, "hero_inferno"), hero(2, "hero_vindicta")]).is_empty());
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 1);
+        assert!(cache.shop_ui_art().is_empty());
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 2);
+        assert_eq!(cache.warm_ui_art(), 0);
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 3, "one open per warm pass");
+    }
+
+    #[test]
+    fn property_icons_are_read_again_once_the_archive_opens() {
+        let rig = rig_with_stylesheet("reopen-icons", Some(ICON_CSS), &[]);
+        let cache = flaky_cache(&rig, 1);
+        assert!(cache.property_icon_art().is_empty());
+        assert!(!cache.property_icon_art().is_empty());
+    }
+
+    #[test]
+    fn a_read_error_that_can_pass_is_retried_by_the_next_call() {
+        let rig = Rig::new("flaky-read", &[]);
+        rig.source.flaky.lock().unwrap().insert("hero_inferno");
+        let cache = rig.cache();
+        let names = ["hero_inferno".to_string()];
+        assert!(cache.ability_art(&names).is_empty());
+        assert_eq!(cache.ability_art(&names).len(), 1);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn data_that_will_not_decode_is_not_decoded_again_in_the_same_build() {
+        let rig = Rig::new("absent-cached", &["hero_inferno"]);
+        let cache = rig.cache();
+        let names = ["hero_inferno".to_string()];
+        assert!(cache.ability_art(&names).is_empty());
+        assert!(cache.ability_art(&names).is_empty());
+        assert!(cache.ability_art(&names).is_empty());
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
     }
 
     #[test]
@@ -2355,6 +2478,23 @@ mod tests {
         assert!(dir.join("ui_prop_icons_properties_range.svg").is_file());
     }
 
+    #[test]
+    fn a_warm_pass_that_found_the_archive_locked_runs_again_once_it_opens() {
+        let rig = warm_rig("warm-reopen");
+        let cache = flaky_cache(&rig, 1);
+        let ready = reports(&cache);
+        let start = std::time::Instant::now();
+        while rig.opens.load(Ordering::Relaxed) == 0 {
+            assert!(start.elapsed() < PASS, "the first pass never tried to open the archive");
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let heroes = cache.hero_art(&[hero(1, "hero_inferno")]);
+        ready.recv_timeout(PASS).expect("warming runs again after the archive opens");
+        let dir = build_dir(&heroes[0].sm);
+        assert!(dir.join("ui_card_backer_weapon_t1.png").is_file());
+        assert!(dir.join("ui_prop_icons_properties_range.svg").is_file());
+    }
+
     fn tag(key: &str) -> BuildTag {
         BuildTag { key: key.to_string(), id: 1, name: key.to_uppercase(), icon: None }
     }
@@ -2449,7 +2589,7 @@ mod tests {
     fn a_real_install_decodes_every_property_icon_the_stylesheet_names() {
         let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
         let root = std::env::temp_dir().join(format!("dp-gamedata-prop-icons-real-{}", std::process::id()));
-        let css = open_archive(&dir).and_then(|s| s.ui_stylesheet(STYLESHEET)).expect("the stylesheet decodes");
+        let css = open_archive(&dir).and_then(|s| s.ui_stylesheet(STYLESHEET).ok()).expect("the stylesheet decodes");
         let named: Vec<String> = icon_rules(&css).into_iter().map(|r| r.class).collect();
         let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
         let classes: Vec<String> = cache.property_icon_art().into_iter().map(|a| a.class).collect();
