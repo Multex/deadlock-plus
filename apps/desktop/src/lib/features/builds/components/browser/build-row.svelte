@@ -2,7 +2,10 @@
     import type { Snippet } from "svelte";
     import { CircleHelp, Star, Trophy } from "@lucide/svelte";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
+    import type { ProfileSite } from "$lib/core/player-links";
+    import PlayerLinkStrip from "$lib/components/player-links/player-link-strip.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
+    import type { BylineAuthor, BylinePart } from "../../byline-author";
     import type { TagInfo } from "../../editor/details";
     import { tagLabel } from "../../lookups.svelte";
     import type { WinRate } from "../../public-builds";
@@ -36,7 +39,7 @@
         hero?: Hero;
         /** The list mixes heroes, so each row shows its own. */
         showHero?: boolean;
-        byline: readonly string[];
+        byline: readonly BylinePart[];
         tags: readonly TagInfo[];
         items: readonly GameItem[];
         favourites?: number | null;
@@ -47,6 +50,10 @@
         /** Small icons beside the favourite count, such as the player's own favourite mark. */
         marks?: Snippet;
     } = $props();
+
+    const AUTHOR_SITES: readonly ProfileSite[] = ["steam", "statlocker", "buildlocker"];
+
+    const author = $derived(byline.find((part): part is BylineAuthor => typeof part !== "string"));
 
     const rate = $derived(
         winRate && formatNumber(winRate.wins / winRate.matches, { style: "percent", maximumFractionDigits: 0 }),
@@ -112,7 +119,13 @@
         </div>
         <div class="flex min-w-0 items-center gap-3 text-xs text-muted-foreground">
             <span class="min-w-0 truncate">
-                {#each byline as part, i (i)}{#if i > 0}<span aria-hidden="true">{" · "}</span>{/if}{part}{/each}
+                {#each byline as part, i (i)}{#if i > 0}<span aria-hidden="true">{" · "}</span
+                        >{/if}{#if typeof part === "string"}{part}{:else}{part.before}<button
+                            type="button"
+                            class="author"
+                            aria-label={t("player_links.builds_by", { name: part.name })}
+                            onclick={part.pick}>{part.name}</button
+                        >{part.after}{/if}{/each}
             </span>
             <span class="ml-auto flex shrink-0 items-center gap-3 tabular-nums">
                 {#if weekly}<span>{t("builds.browser.this_week", { count: formatNumber(weekly) })}</span>{/if}
@@ -141,6 +154,9 @@
             </ul>
         {/if}
     </div>
+    {#if author}
+        <PlayerLinkStrip name={author.name} accountId={author.accountId} sites={AUTHOR_SITES} class="links" />
+    {/if}
 </li>
 
 <style>
@@ -178,6 +194,32 @@
         content: "";
         position: absolute;
         inset: 0;
+    }
+    .author {
+        position: relative;
+        z-index: 1;
+        cursor: pointer;
+        outline: none;
+    }
+    .author:hover,
+    .author:focus-visible {
+        color: var(--foreground);
+        text-decoration: underline;
+    }
+    /* Over the row's bottom-right corner so showing it never moves the row's content. */
+    .row :global(.links) {
+        position: absolute;
+        right: 0.875rem;
+        bottom: 0.5rem;
+        z-index: 1;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms;
+    }
+    .row:hover :global(.links),
+    .row:focus-within :global(.links) {
+        opacity: 1;
+        pointer-events: auto;
     }
     .portrait {
         display: grid;

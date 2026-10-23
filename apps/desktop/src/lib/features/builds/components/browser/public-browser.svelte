@@ -14,6 +14,7 @@
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import { BuildBrowser } from "../../browser.svelte";
     import { pickSelection, withParam } from "../../build-list";
+    import { bylineAuthor, type BylinePart } from "../../byline-author";
     import type { BuildLookups } from "../../lookups.svelte";
     import {
         DEFAULT_FILTERS,
@@ -91,13 +92,14 @@
 
     const viewHref = (entry: PublicBuild) => `/builds/view?source=public&id=${entry.build.heroBuildId}`;
 
-    function byline(entry: PublicBuild): string[] {
-        const author = browser.authors.get(entry.build.authorAccountId);
+    function byline(entry: PublicBuild): BylinePart[] {
+        const authorId = entry.build.authorAccountId;
+        const author = browser.authors.get(authorId);
         const at = entry.build.lastUpdatedTimestamp;
         return [
-            author ? t("builds.browser.by", { name: author }) : null,
+            bylineAuthor(authorId, author, () => browser.pickAuthor(authorId, apply, author)),
             at === null ? null : t("builds.browser.updated", { date: formatDate(at * 1000, { dateStyle: "medium" }) }),
-        ].filter((part): part is string => part !== null);
+        ].filter((part): part is BylinePart => part !== null);
     }
 
     // Any other filter change also commits the name as typed, so a pending search is not undone.

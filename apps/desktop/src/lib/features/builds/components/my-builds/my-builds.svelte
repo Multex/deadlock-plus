@@ -53,6 +53,7 @@
         type MineView,
     } from "$lib/features/builds/my-builds";
     import { pickSelection, withParam } from "$lib/features/builds/build-list";
+    import { bylineAuthor, type BylinePart } from "$lib/features/builds/byline-author";
     import { editHref, editHrefFor } from "$lib/features/builds/editor/load";
     import { loadPlayableHeroes } from "$lib/features/builds/heroes";
     import type { BuildLookups } from "$lib/features/builds/lookups.svelte";
@@ -261,13 +262,13 @@
         ].filter((part): part is string => part !== null);
     }
 
-    function favouriteByline(row: FavouriteRow): string[] {
-        const author = store.authors.get(row.authorAccountId);
+    function favouriteByline(row: FavouriteRow): BylinePart[] {
+        const authorId = row.authorAccountId;
         return [
             showHero ? heroName(row.heroId) : null,
-            author ? t("builds.browser.by", { name: author }) : null,
+            bylineAuthor(authorId, store.authors.get(authorId), () => patch({ author: authorId })),
             updated(row.updatedAt),
-        ].filter((part): part is string => part !== null);
+        ].filter((part): part is BylinePart => part !== null);
     }
 
     function heroName(heroId: number | null): string {

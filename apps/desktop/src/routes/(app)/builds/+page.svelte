@@ -9,12 +9,13 @@
     import PasteCodeDialog from "$lib/features/builds/components/build-code/paste-code-dialog.svelte";
     import MyBuilds from "$lib/features/builds/components/my-builds/my-builds.svelte";
     import PublicBrowser from "$lib/features/builds/components/browser/public-browser.svelte";
+    import { buildsTab } from "$lib/features/builds/builds-page";
     import { BuildLookups } from "$lib/features/builds/lookups.svelte";
     import { heroParam } from "$lib/features/builds/public-builds";
 
     const hero = $derived(heroParam(page.url.searchParams));
     // The tab lives in the URL so Back from a build's page returns to the same tab and selection.
-    const tab = $derived(page.url.searchParams.get("tab") === "mine" ? "mine" : "public");
+    const tab = $derived(buildsTab(page.url.searchParams));
 
     const lookups = new BuildLookups();
     lookups.start();
