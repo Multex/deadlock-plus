@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        ChartNoAxesColumn,
         Coins,
         Crosshair,
         Flag,
@@ -11,17 +10,13 @@
         Shield,
         Skull,
         TrendingUp,
-        User,
         Zap,
     } from "@lucide/svelte";
     import type { Component } from "svelte";
-    import { toast } from "svelte-sonner";
 
-    import { openWithDeeplink } from "$lib/core/deeplink";
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { openUrl } from "$lib/core/opener";
-    import { statlockerProfileUrl } from "$lib/features/voice-bans/voice-ban";
+    import PlayerLinkStrip from "$lib/components/player-links/player-link-strip.svelte";
+    import { steam64ToSteam32 } from "$lib/core/player-links";
     import type { Hero } from "$lib/features/heroes/heroes";
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
@@ -33,7 +28,6 @@
         killParticipation,
         soulsLead,
         soulsPerMinute,
-        steamProfileUrl,
         teamTotals,
         type HeroSwap,
     } from "../live";
@@ -68,8 +62,6 @@
     const cell = (v: string | null) => (pregame || v === null ? "–" : v);
     const faint = (v: string | null) => pregame || v === null || v === "0";
     const lead = $derived(pregame ? null : soulsLead(team.souls, totalSouls));
-    const open = (run: () => Promise<void>) =>
-        run().catch((e) => toast.error(t("live.player.open_failed", { error: errorText(e) })));
     const swapTitle = (s: HeroSwap) =>
         t("live.swaps.line", { from: heroes[s.from]?.name ?? "?", to: heroes[s.to]?.name ?? "?" });
     const heroName = (p: LivePlayer) => (p.heroId === null ? undefined : heroes[p.heroId]?.name);
@@ -105,19 +97,6 @@
     <span class="kda p" class:muted={pregame}>
         <b class="ck">{k}</b><i>&middot;</i><b class="cd">{d}</b><i>&middot;</i><b class="ca">{a}</b>
     </span>
-{/snippet}
-
-{#snippet action(Icon: Component, label: string, run: () => Promise<void>)}
-    <Tooltip.Root delayDuration={100}>
-        <Tooltip.Trigger>
-            {#snippet child({ props })}
-                <button {...props} type="button" class="act" aria-label={label} onclick={() => open(run)}>
-                    <Icon size={14} />
-                </button>
-            {/snippet}
-        </Tooltip.Trigger>
-        <Tooltip.Content>{label}</Tooltip.Content>
-    </Tooltip.Root>
 {/snippet}
 
 <Tooltip.Provider>
@@ -162,14 +141,13 @@
                 <span class="nm" role="cell" title={p.name ?? heroName(p)}>{p.name ?? heroName(p) ?? "–"}</span>
                 <span class="rk" role="cell">
                     {#if p.steamId}
-                        {@const id = p.steamId}
+                        {@const id = Number(steam64ToSteam32(p.steamId))}
                         <span class="acts">
-                            {@render action(User, t("live.player.steam_profile"), () =>
-                                openWithDeeplink(steamProfileUrl(id)),
-                            )}
-                            {@render action(ChartNoAxesColumn, t("live.player.statlocker"), () =>
-                                openUrl(statlockerProfileUrl(id)),
-                            )}
+                            <PlayerLinkStrip
+                                name={p.name ?? heroName(p) ?? ""}
+                                accountId={id}
+                                sites={["steam", "statlocker"]}
+                            />
                         </span>
                     {/if}
                     <RankBadge rank={shown.rank} fromHistory={shown.fromHistory} {tiers} />
@@ -322,12 +300,8 @@
         right: 100%;
         z-index: 1;
         display: flex;
-        gap: 2px;
         margin-right: 8px;
-        padding: 2px;
         transform: translateY(-50%);
-        border-radius: var(--radius);
-        background: var(--card);
         opacity: 0;
         pointer-events: none;
     }
@@ -335,20 +309,6 @@
     .row:focus-within .acts {
         opacity: 1;
         pointer-events: auto;
-    }
-    .act {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: calc(var(--radius) - 2px);
-        color: var(--muted-foreground);
-    }
-    .act:hover,
-    .act:focus-visible {
-        color: var(--foreground);
-        background: color-mix(in oklch, var(--foreground) 12%, transparent);
     }
     .hc,
     .hp {

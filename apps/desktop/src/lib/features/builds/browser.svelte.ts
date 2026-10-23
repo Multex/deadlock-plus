@@ -6,7 +6,7 @@ import { live } from "$lib/features/live/live.svelte";
 import { playerNames } from "$lib/features/match-history/names";
 import { stats } from "$lib/features/stats/stats.svelte";
 import { searchPlayers, type Profile } from "$lib/features/voice-bans/profiles";
-import { parseSteamId, steam64ToSteam32 } from "$lib/features/voice-bans/voice-ban";
+import { parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
 import { buildsLocal } from "./api";
 import { BuildDetail } from "./build-detail.svelte";
 import { loadHeroFlags, loadPlayableHeroes, playableHeroes } from "./heroes";

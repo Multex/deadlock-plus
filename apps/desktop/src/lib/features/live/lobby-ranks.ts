@@ -2,7 +2,7 @@ import type { DeadlockApi, PlayerRank } from "@deadlock-plus/deadlock-api";
 import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
 import type { LiveMatchMode } from "@deadlock-plus/ipc-types/LiveMatchMode";
 import type { LivePlayer } from "@deadlock-plus/ipc-types/LivePlayer";
-import { steam64ToSteam32 } from "$lib/features/voice-bans/voice-ban";
+import { steam64ToSteam32 } from "$lib/core/player-links";
 
 export interface BoardRank {
     rank: number | null;

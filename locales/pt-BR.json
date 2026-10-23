@@ -1763,7 +1763,6 @@
             "already_muted": "Já está silenciado.",
             "not_recognised": "Não reconhecido. Use um link do perfil do Steam ou o ID do Steam.",
             "search_failed": "Não foi possível procurar jogadores. Verifique sua conexão e tente novamente.",
-            "statlocker_failed": "Não foi possível abrir o Statlocker no seu navegador.",
             "exported": "{count} silenciados exportados",
             "export_failed": "Não foi possível exportar seus silenciados. Verifique o log para mais detalhes.",
             "import_failed": "Não foi possível ler esse arquivo. Escolha uma lista de silenciados exportada do Deadlock+ ou o arquivo de silenciados do próprio jogo.",
@@ -2466,11 +2465,6 @@
         },
         "rank_from_history": "{rank}, das partidas competitivas do jogador",
         "paused": "Pausado",
-        "player": {
-            "steam_profile": "Abrir perfil no Steam",
-            "statlocker": "Abrir no Statlocker",
-            "open_failed": "Não foi possível abrir o link: {error}"
-        },
         "queue": {
             "party": "Tamanho do grupo"
         },

@@ -1774,7 +1774,6 @@
             "already_muted": "Already muted.",
             "not_recognised": "Not recognised. Use a Steam profile link or Steam ID.",
             "search_failed": "Couldn't search for players. Check your connection and try again.",
-            "statlocker_failed": "Couldn't open Statlocker in your browser.",
             "exported": "Exported {count} mutes",
             "export_failed": "Couldn't export your mutes. Check the log for details.",
             "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
@@ -2473,11 +2472,6 @@
         },
         "rank_from_history": "{rank}, from their ranked matches",
         "paused": "Paused",
-        "player": {
-            "steam_profile": "Open Steam profile",
-            "statlocker": "Open on Statlocker",
-            "open_failed": "Could not open the link: {error}"
-        },
         "queue": {
             "party": "Party size"
         },

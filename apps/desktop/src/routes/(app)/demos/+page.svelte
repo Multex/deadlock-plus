@@ -15,7 +15,7 @@
     import Pager from "$lib/features/demos/components/pager.svelte";
     import { DemoList } from "$lib/features/demos/demo-list.svelte";
     import { statlockerMatchUrl } from "$lib/features/demos/demos";
-    import { openUrl } from "$lib/core/opener";
+    import { openLink } from "$lib/core/open-link";
 
     const list = new DemoList();
 
@@ -93,7 +93,7 @@
                     deleting={list.deleting}
                     onselect={(on) => list.toggle(d.fileName, on)}
                     onpin={(on) => list.pin(d, on)}
-                    onstatlocker={() => void openUrl(statlockerMatchUrl(d.matchId))}
+                    onstatlocker={() => void openLink(statlockerMatchUrl(d.matchId))}
                     onreveal={() => list.reveal(d)}
                     ondelete={() => list.askDelete([d.fileName])}
                 />

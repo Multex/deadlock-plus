@@ -2,19 +2,11 @@ import { toast } from "svelte-sonner";
 import { errorCode, errorText, failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { saveTextFile } from "$lib/core/files";
-import { openUrl } from "$lib/core/opener";
+import { openProfile, parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
 import { readVoiceBan, writeVoiceBan, type VoiceBanFile } from "./api";
 import { filterMuted, mutedIds, pageCount as countPages, pageSlice, pruneSelection, toggleIds } from "./list";
 import { lookupProfiles, searchPlayers, type Profile } from "./profiles";
-import {
-    addMutedUsers,
-    buildExport,
-    parseImport,
-    parseSteamId,
-    parseVoiceBan,
-    removeMutedUsers,
-    statlockerProfileUrl,
-} from "./voice-ban";
+import { addMutedUsers, buildExport, parseImport, parseVoiceBan, removeMutedUsers } from "./voice-ban";
 
 export class Mutes {
     file = $state<VoiceBanFile | null>(null);
@@ -161,9 +153,7 @@ export class Mutes {
     }
 
     openStatlocker(id: string) {
-        openUrl(statlockerProfileUrl(id)).catch((e) =>
-            toast.error(failureText(e, t("voice_bans.toast.statlocker_failed"))),
-        );
+        void openProfile("statlocker", Number(steam64ToSteam32(id)));
     }
 
     toggle(id: string, on: boolean) {

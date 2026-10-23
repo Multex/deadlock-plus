@@ -6,7 +6,7 @@
     import Card from "@deadlock-plus/ui/card.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
-    import { parseSteamId } from "../voice-ban";
+    import { parseSteamId } from "$lib/core/player-links";
     import type { Profile } from "../profiles";
 
     let {

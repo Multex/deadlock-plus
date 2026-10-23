@@ -1,5 +1,6 @@
 import type { Profile } from "./profiles";
-import { parseVoiceBan, steam64ToSteam32 } from "./voice-ban";
+import { steam64ToSteam32 } from "$lib/core/player-links";
+import { parseVoiceBan } from "./voice-ban";
 
 export const PAGE_SIZE = 25;
 

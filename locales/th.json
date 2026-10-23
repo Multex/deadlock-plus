@@ -1709,7 +1709,6 @@
             "already_muted": "",
             "not_recognised": "",
             "search_failed": "",
-            "statlocker_failed": "",
             "exported": "",
             "export_failed": "",
             "import_failed": "",
@@ -2393,11 +2392,6 @@
         },
         "rank_from_history": "",
         "paused": "",
-        "player": {
-            "steam_profile": "",
-            "statlocker": "",
-            "open_failed": ""
-        },
         "queue": {
             "party": ""
         },

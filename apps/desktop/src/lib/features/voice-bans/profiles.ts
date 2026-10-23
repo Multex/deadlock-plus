@@ -1,7 +1,7 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { t } from "$lib/core/i18n.svelte";
 import { DeadlockApiError, type SteamProfile } from "@deadlock-plus/deadlock-api";
-import { steam32ToSteam64, steam64ToSteam32 } from "./voice-ban";
+import { steam32ToSteam64, steam64ToSteam32 } from "$lib/core/player-links";
 
 const BATCH = 50;
 const CONCURRENCY = 4;

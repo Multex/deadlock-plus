@@ -1,16 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-    addMutedUsers,
-    buildExport,
-    mergeImport,
-    parseImport,
-    parseSteamId,
-    parseVoiceBan,
-    removeMutedUsers,
-    steam32ToSteam64,
-    statlockerProfileUrl,
-    steam64ToSteam32,
-} from "./voice-ban";
+import { addMutedUsers, buildExport, mergeImport, parseImport, parseVoiceBan, removeMutedUsers } from "./voice-ban";
 
 const HEADER = "<!-- kv3 encoding:text:version{e21c7f3c} format:generic:version{7412167c} -->\n";
 const entry = (id: string, flags = 3) => `\t\t{\n\t\t\tflags = ${flags}\n\t\t\tsteamid = ${id}\n\t\t}`;
@@ -124,31 +113,6 @@ describe("addMutedUsers", () => {
     });
 });
 
-describe("id conversion", () => {
-    it("converts between steam64 and steam32 above 2^53", () => {
-        expect(steam64ToSteam32("76561198347512100")).toBe("387246372");
-        expect(steam32ToSteam64("387246372")).toBe("76561198347512100");
-    });
-
-    it("steam32ToSteam64 returns null for junk", () => {
-        expect(steam32ToSteam64("abc")).toBeNull();
-    });
-});
-
-describe("parseSteamId", () => {
-    it("accepts a steam64", () => expect(parseSteamId("76561198347512100")).toBe("76561198347512100"));
-    it("accepts a steam32", () => expect(parseSteamId("387246372")).toBe("76561198347512100"));
-    it("accepts a SteamID3", () => expect(parseSteamId("[U:1:387246372]")).toBe("76561198347512100"));
-    it("accepts a profile link", () =>
-        expect(parseSteamId("https://steamcommunity.com/profiles/76561198347512100/")).toBe("76561198347512100"));
-    it("trims whitespace", () => expect(parseSteamId("  387246372 ")).toBe("76561198347512100"));
-    it("rejects a vanity link and junk", () => {
-        expect(parseSteamId("https://steamcommunity.com/id/someone")).toBeNull();
-        expect(parseSteamId("nope")).toBeNull();
-        expect(parseSteamId("")).toBeNull();
-    });
-});
-
 describe("export / import", () => {
     it("round-trips a subset through JSON", () => {
         expect(parseImport(buildExport([A, B]))).toEqual([A, B]);
@@ -172,11 +136,5 @@ describe("export / import", () => {
         const r = mergeImport(file([A, B]), [B, C, D]);
         expect(r.added).toEqual([C, D]);
         expect(parseVoiceBan(r.text).users.map((u) => u.steamid64)).toEqual([A, B, C, D]);
-    });
-});
-
-describe("statlockerProfileUrl", () => {
-    it("links the matches page using the 32-bit account id", () => {
-        expect(statlockerProfileUrl("76561198347512100")).toBe("https://statlocker.gg/profile/387246372/matches");
     });
 });

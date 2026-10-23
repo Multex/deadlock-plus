@@ -15,7 +15,6 @@ interface Span extends MutedUser {
 
 export const DEFAULT_FLAGS = 3;
 
-const STEAM64_OFFSET = 76561197960265728n;
 const STEAM64_RE = /^7656119\d{10}$/;
 
 // KV3 dict fields are not comma separated, so the comma between the two keys is optional.
@@ -114,33 +113,6 @@ export function addMutedUsers(
     }
     const block = "," + nl + formatEntries(added, flags, nl, indent, false);
     return { text: text.slice(0, last.end) + block + text.slice(last.end), added };
-}
-
-export function steam64ToSteam32(steamid64: string): string {
-    return (BigInt(steamid64) - STEAM64_OFFSET).toString();
-}
-
-export function steam32ToSteam64(steamid32: string): string | null {
-    if (!/^\d+$/.test(steamid32)) return null;
-    return (BigInt(steamid32) + STEAM64_OFFSET).toString();
-}
-
-export function statlockerProfileUrl(steamid64: string): string {
-    return `https://statlocker.gg/profile/${steam64ToSteam32(steamid64)}/matches`;
-}
-
-/** Accepts a SteamID64, a 32-bit account id, `[U:1:n]`, or a `/profiles/<id64>` link. */
-export function parseSteamId(input: string): string | null {
-    const s = input.trim();
-    if (STEAM64_RE.test(s)) return s;
-    if (/^\d{1,10}$/.test(s)) {
-        const id = steam32ToSteam64(s);
-        return id && STEAM64_RE.test(id) ? id : null;
-    }
-    const u3 = /^\[U:1:(\d{1,10})\]$/.exec(s);
-    if (u3) return parseSteamId(u3[1]);
-    const link = /steamcommunity\.com\/profiles\/(\d{17})/.exec(s);
-    return link && STEAM64_RE.test(link[1]) ? link[1] : null;
 }
 
 export function buildExport(ids: string[]): string {
