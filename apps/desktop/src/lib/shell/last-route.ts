@@ -85,6 +85,36 @@ function isKnown(known: Set<string>, pathname: string): boolean {
     return false;
 }
 
+/**
+ * The root layout's `load` runs again for the redirect it asks for, while `location` still shows the launch path,
+ * so a second answer would redirect again until SvelteKit gives up with a redirect loop.
+ */
+export function firstCallOnly<T>(fn: () => Promise<T | null>): () => Promise<T | null> {
+    let called = false;
+    return () => {
+        if (called) return Promise.resolve(null);
+        called = true;
+        return fn();
+    };
+}
+
+export interface LaunchRestore {
+    launch: boolean;
+    hidden: () => Promise<boolean>;
+    target: () => Promise<string | null>;
+    waitMs: number;
+}
+
+/**
+ * The page a shown launch opens on. A hidden launch (autostart) has no one watching and restores at its first
+ * showing instead. `waitMs` bounds the wait, because the first render waits on it.
+ */
+export async function launchRestoreTarget({ launch, hidden, target, waitMs }: LaunchRestore): Promise<string | null> {
+    if (!launch || (await hidden().catch(() => false))) return null;
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), waitMs));
+    return Promise.race([target().catch(() => null), timeout]);
+}
+
 export interface RestoreInput {
     stored: unknown;
     /** From `take_launch_route`: the page of the notification the app was started from. */

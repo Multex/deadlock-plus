@@ -29,7 +29,7 @@ import {
 } from "./notification-topics";
 import { DEFAULT_UI_SCALE, resolveHardwareAcceleration, resolveUiScale } from "./app-window";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
-import { DEFAULT_THEME, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
+import { initialTheme, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
 
 const STORE = "app-settings";
 const ACCESSIBLE_FONT_KEY = "accessibleFont";
@@ -63,7 +63,7 @@ async function stored<T>(key: string): Promise<T | undefined> {
 
 class Settings {
     accessibleFont = $state(false);
-    theme = $state<ThemeId>(DEFAULT_THEME);
+    theme = $state<ThemeId>(initialTheme(globalThis.document?.documentElement));
     motion = $state<MotionPreference>("system");
     matchIngest = $state(false);
     ingestPromptPending = $state(false);

@@ -1,16 +1,30 @@
 use tauri::plugin::TauriPlugin;
-use tauri::Wry;
-use tauri_plugin_window_state::StateFlags;
+use tauri::{WebviewWindow, Wry};
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 
-/// Visibility is left out: the main window starts hidden and `tray::commands::frontend_ready`
-/// decides whether to show it (an autostart launch stays in the tray). Restoring it would override
-/// that. Decorations are fixed by the window config.
+use crate::features::app_window::MAIN_WINDOW;
+
+/// Visibility is left out: `app_window::build_main` decides whether to show the main window (an
+/// autostart launch stays in the tray). Restoring it would override that. Decorations are fixed by
+/// the window config.
 fn restored_state() -> StateFlags {
     StateFlags::all() - StateFlags::VISIBLE - StateFlags::DECORATIONS
 }
 
+/// The plugin restores from a task queued on the event loop, which runs after setup has already shown
+/// the window; the main window is restored by hand before it is shown instead.
 pub fn plugin() -> TauriPlugin<Wry> {
-    tauri_plugin_window_state::Builder::default().with_state_flags(restored_state()).with_denylist(&["overlay"]).build()
+    tauri_plugin_window_state::Builder::default()
+        .with_state_flags(restored_state())
+        .with_denylist(&["overlay"])
+        .skip_initial_state(MAIN_WINDOW)
+        .build()
+}
+
+pub fn restore_main(window: &WebviewWindow) {
+    if let Err(e) = window.restore_state(restored_state()) {
+        log::warn!("could not restore the main window's size and position: {e}");
+    }
 }
 
 #[cfg(test)]

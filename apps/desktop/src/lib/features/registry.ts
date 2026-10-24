@@ -232,6 +232,8 @@ export { recoveryBarItem } from "./gc/recovery-bar";
 export { discordBarState } from "./presence/presence";
 export { liveBarItem } from "./live/live";
 export { isLightTheme, resolveReducedMotion } from "./settings/themes";
+export { setWindowTheme } from "./settings/api";
+export { needsOnboarding } from "./onboarding/onboarding";
 export { getAppInfo } from "./settings/about";
 export { updater } from "./updates/updater.svelte";
 export { default as NotificationCenter } from "./notifications/components/notification-center.svelte";

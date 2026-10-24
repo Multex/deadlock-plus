@@ -6,9 +6,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Deadlock+</title>
         <style>
-            /* Must match --background in app.css; paints before the stylesheet loads. */
+            /* The app's main window sets data-theme before parsing and paints its theme's --chrome natively, so
+               the page stays transparent until the theme stylesheet arrives. It has to take the background over
+               the moment it does: its `color-scheme: dark` makes a transparent page paint Chromium's own dark
+               canvas (#121212) over the native colour. */
             html {
-                background: #14100c;
+                background: var(--chrome);
+            }
+
+            /* Anywhere else (the web demo) there is no native colour: the default theme's --chrome. */
+            html:not([data-theme]) {
+                background: #080605;
                 color-scheme: dark;
             }
         </style>

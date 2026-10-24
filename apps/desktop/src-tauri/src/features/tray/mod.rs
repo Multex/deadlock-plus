@@ -236,13 +236,6 @@ pub fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
     }
 }
 
-static READY_SEEN: AtomicBool = AtomicBool::new(false);
-
-/// A dev full-page reload sends `frontend_ready` again; revealing then would steal focus on every edit.
-fn first_ready(seen: &AtomicBool) -> bool {
-    !seen.swap(true, Ordering::Relaxed)
-}
-
 pub mod commands {
     use super::*;
 
@@ -267,18 +260,6 @@ pub mod commands {
     #[tauri::command]
     pub fn main_window_visible(state: tauri::State<'_, MainWindowVisibility>) -> bool {
         state.get()
-    }
-
-    /// Called once the frontend has actually rendered something, so the window is only ever
-    /// revealed with real content in it. WebView2 has a known slow/flashing cold start; showing
-    /// the window early and painting `backgroundColor` over the gap just moves the flash from
-    /// white to that color instead of removing it. Staying hidden until now, with the window built
-    /// `"visible": false` in `tauri.conf.json`, means the user never sees the empty state at all.
-    #[tauri::command]
-    pub fn frontend_ready(app: AppHandle) {
-        if first_ready(&READY_SEEN) && !super::launched_hidden() {
-            show_main(&app);
-        }
     }
 }
 
@@ -321,14 +302,6 @@ mod tests {
     #[test]
     fn normal_launch_shows_without_probing_the_tray_host() {
         assert!(!starts_hidden(false, || unreachable!("probed on a normal launch")));
-    }
-
-    #[test]
-    fn only_the_first_ready_signal_reveals_the_window() {
-        let seen = AtomicBool::new(false);
-        assert!(first_ready(&seen));
-        assert!(!first_ready(&seen));
-        assert!(!first_ready(&seen));
     }
 
     #[test]

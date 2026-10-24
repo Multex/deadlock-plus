@@ -2,12 +2,12 @@ import { onMount } from "svelte";
 import { afterNavigate, beforeNavigate } from "$app/navigation";
 import { initLanguage } from "$lib/core/i18n.svelte";
 import { command, listen } from "$lib/core/tauri";
-import { SERVICES, resolveReducedMotion, settings, updater } from "$lib/features/registry";
+import { SERVICES, resolveReducedMotion, setWindowTheme, settings, updater } from "$lib/features/registry";
 import { useLastRoute } from "./last-route.svelte";
 import { overlays } from "./overlays";
 
 /** Call once from the root layout's script. Owns service start-up, document attributes and overlay lifecycle. */
-export function useAppShell(options: { onboardingPending: () => Promise<boolean> }) {
+export function useAppShell() {
     let osReducedMotion = $state(false);
 
     $effect(() => {
@@ -16,6 +16,7 @@ export function useAppShell(options: { onboardingPending: () => Promise<boolean>
 
     $effect(() => {
         document.documentElement.dataset.theme = settings.theme;
+        setWindowTheme(settings.theme).catch(() => {});
     });
 
     $effect(() => {
@@ -39,7 +40,7 @@ export function useAppShell(options: { onboardingPending: () => Promise<boolean>
         closeLeftBehind = null;
     });
 
-    const lastRoute = useLastRoute(options.onboardingPending);
+    const lastRoute = useLastRoute();
 
     onMount(() => {
         const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -53,20 +54,7 @@ export function useAppShell(options: { onboardingPending: () => Promise<boolean>
 
         const unlistenHidden = listen("window-hidden", () => overlays.closeAll()).catch(() => () => {});
 
-        // Two rAFs: the first fires before the browser has painted this frame, the second
-        // guarantees one already happened. The window is built hidden so it's only ever revealed
-        // with a real frame already rendered behind it, not a flash of empty/background-colored space.
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                void lastRoute
-                    .beforeReveal()
-                    .catch(() => {})
-                    // A restored page needs its own painted frame before the reveal.
-                    .then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))))
-                    .then(() => command("frontend_ready"))
-                    .catch((e) => console.error("frontend_ready failed:", e));
-            });
-        });
+        void lastRoute.start();
 
         return () => {
             motionQuery.removeEventListener("change", onMotionChange);

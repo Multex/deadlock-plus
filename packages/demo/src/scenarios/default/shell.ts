@@ -197,7 +197,6 @@ const notifications = (nowS: number): AppNotification[] => [
 ];
 
 const SETTERS = [
-    "frontend_ready",
     "set_update_badge",
     "set_language",
     "track_feature",
@@ -213,6 +212,7 @@ const SETTERS = [
     "restart_app",
     "quit_app",
     "set_ui_scale",
+    "set_window_theme",
     "set_maintenance_schedule",
     "set_alerts_enabled",
     "set_overlay_settings",
