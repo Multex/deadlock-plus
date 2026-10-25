@@ -181,6 +181,7 @@ describe("catalog", () => {
             "server-blocks-stale",
             "break-reminder",
             "match-found",
+            "queue-stopped",
         ]);
         expect(ITEMS.map((i) => i.id)).not.toContain("overlay-match-found");
     });
@@ -191,18 +192,28 @@ describe("catalog", () => {
         expect(item("server-blocks-stale")?.title).toBe("Server blocks out of date");
         expect(item("break-reminder")?.title).toBe("Break reminder");
         expect(item("break-reminder")?.description).toContain("losses in a row");
+        expect(item("queue-stopped")?.title).toBe("Queue stopped");
+        expect(item("queue-stopped")?.description).toContain("without a match");
     });
 
     it("finds every notification type with a delivery choice by how it shows", () => {
-        const ids = ITEMS.filter((i) => i.category === "notifications" && i.id !== "match-found").map((i) => i.id);
+        const overlayOnly = ["match-found", "queue-stopped"];
+        const ids = ITEMS.filter((i) => i.category === "notifications" && !overlayOnly.includes(i.id)).map((i) => i.id);
         for (const query of ["shows as", "desktop notification", "notification center", "overlay", "popup"]) {
             for (const id of ids) expect(matchingItems(query)?.has(id), `${query} -> ${id}`).toBe(true);
         }
     });
 
-    it("does not find match found by deliveries it cannot use", () => {
+    it("does not find match found or queue stopped by deliveries they cannot use", () => {
         for (const query of ["shows as", "desktop notification", "notification center"]) {
             expect(matchingItems(query)?.has("match-found"), query).toBe(false);
+            expect(matchingItems(query)?.has("queue-stopped"), query).toBe(false);
+        }
+    });
+
+    it("finds queue stopped by what it is about", () => {
+        for (const query of ["queue", "cancel", "party leader", "overlay"]) {
+            expect(matchingItems(query)?.has("queue-stopped"), query).toBe(true);
         }
     });
 
@@ -212,8 +223,15 @@ describe("catalog", () => {
         expect(hasOverlay("macos")).toBe(false);
     });
 
-    it("hides match found and the game overlay section where there is no overlay", () => {
-        const overlayIds = ["match-found", "overlay", "overlay-position", "overlay-duration", "overlay-test"];
+    it("hides match found, queue stopped and the game overlay section where there is no overlay", () => {
+        const overlayIds = [
+            "match-found",
+            "queue-stopped",
+            "overlay",
+            "overlay-position",
+            "overlay-duration",
+            "overlay-test",
+        ];
         const ids = (p: "windows" | "linux") => itemsFor(p).map((i) => i.id);
         for (const id of overlayIds) {
             expect(ids("windows"), id).toContain(id);

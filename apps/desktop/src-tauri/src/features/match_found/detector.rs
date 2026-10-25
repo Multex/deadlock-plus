@@ -15,17 +15,33 @@ pub enum Seen {
     Facts(LiveFacts),
 }
 
+/// The first Hideout tick of a possible cancel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct QueueDip {
+    pub since: Instant,
+    /// Whether the game was in front then. A queue the user stopped in the game needs no alert.
+    pub focused: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum State {
     #[default]
     Idle,
-    /// The party is queueing. `not_queueing_since` is the first Hideout tick of a possible cancel.
-    Armed { not_queueing_since: Option<Instant> },
+    /// The party is queueing.
+    Armed { dip: Option<QueueDip> },
     /// The pop was announced; waits for the Hideout before it can arm again.
     Fired,
 }
 
-/// Turns polled game facts into one "match found" edge per queue pop.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Event {
+    /// A queued party's match started loading.
+    Found,
+    /// The queue stopped without a match while the game was not in front.
+    Cancelled,
+}
+
+/// Turns polled game facts into one edge per queue pop or cancel.
 #[derive(Debug, Default)]
 pub struct Detector {
     state: State,
@@ -37,39 +53,40 @@ impl Detector {
         self.state
     }
 
-    /// True exactly on the tick a queued party's match starts loading.
-    pub fn observe(&mut self, seen: Seen, now: Instant) -> bool {
+    /// `focused` is whether the game window is in front on this tick.
+    pub fn observe(&mut self, seen: Seen, focused: bool, now: Instant) -> Option<Event> {
         let facts = match seen {
             Seen::GameClosed => {
                 self.state = State::Idle;
-                return false;
+                return None;
             }
-            Seen::NoFacts => return false,
+            Seen::NoFacts => return None,
             Seen::Facts(facts) => facts,
         };
         let queueing = facts.party.map(|party| party.queueing);
         match (self.state, facts.context) {
             (_, Context::Hideout) if queueing == Some(true) => {
-                self.state = State::Armed { not_queueing_since: None };
+                self.state = State::Armed { dip: None };
             }
             (State::Idle | State::Fired, Context::Hideout) => self.state = State::Idle,
-            (State::Armed { not_queueing_since }, Context::Hideout) if queueing == Some(false) => {
-                let since = not_queueing_since.unwrap_or(now);
-                self.state = if now.saturating_duration_since(since) >= CANCEL_AFTER {
-                    State::Idle
+            (State::Armed { dip }, Context::Hideout) if queueing == Some(false) => {
+                let dip = dip.unwrap_or(QueueDip { since: now, focused });
+                if now.saturating_duration_since(dip.since) < CANCEL_AFTER {
+                    self.state = State::Armed { dip: Some(dip) };
                 } else {
-                    State::Armed { not_queueing_since: Some(since) }
-                };
+                    self.state = State::Idle;
+                    return (!dip.focused).then_some(Event::Cancelled);
+                }
             }
             (State::Armed { .. }, Context::Match)
                 if matches!(facts.phase, Some(Phase::MatchIntro | Phase::Loading | Phase::PreGame)) =>
             {
                 self.state = State::Fired;
-                return true;
+                return Some(Event::Found);
             }
             _ => {}
         }
-        false
+        None
     }
 }
 
@@ -99,16 +116,86 @@ mod tests {
     struct Clock {
         t0: Instant,
         d: Detector,
+        focused: bool,
     }
 
     impl Clock {
         fn new() -> Self {
-            Self { t0: Instant::now(), d: Detector::default() }
+            Self { t0: Instant::now(), d: Detector::default(), focused: false }
+        }
+
+        fn step(&mut self, secs: u64, seen: Seen) -> Option<Event> {
+            self.d.observe(seen, self.focused, self.t0 + Duration::from_secs(secs))
         }
 
         fn at(&mut self, secs: u64, seen: Seen) -> bool {
-            self.d.observe(seen, self.t0 + Duration::from_secs(secs))
+            self.step(secs, seen) == Some(Event::Found)
         }
+
+        fn events(&mut self, secs: std::ops::RangeInclusive<u64>, seen: Seen) -> Vec<Event> {
+            secs.filter_map(|s| self.step(s, seen)).collect()
+        }
+    }
+
+    #[test]
+    fn a_ten_second_cancel_reports_cancelled_once() {
+        let mut c = Clock::new();
+        assert_eq!(c.step(0, hideout(true)), None);
+        assert_eq!(c.events(1..=10, hideout(false)), [], "9 s is not a cancel yet");
+        assert_eq!(c.step(11, hideout(false)), Some(Event::Cancelled));
+        assert_eq!(c.d.state(), State::Idle);
+        assert_eq!(c.events(12..=60, hideout(false)), []);
+    }
+
+    #[test]
+    fn a_short_dip_or_pop_never_reports_cancelled() {
+        let mut c = Clock::new();
+        let mut events = Vec::new();
+        events.extend(c.step(0, hideout(true)));
+        events.extend(c.events(1..=9, hideout(false)));
+        events.extend(c.step(10, hideout(true)));
+        events.extend(c.events(11..=13, hideout(false)));
+        events.extend(c.events(14..=20, in_match(Some(Phase::MatchIntro))));
+        events.extend(c.events(21..=1800, in_match(Some(Phase::InProgress))));
+        events.extend(c.events(1801..=1860, hideout(false)));
+        assert_eq!(events, [Event::Found]);
+    }
+
+    #[test]
+    fn closing_the_game_while_queued_is_not_a_cancel() {
+        let mut c = Clock::new();
+        c.step(0, hideout(true));
+        c.step(1, hideout(false));
+        assert_eq!(c.events(2..=30, Seen::GameClosed), []);
+        assert_eq!(c.events(31..=60, hideout(false)), [], "the next launch starts idle");
+    }
+
+    #[test]
+    fn a_cancel_made_while_focused_is_not_announced() {
+        let mut c = Clock::new();
+        c.step(0, hideout(true));
+        c.focused = true;
+        c.step(1, hideout(false));
+        c.focused = false;
+        assert_eq!(c.events(2..=30, hideout(false)), [], "tabbing out after stopping the queue changes nothing");
+        assert_eq!(c.d.state(), State::Idle);
+    }
+
+    #[test]
+    fn the_focus_at_the_first_tick_of_the_last_dip_decides() {
+        let mut c = Clock::new();
+        c.step(0, hideout(true));
+        c.step(1, hideout(false));
+        c.focused = true;
+        assert_eq!(c.events(2..=20, hideout(false)), [Event::Cancelled], "tabbed out when it stopped");
+
+        let mut c = Clock::new();
+        c.focused = true;
+        c.step(0, hideout(true));
+        c.step(1, hideout(false));
+        c.step(2, hideout(true));
+        c.focused = false;
+        assert_eq!(c.events(3..=20, hideout(false)), [Event::Cancelled], "a requeue forgets the earlier dip");
     }
 
     #[test]

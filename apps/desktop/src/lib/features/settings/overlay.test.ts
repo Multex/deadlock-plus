@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_OVERLAY, DURATION_RANGE, OVERLAY_POSITIONS, resolveOverlay } from "./overlay";
 
 describe("overlay settings", () => {
-    it("defaults to on, top right, six seconds, with match found on", () => {
-        expect(DEFAULT_OVERLAY).toEqual({ enabled: true, position: "topRight", durationSecs: 6, matchFound: true });
+    it("defaults to on, top right, six seconds, with match found and queue stopped on", () => {
+        expect(DEFAULT_OVERLAY).toEqual({
+            enabled: true,
+            position: "topRight",
+            durationSecs: 6,
+            matchFound: true,
+            queueStopped: true,
+        });
     });
 
     it("lists the eight positions in reading order", () => {
@@ -31,14 +37,14 @@ describe("overlay settings", () => {
     });
 
     it("keeps every stored value that is valid", () => {
-        expect(resolveOverlay({ enabled: false, position: "bottomLeft", durationSecs: 12, matchFound: false })).toEqual(
-            {
-                enabled: false,
-                position: "bottomLeft",
-                durationSecs: 12,
-                matchFound: false,
-            },
-        );
+        const stored = {
+            enabled: false,
+            position: "bottomLeft",
+            durationSecs: 12,
+            matchFound: false,
+            queueStopped: false,
+        };
+        expect(resolveOverlay(stored)).toEqual(stored);
     });
 
     it("fills a missing field from the defaults", () => {
@@ -49,10 +55,26 @@ describe("overlay settings", () => {
         expect(resolveOverlay({ enabled: false, position: "left", durationSecs: 9 }).matchFound).toBe(true);
     });
 
+    it("turns queue stopped on for a value stored before it existed", () => {
+        expect(resolveOverlay({ enabled: false, position: "left", durationSecs: 9, matchFound: false })).toEqual({
+            enabled: false,
+            position: "left",
+            durationSecs: 9,
+            matchFound: false,
+            queueStopped: true,
+        });
+    });
+
     it("drops a field of the wrong kind back to its default", () => {
-        expect(resolveOverlay({ enabled: "no", position: "center", durationSecs: "9", matchFound: "off" })).toEqual(
-            DEFAULT_OVERLAY,
-        );
+        expect(
+            resolveOverlay({
+                enabled: "no",
+                position: "center",
+                durationSecs: "9",
+                matchFound: "off",
+                queueStopped: 1,
+            }),
+        ).toEqual(DEFAULT_OVERLAY);
     });
 
     it("pulls a duration into range and onto a whole second", () => {

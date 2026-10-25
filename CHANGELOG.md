@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
 - Discord presence can show the Deadlock+ logo where Discord would show the Deadlock logo.
+- A "Queue stopped" alert in the game overlay tells you when your queue ends without a match while you're tabbed out.
+- Turn the "Queue stopped" alert off in Settings > Notifications.
 
 #### Theme options
 
@@ -54,6 +56,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The app opens straight on your last page instead of switching to it.
 - Some labels that stayed in English can now be translated, such as "Every other game" in Stats insights.
 - Frame and item counts read correctly in every language, including a count of one.
+- Restart app no longer loses a Discord presence edit made just before.
+- In the Discord presence editor, screen readers now hear "Show party size" and "Timer on Discord" instead of the bare labels.
 
 ## [0.14.0] - 2026-10-24
 

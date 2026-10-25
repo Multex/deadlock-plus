@@ -17,6 +17,7 @@ pub enum NotificationTopic {
     ServerBlocksStale,
     BreakReminder,
     MatchFound,
+    QueueStopped,
 }
 
 impl NotificationTopic {
@@ -26,13 +27,13 @@ impl NotificationTopic {
             Self::Maintenance => NotificationKind::Maintenance,
             Self::ServerBlocksUpdated | Self::ServerBlocksStale => NotificationKind::Servers,
             Self::BreakReminder => NotificationKind::Session,
-            Self::MatchFound => NotificationKind::Match,
+            Self::MatchFound | Self::QueueStopped => NotificationKind::Match,
         }
     }
 
     pub const fn placement(self) -> Placement {
         match self {
-            Self::MatchFound => Placement::Center,
+            Self::MatchFound | Self::QueueStopped => Placement::Center,
             _ => Placement::Corner,
         }
     }
@@ -40,7 +41,7 @@ impl NotificationTopic {
     pub const fn default_delivery(self) -> Delivery {
         match self {
             Self::ServerBlocksUpdated => Delivery::Quiet,
-            Self::MatchFound => Delivery::Overlay,
+            Self::MatchFound | Self::QueueStopped => Delivery::Overlay,
             Self::Updates | Self::Maintenance | Self::ServerBlocksStale | Self::BreakReminder => Delivery::Both,
         }
     }
@@ -63,10 +64,10 @@ impl Default for NotificationSettings {
 }
 
 impl NotificationSettings {
-    /// Match found shows in the game overlay only, never as a desktop toast or a center entry.
+    /// Match found and queue stopped show in the game overlay only, never as a desktop toast or a center entry.
     pub fn delivery(&self, topic: NotificationTopic) -> Delivery {
         match topic {
-            NotificationTopic::MatchFound => Delivery::Overlay,
+            NotificationTopic::MatchFound | NotificationTopic::QueueStopped => Delivery::Overlay,
             _ => self.deliveries.get(&topic).copied().unwrap_or(topic.default_delivery()),
         }
     }
@@ -85,13 +86,14 @@ impl NotificationSettings {
 mod tests {
     use super::*;
 
-    const TOPICS: [NotificationTopic; 6] = [
+    const TOPICS: [NotificationTopic; 7] = [
         NotificationTopic::Updates,
         NotificationTopic::Maintenance,
         NotificationTopic::ServerBlocksUpdated,
         NotificationTopic::ServerBlocksStale,
         NotificationTopic::BreakReminder,
         NotificationTopic::MatchFound,
+        NotificationTopic::QueueStopped,
     ];
 
     #[test]
@@ -106,6 +108,7 @@ mod tests {
             (T::ServerBlocksStale,   K::Servers,     Placement::Corner, Delivery::Both),
             (T::BreakReminder,       K::Session,     Placement::Corner, Delivery::Both),
             (T::MatchFound,          K::Match,       Placement::Center, Delivery::Overlay),
+            (T::QueueStopped,        K::Match,       Placement::Center, Delivery::Overlay),
         ];
         assert_eq!(rows.len(), TOPICS.len());
         for (topic, kind, placement, delivery) in rows {
@@ -137,13 +140,13 @@ mod tests {
     }
 
     #[test]
-    fn match_found_is_delivered_by_the_overlay_whatever_is_stored() {
-        for stored in [Delivery::Os, Delivery::Both, Delivery::Quiet, Delivery::Center, Delivery::Overlay] {
-            let settings = NotificationSettings {
-                deliveries: BTreeMap::from([(NotificationTopic::MatchFound, stored)]),
-                ..Default::default()
-            };
-            assert_eq!(settings.delivery(NotificationTopic::MatchFound), Delivery::Overlay, "{stored:?}");
+    fn match_found_and_queue_stopped_are_delivered_by_the_overlay_whatever_is_stored() {
+        for topic in [NotificationTopic::MatchFound, NotificationTopic::QueueStopped] {
+            for stored in [Delivery::Os, Delivery::Both, Delivery::Quiet, Delivery::Center, Delivery::Overlay] {
+                let settings =
+                    NotificationSettings { deliveries: BTreeMap::from([(topic, stored)]), ..Default::default() };
+                assert_eq!(settings.delivery(topic), Delivery::Overlay, "{topic:?} {stored:?}");
+            }
         }
     }
 

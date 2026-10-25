@@ -148,6 +148,7 @@
             <Switch
                 id={`${idBase}-party-size`}
                 checked={shown.partySize ?? true}
+                aria-label={t("settings.discord_editor.party_size_aria")}
                 onCheckedChange={(v) => set({ partySize: v })}
             />
             <span class="text-xs text-muted-foreground">{t("settings.discord_editor.party_size_hint")}</span>
@@ -165,6 +166,7 @@
             class="w-52 max-w-full"
             items={timers}
             value={shown.timer ?? "none"}
+            aria-label={t("settings.discord_editor.timer_aria")}
             onValueChange={(v) => set({ timer: v as PresenceTimer })}
         >
             {#snippet leading(item)}

@@ -7,7 +7,7 @@ vi.mock("./tauri", () => ({
     listen: (...args: unknown[]) => listen(...args),
 }));
 
-import { listenForQuit, onBeforeExit, QUIT_REQUESTED_EVENT, runBeforeExit } from "./exit";
+import { listenForQuit, onBeforeExit, QUIT_REQUESTED_EVENT, restartAfterSaves, runBeforeExit } from "./exit";
 
 describe("before-exit tasks", () => {
     const removers: (() => void)[] = [];
@@ -68,6 +68,40 @@ describe("before-exit tasks", () => {
 
         finish();
         await vi.waitFor(() => expect(command).toHaveBeenCalledWith("quit_app"));
+    });
+
+    it("restarts only after the tasks finish", async () => {
+        let finish: () => void = () => {};
+        register(() => new Promise<void>((resolve) => (finish = resolve)));
+
+        const restarting = restartAfterSaves();
+        await Promise.resolve();
+        expect(command).not.toHaveBeenCalled();
+
+        finish();
+        await restarting;
+        expect(command).toHaveBeenCalledWith("restart_app");
+    });
+
+    it("restarts even when a task fails", async () => {
+        register(async () => {
+            throw new Error("save failed");
+        });
+        await restartAfterSaves();
+        expect(command).toHaveBeenCalledWith("restart_app");
+    });
+
+    it("restarts when a task never finishes", async () => {
+        vi.useFakeTimers();
+        try {
+            register(() => new Promise<void>(() => {}));
+            const restarting = restartAfterSaves();
+            await vi.advanceTimersByTimeAsync(10_000);
+            await restarting;
+            expect(command).toHaveBeenCalledWith("restart_app");
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("stops listening when stopped", async () => {

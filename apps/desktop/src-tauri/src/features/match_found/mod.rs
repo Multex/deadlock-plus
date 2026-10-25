@@ -14,12 +14,13 @@ use super::i18n::{translate_in, I18nState};
 use super::live::link::GameLinkService;
 use super::notifications::{self, NotificationTopic};
 use super::overlay::OverlayService;
-use detector::{Detector, Seen};
+use detector::{Detector, Event, Seen};
 
 const POLL: Duration = Duration::from_secs(1);
 const EXIT_WAIT: Duration = Duration::from_secs(2);
 const KEY: &str = "notifications.match_found";
 const KEY_NO_MODE: &str = "notifications.match_found_unknown";
+const KEY_STOPPED: &str = "notifications.queue_stopped";
 
 #[derive(Default)]
 pub struct MatchFoundService {
@@ -64,10 +65,15 @@ fn run(stop: &Stop, app: &AppHandle, slot: &Slot<Snapshot>) {
             feed = None;
             Seen::GameClosed
         };
-        if detector.observe(seen, Instant::now()) {
-            if let Seen::Facts(facts) = seen {
-                announce(app, &facts);
+        let focused = app.state::<GameFocusService>().state().focus == GameFocus::Focused;
+        match detector.observe(seen, focused, Instant::now()) {
+            Some(Event::Found) => {
+                if let Seen::Facts(facts) = seen {
+                    announce(app, &facts);
+                }
             }
+            Some(Event::Cancelled) => announce_stopped(app),
+            None => {}
         }
         stop.sleep(POLL);
     }
@@ -80,6 +86,12 @@ fn announce(app: &AppHandle, facts: &LiveFacts) {
     }
     let (key, params) = message(facts, &app.state::<I18nState>().locale());
     notifications::push(app, NotificationTopic::MatchFound, key, &params, None);
+}
+
+fn announce_stopped(app: &AppHandle) {
+    if app.state::<OverlayService>().settings().queue_stopped {
+        notifications::push(app, NotificationTopic::QueueStopped, KEY_STOPPED, &[], None);
+    }
 }
 
 /// The game shows its own pop while it is in front; this alert is for players who tabbed out.
@@ -167,7 +179,7 @@ mod tests {
 
     #[test]
     fn every_key_it_shows_is_in_the_english_catalog() {
-        for key in [KEY, KEY_NO_MODE] {
+        for key in [KEY, KEY_NO_MODE, KEY_STOPPED] {
             for part in ["title", "body"] {
                 let full = format!("{key}.{part}");
                 assert_ne!(translate_in("en", &full, &[]), full, "missing {full}");

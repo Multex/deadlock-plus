@@ -11,6 +11,7 @@ describe("notification settings", () => {
                 serverBlocksStale: "both",
                 breakReminder: "both",
                 matchFound: "overlay",
+                queueStopped: "overlay",
             },
             serverBlocksUpdated: true,
             serverBlocksStale: true,
@@ -36,6 +37,7 @@ describe("notification settings", () => {
                 serverBlocksStale: "quiet",
                 breakReminder: "overlay",
                 matchFound: "overlay",
+                queueStopped: "overlay",
             },
             serverBlocksUpdated: false,
             serverBlocksStale: false,
@@ -57,9 +59,10 @@ describe("notification settings", () => {
         expect([windows.updates, windows.breakReminder]).toEqual(["overlay", "overlay"]);
     });
 
-    it("reads every stored match found delivery as overlay", () => {
-        for (const matchFound of ["both", "os", "quiet", "center"]) {
-            expect(resolveNotifications({ deliveries: { matchFound } }).deliveries.matchFound).toBe("overlay");
+    it("reads every stored match found and queue stopped delivery as overlay", () => {
+        for (const stored of ["both", "os", "quiet", "center"]) {
+            const { deliveries } = resolveNotifications({ deliveries: { matchFound: stored, queueStopped: stored } });
+            expect([deliveries.matchFound, deliveries.queueStopped]).toEqual(["overlay", "overlay"]);
         }
     });
 
