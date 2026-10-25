@@ -184,7 +184,7 @@
 
 <style>
     .team {
-        --tc: oklch(0.8 0.125 82);
+        --tc: var(--dd-hk);
         --c-souls: oklch(0.86 0.14 98);
         --c-spm: oklch(0.76 0.08 98);
         --c-k: oklch(0.82 0.12 195);
@@ -202,13 +202,7 @@
         overflow: clip;
     }
     .team[data-side="sapphire"] {
-        --tc: oklch(0.72 0.11 245);
-    }
-    :global(:root[data-theme="daylight"]) .team {
-        --tc: oklch(0.6 0.12 70);
-    }
-    :global(:root[data-theme="daylight"]) .team[data-side="sapphire"] {
-        --tc: oklch(0.5 0.12 245);
+        --tc: var(--dd-am);
     }
     .tn {
         grid-column: 1 / 3;

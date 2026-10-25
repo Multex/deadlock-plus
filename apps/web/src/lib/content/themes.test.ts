@@ -1,43 +1,41 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { THEMES as THEME_DATA, chromeHex, oklchToHex, themeSwatch } from "@deadlock-plus/ui/themes";
 import { describe, expect, it } from "vitest";
 
-import { oklchStringToHex, themeBlocks } from "$lib/testing/theme-css";
 import {
     DEFAULT_THEME,
+    PREPAINT_PLACEHOLDER,
     THEMES,
     THEME_STORAGE_KEY,
     applyTheme,
     loadTheme,
     resolveTheme,
     saveTheme,
-    type ThemeId,
+    themePrepaint,
 } from "./themes";
 
-const blocks = themeBlocks(DEFAULT_THEME);
-const cssVar = (id: ThemeId, name: string) => {
-    const value = blocks.get(id)?.get(name);
-    if (!value) throw new Error(`theme.css has no ${name} for ${id}`);
-    return value;
+const data = (id: string) => {
+    const theme = THEME_DATA.find((t) => t.id === id);
+    if (!theme) throw new Error(`themes.json has no ${id}`);
+    return theme;
 };
 
 describe("THEMES", () => {
-    it("lists exactly the themes the stylesheet defines", () => {
-        expect(THEMES.map((t) => t.id).sort()).toEqual([...blocks.keys()].sort());
+    it("lists exactly the themes the shared data defines", () => {
+        expect(THEMES.map((t) => t.id)).toEqual(THEME_DATA.map((t) => t.id));
+    });
+
+    it("names every theme", () => {
+        for (const theme of THEMES) expect(theme.label, theme.id).not.toBe("");
     });
 
     it("draws each swatch from that theme's background, card, brass and primary", () => {
-        for (const theme of THEMES) {
-            expect(theme.swatch, theme.id).toEqual(
-                ["--background", "--card", "--brass", "--primary"].map((name) => cssVar(theme.id, name)),
-            );
-        }
+        for (const theme of THEMES) expect(theme.swatch, theme.id).toEqual(themeSwatch(data(theme.id)));
     });
 
     it("carries each theme's chrome colour as hex for the browser bar", () => {
-        for (const theme of THEMES) {
-            expect(theme.chrome, theme.id).toBe(oklchStringToHex(cssVar(theme.id, "--chrome")));
-        }
+        for (const theme of THEMES) expect(theme.chrome, theme.id).toBe(chromeHex(data(theme.id)));
     });
 });
 
@@ -107,40 +105,65 @@ describe("applyTheme", () => {
     });
 });
 
+describe("themePrepaint", () => {
+    const head = themePrepaint();
+    const script = /<script>([\s\S]*)<\/script>/.exec(head)?.[1] ?? "";
+
+    function run(stored: string | null | Error) {
+        const root = { dataset: {} as Record<string, string | undefined> };
+        const meta = { content: "#e6b557" };
+        const localStorage = {
+            getItem: () => {
+                if (stored instanceof Error) throw stored;
+                return stored;
+            },
+        };
+        const document = { documentElement: root, querySelector: () => meta };
+        new Function("document", "localStorage", script)(document, localStorage);
+        return { theme: root.dataset.theme, chrome: meta.content };
+    }
+
+    it("restores the stored theme and tints the browser bar with its chrome colour", () => {
+        for (const theme of THEMES) expect(run(theme.id), theme.id).toEqual({ theme: theme.id, chrome: theme.chrome });
+    });
+
+    it("falls back to the default for an unknown or unreadable stored theme", () => {
+        const fallback = { theme: DEFAULT_THEME, chrome: THEMES.find((t) => t.id === DEFAULT_THEME)?.chrome };
+
+        expect(run(null)).toEqual(fallback);
+        expect(run("neon")).toEqual(fallback);
+        expect(run(new Error("SecurityError"))).toEqual(fallback);
+    });
+
+    it("paints each theme's own background as hex, for browsers without oklch", () => {
+        for (const theme of THEME_DATA) {
+            const selector = theme.id === DEFAULT_THEME ? "html" : `html[data-theme="${theme.id}"]`;
+            const rule = new RegExp(`${selector.replace(/[[\]]/g, "\\$&")} \\{\\s*background: ([^;]+);`).exec(head);
+
+            expect(rule?.[1], theme.id).toBe(oklchToHex(theme.tokens.background ?? ""));
+        }
+    });
+
+    it("marks light themes as light for form controls and scrollbars", () => {
+        expect(head).toMatch(/html \{[^}]*color-scheme: dark;/);
+        expect(head).toMatch(/html\[data-theme="daylight"\] \{[^}]*color-scheme: light;/);
+        expect(head).not.toMatch(/html\[data-theme="midnight"\] \{[^}]*color-scheme/);
+    });
+});
+
 describe("app.html", () => {
     const html = readFileSync(fileURLToPath(new URL("../../app.html", import.meta.url)), "utf8");
 
     it("serves the default theme's brass as the accent colour of a link preview", () => {
         const served = /<meta name="theme-color" content="([^"]+)"/.exec(html)?.[1];
 
-        expect(served).toBe(oklchStringToHex(cssVar(DEFAULT_THEME, "--brass")));
+        expect(served).toBe(oklchToHex(data(DEFAULT_THEME).tokens.brass ?? ""));
     });
 
-    it("restores the stored theme before the first paint, under the same storage key", () => {
-        expect(html).toContain(`localStorage.getItem("${THEME_STORAGE_KEY}")`);
-        expect(html.indexOf("localStorage.getItem")).toBeLessThan(html.indexOf("%sveltekit.head%"));
-    });
+    it("takes the theme pre-paint after the theme-color tag and before the page head", () => {
+        const at = html.indexOf(PREPAINT_PLACEHOLDER);
 
-    it("tints the browser bar with the restored theme's chrome colour", () => {
-        expect(html.indexOf('<meta name="theme-color"')).toBeLessThan(html.indexOf("<script>"));
-        for (const theme of THEMES) {
-            expect(html, theme.id).toMatch(new RegExp(`"?${theme.id}"?: "${theme.chrome}"`));
-        }
-    });
-
-    it("paints each theme's own background before the stylesheet loads", () => {
-        for (const theme of THEMES) {
-            const selector = theme.id === DEFAULT_THEME ? "html" : `html[data-theme="${theme.id}"]`;
-            const rule = new RegExp(`${selector.replace(/[[\]]/g, "\\$&")} \\{\\s*background: ([^;]+);`).exec(html);
-
-            const value = rule?.[1];
-            const painted = !value || value.startsWith("#") ? value : oklchStringToHex(value);
-
-            expect(painted, theme.id).toBe(oklchStringToHex(cssVar(theme.id, "--background")));
-        }
-    });
-
-    it("marks the light theme as light for form controls and scrollbars", () => {
-        expect(html).toMatch(/html\[data-theme="daylight"\] \{[^}]*color-scheme: light;/);
+        expect(at).toBeGreaterThan(html.indexOf('<meta name="theme-color"'));
+        expect(at).toBeLessThan(html.indexOf("%sveltekit.head%"));
     });
 });

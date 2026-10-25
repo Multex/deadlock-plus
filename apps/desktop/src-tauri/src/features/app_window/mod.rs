@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::LazyLock;
 
 use dp_kv::KvStore;
+use serde::Deserialize;
 use serde_json::Value;
 use tauri::window::Color;
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
@@ -15,26 +18,72 @@ const DISABLE_GPU_ARG: &str = "--disable-gpu";
 const BROWSER_ARGS_ENV: &str = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
 
 const THEME_KEY: &str = "theme";
-const DEFAULT_THEME: &str = "deadlock";
-/// Each theme's `--chrome` from `packages/ui/src/theme.css`, the colour `html` and `body` paint. The window and
-/// the webview start in it, so nothing white or off-theme shows before the page's first frame.
-const THEME_CHROME: [(&str, (u8, u8, u8)); 6] = [
-    ("deadlock", (0x08, 0x06, 0x05)),
-    ("midnight", (0x04, 0x06, 0x0d)),
-    ("daylight", (0xec, 0xe7, 0xde)),
-    ("contrast", (0x00, 0x00, 0x00)),
-    ("nightshift", (0x01, 0x03, 0x03)),
-    ("deadlock-api", (0x00, 0x00, 0x00)),
-];
+const THEMES_JSON: &str = include_str!("../../../../../../packages/ui/src/themes.json");
+
+#[derive(Deserialize)]
+struct ThemeFile {
+    default: String,
+    themes: Vec<ThemeEntry>,
+}
+
+#[derive(Deserialize)]
+struct ThemeEntry {
+    id: String,
+    tokens: HashMap<String, String>,
+}
+
+/// Each theme's `--chrome`, the colour `html` and `body` paint, default theme first. The window and the webview
+/// start in it, so nothing white or off-theme shows before the page's first frame.
+static THEMES: LazyLock<Vec<(String, Color)>> = LazyLock::new(|| theme_colors(THEMES_JSON));
+
+/// A theme that sets no `--chrome` inherits the default theme's, as it does in the stylesheet.
+fn theme_colors(json: &str) -> Vec<(String, Color)> {
+    let file: ThemeFile = serde_json::from_str(json).expect("themes.json is compiled in and checked by the tests");
+    let chrome = |theme: &ThemeEntry| theme.tokens.get("chrome").and_then(|value| oklch_to_srgb(value));
+    let base = file.themes.iter().find(|t| t.id == file.default).and_then(chrome).unwrap_or(Color(0, 0, 0, 255));
+    let mut themes: Vec<_> = file.themes.iter().map(|t| (t.id.clone(), chrome(t).unwrap_or(base))).collect();
+    themes.sort_by_key(|(id, _)| *id != file.default);
+    themes
+}
+
+/// Plain `oklch(L C H)` only, the form every `--chrome` takes.
+fn oklch_to_srgb(value: &str) -> Option<Color> {
+    let parts: Vec<f64> = value
+        .strip_prefix("oklch(")?
+        .strip_suffix(')')?
+        .split_whitespace()
+        .map(str::parse)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    let [l, c, h] = parts[..] else { return None };
+    let (a, b) = (c * h.to_radians().cos(), c * h.to_radians().sin());
+    let l_ = (l + 0.396_337_777_4 * a + 0.215_803_757_3 * b).powi(3);
+    let m_ = (l - 0.105_561_345_8 * a - 0.063_854_172_8 * b).powi(3);
+    let s_ = (l - 0.089_484_177_5 * a - 1.291_485_548 * b).powi(3);
+    let linear = [
+        4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
+        -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
+        -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701 * s_,
+    ];
+    let [r, g, b] = linear.map(|x| {
+        let x = x.clamp(0.0, 1.0);
+        let encoded = if x <= 0.003_130_8 { 12.92 * x } else { 1.055 * x.powf(1.0 / 2.4) - 0.055 };
+        (encoded * 255.0).round() as u8
+    });
+    Some(Color(r, g, b, 255))
+}
+
+fn default_theme() -> &'static str {
+    &THEMES[0].0
+}
 
 fn theme_id(stored: Option<&Value>) -> &'static str {
     let stored = stored.and_then(Value::as_str);
-    THEME_CHROME.iter().map(|(id, _)| *id).find(|id| Some(*id) == stored).unwrap_or(DEFAULT_THEME)
+    THEMES.iter().map(|(id, _)| id.as_str()).find(|id| Some(*id) == stored).unwrap_or(default_theme())
 }
 
 fn window_background(theme: &str) -> Color {
-    let (_, (r, g, b)) = THEME_CHROME.iter().find(|(id, _)| *id == theme).unwrap_or(&THEME_CHROME[0]);
-    Color(*r, *g, *b, 255)
+    THEMES.iter().find(|(id, _)| id == theme).unwrap_or(&THEMES[0]).1
 }
 
 /// Runs before the document is parsed, so `<html>` does not exist yet; the observer sets the theme the moment it
@@ -339,72 +388,57 @@ mod tests {
         assert!(!open.should_open(Some(false), true));
     }
 
-    /// `--chrome` of each theme block in `theme.css`, with `:root` as the default theme.
-    fn css_chrome_colors() -> Vec<(String, (f64, f64, f64))> {
-        let css = include_str!("../../../../../../packages/ui/src/theme.css");
-        let blocks: Vec<(String, &str)> = css
-            .split('}')
-            .filter_map(|chunk| {
-                let (selector, body) = chunk.split_once('{')?;
-                let selector = selector.trim().rsplit('\n').next()?.trim();
-                let id = if selector == ":root" {
-                    DEFAULT_THEME.to_string()
-                } else {
-                    selector.strip_prefix(":root[data-theme=\"")?.strip_suffix("\"]")?.to_string()
-                };
-                Some((id, body))
-            })
-            .collect();
-        let chrome = |body: &str| {
-            let value = body.split("--chrome:").nth(1)?.split(';').next()?.trim();
-            let parts: Vec<f64> = value
-                .strip_prefix("oklch(")?
-                .strip_suffix(')')?
-                .split_whitespace()
-                .map(|p| p.parse().unwrap())
-                .collect();
-            Some((parts[0], parts[1], parts[2]))
-        };
-        let root = blocks.iter().find(|(id, _)| id == DEFAULT_THEME).and_then(|(_, body)| chrome(body)).unwrap();
-        blocks.iter().map(|(id, body)| (id.clone(), chrome(body).unwrap_or(root))).collect()
-    }
+    const FIXTURE: &str = r#"{
+        "default": "base",
+        "themes": [
+            { "id": "dusk", "light": false, "tokens": { "brass": "oklch(0.7 0.1 230)" } },
+            { "id": "base", "light": false, "tokens": { "chrome": "oklch(0.125 0.006 65)" } },
+            { "id": "paper", "light": true, "tokens": { "chrome": "oklch(0.93 0.014 85)" } }
+        ]
+    }"#;
 
-    fn oklch_to_srgb((l, c, h): (f64, f64, f64)) -> [u8; 3] {
-        let (a, b) = (c * h.to_radians().cos(), c * h.to_radians().sin());
-        let l_ = (l + 0.396_337_777_4 * a + 0.215_803_757_3 * b).powi(3);
-        let m_ = (l - 0.105_561_345_8 * a - 0.063_854_172_8 * b).powi(3);
-        let s_ = (l - 0.089_484_177_5 * a - 1.291_485_548 * b).powi(3);
-        let linear = [
-            4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
-            -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
-            -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701 * s_,
-        ];
-        linear.map(|x| {
-            let x = x.clamp(0.0, 1.0);
-            let encoded = if x <= 0.003_130_8 { 12.92 * x } else { 1.055 * x.powf(1.0 / 2.4) - 0.055 };
-            (encoded * 255.0).round() as u8
-        })
+    fn color_of(themes: &[(String, Color)], id: &str) -> (u8, u8, u8, u8) {
+        let Color(r, g, b, a) = themes.iter().find(|(theme, _)| theme == id).unwrap().1;
+        (r, g, b, a)
     }
 
     #[test]
-    fn every_theme_paints_the_window_in_its_chrome_color() {
-        let themes = css_chrome_colors();
-        assert_eq!(themes.len(), THEME_CHROME.len(), "a theme in theme.css has no window color, or the reverse");
-        for (id, oklch) in themes {
-            let want = oklch_to_srgb(oklch);
-            let Color(r, g, b, a) = window_background(theme_id(Some(&json!(id))));
-            assert_eq!(a, 255, "{id}");
-            for (have, want) in [r, g, b].into_iter().zip(want) {
-                assert!(have.abs_diff(want) <= 1, "{id}: window color {:?} is not --chrome {want:?}", (r, g, b));
+    fn a_theme_paints_the_window_in_its_chrome_color_as_srgb() {
+        let themes = theme_colors(FIXTURE);
+        assert_eq!(color_of(&themes, "base"), (0x08, 0x06, 0x05, 255));
+        assert_eq!(color_of(&themes, "paper"), (0xec, 0xe7, 0xde, 255));
+    }
+
+    #[test]
+    fn a_theme_without_its_own_chrome_uses_the_default_themes() {
+        assert_eq!(color_of(&theme_colors(FIXTURE), "dusk"), (0x08, 0x06, 0x05, 255));
+    }
+
+    #[test]
+    fn the_default_theme_comes_first() {
+        assert_eq!(theme_colors(FIXTURE)[0].0, "base");
+    }
+
+    #[test]
+    fn every_theme_in_themes_json_has_its_own_window_color() {
+        let file: Value = serde_json::from_str(THEMES_JSON).unwrap();
+        let themes = file["themes"].as_array().unwrap();
+        assert_eq!(THEMES.len(), themes.len());
+        assert_eq!(default_theme(), file["default"]);
+        for theme in themes {
+            let id = theme["id"].as_str().unwrap();
+            assert_eq!(theme_id(Some(&json!(id))), id);
+            if let Some(chrome) = theme["tokens"]["chrome"].as_str() {
+                assert!(oklch_to_srgb(chrome).is_some(), "{id}: --chrome {chrome} is not a plain oklch() colour");
             }
         }
     }
 
     #[test]
     fn an_unknown_or_missing_theme_uses_the_default() {
-        assert_eq!(theme_id(None), DEFAULT_THEME);
-        assert_eq!(theme_id(Some(&json!("neon"))), DEFAULT_THEME);
-        assert_eq!(theme_id(Some(&json!(3))), DEFAULT_THEME);
+        assert_eq!(theme_id(None), default_theme());
+        assert_eq!(theme_id(Some(&json!("neon"))), default_theme());
+        assert_eq!(theme_id(Some(&json!(3))), default_theme());
         assert_eq!(theme_id(Some(&json!("daylight"))), "daylight");
     }
 
@@ -418,7 +452,7 @@ mod tests {
     #[test]
     fn a_stored_theme_reaches_the_script_only_as_a_known_id() {
         let script = theme_script(theme_id(Some(&json!("\"</script><img src=x onerror=alert(1)>"))));
-        assert!(script.contains(&format!("dataset.theme = \"{DEFAULT_THEME}\"")));
+        assert!(script.contains(&format!("dataset.theme = \"{}\"", default_theme())));
         assert!(!script.contains("onerror"));
     }
 

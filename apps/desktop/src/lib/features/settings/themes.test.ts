@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { THEMES as THEME_DATA, chromeHex } from "@deadlock-plus/ui/themes";
 import { describe, expect, it } from "vitest";
 import {
     DEFAULT_THEME,
@@ -7,6 +10,24 @@ import {
     resolveReducedMotion,
     resolveTheme,
 } from "./themes";
+
+describe("THEMES", () => {
+    it("has a label and description in en for every theme", () => {
+        for (const theme of THEMES) {
+            expect(theme.label, theme.id).not.toMatch(/^settings\./);
+            expect(theme.description, theme.id).not.toMatch(/^settings\./);
+        }
+    });
+});
+
+describe("app.html", () => {
+    it("paints the default theme's chrome where no native window colour sits behind the page", () => {
+        const html = readFileSync(fileURLToPath(new URL("../../../app.html", import.meta.url)), "utf8");
+        const fallback = /html:not\(\[data-theme\]\) \{\s*background: (#[0-9a-f]{6});/.exec(html)?.[1];
+
+        expect(fallback).toBe(chromeHex(THEME_DATA.find((t) => t.id === DEFAULT_THEME)!));
+    });
+});
 
 describe("initialTheme", () => {
     it("starts from the theme the window set before the page loaded", () => {

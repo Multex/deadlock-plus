@@ -1,4 +1,14 @@
-export type ThemeId = "deadlock" | "midnight" | "daylight" | "contrast" | "nightshift" | "deadlock-api";
+import {
+    DEFAULT_THEME,
+    THEMES as THEME_DATA,
+    chromeHex,
+    oklchToHex,
+    resolveTheme,
+    themeSwatch,
+    type ThemeId,
+} from "@deadlock-plus/ui/themes";
+
+export { DEFAULT_THEME, resolveTheme, type ThemeId } from "@deadlock-plus/ui/themes";
 
 export interface Theme {
     id: ThemeId;
@@ -9,52 +19,23 @@ export interface Theme {
     swatch: [string, string, string, string];
 }
 
-export const DEFAULT_THEME: ThemeId = "deadlock";
+const LABELS: Record<ThemeId, string> = {
+    deadlock: "Deadlock",
+    midnight: "Midnight",
+    daylight: "Daylight",
+    contrast: "High contrast",
+    nightshift: "Nightshift",
+    "deadlock-api": "Deadlock API",
+};
 
 export const THEME_STORAGE_KEY = "theme";
 
-export const THEMES: Theme[] = [
-    {
-        id: "deadlock",
-        label: "Deadlock",
-        chrome: "#080605",
-        swatch: ["oklch(0.17 0.008 70)", "oklch(0.21 0.01 70)", "oklch(0.8 0.125 82)", "oklch(0.68 0.11 155)"],
-    },
-    {
-        id: "midnight",
-        label: "Midnight",
-        chrome: "#04060d",
-        swatch: ["oklch(0.17 0.02 260)", "oklch(0.21 0.025 260)", "oklch(0.82 0.06 230)", "oklch(0.7 0.11 175)"],
-    },
-    {
-        id: "daylight",
-        label: "Daylight",
-        chrome: "#ece7de",
-        swatch: ["oklch(0.97 0.012 85)", "oklch(0.99 0.006 85)", "oklch(0.6 0.12 70)", "oklch(0.5 0.12 155)"],
-    },
-    {
-        id: "contrast",
-        label: "High contrast",
-        chrome: "#000000",
-        swatch: ["oklch(0 0 0)", "oklch(0.12 0 0)", "oklch(0.92 0.16 95)", "oklch(0.85 0.2 150)"],
-    },
-    {
-        id: "nightshift",
-        label: "Nightshift",
-        chrome: "#010303",
-        swatch: ["oklch(0.13 0.008 220)", "oklch(0.18 0.01 225)", "oklch(0.63 0.09 86)", "oklch(0.77 0.11 192)"],
-    },
-    {
-        id: "deadlock-api",
-        label: "Deadlock API",
-        chrome: "#000000",
-        swatch: ["oklch(0.09 0.004 250)", "oklch(0.15 0.007 258)", "oklch(0.66 0.217 21)", "oklch(0.68 0.12 145)"],
-    },
-];
-
-export function resolveTheme(value: unknown): ThemeId {
-    return THEMES.find((t) => t.id === value)?.id ?? DEFAULT_THEME;
-}
+export const THEMES: Theme[] = THEME_DATA.map((theme) => ({
+    id: theme.id,
+    label: LABELS[theme.id] ?? "",
+    chrome: chromeHex(theme),
+    swatch: themeSwatch(theme),
+}));
 
 // Takes a getter because reading `localStorage` itself throws where the browser blocks site data.
 export function loadTheme(storage: () => Pick<Storage, "getItem">): ThemeId {
@@ -82,4 +63,37 @@ export function applyTheme(target: ThemeTarget, id: ThemeId): void {
     target.root.dataset.theme = id;
     const chrome = THEMES.find((t) => t.id === id)?.chrome;
     if (target.meta && chrome) target.meta.content = chrome;
+}
+
+export const PREPAINT_PLACEHOLDER = "<!-- theme-prepaint -->";
+
+/**
+ * Runs before the stylesheet loads: restores the stored theme and paints its background, so a returning visitor
+ * never sees the default theme flash first. A browser also tints its address bar with theme-color, so that gets
+ * the theme's chrome colour instead of the brass a link preview reads. Hex throughout, for browsers without oklch.
+ */
+export function themePrepaint(): string {
+    const scheme = (light: boolean) => (light ? "light" : "dark");
+    const base = THEME_DATA.find((t) => t.id === DEFAULT_THEME);
+    const rules = THEME_DATA.map((theme) => {
+        const selector = theme === base ? "html" : `html[data-theme="${theme.id}"]`;
+        const lines = [`background: ${oklchToHex(theme.tokens.background ?? "")};`];
+        if (theme === base || scheme(theme.light) !== scheme(base?.light ?? false)) {
+            lines.push(`color-scheme: ${scheme(theme.light)};`);
+        }
+        return `${selector} { ${lines.join(" ")} }`;
+    });
+    const chrome = JSON.stringify(Object.fromEntries(THEMES.map((t) => [t.id, t.chrome])));
+    const script = [
+        "(function () {",
+        `var chrome = ${chrome};`,
+        "var theme = null;",
+        `try { theme = localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)}); } catch (e) {}`,
+        `if (!theme || !Object.prototype.hasOwnProperty.call(chrome, theme)) theme = ${JSON.stringify(DEFAULT_THEME)};`,
+        "document.documentElement.dataset.theme = theme;",
+        "var meta = document.querySelector('meta[name=\"theme-color\"]');",
+        "if (meta) meta.content = chrome[theme];",
+        "})();",
+    ];
+    return `<style>${rules.join(" ")}</style><script>${script.join(" ")}</script>`;
 }

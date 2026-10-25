@@ -1,13 +1,18 @@
 import type { Handle } from "@sveltejs/kit";
+import { PREPAINT_PLACEHOLDER, themePrepaint } from "$lib/content/themes";
 import { send } from "$lib/server/analytics";
 import { apexRedirect } from "$lib/server/host";
 import { pageview } from "$lib/server/visit";
+
+const prepaint = themePrepaint();
 
 export const handle: Handle = async ({ event, resolve }) => {
     const apex = apexRedirect(event.url);
     if (apex) return Response.redirect(apex, 301);
 
-    const response = await resolve(event);
+    const response = await resolve(event, {
+        transformPageChunk: ({ html }) => html.replace(PREPAINT_PLACEHOLDER, prepaint),
+    });
     const platform = event.platform;
     if (!platform) return response;
 
