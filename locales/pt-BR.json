@@ -1788,7 +1788,6 @@
         },
         "row": {
             "select": "Selecionar {name}",
-            "open_aria": "Abrir perfil do Statlocker",
             "open_title": "Perfil do Statlocker",
             "unmute": "Dessilenciar",
             "unmute_named": "Dessilenciar {name}",

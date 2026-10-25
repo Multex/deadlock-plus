@@ -73,6 +73,13 @@ test("every mute and unmute button names the player it acts on", async ({ page }
         expect(names.length).toBeGreaterThan(1);
         expect(new Set(names).size).toBe(names.length);
     }
+
+    await expect(
+        searchResult(page, "Lowlight").getByRole("button", {
+            name: "Open Statlocker profile of Lowlight",
+            exact: true,
+        }),
+    ).toBeVisible();
 });
 
 test("a name nobody has says so", async ({ page }) => {
