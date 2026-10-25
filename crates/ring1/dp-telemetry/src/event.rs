@@ -5,6 +5,7 @@ pub const FEATURES: &[&str] = &[
     "server-picker",
     "live",
     "presence",
+    "dispatch",
     "stats",
     "match-history",
     "rank",
@@ -124,6 +125,11 @@ mod tests {
     fn match_history_and_whats_new_are_features() {
         assert!(is_feature("match-history"));
         assert!(is_feature("whats-new"));
+    }
+
+    #[test]
+    fn dispatch_is_a_feature() {
+        assert!(is_feature("dispatch"));
     }
 
     #[test]

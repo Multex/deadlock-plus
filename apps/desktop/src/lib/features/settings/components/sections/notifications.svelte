@@ -197,6 +197,23 @@
     </Card>
 {/if}
 
+{#if show("dispatch-alerts")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.dispatch_alerts")}
+            for="dispatch-alerts"
+            description={t("settings.notifications.dispatch_alerts_description")}
+        >
+            <Switch
+                id="dispatch-alerts"
+                checked={settings.dispatchAlerts}
+                onCheckedChange={(v) => settings.setDispatchAlerts(v)}
+            />
+        </SettingRow>
+        {@render deliveryRow("dispatchEdition", t("settings.items.dispatch_alerts"))}
+    </Card>
+{/if}
+
 {#if show("front-page-after-match") || (hasOverlay(platform) && show("front-page-overlay-alert"))}
     <Card as="section" class="flex flex-col gap-4">
         <SettingRow

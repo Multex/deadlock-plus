@@ -64,6 +64,7 @@ const BREAK_HINT_KEY = "breakHint";
 const FRONT_PAGE_KEY = "frontPageAfterMatch";
 const FRONT_PAGE_MODES_KEY = "frontPageModes";
 const FRONT_PAGE_ALERT_KEY = "frontPageOverlayAlert";
+const DISPATCH_ALERTS_KEY = "dispatchAlerts";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
 const AUTO_UPDATE_KEY = "autoUpdateCheck";
@@ -104,6 +105,7 @@ class Settings {
     frontPageAfterMatch = $state(true);
     frontPageModes = $state<FrontPageModes>({ ...DEFAULT_FRONT_PAGE_MODES });
     frontPageOverlayAlert = $state(true);
+    dispatchAlerts = $state(true);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
     uiScale = $state(DEFAULT_UI_SCALE);
@@ -145,6 +147,8 @@ class Settings {
         this.frontPageAfterMatch = typeof frontPage === "boolean" ? frontPage : true;
         this.frontPageModes = resolveFrontPageModes(await stored<unknown>(FRONT_PAGE_MODES_KEY));
         this.frontPageOverlayAlert = (await stored<boolean>(FRONT_PAGE_ALERT_KEY)) ?? true;
+        const dispatchAlerts = await stored<unknown>(DISPATCH_ALERTS_KEY);
+        this.dispatchAlerts = typeof dispatchAlerts === "boolean" ? dispatchAlerts : true;
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
         this.autoUpdateCheck = (await stored<boolean>(AUTO_UPDATE_KEY)) ?? true;
@@ -312,6 +316,15 @@ class Settings {
         this.frontPageOverlayAlert = value;
         try {
             await kvSet(STORE, FRONT_PAGE_ALERT_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setDispatchAlerts(value: boolean) {
+        this.dispatchAlerts = value;
+        try {
+            await kvSet(STORE, DISPATCH_ALERTS_KEY, value);
         } catch {
             // The choice just won't persist across restarts.
         }

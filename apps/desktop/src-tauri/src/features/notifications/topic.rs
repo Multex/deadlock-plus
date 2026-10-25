@@ -19,6 +19,7 @@ pub enum NotificationTopic {
     MatchFound,
     QueueStopped,
     FrontPageWaiting,
+    DispatchEdition,
 }
 
 impl NotificationTopic {
@@ -27,7 +28,7 @@ impl NotificationTopic {
             Self::Updates => NotificationKind::Alert,
             Self::Maintenance => NotificationKind::Maintenance,
             Self::ServerBlocksUpdated | Self::ServerBlocksStale => NotificationKind::Servers,
-            Self::BreakReminder => NotificationKind::Session,
+            Self::BreakReminder | Self::DispatchEdition => NotificationKind::Session,
             Self::MatchFound | Self::QueueStopped | Self::FrontPageWaiting => NotificationKind::Match,
         }
     }
@@ -41,7 +42,7 @@ impl NotificationTopic {
 
     pub const fn default_delivery(self) -> Delivery {
         match self {
-            Self::ServerBlocksUpdated => Delivery::Quiet,
+            Self::ServerBlocksUpdated | Self::DispatchEdition => Delivery::Quiet,
             Self::MatchFound | Self::QueueStopped | Self::FrontPageWaiting => Delivery::Overlay,
             Self::Updates | Self::Maintenance | Self::ServerBlocksStale | Self::BreakReminder => Delivery::Both,
         }
@@ -90,7 +91,7 @@ impl NotificationSettings {
 mod tests {
     use super::*;
 
-    const TOPICS: [NotificationTopic; 8] = [
+    const TOPICS: [NotificationTopic; 9] = [
         NotificationTopic::Updates,
         NotificationTopic::Maintenance,
         NotificationTopic::ServerBlocksUpdated,
@@ -99,6 +100,7 @@ mod tests {
         NotificationTopic::MatchFound,
         NotificationTopic::QueueStopped,
         NotificationTopic::FrontPageWaiting,
+        NotificationTopic::DispatchEdition,
     ];
 
     #[test]
@@ -115,6 +117,7 @@ mod tests {
             (T::MatchFound,          K::Match,       Placement::Center, Delivery::Overlay),
             (T::QueueStopped,        K::Match,       Placement::Center, Delivery::Overlay),
             (T::FrontPageWaiting,    K::Match,       Placement::Corner, Delivery::Overlay),
+            (T::DispatchEdition,     K::Session,     Placement::Corner, Delivery::Quiet),
         ];
         assert_eq!(rows.len(), TOPICS.len());
         for (topic, kind, placement, delivery) in rows {

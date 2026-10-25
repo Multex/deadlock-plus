@@ -225,6 +225,7 @@ const SETTERS = [
     "mark_notifications_read",
     "mark_notification_read",
     "notify_break_reminder",
+    "notify_dispatch_edition",
     "notify_front_page_waiting",
     "dismiss_crash",
     "report_webview_crash",

@@ -335,6 +335,14 @@ pub fn push(app: &AppHandle, topic: NotificationTopic, key: &str, params: &[(&st
     deliver(route, inputs(app), notif, &mut AppSinks { app });
 }
 
+fn dispatch_edition_key(edition: &str) -> Result<&'static str, String> {
+    match edition {
+        "weekly" => Ok("notifications.dispatch_weekly"),
+        "monthly" => Ok("notifications.dispatch_monthly"),
+        other => Err(format!("unknown Dispatch edition: {other:?}")),
+    }
+}
+
 pub mod commands {
     use super::*;
 
@@ -363,6 +371,14 @@ pub mod commands {
     #[tauri::command]
     pub fn notify_front_page_waiting(app: AppHandle) {
         push(&app, NotificationTopic::FrontPageWaiting, "notifications.front_page_waiting", &[], None);
+    }
+
+    /// `edition` is `"weekly"` or `"monthly"`; the frontend asks once per newly issued edition.
+    #[tauri::command]
+    pub fn notify_dispatch_edition(app: AppHandle, edition: String) -> Result<(), String> {
+        let key = dispatch_edition_key(&edition)?;
+        push(&app, NotificationTopic::DispatchEdition, key, &[], Some("/dispatch".into()));
+        Ok(())
     }
 
     #[tauri::command]
@@ -452,6 +468,19 @@ mod tests {
     }
 
     #[test]
+    fn each_dispatch_edition_has_its_own_text_key() {
+        assert_eq!(dispatch_edition_key("weekly"), Ok("notifications.dispatch_weekly"));
+        assert_eq!(dispatch_edition_key("monthly"), Ok("notifications.dispatch_monthly"));
+    }
+
+    #[test]
+    fn an_unknown_dispatch_edition_is_refused() {
+        for edition in ["", "Weekly", "season", "weekly ", "year-end"] {
+            assert!(dispatch_edition_key(edition).is_err(), "{edition:?}");
+        }
+    }
+
+    #[test]
     fn toast_text_renders_the_key_in_the_given_locale() {
         let n = build(
             NotificationKind::Maintenance,
@@ -480,6 +509,8 @@ mod tests {
             "notifications.server_blocks_updated",
             "notifications.server_blocks_stale",
             "notifications.break_reminder",
+            "notifications.dispatch_weekly",
+            "notifications.dispatch_monthly",
         ] {
             for part in ["title", "body"] {
                 let full = format!("{key}.{part}");

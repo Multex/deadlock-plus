@@ -5,7 +5,7 @@ use super::{AppNotification, NotificationKind};
 
 /// Every in-app route a notification click may open. A click target or launch argument outside this list is
 /// dropped, so nothing can steer the app to an unknown page or an external URL.
-const ROUTES: [&str; 4] = ["/alerts", "/server-picker", "/settings/notifications", "/match-history"];
+const ROUTES: [&str; 5] = ["/alerts", "/server-picker", "/settings/notifications", "/match-history", "/dispatch"];
 
 pub fn allowed_route(route: &str) -> Option<&'static str> {
     ROUTES.into_iter().find(|known| *known == route)
@@ -135,6 +135,7 @@ mod tests {
             (T::ServerBlocksUpdated, Some("/server-picker"), Some("/server-picker")),
             (T::ServerBlocksStale,   Some("/server-picker"), Some("/server-picker")),
             (T::BreakReminder,       Some("/match-history"), Some("/match-history")),
+            (T::DispatchEdition,     Some("/dispatch"),      Some("/dispatch")),
         ];
         for (topic, link, want) in rows {
             assert_eq!(click_target(&item(topic.kind(), link)), want, "{topic:?}");

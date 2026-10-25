@@ -217,7 +217,8 @@
             "ui_scale": "UI scale",
             "hardware_acceleration": "Hardware acceleration",
             "open_on_game_start": "Open with Deadlock",
-            "admin_access": "Admin access"
+            "admin_access": "Admin access",
+            "dispatch_alerts": "New Dispatch edition"
         },
         "nav": {
             "label": "Settings categories",
@@ -391,7 +392,8 @@
                 "center": "Notification center only"
             },
             "overlay_off_fallback": "The game overlay is off, so this shows as a desktop notification.",
-            "overlay_off_hidden": "The game overlay is off, so this does not show."
+            "overlay_off_hidden": "The game overlay is off, so this does not show.",
+            "dispatch_alerts_description": "Tells you when a new Deadlock+ Dispatch edition is out."
         },
         "weekdays": {
             "monday": "Monday",
@@ -737,6 +739,14 @@
         "front_page_waiting": {
             "title": "Extra! Extra!",
             "body": "Your front page is waiting in Deadlock+."
+        },
+        "dispatch_weekly": {
+            "title": "Deadlock+ Dispatch",
+            "body": "Last week's Weekly Edition is out. Read it in Deadlock+."
+        },
+        "dispatch_monthly": {
+            "title": "Deadlock+ Dispatch",
+            "body": "Last month's Monthly Edition is out. Read it in Deadlock+."
         }
     },
     "admin_access": {
