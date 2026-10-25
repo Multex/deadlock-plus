@@ -28,6 +28,7 @@ const LABELS: Record<ThemeId, string> = {
     "deadlock-api": "Deadlock API",
     statlocker: "Statlocker",
     "flint-snow": "Flint Snow",
+    void: "Void",
 };
 
 export const THEME_STORAGE_KEY = "theme";

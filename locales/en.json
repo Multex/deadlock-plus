@@ -266,6 +266,10 @@
             "flint_snow": {
                 "label": "Flint Snow",
                 "description": "Coral fur on midnight navy with pink trim."
+            },
+            "void": {
+                "label": "Void",
+                "description": "OLED black with electric violet trim."
             }
         },
         "autostart": {

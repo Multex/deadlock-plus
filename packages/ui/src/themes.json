@@ -235,6 +235,33 @@
                 "dd-hk": "oklch(0.75 0.148 65)",
                 "dd-am": "oklch(0.685 0.104 237)"
             }
+        },
+        {
+            "id": "void",
+            "light": false,
+            "tokens": {
+                "background": "oklch(0 0 0)",
+                "chrome": "oklch(0 0 0)",
+                "foreground": "oklch(0.94 0.012 300)",
+                "card": "oklch(0.14 0.022 298)",
+                "card-foreground": "oklch(0.94 0.012 300)",
+                "popover": "oklch(0.11 0.018 298)",
+                "popover-foreground": "oklch(0.94 0.012 300)",
+                "primary": "oklch(0.78 0.13 160)",
+                "primary-foreground": "oklch(0.14 0.02 160)",
+                "secondary": "oklch(0.2 0.03 298)",
+                "secondary-foreground": "oklch(0.94 0.012 300)",
+                "muted": "oklch(0.2 0.03 298)",
+                "muted-foreground": "oklch(0.72 0.035 300)",
+                "accent": "oklch(0.25 0.06 298)",
+                "accent-foreground": "oklch(0.97 0.01 300)",
+                "brass": "oklch(0.628 0.23 297)",
+                "destructive": "oklch(0.7 0.17 25)",
+                "destructive-foreground": "oklch(0.14 0.03 25)",
+                "border": "oklch(0.628 0.23 297 / 26%)",
+                "input": "oklch(0.628 0.23 297 / 32%)",
+                "ring": "oklch(0.628 0.23 297)"
+            }
         }
     ]
 }
