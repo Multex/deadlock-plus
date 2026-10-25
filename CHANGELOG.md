@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- A Statlocker theme: graphite panels with a mint-green accent.
+- A Flint Snow theme: coral and midnight navy with pink trim.
+- Both new themes are also on the website's theme picker.
+
 ### Fixed
 
 - On Linux, the main window shows at startup instead of staying hidden.

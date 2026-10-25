@@ -26,6 +26,8 @@ const LABELS: Record<ThemeId, string> = {
     contrast: "High contrast",
     nightshift: "Nightshift",
     "deadlock-api": "Deadlock API",
+    statlocker: "Statlocker",
+    "flint-snow": "Flint Snow",
 };
 
 export const THEME_STORAGE_KEY = "theme";

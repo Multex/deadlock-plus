@@ -256,6 +256,14 @@
             "deadlock_api": {
                 "label": "Deadlock API",
                 "description": "OLED black with electric red glow."
+            },
+            "statlocker": {
+                "label": "Statlocker",
+                "description": "Graphite panels with a mint-green accent."
+            },
+            "flint_snow": {
+                "label": "Flint Snow",
+                "description": "Coral fur on midnight navy with pink trim."
             }
         },
         "autostart": {
