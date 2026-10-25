@@ -1,4 +1,5 @@
-import { LOGO_URL } from "@deadlock-plus/links";
+// Bundled so the preview never reaches the network; Discord itself is sent the website copy.
+import brandMark from "../../../../../../../packages/ui/src/brand-mark.png";
 import type { Hero } from "$lib/features/heroes/heroes";
 import type { Scope } from "$lib/features/presence/config";
 import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
@@ -19,7 +20,7 @@ export const SOURCE_KINDS: SourceKind[] = ["heroPortrait", "heroIcon", "rankBadg
 /** Mirrors the live substitution: Discord shows its own app icon unless a large image is sent. */
 export function withDeadlockPlusLogo(card: PresenceCard, on: boolean): PresenceCard {
     if (!on || card.largeImage) return card;
-    return { ...card, largeImage: LOGO_URL, largeText: card.largeText || "Deadlock+" };
+    return { ...card, largeImage: brandMark, largeText: card.largeText || "Deadlock+" };
 }
 
 export function insertPlaceholder(text: string, start: number | null, end: number | null, name: string) {

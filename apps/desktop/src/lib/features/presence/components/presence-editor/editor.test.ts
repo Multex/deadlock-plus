@@ -1,4 +1,3 @@
-import { LOGO_URL } from "@deadlock-plus/links";
 import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
 import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
 import { describe, expect, it, vi } from "vitest";
@@ -34,13 +33,21 @@ describe("withDeadlockPlusLogo", () => {
     });
 
     it("shows the Deadlock+ logo where no large image is sent", () => {
-        expect(withDeadlockPlusLogo(card(), true)).toEqual(card({ largeImage: LOGO_URL, largeText: "Deadlock+" }));
+        const shown = withDeadlockPlusLogo(card(), true);
+        expect(shown.largeText).toBe("Deadlock+");
+        expect(shown.largeImage).toBe(withDeadlockPlusLogo(card({ largeText: "x" }), true).largeImage);
+    });
+
+    it("draws the logo from the app bundle, never from the network", () => {
+        const logo = withDeadlockPlusLogo(card(), true).largeImage ?? "";
+        expect(logo).toMatch(/brand-mark/);
+        expect(logo).not.toMatch(/^https?:/);
     });
 
     it("keeps the configured hover text", () => {
-        expect(withDeadlockPlusLogo(card({ largeText: "In the Hideout" }), true)).toEqual(
-            card({ largeImage: LOGO_URL, largeText: "In the Hideout" }),
-        );
+        const shown = withDeadlockPlusLogo(card({ largeText: "In the Hideout" }), true);
+        expect(shown.largeText).toBe("In the Hideout");
+        expect(shown.largeImage).toMatch(/brand-mark/);
     });
 
     it("never replaces a sent large image", () => {

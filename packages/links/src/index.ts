@@ -33,4 +33,4 @@ export {
     type Links,
     type ResolvedRef,
 } from "./table";
-export { LOGO_URL, REPO_URL, SITE_URL, SUPPORT_URL } from "./urls";
+export { REPO_URL, SITE_URL, SUPPORT_URL } from "./urls";
