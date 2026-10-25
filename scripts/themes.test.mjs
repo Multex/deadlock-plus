@@ -124,4 +124,15 @@ describe("theme-tokens.css", () => {
 
         expect(committed).toBe(themeCss(JSON.parse(read("../packages/ui/src/themes.json"))));
     });
+
+    it("draws every theme without variants exactly as it would if no theme had variants", () => {
+        const real = JSON.parse(read("../packages/ui/src/themes.json"));
+        const plain = { ...real, themes: real.themes.filter((theme) => !theme.variants) };
+
+        expect(plain.themes.map((theme) => theme.id)).toContain("pretty-in-pink");
+        for (const theme of plain.themes) {
+            const selector = theme.id === real.default ? ":root" : `:root[data-theme="${theme.id}"]`;
+            expect(block(themeCss(real), selector), theme.id).toBe(block(themeCss(plain), selector));
+        }
+    });
 });

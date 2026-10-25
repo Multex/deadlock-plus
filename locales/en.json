@@ -302,6 +302,15 @@
                 "description": "Near-black panels with DeadChaps purple.",
                 "source": "DeadChaps"
             },
+            "pretty_in_pink": {
+                "label": "Pretty in Pink",
+                "description": "Candy pink and cream with pastel clouds and hearts.",
+                "effects": {
+                    "clouds": "Clouds",
+                    "hearts": "Hearts",
+                    "bow": "Bow"
+                }
+            },
             "catppuccin": {
                 "label": "Catppuccin",
                 "description": "Soothing pastels in four flavours, with 14 accents to pick from.",

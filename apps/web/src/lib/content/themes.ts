@@ -30,6 +30,7 @@ const LABELS: Record<ThemeId, string> = {
     "flint-snow": "Flint Snow",
     void: "Void",
     deadchaps: "DeadChaps",
+    "pretty-in-pink": "Pretty in Pink",
     catppuccin: "Catppuccin",
 };
 

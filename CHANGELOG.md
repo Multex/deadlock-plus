@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Both new themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
+- A Pretty in Pink theme: candy pink and cream with lilac and sky-blue touches, also on the website.
 - Discord presence can show the Deadlock+ logo where Discord would show the Deadlock logo.
 - A Delay setting holds back what Discord presence shows by up to two minutes, against spoilers and stream sniping.
 - Turning presence off or changing its level hides it at once, without waiting out the delay.
@@ -41,6 +42,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Paw tracks cross Flint Snow's snowbank every so often.
 - In the Void theme, a black hole turns in the corner, pulling in faint specks of light.
 - In the DeadChaps theme, a sigil turns slowly in the corner while dust drifts past.
+- In the Pretty in Pink theme, fluffy clouds drift past and little hearts float up the sides.
+- Pretty in Pink ties a polka-dot bow on the corner that wiggles now and then.
 - Turn them off with the Theme effects switch in Settings > Appearance.
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
@@ -61,6 +64,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
 - Discord shows the match clock in the Hideout by default.
 - The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
+- Exported scoreboard images have a new footer with the Deadlock+ logo on the left and deadlockplus.app on the right.
 
 ### Fixed
 
