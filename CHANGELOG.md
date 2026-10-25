@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
 - Discord presence can show the Deadlock+ logo where Discord would show the Deadlock logo.
+- A Delay setting holds back what Discord presence shows by up to two minutes, against spoilers and stream sniping.
+- Turning presence off or changing its level hides it at once, without waiting out the delay.
 - A "Queue stopped" alert in the game overlay tells you when your queue ends without a match while you're tabbed out.
 - Turn the "Queue stopped" alert off in Settings > Notifications.
 
