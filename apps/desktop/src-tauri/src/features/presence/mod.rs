@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 use dp_discord_ipc::ClientKind;
 use dp_game::start_time;
 use dp_presence::{
-    map_with, with_deadlock_plus_logo, with_support_button, Config, GameFacts, Presence, PresenceLevel, StateId,
-    VariantId,
+    clamp_delay_secs, map_with, with_deadlock_plus_logo, with_support_button, Config, Delay, GameFacts, Presence,
+    PresenceLevel, StateId, VariantId,
 };
 use dp_sync::LockExt;
 use serde::{Deserialize, Serialize};
@@ -95,9 +95,14 @@ pub struct PresenceSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub deadlock_plus_logo: Option<bool>,
+    /// Seconds to hold back what Discord shows. Absent while it is the default, like the logo choice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub delay_secs: Option<u32>,
 }
 
 pub const DEFAULT_DEADLOCK_PLUS_LOGO: bool = false;
+pub const DEFAULT_DELAY_SECS: u32 = 0;
 
 fn default_support_button() -> bool {
     true
@@ -110,6 +115,7 @@ impl Default for PresenceSettings {
             clients: Vec::new(),
             support_button: true,
             deadlock_plus_logo: None,
+            delay_secs: None,
         }
     }
 }
@@ -125,6 +131,29 @@ impl PresenceSettings {
 
     fn decorate(&self, presence: Presence) -> Presence {
         with_deadlock_plus_logo(with_support_button(presence, self.support_button), self.shows_deadlock_plus_logo())
+    }
+
+    fn delay_secs(&self) -> u32 {
+        clamp_delay_secs(self.delay_secs.unwrap_or(DEFAULT_DELAY_SECS))
+    }
+}
+
+/// What the worker shows Discord. Game state waits out the delay; the support button and logo are the user's own
+/// choices, not game state, so they are added after it and change at once. A new level hides the activity at
+/// once, so nothing queued under the old level is shown under the new one.
+#[derive(Default)]
+struct Held {
+    delay: Delay,
+    level: Option<PresenceLevelSetting>,
+}
+
+impl Held {
+    fn show(&mut self, settings: &PresenceSettings, mapped: Option<Presence>, now_ms: u64) -> Option<Presence> {
+        if self.level.replace(settings.level) != Some(settings.level) {
+            self.delay.clear();
+        }
+        self.delay.set_secs(settings.delay_secs());
+        self.delay.tick(mapped, now_ms).map(|p| settings.decorate(p))
     }
 }
 
@@ -346,6 +375,7 @@ fn run(
 ) {
     let origin = Instant::now();
     let mut hub = Hub::new();
+    let mut held = Held::default();
     let mut source: LiveSource<dp_live::FactsFeed> = LiveSource::new();
     while !stop.is_stopped() {
         let current = settings.lock_or_recover().clone();
@@ -357,13 +387,15 @@ fn run(
             .map(|l| convert(&l, &lookups.lock_or_recover()));
         let facts =
             GameFacts { running, started_at: started.and_then(|t| i64::try_from(t).ok()), now_secs: unix_now(), live };
-        let desired = map_with(current.level.into(), &facts, &config.lock_or_recover()).map(|p| current.decorate(p));
-        let targets = if facts.running {
+        let now_ms = u64::try_from(origin.elapsed().as_millis()).unwrap_or(u64::MAX);
+        let mapped = map_with(current.level.into(), &facts, &config.lock_or_recover());
+        let desired = held.show(&current, mapped, now_ms);
+        // A held-back activity outlives the game by the delay, so its clients stay connected until it clears.
+        let targets = if facts.running || desired.is_some() {
             dp_discord_ipc::select_targets(&current.selected(), &dp_discord_ipc::discover())
         } else {
             Vec::new()
         };
-        let now_ms = u64::try_from(origin.elapsed().as_millis()).unwrap_or(u64::MAX);
         hub.tick(&targets, &desired, now_ms, |pipe| {
             dp_discord_ipc::connect(pipe, APPLICATION_ID)
                 .inspect_err(|e| log::debug!("discord pipe {} unavailable: {e}", pipe.index))
@@ -554,6 +586,86 @@ mod tests {
     }
 
     #[test]
+    fn delay_is_zero_and_unsaved_until_set() {
+        let old: PresenceSettings = serde_json::from_str(r#"{"level":"basic","clients":[]}"#).unwrap();
+        assert_eq!(old.delay_secs, None);
+        assert_eq!(old.delay_secs(), 0);
+        assert!(!serde_json::to_string(&old).unwrap().contains("delaySecs"));
+        let set: PresenceSettings = serde_json::from_str(r#"{"level":"basic","clients":[],"delaySecs":30}"#).unwrap();
+        assert_eq!(set.delay_secs(), 30);
+        assert!(serde_json::to_string(&set).unwrap().contains(r#""delaySecs":30"#));
+    }
+
+    #[test]
+    fn delay_is_clamped_to_two_minutes() {
+        let read: PresenceSettings = serde_json::from_str(r#"{"level":"basic","clients":[],"delaySecs":500}"#).unwrap();
+        assert_eq!(read.delay_secs(), 120);
+        let null: PresenceSettings =
+            serde_json::from_str(r#"{"level":"basic","clients":[],"delaySecs":null}"#).unwrap();
+        assert_eq!(null.delay_secs(), 0);
+        let huge = PresenceSettings { delay_secs: Some(u32::MAX), ..PresenceSettings::default() };
+        assert_eq!(huge.delay_secs(), 120);
+    }
+
+    fn on(level: PresenceLevelSetting, delay: u32) -> PresenceSettings {
+        PresenceSettings { level, support_button: false, delay_secs: Some(delay), ..PresenceSettings::default() }
+    }
+
+    fn mapped(details: &str, start: i64) -> Option<Presence> {
+        Some(Presence { details: Some(details.into()), start_timestamp: Some(start), ..Presence::default() })
+    }
+
+    #[test]
+    fn held_passes_through_with_no_delay() {
+        let mut held = Held::default();
+        let settings = on(PresenceLevelSetting::Basic, 0);
+        assert_eq!(held.show(&settings, mapped("a", 1_000), 0), mapped("a", 1_000));
+        assert_eq!(held.show(&settings, None, 2_000), None);
+    }
+
+    #[test]
+    fn held_shows_game_state_after_the_delay_with_its_timer_moved() {
+        let mut held = Held::default();
+        let settings = on(PresenceLevelSetting::Basic, 30);
+        assert_eq!(held.show(&settings, mapped("a", 1_000), 0), None);
+        assert_eq!(held.show(&settings, mapped("a", 1_000), 30_000), mapped("a", 1_030));
+    }
+
+    #[test]
+    fn held_hides_at_once_on_a_level_change_and_drops_the_queue() {
+        let mut held = Held::default();
+        let basic = on(PresenceLevelSetting::Basic, 30);
+        held.show(&basic, mapped("a", 0), 0);
+        held.show(&basic, mapped("b", 0), 20_000);
+        assert_eq!(held.show(&basic, mapped("b", 0), 30_000), mapped("a", 30));
+        let detailed = on(PresenceLevelSetting::Detailed, 30);
+        assert_eq!(held.show(&detailed, mapped("c", 0), 32_000), None);
+        assert_eq!(held.show(&detailed, mapped("c", 0), 50_000), None);
+        assert_eq!(held.show(&detailed, mapped("c", 0), 62_000), mapped("c", 30));
+    }
+
+    #[test]
+    fn held_adds_the_support_button_and_logo_without_waiting() {
+        let mut held = Held::default();
+        let mut settings = on(PresenceLevelSetting::Basic, 30);
+        held.show(&settings, mapped("a", 0), 0);
+        assert!(held.show(&settings, mapped("a", 0), 30_000).unwrap().buttons.is_empty());
+        settings.support_button = true;
+        settings.deadlock_plus_logo = Some(true);
+        let shown = held.show(&settings, mapped("a", 0), 32_000).unwrap();
+        assert_eq!(shown.buttons.len(), 1);
+        assert!(shown.large_image.is_some());
+    }
+
+    #[test]
+    fn held_follows_a_lowered_delay_at_once() {
+        let mut held = Held::default();
+        held.show(&on(PresenceLevelSetting::Basic, 120), mapped("a", 0), 0);
+        assert_eq!(held.show(&on(PresenceLevelSetting::Basic, 120), mapped("a", 0), 10_000), None);
+        assert_eq!(held.show(&on(PresenceLevelSetting::Basic, 0), mapped("a", 0), 12_000), mapped("a", 0));
+    }
+
+    #[test]
     fn detailed_level_round_trips_and_maps() {
         let s: PresenceSettings = serde_json::from_str(r#"{"level":"detailed","clients":[]}"#).unwrap();
         assert!(s.level == PresenceLevelSetting::Detailed);
@@ -608,6 +720,7 @@ mod tests {
             ],
             support_button: false,
             deadlock_plus_logo: None,
+            delay_secs: None,
         };
         assert_eq!(s.selected(), ClientKind::all());
     }
@@ -628,6 +741,7 @@ mod tests {
             clients: vec![DiscordClientKind::Stable],
             support_button: false,
             deadlock_plus_logo: None,
+            delay_secs: None,
         };
         svc.apply(on.clone());
         let first = Arc::as_ptr(&svc.slots.lock_or_recover().active.as_ref().unwrap().stop);

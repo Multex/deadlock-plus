@@ -115,6 +115,7 @@ describe("catalog", () => {
     it("finds each new theme by name", () => {
         expect(matchingItems("statlocker")?.has("theme")).toBe(true);
         expect(matchingItems("flint snow")?.has("theme")).toBe(true);
+        expect(matchingItems("pretty in pink")?.has("theme")).toBe(true);
     });
 
     it("finds the background work setting by the tasks it covers", () => {

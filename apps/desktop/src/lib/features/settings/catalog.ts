@@ -114,7 +114,7 @@ const BASE_ITEMS: SettingItem[] = [
             return t("settings.appearance.theme_description");
         },
         keywords:
-            "colour color dark light midnight daylight contrast palette appearance nightshift deadlock api oled black statlocker flint snow",
+            "colour color dark light midnight daylight contrast palette appearance nightshift deadlock api oled black statlocker flint snow pretty pink pastel cute",
     },
     {
         id: "theme-effects",
@@ -125,7 +125,7 @@ const BASE_ITEMS: SettingItem[] = [
         get description() {
             return t("settings.appearance.effects_description");
         },
-        keywords: "background animation art decoration particles snow rain skyline weather effects",
+        keywords: "background animation art decoration particles snow rain skyline weather clouds hearts bow effects",
     },
     {
         id: "reduced-motion",

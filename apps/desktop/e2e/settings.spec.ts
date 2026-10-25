@@ -307,6 +307,26 @@ test("picking a theme changes the root theme attribute at once and after a resta
     await expect(root).toHaveAttribute("data-theme", "daylight");
 });
 
+test("picking a Catppuccin flavour sets the root variant attribute at once and after a restart", async ({ page }) => {
+    await keepKvAcrossReloads(page);
+    await open(page, "/settings/appearance");
+    const root = page.locator(":root");
+
+    await page
+        .getByRole("radiogroup", { name: "Theme" })
+        .getByRole("radio", { name: /^Catppuccin/ })
+        .click();
+    await expect(root).toHaveAttribute("data-theme", "catppuccin");
+    await expect(root).toHaveAttribute("data-theme-variant", "mocha");
+
+    await main(page).getByRole("button", { name: "Catppuccin Flavour" }).click();
+    await page.getByRole("listbox").getByRole("option", { name: "Latte" }).click();
+    await expect(root).toHaveAttribute("data-theme-variant", "latte");
+
+    await reload(page);
+    await expect(root).toHaveAttribute("data-theme-variant", "latte");
+});
+
 test("the arrow keys move through the themes and apply each one", async ({ page }) => {
     await open(page, "/settings/appearance");
     const themes = page.getByRole("radiogroup", { name: "Theme" });

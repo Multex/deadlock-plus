@@ -40,6 +40,44 @@ describe("THEMES", () => {
     });
 });
 
+describe("Catppuccin", () => {
+    const catppuccin = THEMES.find((t) => t.id === "catppuccin")!;
+
+    it("is named, described and linked in en, last in the list", () => {
+        expect(THEMES.at(-1)?.id).toBe("catppuccin");
+        expect(catppuccin.label).toBe("Catppuccin");
+        expect(catppuccin.source?.url).toBe("https://catppuccin.com/palette");
+        expect(catppuccin.variantLabel).toBe("Flavour");
+        expect(catppuccin.accentLabel).toBe("Accent");
+    });
+
+    it("names its flavours and accents as Catppuccin does, the same in every language", () => {
+        expect(catppuccin.variants.map((v) => v.name)).toEqual(["Latte", "Frappé", "Macchiato", "Mocha"]);
+        expect(catppuccin.accents.map((a) => a.name)).toEqual([
+            "Rosewater",
+            "Flamingo",
+            "Pink",
+            "Mauve",
+            "Red",
+            "Maroon",
+            "Peach",
+            "Yellow",
+            "Green",
+            "Teal",
+            "Sky",
+            "Sapphire",
+            "Blue",
+            "Lavender",
+        ]);
+    });
+
+    it("leaves themes without flavours or named accents without either", () => {
+        const plain = THEMES.find((t) => t.id === "void")!;
+        expect(plain.variants).toEqual([]);
+        expect(plain.accents).toEqual([]);
+    });
+});
+
 describe("app.html", () => {
     it("paints the default theme's chrome where no native window colour sits behind the page", () => {
         const html = readFileSync(fileURLToPath(new URL("../../../app.html", import.meta.url)), "utf8");

@@ -3,7 +3,12 @@ import {
     ALL_CLIENT_KINDS,
     DEFAULT_PRESENCE,
     DEFAULT_DEADLOCK_PLUS_LOGO,
+    DEFAULT_DELAY_SECS,
+    DELAY_RANGE,
+    MAX_DELAY_SECS,
     clientLabel,
+    delayLabel,
+    delaySecsOf,
     discordBarState,
     heroArtMap,
     patchPresence,
@@ -98,6 +103,55 @@ describe("patchPresence", () => {
         expect(
             patchPresence({ ...DEFAULT_PRESENCE, deadlockPlusLogo: true }, { level: "basic" }).deadlockPlusLogo,
         ).toBe(true);
+    });
+});
+
+describe("presence delay", () => {
+    it("leaves the delay unset, and zero, until one is stored", () => {
+        expect(DEFAULT_DELAY_SECS).toBe(0);
+        const unset = resolvePresence({ level: "basic", clients: [] });
+        expect("delaySecs" in unset).toBe(false);
+        expect(delaySecsOf(unset)).toBe(0);
+        expect(delaySecsOf(resolvePresence({ delaySecs: 30 }))).toBe(30);
+    });
+
+    it("ignores a stored delay that is not a number of seconds", () => {
+        for (const junk of ["30", -5, Number.NaN, Number.POSITIVE_INFINITY, null, true]) {
+            expect("delaySecs" in resolvePresence({ delaySecs: junk }), String(junk)).toBe(false);
+        }
+        expect("delaySecs" in resolvePresence({ delaySecs: 0 })).toBe(false);
+    });
+
+    it("clamps a stored delay to two minutes and whole seconds", () => {
+        expect(MAX_DELAY_SECS).toBe(120);
+        expect(resolvePresence({ delaySecs: 500 }).delaySecs).toBe(120);
+        expect(resolvePresence({ delaySecs: 12.6 }).delaySecs).toBe(13);
+    });
+
+    it("stores a delay other than the default", () => {
+        expect(patchPresence(DEFAULT_PRESENCE, { delaySecs: 30 }).delaySecs).toBe(30);
+        expect(patchPresence(DEFAULT_PRESENCE, { delaySecs: 500 }).delaySecs).toBe(120);
+    });
+
+    it("drops the delay key when set back to zero", () => {
+        const held = patchPresence(DEFAULT_PRESENCE, { delaySecs: 30 });
+        const none = patchPresence(held, { delaySecs: 0 });
+        expect("delaySecs" in none).toBe(false);
+        expect(patchPresence(held, { level: "basic" }).delaySecs).toBe(30);
+        expect(patchPresence(DEFAULT_PRESENCE, { level: "basic" })).toStrictEqual({
+            ...DEFAULT_PRESENCE,
+            level: "basic",
+        });
+    });
+
+    it("steps the slider by five seconds up to two minutes", () => {
+        expect(DELAY_RANGE).toEqual({ min: 0, max: 120, step: 5 });
+    });
+
+    it("reads Off at zero and seconds otherwise", () => {
+        expect(delayLabel(0)).toBe("Off");
+        expect(delayLabel(30)).toBe("30 s");
+        expect(delayLabel(120)).toBe("120 s");
     });
 });
 

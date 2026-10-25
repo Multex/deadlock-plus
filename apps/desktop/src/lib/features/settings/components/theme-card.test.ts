@@ -13,7 +13,11 @@ function html(id: string, props: Partial<Record<string, unknown>> = {}): string 
             effectsOn: true,
             layers: {},
             accent: null,
+            variant: undefined,
+            namedAccent: undefined,
             onSelect: () => {},
+            onVariant: () => {},
+            onNamedAccent: () => {},
             onLayer: () => {},
             onAccent: () => {},
             onKeydown: () => {},
@@ -58,6 +62,18 @@ describe("ThemeCard", () => {
         ]);
     });
 
+    it("gives Pretty in Pink's clouds, hearts and bow toggles their own icons", () => {
+        const body = html("pretty-in-pink");
+        const toggles = [...body.matchAll(/<button\b[^>]*aria-pressed="true"[^>]*>(.*?)<\/button>/gs)].map(
+            (m) => m[1]!,
+        );
+
+        expect(toggles.map((t) => t.replace(/<[^>]+>/g, "").trim())).toEqual(["Clouds", "Hearts", "Bow"]);
+        expect(toggles[0]).toContain("lucide-cloud");
+        expect(toggles[1]).toContain("lucide-heart");
+        expect(toggles[2]).toContain("lucide-ribbon");
+    });
+
     it("greys the layer toggles out while theme effects are off", () => {
         const body = html("flint-snow", { effectsOn: false });
 
@@ -76,6 +92,24 @@ describe("ThemeCard", () => {
     it("offers an accent of your own, except on High contrast", () => {
         expect(html("void")).toContain("Accent colour");
         expect(html("contrast")).not.toContain("Accent colour");
+    });
+
+    it("picks Catppuccin's flavour and accent from menus named after the theme, instead of a free accent", () => {
+        const body = html("catppuccin", { variant: "latte", namedAccent: "peach" });
+
+        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Flavour"/);
+        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Accent"/);
+        expect(body).toContain("Latte");
+        expect(body).toContain("Peach");
+        expect(body).not.toContain("Accent colour");
+        expect(body).toMatch(/<button\b[^>]*title="https:\/\/catppuccin\.com\/palette"/);
+    });
+
+    it("draws Catppuccin's swatch in the picked flavour and accent", () => {
+        const latte = html("catppuccin", { variant: "latte", namedAccent: "peach" });
+        const mocha = html("catppuccin", { variant: "mocha" });
+
+        expect(radio(latte)).not.toBe(radio(mocha));
     });
 
     it("shows no options strip for a theme with nothing to set", () => {

@@ -1,4 +1,4 @@
-import { oklchToHex, type Theme } from "./themes";
+import { oklchToHex, resolveVariant, themeVariant, type Theme } from "./themes";
 
 /** A user's own accent. Without a lightness it takes the theme's trim lightness; either way contrast can move it. */
 export interface Accent {
@@ -84,6 +84,29 @@ export function accentColour(theme: Theme, accent: Accent): string {
     return format(theme.light ? 0 : 1, 0, hue);
 }
 
+/** `colour` as is when it reads at 4.5:1 on every surface; otherwise only its lightness moves, as `accentColour` does. */
+export function readableColour(theme: Theme, colour: string): string {
+    const surfaces = SURFACES.map((s) => theme.tokens[s]).filter((s): s is string => !!s);
+    if (surfaces.every((s) => contrast(colour, s) >= MIN_CONTRAST)) return colour;
+    const [lightness, chroma, hue] = parse(colour);
+    return accentColour(theme, { hue, chroma, lightness });
+}
+
+/**
+ * A theme's named accent in one of its variants. The focus ring keeps the accent's exact colour; the trim, which
+ * is also text, takes the readable one. `null` for an accent the variant does not have.
+ */
+export function namedAccentTokens(
+    theme: Theme,
+    variant: string | undefined,
+    name: string,
+): Record<"brass" | "ring", string> | null {
+    const id = resolveVariant(theme, variant);
+    const exact = theme.variants.find((v) => v.id === id)?.accents[name];
+    if (!exact) return null;
+    return { brass: readableColour(themeVariant(theme, id), exact), ring: exact };
+}
+
 export function accentHex(theme: Theme, accent: Accent): string {
     return oklchToHex(accentColour(theme, accent));
 }
@@ -103,6 +126,22 @@ export function hexToAccent(hex: string): Accent {
     const chroma = Math.hypot(a, bb);
     const lightness = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
     return { hue: chroma < 0.002 ? 0 : ((Math.atan2(bb, a) * 180) / Math.PI + 360) % 360, chroma, lightness };
+}
+
+/** A plain `oklch()` colour that `oklchToHex` turns back into exactly `hex`, as short as that allows. */
+export function hexToOklch(hex: string): string {
+    const { lightness = 0, chroma, hue } = hexToAccent(hex);
+    const precisions = [
+        [4, 4, 2],
+        [4, 4, 3],
+        [5, 5, 3],
+        [6, 6, 4],
+    ] as const;
+    for (const [l, c, h] of precisions) {
+        const value = `oklch(${+lightness.toFixed(l)} ${+chroma.toFixed(c)} ${+hue.toFixed(h)})`;
+        if (oklchToHex(value) === hex.toLowerCase()) return value;
+    }
+    throw new Error(`no oklch() round trip for ${hex}`);
 }
 
 /** The theme's own trim, read as an accent. */
