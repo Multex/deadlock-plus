@@ -61,8 +61,6 @@
     });
 </script>
 
-<!-- The lamp's beam is still light, painted once by CSS; only the dust in it is redrawn. -->
-<div class="cone" data-motion></div>
 <canvas bind:this={canvas} class="dust" data-motion></canvas>
 
 <style>
@@ -71,13 +69,5 @@
         inset: 0;
         width: 100%;
         height: 100%;
-    }
-
-    .cone {
-        position: absolute;
-        inset: -24px 0 0;
-        background: linear-gradient(to bottom, color-mix(in oklch, var(--brass) 9%, transparent), transparent);
-        clip-path: polygon(42% 0, 58% 0, 90% 100%, 10% 100%);
-        filter: blur(14px);
     }
 </style>
