@@ -52,6 +52,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
 - Discord shows the match clock in the Hideout by default.
 - The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
+- Exported scoreboard images have a new footer with the Deadlock+ logo on the left and deadlockplus.app on the right.
 
 ### Fixed
 
