@@ -11,7 +11,10 @@ use std::time::{Duration, Instant};
 
 use dp_discord_ipc::ClientKind;
 use dp_game::start_time;
-use dp_presence::{map_with, with_support_button, Config, GameFacts, PresenceLevel, StateId, VariantId};
+use dp_presence::{
+    map_with, with_deadlock_plus_logo, with_support_button, Config, GameFacts, Presence, PresenceLevel, StateId,
+    VariantId,
+};
 use dp_sync::LockExt;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -88,7 +91,13 @@ pub struct PresenceSettings {
     pub clients: Vec<DiscordClientKind>,
     #[serde(default = "default_support_button")]
     pub support_button: bool,
+    /// Absent until the user changes it, so the default can change for everyone who never did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub deadlock_plus_logo: Option<bool>,
 }
+
+pub const DEFAULT_DEADLOCK_PLUS_LOGO: bool = false;
 
 fn default_support_button() -> bool {
     true
@@ -96,13 +105,26 @@ fn default_support_button() -> bool {
 
 impl Default for PresenceSettings {
     fn default() -> Self {
-        Self { level: PresenceLevelSetting::default(), clients: Vec::new(), support_button: true }
+        Self {
+            level: PresenceLevelSetting::default(),
+            clients: Vec::new(),
+            support_button: true,
+            deadlock_plus_logo: None,
+        }
     }
 }
 
 impl PresenceSettings {
     fn selected(&self) -> HashSet<ClientKind> {
         self.clients.iter().map(|k| ClientKind::from(*k)).collect()
+    }
+
+    fn shows_deadlock_plus_logo(&self) -> bool {
+        self.deadlock_plus_logo.unwrap_or(DEFAULT_DEADLOCK_PLUS_LOGO)
+    }
+
+    fn decorate(&self, presence: Presence) -> Presence {
+        with_deadlock_plus_logo(with_support_button(presence, self.support_button), self.shows_deadlock_plus_logo())
     }
 }
 
@@ -335,8 +357,7 @@ fn run(
             .map(|l| convert(&l, &lookups.lock_or_recover()));
         let facts =
             GameFacts { running, started_at: started.and_then(|t| i64::try_from(t).ok()), now_secs: unix_now(), live };
-        let desired = map_with(current.level.into(), &facts, &config.lock_or_recover())
-            .map(|p| with_support_button(p, current.support_button));
+        let desired = map_with(current.level.into(), &facts, &config.lock_or_recover()).map(|p| current.decorate(p));
         let targets = if facts.running {
             dp_discord_ipc::select_targets(&current.selected(), &dp_discord_ipc::discover())
         } else {
@@ -510,6 +531,29 @@ mod tests {
     }
 
     #[test]
+    fn deadlock_plus_logo_is_off_and_unsaved_until_set() {
+        let old: PresenceSettings = serde_json::from_str(r#"{"level":"basic","clients":[]}"#).unwrap();
+        assert_eq!(old.deadlock_plus_logo, None);
+        assert!(!old.shows_deadlock_plus_logo());
+        assert!(!serde_json::to_string(&old).unwrap().contains("deadlockPlusLogo"));
+        let on: PresenceSettings =
+            serde_json::from_str(r#"{"level":"basic","clients":[],"deadlockPlusLogo":true}"#).unwrap();
+        assert!(on.shows_deadlock_plus_logo());
+        assert!(serde_json::to_string(&on).unwrap().contains(r#""deadlockPlusLogo":true"#));
+    }
+
+    #[test]
+    fn decorate_adds_the_logo_only_when_chosen() {
+        let basic =
+            dp_presence::map(PresenceLevel::Basic, &GameFacts { running: true, ..GameFacts::default() }).unwrap();
+        let mut settings = PresenceSettings { support_button: false, ..PresenceSettings::default() };
+        assert_eq!(settings.decorate(basic.clone()).large_image, None);
+        settings.deadlock_plus_logo = Some(true);
+        let shown = settings.decorate(basic).large_image.unwrap();
+        assert!(shown.ends_with("/icon-512.png"), "{shown}");
+    }
+
+    #[test]
     fn detailed_level_round_trips_and_maps() {
         let s: PresenceSettings = serde_json::from_str(r#"{"level":"detailed","clients":[]}"#).unwrap();
         assert!(s.level == PresenceLevelSetting::Detailed);
@@ -563,6 +607,7 @@ mod tests {
                 DiscordClientKind::Other,
             ],
             support_button: false,
+            deadlock_plus_logo: None,
         };
         assert_eq!(s.selected(), ClientKind::all());
     }
@@ -582,6 +627,7 @@ mod tests {
             level: PresenceLevelSetting::Basic,
             clients: vec![DiscordClientKind::Stable],
             support_button: false,
+            deadlock_plus_logo: None,
         };
         svc.apply(on.clone());
         let first = Arc::as_ptr(&svc.slots.lock_or_recover().active.as_ref().unwrap().stop);

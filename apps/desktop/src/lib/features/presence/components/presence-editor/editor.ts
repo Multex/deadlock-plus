@@ -1,3 +1,4 @@
+import { LOGO_URL } from "@deadlock-plus/links";
 import type { Hero } from "$lib/features/heroes/heroes";
 import type { Scope } from "$lib/features/presence/config";
 import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
@@ -14,6 +15,12 @@ export const TIMERS: PresenceTimer[] = ["none", "elapsedInState", "matchTime", "
 
 export type SourceKind = "heroPortrait" | "heroIcon" | "rankBadge" | "modeIcon" | "customUrl";
 export const SOURCE_KINDS: SourceKind[] = ["heroPortrait", "heroIcon", "rankBadge", "customUrl"];
+
+/** Mirrors the live substitution: Discord shows its own app icon unless a large image is sent. */
+export function withDeadlockPlusLogo(card: PresenceCard, on: boolean): PresenceCard {
+    if (!on || card.largeImage) return card;
+    return { ...card, largeImage: LOGO_URL, largeText: card.largeText || "Deadlock+" };
+}
 
 export function insertPlaceholder(text: string, start: number | null, end: number | null, name: string) {
     const token = `{${name}}`;

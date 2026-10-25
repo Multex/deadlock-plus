@@ -7,7 +7,7 @@
     import { settings } from "$lib/features/settings/settings.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { presenceStatus } from "../status.svelte";
-    import { PRESENCE_LEVELS, discordBarState, runningLine } from "../presence";
+    import { PRESENCE_LEVELS, discordBarState, runningLine, showsDeadlockPlusLogo } from "../presence";
 
     const on = $derived(settings.presence.level !== "off");
     const line = $derived(on ? runningLine(on, presenceStatus.status) : "");
@@ -74,6 +74,17 @@
                     id="discord-support-button"
                     checked={settings.presence.supportButton}
                     onCheckedChange={(v) => settings.setPresence({ supportButton: v })}
+                />
+            </SettingRow>
+            <SettingRow
+                label={t("settings.discord.logo_label")}
+                for="discord-deadlock-plus-logo"
+                description={t("settings.discord.logo_description")}
+            >
+                <Switch
+                    id="discord-deadlock-plus-logo"
+                    checked={showsDeadlockPlusLogo(settings.presence)}
+                    onCheckedChange={(v) => settings.setPresence({ deadlockPlusLogo: v })}
                 />
             </SettingRow>
         {/if}

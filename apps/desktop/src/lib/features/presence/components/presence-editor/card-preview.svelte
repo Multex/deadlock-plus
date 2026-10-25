@@ -3,10 +3,16 @@
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
-    import { formatElapsed } from "./editor";
+    import { formatElapsed, withDeadlockPlusLogo } from "./editor";
 
-    let { card, failed, supportButton }: { card: PresenceCard | null; failed: boolean; supportButton: boolean } =
-        $props();
+    let {
+        card: sent,
+        failed,
+        supportButton,
+        deadlockPlusLogo,
+    }: { card: PresenceCard | null; failed: boolean; supportButton: boolean; deadlockPlusLogo: boolean } = $props();
+
+    const card = $derived(sent && withDeadlockPlusLogo(sent, deadlockPlusLogo));
 </script>
 
 <div

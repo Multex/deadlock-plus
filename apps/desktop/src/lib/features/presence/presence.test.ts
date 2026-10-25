@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
     ALL_CLIENT_KINDS,
     DEFAULT_PRESENCE,
+    DEFAULT_DEADLOCK_PLUS_LOGO,
     clientLabel,
     discordBarState,
     heroArtMap,
+    patchPresence,
     PRESENCE_LEVELS,
     resolvePresence,
     runningKinds,
     runningLine,
+    showsDeadlockPlusLogo,
     toggleClient,
 } from "./presence";
 
@@ -44,6 +47,16 @@ describe("resolvePresence", () => {
         expect(resolvePresence({ supportButton: "no" }).supportButton).toBe(true);
     });
 
+    it("leaves the Deadlock+ logo choice unset, and off, until one is stored", () => {
+        expect(DEFAULT_DEADLOCK_PLUS_LOGO).toBe(false);
+        const unset = resolvePresence({ level: "basic", clients: [] });
+        expect("deadlockPlusLogo" in unset).toBe(false);
+        expect(showsDeadlockPlusLogo(unset)).toBe(false);
+        expect("deadlockPlusLogo" in resolvePresence({ deadlockPlusLogo: "yes" })).toBe(false);
+        expect(showsDeadlockPlusLogo(resolvePresence({ deadlockPlusLogo: true }))).toBe(true);
+        expect(resolvePresence({ deadlockPlusLogo: false }).deadlockPlusLogo).toBe(false);
+    });
+
     it("keeps an explicitly empty client list", () => {
         expect(resolvePresence({ level: "basic", clients: [] }).clients).toEqual([]);
     });
@@ -62,6 +75,29 @@ describe("resolvePresence", () => {
 
     it("returns a fresh client array", () => {
         expect(resolvePresence(undefined).clients).not.toBe(DEFAULT_PRESENCE.clients);
+    });
+});
+
+describe("patchPresence", () => {
+    it("stores the Deadlock+ logo choice when it differs from the default", () => {
+        const next = patchPresence(DEFAULT_PRESENCE, { deadlockPlusLogo: !DEFAULT_DEADLOCK_PLUS_LOGO });
+        expect(next.deadlockPlusLogo).toBe(!DEFAULT_DEADLOCK_PLUS_LOGO);
+        expect(showsDeadlockPlusLogo(next)).toBe(!DEFAULT_DEADLOCK_PLUS_LOGO);
+    });
+
+    it("drops the Deadlock+ logo key when set back to the default", () => {
+        const on = patchPresence(DEFAULT_PRESENCE, { deadlockPlusLogo: true });
+        const off = patchPresence(on, { deadlockPlusLogo: DEFAULT_DEADLOCK_PLUS_LOGO });
+        expect("deadlockPlusLogo" in off).toBe(false);
+        expect(showsDeadlockPlusLogo(off)).toBe(DEFAULT_DEADLOCK_PLUS_LOGO);
+    });
+
+    it("keeps an unset Deadlock+ logo choice unset when other fields change", () => {
+        const next = patchPresence(DEFAULT_PRESENCE, { level: "basic" });
+        expect(next).toStrictEqual({ ...DEFAULT_PRESENCE, level: "basic" });
+        expect(
+            patchPresence({ ...DEFAULT_PRESENCE, deadlockPlusLogo: true }, { level: "basic" }).deadlockPlusLogo,
+        ).toBe(true);
     });
 });
 

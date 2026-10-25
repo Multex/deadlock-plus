@@ -10,6 +10,7 @@
     import { errorText } from "$lib/core/errors";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { presencePreview } from "$lib/features/presence/api";
+    import { showsDeadlockPlusLogo } from "$lib/features/presence/presence";
     import { loadRankTiers, rankNames as namesOf } from "$lib/features/ranks/ranks";
     import { keepGameArt } from "$lib/features/gamedata/art-refresh";
     import { isCustomised, resetScope, type Scope } from "$lib/features/presence/config";
@@ -200,7 +201,12 @@
                     <p class="text-xs text-muted-foreground">{t("settings.discord_editor.no_hero_layer")}</p>
                 {/if}
 
-                <CardPreview {card} failed={previewFailed} supportButton={settings.presence.supportButton} />
+                <CardPreview
+                    {card}
+                    failed={previewFailed}
+                    supportButton={settings.presence.supportButton}
+                    deadlockPlusLogo={showsDeadlockPlusLogo(settings.presence)}
+                />
                 {#key `${scope.state}/${scope.variant}/${scope.heroId}`}
                     <SlotFields
                         {scope}

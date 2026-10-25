@@ -2,4 +2,8 @@
 import type { DiscordClientKind } from "./DiscordClientKind";
 import type { PresenceLevelSetting } from "./PresenceLevelSetting";
 
-export type PresenceSettings = { level: PresenceLevelSetting, clients: Array<DiscordClientKind>, supportButton: boolean, };
+export type PresenceSettings = { level: PresenceLevelSetting, clients: Array<DiscordClientKind>, supportButton: boolean, 
+/**
+ * Absent until the user changes it, so the default can change for everyone who never did.
+ */
+deadlockPlusLogo?: boolean, };

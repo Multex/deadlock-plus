@@ -1,3 +1,5 @@
+import { LOGO_URL } from "@deadlock-plus/links";
+import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
 import type { PresenceStateInfo } from "@deadlock-plus/ipc-types/PresenceStateInfo";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -15,7 +17,41 @@ import {
     sourceFromKind,
     sourceKind,
     sourceUrl,
+    withDeadlockPlusLogo,
 } from "./editor";
+
+describe("withDeadlockPlusLogo", () => {
+    const card = (over: Partial<PresenceCard> = {}): PresenceCard => ({
+        details: "Playing Deadlock",
+        state: null,
+        largeText: null,
+        smallText: null,
+        largeImage: null,
+        smallImage: null,
+        elapsedSecs: null,
+        party: null,
+        ...over,
+    });
+
+    it("shows the Deadlock+ logo where no large image is sent", () => {
+        expect(withDeadlockPlusLogo(card(), true)).toEqual(card({ largeImage: LOGO_URL, largeText: "Deadlock+" }));
+    });
+
+    it("keeps the configured hover text", () => {
+        expect(withDeadlockPlusLogo(card({ largeText: "In the Hideout" }), true)).toEqual(
+            card({ largeImage: LOGO_URL, largeText: "In the Hideout" }),
+        );
+    });
+
+    it("never replaces a sent large image", () => {
+        const hero = card({ largeImage: "https://x/hero.png" });
+        expect(withDeadlockPlusLogo(hero, true)).toEqual(hero);
+    });
+
+    it("leaves the card alone when off", () => {
+        expect(withDeadlockPlusLogo(card(), false)).toEqual(card());
+    });
+});
 
 describe("insertPlaceholder", () => {
     it("inserts at the caret", () => {

@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Both new themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
+- Discord presence can show the Deadlock+ logo where Discord would show the Deadlock logo.
 
 #### Theme options
 
