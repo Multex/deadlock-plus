@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_THEME, THEMES, resolveMotionPreference, resolveReducedMotion, resolveTheme } from "./themes";
+import {
+    DEFAULT_THEME,
+    THEMES,
+    initialTheme,
+    resolveMotionPreference,
+    resolveReducedMotion,
+    resolveTheme,
+} from "./themes";
+
+describe("initialTheme", () => {
+    it("starts from the theme the window set before the page loaded", () => {
+        expect(initialTheme({ dataset: { theme: "daylight" } })).toBe("daylight");
+    });
+
+    it("falls back to the default without a root element or a known theme", () => {
+        expect(initialTheme(undefined)).toBe(DEFAULT_THEME);
+        expect(initialTheme({ dataset: {} })).toBe(DEFAULT_THEME);
+        expect(initialTheme({ dataset: { theme: "neon" } })).toBe(DEFAULT_THEME);
+    });
+});
 
 describe("resolveTheme", () => {
     it("falls back to the default for missing or unknown values", () => {

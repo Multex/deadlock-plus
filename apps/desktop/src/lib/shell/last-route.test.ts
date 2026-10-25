@@ -1,5 +1,68 @@
-import { describe, expect, it } from "vitest";
-import { claimLaunch, knownPaths, launchCheck, routeToRestore, routeToSave } from "./last-route";
+import { describe, expect, it, vi } from "vitest";
+import {
+    claimLaunch,
+    firstCallOnly,
+    knownPaths,
+    launchCheck,
+    launchRestoreTarget,
+    routeToRestore,
+    routeToSave,
+} from "./last-route";
+
+describe("firstCallOnly", () => {
+    it("answers only the first call, so the load that follows the redirect does not redirect again", async () => {
+        const restore = vi.fn(() => Promise.resolve("/stats"));
+        const once = firstCallOnly(restore);
+        await expect(once()).resolves.toBe("/stats");
+        await expect(once()).resolves.toBeNull();
+        await expect(once()).resolves.toBeNull();
+        expect(restore).toHaveBeenCalledOnce();
+    });
+});
+
+describe("launchRestoreTarget", () => {
+    const deps = (overrides: Partial<Parameters<typeof launchRestoreTarget>[0]> = {}) => ({
+        launch: true,
+        hidden: () => Promise.resolve(false),
+        target: () => Promise.resolve("/stats"),
+        waitMs: 1500,
+        ...overrides,
+    });
+
+    it("gives the saved route on a shown launch", async () => {
+        await expect(launchRestoreTarget(deps())).resolves.toBe("/stats");
+    });
+
+    it("leaves a reload where it is", async () => {
+        const target = vi.fn(() => Promise.resolve("/stats"));
+        await expect(launchRestoreTarget(deps({ launch: false, target }))).resolves.toBeNull();
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("leaves a hidden launch to restore when the window is first shown", async () => {
+        const target = vi.fn(() => Promise.resolve("/stats"));
+        await expect(launchRestoreTarget(deps({ hidden: () => Promise.resolve(true), target }))).resolves.toBeNull();
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("stops waiting for a slow store so the first page is not held back", async () => {
+        vi.useFakeTimers();
+        try {
+            const result = launchRestoreTarget(deps({ target: () => new Promise(() => {}) }));
+            await vi.advanceTimersByTimeAsync(1500);
+            await expect(result).resolves.toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("treats a failing store or command as nothing to restore", async () => {
+        await expect(launchRestoreTarget(deps({ target: () => Promise.reject(new Error("kv")) }))).resolves.toBeNull();
+        await expect(launchRestoreTarget(deps({ hidden: () => Promise.reject(new Error("ipc")) }))).resolves.toBe(
+            "/stats",
+        );
+    });
+});
 
 function memoryStorage() {
     const items = new Map<string, string>();

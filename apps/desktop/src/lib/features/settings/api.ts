@@ -42,6 +42,10 @@ export function setUiScale(percent: number) {
     return command("set_ui_scale", { percent });
 }
 
+export function setWindowTheme(theme: string) {
+    return command("set_window_theme", { theme });
+}
+
 export function showOverlayTest() {
     return command("show_overlay_test");
 }

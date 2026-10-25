@@ -86,6 +86,11 @@ export function resolveTheme(value: unknown): ThemeId {
     return THEMES.find((t) => t.id === value)?.id ?? DEFAULT_THEME;
 }
 
+/** The main window sets `data-theme` before the page loads, so settings start from the saved theme, not the default. */
+export function initialTheme(root: { dataset: Record<string, string | undefined> } | undefined): ThemeId {
+    return resolveTheme(root?.dataset.theme);
+}
+
 export function isLightTheme(id: ThemeId): boolean {
     return THEMES.find((t) => t.id === id)?.light ?? false;
 }

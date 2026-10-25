@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use dp_kv::KvStore;
 use serde_json::Value;
+use tauri::window::Color;
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 
 pub const MAIN_WINDOW: &str = "main";
@@ -12,6 +13,41 @@ const MIN_SCALE_PERCENT: f64 = 80.0;
 const MAX_SCALE_PERCENT: f64 = 150.0;
 const DISABLE_GPU_ARG: &str = "--disable-gpu";
 const BROWSER_ARGS_ENV: &str = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
+
+const THEME_KEY: &str = "theme";
+const DEFAULT_THEME: &str = "deadlock";
+/// Each theme's `--chrome` from `packages/ui/src/theme.css`, the colour `html` and `body` paint. The window and
+/// the webview start in it, so nothing white or off-theme shows before the page's first frame.
+const THEME_CHROME: [(&str, (u8, u8, u8)); 6] = [
+    ("deadlock", (0x08, 0x06, 0x05)),
+    ("midnight", (0x04, 0x06, 0x0d)),
+    ("daylight", (0xec, 0xe7, 0xde)),
+    ("contrast", (0x00, 0x00, 0x00)),
+    ("nightshift", (0x01, 0x03, 0x03)),
+    ("deadlock-api", (0x00, 0x00, 0x00)),
+];
+
+fn theme_id(stored: Option<&Value>) -> &'static str {
+    let stored = stored.and_then(Value::as_str);
+    THEME_CHROME.iter().map(|(id, _)| *id).find(|id| Some(*id) == stored).unwrap_or(DEFAULT_THEME)
+}
+
+fn window_background(theme: &str) -> Color {
+    let (_, (r, g, b)) = THEME_CHROME.iter().find(|(id, _)| *id == theme).unwrap_or(&THEME_CHROME[0]);
+    Color(*r, *g, *b, 255)
+}
+
+/// Runs before the document is parsed, so `<html>` does not exist yet; the observer sets the theme the moment it
+/// does, before the stylesheet applies. The page's own settings start from this value.
+fn theme_script(theme: &str) -> String {
+    let theme = serde_json::to_string(theme).unwrap_or_default();
+    format!(
+        "(() => {{\n\
+         const apply = () => {{ const root = document.documentElement; if (root) root.dataset.theme = {theme}; return !!root; }};\n\
+         if (!apply()) new MutationObserver((_, observer) => apply() && observer.disconnect()).observe(document, {{ childList: true }});\n\
+         }})();"
+    )
+}
 
 /// Percent as the frontend stores it, clamped to the range the Settings slider offers.
 fn zoom_factor(stored: Option<&Value>) -> f64 {
@@ -104,8 +140,8 @@ pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
 }
 
 /// Stands in for Tauri's own creation of the config window (`"create": false`), so the stored settings can
-/// shape the webview before it exists. The window stays hidden until `frontend_ready`, so the zoom is in
-/// place before anything is painted.
+/// shape the webview before it exists. It is built hidden (`"visible": false`) and shown here once its saved
+/// bounds and zoom are in place; the theme colour covers it until the page paints.
 pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let dir = app.path().app_data_dir()?;
     let kv = app.state::<KvStore>();
@@ -126,8 +162,16 @@ pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
     let config =
         app.config().app.windows.iter().find(|w| w.label == MAIN_WINDOW).ok_or("tauri.conf.json has no main window")?;
-    let window = WebviewWindowBuilder::from_config(app.handle(), config)?.build()?;
+    let theme = theme_id(read(THEME_KEY).as_ref());
+    let window = WebviewWindowBuilder::from_config(app.handle(), config)?
+        .background_color(window_background(theme))
+        .initialization_script(theme_script(theme))
+        .build()?;
     apply_zoom(&window, zoom_factor(read(UI_SCALE_KEY).as_ref()));
+    crate::features::window_state::restore_main(&window);
+    if !crate::features::tray::launched_hidden() {
+        crate::features::tray::show_main(app.handle());
+    }
     Ok(())
 }
 
@@ -138,7 +182,7 @@ fn apply_zoom(window: &WebviewWindow, factor: f64) {
 }
 
 pub mod commands {
-    use super::{apply_zoom, zoom_factor, MAIN_WINDOW, OPEN_ON_GAME_START};
+    use super::{apply_zoom, theme_id, window_background, zoom_factor, MAIN_WINDOW, OPEN_ON_GAME_START};
     use serde_json::Value;
     use tauri::{AppHandle, Manager};
 
@@ -162,6 +206,16 @@ pub mod commands {
     pub fn set_ui_scale(app: AppHandle, percent: f64) {
         if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
             apply_zoom(&window, zoom_factor(Some(&Value::from(percent))));
+        }
+    }
+
+    /// Keeps the native colour in step with the page, so a resize uncovers the new theme, not the launch one.
+    #[tauri::command]
+    pub fn set_window_theme(app: AppHandle, theme: String) {
+        let Some(window) = app.get_webview_window(MAIN_WINDOW) else { return };
+        let color = window_background(theme_id(Some(&Value::from(theme))));
+        if let Err(e) = window.set_background_color(Some(color)) {
+            log::warn!("could not set the main window background: {e}");
         }
     }
 }
@@ -283,6 +337,96 @@ mod tests {
         open.set(true);
         open.set(false);
         assert!(!open.should_open(Some(false), true));
+    }
+
+    /// `--chrome` of each theme block in `theme.css`, with `:root` as the default theme.
+    fn css_chrome_colors() -> Vec<(String, (f64, f64, f64))> {
+        let css = include_str!("../../../../../../packages/ui/src/theme.css");
+        let blocks: Vec<(String, &str)> = css
+            .split('}')
+            .filter_map(|chunk| {
+                let (selector, body) = chunk.split_once('{')?;
+                let selector = selector.trim().rsplit('\n').next()?.trim();
+                let id = if selector == ":root" {
+                    DEFAULT_THEME.to_string()
+                } else {
+                    selector.strip_prefix(":root[data-theme=\"")?.strip_suffix("\"]")?.to_string()
+                };
+                Some((id, body))
+            })
+            .collect();
+        let chrome = |body: &str| {
+            let value = body.split("--chrome:").nth(1)?.split(';').next()?.trim();
+            let parts: Vec<f64> = value
+                .strip_prefix("oklch(")?
+                .strip_suffix(')')?
+                .split_whitespace()
+                .map(|p| p.parse().unwrap())
+                .collect();
+            Some((parts[0], parts[1], parts[2]))
+        };
+        let root = blocks.iter().find(|(id, _)| id == DEFAULT_THEME).and_then(|(_, body)| chrome(body)).unwrap();
+        blocks.iter().map(|(id, body)| (id.clone(), chrome(body).unwrap_or(root))).collect()
+    }
+
+    fn oklch_to_srgb((l, c, h): (f64, f64, f64)) -> [u8; 3] {
+        let (a, b) = (c * h.to_radians().cos(), c * h.to_radians().sin());
+        let l_ = (l + 0.396_337_777_4 * a + 0.215_803_757_3 * b).powi(3);
+        let m_ = (l - 0.105_561_345_8 * a - 0.063_854_172_8 * b).powi(3);
+        let s_ = (l - 0.089_484_177_5 * a - 1.291_485_548 * b).powi(3);
+        let linear = [
+            4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
+            -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
+            -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701 * s_,
+        ];
+        linear.map(|x| {
+            let x = x.clamp(0.0, 1.0);
+            let encoded = if x <= 0.003_130_8 { 12.92 * x } else { 1.055 * x.powf(1.0 / 2.4) - 0.055 };
+            (encoded * 255.0).round() as u8
+        })
+    }
+
+    #[test]
+    fn every_theme_paints_the_window_in_its_chrome_color() {
+        let themes = css_chrome_colors();
+        assert_eq!(themes.len(), THEME_CHROME.len(), "a theme in theme.css has no window color, or the reverse");
+        for (id, oklch) in themes {
+            let want = oklch_to_srgb(oklch);
+            let Color(r, g, b, a) = window_background(theme_id(Some(&json!(id))));
+            assert_eq!(a, 255, "{id}");
+            for (have, want) in [r, g, b].into_iter().zip(want) {
+                assert!(have.abs_diff(want) <= 1, "{id}: window color {:?} is not --chrome {want:?}", (r, g, b));
+            }
+        }
+    }
+
+    #[test]
+    fn an_unknown_or_missing_theme_uses_the_default() {
+        assert_eq!(theme_id(None), DEFAULT_THEME);
+        assert_eq!(theme_id(Some(&json!("neon"))), DEFAULT_THEME);
+        assert_eq!(theme_id(Some(&json!(3))), DEFAULT_THEME);
+        assert_eq!(theme_id(Some(&json!("daylight"))), "daylight");
+    }
+
+    #[test]
+    fn the_theme_script_sets_the_stored_theme_on_the_root_element() {
+        let script = theme_script("daylight");
+        assert!(script.contains(r#"dataset.theme = "daylight""#), "{script}");
+        assert!(script.contains("MutationObserver"), "the root element does not exist yet when the script runs");
+    }
+
+    #[test]
+    fn a_stored_theme_reaches_the_script_only_as_a_known_id() {
+        let script = theme_script(theme_id(Some(&json!("\"</script><img src=x onerror=alert(1)>"))));
+        assert!(script.contains(&format!("dataset.theme = \"{DEFAULT_THEME}\"")));
+        assert!(!script.contains("onerror"));
+    }
+
+    #[test]
+    fn the_main_window_is_built_hidden_so_its_saved_bounds_apply_before_it_shows() {
+        let config: Value = serde_json::from_str(include_str!("../../../tauri.conf.json")).unwrap();
+        let main = config["app"]["windows"].as_array().unwrap().iter().find(|w| w["label"] == MAIN_WINDOW).unwrap();
+        assert_eq!(main["visible"], json!(false));
     }
 
     #[test]
