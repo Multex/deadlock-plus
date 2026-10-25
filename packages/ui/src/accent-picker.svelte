@@ -39,6 +39,16 @@
         onValueChange(next);
     }
 
+    let trigger = $state<HTMLButtonElement>();
+
+    // Escape closes an open picker and stops there, so it does not also leave the page it sits on.
+    function onkeydown(e: KeyboardEvent) {
+        if (e.key !== "Escape" || !open || e.defaultPrevented) return;
+        e.preventDefault();
+        open = false;
+        trigger?.focus();
+    }
+
     function onHex(e: Event & { currentTarget: HTMLInputElement }) {
         const text = e.currentTarget.value;
         if (isHex(text)) commit(hexToAccent(text));
@@ -46,8 +56,9 @@
     }
 </script>
 
-<div class="accent-picker" style:--accent-now={colour}>
+<div class="accent-picker" style:--accent-now={colour} role="presentation" {onkeydown}>
     <button
+        bind:this={trigger}
         type="button"
         class="flex w-full items-center gap-2 rounded-sm py-0.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         aria-expanded={open}
