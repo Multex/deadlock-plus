@@ -359,6 +359,12 @@ pub mod commands {
         );
     }
 
+    /// The frontend asks for this only while an after-match front page waits for the window, once per match.
+    #[tauri::command]
+    pub fn notify_front_page_waiting(app: AppHandle) {
+        push(&app, NotificationTopic::FrontPageWaiting, "notifications.front_page_waiting", &[], None);
+    }
+
     #[tauri::command]
     pub fn mark_notifications_read(app: AppHandle, state: tauri::State<'_, NotificationsState>) {
         let changed = state.with_stored(&app, |s| {

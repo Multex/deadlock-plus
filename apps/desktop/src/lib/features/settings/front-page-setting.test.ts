@@ -44,3 +44,62 @@ describe("front page after each match setting", () => {
         expect(kv.set).toHaveBeenCalledWith("app-settings", "frontPageAfterMatch", false);
     });
 });
+
+describe("front page modes", () => {
+    beforeEach(() => {
+        kv.values.clear();
+        kv.set.mockClear();
+    });
+
+    it("covers player matches and leaves bot and custom matches out by default", async () => {
+        await settings.init();
+        expect(settings.frontPageModes).toEqual({
+            ranked: true,
+            unranked: true,
+            streetBrawl: true,
+            other: true,
+            bot: false,
+            custom: false,
+        });
+    });
+
+    it("reads stored changes and ignores values that are not a yes or no", async () => {
+        kv.values.set("frontPageModes", { ranked: false, bot: true, custom: "yes", nonsense: false });
+        await settings.init();
+        expect(settings.frontPageModes).toMatchObject({ ranked: false, bot: true, custom: false, unranked: true });
+        expect(settings.frontPageModes).not.toHaveProperty("nonsense");
+    });
+
+    it("stores only the modes that differ from the defaults", async () => {
+        await settings.init();
+        await settings.setFrontPageMode("bot", true);
+        expect(kv.set).toHaveBeenLastCalledWith("app-settings", "frontPageModes", { bot: true });
+        await settings.setFrontPageMode("ranked", false);
+        expect(kv.set).toHaveBeenLastCalledWith("app-settings", "frontPageModes", { bot: true, ranked: false });
+        await settings.setFrontPageMode("bot", false);
+        await settings.setFrontPageMode("ranked", true);
+        expect(kv.set).toHaveBeenLastCalledWith("app-settings", "frontPageModes", {});
+        expect(settings.frontPageModes.ranked).toBe(true);
+    });
+});
+
+describe("front page overlay alert", () => {
+    beforeEach(() => {
+        kv.values.clear();
+        kv.set.mockClear();
+    });
+
+    it("is on when nothing is stored and reads a stored choice", async () => {
+        await settings.init();
+        expect(settings.frontPageOverlayAlert).toBe(true);
+        kv.values.set("frontPageOverlayAlert", false);
+        await settings.init();
+        expect(settings.frontPageOverlayAlert).toBe(false);
+    });
+
+    it("saves a change", async () => {
+        await settings.setFrontPageOverlayAlert(false);
+        expect(settings.frontPageOverlayAlert).toBe(false);
+        expect(kv.set).toHaveBeenCalledWith("app-settings", "frontPageOverlayAlert", false);
+    });
+});

@@ -18,6 +18,7 @@ pub enum NotificationTopic {
     BreakReminder,
     MatchFound,
     QueueStopped,
+    FrontPageWaiting,
 }
 
 impl NotificationTopic {
@@ -27,7 +28,7 @@ impl NotificationTopic {
             Self::Maintenance => NotificationKind::Maintenance,
             Self::ServerBlocksUpdated | Self::ServerBlocksStale => NotificationKind::Servers,
             Self::BreakReminder => NotificationKind::Session,
-            Self::MatchFound | Self::QueueStopped => NotificationKind::Match,
+            Self::MatchFound | Self::QueueStopped | Self::FrontPageWaiting => NotificationKind::Match,
         }
     }
 
@@ -41,7 +42,7 @@ impl NotificationTopic {
     pub const fn default_delivery(self) -> Delivery {
         match self {
             Self::ServerBlocksUpdated => Delivery::Quiet,
-            Self::MatchFound | Self::QueueStopped => Delivery::Overlay,
+            Self::MatchFound | Self::QueueStopped | Self::FrontPageWaiting => Delivery::Overlay,
             Self::Updates | Self::Maintenance | Self::ServerBlocksStale | Self::BreakReminder => Delivery::Both,
         }
     }
@@ -64,10 +65,13 @@ impl Default for NotificationSettings {
 }
 
 impl NotificationSettings {
-    /// Match found and queue stopped show in the game overlay only, never as a desktop toast or a center entry.
+    /// Match found, queue stopped and front page waiting show in the game overlay only, never as a desktop toast or a
+    /// center entry.
     pub fn delivery(&self, topic: NotificationTopic) -> Delivery {
         match topic {
-            NotificationTopic::MatchFound | NotificationTopic::QueueStopped => Delivery::Overlay,
+            NotificationTopic::MatchFound | NotificationTopic::QueueStopped | NotificationTopic::FrontPageWaiting => {
+                Delivery::Overlay
+            }
             _ => self.deliveries.get(&topic).copied().unwrap_or(topic.default_delivery()),
         }
     }
@@ -86,7 +90,7 @@ impl NotificationSettings {
 mod tests {
     use super::*;
 
-    const TOPICS: [NotificationTopic; 7] = [
+    const TOPICS: [NotificationTopic; 8] = [
         NotificationTopic::Updates,
         NotificationTopic::Maintenance,
         NotificationTopic::ServerBlocksUpdated,
@@ -94,6 +98,7 @@ mod tests {
         NotificationTopic::BreakReminder,
         NotificationTopic::MatchFound,
         NotificationTopic::QueueStopped,
+        NotificationTopic::FrontPageWaiting,
     ];
 
     #[test]
@@ -109,6 +114,7 @@ mod tests {
             (T::BreakReminder,       K::Session,     Placement::Corner, Delivery::Both),
             (T::MatchFound,          K::Match,       Placement::Center, Delivery::Overlay),
             (T::QueueStopped,        K::Match,       Placement::Center, Delivery::Overlay),
+            (T::FrontPageWaiting,    K::Match,       Placement::Corner, Delivery::Overlay),
         ];
         assert_eq!(rows.len(), TOPICS.len());
         for (topic, kind, placement, delivery) in rows {
@@ -140,8 +146,10 @@ mod tests {
     }
 
     #[test]
-    fn match_found_and_queue_stopped_are_delivered_by_the_overlay_whatever_is_stored() {
-        for topic in [NotificationTopic::MatchFound, NotificationTopic::QueueStopped] {
+    fn overlay_only_topics_are_delivered_by_the_overlay_whatever_is_stored() {
+        for topic in
+            [NotificationTopic::MatchFound, NotificationTopic::QueueStopped, NotificationTopic::FrontPageWaiting]
+        {
             for stored in [Delivery::Os, Delivery::Both, Delivery::Quiet, Delivery::Center, Delivery::Overlay] {
                 let settings =
                     NotificationSettings { deliveries: BTreeMap::from([(topic, stored)]), ..Default::default() };

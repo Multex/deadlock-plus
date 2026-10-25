@@ -49,6 +49,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - If Deadlock+ is in the background then, the front page waits until you come back to the window.
 - After a match, the critics' column fills in as soon as Deadlock+ has graded it.
 - Turn it off with "Front page after each match" in Settings > Notifications.
+- Pick which match modes get an after-match front page; bot matches and custom lobbies are left out by default.
+- When a front page is waiting while you're in game, the game overlay tells you.
+- Turn that alert off with "Front page waiting" in Settings > Notifications.
 - A "Front page" button in a match's details prints that match as a newspaper front page.
 - Its headlines come from the match: comebacks, first blood, Mid Boss claims, falls and top performers.
 - It carries a box score, lane report, objectives timeline and short briefs.

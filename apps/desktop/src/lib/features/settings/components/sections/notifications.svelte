@@ -11,6 +11,8 @@
     import { formatTime, LEAD_OPTIONS, parseTime, weekdays } from "$lib/features/settings/maintenance";
     import { DELIVERIES, type Delivery, type NotificationTopic } from "$lib/features/settings/notification-topics";
     import { leadItems, weekdayItems } from "./select-items";
+    import Button from "@deadlock-plus/ui/button.svelte";
+    import { FRONT_PAGE_MODES } from "$lib/features/settings/front-page-modes";
     import { hasOverlay } from "$lib/features/settings/catalog";
     import { platform } from "$lib/core/platform";
 
@@ -195,7 +197,7 @@
     </Card>
 {/if}
 
-{#if show("front-page-after-match")}
+{#if show("front-page-after-match") || (hasOverlay(platform) && show("front-page-overlay-alert"))}
     <Card as="section" class="flex flex-col gap-4">
         <SettingRow
             label={t("settings.items.front_page_after_match")}
@@ -208,6 +210,41 @@
                 onCheckedChange={(v) => settings.setFrontPageAfterMatch(v)}
             />
         </SettingRow>
+        <div class="flex flex-col gap-2" role="group" aria-labelledby="front-page-modes">
+            <span id="front-page-modes" class="text-sm font-semibold">
+                {t("settings.notifications.front_page_modes")}
+            </span>
+            <div class="flex flex-wrap gap-2">
+                {#each FRONT_PAGE_MODES as mode (mode)}
+                    {@const label = t(`match_history.detail.mode.${mode}`)}
+                    <Button
+                        variant="toggle"
+                        size="sm"
+                        aria-pressed={settings.frontPageModes[mode]}
+                        aria-label="{t('settings.notifications.front_page_modes')} {label}"
+                        disabled={!settings.frontPageAfterMatch}
+                        onclick={() => settings.setFrontPageMode(mode, !settings.frontPageModes[mode])}
+                    >
+                        {label}
+                    </Button>
+                {/each}
+            </div>
+        </div>
+        {#if hasOverlay(platform)}
+            <SettingRow
+                label={t("settings.items.front_page_overlay_alert")}
+                for="front-page-overlay-alert"
+                description={t("settings.notifications.front_page_overlay_alert_description")}
+                hint={overlayOffHint("overlay")}
+            >
+                <Switch
+                    id="front-page-overlay-alert"
+                    checked={settings.frontPageOverlayAlert}
+                    disabled={!settings.frontPageAfterMatch}
+                    onCheckedChange={(v) => settings.setFrontPageOverlayAlert(v)}
+                />
+            </SettingRow>
+        {/if}
     </Card>
 {/if}
 

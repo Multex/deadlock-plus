@@ -9,6 +9,8 @@
     import { onPostgameMatch } from "$lib/features/stats/postgame-api";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import type { MatchDetail } from "@deadlock-plus/match/detail";
+    import { rowMode } from "@deadlock-plus/match/list";
+    import { notifyFrontPageWaiting } from "./api";
     import { createAfterMatch } from "./after-match";
     import FrontPageTakeover from "./front-page-takeover.svelte";
     import { readCapturedDetail } from "./load";
@@ -36,7 +38,7 @@
     // Never raises or focuses the window: a paper that arrives while the game has the focus waits for the user.
     const afterMatch = createAfterMatch({
         mainWindow: windowLabel() === MAIN_WINDOW,
-        enabled: () => settings.frontPageAfterMatch,
+        enabled: (mode) => settings.frontPageAfterMatch && settings.frontPageModes[mode],
         attended: () => document.hasFocus() && !windowVisibility.isHidden(),
         show: (matchId) => {
             void readCapturedDetail(matchId).then((found) => {
@@ -44,6 +46,9 @@
                 detail = found;
                 takeover.show();
             });
+        },
+        waiting: () => {
+            if (settings.frontPageOverlayAlert) notifyFrontPageWaiting().catch(() => {});
         },
         update: (matchId) => {
             if (!open || detail?.matchId !== matchId) return;
@@ -61,7 +66,7 @@
     onMount(() => {
         let stopped = false;
         let unlisten: (() => void) | null = null;
-        onPostgameMatch((match) => afterMatch.captured(match.matchId)).then(
+        onPostgameMatch((match) => afterMatch.captured(match.matchId, rowMode(match))).then(
             (stop) => {
                 if (stopped) stop();
                 else unlisten = stop;

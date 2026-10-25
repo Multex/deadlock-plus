@@ -213,6 +213,7 @@
             "server_blocks_stale": "Server blocks out of date",
             "break_reminder": "Break reminder",
             "front_page_after_match": "Front page after each match",
+            "front_page_overlay_alert": "Front page waiting",
             "ui_scale": "UI scale",
             "hardware_acceleration": "Hardware acceleration",
             "open_on_game_start": "Open with Deadlock",
@@ -363,6 +364,8 @@
             "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
             "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
             "front_page_after_match_description": "Tosses a newspaper front page of the match onto the window when Deadlock+ captures the match at its end.",
+            "front_page_modes": "Match modes",
+            "front_page_overlay_alert_description": "Tells you in the game overlay when a front page is waiting in Deadlock+.",
             "delivery_label": "Shows as",
             "delivery": {
                 "both": "Overlay in game, else desktop",
@@ -710,6 +713,10 @@
         "queue_stopped": {
             "title": "Queue stopped",
             "body": "You're no longer in the queue."
+        },
+        "front_page_waiting": {
+            "title": "Extra! Extra!",
+            "body": "Your front page is waiting in Deadlock+."
         }
     },
     "admin_access": {
