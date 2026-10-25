@@ -7,6 +7,7 @@ import {
     recordIssued,
     recordSkipped,
     unseenCount,
+    unseenIds,
 } from "@deadlock-plus/stats/dispatch/archive";
 import { bestGameCandidates, buildEdition, windowRows } from "@deadlock-plus/stats/dispatch/edition";
 import {
@@ -40,6 +41,8 @@ export interface DispatchView {
     soFarMatches: number;
     shelf: { weekly: ShelfEntry[]; monthly: ShelfEntry[] };
     unseen: number;
+    /** Unseen automatic issues, newest first. */
+    unseenIds: string[];
 }
 
 export interface DispatchHistory {
@@ -244,6 +247,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
             soFarMatches: windowRows(matches, live).length,
             shelf: { weekly: shelfOf("weekly"), monthly: shelfOf("monthly") },
             unseen: unseenCount(index),
+            unseenIds: unseenIds(index),
         };
     }
 

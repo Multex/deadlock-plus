@@ -61,6 +61,8 @@ class DispatchStore {
     shelf = $state.raw<{ weekly: ShelfEntry[]; monthly: ShelfEntry[] }>({ weekly: [], monthly: [] });
     /** Automatic issues not opened yet (nav badge). */
     unseen = $state(0);
+    /** Which ones, newest first. */
+    unseenIds = $state.raw<string[]>([]);
     private shownFor: number | null = null;
     private generation = 0;
 
@@ -131,6 +133,7 @@ class DispatchStore {
         this.soFarMatches = view?.soFarMatches ?? 0;
         this.shelf = view?.shelf ?? { weekly: [], monthly: [] };
         this.unseen = view?.unseen ?? 0;
+        this.unseenIds = view?.unseenIds ?? [];
     }
 }
 

@@ -57,7 +57,11 @@ export function markSeen(index: DispatchIndex, editionId: string): DispatchIndex
     return { ...index, seen: [...index.seen, editionId] };
 }
 
-/** Automatic issues the user has not opened; editions printed on request were opened when printed. */
+/** Automatic issues the user has not opened, newest first; editions printed on request were opened when printed. */
+export function unseenIds(index: DispatchIndex): string[] {
+    return index.issued.filter((e) => !e.onRequest && !index.seen.includes(e.id)).map((e) => e.id);
+}
+
 export function unseenCount(index: DispatchIndex): number {
-    return index.issued.filter((e) => !e.onRequest && !index.seen.includes(e.id)).length;
+    return unseenIds(index).length;
 }

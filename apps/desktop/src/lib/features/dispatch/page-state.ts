@@ -42,10 +42,7 @@ export function pinFor(query: string | null, selection: PageSelection): string |
     return selection.id === query ? null : selection.id;
 }
 
-/** Automatic issues the user has not opened, newest first; the index keeps issues newest first. */
-export function unseenIds(index: DispatchIndex): string[] {
-    return index.issued.filter((e) => !e.onRequest && !index.seen.includes(e.id)).map((e) => e.id);
-}
+export { unseenIds } from "@deadlock-plus/stats/dispatch/archive";
 
 export type PageMode = "no_account" | "loading" | "offline" | "paper" | "first_paper";
 

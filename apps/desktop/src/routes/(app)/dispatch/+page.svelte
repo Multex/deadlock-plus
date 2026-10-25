@@ -7,12 +7,10 @@
     import { page } from "$app/state";
     import { failureText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
-    import { kvGet } from "$lib/core/kv";
     import Button from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
-    import { indexKey, parseIndex } from "@deadlock-plus/stats/dispatch/archive";
     import type { Edition, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import { withParam } from "$lib/features/builds/build-list";
@@ -31,7 +29,6 @@
         switchOptions,
         switchTarget,
         switchValue,
-        unseenIds,
         type SwitchKind,
     } from "$lib/features/dispatch/page-state";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
@@ -45,7 +42,6 @@
 
     let heroes = $state.raw<Record<number, Hero>>({});
     let ranks = $state.raw<RankTier[]>([]);
-    let unseen = $state.raw<string[] | null>(null);
     let opened = $state.raw<Edition | null>(null);
     let openFailed = $state<string | null>(null);
     let story = $state(false);
@@ -65,6 +61,7 @@
             .map((e) => e.window.id)
             .concat([latestIds.weekly, latestIds.monthly].filter((id): id is string => id !== null)),
     );
+    const unseen = $derived(dispatch.status === "ready" ? dispatch.unseenIds : null);
     const selection = $derived(selectEdition({ query, issued, unseen, latest: latestIds, soFar: soFarId }));
     const mode = $derived(
         pageMode({ accountLoaded: steamAccount.loaded, accountId, status: dispatch.status, selection }),
@@ -95,23 +92,6 @@
         void loadHeroes().then((h) => (heroes = h));
         void loadApiRanks().then((r) => (ranks = r));
         return onHeroesRefreshed((h) => (heroes = h));
-    });
-
-    // The store keeps only the unseen count; the index says which ones, and is read again whenever that count moves.
-    $effect(() => {
-        const id = accountId;
-        const ready = dispatch.status === "ready";
-        void dispatch.unseen;
-        unseen = null;
-        if (id === null || !ready) return;
-        let live = true;
-        void kvGet("stats-cache", indexKey(id))
-            .then((raw) => unseenIds(parseIndex(raw)))
-            .catch((): string[] => [])
-            .then((ids) => {
-                if (live) unseen = ids;
-            });
-        return () => (live = false);
     });
 
     $effect(() => {

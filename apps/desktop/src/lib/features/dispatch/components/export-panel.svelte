@@ -110,37 +110,38 @@
                 {/snippet}
             </SelectMenu>
 
-            {#if chosen !== "front_page"}
-                <div role="radiogroup" aria-label={t("dispatch.export.aspect.group")} class="grid grid-cols-3 gap-2">
-                    {#each EXPORT_ASPECTS as option (option)}
-                        {@const selected = aspect === option}
-                        <Button
-                            variant="unstyled"
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            tabindex={selected ? 0 : -1}
-                            onkeydown={onAspectKeydown}
-                            onclick={() => (aspect = option)}
-                            class="flex flex-col items-center gap-1.5 rounded-md border p-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {selected
-                                ? 'border-brass bg-accent'
-                                : ''}"
-                        >
-                            <span
-                                class="block rounded-[2px] border-2 border-current opacity-70"
-                                style="aspect-ratio: {option.replace(':', ' / ')}; height: 22px;"
-                                aria-hidden="true"
-                            ></span>
-                            <span class="text-xs font-semibold"
-                                >{t(`dispatch.export.aspect.${ASPECT_NAMES[option]}`)}</span
-                            >
-                            <span class="text-[11px] text-muted-foreground tabular-nums">{option}</span>
-                        </Button>
-                    {/each}
-                </div>
-            {/if}
+            <div
+                role="radiogroup"
+                aria-label={t("dispatch.export.aspect.group")}
+                class="grid grid-cols-3 gap-2 {chosen === 'front_page' ? 'invisible' : ''}"
+                inert={chosen === "front_page"}
+            >
+                {#each EXPORT_ASPECTS as option (option)}
+                    {@const selected = aspect === option}
+                    <Button
+                        variant="unstyled"
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        tabindex={selected ? 0 : -1}
+                        onkeydown={onAspectKeydown}
+                        onclick={() => (aspect = option)}
+                        class="flex flex-col items-center gap-1.5 rounded-md border p-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {selected
+                            ? 'border-brass bg-accent'
+                            : ''}"
+                    >
+                        <span
+                            class="block rounded-[2px] border-2 border-current opacity-70"
+                            style="aspect-ratio: {option.replace(':', ' / ')}; height: 22px;"
+                            aria-hidden="true"
+                        ></span>
+                        <span class="text-xs font-semibold">{t(`dispatch.export.aspect.${ASPECT_NAMES[option]}`)}</span>
+                        <span class="text-[11px] text-muted-foreground tabular-nums">{option}</span>
+                    </Button>
+                {/each}
+            </div>
 
-            <div class="mt-auto flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
                 <Button variant="outline" class="justify-start" onclick={() => run("save")} disabled={busy !== null}>
                     <ImageDown />
                     {busy === "save" ? t("match_history.detail.export.working") : t("match_history.detail.export.save")}

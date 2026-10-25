@@ -246,10 +246,12 @@ describe("open", () => {
         const service = createDispatchService(f.deps);
         const [issued] = await service.issueDue();
         expect((await service.view())?.unseen).toBe(1);
+        expect((await service.view())?.unseenIds).toEqual(["weekly-2026-10-19"]);
 
         expect(await service.open("weekly-2026-10-19")).toEqual(issued);
         expect(f.index()?.seen).toEqual(["weekly-2026-10-19"]);
         expect((await service.view())?.unseen).toBe(0);
+        expect((await service.view())?.unseenIds).toEqual([]);
     });
 
     it("is null for an edition that was never frozen", async () => {

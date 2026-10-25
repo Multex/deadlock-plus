@@ -8,6 +8,7 @@ import {
     recordIssued,
     recordSkipped,
     unseenCount,
+    unseenIds,
 } from "./archive";
 import type { DispatchIndex, IssuedEntry } from "./types";
 
@@ -157,6 +158,13 @@ describe("markSeen and unseenCount", () => {
 
     it("opening an older edition does not hide a newer unseen one", () => {
         expect(unseenCount(markSeen(index(auto), "weekly-2026-10-05"))).toBe(2);
+    });
+
+    it("lists unseen automatic ids newest first, matching the count", () => {
+        const onRequest = entry("weekly-2026-10-26", 400, { onRequest: true });
+        const i = index([onRequest, ...auto], { seen: ["weekly-2026-10-12"] });
+        expect(unseenIds(i)).toEqual(["weekly-2026-10-19", "weekly-2026-10-05"]);
+        expect(unseenCount(i)).toBe(unseenIds(i).length);
     });
 
     it("adds each id once", () => {
