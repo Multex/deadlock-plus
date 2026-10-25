@@ -108,8 +108,13 @@ mod tests {
         assert_eq!(with(9).duration_secs, 9);
         assert_eq!(with(16).duration_secs, MAX_DURATION_SECS);
         assert_eq!(with(255).duration_secs, 15);
-        let custom =
-            OverlaySettings { enabled: false, position: OverlayPosition::Left, duration_secs: 4, match_found: false };
+        let custom = OverlaySettings {
+            enabled: false,
+            position: OverlayPosition::Left,
+            duration_secs: 4,
+            match_found: false,
+            queue_stopped: false,
+        };
         assert_eq!(custom.sanitized(), custom);
     }
 
@@ -213,6 +218,7 @@ mod tests {
             position: OverlayPosition::BottomLeft,
             duration_secs: 9,
             match_found: true,
+            queue_stopped: true,
         };
         let t = toast("x".into(), NotificationKind::Alert, ("T".into(), "B".into()), Placement::Center, settings);
         assert_eq!(

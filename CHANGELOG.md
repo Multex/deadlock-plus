@@ -13,6 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Both new themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
+- A "Queue stopped" alert in the game overlay tells you when your queue ends without a match while you're tabbed out.
+- Turn the "Queue stopped" alert off in Settings > Notifications.
 
 #### Theme options
 
