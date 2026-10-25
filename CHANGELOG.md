@@ -24,6 +24,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
 
+### Changed
+
+- The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.
+
 ### Fixed
 
 - On Linux, the main window shows at startup instead of staying hidden.
