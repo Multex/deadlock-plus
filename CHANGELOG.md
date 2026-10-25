@@ -58,6 +58,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Restart app no longer loses a Discord presence edit made just before.
 - In the Discord presence editor, screen readers now hear "Show party size" and "Timer on Discord" instead of the bare labels.
 - The Diagnostics log remembers Auto-scroll and Minimum level.
+- In the build editor, a category's note no longer runs under its size badge.
 
 ## [0.14.0] - 2026-10-24
 
