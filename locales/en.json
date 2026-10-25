@@ -397,6 +397,8 @@
             "level_detailed_description": "Shows your hero, mode, rank and match timer.",
             "support_label": "Support Deadlock+",
             "support_description": "Adds a \"Download Deadlock+\" button to your activity so others can find the app. Works with Basic and Detailed.",
+            "logo_label": "Show the Deadlock+ logo",
+            "logo_description": "Replaces the Deadlock logo on your activity whenever no other large image is shown.",
             "client_running": "Running",
             "client_not_running": "Not running",
             "client_other_hint": "Vesktop and other apps",

@@ -11,6 +11,7 @@ export const ALL_CLIENT_KINDS: DiscordClientKind[] = ["stable", "ptb", "canary",
 export const PRESENCE_LEVELS: PresenceLevelSetting[] = ["off", "basic", "detailed"];
 
 export const DEFAULT_PRESENCE: PresenceSettings = { level: "off", clients: ALL_CLIENT_KINDS, supportButton: true };
+export const DEFAULT_DEADLOCK_PLUS_LOGO = false;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
@@ -25,7 +26,23 @@ export function resolvePresence(raw: unknown): PresenceSettings {
     const stored = isRecord(raw) ? raw : {};
     const level = PRESENCE_LEVELS.find((l) => l === stored.level) ?? DEFAULT_PRESENCE.level;
     const clients = Array.isArray(stored.clients) ? canonical(stored.clients) : [...DEFAULT_PRESENCE.clients];
-    return { level, clients, supportButton: typeof stored.supportButton === "boolean" ? stored.supportButton : true };
+    const supportButton = typeof stored.supportButton === "boolean" ? stored.supportButton : true;
+    const resolved: PresenceSettings = { level, clients, supportButton };
+    if (typeof stored.deadlockPlusLogo === "boolean") resolved.deadlockPlusLogo = stored.deadlockPlusLogo;
+    return resolved;
+}
+
+export function showsDeadlockPlusLogo(settings: PresenceSettings): boolean {
+    return settings.deadlockPlusLogo ?? DEFAULT_DEADLOCK_PLUS_LOGO;
+}
+
+/** The logo choice is kept only while it differs from the default, so a new default reaches everyone who never chose. */
+export function patchPresence(current: PresenceSettings, patch: Partial<PresenceSettings>): PresenceSettings {
+    const next = { ...current, ...patch };
+    if (next.deadlockPlusLogo === undefined || next.deadlockPlusLogo === DEFAULT_DEADLOCK_PLUS_LOGO) {
+        delete next.deadlockPlusLogo;
+    }
+    return next;
 }
 
 export function toggleClient(clients: DiscordClientKind[], kind: DiscordClientKind, on: boolean): DiscordClientKind[] {

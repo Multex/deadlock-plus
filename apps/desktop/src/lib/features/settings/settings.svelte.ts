@@ -12,7 +12,7 @@ import {
 import { kvGet, kvSet } from "$lib/core/kv";
 import { setPresenceArt, setPresenceSettings } from "$lib/features/presence/api";
 import { loadHeroes, onHeroesRefreshed } from "$lib/features/heroes/heroes";
-import { DEFAULT_PRESENCE, heroArtMap, resolvePresence } from "$lib/features/presence/presence";
+import { DEFAULT_PRESENCE, heroArtMap, patchPresence, resolvePresence } from "$lib/features/presence/presence";
 import { loadRankNames } from "$lib/features/ranks/ranks";
 import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
 import { i18n } from "$lib/core/i18n.svelte";
@@ -152,7 +152,7 @@ class Settings {
     }
 
     async setPresence(patch: Partial<PresenceSettings>) {
-        this.presence = { ...this.presence, ...patch };
+        this.presence = patchPresence(this.presence, patch);
         await this.applyPresence();
         try {
             await kvSet(STORE, PRESENCE_KEY, $state.snapshot(this.presence));

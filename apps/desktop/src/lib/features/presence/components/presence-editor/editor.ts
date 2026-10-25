@@ -15,6 +15,15 @@ export const TIMERS: PresenceTimer[] = ["none", "elapsedInState", "matchTime", "
 export type SourceKind = "heroPortrait" | "heroIcon" | "rankBadge" | "modeIcon" | "customUrl";
 export const SOURCE_KINDS: SourceKind[] = ["heroPortrait", "heroIcon", "rankBadge", "customUrl"];
 
+export type PreviewCard = PresenceCard & { deadlockPlusLogo: boolean };
+
+/** Mirrors the live substitution: Discord shows its own app icon unless a large image is sent. The preview draws the
+ * bundled logo for it, so it never reaches the network. */
+export function withDeadlockPlusLogo(card: PresenceCard, on: boolean): PreviewCard {
+    if (!on || card.largeImage) return { ...card, deadlockPlusLogo: false };
+    return { ...card, largeText: card.largeText || "Deadlock+", deadlockPlusLogo: true };
+}
+
 export function insertPlaceholder(text: string, start: number | null, end: number | null, name: string) {
     const token = `{${name}}`;
     const a = Math.min(start ?? text.length, end ?? text.length);

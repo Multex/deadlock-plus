@@ -161,6 +161,19 @@ pub fn with_support_button(mut presence: Presence, on: bool) -> Presence {
     presence
 }
 
+const LOGO_URL: &str = "https://deadlockplus.app/icon-512.png";
+
+/// Discord falls back to the application's own icon, the Deadlock logo, whenever no large image is sent.
+pub fn with_deadlock_plus_logo(mut presence: Presence, on: bool) -> Presence {
+    if on && presence.large_image.is_none() {
+        presence.large_image = Some(LOGO_URL.into());
+        if presence.large_text.as_deref().is_none_or(str::is_empty) {
+            presence.large_text = Some("Deadlock+".into());
+        }
+    }
+    presence
+}
+
 pub fn map(level: PresenceLevel, facts: &GameFacts) -> Option<Presence> {
     map_with(level, facts, &Config::default())
 }
@@ -489,6 +502,40 @@ mod tests {
         let out = with_support_button(p, true);
         assert_eq!(out.details.as_deref(), Some("d"));
         assert_eq!(out.buttons.len(), 2);
+    }
+
+    #[test]
+    fn logo_fills_a_missing_large_image_at_basic_level() {
+        let base = map(PresenceLevel::Basic, &running(None)).unwrap();
+        let out = with_deadlock_plus_logo(base, true);
+        assert_eq!(out.large_image.as_deref(), Some(LOGO_URL));
+        assert_eq!(out.large_text.as_deref(), Some("Deadlock+"));
+    }
+
+    #[test]
+    fn logo_is_not_added_when_off() {
+        let base = map(PresenceLevel::Basic, &running(None)).unwrap();
+        assert_eq!(with_deadlock_plus_logo(base.clone(), false), base);
+    }
+
+    #[test]
+    fn logo_never_replaces_a_sent_large_image() {
+        let p = Presence { large_image: Some("https://x/hero.png".into()), ..Presence::default() };
+        assert_eq!(with_deadlock_plus_logo(p.clone(), true), p);
+    }
+
+    #[test]
+    fn logo_keeps_the_configured_hover_text() {
+        let p = Presence { large_text: Some("In the Hideout".into()), ..Presence::default() };
+        let out = with_deadlock_plus_logo(p, true);
+        assert_eq!(out.large_image.as_deref(), Some(LOGO_URL));
+        assert_eq!(out.large_text.as_deref(), Some("In the Hideout"));
+    }
+
+    #[test]
+    fn logo_replaces_empty_hover_text() {
+        let p = Presence { large_text: Some(String::new()), ..Presence::default() };
+        assert_eq!(with_deadlock_plus_logo(p, true).large_text.as_deref(), Some("Deadlock+"));
     }
 
     #[test]

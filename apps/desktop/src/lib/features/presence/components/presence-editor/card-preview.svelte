@@ -1,12 +1,19 @@
 <script lang="ts">
     import { Clock, Gamepad2 } from "@lucide/svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
+    import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { PresenceCard } from "@deadlock-plus/ipc-types/PresenceCard";
-    import { formatElapsed } from "./editor";
+    import { formatElapsed, withDeadlockPlusLogo } from "./editor";
 
-    let { card, failed, supportButton }: { card: PresenceCard | null; failed: boolean; supportButton: boolean } =
-        $props();
+    let {
+        card: sent,
+        failed,
+        supportButton,
+        deadlockPlusLogo,
+    }: { card: PresenceCard | null; failed: boolean; supportButton: boolean; deadlockPlusLogo: boolean } = $props();
+
+    const card = $derived(sent && withDeadlockPlusLogo(sent, deadlockPlusLogo));
 </script>
 
 <div
@@ -27,10 +34,15 @@
             <div class="relative size-[72px] shrink-0">
                 <div
                     class="flex size-full items-center justify-center rounded-lg bg-muted text-muted-foreground"
-                    title={card.largeImage ? (card.largeText ?? undefined) : t("settings.discord_editor.preview_logo")}
+                    title={card.largeImage || card.deadlockPlusLogo
+                        ? (card.largeText ?? undefined)
+                        : t("settings.discord_editor.preview_logo")}
                 >
                     {#if card.largeImage}
                         <img src={card.largeImage} alt="" class="size-full rounded-lg object-cover object-top" />
+                        <span class="sr-only">{t("settings.discord_editor.preview_large_image")}</span>
+                    {:else if card.deadlockPlusLogo}
+                        <BrandMark wordmark={false} class="size-full [&_img]:size-full [&_img]:rounded-lg" />
                         <span class="sr-only">{t("settings.discord_editor.preview_large_image")}</span>
                     {:else}
                         <Gamepad2 class="size-7" aria-hidden="true" />
@@ -81,7 +93,7 @@
                 {t("settings.discord_editor.preview_support_button")}
             </div>
         {/if}
-        {#if card.largeText && card.largeImage}
+        {#if card.largeText && (card.largeImage || card.deadlockPlusLogo)}
             <p class="text-xs text-muted-foreground break-words">
                 {t("settings.discord_editor.preview_large_text", { text: card.largeText })}
             </p>
