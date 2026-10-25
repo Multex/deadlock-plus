@@ -797,7 +797,8 @@
             "demos": "Replays",
             "match_history": "Match History",
             "presence": "Presence",
-            "builds": "Builds"
+            "builds": "Builds",
+            "dispatch": "Dispatch"
         },
         "sidebar": {
             "unread": "{count} unread",
@@ -879,7 +880,8 @@
             "demos": "Browse your saved match replays and see which are outdated",
             "match_history": "Every match the Deadlock API has, with a full scoreboard for each",
             "presence": "Show your hero, mode and match timer on your Discord profile",
-            "builds": "Browse, copy and edit hero builds, saved straight to the game"
+            "builds": "Browse, copy and edit hero builds, saved straight to the game",
+            "dispatch": "Your weekly and monthly Deadlock newspaper"
         }
     },
     "ui": {},
@@ -3723,6 +3725,27 @@
             "nemesis": "Most wanted",
             "nemesis_line_one": "Beat you once in {matches}",
             "nemesis_line_other": "Beat you {count} times in {matches}"
+        },
+        "story_mode": {
+            "position": "{current} of {total}",
+            "previous": "Previous card",
+            "next": "Next card",
+            "close": "Close"
+        },
+        "export": {
+            "group": "Export images",
+            "pick": "Page to export",
+            "front_page": "Front page",
+            "lead_story": "Lead story",
+            "aspect": {
+                "group": "Image shape",
+                "tall": "Tall",
+                "square": "Square",
+                "wide": "Wide"
+            },
+            "saved": "Dispatch image saved.",
+            "copied": "Dispatch image copied to the clipboard.",
+            "render_failed": "Couldn't make the Dispatch image. Try again."
         }
     }
 }
