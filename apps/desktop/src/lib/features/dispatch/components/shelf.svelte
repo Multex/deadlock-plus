@@ -30,6 +30,14 @@
     let rack = $state<HTMLElement | null>(null);
     let printing = $state<string | null>(null);
 
+    /** These share the top shelf: each holds a copy or a few, too few to fill a shelf of their own. */
+    const SHARED: readonly StandGroup["id"][] = ["so_far", "specials"];
+
+    const shelves = $derived.by(() => {
+        const top = groups.filter((g) => SHARED.includes(g.id));
+        const rest = groups.filter((g) => !SHARED.includes(g.id)).map((g) => [g]);
+        return top.length > 0 ? [top, ...rest] : rest;
+    });
     const all = $derived(groups.flatMap((g) => g.items));
     const focusId = $derived(all.find((i) => i.id === selected)?.id ?? all[0]?.id ?? null);
 
@@ -54,12 +62,18 @@
         const onkeydown = (e: KeyboardEvent) => {
             const from = (e.target as HTMLElement).closest<HTMLElement>("[data-rack-row]");
             if (!from) return;
-            const counts = groups.map((_, r) => el.querySelectorAll(`[data-rack-row="${r}"]`).length);
-            const pos = { row: Number(from.dataset.rackRow), col: Number(from.dataset.rackCol) };
-            const to = rackStop(pos, e.key, counts);
+            // Columns run in document order along a shelf, across the groups that share it.
+            const rows = shelves.map((_, r) => [...el.querySelectorAll<HTMLElement>(`[data-rack-row="${r}"]`)]);
+            const row = Number(from.dataset.rackRow);
+            const pos = { row, col: rows[row]?.indexOf(from) ?? 0 };
+            const to = rackStop(
+                pos,
+                e.key,
+                rows.map((r) => r.length),
+            );
             if (to === null) return;
             e.preventDefault();
-            el.querySelector<HTMLElement>(`[data-rack-row="${to.row}"][data-rack-col="${to.col}"]`)?.focus();
+            rows[to.row][to.col]?.focus();
         };
         el.addEventListener("keydown", onkeydown);
         return () => el.removeEventListener("keydown", onkeydown);
@@ -67,24 +81,28 @@
 </script>
 
 <div bind:this={rack} class="rack" role="group" aria-label={t("dispatch.shelf.stand")}>
-    {#each groups as group, r (group.id)}
-        <section class="shelf" aria-labelledby="rack-{group.id}">
-            <RackRow
-                row={r}
-                items={group.items}
-                {selected}
-                {focusId}
-                {unseen}
-                {printing}
-                {label}
-                {spine}
-                {pileLabel}
-                onchoose={choose}
-            />
-            <div class="ledge">
-                <h3 id="rack-{group.id}" class="kicker">{t(`dispatch.shelf.group_${group.id}`)}</h3>
-            </div>
-        </section>
+    {#each shelves as shelf, r (shelf[0].id)}
+        <div class="shelf">
+            {#each shelf as group (group.id)}
+                <section class="group" style="flex-grow: {group.items.length}" aria-labelledby="rack-{group.id}">
+                    <RackRow
+                        row={r}
+                        items={group.items}
+                        {selected}
+                        {focusId}
+                        {unseen}
+                        {printing}
+                        {label}
+                        {spine}
+                        {pileLabel}
+                        onchoose={choose}
+                    />
+                    <div class="ledge">
+                        <h3 id="rack-{group.id}" class="kicker">{t(`dispatch.shelf.group_${group.id}`)}</h3>
+                    </div>
+                </section>
+            {/each}
+        </div>
     {/each}
 </div>
 
@@ -100,10 +118,26 @@
     .shelf {
         display: flex;
         flex: 1;
-        flex-direction: column;
         min-height: 0;
-        max-height: 240px;
-        padding-top: 12px;
+        max-height: 300px;
+        padding-top: 8px;
+    }
+
+    .group {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .group + .group {
+        padding-left: 24px;
+    }
+
+    /* One ledge runs under both groups; each keeps its own label. */
+    .group + .group .ledge {
+        margin-left: -24px;
+        padding-left: 34px;
     }
 
     /* The stand's shelf: a lipped ledge the papers stand on, its label strip on the front edge. */

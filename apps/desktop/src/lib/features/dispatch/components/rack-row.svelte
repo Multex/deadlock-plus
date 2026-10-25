@@ -39,6 +39,11 @@
     /** The narrowest edge of a paper left showing behind the one in front: still readable and clickable. */
     const MIN_SLIVER = 28;
     const GAP = 10;
+    /**
+     * Room above the copies, in weekly-paper widths: a copy pulled up out of the stack rises into it behind
+     * the copies in front, so its masthead and date show without covering anyone else's.
+     */
+    const HEADROOM = 0.8;
     /** Width and height of each look against a weekly paper's width. */
     const SIZE: Record<PaperKind, { w: number; h: number }> = {
         so_far: { w: 1, h: 1.5 },
@@ -64,10 +69,13 @@
     // The pile holding the selected paper stands open, so the selection always shows.
     const open = $derived(chosen ?? paths.find((p) => p.id === selected)?.path.at(-1) ?? null);
 
-    const unit = $derived(bayH > 0 ? bayH / Math.max(...items.map((i) => SIZE[i.paper].h)) : 0);
+    const unit = $derived(bayH > 0 ? bayH / (Math.max(...items.map((i) => SIZE[i.paper].h)) + HEADROOM) : 0);
     const widest = $derived(unit * Math.max(...items.map((i) => SIZE[i.paper].w)));
     const slots = $derived(unit > 0 ? rackSlots(paths, rackCapacity(bayW, widest, MIN_SLIVER), open) : []);
     const step = $derived(rackStep(slots.length, bayW, widest, GAP));
+
+    // Right edges step evenly, so every spine shows the same width even when a narrower copy stands behind.
+    const leftOf = (col: number, w: number) => widest + col * step - unit * w;
 
     const pathOf = $derived(new Map(paths.map((p) => [p.id, p.path])));
     const firstOpenCol = $derived(
@@ -116,11 +124,56 @@
         void fan(key, true);
     }
 
+    /**
+     * Shrinks a mini paper's type until no word runs past its edge and nothing falls off the bottom; a masthead
+     * that still does not fit becomes the short mark. Runs again when `key` (size and words) changes.
+     */
+    function fitFace(sheet: HTMLElement, key: string) {
+        const over = (el: Element | null) =>
+            !!el && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
+        const shrink = (el: HTMLElement, name: string, still: () => boolean) => {
+            let scale = 1;
+            el.style.setProperty(name, "1");
+            while (still() && scale > 0.55) {
+                scale -= 0.05;
+                el.style.setProperty(name, scale.toFixed(2));
+            }
+        };
+        const run = () => {
+            const bar = sheet.querySelector<HTMLElement>(".bar");
+            const spineEl = sheet.parentElement?.querySelector<HTMLElement>(".spine");
+            if (bar) {
+                bar.classList.remove("short");
+                shrink(bar, "--bs", () => over(bar));
+                if (over(bar)) bar.classList.add("short");
+            }
+            const lines = [...sheet.querySelectorAll(".kind, .date, .foot")];
+            shrink(sheet, "--fs", () => lines.some(over) || over(sheet));
+            if (spineEl) shrink(spineEl, "--ss", () => over(spineEl));
+        };
+        let last = key;
+        run();
+        void document.fonts?.ready.then(run);
+        return {
+            update(next: string) {
+                if (next === last) return;
+                last = next;
+                run();
+            },
+        };
+    }
+
     const pileTop = (ids: string[]) => byId.get(ids[0])!;
     const tabbable = (ids: string[]) => focusId !== null && ids.includes(focusId);
 </script>
 
-<div class="bay" style="--u: {unit}px;" bind:this={bay} bind:clientWidth={bayW} bind:clientHeight={bayH}>
+<div
+    class="bay"
+    style="--u: {unit}px; --lift: {unit * HEADROOM}px;"
+    bind:this={bay}
+    bind:clientWidth={bayW}
+    bind:clientHeight={bayH}
+>
     {#each slots as slot, col (slot.kind === "paper" ? slot.id : `pile-${slot.key}`)}
         {@const z = slots.length - col}
         {#if slot.kind === "paper"}
@@ -129,13 +182,9 @@
             {@const st = status(item)}
             <button
                 type="button"
-                class="{unstyledButtonClass} paper paper-{item.paper} {st}"
-                class:selected={selected === item.id}
-                class:behind={col > 0 && step < unit * SIZE[item.paper].w}
-                style="{PAPER_STYLE}; left: {col * step}px; z-index: {z}; width: {unit *
-                    SIZE[item.paper].w}px; height: {unit * SIZE[item.paper].h}px; --tilt: {col === 0
-                    ? 0
-                    : ((col * 7) % 5) - 2}deg;"
+                class="{unstyledButtonClass} hit"
+                style="left: {leftOf(col, SIZE[item.paper].w)}px; z-index: {z}; width: {unit *
+                    SIZE[item.paper].w}px; height: {unit * SIZE[item.paper].h}px;"
                 data-rack-row={row}
                 data-rack-col={col}
                 data-rack-pile-first={col === firstOpenCol ? open : undefined}
@@ -145,34 +194,46 @@
                 aria-label={t("dispatch.shelf.entry", { date: f.date, detail: f.detail })}
                 onclick={() => usable(item) && onchoose(item)}
             >
-                <span class="sheet" aria-hidden="true">
-                    <span class="bar">{t("dispatch.page.title")}</span>
-                    <span class="kind">{f.kind}</span>
-                    <span class="date">{f.date}</span>
-                    {#if item.paper === "so_far"}<span class="unset"></span>{/if}
-                    <span class="rule"></span>
-                    <span class="foot">
-                        {#if printing === item.id}
-                            <LoaderCircle class="size-3 animate-spin" />{t("dispatch.shelf.printing")}
-                        {:else}
-                            {#if st === "printable"}<Printer class="size-3" />{/if}{f.foot}
-                        {/if}
+                <span
+                    class="paper paper-{item.paper} {st}"
+                    class:selected={selected === item.id}
+                    class:behind={col > 0 && step < unit * SIZE[item.paper].w}
+                    class:lifted={selected === item.id && col > 0 && step < unit * SIZE[item.paper].w}
+                    style="{PAPER_STYLE}; --tilt: {col === 0 ? 0 : ((col * 7) % 5) - 2}deg;"
+                >
+                    <span
+                        class="sheet"
+                        aria-hidden="true"
+                        use:fitFace={`${unit}|${f.kind}|${f.date}|${f.foot}|${printing === item.id}`}
+                    >
+                        <span class="bar"
+                            ><span class="word">{t("dispatch.page.title")}</span><span class="mark">D+</span></span
+                        >
+                        <span class="kind">{f.kind}</span>
+                        <span class="date">{f.date}</span>
+                        {#if item.paper === "so_far"}<span class="unset"></span>{/if}
+                        <span class="rule"></span>
+                        <span class="foot">
+                            {#if printing === item.id}
+                                <LoaderCircle class="size-3 animate-spin" />{t("dispatch.shelf.printing")}
+                            {:else}
+                                {#if st === "printable"}<Printer class="size-3" />{/if}{f.foot}
+                            {/if}
+                        </span>
+                    </span>
+                    <span class="spine" aria-hidden="true">
+                        {#if unseen.includes(item.id)}<span class="new">{t("dispatch.shelf.new")}</span>{/if}{f.spine}
                     </span>
                 </span>
-                <span class="spine" aria-hidden="true">{f.spine}</span>
-                {#if unseen.includes(item.id)}
-                    <span class="new" aria-hidden="true">{t("dispatch.shelf.new")}</span>
-                {/if}
             </button>
         {:else}
             {@const top = pileTop(slot.ids)}
             {@const name = pileLabel(slot.key)}
             <button
                 type="button"
-                class="{unstyledButtonClass} paper pile paper-{top.paper}"
-                class:behind={col > 0 && step < unit * SIZE[top.paper].w}
-                style="{PAPER_STYLE}; left: {col * step}px; z-index: {z}; width: {unit *
-                    SIZE[top.paper].w}px; height: {unit * SIZE[top.paper].h}px; --tilt: 0deg;"
+                class="{unstyledButtonClass} hit"
+                style="left: {leftOf(col, SIZE[top.paper].w)}px; z-index: {z}; width: {unit *
+                    SIZE[top.paper].w}px; height: {unit * SIZE[top.paper].h}px;"
                 data-rack-row={row}
                 data-rack-col={col}
                 data-rack-pile-first={col === firstOpenCol ? open : undefined}
@@ -182,14 +243,22 @@
                 onclick={() => fan(slot.key, false)}
                 onkeydown={(e) => onpilekey(e, slot.key)}
             >
-                <span class="sheet" aria-hidden="true">
-                    <span class="bar">{t("dispatch.page.title")}</span>
-                    <span class="kind">{t(`dispatch.shelf.kind_${top.paper}`)}</span>
-                    <span class="date">{name}</span>
-                    <span class="rule"></span>
-                </span>
-                <span class="spine" aria-hidden="true">
-                    <span class="count">{slot.ids.length}</span>{name}
+                <span
+                    class="paper pile paper-{top.paper}"
+                    class:behind={col > 0 && step < unit * SIZE[top.paper].w}
+                    style="{PAPER_STYLE}; --tilt: 0deg;"
+                >
+                    <span class="sheet" aria-hidden="true" use:fitFace={`${unit}|${top.paper}|${name}`}>
+                        <span class="bar"
+                            ><span class="word">{t("dispatch.page.title")}</span><span class="mark">D+</span></span
+                        >
+                        <span class="kind">{t(`dispatch.shelf.kind_${top.paper}`)}</span>
+                        <span class="date">{name}</span>
+                        <span class="rule"></span>
+                    </span>
+                    <span class="spine" aria-hidden="true">
+                        <span class="count">{slot.ids.length}</span>{name}
+                    </span>
                 </span>
             </button>
         {/if}
@@ -206,12 +275,28 @@
         min-height: 0;
     }
 
+    /*
+     * The hit box never moves: hovering or focusing lifts only the copy drawn inside it, which takes no
+     * pointer events, so the pointer cannot slip off onto a neighbour and back.
+     */
+    .hit {
+        position: absolute;
+        bottom: 0;
+        display: block;
+    }
+
+    .hit:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+
     .paper {
         --band: var(--fp-spot);
         --band-ink: var(--fp-paper);
         position: absolute;
-        bottom: 0;
+        inset: 0;
         display: flex;
+        pointer-events: none;
         color: var(--fp-ink);
         background-color: var(--fp-paper);
         background-image: radial-gradient(ellipse at 50% 40%, transparent 55%, var(--fp-paper-edge) 130%);
@@ -221,28 +306,30 @@
             0 6px 12px -6px rgb(0 0 0 / 0.55);
         transform: rotate(calc(var(--tilt) * 0.4));
         transform-origin: 50% 100%;
-        transition:
-            transform 140ms,
-            box-shadow 140ms;
+        transition: box-shadow 140ms;
     }
 
-    /* Lifted out of the stack: drawn over its neighbours and clear of the ledge. */
-    .paper:hover,
-    .paper:focus-visible {
-        z-index: 100 !important;
-        transform: translateY(-12%);
-        box-shadow:
-            0 0 0 1px rgb(0 0 0 / 0.2),
-            0 14px 24px -8px rgb(0 0 0 / 0.65);
+    /*
+     * Pulled up out of the stack, still behind the copies in front: its top shows in the headroom above them.
+     * One copy at a time: the selected one settles back while another is hovered or focused.
+     */
+    .hit:hover > .paper.behind,
+    .hit:focus-visible > .paper.behind,
+    .paper.lifted {
+        transform: translateY(calc(var(--lift) * -1));
+        /* Rises gently but drops at once, so two copies are never up together. */
+        transition: transform 140ms;
     }
 
-    .paper:focus-visible {
-        outline: 2px solid var(--ring);
-        outline-offset: 2px;
+    .bay:has(.hit:hover, .hit:focus-visible) .hit:not(:hover, :focus-visible) > .paper.lifted,
+    .bay:has(.hit:hover) .hit:focus-visible:not(:hover) > .paper.behind {
+        transform: rotate(calc(var(--tilt) * 0.4));
+        transition: none;
     }
 
-    .paper[aria-disabled="true"]:hover {
-        transform: translateY(-6%);
+    .hit:hover > .paper:not(.behind),
+    .hit:focus-visible > .paper:not(.behind) {
+        transform: translateY(-4px);
     }
 
     .paper.selected {
@@ -252,7 +339,9 @@
     }
 
     /* Behind newer papers only the spine shows; the front comes back when the paper is lifted out. */
-    .paper.behind:not(:hover, :focus-visible) .sheet {
+    .hit:not(:hover, :focus-visible) > .paper.behind:not(.lifted) .sheet,
+    .bay:has(.hit:hover, .hit:focus-visible) .hit:not(:hover, :focus-visible) > .paper.behind .sheet,
+    .bay:has(.hit:hover) .hit:focus-visible:not(:hover) > .paper.behind .sheet {
         opacity: 0;
     }
 
@@ -279,7 +368,7 @@
         border-left: 1px solid color-mix(in oklch, var(--fp-ink) 25%, transparent);
         font-family: "Retail Demo", sans-serif;
         font-weight: 700;
-        font-size: 11px;
+        font-size: calc(11px * var(--ss, 1));
         letter-spacing: 0.06em;
         line-height: 22px;
         text-transform: uppercase;
@@ -309,7 +398,7 @@
         content: "";
         position: absolute;
         right: 28px;
-        bottom: 22px;
+        bottom: calc(var(--u) * 0.32);
         width: 14px;
         height: 14px;
         border-radius: 50%;
@@ -429,17 +518,27 @@
         color: var(--band-ink);
         font-family: "Valve Pulp", sans-serif;
         font-weight: 700;
-        font-size: clamp(9px, calc(var(--u) * 0.15), 17px);
+        font-size: calc(clamp(9px, calc(var(--u) * 0.15), 17px) * var(--bs, 1));
         line-height: 1.5;
         text-align: center;
         white-space: nowrap;
         overflow: hidden;
     }
 
+    .bar .mark,
+    .bar.short .word {
+        display: none;
+    }
+
+    .bar.short .mark {
+        display: inline;
+    }
+
     .kind {
         font-family: "Retail Demo", sans-serif;
         font-weight: 600;
-        font-size: clamp(7px, calc(var(--u) * 0.105), 12px);
+        font-size: calc(clamp(7px, calc(var(--u) * 0.105), 12px) * var(--fs, 1));
+        overflow: hidden;
         line-height: 1.15;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -449,8 +548,9 @@
     .date {
         font-family: "Valve Oracle", serif;
         font-weight: 600;
-        font-size: clamp(9px, calc(var(--u) * 0.14), 16px);
+        font-size: calc(clamp(9px, calc(var(--u) * 0.14), 16px) * var(--fs, 1));
         line-height: 1.15;
+        overflow: hidden;
     }
 
     .rule {
@@ -469,20 +569,16 @@
         overflow: hidden;
         font-family: "Retail Demo", sans-serif;
         font-weight: 600;
-        font-size: clamp(8px, calc(var(--u) * 0.12), 13px);
+        font-size: calc(clamp(8px, calc(var(--u) * 0.12), 13px) * var(--fs, 1));
         white-space: nowrap;
         text-transform: uppercase;
     }
 
     .new {
-        position: absolute;
-        top: -7px;
-        right: -6px;
-        padding: 1px 5px;
+        padding: 4px 0;
         border-radius: 999px;
         background: var(--brass);
         color: var(--background);
-        font-size: 10px;
-        font-weight: 700;
+        line-height: 16px;
     }
 </style>

@@ -32,6 +32,9 @@
     const PAPER_ANGLE = -0.8;
     /** Room around the paper for its drop shadow. */
     const PAPER_PAD = 22;
+    /** The stand takes whatever the paper, scaled to the window's height, leaves; within these bounds. */
+    const STAND_MIN = 400;
+    const STAND_MAX = 1000;
 
     let heroes = $state.raw<Record<number, Hero>>({});
     let ranks = $state.raw<RankTier[]>([]);
@@ -39,6 +42,7 @@
     let openFailed = $state<string | null>(null);
     let story = $state(false);
     let exporting = $state(false);
+    let rowW = $state(0);
     let stageW = $state(0);
     let stageH = $state(0);
 
@@ -85,6 +89,11 @@
     const newsstand = $derived(mode === "paper" || (mode === "first_paper" && stand.length > 0));
     const box = rotatedBox(DISPATCH_PAPER.width, DISPATCH_PAPER.height, PAPER_ANGLE);
     const scale = $derived(fitScale(stageW, stageH, DISPATCH_PAPER, PAPER_ANGLE, PAPER_PAD));
+    const standW = $derived.by(() => {
+        const paper = fitScale(rowW - STAND_MIN, stageH, DISPATCH_PAPER, PAPER_ANGLE, PAPER_PAD);
+        const room = rowW - box.w * paper - PAPER_PAD * 2;
+        return Math.round(Math.min(STAND_MAX, Math.max(STAND_MIN, room)));
+    });
 
     onMount(() => {
         void loadHeroes().then((h) => (heroes = h));
@@ -161,7 +170,7 @@
 {/snippet}
 
 {#if newsstand}
-    <div class="flex h-full min-h-0">
+    <div class="flex h-full min-h-0" bind:clientWidth={rowW}>
         <div class="stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
             {#if mode === "first_paper"}
                 <EmptyState size="base">{@render firstPaperNote()}</EmptyState>
@@ -184,7 +193,7 @@
             {/if}
         </div>
 
-        <aside class="stand flex flex-none flex-col gap-2 py-6 pr-8 pl-2">
+        <aside class="flex flex-none flex-col gap-2 py-6 pr-8 pl-2" style="width: {standW}px;">
             <div class="flex flex-col gap-1">
                 <div class="flex items-center justify-between gap-3">
                     <h1 class="text-2xl">{t("dispatch.page.title")}</h1>
@@ -260,11 +269,6 @@
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-    }
-
-    /* A tall stand beside the paper, so the paper keeps the window's full height. */
-    .stand {
-        width: clamp(400px, 34vw, 640px);
     }
 
     .spot {
