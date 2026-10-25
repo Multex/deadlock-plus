@@ -6,6 +6,8 @@ export interface Theme {
     id: ThemeId;
     light: boolean;
     grain: boolean;
+    /** Whether the main panel gets a soft brass glow from the top; flat where the palette is neutral or light. */
+    spotlight: boolean;
     /** Effect layers that can be turned off one by one; empty when the theme's effects are one piece. */
     effects: string[];
     /** What the theme is based on, linked from its card. */
@@ -22,6 +24,7 @@ interface ThemeFile {
         id: string;
         light: boolean;
         grain?: boolean;
+        spotlight?: boolean;
         effects?: string[];
         source?: string;
         customAccent?: boolean;
@@ -38,6 +41,7 @@ export const THEMES: readonly Theme[] = file.themes.map((t) => ({
     id: t.id,
     light: t.light,
     grain: t.grain ?? true,
+    spotlight: t.spotlight ?? false,
     effects: t.effects ?? [],
     source: t.source,
     customAccent: t.customAccent ?? true,

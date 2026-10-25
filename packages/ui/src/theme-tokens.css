@@ -272,3 +272,14 @@
 :root[data-theme="contrast"] body::after {
     display: none;
 }
+
+:root[data-theme="daylight"] .noir-panel,
+:root[data-theme="contrast"] .noir-panel,
+:root[data-theme="nightshift"] .noir-panel,
+:root[data-theme="deadlock-api"] .noir-panel,
+:root[data-theme="statlocker"] .noir-panel,
+:root[data-theme="flint-snow"] .noir-panel,
+:root[data-theme="void"] .noir-panel,
+:root[data-theme="deadchaps"] .noir-panel {
+    background: var(--background);
+}

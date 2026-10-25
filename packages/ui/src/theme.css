@@ -149,7 +149,7 @@ body::after {
     display: none;
 }
 
-/* Main panel: soft spotlight from the top, like a lamp over a desk. */
+/* Main panel: soft spotlight from the top, like a lamp over a desk. Themes without `spotlight` in themes.json are flattened in theme-tokens.css. */
 .noir-panel {
     background:
         radial-gradient(120% 60% at 50% -10%, color-mix(in oklch, var(--brass) 8%, transparent), transparent 70%),

@@ -30,6 +30,12 @@ export function themeCss(data) {
         const selectors = grainless.map((theme) => `:root[data-theme="${theme.id}"] body::after`).join(",\n");
         blocks.push(rule(selectors, ["display: none;"]));
     }
+
+    const flat = data.themes.filter((theme) => theme.spotlight !== true);
+    if (flat.length) {
+        const selectors = flat.map((theme) => `:root[data-theme="${theme.id}"] .noir-panel`).join(",\n");
+        blocks.push(rule(selectors, ["background: var(--background);"]));
+    }
     return HEADER + "\n" + blocks.join("\n");
 }
 
