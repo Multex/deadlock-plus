@@ -182,8 +182,8 @@ export interface DispatchIndex {
     issued: IssuedEntry[];
     /** Closed windows that had fewer than `MIN_EDITION_MATCHES` matches. */
     skipped: string[];
-    /** Newest edition id the user has opened; drives the nav badge. */
-    seenThrough: string | null;
+    /** Ids of issued editions the user has opened; automatic issues not in here drive the nav badge. */
+    seen: string[];
 }
 
 export interface BuildInput {

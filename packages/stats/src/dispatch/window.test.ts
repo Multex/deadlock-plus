@@ -6,7 +6,7 @@ const HOUR = 3600;
 const DAY = 24 * HOUR;
 const utc = (y: number, m: number, d: number, h = 0, mi = 0, s = 0) => Date.UTC(y, m - 1, d, h, mi, s) / 1000;
 
-const emptyIndex = (): DispatchIndex => ({ schema: 1, issued: [], skipped: [], seenThrough: null });
+const emptyIndex = (): DispatchIndex => ({ schema: 1, issued: [], skipped: [], seen: [] });
 const issued = (id: string): IssuedEntry => ({
     id,
     kind: id.startsWith("weekly") ? "weekly" : "monthly",

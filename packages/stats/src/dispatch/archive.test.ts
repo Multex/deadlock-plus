@@ -11,7 +11,7 @@ import {
 } from "./archive";
 import type { DispatchIndex, IssuedEntry } from "./types";
 
-const EMPTY: DispatchIndex = { schema: 1, issued: [], skipped: [], seenThrough: null };
+const EMPTY: DispatchIndex = { schema: 1, issued: [], skipped: [], seen: [] };
 
 const entry = (id: string, startS: number, over: Partial<IssuedEntry> = {}): IssuedEntry => ({
     id,
@@ -48,7 +48,7 @@ describe("parseIndex", () => {
     it("keeps a valid index", () => {
         const good = index([entry("weekly-2026-10-19", 200, { number: 2 }), entry("weekly-2026-10-12", 100)], {
             skipped: ["weekly-2026-10-05"],
-            seenThrough: "weekly-2026-10-12",
+            seen: ["weekly-2026-10-12"],
         });
         expect(parseIndex(JSON.parse(JSON.stringify(good)))).toEqual(good);
     });
@@ -66,12 +66,18 @@ describe("parseIndex", () => {
                 { ...ok, onRequest: 1 },
             ],
             skipped: ["weekly-2026-10-05", 7, null],
+            seen: ["weekly-2026-10-19", 3, null, {}],
         };
-        expect(parseIndex(raw)).toEqual({ ...EMPTY, issued: [ok], skipped: ["weekly-2026-10-05"] });
+        expect(parseIndex(raw)).toEqual({
+            ...EMPTY,
+            issued: [ok],
+            skipped: ["weekly-2026-10-05"],
+            seen: ["weekly-2026-10-19"],
+        });
     });
 
     it("treats a non-array issued list as empty", () => {
-        expect(parseIndex({ schema: 1, issued: "nope", skipped: ["a"], seenThrough: 4 })).toEqual({
+        expect(parseIndex({ schema: 1, issued: "nope", skipped: ["a"], seen: "weekly-2026-10-19" })).toEqual({
             ...EMPTY,
             skipped: ["a"],
         });
@@ -137,24 +143,35 @@ describe("markSeen and unseenCount", () => {
         expect(unseenCount(i)).toBe(3);
     });
 
-    it("counts automatic issues newer than seenThrough", () => {
+    it("counts automatic issues not in seen, whatever their age", () => {
         const onRequestNewer = entry("weekly-2026-10-26", 400, { onRequest: true });
-        const i = index([onRequestNewer, ...auto], { seenThrough: "weekly-2026-10-05" });
+        const i = index([onRequestNewer, ...auto], { seen: ["weekly-2026-10-19"] });
         expect(unseenCount(i)).toBe(2);
     });
 
-    it("is zero once the newest is seen", () => {
-        expect(unseenCount(markSeen(index(auto), "weekly-2026-10-19"))).toBe(0);
+    it("is zero once every automatic issue is seen", () => {
+        let i = index(auto);
+        for (const e of auto) i = markSeen(i, e.id);
+        expect(unseenCount(i)).toBe(0);
     });
 
-    it("moves seenThrough forward only", () => {
-        const seen = markSeen(index(auto), "weekly-2026-10-12");
-        expect(seen.seenThrough).toBe("weekly-2026-10-12");
-        expect(markSeen(seen, "weekly-2026-10-05").seenThrough).toBe("weekly-2026-10-12");
-        expect(markSeen(seen, "weekly-2026-10-19").seenThrough).toBe("weekly-2026-10-19");
+    it("opening an older edition does not hide a newer unseen one", () => {
+        expect(unseenCount(markSeen(index(auto), "weekly-2026-10-05"))).toBe(2);
+    });
+
+    it("adds each id once", () => {
+        const seen = markSeen(markSeen(index(auto), "weekly-2026-10-12"), "weekly-2026-10-12");
+        expect(seen.seen).toEqual(["weekly-2026-10-12"]);
     });
 
     it("ignores an id that was never issued", () => {
-        expect(markSeen(index(auto), "weekly-2026-10-26").seenThrough).toBeNull();
+        const before = index(auto);
+        expect(markSeen(before, "weekly-2026-10-26")).toBe(before);
+    });
+
+    it("does not change its input", () => {
+        const before = index(auto);
+        markSeen(before, "weekly-2026-10-19");
+        expect(before.seen).toEqual([]);
     });
 });

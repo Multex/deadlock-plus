@@ -24,14 +24,14 @@ const newestFirst = (a: IssuedEntry, b: IssuedEntry) => b.startS - a.startS;
 
 /** Anything unreadable gives an empty index. */
 export function parseIndex(raw: unknown): DispatchIndex {
-    const index: DispatchIndex = { schema: 1, issued: [], skipped: [], seenThrough: null };
+    const index: DispatchIndex = { schema: 1, issued: [], skipped: [], seen: [] };
     if (!isRecord(raw) || raw.schema !== 1) return index;
     if (Array.isArray(raw.issued)) {
         index.issued = raw.issued.map(parseEntry).filter((e): e is IssuedEntry => e !== null);
         index.issued.sort(newestFirst);
     }
     if (Array.isArray(raw.skipped)) index.skipped = raw.skipped.filter((s): s is string => typeof s === "string");
-    if (typeof raw.seenThrough === "string") index.seenThrough = raw.seenThrough;
+    if (Array.isArray(raw.seen)) index.seen = raw.seen.filter((s): s is string => typeof s === "string");
     return index;
 }
 
@@ -52,17 +52,12 @@ export function recordSkipped(index: DispatchIndex, editionId: string): Dispatch
     return { ...index, skipped: [...index.skipped, editionId] };
 }
 
-/** Opening an older edition from the shelf must not bring back the badge for newer ones, so this only moves forward. */
 export function markSeen(index: DispatchIndex, editionId: string): DispatchIndex {
-    const opened = index.issued.find((e) => e.id === editionId);
-    if (!opened) return index;
-    const current = index.issued.find((e) => e.id === index.seenThrough);
-    if (current && current.startS >= opened.startS) return index;
-    return { ...index, seenThrough: editionId };
+    if (index.seen.includes(editionId) || !index.issued.some((e) => e.id === editionId)) return index;
+    return { ...index, seen: [...index.seen, editionId] };
 }
 
-/** Issued editions newer than `seenThrough`. */
+/** Automatic issues the user has not opened; editions printed on request were opened when printed. */
 export function unseenCount(index: DispatchIndex): number {
-    const seen = index.issued.find((e) => e.id === index.seenThrough);
-    return index.issued.filter((e) => !e.onRequest && (!seen || e.startS > seen.startS)).length;
+    return index.issued.filter((e) => !e.onRequest && !index.seen.includes(e.id)).length;
 }
