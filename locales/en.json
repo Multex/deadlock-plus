@@ -3725,14 +3725,17 @@
             "edition_monthly": "Monthly Edition",
             "edition_live": "This week so far",
             "issue": "Vol. {volume} · No. {number}",
-            "issue_live": "Vol. {volume}"
+            "issue_live": "Vol. {volume}",
+            "edition_collectors": "{season} · Collector's Copy",
+            "edition_year_end": "Year-End Special"
         },
         "paper_label": "{name}, {edition}, {date}",
         "player_fallback": "Unnamed player",
         "photo_caption_one": "{hero}, {count} game this edition",
         "photo_caption_other": "{hero}, {count} games this edition",
         "stamp": {
-            "so_far": "So far"
+            "so_far": "So far",
+            "collectors": "Collector's Copy"
         },
         "section": {
             "stories": "Also inside",
@@ -3740,7 +3743,9 @@
             "best_game_weekly": "Game of the week",
             "best_game_monthly": "Game of the month",
             "heroes": "Hero report",
-            "people": "The company you keep"
+            "people": "The company you keep",
+            "best_game_collectors": "Game of the season",
+            "best_game_year_end": "Game of the year"
         },
         "numbers": {
             "matches": "Matches",

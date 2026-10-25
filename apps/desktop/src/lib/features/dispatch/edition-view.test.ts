@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
 import type { DispatchStory, Edition } from "@deadlock-plus/stats/dispatch/types";
-import { editionView, SECTION_IDS, sectionsFor, type DispatchViewDeps } from "./edition-view";
+import { MIN_CONTRAST, contrast } from "@deadlock-plus/ui/accent";
+import { PAPER_TOKENS } from "$lib/features/front-page/paper/tokens";
+import { editionView, KIND_INKS, SECTION_IDS, sectionsFor, type DispatchViewDeps } from "./edition-view";
 
 const CATALOG: Record<string, string> = {
     "dispatch.masthead.name": "Deadlock+ Dispatch",
     "dispatch.masthead.edition_weekly": "Weekly Edition",
     "dispatch.masthead.edition_monthly": "Monthly Edition",
     "dispatch.masthead.edition_live": "This week so far",
+    "dispatch.masthead.edition_collectors": "{season} · Collector's Copy",
+    "dispatch.masthead.edition_year_end": "Year-End Special",
+    "dispatch.stamp.collectors": "Collector's Copy",
     "dispatch.masthead.issue": "Vol. {volume} · No. {number}",
     "dispatch.masthead.issue_live": "Vol. {volume}",
     "dispatch.player_fallback": "Unnamed player",
@@ -17,6 +22,8 @@ const CATALOG: Record<string, string> = {
     "dispatch.section.numbers": "By the numbers",
     "dispatch.section.best_game_weekly": "Game of the week",
     "dispatch.section.best_game_monthly": "Game of the month",
+    "dispatch.section.best_game_collectors": "Game of the season",
+    "dispatch.section.best_game_year_end": "Game of the year",
     "dispatch.section.heroes": "Hero report",
     "dispatch.section.people": "The company you keep",
     "dispatch.numbers.matches": "Matches",
@@ -45,6 +52,7 @@ const CATALOG: Record<string, string> = {
     "dispatch.story.best_game.deck_graded": "{kills}/{deaths}/{assists} on {date}. The critics gave it {letter}.",
     "dispatch.story.rank_move.headline_up": "Climbing to {to}",
     "dispatch.story.rank_move.deck_up": "Up from {from}, peaking at {peak}.",
+    "dispatch.story.busiest_month.headline_other": "Peak season: {count} matches in {month}",
 };
 
 const t = (key: string, params?: Record<string, string | number>) => interpolate(CATALOG[key] ?? key, params);
@@ -120,6 +128,8 @@ function edition(extra: Partial<Edition> = {}): Edition {
             longestSession: null,
             busiestDay: null,
             nightShare: null,
+            daysPlayed: 5,
+            busiestMonth: null,
         },
         heroes: [
             { heroId: 2, games: 8, wins: 6, playtimeS: 4 * 3600 },
@@ -140,6 +150,7 @@ function edition(extra: Partial<Edition> = {}): Edition {
         },
         longestWin: 2,
         rank: null,
+        season: null,
         mates: [
             { accountId: 501, name: "Rook", matches: 6, wins: 4 },
             { accountId: 502, name: null, matches: 3, wins: 1 },
@@ -196,6 +207,61 @@ describe("editionView masthead", () => {
         expect(view.live).toBe(true);
         expect(view.masthead.edition).toBe("This week so far");
         expect(view.masthead.issue).toBe("Vol. 2026");
+    });
+});
+
+describe("editionView specials", () => {
+    const SEASON = { id: "season_1", name: "Beta Season 1", startS: 1785430800, endS: 1793916000 };
+    const collectors = () =>
+        edition({
+            id: "collectors-season_1",
+            window: { kind: "collectors", id: "collectors-season_1", startS: SEASON.startS, endS: SEASON.endS, tz: TZ },
+            season: SEASON,
+        });
+    // 2026-01-01 to 2026-12-01, both 00:00 UTC.
+    const yearEnd = () =>
+        edition({
+            id: "year_end-2026",
+            window: { kind: "year_end", id: "year_end-2026", startS: 1767225600, endS: 1796083200, tz: TZ },
+        });
+
+    it("names a Collector's Copy after its season and stamps it with the season's foil seal", () => {
+        const view = editionView(collectors(), deps);
+        expect(view.kind).toBe("collectors");
+        expect(view.masthead.edition).toBe("Beta Season 1 · Collector's Copy");
+        expect(view.masthead.date).toBe(`2026-07-30..2026-11-05@${TZ}`);
+        expect(view.titles.best_game).toBe("Game of the season");
+        expect(view.seal).toEqual({ title: "Collector's Copy", season: "Beta Season 1" });
+    });
+
+    it("still names a Collector's Copy whose season went missing", () => {
+        const view = editionView(edition({ ...collectors(), season: null }), deps);
+        expect(view.masthead.edition).toBe("Collector's Copy");
+        expect(view.seal).toEqual({ title: "Collector's Copy" });
+    });
+
+    it("prints the Year-End Special from January 1 to November 30 with the game of the year", () => {
+        const view = editionView(yearEnd(), deps);
+        expect(view.masthead.edition).toBe("Year-End Special");
+        expect(view.masthead.date).toBe(`2026-01-01..2026-11-30@${TZ}`);
+        expect(view.titles.best_game).toBe("Game of the year");
+        expect(view.seal).toBeUndefined();
+    });
+
+    it("gives weekly and monthly editions no seal", () => {
+        expect(editionView(edition(), deps).seal).toBeUndefined();
+    });
+
+    it("inks the specials in gold, with gold that stays readable as text on the paper", () => {
+        expect(KIND_INKS.weekly).toBe("");
+        expect(KIND_INKS.monthly).toBe("");
+        for (const kind of ["collectors", "year_end"] as const) {
+            expect(KIND_INKS[kind]).toContain(`--fp-spot: ${PAPER_TOKENS["hk-ink"]}`);
+            expect(KIND_INKS[kind]).toMatch(/--dp-rule: oklch\(/);
+        }
+        for (const bg of ["paper", "paper-edge", "highlight"] as const) {
+            expect(contrast(PAPER_TOKENS["hk-ink"], PAPER_TOKENS[bg])).toBeGreaterThanOrEqual(MIN_CONTRAST);
+        }
     });
 });
 
@@ -279,6 +345,16 @@ describe("editionView stories", () => {
             ["Hero 99 runs the show", "dispatch.story.top_hero.deck"],
             ["Climbing to Badge 81", "Up from Badge 73, peaking at Badge 82."],
         ]);
+    });
+
+    it("names a month param by its month in the edition's time zone", () => {
+        const busiest = story("busiest_month", 50, {
+            headline: { key: "dispatch.story.busiest_month.headline", count: 41 },
+            params: { month: { type: "month", unixS: 1772323200 } },
+        });
+        expect(editionView(edition({ stories: [busiest] }), deps).banner?.headline).toBe(
+            `Peak season: 41 matches in 2026-03@${TZ}`,
+        );
     });
 
     it("names a known player by name", () => {

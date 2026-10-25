@@ -6,8 +6,10 @@ import type {
     DispatchText,
     Edition,
     EditionHero,
+    EditionKind,
 } from "@deadlock-plus/stats/dispatch/types";
 import type { ViewDeps } from "$lib/features/front-page/front-page-view";
+import { PAPER_TOKENS } from "$lib/features/front-page/paper/tokens";
 import type { Brief } from "$lib/features/front-page/paper/types";
 
 type Params = Record<string, string | number>;
@@ -43,6 +45,13 @@ export const CARD_SIZES: Record<
     "1:1": { width: 720, height: 720, footer: 60, scale: 1.5, photo: 250 },
     "16:9": { width: 960, height: 540, footer: 72, scale: 1.35, photo: 270 },
 };
+
+/**
+ * Ink overrides on the paper's `--fp-*` tokens, as a `style` value for the sheet's content. The specials print in
+ * gold: their spot ink is the paper's own gold text ink, already held to 4.5:1, and `--dp-rule` is for lines only.
+ */
+const GOLD = `--fp-spot: ${PAPER_TOKENS["hk-ink"]}; --dp-rule: oklch(0.62 0.115 82)`;
+export const KIND_INKS: Record<EditionKind, string> = { weekly: "", monthly: "", collectors: GOLD, year_end: GOLD };
 
 export const COLUMN_MAX = 4;
 export const HERO_ROWS = 5;
@@ -95,6 +104,8 @@ export interface EditionView {
     /** "This week so far": not issued, still changing. */
     live: boolean;
     masthead: { name: string; edition: string; issue: string; date: string };
+    /** The Collector's Copy foil seal. */
+    seal?: { title: string; season?: string };
     banner?: DispatchStoryView;
     columns: DispatchStoryView[];
     briefs: Brief[];
@@ -131,6 +142,8 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
                 return deps.percent(p.value);
             case "date":
                 return deps.day(p.unixS, win.tz);
+            case "month":
+                return deps.month(p.unixS, win.tz);
             case "grade":
                 return p.letter;
             case "rank":
@@ -154,9 +167,17 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
     const issue = live
         ? t("dispatch.masthead.issue_live", { volume: String(edition.volume) })
         : t("dispatch.masthead.issue", { volume: String(edition.volume), number: deps.number(edition.number!) });
+    const season = win.kind === "collectors" ? edition.season : null;
+    const editionLine = () => {
+        if (live) return t("dispatch.masthead.edition_live");
+        if (win.kind !== "collectors") return t(`dispatch.masthead.edition_${win.kind}`);
+        return season
+            ? t("dispatch.masthead.edition_collectors", { season: season.name })
+            : t("dispatch.stamp.collectors");
+    };
     const masthead: EditionView["masthead"] = {
         name: t("dispatch.masthead.name"),
-        edition: t(`dispatch.masthead.edition_${live ? "live" : win.kind}`),
+        edition: editionLine(),
         issue,
         date: win.kind === "monthly" ? deps.month(win.startS, win.tz) : deps.dayRange(win.startS, win.endS - 1, win.tz),
     };
@@ -194,6 +215,10 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
         })),
     };
     if (banner) view.banner = banner;
+    if (win.kind === "collectors") {
+        view.seal = { title: t("dispatch.stamp.collectors") };
+        if (season) view.seal.season = season.name;
+    }
 
     const lead = edition.stories[0]?.params.hero;
     const photoHero = lead?.type === "hero" ? lead.heroId : heroes[0]?.heroId;

@@ -103,7 +103,7 @@
     /* A wanted poster in miniature: double rule, the name in the masthead face. */
     .wanted {
         padding: calc(5px * var(--s)) calc(8px * var(--s)) calc(6px * var(--s));
-        border: calc(3px * var(--s)) double var(--fp-ink);
+        border: calc(3px * var(--s)) double var(--dp-rule, var(--fp-ink));
         text-align: center;
     }
 

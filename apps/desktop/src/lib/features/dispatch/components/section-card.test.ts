@@ -95,3 +95,47 @@ describe("SectionCard", () => {
         expect(numbers).not.toContain("Rook");
     });
 });
+
+describe("special editions", () => {
+    const collectors: EditionView = {
+        ...view,
+        kind: "collectors",
+        titles: { ...view.titles, best_game: "Game of the season" },
+        masthead: { ...view.masthead, edition: "Beta Season 1 · Collector's Copy" },
+        seal: { title: "Collector's Copy", season: "Beta Season 1" },
+    };
+    const yearEnd: EditionView = {
+        ...view,
+        kind: "year_end",
+        titles: { ...view.titles, best_game: "Game of the year" },
+        masthead: { ...view.masthead, edition: "Year-End Special" },
+    };
+
+    it("puts the Collector's Copy foil seal on the paper and on every card", () => {
+        const paper = render(EditionPaper, { props: { view: collectors } }).body;
+        expect(paper).toContain('class="seal');
+        expect(text(paper)).toContain("Beta Season 1 · Collector's Copy");
+        expect(text(paper)).toContain("Game of the season");
+        for (const section of SECTION_IDS) {
+            const card = render(SectionCard, { props: { view: collectors, section, aspect: "1:1" } }).body;
+            expect(card).toContain('class="seal');
+            expect(card).toContain("kind-collectors");
+        }
+    });
+
+    it("prints the Year-End Special in black and gold, without the seal", () => {
+        const paper = render(EditionPaper, { props: { view: yearEnd } }).body;
+        expect(paper).toContain("kind-year_end");
+        expect(paper).not.toContain('class="seal');
+        expect(text(paper)).toContain("Game of the year");
+        const card = render(SectionCard, { props: { view: yearEnd, section: "best_game", aspect: "9:16" } }).body;
+        expect(card).toContain("kind-year_end");
+    });
+
+    it("leaves a weekly edition in its own red", () => {
+        const paper = render(EditionPaper, { props: { view } }).body;
+        expect(paper).toContain("kind-weekly");
+        expect(paper).not.toContain('class="seal');
+        expect(paper).not.toContain("--dp-rule");
+    });
+});

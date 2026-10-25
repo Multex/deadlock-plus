@@ -59,7 +59,7 @@
     }
 
     .row.head {
-        border-bottom: 2px solid var(--fp-ink);
+        border-bottom: 2px solid var(--dp-rule, var(--fp-ink));
         color: var(--fp-ink-soft);
         font-weight: 600;
         font-size: calc(10px * var(--s));

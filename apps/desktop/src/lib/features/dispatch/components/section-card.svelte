@@ -9,13 +9,13 @@
     import Briefs from "$lib/features/front-page/paper/briefs.svelte";
     import Deck from "$lib/features/front-page/paper/deck.svelte";
     import Headline from "$lib/features/front-page/paper/headline.svelte";
-    import Masthead from "$lib/features/front-page/paper/masthead.svelte";
     import Paper from "$lib/features/front-page/paper/paper.svelte";
     import Photo from "$lib/features/front-page/paper/photo.svelte";
     import Stamp from "$lib/features/front-page/paper/stamp.svelte";
     import ExportFooter from "$lib/features/match-history/components/detail/export-footer.svelte";
-    import { CARD_SIZES, type CardAspect, type EditionView, type SectionId } from "../edition-view";
+    import { CARD_SIZES, KIND_INKS, type CardAspect, type EditionView, type SectionId } from "../edition-view";
     import BestGame from "./best-game.svelte";
+    import EditionMasthead from "./edition-masthead.svelte";
     import { fillGap, fillScale, fitLines, fitMasthead, overflows, relayout, resetFill } from "./fill";
     import HeroReport from "./hero-report.svelte";
     import NumbersBox from "./numbers-box.svelte";
@@ -94,13 +94,8 @@
     style="width: {size.width}px; height: {size.height}px; --s: {size.scale};"
 >
     <Paper width={size.width} height={size.height - size.footer} angle={0} label={view.label}>
-        <div class="layout" {@attach layout}>
-            <Masthead
-                name={view.masthead.name}
-                date={view.masthead.date}
-                edition={view.masthead.edition}
-                detail={view.masthead.issue}
-            />
+        <div class="layout kind-{view.kind}" style={KIND_INKS[view.kind]} {@attach layout}>
+            <EditionMasthead {view} />
             {#if section !== "front"}
                 <h2 class="title">{view.titles[section]}</h2>
             {/if}
@@ -217,7 +212,7 @@
     .title {
         margin: 0;
         padding: 2px 0 4px;
-        border-bottom: 3px solid var(--fp-ink);
+        border-bottom: 3px solid var(--dp-rule, var(--fp-ink));
         color: var(--fp-spot);
         font-family: "Valve Oracle", serif;
         font-weight: 600;
@@ -246,7 +241,7 @@
     .banner {
         flex: none;
         padding-bottom: 6px;
-        border-bottom: 2px solid var(--fp-ink);
+        border-bottom: 2px solid var(--dp-rule, var(--fp-ink));
     }
 
     /* The picture takes whatever height the headline and deck leave; a zero flex basis overrides the kit's fixed one. */
@@ -316,7 +311,7 @@
 
     .story + .story {
         padding-top: calc(10px * var(--fit-scale, 1) + var(--row-gap, 0px) / 2);
-        border-top: 1px solid var(--fp-ink);
+        border-top: 1px solid var(--dp-rule, var(--fp-ink));
     }
 
     .card.wide .story:nth-child(2) {
@@ -343,7 +338,7 @@
 
     .briefs {
         padding-top: 8px;
-        border-top: 3px solid var(--fp-ink);
+        border-top: 3px solid var(--dp-rule, var(--fp-ink));
     }
 
     .briefs :global(h4) {
@@ -379,7 +374,7 @@
         padding-top: 0;
         padding-left: 18px;
         border-top: 0;
-        border-left: 3px solid var(--fp-ink);
+        border-left: 3px solid var(--dp-rule, var(--fp-ink));
     }
 
     .best-wide {
@@ -428,6 +423,10 @@
         display: flex;
         flex: 1;
         flex-direction: column;
-        justify-content: center;
+    }
+
+    /* The bar, not the footer box, takes the slot's height: its rule is drawn at its top edge and must meet the paper. */
+    .foot :global(.bar) {
+        flex: 1;
     }
 </style>

@@ -3,12 +3,12 @@
     import Briefs from "$lib/features/front-page/paper/briefs.svelte";
     import Deck from "$lib/features/front-page/paper/deck.svelte";
     import Headline from "$lib/features/front-page/paper/headline.svelte";
-    import Masthead from "$lib/features/front-page/paper/masthead.svelte";
     import Paper from "$lib/features/front-page/paper/paper.svelte";
     import Photo from "$lib/features/front-page/paper/photo.svelte";
     import Stamp from "$lib/features/front-page/paper/stamp.svelte";
-    import { DISPATCH_PAPER, type EditionView } from "../edition-view";
+    import { DISPATCH_PAPER, KIND_INKS, type EditionView } from "../edition-view";
     import BestGame from "./best-game.svelte";
+    import EditionMasthead from "./edition-masthead.svelte";
     import { fillGap, fillScale, fitLines, fitMasthead, overflows, relayout, resetFill } from "./fill";
     import HeroReport from "./hero-report.svelte";
     import NumbersBox from "./numbers-box.svelte";
@@ -73,13 +73,8 @@
 </script>
 
 <Paper width={DISPATCH_PAPER.width} height={DISPATCH_PAPER.height} {angle} label={view.label}>
-    <div class="layout" {@attach layout}>
-        <Masthead
-            name={view.masthead.name}
-            date={view.masthead.date}
-            edition={view.masthead.edition}
-            detail={view.masthead.issue}
-        />
+    <div class="layout kind-{view.kind}" style={KIND_INKS[view.kind]} {@attach layout}>
+        <EditionMasthead {view} />
 
         {#if view.banner}
             <div class="banner">
@@ -148,7 +143,7 @@
 
     .banner {
         padding-bottom: 6px;
-        border-bottom: 2px solid var(--fp-ink);
+        border-bottom: 2px solid var(--dp-rule, var(--fp-ink));
     }
 
     .lead {
@@ -214,7 +209,7 @@
     }
 
     .column + .column {
-        border-left: 1px solid var(--fp-ink);
+        border-left: 1px solid var(--dp-rule, var(--fp-ink));
     }
 
     .lower {
@@ -226,7 +221,7 @@
         min-height: 0;
         overflow: hidden;
         padding-top: 8px;
-        border-top: 3px solid var(--fp-ink);
+        border-top: 3px solid var(--dp-rule, var(--fp-ink));
     }
 
     .col {

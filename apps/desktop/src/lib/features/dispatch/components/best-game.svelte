@@ -56,7 +56,7 @@
     .best {
         min-width: 0;
         padding-top: calc(4px * var(--s));
-        border-top: 2px solid var(--fp-ink);
+        border-top: 2px solid var(--dp-rule, var(--fp-ink));
     }
 
     .best.headless {

@@ -73,8 +73,8 @@
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         align-items: stretch;
-        border-top: calc(3px * var(--s)) solid var(--fp-ink);
-        border-bottom: 1px solid var(--fp-ink);
+        border-top: calc(3px * var(--s)) solid var(--dp-rule, var(--fp-ink));
+        border-bottom: 1px solid var(--dp-rule, var(--fp-ink));
     }
 
     .numbers.headless {
