@@ -1,7 +1,8 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
 import type { Match } from "../stats";
 
-export type EditionKind = "weekly" | "monthly";
+/** `collectors` = Collector's Copy at a ranked season's end; `year_end` = Year-End Special, Jan 1 to Dec 1. */
+export type EditionKind = "weekly" | "monthly" | "collectors" | "year_end";
 
 export const MIN_EDITION_MATCHES = 3;
 export const EDITION_SCHEMA = 1;
@@ -9,8 +10,9 @@ export const BEST_GAME_CANDIDATES = 3;
 
 /**
  * A local calendar window: start inclusive, end exclusive, unix seconds, computed in `tz` (IANA).
- * Weekly runs Monday 00:00 to the next Monday 00:00; monthly runs from the 1st to the next 1st.
- * `id` is `weekly-<YYYY-MM-DD of the Monday>` or `monthly-<YYYY-MM>`.
+ * Weekly runs Monday 00:00 to the next Monday 00:00; monthly runs from the 1st to the next 1st; year-end runs
+ * Jan 1 00:00 to Dec 1 00:00; collectors runs the ranked season's own UTC start to end.
+ * `id` is `weekly-<YYYY-MM-DD of the Monday>`, `monthly-<YYYY-MM>`, `year_end-<YYYY>` or `collectors-<season id>`.
  */
 export interface EditionWindow {
     kind: EditionKind;
@@ -68,6 +70,8 @@ export type DispatchParam =
     | { type: "duration"; seconds: number }
     | { type: "percent"; value: number }
     | { type: "date"; unixS: number }
+    /** A local month, by its first second. */
+    | { type: "month"; unixS: number }
     | { type: "grade"; letter: MvpLetter }
     | { type: "rank"; badge: number };
 
@@ -86,7 +90,12 @@ export type DispatchStoryKind =
     | "nemesis"
     | "damage"
     | "mvp_count"
-    | "night_owl";
+    | "night_owl"
+    | "peak_rank"
+    | "season_climb"
+    | "days_played"
+    | "heroes_tried"
+    | "busiest_month";
 
 export interface DispatchStory {
     kind: DispatchStoryKind;
@@ -125,6 +134,10 @@ export interface EditionStats {
     busiestDay: { dayStartS: number; matches: number } | null;
     /** Share of matches started 00:00-05:59 local. */
     nightShare: number | null;
+    /** Distinct local days with at least one match. */
+    daysPlayed: number;
+    /** Local month with the most matches; ties go to the earlier month. */
+    busiestMonth: { monthStartS: number; matches: number } | null;
 }
 
 export interface EditionHero {
@@ -139,6 +152,14 @@ export interface EditionRank {
     endBadge: number;
     peakBadge: number;
     delta: number;
+}
+
+export interface RankedSeason {
+    /** The API's `class_name`, e.g. `season_1`. */
+    id: string;
+    name: string;
+    startS: number;
+    endS: number;
 }
 
 export interface Edition {
@@ -157,6 +178,8 @@ export interface Edition {
     bestGame: BestGame | null;
     longestWin: number;
     rank: EditionRank | null;
+    /** Set on a Collector's Copy only. */
+    season: RankedSeason | null;
     mates: Companion[];
     nemesis: Companion | null;
     combat: HeroCombat[] | null;
@@ -192,6 +215,8 @@ export interface BuildInput {
     /** All matches; the builder filters to the window itself. */
     history: readonly Match[];
     enrichment: Enrichment;
+    /** Required for `collectors` windows. */
+    season?: RankedSeason;
     number: number | null;
     issuedAt: number | null;
 }

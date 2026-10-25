@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DispatchIndex, IssuedEntry } from "./types";
+import type { DispatchIndex, EditionKind, IssuedEntry, RankedSeason } from "./types";
 import { closedWindowBefore, dueWindow, pastWindows, soFarWindow, windowFor } from "./window";
 
 const HOUR = 3600;
@@ -9,7 +9,7 @@ const utc = (y: number, m: number, d: number, h = 0, mi = 0, s = 0) => Date.UTC(
 const emptyIndex = (): DispatchIndex => ({ schema: 1, issued: [], skipped: [], seen: [] });
 const issued = (id: string): IssuedEntry => ({
     id,
-    kind: id.startsWith("weekly") ? "weekly" : "monthly",
+    kind: id.split("-")[0] as EditionKind,
     number: 1,
     issuedAt: 0,
     startS: 0,
@@ -205,5 +205,139 @@ describe("dueWindow", () => {
         const index = { ...emptyIndex(), issued: [issued("monthly-2026-09")] };
         expect(dueWindow("monthly", now, "UTC", index)).toBeNull();
         expect(dueWindow("weekly", now, "UTC", index)?.id).toBe("weekly-2026-10-19");
+    });
+});
+
+describe("year_end windows", () => {
+    it("runs Jan 1 00:00 to Dec 1 00:00 local in Berlin", () => {
+        expect(windowFor("year_end", utc(2026, 6, 15), "Europe/Berlin")).toEqual({
+            kind: "year_end",
+            id: "year_end-2026",
+            startS: utc(2025, 12, 31, 23),
+            endS: utc(2026, 11, 30, 23),
+            tz: "Europe/Berlin",
+        });
+    });
+
+    it("runs Jan 1 00:00 to Dec 1 00:00 local in Los Angeles", () => {
+        expect(windowFor("year_end", utc(2026, 6, 15), "America/Los_Angeles")).toEqual({
+            kind: "year_end",
+            id: "year_end-2026",
+            startS: utc(2026, 1, 1, 8),
+            endS: utc(2026, 12, 1, 8),
+            tz: "America/Los_Angeles",
+        });
+    });
+
+    it("closes this year's window only once Dec 1 has started locally", () => {
+        const tz = "America/Los_Angeles";
+        expect(closedWindowBefore("year_end", utc(2026, 12, 1, 8) - 1, tz).id).toBe("year_end-2025");
+        expect(closedWindowBefore("year_end", utc(2026, 12, 1, 8), tz).id).toBe("year_end-2026");
+        expect(closedWindowBefore("year_end", utc(2027, 1, 1, 8), tz).id).toBe("year_end-2026");
+    });
+
+    it("is not due before Dec 1, is due on Dec 1, and not twice", () => {
+        const tz = "America/Los_Angeles";
+        const dec1 = utc(2026, 12, 1, 8);
+        expect(dueWindow("year_end", dec1 - 1, tz, emptyIndex())).toBeNull();
+        expect(dueWindow("year_end", utc(2026, 10, 26), tz, emptyIndex())).toBeNull();
+        expect(dueWindow("year_end", dec1, tz, emptyIndex())?.id).toBe("year_end-2026");
+        expect(dueWindow("year_end", utc(2026, 12, 31, 12), tz, emptyIndex())?.id).toBe("year_end-2026");
+        expect(dueWindow("year_end", dec1, tz, { ...emptyIndex(), issued: [issued("year_end-2026")] })).toBeNull();
+        expect(dueWindow("year_end", dec1, tz, { ...emptyIndex(), skipped: ["year_end-2026"] })).toBeNull();
+    });
+
+    it("is not due in the new year, so a missed special waits on the shelf", () => {
+        expect(dueWindow("year_end", utc(2027, 1, 1, 8), "America/Los_Angeles", emptyIndex())).toBeNull();
+    });
+
+    it("lists closed years newest first back to the one holding earliestS", () => {
+        const now = utc(2026, 12, 15);
+        expect(pastWindows("year_end", now, "UTC", utc(2024, 3, 1)).map((w) => w.id)).toEqual([
+            "year_end-2026",
+            "year_end-2025",
+            "year_end-2024",
+        ]);
+        // A first match in December is after that year's special closed.
+        expect(pastWindows("year_end", now, "UTC", utc(2023, 12, 15)).map((w) => w.id)).toEqual([
+            "year_end-2026",
+            "year_end-2025",
+            "year_end-2024",
+        ]);
+        expect(pastWindows("year_end", utc(2026, 10, 26), "UTC", utc(2024, 3, 1)).map((w) => w.id)).toEqual([
+            "year_end-2025",
+            "year_end-2024",
+        ]);
+        expect(pastWindows("year_end", utc(2026, 10, 26), "UTC", utc(2026, 2, 1))).toEqual([]);
+    });
+});
+
+describe("collectors windows", () => {
+    const SEASON_1_END = 1793916000;
+    const seasons: RankedSeason[] = [
+        { id: "season_1", name: "Beta Season 1", startS: 1785430800, endS: SEASON_1_END },
+        { id: "season_2", name: "Season 2", startS: utc(2027, 1, 10), endS: utc(2027, 5, 1) },
+    ];
+    const tz = "Europe/Berlin";
+
+    it("uses the season's own UTC start and end and the viewer's tz", () => {
+        expect(windowFor("collectors", utc(2026, 9, 1), tz, seasons)).toEqual({
+            kind: "collectors",
+            id: "collectors-season_1",
+            startS: 1785430800,
+            endS: SEASON_1_END,
+            tz,
+        });
+        expect(windowFor("collectors", utc(2026, 12, 1), tz, seasons)).toBeNull();
+    });
+
+    it("defaults to the pinned seasons, ignoring the API's 2028 interval", () => {
+        expect(windowFor("collectors", utc(2027, 6, 1), tz)).toBeNull();
+        expect(closedWindowBefore("collectors", SEASON_1_END, tz)?.endS).toBe(SEASON_1_END);
+    });
+
+    it("is due at 1793916000 and not before", () => {
+        expect(dueWindow("collectors", SEASON_1_END - 1, tz, emptyIndex(), seasons)).toBeNull();
+        expect(dueWindow("collectors", SEASON_1_END, tz, emptyIndex(), seasons)).toEqual({
+            kind: "collectors",
+            id: "collectors-season_1",
+            startS: 1785430800,
+            endS: SEASON_1_END,
+            tz,
+        });
+        expect(dueWindow("collectors", utc(2027, 2, 1), tz, emptyIndex(), seasons)?.id).toBe("collectors-season_1");
+    });
+
+    it("is not due twice", () => {
+        const done = { ...emptyIndex(), issued: [issued("collectors-season_1")] };
+        expect(dueWindow("collectors", SEASON_1_END, tz, done, seasons)).toBeNull();
+        expect(
+            dueWindow("collectors", SEASON_1_END, tz, { ...emptyIndex(), skipped: ["collectors-season_1"] }, seasons),
+        ).toBeNull();
+    });
+
+    it("only offers the newest ended season", () => {
+        const index = { ...emptyIndex(), issued: [issued("collectors-season_2")] };
+        expect(dueWindow("collectors", utc(2027, 6, 1), tz, index, seasons)).toBeNull();
+        expect(dueWindow("collectors", utc(2027, 6, 1), tz, emptyIndex(), seasons)?.id).toBe("collectors-season_2");
+    });
+
+    it("lists ended seasons newest first back to the one holding earliestS", () => {
+        const after = utc(2027, 6, 1);
+        expect(pastWindows("collectors", after, tz, utc(2026, 8, 1), seasons).map((w) => w.id)).toEqual([
+            "collectors-season_2",
+            "collectors-season_1",
+        ]);
+        expect(pastWindows("collectors", after, tz, utc(2027, 2, 1), seasons).map((w) => w.id)).toEqual([
+            "collectors-season_2",
+        ]);
+        // Between seasons: season 1 ended before the first match.
+        expect(pastWindows("collectors", after, tz, utc(2026, 12, 1), seasons).map((w) => w.id)).toEqual([
+            "collectors-season_2",
+        ]);
+        expect(pastWindows("collectors", utc(2027, 2, 1), tz, utc(2026, 8, 1), seasons).map((w) => w.id)).toEqual([
+            "collectors-season_1",
+        ]);
+        expect(pastWindows("collectors", SEASON_1_END - 1, tz, utc(2026, 8, 1), seasons)).toEqual([]);
     });
 });

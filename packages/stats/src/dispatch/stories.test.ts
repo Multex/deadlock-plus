@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { BONUS_MAX, detectDispatchStories, rankDispatchStories, type DispatchEditionInput } from "./stories";
-import type { DispatchStory, DispatchStoryKind, EditionStats } from "./types";
+import type { DispatchStory, DispatchStoryKind, EditionWindow } from "./types";
 
 const HOUR = 3600;
 
-const BASE_STATS: EditionStats = {
+const BASE_STATS: DispatchEditionInput["stats"] = {
     matches: 5,
     wins: 3,
     losses: 2,
@@ -19,10 +19,15 @@ const BASE_STATS: EditionStats = {
     longestSession: { matches: 2, startS: 1_760_000_000, durationS: 4000 },
     busiestDay: { dayStartS: 1_759_968_000, matches: 3 },
     nightShare: 0.1,
+    daysPlayed: 3,
+    busiestMonth: { monthStartS: 1_759_276_800, matches: 5 },
 };
 
 /** Every section present but below every threshold: only `record` and `hours` fire. */
-function edition(over: Partial<DispatchEditionInput> = {}, stats: Partial<EditionStats> = {}): DispatchEditionInput {
+function edition(
+    over: Partial<DispatchEditionInput> = {},
+    stats: Partial<DispatchEditionInput["stats"]> = {},
+): DispatchEditionInput {
     return {
         schema: 1,
         id: "weekly-2026-10-12",
@@ -36,6 +41,7 @@ function edition(over: Partial<DispatchEditionInput> = {}, stats: Partial<Editio
         bestGame: null,
         longestWin: 2,
         rank: null,
+        season: null,
         mates: [],
         nemesis: null,
         combat: null,
@@ -147,6 +153,17 @@ describe("top hero", () => {
             { heroId: 15, games: 1, wins: 1, playtimeS: 3600 },
         ];
         expect(story(edition({ heroes }, { matches: 6 }), "top_hero")).toBeUndefined();
+    });
+
+    it("always names the hero of the year on a Year-End Special", () => {
+        const heroes = [
+            { heroId: 7, games: 2, wins: 1, playtimeS: 3000 },
+            { heroId: 15, games: 1, wins: 1, playtimeS: 3600 },
+        ];
+        expect(story(special(YEAR_END, { heroes }, { matches: 6 }), "top_hero")).toMatchObject({
+            headline: { key: "dispatch.story.top_hero.headline_year" },
+            params: { hero: { type: "hero", heroId: 7 } },
+        });
     });
 });
 
@@ -388,6 +405,213 @@ describe("night owl", () => {
     it("stays quiet under 30% or without a share", () => {
         expect(story(edition({}, { nightShare: 0.29 }), "night_owl")).toBeUndefined();
         expect(story(edition({}, { nightShare: null }), "night_owl")).toBeUndefined();
+    });
+});
+
+const DAY = 86400;
+const COLLECTORS: EditionWindow = {
+    kind: "collectors",
+    id: "collectors-season_1",
+    startS: 1_785_430_800,
+    endS: 1_793_916_000,
+    tz: "UTC",
+};
+const YEAR_END: EditionWindow = {
+    kind: "year_end",
+    id: "year_end-2026",
+    startS: 1_767_225_600,
+    endS: 1_767_225_600 + 334 * DAY,
+    tz: "UTC",
+};
+const MONTHLY: EditionWindow = {
+    kind: "monthly",
+    id: "monthly-2026-10",
+    startS: 1_759_276_800,
+    endS: 1_759_276_800 + 31 * DAY,
+    tz: "UTC",
+};
+const SEASON = { id: "season_1", name: "Beta Season 1", startS: COLLECTORS.startS, endS: COLLECTORS.endS };
+
+const special = (
+    window: EditionWindow,
+    over: Partial<DispatchEditionInput> = {},
+    stats: Partial<DispatchEditionInput["stats"]> = {},
+) => edition({ window, id: window.id, season: window.kind === "collectors" ? SEASON : null, ...over }, stats);
+
+const CLIMB = { startBadge: 76, endBadge: 82, peakBadge: 84, delta: 2400 };
+
+describe("peak rank", () => {
+    it("names the season's peak badge on a Collector's Copy", () => {
+        expect(story(special(COLLECTORS, { rank: CLIMB }), "peak_rank")).toMatchObject({
+            headline: { key: "dispatch.story.peak_rank.headline" },
+            deck: { key: "dispatch.story.peak_rank.deck" },
+            params: { peak: { type: "rank", badge: 84 }, end: { type: "rank", badge: 82 } },
+        });
+    });
+
+    it("says so when the season ended at the peak", () => {
+        const rank = { startBadge: 76, endBadge: 84, peakBadge: 84, delta: 2400 };
+        expect(story(special(COLLECTORS, { rank }), "peak_rank")?.deck.key).toBe("dispatch.story.peak_rank.deck_top");
+    });
+
+    it("stays quiet without a rank or outside a Collector's Copy", () => {
+        expect(story(special(COLLECTORS, { rank: null }), "peak_rank")).toBeUndefined();
+        expect(story(edition({ rank: CLIMB }), "peak_rank")).toBeUndefined();
+        expect(story(special(MONTHLY, { rank: CLIMB }), "peak_rank")).toBeUndefined();
+    });
+});
+
+describe("season climb", () => {
+    it("tells the climb from the first badge to the last in subrank steps", () => {
+        expect(story(special(COLLECTORS, { rank: CLIMB }), "season_climb")).toMatchObject({
+            headline: { key: "dispatch.story.season_climb.headline_up" },
+            deck: { key: "dispatch.story.season_climb.deck_up", count: 2 },
+            params: {
+                from: { type: "rank", badge: 76 },
+                to: { type: "rank", badge: 82 },
+                steps: { type: "number", value: 2 },
+            },
+        });
+    });
+
+    it("tells a slide", () => {
+        const rank = { startBadge: 82, endBadge: 81, peakBadge: 83, delta: -300 };
+        expect(story(special(COLLECTORS, { rank }), "season_climb")).toMatchObject({
+            headline: { key: "dispatch.story.season_climb.headline_down" },
+            deck: { key: "dispatch.story.season_climb.deck_down", count: 1 },
+        });
+    });
+
+    it("scores a bigger climb higher", () => {
+        const one = story(special(COLLECTORS, { rank: { ...CLIMB, endBadge: 81 } }), "season_climb")!;
+        const two = story(special(COLLECTORS, { rank: CLIMB }), "season_climb")!;
+        expect(two.score - one.score).toBe(2);
+    });
+
+    it("stays quiet when the badge did not move or outside a Collector's Copy", () => {
+        const held = { startBadge: 82, endBadge: 82, peakBadge: 83, delta: 200 };
+        expect(story(special(COLLECTORS, { rank: held }), "season_climb")).toBeUndefined();
+        expect(story(edition({ rank: CLIMB }), "season_climb")).toBeUndefined();
+    });
+
+    it("takes the place of the rank move when the badge moved", () => {
+        expect(story(special(COLLECTORS, { rank: CLIMB }), "rank_move")).toBeUndefined();
+        const held = { startBadge: 82, endBadge: 82, peakBadge: 83, delta: 200 };
+        expect(story(special(COLLECTORS, { rank: held }), "rank_move")?.headline.key).toBe(
+            "dispatch.story.rank_move.headline_held_up",
+        );
+    });
+});
+
+describe("days played", () => {
+    it("counts the days with a match on a Year-End Special", () => {
+        expect(story(special(YEAR_END, {}, { daysPlayed: 40 }), "days_played")).toMatchObject({
+            headline: { key: "dispatch.story.days_played.headline", count: 40 },
+            deck: { key: "dispatch.story.days_played.deck" },
+            params: {
+                days: { type: "number", value: 40 },
+                total: { type: "number", value: 334 },
+                share: { type: "percent", value: 40 / 334 },
+            },
+        });
+    });
+
+    it("runs in a monthly edition from 15 days", () => {
+        expect(story(special(MONTHLY, {}, { daysPlayed: 15 }), "days_played")).toMatchObject({
+            headline: { count: 15 },
+            params: { total: { type: "number", value: 31 } },
+        });
+        expect(story(special(MONTHLY, {}, { daysPlayed: 14 }), "days_played")).toBeUndefined();
+    });
+
+    it("stays quiet in a weekly edition, a Collector's Copy, or without the count", () => {
+        expect(story(edition({}, { daysPlayed: 7 }), "days_played")).toBeUndefined();
+        expect(story(special(COLLECTORS, {}, { daysPlayed: 60 }), "days_played")).toBeUndefined();
+        expect(story(special(YEAR_END, {}, { daysPlayed: undefined }), "days_played")).toBeUndefined();
+    });
+});
+
+describe("heroes tried", () => {
+    const heroes = [1, 2, 3, 6, 7].map((heroId) => ({ heroId, games: 2, wins: 1, playtimeS: 3600 }));
+
+    it("counts the distinct heroes of a Year-End Special", () => {
+        expect(story(special(YEAR_END, { heroes }), "heroes_tried")).toMatchObject({
+            headline: { key: "dispatch.story.heroes_tried.headline", count: 5 },
+            deck: { key: "dispatch.story.heroes_tried.deck" },
+            params: { heroes: { type: "number", value: 5 } },
+        });
+    });
+
+    it("adds how many were new", () => {
+        expect(story(special(YEAR_END, { heroes, newHeroes: [6, 7] }), "heroes_tried")?.deck).toEqual({
+            key: "dispatch.story.heroes_tried.deck_new",
+            count: 2,
+        });
+    });
+
+    it("stays quiet under three heroes or outside a Year-End Special", () => {
+        expect(story(special(YEAR_END, { heroes: heroes.slice(0, 2) }), "heroes_tried")).toBeUndefined();
+        expect(story(special(MONTHLY, { heroes }), "heroes_tried")).toBeUndefined();
+    });
+});
+
+describe("busiest month", () => {
+    const busiestMonth = { monthStartS: 1_780_272_000, matches: 31 };
+
+    it("names the month with the most matches on a Year-End Special", () => {
+        expect(story(special(YEAR_END, {}, { busiestMonth }), "busiest_month")).toMatchObject({
+            headline: { key: "dispatch.story.busiest_month.headline", count: 31 },
+            deck: { key: "dispatch.story.busiest_month.deck" },
+            params: { month: { type: "month", unixS: 1_780_272_000 } },
+        });
+    });
+
+    it("stays quiet for a light month, a missing one, or outside a Year-End Special", () => {
+        const light = { ...busiestMonth, matches: 4 };
+        expect(story(special(YEAR_END, {}, { busiestMonth: light }), "busiest_month")).toBeUndefined();
+        expect(story(special(YEAR_END, {}, { busiestMonth: null }), "busiest_month")).toBeUndefined();
+        expect(story(special(MONTHLY, {}, { busiestMonth }), "busiest_month")).toBeUndefined();
+    });
+});
+
+describe("special editions", () => {
+    const GRADED = {
+        matchId: 1,
+        heroId: 20,
+        kills: 20,
+        deaths: 0,
+        assists: 10,
+        netWorth: 60000,
+        startTime: 1,
+        letter: "S+" as const,
+        place: 1,
+    };
+    const busy = { bestGame: GRADED, longestWin: 12, rank: CLIMB, newHeroes: [1, 2, 3, 6] };
+
+    it("leads a Collector's Copy with the climb and the peak", () => {
+        const stories = detectDispatchStories(special(COLLECTORS, busy, { playtimeS: 200 * HOUR }));
+        expect(stories.slice(0, 2).map((s) => s.kind)).toEqual(["season_climb", "peak_rank"]);
+    });
+
+    it("leads a Collector's Copy with the peak when the badge held", () => {
+        const rank = { startBadge: 82, endBadge: 82, peakBadge: 84, delta: 0 };
+        expect(detectDispatchStories(special(COLLECTORS, { ...busy, rank }))[0].kind).toBe("peak_rank");
+    });
+
+    it("leads a Year-End Special with the hours, not the rank or the best game", () => {
+        const stories = detectDispatchStories(special(YEAR_END, busy, { playtimeS: HOUR, daysPlayed: 300 }));
+        expect(stories[0].kind).toBe("hours");
+        expect(stories.slice(0, 4).map((s) => s.kind)).toEqual(["hours", "days_played", "top_hero", "best_game"]);
+        expect(stories.map((s) => s.kind)).not.toContain("rank_move");
+    });
+
+    it("leads a Year-End Special with a hero who took nearly every match", () => {
+        const heroes = [
+            { heroId: 15, games: 19, wins: 10, playtimeS: 30 * HOUR },
+            { heroId: 7, games: 1, wins: 0, playtimeS: HOUR },
+        ];
+        const e = special(YEAR_END, { ...busy, heroes }, { matches: 20, playtimeS: 2 * HOUR });
+        expect(detectDispatchStories(e)[0].kind).toBe("top_hero");
     });
 });
 

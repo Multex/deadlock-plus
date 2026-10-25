@@ -1,8 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { Match } from "../stats";
-import { bestGameCandidates, buildEdition, buildEditionBase, pickBestGame, windowRows } from "./edition";
+import {
+    bestGameCandidates,
+    buildEdition,
+    buildEditionBase,
+    editionCalendar,
+    pickBestGame,
+    windowRows,
+} from "./edition";
 import { detectDispatchStories } from "./stories";
-import type { BuildInput, Companion, EditionWindow, Enrichment, GradedCandidate, HeroCombat } from "./types";
+import type {
+    BuildInput,
+    Companion,
+    EditionWindow,
+    Enrichment,
+    GradedCandidate,
+    HeroCombat,
+    RankedSeason,
+} from "./types";
 
 const at = (y: number, mo: number, d: number, h = 0, mi = 0) => Date.UTC(y, mo - 1, d, h, mi) / 1000;
 
@@ -128,6 +143,27 @@ const IN_WEEK = [
 const AFTER = [m({ matchId: 17, heroId: 33, startTime: WEEK.endS })];
 const HISTORY = [...AFTER, ...IN_WEEK, ...BEFORE];
 
+const SEASON: RankedSeason = {
+    id: "season_1",
+    name: "Beta Season 1",
+    startS: at(2026, 7, 30, 17),
+    endS: at(2026, 11, 5, 22),
+};
+const COLLECTORS: EditionWindow = {
+    kind: "collectors",
+    id: "collectors-season_1",
+    startS: SEASON.startS,
+    endS: SEASON.endS,
+    tz: "UTC",
+};
+const YEAR_END: EditionWindow = {
+    kind: "year_end",
+    id: "year_end-2026",
+    startS: at(2026, 1, 1),
+    endS: at(2026, 12, 1),
+    tz: "UTC",
+};
+
 const build = (history: readonly Match[] = HISTORY, over: Partial<BuildInput> = {}) => {
     const e = buildEditionBase(input(history, over));
     if (!e) throw new Error("expected an edition");
@@ -176,7 +212,13 @@ describe("buildEditionBase", () => {
             longestSession: { matches: 3, startS: at(2026, 10, 12), durationS: 90 * 60 + 2400 },
             busiestDay: { dayStartS: at(2026, 10, 12), matches: 3 },
             nightShare: 4 / 7,
+            daysPlayed: 4,
+            busiestMonth: { monthStartS: at(2026, 10, 1), matches: 7 },
         });
+    });
+
+    it("has no season outside a Collector's Copy", () => {
+        expect(build(HISTORY, { season: SEASON }).season).toBeNull();
     });
 
     it("leaves winrate null when no game was scored", () => {
@@ -286,6 +328,94 @@ describe("buildEditionBase", () => {
         expect(e.mates).toEqual([]);
         expect(e.nemesis).toBeNull();
         expect(e.combat).toBeNull();
+    });
+});
+
+describe("Collector's Copy", () => {
+    const SEASON_HISTORY = [
+        m({ matchId: 30, heroId: 7, startTime: at(2026, 7, 1, 18), rankBadge: 71 }),
+        m({ matchId: 31, heroId: 7, startTime: at(2026, 8, 5, 18), rankBadge: 74, rankDelta: 300 }),
+        m({ matchId: 32, heroId: 33, startTime: at(2026, 8, 6, 18), matchMode: 1, kills: 40, deaths: 0 }),
+        m({ matchId: 33, heroId: 15, startTime: at(2026, 9, 10, 18), rankBadge: 81, rankDelta: 400 }),
+        m({ matchId: 34, heroId: 7, startTime: at(2026, 10, 20, 18), rankBadge: 82, rankDelta: 300 }),
+        m({ matchId: 35, heroId: 7, startTime: at(2026, 10, 21, 18), matchMode: 1, kills: 50, deaths: 0 }),
+        m({ matchId: 36, heroId: 7, startTime: SEASON.endS, rankBadge: 83 }),
+    ];
+    const collectors = (history: readonly Match[] = SEASON_HISTORY) =>
+        build(history, { window: COLLECTORS, season: SEASON });
+
+    it("keeps only the ranked matches of the season", () => {
+        expect(windowRows(SEASON_HISTORY, COLLECTORS).map((r) => r.matchId)).toEqual([31, 33, 34]);
+        const e = collectors();
+        expect(e.stats.matches).toBe(3);
+        expect(e.heroes.map((h) => h.heroId)).toEqual([7, 15]);
+        expect(e.bestGame?.matchId).not.toBe(35);
+    });
+
+    it("carries the season and its rank block", () => {
+        const e = collectors();
+        expect(e.season).toEqual(SEASON);
+        expect(e.rank).toEqual({ startBadge: 74, endBadge: 82, peakBadge: 82, delta: 1000 });
+    });
+
+    it("counts a new hero only when it was played in ranked", () => {
+        expect(collectors().newHeroes).toEqual([15]);
+    });
+
+    it("needs MIN_EDITION_MATCHES ranked matches, whatever else was played", () => {
+        const thin = SEASON_HISTORY.filter((r) => r.matchId !== 34);
+        expect(buildEditionBase(input(thin, { window: COLLECTORS, season: SEASON }))).toBeNull();
+    });
+
+    it("has no rank block without badges", () => {
+        const rows = [1, 2, 3].map((i) => m({ startTime: at(2026, 9, i, 18), rankBadge: 0 }));
+        expect(collectors(rows).rank).toBeNull();
+    });
+});
+
+describe("Year-End Special", () => {
+    it("covers every match of the year to Dec 1", () => {
+        const rows = [
+            m({ startTime: at(2026, 3, 4, 18), matchMode: 1 }),
+            m({ startTime: at(2026, 6, 4, 18) }),
+            m({ startTime: at(2026, 6, 9, 18), gameMode: 4, matchMode: 1 }),
+            m({ startTime: at(2026, 12, 1, 0) }),
+        ];
+        const e = build(rows, { window: YEAR_END });
+        expect(e.stats.matches).toBe(3);
+        expect(e.stats.busiestMonth).toEqual({ monthStartS: at(2026, 6, 1), matches: 2 });
+        expect(e.season).toBeNull();
+    });
+});
+
+describe("editionCalendar", () => {
+    it("counts distinct local days", () => {
+        const rows = [m({ startTime: at(2026, 10, 13, 3) }), m({ startTime: at(2026, 10, 13, 5) })];
+        expect(editionCalendar(rows, "UTC").daysPlayed).toBe(1);
+        expect(editionCalendar(rows, "America/New_York").daysPlayed).toBe(2);
+    });
+
+    it("finds the busiest local month, the earlier one on a tie", () => {
+        const rows = [
+            m({ startTime: at(2026, 3, 10, 12) }),
+            m({ startTime: at(2026, 3, 11, 12) }),
+            m({ startTime: at(2026, 1, 10, 12) }),
+            m({ startTime: at(2026, 1, 11, 12) }),
+            // 23:00 EDT on Oct 31.
+            m({ startTime: at(2026, 11, 1, 3) }),
+        ];
+        expect(editionCalendar(rows, "America/New_York")).toEqual({
+            daysPlayed: 5,
+            busiestMonth: { monthStartS: at(2026, 1, 1, 5), matches: 2 },
+        });
+        expect(editionCalendar(rows.slice(4), "America/New_York").busiestMonth).toEqual({
+            monthStartS: at(2026, 10, 1, 4),
+            matches: 1,
+        });
+    });
+
+    it("is empty without rows", () => {
+        expect(editionCalendar([], "UTC")).toEqual({ daysPlayed: 0, busiestMonth: null });
     });
 });
 

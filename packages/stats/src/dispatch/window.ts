@@ -1,4 +1,5 @@
-import type { DispatchIndex, EditionKind, EditionWindow } from "./types";
+import { KNOWN_SEASONS, seasonAt } from "./seasons";
+import type { DispatchIndex, EditionKind, EditionWindow, RankedSeason } from "./types";
 
 interface CivilDate {
     y: number;
@@ -65,7 +66,25 @@ function startOfDay(c: CivilDate, tz: string): number {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-function windowOf(kind: EditionKind, at: CivilDate, tz: string): EditionWindow {
+type CalendarKind = Exclude<EditionKind, "collectors">;
+
+function yearEnd(y: number, tz: string): EditionWindow {
+    return {
+        kind: "year_end",
+        id: `year_end-${y}`,
+        startS: startOfDay(civil(y, 1, 1), tz),
+        endS: startOfDay(civil(y, 12, 1), tz),
+        tz,
+    };
+}
+
+/** The local year whose Year-End window most recently closed at `nowS`. */
+function closedYear(nowS: number, tz: string): number {
+    const y = civilDate(nowS, tz).y;
+    return nowS >= yearEnd(y, tz).endS ? y : y - 1;
+}
+
+function windowOf(kind: CalendarKind, at: CivilDate, tz: string): EditionWindow {
     if (kind === "weekly") {
         const sinceMonday = (new Date(Date.UTC(at.y, at.m - 1, at.d)).getUTCDay() + 6) % 7;
         const monday = civil(at.y, at.m, at.d - sinceMonday);
@@ -77,6 +96,7 @@ function windowOf(kind: EditionKind, at: CivilDate, tz: string): EditionWindow {
             tz,
         };
     }
+    if (kind === "year_end") return yearEnd(at.y, tz);
     return {
         kind,
         id: `monthly-${at.y}-${pad(at.m)}`,
@@ -86,13 +106,54 @@ function windowOf(kind: EditionKind, at: CivilDate, tz: string): EditionWindow {
     };
 }
 
-/** The window of `kind` that contains `atS`, in local time of `tz`. */
-export function windowFor(kind: EditionKind, atS: number, tz: string): EditionWindow {
+/** A Collector's Copy window: the season's own UTC span; `tz` is only for display. */
+export function collectorsWindow(season: RankedSeason, tz: string): EditionWindow {
+    return { kind: "collectors", id: `collectors-${season.id}`, startS: season.startS, endS: season.endS, tz };
+}
+
+/**
+ * The window of `kind` that contains `atS`, in local time of `tz`. `year_end` gives the window of `atS`'s local
+ * year even in December, after it closed. `collectors` gives the season running at `atS`, or null between seasons.
+ */
+export function windowFor(kind: CalendarKind, atS: number, tz: string): EditionWindow;
+export function windowFor(
+    kind: EditionKind,
+    atS: number,
+    tz: string,
+    seasons?: readonly RankedSeason[],
+): EditionWindow | null;
+export function windowFor(
+    kind: EditionKind,
+    atS: number,
+    tz: string,
+    seasons: readonly RankedSeason[] = KNOWN_SEASONS,
+): EditionWindow | null {
+    if (kind === "collectors") {
+        const season = seasonAt(seasons, atS);
+        return season ? collectorsWindow(season, tz) : null;
+    }
     return windowOf(kind, civilDate(atS, tz), tz);
 }
 
-/** The newest window of `kind` that has fully closed at `nowS`. */
-export function closedWindowBefore(kind: EditionKind, nowS: number, tz: string): EditionWindow {
+/** The newest window of `kind` that has fully closed at `nowS`; for `collectors`, null until a season has ended. */
+export function closedWindowBefore(kind: CalendarKind, nowS: number, tz: string): EditionWindow;
+export function closedWindowBefore(
+    kind: EditionKind,
+    nowS: number,
+    tz: string,
+    seasons?: readonly RankedSeason[],
+): EditionWindow | null;
+export function closedWindowBefore(
+    kind: EditionKind,
+    nowS: number,
+    tz: string,
+    seasons: readonly RankedSeason[] = KNOWN_SEASONS,
+): EditionWindow | null {
+    if (kind === "collectors") {
+        const ended = seasons.filter((s) => s.endS <= nowS).sort((a, b) => b.endS - a.endS);
+        return ended.length > 0 ? collectorsWindow(ended[0], tz) : null;
+    }
+    if (kind === "year_end") return yearEnd(closedYear(nowS, tz), tz);
     return windowFor(kind, windowFor(kind, nowS, tz).startS - 1, tz);
 }
 
@@ -102,8 +163,24 @@ export function soFarWindow(nowS: number, tz: string): EditionWindow {
 }
 
 /** Closed windows of `kind`, newest first, back to the one that contains `earliestS`. */
-export function pastWindows(kind: EditionKind, nowS: number, tz: string, earliestS: number): EditionWindow[] {
+export function pastWindows(
+    kind: EditionKind,
+    nowS: number,
+    tz: string,
+    earliestS: number,
+    seasons: readonly RankedSeason[] = KNOWN_SEASONS,
+): EditionWindow[] {
+    if (kind === "collectors") {
+        return seasons
+            .filter((s) => s.endS <= nowS && s.endS > earliestS)
+            .sort((a, b) => b.startS - a.startS)
+            .map((s) => collectorsWindow(s, tz));
+    }
     const out: EditionWindow[] = [];
+    if (kind === "year_end") {
+        for (let y = closedYear(nowS, tz); yearEnd(y, tz).endS > earliestS; y--) out.push(yearEnd(y, tz));
+        return out;
+    }
     let w = windowFor(kind, nowS, tz);
     while (w.startS > earliestS) {
         w = windowFor(kind, w.startS - 1, tz);
@@ -112,9 +189,20 @@ export function pastWindows(kind: EditionKind, nowS: number, tz: string, earlies
     return out;
 }
 
-/** The newest closed window of `kind` when it is neither issued nor skipped yet; older ones are only printed on request. */
-export function dueWindow(kind: EditionKind, nowS: number, tz: string, index: DispatchIndex): EditionWindow | null {
-    const w = closedWindowBefore(kind, nowS, tz);
+/**
+ * The newest closed window of `kind` when it is neither issued nor skipped yet; older ones are only printed on
+ * request. A Year-End Special is only due during the December it closes in, so a year never arrives months late.
+ */
+export function dueWindow(
+    kind: EditionKind,
+    nowS: number,
+    tz: string,
+    index: DispatchIndex,
+    seasons: readonly RankedSeason[] = KNOWN_SEASONS,
+): EditionWindow | null {
+    const w = closedWindowBefore(kind, nowS, tz, seasons);
+    if (!w) return null;
+    if (kind === "year_end" && w.id !== windowFor(kind, nowS, tz).id) return null;
     if (index.issued.some((e) => e.id === w.id) || index.skipped.includes(w.id)) return null;
     return w;
 }

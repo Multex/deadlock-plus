@@ -125,9 +125,16 @@ function byGrade(a: GradedCandidate | undefined, b: GradedCandidate | undefined)
     return (b?.s10 ?? -Infinity) - (a?.s10 ?? -Infinity) || (a?.place ?? Infinity) - (b?.place ?? Infinity);
 }
 
+/** The window's matches, oldest first; a Collector's Copy keeps only ranked matches. */
 export function windowRows(history: readonly Match[], window: EditionWindow): Match[] {
+    const rankedOnly = window.kind === "collectors";
     return history
-        .filter((m) => m.startTime >= window.startS && m.startTime < window.endS)
+        .filter(
+            (m) =>
+                m.startTime >= window.startS &&
+                m.startTime < window.endS &&
+                (!rankedOnly || m.matchMode === MATCH_MODE_RANKED),
+        )
         .sort((a, b) => a.startTime - b.startTime);
 }
 
@@ -146,7 +153,7 @@ export function pickBestGame(candidates: readonly Match[], grades: readonly Grad
     return best ? toBestGame(best.m, best.g) : null;
 }
 
-function editionStats(rows: Match[], tz: string): EditionStats {
+function editionStats(rows: Match[], tz: string): EditionStats & EditionCalendar {
     const rec = record(rows);
     const longestSession = groupSessions(rows)
         .map((s) => ({ matches: s.matches.length, ...summarizeSession(s) }))
@@ -191,17 +198,48 @@ function editionStats(rows: Match[], tz: string): EditionStats {
         longestSession,
         busiestDay,
         nightShare: rows.length ? night / rows.length : null,
+        ...editionCalendar(rows, tz),
     };
 }
 
-function newHeroes(history: readonly Match[], window: EditionWindow): number[] {
+/** Calendar totals the stories of longer editions need; `busiestMonth` ties go to the earlier month. */
+export interface EditionCalendar {
+    /** Distinct local days with at least one match. */
+    daysPlayed: number;
+    busiestMonth: { monthStartS: number; matches: number } | null;
+}
+
+export function editionCalendar(rows: readonly Match[], tz: string): EditionCalendar {
+    const days = new Set<string>();
+    const months = new Map<string, { monthStartS: number; matches: number }>();
+    for (const r of rows) {
+        const l = localTime(r.startTime, tz);
+        days.add(`${l.year}-${l.month}-${l.day}`);
+        const key = `${l.year}-${l.month}`;
+        const month = months.get(key);
+        if (month) month.matches++;
+        else months.set(key, { monthStartS: localMidnight({ ...l, day: 1 }, tz), matches: 1 });
+    }
+    const busiestMonth = [...months.values()].reduce<EditionCalendar["busiestMonth"]>(
+        (best, mo) =>
+            !best || mo.matches > best.matches || (mo.matches === best.matches && mo.monthStartS < best.monthStartS)
+                ? mo
+                : best,
+        null,
+    );
+    return { daysPlayed: days.size, busiestMonth };
+}
+
+/** Heroes first played inside the window across the whole history, and played in `rows`. */
+function newHeroes(history: readonly Match[], window: EditionWindow, rows: readonly Match[]): number[] {
+    const played = new Set(rows.map((r) => r.heroId));
     const first = new Map<number, number>();
     for (const m of history) {
         const seen = first.get(m.heroId);
         if (seen === undefined || m.startTime < seen) first.set(m.heroId, m.startTime);
     }
     return [...first]
-        .filter(([, t]) => t >= window.startS && t < window.endS)
+        .filter(([heroId, t]) => t >= window.startS && t < window.endS && played.has(heroId))
         .sort((a, b) => a[1] - b[1] || a[0] - b[0])
         .map(([heroId]) => heroId);
 }
@@ -226,8 +264,10 @@ function nemesis(enemies: readonly Companion[]): Companion | null {
     );
 }
 
+export type EditionBase = Omit<Edition, "stories"> & { stats: EditionStats & EditionCalendar };
+
 /** Everything but the stories; `null` when the window holds fewer than `MIN_EDITION_MATCHES` matches. */
-export function buildEditionBase(input: BuildInput): Omit<Edition, "stories"> | null {
+export function buildEditionBase(input: BuildInput): EditionBase | null {
     const { window, enrichment } = input;
     const rows = windowRows(input.history, window);
     if (rows.length < MIN_EDITION_MATCHES) return null;
@@ -252,10 +292,11 @@ export function buildEditionBase(input: BuildInput): Omit<Edition, "stories"> | 
             wins: h.wins,
             playtimeS: h.playtimeS,
         })),
-        newHeroes: newHeroes(input.history, window),
+        newHeroes: newHeroes(input.history, window, rows),
         bestGame,
         longestWin: streaks(rows).longestWin,
         rank: editionRank(rows),
+        season: window.kind === "collectors" ? (input.season ?? null) : null,
         mates: [...(enrichment.mates ?? [])].sort(
             (a, b) => b.matches - a.matches || b.wins - a.wins || a.accountId - b.accountId,
         ),

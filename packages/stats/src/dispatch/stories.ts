@@ -1,8 +1,17 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
 import { badgeParts } from "../rank";
-import type { DispatchParam, DispatchStory, DispatchStoryKind, DispatchText, Edition } from "./types";
+import type { EditionCalendar } from "./edition";
+import type {
+    DispatchParam,
+    DispatchStory,
+    DispatchStoryKind,
+    DispatchText,
+    Edition,
+    EditionKind,
+    EditionStats,
+} from "./types";
 
-export type DispatchEditionInput = Omit<Edition, "stories">;
+export type DispatchEditionInput = Omit<Edition, "stories"> & { stats: EditionStats & Partial<EditionCalendar> };
 
 /**
  * Base score per kind, highest first. The order also breaks equal scores. Each detector adds a bonus
@@ -10,7 +19,9 @@ export type DispatchEditionInput = Omit<Edition, "stories">;
  */
 const BASE_SCORE = {
     best_game: 50,
+    season_climb: 49,
     rank_move: 48,
+    peak_rank: 47,
     hours: 44,
     record: 42,
     best_streak: 40,
@@ -19,8 +30,12 @@ const BASE_SCORE = {
     nemesis: 34,
     new_hero: 32,
     mvp_count: 30,
+    // With its full bonus it only ties `hours`, and the kind order keeps the hours on a Year-End banner.
+    days_played: 29,
     damage: 28,
+    heroes_tried: 27,
     longest_session: 26,
+    busiest_month: 25,
     busiest_day: 24,
     longest_match: 22,
     night_owl: 20,
@@ -29,6 +44,13 @@ const BASE_SCORE = {
 const KIND_ORDER = Object.keys(BASE_SCORE) as DispatchStoryKind[];
 
 export const BONUS_MAX = 15;
+
+/** Larger than any base plus `BONUS_MAX`, so a special edition's lead kinds always outrank the rest. */
+const LEAD_BOOST = 100;
+const LEADS: Partial<Record<EditionKind, readonly DispatchStoryKind[]>> = {
+    collectors: ["season_climb", "rank_move", "peak_rank"],
+    year_end: ["hours", "top_hero", "days_played"],
+};
 
 const HOUR_S = 3600;
 const DAY_S = 86400;
@@ -41,6 +63,9 @@ export const LONG_MATCH_MIN_S = 45 * 60;
 export const PLAYED_WITH_MIN_MATCHES = 3;
 export const NEMESIS_MIN_LOSSES = 2;
 export const NIGHT_OWL_MIN_SHARE = 0.3;
+export const MONTHLY_DAYS_MIN = 15;
+export const HEROES_TRIED_MIN = 3;
+export const BUSIEST_MONTH_MIN_MATCHES = 5;
 
 const GRADE_ORDER: readonly MvpLetter[] = [
     "S+",
@@ -72,6 +97,7 @@ const duration = (seconds: number): DispatchParam => ({ type: "duration", second
 const date = (unixS: number): DispatchParam => ({ type: "date", unixS });
 const hero = (heroId: number): DispatchParam => ({ type: "hero", heroId });
 const rank = (badge: number): DispatchParam => ({ type: "rank", badge });
+const month = (unixS: number): DispatchParam => ({ type: "month", unixS });
 
 interface Draft {
     kind: DispatchStoryKind;
@@ -115,15 +141,17 @@ const hours: Detector = ({ stats: { playtimeS } }) => {
     return [draft];
 };
 
-const topHero: Detector = ({ heroes, stats }) => {
+const topHero: Detector = ({ heroes, stats, window }) => {
     if (stats.matches === 0) return [];
     const top = [...heroes].sort((a, b) => b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId)[0];
     if (!top) return [];
     const share = top.games / stats.matches;
-    if (share < TOP_HERO_MIN_SHARE) return [];
+    const yearly = window.kind === "year_end";
+    if (share < TOP_HERO_MIN_SHARE && !yearly) return [];
     return [
         {
             kind: "top_hero",
+            headline: yearly ? "headline_year" : undefined,
             extra: Math.round((share - TOP_HERO_MIN_SHARE) * 25),
             deckCount: top.games,
             params: { hero: hero(top.heroId), share: percent(share), wins: number(top.wins) },
@@ -218,8 +246,9 @@ function step(badge: number): number {
     return parts ? parts.tier * 6 + parts.sub : 0;
 }
 
-const rankMove: Detector = ({ rank: r }) => {
-    if (!r || r.delta === 0) return [];
+const rankMove: Detector = ({ rank: r, window }) => {
+    if (!r || r.delta === 0 || window.kind === "year_end") return [];
+    if (window.kind === "collectors" && r.startBadge !== r.endBadge) return [];
     const variant = `${r.startBadge === r.endBadge ? "held_" : ""}${r.delta > 0 ? "up" : "down"}`;
     return [
         {
@@ -228,6 +257,76 @@ const rankMove: Detector = ({ rank: r }) => {
             headline: `headline_${variant}`,
             deck: `deck_${variant}`,
             params: { from: rank(r.startBadge), to: rank(r.endBadge), peak: rank(r.peakBadge) },
+        },
+    ];
+};
+
+const peakRank: Detector = ({ rank: r, window }) => {
+    if (!r || window.kind !== "collectors") return [];
+    return [
+        {
+            kind: "peak_rank",
+            deck: r.peakBadge === r.endBadge ? "deck_top" : "deck",
+            params: { peak: rank(r.peakBadge), end: rank(r.endBadge) },
+        },
+    ];
+};
+
+const seasonClimb: Detector = ({ rank: r, window }) => {
+    if (!r || window.kind !== "collectors" || r.startBadge === r.endBadge) return [];
+    const steps = step(r.endBadge) - step(r.startBadge);
+    const variant = steps > 0 ? "up" : "down";
+    return [
+        {
+            kind: "season_climb",
+            extra: 2 * Math.abs(steps),
+            headline: `headline_${variant}`,
+            deck: `deck_${variant}`,
+            deckCount: Math.abs(steps),
+            params: { from: rank(r.startBadge), to: rank(r.endBadge), steps: number(Math.abs(steps)) },
+        },
+    ];
+};
+
+const daysPlayed: Detector = ({ stats: { daysPlayed: days }, window }) => {
+    if (days === undefined) return [];
+    const yearly = window.kind === "year_end";
+    if (!yearly && !(window.kind === "monthly" && days >= MONTHLY_DAYS_MIN)) return [];
+    // Rounded because a window across a DST change is an hour off whole days.
+    const total = Math.round((window.endS - window.startS) / DAY_S);
+    return [
+        {
+            kind: "days_played",
+            extra: yearly ? Math.floor(days / 10) : days - MONTHLY_DAYS_MIN,
+            headlineCount: days,
+            params: { days: number(days), total: number(total), share: percent(days / total) },
+        },
+    ];
+};
+
+const heroesTried: Detector = ({ heroes, newHeroes, window }) => {
+    if (window.kind !== "year_end" || heroes.length < HEROES_TRIED_MIN) return [];
+    const draft: Draft = {
+        kind: "heroes_tried",
+        extra: heroes.length - HEROES_TRIED_MIN,
+        headlineCount: heroes.length,
+        params: { heroes: number(heroes.length) },
+    };
+    if (newHeroes.length) {
+        draft.deck = "deck_new";
+        draft.deckCount = newHeroes.length;
+    }
+    return [draft];
+};
+
+const busiestMonth: Detector = ({ stats: { busiestMonth: b }, window }) => {
+    if (window.kind !== "year_end" || !b || b.matches < BUSIEST_MONTH_MIN_MATCHES) return [];
+    return [
+        {
+            kind: "busiest_month",
+            extra: Math.floor((b.matches - BUSIEST_MONTH_MIN_MATCHES) / 5),
+            headlineCount: b.matches,
+            params: { month: month(b.monthStartS) },
         },
     ];
 };
@@ -301,7 +400,9 @@ const nightOwl: Detector = ({ stats: { nightShare, matches } }) => {
 
 const DETECTORS: Detector[] = [
     bestGame,
+    seasonClimb,
     rankMove,
+    peakRank,
     hours,
     record,
     bestStreak,
@@ -310,8 +411,11 @@ const DETECTORS: Detector[] = [
     nemesis,
     newHero,
     mvpCount,
+    daysPlayed,
     damage,
+    heroesTried,
     longestSession,
+    busiestMonth,
     busiestDay,
     longestMatch,
     nightOwl,
@@ -323,10 +427,11 @@ function text(kind: DispatchStoryKind, part: string, count: number | undefined):
     return t;
 }
 
-function finish(d: Draft): DispatchStory {
+function finish(d: Draft, edition: EditionKind): DispatchStory {
+    const lead = LEADS[edition]?.includes(d.kind) ? LEAD_BOOST : 0;
     const story: DispatchStory = {
         kind: d.kind,
-        score: BASE_SCORE[d.kind] + Math.max(0, Math.min(BONUS_MAX, d.extra ?? 0)),
+        score: BASE_SCORE[d.kind] + lead + Math.max(0, Math.min(BONUS_MAX, d.extra ?? 0)),
         headline: text(d.kind, d.headline ?? "headline", d.headlineCount),
         deck: text(d.kind, d.deck ?? "deck", d.deckCount),
         params: d.params,
@@ -342,5 +447,7 @@ export function rankDispatchStories(stories: readonly DispatchStory[]): Dispatch
 
 /** Every story the edition supports, ranked; `[0]` is the banner. */
 export function detectDispatchStories(edition: DispatchEditionInput): DispatchStory[] {
-    return rankDispatchStories(DETECTORS.flatMap((detect) => detect(edition)).map(finish));
+    return rankDispatchStories(
+        DETECTORS.flatMap((detect) => detect(edition)).map((d) => finish(d, edition.window.kind)),
+    );
 }

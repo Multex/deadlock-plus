@@ -3613,7 +3613,8 @@
             "top_hero": {
                 "headline": "{hero} runs the show",
                 "deck_one": "{hero} took {share} of your matches: {count} game.",
-                "deck_other": "{hero} took {share} of your matches: {count} games."
+                "deck_other": "{hero} took {share} of your matches: {count} games.",
+                "headline_year": "Hero of the year: {hero}"
             },
             "new_hero": {
                 "headline": "New in town: {hero}",
@@ -3678,6 +3679,36 @@
                 "headline": "Burning the midnight oil",
                 "deck_one": "{count} match, {share} of the edition, started between midnight and 6 a.m.",
                 "deck_other": "{count} matches, {share} of the edition, started between midnight and 6 a.m."
+            },
+            "peak_rank": {
+                "headline": "Season high: {peak}",
+                "deck": "The best badge you held all season. You signed off at {end}.",
+                "deck_top": "You finished the season at your peak, {peak}. Frame this one."
+            },
+            "season_climb": {
+                "headline_up": "The long climb: {from} to {to}",
+                "deck_up_one": "{count} subrank gained from your first ranked match of the season to your last.",
+                "deck_up_other": "{count} subranks gained from your first ranked match of the season to your last.",
+                "headline_down": "Season slide: {from} to {to}",
+                "deck_down_one": "{count} subrank given back over the season.",
+                "deck_down_other": "{count} subranks given back over the season."
+            },
+            "days_played": {
+                "headline_one": "Clocked in on {count} day",
+                "headline_other": "Clocked in on {count} days",
+                "deck": "That's {share} of the {total} days in this edition."
+            },
+            "heroes_tried": {
+                "headline_one": "{count} hero in the rotation",
+                "headline_other": "A cast of {count} heroes",
+                "deck": "Every hero you took into a match this year.",
+                "deck_new_one": "{count} of them for the first time on record.",
+                "deck_new_other": "{count} of them for the first time on record."
+            },
+            "busiest_month": {
+                "headline_one": "Peak season: {count} match in {month}",
+                "headline_other": "Peak season: {count} matches in {month}",
+                "deck": "No month on the calendar saw more of you."
             }
         },
         "masthead": {
