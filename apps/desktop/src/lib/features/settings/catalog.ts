@@ -301,6 +301,29 @@ const BASE_ITEMS: SettingItem[] = [
             "break hint reminder tilt loss streak losing sessions rest shows as desktop notification toast overlay notification center popup",
     },
     {
+        id: "front-page-after-match",
+        category: "notifications",
+        get title() {
+            return t("settings.items.front_page_after_match");
+        },
+        get description() {
+            return t("settings.notifications.front_page_after_match_description");
+        },
+        keywords:
+            "front page newspaper dispatch after match post-game postgame end of match recap paper toss modes ranked unranked street brawl bots custom",
+    },
+    {
+        id: "front-page-overlay-alert",
+        category: "notifications",
+        get title() {
+            return t("settings.items.front_page_overlay_alert");
+        },
+        get description() {
+            return t("settings.notifications.front_page_overlay_alert_description");
+        },
+        keywords: "front page waiting newspaper extra after match overlay alert tabbed out toast popup",
+    },
+    {
         id: "match-found",
         category: "notifications",
         get title() {
@@ -482,7 +505,7 @@ const BASE_ITEMS: SettingItem[] = [
 
 export const hasOverlay = (p: Platform): boolean => p === "windows";
 
-const OVERLAY_ONLY_ITEMS = new Set(["match-found", "queue-stopped"]);
+const OVERLAY_ONLY_ITEMS = new Set(["match-found", "queue-stopped", "front-page-overlay-alert"]);
 
 const needsOverlay = (item: SettingItem) => item.category === "overlay" || OVERLAY_ONLY_ITEMS.has(item.id);
 

@@ -72,6 +72,23 @@ describe("catalog", () => {
         expect(ids.indexOf("open-on-game-start")).toBe(ids.indexOf("close-to-tray") + 1);
     });
 
+    it("finds the front page after each match under notifications", () => {
+        const item = ITEMS.find((i) => i.id === "front-page-after-match");
+        expect(item?.category).toBe("notifications");
+        expect(item?.title).toBe("Front page after each match");
+        expect(matchingItems("newspaper")?.has("front-page-after-match")).toBe(true);
+        expect(matchingItems("after match")?.has("front-page-after-match")).toBe(true);
+    });
+
+    it("lists the front page's overlay alert right after it, only where there is an overlay", () => {
+        const ids = (p: "windows" | "linux") => itemsFor(p).map((i) => i.id);
+        expect(ids("windows").indexOf("front-page-overlay-alert")).toBe(
+            ids("windows").indexOf("front-page-after-match") + 1,
+        );
+        expect(ids("linux")).not.toContain("front-page-overlay-alert");
+        expect(matchingItems("front page waiting")?.has("front-page-overlay-alert")).toBe(true);
+    });
+
     it("has unique item ids", () => {
         expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
     });
@@ -181,6 +198,8 @@ describe("catalog", () => {
             "server-blocks-updated",
             "server-blocks-stale",
             "break-reminder",
+            "front-page-after-match",
+            "front-page-overlay-alert",
             "match-found",
             "queue-stopped",
         ]);
@@ -198,8 +217,8 @@ describe("catalog", () => {
     });
 
     it("finds every notification type with a delivery choice by how it shows", () => {
-        const overlayOnly = ["match-found", "queue-stopped"];
-        const ids = ITEMS.filter((i) => i.category === "notifications" && !overlayOnly.includes(i.id)).map((i) => i.id);
+        const noDelivery = ["match-found", "queue-stopped", "front-page-after-match", "front-page-overlay-alert"];
+        const ids = ITEMS.filter((i) => i.category === "notifications" && !noDelivery.includes(i.id)).map((i) => i.id);
         for (const query of ["shows as", "desktop notification", "notification center", "overlay", "popup"]) {
             for (const id of ids) expect(matchingItems(query)?.has(id), `${query} -> ${id}`).toBe(true);
         }

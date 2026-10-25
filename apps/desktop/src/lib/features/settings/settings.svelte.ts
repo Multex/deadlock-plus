@@ -27,6 +27,13 @@ import {
     type NotificationSettings,
     type NotificationTopic,
 } from "./notification-topics";
+import {
+    DEFAULT_FRONT_PAGE_MODES,
+    frontPageModeChanges,
+    resolveFrontPageModes,
+    type FrontPageModes,
+} from "./front-page-modes";
+import type { RowMode } from "@deadlock-plus/match/list";
 import { DEFAULT_UI_SCALE, resolveHardwareAcceleration, resolveUiScale } from "./app-window";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
 import { initialTheme, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
@@ -54,6 +61,9 @@ const ALERTS_KEY = "updateAlerts";
 const OVERLAY_KEY = "overlay";
 const NOTIFICATIONS_KEY = "notifications";
 const BREAK_HINT_KEY = "breakHint";
+const FRONT_PAGE_KEY = "frontPageAfterMatch";
+const FRONT_PAGE_MODES_KEY = "frontPageModes";
+const FRONT_PAGE_ALERT_KEY = "frontPageOverlayAlert";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
 const AUTO_UPDATE_KEY = "autoUpdateCheck";
@@ -91,6 +101,9 @@ class Settings {
     overlay = $state<OverlaySettings>({ ...DEFAULT_OVERLAY });
     notifications = $state(resolveNotifications(DEFAULT_NOTIFICATIONS));
     breakHint = $state(false);
+    frontPageAfterMatch = $state(true);
+    frontPageModes = $state<FrontPageModes>({ ...DEFAULT_FRONT_PAGE_MODES });
+    frontPageOverlayAlert = $state(true);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
     uiScale = $state(DEFAULT_UI_SCALE);
@@ -128,6 +141,10 @@ class Settings {
         this.overlay = resolveOverlay(await stored<unknown>(OVERLAY_KEY));
         this.notifications = resolveNotifications(await stored<unknown>(NOTIFICATIONS_KEY));
         this.breakHint = (await stored<boolean>(BREAK_HINT_KEY)) ?? false;
+        const frontPage = await stored<unknown>(FRONT_PAGE_KEY);
+        this.frontPageAfterMatch = typeof frontPage === "boolean" ? frontPage : true;
+        this.frontPageModes = resolveFrontPageModes(await stored<unknown>(FRONT_PAGE_MODES_KEY));
+        this.frontPageOverlayAlert = (await stored<boolean>(FRONT_PAGE_ALERT_KEY)) ?? true;
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
         this.autoUpdateCheck = (await stored<boolean>(AUTO_UPDATE_KEY)) ?? true;
@@ -268,6 +285,33 @@ class Settings {
         this.breakHint = value;
         try {
             await kvSet(STORE, BREAK_HINT_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setFrontPageAfterMatch(value: boolean) {
+        this.frontPageAfterMatch = value;
+        try {
+            await kvSet(STORE, FRONT_PAGE_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setFrontPageMode(mode: RowMode, on: boolean) {
+        this.frontPageModes = { ...this.frontPageModes, [mode]: on };
+        try {
+            await kvSet(STORE, FRONT_PAGE_MODES_KEY, frontPageModeChanges(this.frontPageModes));
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setFrontPageOverlayAlert(value: boolean) {
+        this.frontPageOverlayAlert = value;
+        try {
+            await kvSet(STORE, FRONT_PAGE_ALERT_KEY, value);
         } catch {
             // The choice just won't persist across restarts.
         }

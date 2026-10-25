@@ -40,7 +40,7 @@ import {
     type GameAssetHero,
     type GameAssetItem,
 } from "./builds-gamedata";
-import { fakeAccountId, fakeName } from "./identity";
+import { fakeAccountId, fakeName, MATCH_IDS } from "./identity";
 import { demoGrade } from "./match-grades";
 import { historyRows, type HistoryRow } from "./progress";
 import { spreadStartTimes, type RecoverySession } from "./recovery";
@@ -50,6 +50,8 @@ export interface MatchDetailOptions {
     mapItemsTsv: string;
     /** Where the shell module leaves this install's recovery state, so the matches it lacks answer 404. */
     recoverySession?: RecoverySession;
+    /** The game capture holds the newest match, as it does right after that match ended. */
+    captured?: boolean;
 }
 
 type Rng = () => number;
@@ -1653,7 +1655,7 @@ function fixtureMapItems(tsv: string): MapItemsPayload {
     return { source: "game", installedBuild: null, table: { schema: 2, buildId: null, ventsCrc: 0, rows, lanes } };
 }
 
-export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailOptions): Module {
+export function matchDetailModule({ mapItemsTsv, recoverySession, captured = false }: MatchDetailOptions): Module {
     return {
         name: "match-detail",
         create(context) {
@@ -1771,7 +1773,10 @@ export function matchDetailModule({ mapItemsTsv, recoverySession }: MatchDetailO
                 },
                 game_map_items: () => mapItems,
 
-                get_postgame_detail: () => null,
+                get_postgame_detail: ({ matchId }) =>
+                    captured && Number(matchId) === MATCH_IDS[0] && world.rows.has(MATCH_IDS[0])
+                        ? metadata(world, MATCH_IDS[0])
+                        : null,
                 fetch_match_details: () => null,
                 get_postgame_matches: (): ProvisionalMatch[] => [],
                 reconcile_postgame_matches: () => 0,

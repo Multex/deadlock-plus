@@ -265,6 +265,7 @@ pub fn run() {
             features::notifications::commands::mark_notification_read,
             features::notifications::commands::take_launch_route,
             features::notifications::commands::notify_break_reminder,
+            features::notifications::commands::notify_front_page_waiting,
             features::notifications::commands::set_notification_settings,
             features::overlay::commands::set_overlay_settings,
             features::overlay::commands::show_overlay_test,

@@ -12,8 +12,12 @@ export class ExportRenderError extends Error {
     }
 }
 
-export function exportFailureText(kind: ExportKind, error: unknown): string {
-    if (error instanceof ExportRenderError) return t("match_history.detail.export.render_failed");
+export function exportFailureText(
+    kind: ExportKind,
+    error: unknown,
+    renderFailedKey = "match_history.detail.export.render_failed",
+): string {
+    if (error instanceof ExportRenderError) return t(renderFailedKey);
     const text = errorText(error);
     return kind === "copy"
         ? t("match_history.detail.export.copy_failed", { error: text })
@@ -69,13 +73,13 @@ function stopScrolling(root: HTMLElement): void {
  * Renders an off-screen copy of `node` with the branded footer attached to the board's bottom edge, so the live
  * page is never touched.
  */
-export async function renderNodeToPng(node: HTMLElement, footerLabel: string): Promise<Blob> {
+export async function renderNodeToPng(node: HTMLElement, footerLabel: string, width = EXPORT_WIDTH): Promise<Blob> {
     const host = document.createElement("div");
     host.setAttribute("aria-hidden", "true");
     host.inert = true;
-    host.style.cssText = `position:fixed;top:0;left:-10000px;width:${EXPORT_WIDTH}px;pointer-events:none;`;
+    host.style.cssText = `position:fixed;top:0;left:-10000px;width:${width}px;pointer-events:none;`;
     const clone = node.cloneNode(true) as HTMLElement;
-    clone.style.width = `${EXPORT_WIDTH}px`;
+    clone.style.width = `${width}px`;
     clone.style.maxWidth = "none";
     stripExportIgnored(clone);
     const board = clone.querySelector<HTMLElement>("[data-export-board]");
@@ -95,11 +99,11 @@ export async function renderNodeToPng(node: HTMLElement, footerLabel: string): P
         stopScrolling(clone);
         const height = clone.scrollHeight;
         const blob = await toBlob(clone, {
-            width: EXPORT_WIDTH,
+            width,
             height,
-            pixelRatio: exportPixelRatio(EXPORT_WIDTH, height),
+            pixelRatio: exportPixelRatio(width, height),
             backgroundColor: pageBackground(),
-            style: { width: `${EXPORT_WIDTH}px`, maxWidth: "none" },
+            style: { width: `${width}px`, maxWidth: "none" },
         });
         if (!blob) throw new Error("html-to-image returned no blob");
         return blob;

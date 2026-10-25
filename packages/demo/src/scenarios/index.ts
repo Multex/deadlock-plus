@@ -1,5 +1,5 @@
 import type { Scenario } from "../scenario";
-import { defaultScenario, recoveryScenario, type ScenarioOptions } from "./default";
+import { defaultScenario, postMatchScenario, recoveryScenario, type ScenarioOptions } from "./default";
 import { RECOVERY_PRESETS } from "./default/recovery";
 import { liveMatchScenario } from "./live-match";
 import { newUserScenario } from "./new-user";
@@ -20,6 +20,7 @@ export const scenarios: Record<string, ScenarioFactory> = {
     offline: offlineScenario,
     "api-down": apiDownScenario,
     "update-available": updateAvailableScenario,
+    "post-match": postMatchScenario,
     unelevated: unelevatedScenario,
     "unelevated-game-admin": unelevatedGameAdminScenario,
     ...Object.fromEntries(

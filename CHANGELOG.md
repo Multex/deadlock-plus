@@ -48,6 +48,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
 
+#### Match front page
+
+- When Deadlock+ captures a match from the post-game screen, its front page lands on the window by itself.
+- If Deadlock+ is in the background then, the front page waits until you come back to the window.
+- After a match, the critics' column fills in as soon as Deadlock+ has graded it.
+- Turn it off with "Front page after each match" in Settings > Notifications.
+- Pick which match modes get an after-match front page; bot matches and custom lobbies are left out by default.
+- When a front page is waiting while you're in game, the game overlay tells you.
+- Turn that alert off with "Front page waiting" in Settings > Notifications.
+- A "Front page" button in a match's details prints that match as a newspaper front page.
+- Its headlines come from the match: comebacks, first blood, Mid Boss claims, falls and top performers.
+- It carries a box score, lane report, objectives timeline and short briefs.
+- The critics' column shows the Deadlock+ grades when the match has them.
+- A weather box shows your ping when Deadlock+ recorded it for that match.
+- The paper lands on the table a different way each time, and simply fades in with reduced motion.
+- Save or copy the front page as an image.
+- Close it with Escape, the Close button or a click on the table.
 #### Catppuccin theme
 
 - A Catppuccin theme, in the official colours of the Catppuccin palette.

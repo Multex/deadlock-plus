@@ -2,7 +2,7 @@ import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
-import { defaultScenario } from "./index";
+import { defaultScenario, postMatchScenario } from "./index";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const ASSETS = "https://api.deadlock-api.com/v1/assets";
@@ -351,5 +351,29 @@ describe("game files from the default scenario", () => {
         const tags = (await handle.invoke("game_build_tags", { locale: "en" })) as BuildTag[];
         expect(tags).toHaveLength(14);
         expect(tags.every((t) => t.icon === undefined)).toBe(true);
+    });
+});
+
+describe("captured post-game detail", () => {
+    const handles: DemoHandle[] = [];
+    afterEach(() => {
+        while (handles.length) handles.pop()!.uninstall();
+    });
+
+    it("has no captured match in the default scenario, so pages without details stay as they are", async () => {
+        const handle = install(defaultScenario(OPTIONS));
+        handles.push(handle);
+        expect(await handle.invoke("get_postgame_detail", { matchId: 990000060 })).toBeNull();
+    });
+
+    it("answers the newest match right after it ended, and nothing older", async () => {
+        const handle = install(postMatchScenario(OPTIONS));
+        handles.push(handle);
+        const newest = (await handle.invoke("get_postgame_detail", { matchId: 990000060 })) as {
+            match_info: { match_id: number; players: unknown[] };
+        } | null;
+        expect(newest?.match_info.match_id).toBe(990000060);
+        expect(newest?.match_info.players).toHaveLength(12);
+        expect(await handle.invoke("get_postgame_detail", { matchId: 990000059 })).toBeNull();
     });
 });

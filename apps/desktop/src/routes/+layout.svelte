@@ -8,6 +8,7 @@
     import Titlebar from "$lib/shell/titlebar.svelte";
     import { useAppShell } from "$lib/shell/startup.svelte";
     import CommandPalette from "$lib/features/keyboard/components/command-palette.svelte";
+    import AfterMatchFrontPage from "$lib/features/front-page/after-match-front-page.svelte";
     import { OVERLAY_WINDOW } from "$lib/features/overlay/api";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { DEFAULT_THEME, isLightTheme } from "$lib/features/settings/themes";
@@ -45,6 +46,7 @@
     </div>
 
     <CommandPalette />
+    <AfterMatchFrontPage />
 
     <Toaster
         richColors
