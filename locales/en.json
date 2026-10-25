@@ -3435,5 +3435,20 @@
         "item_card": {
             "new": "New"
         }
+    },
+    "front_page": {
+        "kit": {
+            "weather": "Weather",
+            "box_score": "Box score",
+            "critics": "The critics",
+            "lane_report": "Lane report",
+            "in_brief": "In brief",
+            "objectives": "Objectives",
+            "kills": "Kills",
+            "hero": "Hero",
+            "kda": "K/D/A",
+            "net_worth": "Net worth",
+            "grade": "Grade"
+        }
     }
 }
