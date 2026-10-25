@@ -7,10 +7,12 @@ import {
     SERVICES,
     accentOf,
     accentStyle,
+    namedAccentStyle,
     resolveReducedMotion,
     setWindowTheme,
     settings,
     updater,
+    variantOf,
 } from "$lib/features/registry";
 import { useLastRoute } from "./last-route.svelte";
 import { overlays } from "./overlays";
@@ -24,8 +26,12 @@ export function useAppShell() {
     });
 
     $effect(() => {
-        document.documentElement.dataset.theme = settings.theme;
-        setWindowTheme(settings.theme).catch(() => {});
+        const root = document.documentElement;
+        const variant = variantOf(settings.themeOptions, settings.theme);
+        root.dataset.theme = settings.theme;
+        if (variant) root.dataset.themeVariant = variant;
+        else delete root.dataset.themeVariant;
+        setWindowTheme(settings.theme, variant).catch(() => {});
     });
 
     // A user's accent overrides the theme's trim on `<html>`, above the generated theme tokens.
@@ -33,7 +39,10 @@ export function useAppShell() {
     $effect(() => {
         const style = document.documentElement.style;
         for (const name of accentVars) style.removeProperty(name);
-        const vars = accentStyle(settings.theme, accentOf(settings.themeOptions, settings.theme));
+        const vars = {
+            ...accentStyle(settings.theme, accentOf(settings.themeOptions, settings.theme)),
+            ...namedAccentStyle(settings.themeOptions, settings.theme),
+        };
         for (const [name, value] of Object.entries(vars)) style.setProperty(name, value);
         accentVars = Object.keys(vars);
     });

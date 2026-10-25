@@ -301,6 +301,13 @@
                 "label": "DeadChaps",
                 "description": "Near-black panels with DeadChaps purple.",
                 "source": "DeadChaps"
+            },
+            "catppuccin": {
+                "label": "Catppuccin",
+                "description": "Soothing pastels in four flavours, with 14 accents to pick from.",
+                "source": "Catppuccin palette",
+                "variant": "Flavour",
+                "accent": "Accent"
             }
         },
         "autostart": {

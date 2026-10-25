@@ -25,6 +25,17 @@ export function themeCss(data) {
         blocks.push(rule(`:root[data-theme="${theme.id}"]`, declarations(theme, colorScheme)));
     }
 
+    // The theme's own block is its default variant; every other variant overrides it from a more specific selector.
+    for (const theme of data.themes) {
+        for (const variant of theme.variants ?? []) {
+            if (variant.id === theme.defaultVariant) continue;
+            const light = variant.light ?? theme.light;
+            const colorScheme = light === theme.light ? undefined : scheme({ light });
+            const selector = `:root[data-theme="${theme.id}"][data-theme-variant="${variant.id}"]`;
+            blocks.push(rule(selector, declarations({ tokens: variant.tokens ?? {} }, colorScheme)));
+        }
+    }
+
     const grainless = data.themes.filter((theme) => theme.grain === false);
     if (grainless.length) {
         const selectors = grainless.map((theme) => `:root[data-theme="${theme.id}"] body::after`).join(",\n");

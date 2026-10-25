@@ -18,6 +18,7 @@ const DISABLE_GPU_ARG: &str = "--disable-gpu";
 const BROWSER_ARGS_ENV: &str = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
 
 const THEME_KEY: &str = "theme";
+const THEME_OPTIONS_KEY: &str = "themeOptions";
 const THEMES_JSON: &str = include_str!("../../../../../../packages/ui/src/themes.json");
 
 #[derive(Deserialize)]
@@ -29,6 +30,15 @@ struct ThemeFile {
 #[derive(Deserialize)]
 struct ThemeEntry {
     id: String,
+    tokens: HashMap<String, String>,
+    #[serde(default)]
+    variants: Vec<VariantEntry>,
+}
+
+#[derive(Deserialize)]
+struct VariantEntry {
+    id: String,
+    #[serde(default)]
     tokens: HashMap<String, String>,
 }
 
@@ -44,6 +54,24 @@ fn theme_colors(json: &str) -> Vec<(String, Color)> {
     let mut themes: Vec<_> = file.themes.iter().map(|t| (t.id.clone(), chrome(t).unwrap_or(base))).collect();
     themes.sort_by_key(|(id, _)| *id != file.default);
     themes
+}
+
+/// Each theme variant's `--chrome` as (theme, variant, colour), for a variant like a light Catppuccin flavour.
+static VARIANTS: LazyLock<Vec<(String, String, Color)>> = LazyLock::new(|| variant_colors(THEMES_JSON));
+
+/// A variant that sets no `--chrome` takes its theme's, as it does in the stylesheet.
+fn variant_colors(json: &str) -> Vec<(String, String, Color)> {
+    let file: ThemeFile = serde_json::from_str(json).expect("themes.json is compiled in and checked by the tests");
+    let themes = theme_colors(json);
+    let mut variants = Vec::new();
+    for theme in &file.themes {
+        let own = themes.iter().find(|(id, _)| *id == theme.id).map_or(Color(0, 0, 0, 255), |(_, color)| *color);
+        for variant in &theme.variants {
+            let color = variant.tokens.get("chrome").and_then(|value| oklch_to_srgb(value)).unwrap_or(own);
+            variants.push((theme.id.clone(), variant.id.clone(), color));
+        }
+    }
+    variants
 }
 
 /// Plain `oklch(L C H)` only, the form every `--chrome` takes.
@@ -82,17 +110,28 @@ fn theme_id(stored: Option<&Value>) -> &'static str {
     THEMES.iter().map(|(id, _)| id.as_str()).find(|id| Some(*id) == stored).unwrap_or(default_theme())
 }
 
-fn window_background(theme: &str) -> Color {
-    THEMES.iter().find(|(id, _)| id == theme).unwrap_or(&THEMES[0]).1
+/// The variant stored for `theme` in the theme options, when the theme has it. The frontend stores none for a
+/// theme's default variant, which the theme's own colours already are.
+fn variant_id(theme: &str, options: Option<&Value>) -> Option<&'static str> {
+    let stored = options?.get(theme)?.get("variant")?.as_str()?;
+    VARIANTS.iter().find(|(t, id, _)| t == theme && id == stored).map(|(_, id, _)| id.as_str())
+}
+
+fn window_background(theme: &str, variant: Option<&str>) -> Color {
+    let own = variant.and_then(|v| VARIANTS.iter().find(|(t, id, _)| t == theme && id == v));
+    own.map(|(_, _, color)| *color).unwrap_or_else(|| THEMES.iter().find(|(id, _)| id == theme).unwrap_or(&THEMES[0]).1)
 }
 
 /// Runs before the document is parsed, so `<html>` does not exist yet; the observer sets the theme the moment it
-/// does, before the stylesheet applies. The page's own settings start from this value.
-fn theme_script(theme: &str) -> String {
+/// does, before the stylesheet applies. The page's own settings start from these values.
+fn theme_script(theme: &str, variant: Option<&str>) -> String {
     let theme = serde_json::to_string(theme).unwrap_or_default();
+    let variant = variant
+        .map(|v| format!(" root.dataset.themeVariant = {};", serde_json::to_string(v).unwrap_or_default()))
+        .unwrap_or_default();
     format!(
         "(() => {{\n\
-         const apply = () => {{ const root = document.documentElement; if (root) root.dataset.theme = {theme}; return !!root; }};\n\
+         const apply = () => {{ const root = document.documentElement; if (root) {{ root.dataset.theme = {theme};{variant} }} return !!root; }};\n\
          if (!apply()) new MutationObserver((_, observer) => apply() && observer.disconnect()).observe(document, {{ childList: true }});\n\
          }})();"
     )
@@ -212,9 +251,10 @@ pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let config =
         app.config().app.windows.iter().find(|w| w.label == MAIN_WINDOW).ok_or("tauri.conf.json has no main window")?;
     let theme = theme_id(read(THEME_KEY).as_ref());
+    let variant = variant_id(theme, read(THEME_OPTIONS_KEY).as_ref());
     let window = WebviewWindowBuilder::from_config(app.handle(), config)?
-        .background_color(window_background(theme))
-        .initialization_script(theme_script(theme))
+        .background_color(window_background(theme, variant))
+        .initialization_script(theme_script(theme, variant))
         .build()?;
     apply_zoom(&window, zoom_factor(read(UI_SCALE_KEY).as_ref()));
     crate::features::window_state::restore_main(&window);
@@ -260,9 +300,9 @@ pub mod commands {
 
     /// Keeps the native colour in step with the page, so a resize uncovers the new theme, not the launch one.
     #[tauri::command]
-    pub fn set_window_theme(app: AppHandle, theme: String) {
+    pub fn set_window_theme(app: AppHandle, theme: String, variant: Option<String>) {
         let Some(window) = app.get_webview_window(MAIN_WINDOW) else { return };
-        let color = window_background(theme_id(Some(&Value::from(theme))));
+        let color = window_background(theme_id(Some(&Value::from(theme))), variant.as_deref());
         if let Err(e) = window.set_background_color(Some(color)) {
             log::warn!("could not set the main window background: {e}");
         }
@@ -393,9 +433,57 @@ mod tests {
         "themes": [
             { "id": "dusk", "light": false, "tokens": { "brass": "oklch(0.7 0.1 230)" } },
             { "id": "base", "light": false, "tokens": { "chrome": "oklch(0.125 0.006 65)" } },
-            { "id": "paper", "light": true, "tokens": { "chrome": "oklch(0.93 0.014 85)" } }
+            { "id": "paper", "light": true, "tokens": { "chrome": "oklch(0.93 0.014 85)" } },
+            {
+                "id": "cafe",
+                "light": false,
+                "defaultVariant": "roast",
+                "tokens": { "chrome": "oklch(0.125 0.006 65)" },
+                "variants": [
+                    { "id": "milk", "name": "Milk", "light": true, "tokens": { "chrome": "oklch(0.93 0.014 85)" }, "accents": {} },
+                    { "id": "roast", "name": "Roast", "accents": {} }
+                ]
+            }
         ]
     }"#;
+
+    fn variant_color(variants: &[(String, String, Color)], theme: &str, id: &str) -> (u8, u8, u8, u8) {
+        let Color(r, g, b, a) = variants.iter().find(|(t, v, _)| t == theme && v == id).unwrap().2;
+        (r, g, b, a)
+    }
+
+    #[test]
+    fn a_variant_paints_the_window_in_its_own_chrome_or_its_themes() {
+        let variants = variant_colors(FIXTURE);
+        assert_eq!(variants.len(), 2);
+        assert_eq!(variant_color(&variants, "cafe", "milk"), (0xec, 0xe7, 0xde, 255));
+        assert_eq!(variant_color(&variants, "cafe", "roast"), (0x08, 0x06, 0x05, 255));
+    }
+
+    #[test]
+    fn catppuccin_latte_paints_the_window_in_its_crust() {
+        let Color(r, g, b, _) = window_background("catppuccin", Some("latte"));
+        assert_eq!((r, g, b), (0xdc, 0xe0, 0xe8));
+        let Color(r, g, b, _) = window_background("catppuccin", None);
+        assert_eq!((r, g, b), (0x11, 0x11, 0x1b), "Mocha's crust, the theme's own");
+    }
+
+    #[test]
+    fn a_stored_variant_counts_only_for_its_own_theme_and_only_when_the_theme_has_it() {
+        let options = json!({ "catppuccin": { "variant": "latte" }, "void": { "variant": "latte" } });
+        assert_eq!(variant_id("catppuccin", Some(&options)), Some("latte"));
+        assert_eq!(variant_id("void", Some(&options)), None);
+        assert_eq!(variant_id("catppuccin", Some(&json!({ "catppuccin": { "variant": "espresso" } }))), None);
+        assert_eq!(variant_id("catppuccin", Some(&json!("nonsense"))), None);
+        assert_eq!(variant_id("catppuccin", None), None);
+    }
+
+    #[test]
+    fn the_theme_script_sets_the_variant_too_when_there_is_one() {
+        let script = theme_script("catppuccin", Some("latte"));
+        assert!(script.contains(r#"dataset.themeVariant = "latte""#), "{script}");
+        assert!(!theme_script("daylight", None).contains("themeVariant"));
+    }
 
     fn color_of(themes: &[(String, Color)], id: &str) -> (u8, u8, u8, u8) {
         let Color(r, g, b, a) = themes.iter().find(|(theme, _)| theme == id).unwrap().1;
@@ -444,14 +532,14 @@ mod tests {
 
     #[test]
     fn the_theme_script_sets_the_stored_theme_on_the_root_element() {
-        let script = theme_script("daylight");
+        let script = theme_script("daylight", None);
         assert!(script.contains(r#"dataset.theme = "daylight""#), "{script}");
         assert!(script.contains("MutationObserver"), "the root element does not exist yet when the script runs");
     }
 
     #[test]
     fn a_stored_theme_reaches_the_script_only_as_a_known_id() {
-        let script = theme_script(theme_id(Some(&json!("\"</script><img src=x onerror=alert(1)>"))));
+        let script = theme_script(theme_id(Some(&json!("\"</script><img src=x onerror=alert(1)>"))), None);
         assert!(script.contains(&format!("dataset.theme = \"{}\"", default_theme())));
         assert!(!script.contains("onerror"));
     }

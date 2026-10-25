@@ -45,6 +45,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
 
+#### Catppuccin theme
+
+- A Catppuccin theme, in the official colours of the Catppuccin palette.
+- Pick any of Catppuccin's four flavours: Latte, Frappé, Macchiato or Mocha.
+- Pick any of Catppuccin's 14 accents, like Mauve, Peach or Sapphire.
+- Catppuccin starts as Mocha with Mauve, Catppuccin's own defaults.
+- Catppuccin Mocha is also on the website's theme picker.
+- Where an accent is too faint to read as text, like most accents on Latte, text uses a darker or lighter shade of it.
+
 ### Changed
 
 - The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.

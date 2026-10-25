@@ -30,6 +30,7 @@ const LABELS: Record<ThemeId, string> = {
     "flint-snow": "Flint Snow",
     void: "Void",
     deadchaps: "DeadChaps",
+    catppuccin: "Catppuccin",
 };
 
 export const THEME_STORAGE_KEY = "theme";
