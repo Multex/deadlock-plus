@@ -358,4 +358,50 @@ describe("createDeadlockApi", () => {
             expect((error as DeadlockApiError).status).toBe(500);
         });
     });
+
+    describe("player period stats", () => {
+        const window = { minS: 1_790_000_000, maxS: 1_790_604_799 };
+
+        it("asks hero-stats for one account in a time window", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.playerHeroStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/hero-stats?account_ids=501&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799`,
+                ],
+            ]);
+        });
+
+        it("asks mate-stats for parties only, in a time window", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.mateStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/501/mate-stats?same_party=true` +
+                        "&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799",
+                ],
+            ]);
+        });
+
+        it("asks enemy-stats in a time window without a party filter", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.enemyStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [`${BASE}/players/501/enemy-stats?min_unix_timestamp=1790000000&max_unix_timestamp=1790604799`],
+            ]);
+        });
+
+        it("returns each body as it came and rejects a failed status", async () => {
+            const mates = [{ mate_id: 7, wins: 2, matches_played: 3, matches: [1, 2, 3] }];
+            const enemies = [{ enemy_id: 8, wins: 1, matches_played: 4, matches: [1, 2, 3, 4] }];
+            const heroes = [{ account_id: 501, hero_id: 1, matches_played: 2, wins: 1, mvp_rank_counts: [0, 1, 0] }];
+            expect(await setup(() => Response.json(mates)).api.mateStats(501, window)).toEqual(mates);
+            expect(await setup(() => Response.json(enemies)).api.enemyStats(501, window)).toEqual(enemies);
+            expect(await setup(() => Response.json(heroes)).api.playerHeroStats(501, window)).toEqual(heroes);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.mateStats(501, window)
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
+        });
+    });
 });

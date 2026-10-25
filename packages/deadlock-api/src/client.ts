@@ -75,6 +75,48 @@ export interface SteamProfile {
     profileurl?: string | null;
 }
 
+/** A row of `/players/hero-stats`: one hero's totals for the account in the window. There is no healing field. */
+export interface PlayerHeroStatsRow {
+    account_id: number;
+    hero_id: number;
+    matches_played: number;
+    time_played: number;
+    wins: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    total_player_damage: number;
+    obj_damage_per_min: number;
+    accuracy: number;
+    crit_shot_rate: number;
+    /** Valve MVP placements in order; present since 2026-01-06. */
+    mvp_rank_counts: number[];
+    mvp_rated_matches: number;
+    [key: string]: unknown;
+}
+
+/** A row of `/players/{id}/mate-stats`. `wins` are the viewer's wins in `matches`. */
+export interface PlayerMateStats {
+    mate_id: number;
+    wins: number;
+    matches_played: number;
+    matches: number[];
+}
+
+/** A row of `/players/{id}/enemy-stats`. `wins` are the viewer's wins in `matches`. */
+export interface PlayerEnemyStats {
+    enemy_id: number;
+    wins: number;
+    matches_played: number;
+    matches: number[];
+}
+
+/** Match start times in unix seconds, both ends sent as given. */
+export interface PlayerStatsWindow {
+    minS: number;
+    maxS: number;
+}
+
 export interface MatchHistoryResponse {
     ok: boolean;
     status: number;
@@ -168,6 +210,10 @@ export interface ItemStatsFilter extends AnalyticsFilter {
 }
 
 type Scalar = string | number | boolean | undefined;
+
+function windowQuery({ minS, maxS }: PlayerStatsWindow): string {
+    return `min_unix_timestamp=${minS}&max_unix_timestamp=${maxS}`;
+}
 
 function pushScalars(pairs: [string, string][], fields: readonly (readonly [string, Scalar])[]) {
     for (const [key, value] of fields) if (value !== undefined) pairs.push([key, String(value)]);
@@ -335,6 +381,18 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
         /** Opted-out accounts are absent from the result. At most 1000 ids per call. */
         playerRanks: (accountIds: readonly (number | string)[]) =>
             json<PlayerRank[]>(`/players/rank?account_ids=${accountIds.join(",")}`),
+
+        /** Rate limit 100 req/s per IP. Covers only matches the API holds metadata for. */
+        playerHeroStats: (accountId: number, window: PlayerStatsWindow) =>
+            json<PlayerHeroStatsRow[]>(`/players/hero-stats?account_ids=${accountId}&${windowQuery(window)}`),
+
+        /** Players who were in the viewer's party, as the API defines a party. Rate limit 100 req/s per IP. */
+        mateStats: (accountId: number, window: PlayerStatsWindow) =>
+            json<PlayerMateStats[]>(`/players/${accountId}/mate-stats?same_party=true&${windowQuery(window)}`),
+
+        /** Rate limit 100 req/s per IP. */
+        enemyStats: (accountId: number, window: PlayerStatsWindow) =>
+            json<PlayerEnemyStats[]>(`/players/${accountId}/enemy-stats?${windowQuery(window)}`),
 
         /** The match metadata as the raw JSON text, so a caller can store exactly what was sent. */
         matchMetadata: async (matchId: number): Promise<string> => (await ok(`/matches/${matchId}/metadata`)).text(),
