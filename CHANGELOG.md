@@ -30,6 +30,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Nightshift's string lights sway over a teal night street whose windows follow your local time.
 - Nightshift's gold art deco frames and eye medallion catch the light now and then.
 - On Wednesday nights while Deadlock Night Shift is live, Nightshift lights up "Clock In" and a clock on your local time.
+- In the Flint Snow theme, snow swirls around your mouse and stars join into constellations.
+- In Flint Snow, your mouse leaves a trail of sparkles.
+- Flint's tail lies in the snowbank and flicks now and then.
+- Paw tracks cross Flint Snow's snowbank every so often.
 - In the Void theme, a black hole turns in the corner, pulling in faint specks of light.
 - In the DeadChaps theme, a sigil turns slowly in the corner while dust drifts past.
 - Turn them off with the Theme effects switch in Settings > Appearance.
