@@ -1,0 +1,197 @@
+import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
+import type { Match } from "../stats";
+
+export type EditionKind = "weekly" | "monthly";
+
+export const MIN_EDITION_MATCHES = 3;
+export const EDITION_SCHEMA = 1;
+export const BEST_GAME_CANDIDATES = 3;
+
+/**
+ * A local calendar window: start inclusive, end exclusive, unix seconds, computed in `tz` (IANA).
+ * Weekly runs Monday 00:00 to the next Monday 00:00; monthly runs from the 1st to the next 1st.
+ * `id` is `weekly-<YYYY-MM-DD of the Monday>` or `monthly-<YYYY-MM>`.
+ */
+export interface EditionWindow {
+    kind: EditionKind;
+    id: string;
+    startS: number;
+    endS: number;
+    tz: string;
+}
+
+/** A mate or an enemy from `mate-stats` / `enemy-stats`; `wins` are the viewer's wins in those matches. */
+export interface Companion {
+    accountId: number;
+    name: string | null;
+    matches: number;
+    wins: number;
+}
+
+/** One hero's row from `/v1/players/hero-stats`; covers only matches the API holds metadata for. */
+export interface HeroCombat {
+    heroId: number;
+    matches: number;
+    damage: number | null;
+    objDamagePerMin: number | null;
+    accuracy: number | null;
+    critRate: number | null;
+    mvpRankCounts: number[];
+    mvpRated: number;
+}
+
+export interface GradedCandidate {
+    matchId: number;
+    letter: MvpLetter | null;
+    s10: number | null;
+    place: number | null;
+}
+
+/** `null` = the call failed or was skipped, so that section is left out; `[]` = answered, nothing found. */
+export interface Enrichment {
+    mates: Companion[] | null;
+    enemies: Companion[] | null;
+    heroCombat: HeroCombat[] | null;
+    grades: GradedCandidate[] | null;
+}
+
+export interface DispatchText {
+    key: string;
+    /** Set when `key` is the base of an `_one`/`_other` pair. */
+    count?: number;
+}
+
+export type DispatchParam =
+    | { type: "hero"; heroId: number }
+    | { type: "player"; accountId: number; name: string | null }
+    | { type: "number"; value: number }
+    | { type: "duration"; seconds: number }
+    | { type: "percent"; value: number }
+    | { type: "date"; unixS: number }
+    | { type: "grade"; letter: MvpLetter }
+    | { type: "rank"; badge: number };
+
+export type DispatchStoryKind =
+    | "record"
+    | "hours"
+    | "top_hero"
+    | "new_hero"
+    | "best_game"
+    | "best_streak"
+    | "longest_session"
+    | "busiest_day"
+    | "longest_match"
+    | "rank_move"
+    | "played_with"
+    | "nemesis"
+    | "damage"
+    | "mvp_count"
+    | "night_owl";
+
+export interface DispatchStory {
+    kind: DispatchStoryKind;
+    score: number;
+    headline: DispatchText;
+    deck: DispatchText;
+    params: Record<string, DispatchParam>;
+    matchId?: number;
+}
+
+export interface BestGame {
+    matchId: number;
+    heroId: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    netWorth: number;
+    startTime: number;
+    letter: MvpLetter | null;
+    place: number | null;
+}
+
+export interface EditionStats {
+    matches: number;
+    wins: number;
+    losses: number;
+    unscored: number;
+    winrate: number | null;
+    playtimeS: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    netWorth: number;
+    longestMatchS: number;
+    longestSession: { matches: number; startS: number; durationS: number } | null;
+    busiestDay: { dayStartS: number; matches: number } | null;
+    /** Share of matches started 00:00-05:59 local. */
+    nightShare: number | null;
+}
+
+export interface EditionHero {
+    heroId: number;
+    games: number;
+    wins: number;
+    playtimeS: number;
+}
+
+export interface EditionRank {
+    startBadge: number;
+    endBadge: number;
+    peakBadge: number;
+    delta: number;
+}
+
+export interface Edition {
+    schema: typeof EDITION_SCHEMA;
+    id: string;
+    window: EditionWindow;
+    accountId: number;
+    /** Issue number, assigned at freeze; `null` while live ("This week so far"). */
+    number: number | null;
+    /** The year of `window.startS` in `window.tz`. */
+    volume: number;
+    issuedAt: number | null;
+    stats: EditionStats;
+    heroes: EditionHero[];
+    newHeroes: number[];
+    bestGame: BestGame | null;
+    longestWin: number;
+    rank: EditionRank | null;
+    mates: Companion[];
+    nemesis: Companion | null;
+    combat: HeroCombat[] | null;
+    /** Ranked, `[0]` is the banner. A stat with no data has no story, never a 0. */
+    stories: DispatchStory[];
+}
+
+export interface IssuedEntry {
+    id: string;
+    kind: EditionKind;
+    number: number;
+    issuedAt: number;
+    startS: number;
+    endS: number;
+    matches: number;
+    /** true when the user printed a past edition from the shelf; false for an automatic issue. */
+    onRequest: boolean;
+}
+
+/** kv `stats-cache` key `dispatch:<accountId>:index`; each edition at `dispatch:<accountId>:<editionId>`. */
+export interface DispatchIndex {
+    schema: 1;
+    issued: IssuedEntry[];
+    /** Closed windows that had fewer than `MIN_EDITION_MATCHES` matches. */
+    skipped: string[];
+    /** Newest edition id the user has opened; drives the nav badge. */
+    seenThrough: string | null;
+}
+
+export interface BuildInput {
+    window: EditionWindow;
+    accountId: number;
+    /** All matches; the builder filters to the window itself. */
+    history: readonly Match[];
+    enrichment: Enrichment;
+    number: number | null;
+    issuedAt: number | null;
+}
