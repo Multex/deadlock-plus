@@ -71,13 +71,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A new Dispatch page prints your Deadlock week and month as a newspaper.
 - A Weekly Edition comes out every Monday and covers the week before.
 - A Monthly Edition comes out on the 1st and covers the month before.
-- An edition needs at least three matches in its week or month.
+- A Collector's Copy in gold foil comes out when a ranked season ends and covers that season's ranked matches.
+- A Year-End Special in black and gold comes out on December 1 and covers January to November.
+- An edition needs at least three matches in what it covers.
 - "This week so far" shows the current week's paper as it fills up.
+- Editions stand on a newsstand rack beside the paper, one shelf for each kind.
 - Headlines cover your record, hours played, top hero, best streak, longest session, rank moves and more.
 - The game of the week is picked from your best matches by KDA, then by Deadlock+ grade.
 - "The company you keep" names the friends you partied with most and the enemy who beat you most.
 - Issued editions are kept as they were printed, so old papers never change.
-- The shelf lists every past week and month back to your first recorded match; print any of them when you want.
+- The rack holds every past edition back to your first recorded match; print any of them when you want.
 - Read an edition as a story, one tall card at a time.
 - Save or copy the front page or any section as an image, in 9:16, 1:1 or 16:9.
 - A notification tells you when a new edition is out; it never shows in the game overlay.
