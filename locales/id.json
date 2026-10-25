@@ -358,14 +358,14 @@
             "client_stable": "",
             "client_ptb": "",
             "client_canary": "",
+            "client_other_label": "",
             "client_stable_name": "",
             "client_ptb_name": "",
             "client_canary_name": "",
             "client_other_name": "",
             "status_off": "",
             "status_none": "",
-            "status_showing": "",
-            "client_other_label": ""
+            "status_showing": ""
         },
         "discord_editor": {
             "description": "",
@@ -1110,6 +1110,7 @@
             "pick_run": "",
             "intro": "",
             "empty_none": "",
+            "empty_single": "",
             "empty_hint": "",
             "run_a": "",
             "run_b": "",
@@ -1124,7 +1125,6 @@
             "addons_differ": "",
             "only_on_in": "",
             "delete_run": "",
-            "empty_single": "",
             "addons_on_other": ""
         },
         "frametimes": {
@@ -1132,13 +1132,10 @@
             "start": "",
             "stop": "",
             "waiting": "",
-            "recording_other": "",
             "background": "",
             "limit": "",
-            "graph_caption_other": "",
             "no_frames": "",
             "none_recorded": "",
-            "summary_other": "",
             "left_out": "",
             "label_aria": "",
             "label_placeholder": "",
@@ -1146,6 +1143,9 @@
             "saved": "",
             "spike_at": "",
             "needs_admin": "",
+            "recording_other": "",
+            "graph_caption_other": "",
+            "summary_other": "",
             "save_hint_other": ""
         },
         "scripts": {
@@ -1875,7 +1875,6 @@
         "editor": {
             "canvas": "",
             "drag_copy": "",
-            "drag_items_other": "",
             "unnamed": "",
             "rename": "",
             "size_tag": "",
@@ -1883,7 +1882,6 @@
             "unsafe_width": "",
             "row_wraps": "",
             "copies": "",
-            "copies_hint_other": "",
             "overflow": "",
             "resize_width": "",
             "resize_height": "",
@@ -2158,6 +2156,8 @@
                 "label": "",
                 "note": ""
             },
+            "drag_items_other": "",
+            "copies_hint_other": "",
             "columns_count_other": "",
             "rows_count_other": "",
             "hidden_items_other": ""
