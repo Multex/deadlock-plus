@@ -1,8 +1,10 @@
 import { seeded } from "../../random";
 import type { ScenarioContext } from "../../scenario";
 import { historyRows, type HistoryRow } from "../default/progress";
+import { SEASON_1_END_S } from "./seasons";
 
 export const FIRST_MATCH_ID = 980_000_000;
+export const LATER_FIRST_MATCH_ID = 991_000_000;
 
 const DAY_S = 86_400;
 const WEEK_DAYS = 7;
@@ -17,15 +19,25 @@ export const FIRST_MONDAY_S = Date.UTC(2025, 7, 11) / 1000;
 
 /** Weeks (counted from the first Monday) that break the usual rhythm: a holiday gap, thin weeks, one marathon. */
 const WEEK_COUNTS: Readonly<Record<number, number>> = { 2: 2, 9: 1, 19: 0, 20: 1, 28: 25, 33: 2, 41: 0, 49: 2 };
+/** The same for the weeks after the default history (up to 2026-12-01): a thin week after the season, and an empty one. */
+const LATER_WEEK_COUNTS: Readonly<Record<number, number>> = { 62: 12, 63: 12, 64: 7, 65: 0, 66: 2, 67: 6 };
 const PARTIAL_WEEK_MATCHES = 4;
 
 /** The ladder the generated ranked matches climb: a flat total of rank points, ending where the default history starts. */
 const START_FLAT = 24_500;
 const END_FLAT = 50_300;
+/** Where the default history leaves the ladder: its newest ranked match ends on 54 970 points, Oracle 6. */
+const DEFAULT_END_FLAT = 54_970;
 const WIN_DELTAS = [300, 300, 300, 370, 390, 410];
 const LOSS_DELTA = -300;
 const AVERAGE_WIN = 330;
 const RANKED_SHARE = 0.62;
+/** The later ranked rows climb to a peak in season 1 and slip back before it ends; season 2 starts a ladder over. */
+const SEASON_1_PEAK_FLAT = 58_400;
+const SEASON_1_END_FLAT = 55_000;
+const SEASON_1_PEAK_SHARE = 0.6;
+const SEASON_2_START_FLAT = 10_400;
+const SEASON_2_END_FLAT = 13_900;
 const POINTS_PER_TIER = 7000;
 const POINTS_PER_SUBRANK = 1000;
 const SUBRANKS_PER_TIER = 6;
@@ -86,9 +98,9 @@ interface Planned {
     heroId: number;
 }
 
-function weekMatchCount(rng: Rng, week: number, dayCount: number): number {
+function weekMatchCount(rng: Rng, week: number, dayCount: number, counts: Readonly<Record<number, number>>): number {
     if (dayCount < WEEK_DAYS) return PARTIAL_WEEK_MATCHES;
-    return WEEK_COUNTS[week] ?? 3 + int(rng, 0, 9) + (rng() < 0.3 ? int(rng, 0, 9) : 0);
+    return counts[week] ?? 3 + int(rng, 0, 9) + (rng() < 0.3 ? int(rng, 0, 9) : 0);
 }
 
 function pickHero(rng: Rng, week: number): number {
@@ -128,21 +140,27 @@ function daySession(rng: Rng, dayStart: number, count: number, week: number): Pl
     });
 }
 
-function plan(rng: Rng, lastDayStart: number): Planned[] {
-    const days = (lastDayStart - FIRST_MONDAY_S) / DAY_S + 1;
+/** Plans the days from `firstDayStart` to `lastDayStart`, both midnights; weeks count from `FIRST_MONDAY_S`. */
+function plan(
+    rng: Rng,
+    firstDayStart: number,
+    lastDayStart: number,
+    counts: Readonly<Record<number, number>>,
+): Planned[] {
     const out: Planned[] = [];
-    for (let week = 0; week * WEEK_DAYS < days; week++) {
-        const dayCount = Math.min(WEEK_DAYS, days - week * WEEK_DAYS);
-        const total = weekMatchCount(rng, week, dayCount);
+    const firstWeek = Math.floor((firstDayStart - FIRST_MONDAY_S) / (WEEK_DAYS * DAY_S));
+    for (let week = firstWeek; FIRST_MONDAY_S + week * WEEK_DAYS * DAY_S <= lastDayStart; week++) {
+        const weekStart = FIRST_MONDAY_S + week * WEEK_DAYS * DAY_S;
+        const days = Array.from({ length: WEEK_DAYS }, (_, d) => d).filter(
+            (d) => weekStart + d * DAY_S >= firstDayStart && weekStart + d * DAY_S <= lastDayStart,
+        );
+        const total = weekMatchCount(rng, week, days.length, counts);
         if (total === 0) continue;
-        const playDays = Math.min(dayCount, Math.max(Math.ceil(total / 6), int(rng, 2, 6)));
-        const chosen = shuffled(
-            rng,
-            Array.from({ length: dayCount }, (_, d) => d),
-        ).slice(0, playDays);
+        const playDays = Math.min(days.length, Math.max(Math.ceil(total / 6), int(rng, 2, 6)));
+        const chosen = shuffled(rng, days).slice(0, playDays);
         for (const [i, day] of chosen.entries()) {
             const count = Math.floor(total / playDays) + (i < total % playDays ? 1 : 0);
-            if (count > 0) out.push(...daySession(rng, FIRST_MONDAY_S + (week * WEEK_DAYS + day) * DAY_S, count, week));
+            if (count > 0) out.push(...daySession(rng, weekStart + day * DAY_S, count, week));
         }
     }
     return out.sort((a, b) => a.start - b.start);
@@ -153,6 +171,8 @@ interface Played {
     team: number;
     won: boolean;
     delta: number;
+    /** The flat rank total after a ranked match, when the play-out tracks it forward. */
+    after?: number;
 }
 
 /** Decides every result. Ranked results steer toward the climb's end point, so the total gain lands near it. */
@@ -220,7 +240,7 @@ export function olderRows(context: ScenarioContext): HistoryRow[] {
     const oldest = Math.min(...historyRows(context).map((row) => row.start_time));
     const lastDayStart = Math.floor(oldest / DAY_S) * DAY_S - DAY_S;
     const rng = seeded(context.seed ^ 0x51ed);
-    const played = playOut(rng, plan(rng, lastDayStart));
+    const played = playOut(rng, plan(rng, FIRST_MONDAY_S, lastDayStart, WEEK_COUNTS));
 
     const finals = new Map<Played, number>();
     let after = END_FLAT;
@@ -232,6 +252,47 @@ export function olderRows(context: ScenarioContext): HistoryRow[] {
     return played.map((p, i) => toRow(rng, context.identity.accountId, p, FIRST_MATCH_ID + i, finals.get(p) ?? 0));
 }
 
+/**
+ * Decides every result of the later matches. Ranked ones steer toward a season-1 peak, then a lower end, and
+ * after the season ends restart from a low rank. Wins and losses are pushed harder than in `playOut`, since
+ * the swing has fewer matches to happen in.
+ */
+function playLater(rng: Rng, planned: readonly Planned[], startFlat: number): Played[] {
+    const weeks = Math.max(...planned.map((p) => p.week)) + 1;
+    const form = Array.from({ length: weeks }, () => (rng() - 0.5) * 0.24);
+    const ranked = planned.filter((p) => p.ranked);
+    const seasonOne = ranked.filter((p) => p.start < SEASON_1_END_S).length;
+    const peakAt = Math.max(1, Math.floor(seasonOne * SEASON_1_PEAK_SHARE));
+    let flat = startFlat;
+    let rankedSoFar = 0;
+    return planned.map((p) => {
+        let chance = 0.52 + form[p.week]!;
+        if (p.ranked) {
+            if (rankedSoFar === seasonOne) flat = SEASON_2_START_FLAT;
+            const [goal, left] =
+                rankedSoFar >= seasonOne
+                    ? [SEASON_2_END_FLAT, ranked.length - rankedSoFar]
+                    : rankedSoFar < peakAt
+                      ? [SEASON_1_PEAK_FLAT, peakAt - rankedSoFar]
+                      : [SEASON_1_END_FLAT, seasonOne - rankedSoFar];
+            chance = ((goal - flat) / left - LOSS_DELTA) / (AVERAGE_WIN - LOSS_DELTA) + form[p.week]!;
+        }
+        const won = rng() < Math.min(0.92, Math.max(0.12, chance));
+        const delta = won ? pick(rng, WIN_DELTAS) : LOSS_DELTA;
+        if (p.ranked) {
+            flat += delta;
+            rankedSoFar++;
+        }
+        return {
+            planned: p,
+            team: int(rng, 0, 1),
+            won,
+            delta: p.ranked ? delta : 0,
+            after: p.ranked ? flat : undefined,
+        };
+    });
+}
+
 /** The match-history answer: the generated rows and the default ones, newest first. */
 export function allRows(context: ScenarioContext): HistoryRow[] {
     return [...olderRows(context), ...historyRows(context)].sort((a, b) => b.start_time - a.start_time);
@@ -241,4 +302,25 @@ export function allRows(context: ScenarioContext): HistoryRow[] {
 export function won(row: HistoryRow): boolean {
     const scored = row.player_match_outcome;
     return scored === OUTCOME_WIN || (scored === 0 && row.match_result === row.player_team);
+}
+
+/**
+ * The matches between the default history's newest and 2026-12-01, oldest first, ids from `LATER_FIRST_MATCH_ID`
+ * up. `anchor` is the context the default history is built at, not the clock of the scenario that serves these.
+ * Ranked rows carry on from the default history's rank.
+ */
+export function laterRows(anchor: ScenarioContext): HistoryRow[] {
+    const newest = Math.max(...historyRows(anchor).map((row) => row.start_time));
+    const firstDayStart = Math.floor(newest / DAY_S) * DAY_S + DAY_S;
+    const lastDayStart = Date.UTC(2026, 11, 1) / 1000;
+    const rng = seeded(anchor.seed ^ 0x7e1d);
+    const played = playLater(rng, plan(rng, firstDayStart, lastDayStart, LATER_WEEK_COUNTS), DEFAULT_END_FLAT);
+    return played.map((p, i) => toRow(rng, anchor.identity.accountId, p, LATER_FIRST_MATCH_ID + i, p.after ?? 0));
+}
+
+/** The match-history answer of `dispatch-specials`: generated, later and default rows, newest first. */
+export function specialsRows(anchor: ScenarioContext): HistoryRow[] {
+    return [...olderRows(anchor), ...laterRows(anchor), ...historyRows(anchor)].sort(
+        (a, b) => b.start_time - a.start_time,
+    );
 }
