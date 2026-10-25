@@ -22,6 +22,7 @@
     import { liveGradeDeps, watchMatchGrade } from "$lib/features/match-history/mvp";
     import type { GradeInput } from "@deadlock-plus/match/stories/index";
     import { loadExtras, viewDeps, type FrontPageExtras } from "./load";
+    import { browserPhotoWait, PHOTO_WAIT_MS, waitForPhoto } from "./photo-wait";
     import type { Takeover } from "./takeover";
     import { MAX_ANGLE, MAX_DX, MAX_DY, nextLanding, REST_SHADOW, restTransform, tossMotion } from "./toss";
 
@@ -54,6 +55,7 @@
     let landed = $state(false);
     let requested = $state.raw<GradeInput[]>([]);
     let gradeTimedOut = $state(false);
+    let photoReady = $state(false);
 
     const reducedMotion =
         document.documentElement.hasAttribute("data-reduced-motion") ||
@@ -72,6 +74,7 @@
             : null,
     );
     const view = $derived(page && extras ? frontPageView(page, viewDeps(extras.heroes)) : null);
+    const photoSrc = $derived(view ? view.photo.src : undefined);
     const critics = $derived(criticsNote(requestGrade, (page?.ratings.length ?? 0) > 0, gradeTimedOut));
 
     // Sized for the steepest resting angle and the widest offset, so every landing fits the same spot.
@@ -95,6 +98,7 @@
         void matchId;
         let live = true;
         extras = null;
+        photoReady = false;
         void loadExtras(
             untrack(() => detail),
             !requestGrade,
@@ -117,6 +121,17 @@
             clearTimeout(timer);
             stop();
         };
+    });
+
+    // The paper is tossed only once its photo can be drawn, so it never lands with an empty frame.
+    $effect(() => {
+        const src = photoSrc;
+        if (src === undefined || untrack(() => photoReady)) return;
+        let live = true;
+        void waitForPhoto(src, browserPhotoWait, PHOTO_WAIT_MS).then(() => {
+            if (live) photoReady = true;
+        });
+        return () => (live = false);
     });
 
     $effect(() => {
@@ -205,7 +220,7 @@
     >
         <div class="tabletop" aria-hidden="true" onclick={() => takeover.close()}></div>
         <div class="stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
-            {#if view && scale > 0}
+            {#if view && scale > 0 && photoReady}
                 <div class="spot" style="width: {boxW * scale}px; height: {boxH * scale}px;">
                     <div class="toss" style="transform: {restTransform(landing)};" {@attach toss}>
                         <div

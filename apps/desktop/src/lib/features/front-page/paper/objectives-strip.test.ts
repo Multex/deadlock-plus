@@ -28,6 +28,26 @@ describe("placeMarks", () => {
         );
         expect(placed.map((m) => m.row)).toEqual([0, 1, 0]);
     });
+
+    it("keeps a mark at either end of the match fully inside the strip", () => {
+        const width = 0.04;
+        const placed = placeMarks([mark("a", 0, "archmother"), mark("b", 1916, "archmother")], 1916, 0.055, width);
+        for (const m of placed) {
+            expect(m.at - (width * 100) / 2).toBeGreaterThanOrEqual(0);
+            expect(m.at + (width * 100) / 2).toBeLessThanOrEqual(100);
+        }
+        expect(placed.map((m) => m.row)).toEqual([0, 0]);
+    });
+
+    it("stacks marks that the end of the strip pushes onto each other", () => {
+        const placed = placeMarks([mark("a", 1900, "archmother"), mark("b", 2000, "archmother")], 2000, 0.05, 0.05);
+        expect(placed.map((m) => m.row)).toEqual([0, 1]);
+    });
+
+    it("keeps the last mark beside its neighbour when its pulled-in box still clears it", () => {
+        const placed = placeMarks([mark("a", 1860, "archmother"), mark("b", 2000, "archmother")], 2000, 0.055, 0.04);
+        expect(placed.map((m) => m.row)).toEqual([0, 0]);
+    });
 });
 
 describe("ObjectivesStrip", () => {
