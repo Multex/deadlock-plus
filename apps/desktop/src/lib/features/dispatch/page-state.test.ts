@@ -1,16 +1,7 @@
 import type { DispatchIndex, IssuedEntry } from "@deadlock-plus/stats/dispatch/types";
 import { describe, expect, it } from "vitest";
-import {
-    firstPaper,
-    pageMode,
-    pinFor,
-    selectEdition,
-    switchOptions,
-    switchTarget,
-    switchValue,
-    unseenIds,
-    type SelectInput,
-} from "./page-state";
+import { firstPaper, pageMode, pinFor, selectEdition, standGroups, unseenIds, type SelectInput } from "./page-state";
+import type { ShelfEntry } from "./service";
 
 const input = (over: Partial<SelectInput> = {}): SelectInput => ({
     query: null,
@@ -165,25 +156,66 @@ describe("firstPaper", () => {
     });
 });
 
-describe("switch", () => {
-    const latest = { weekly: "weekly-2026-10-05", monthly: "monthly-2026-09" };
+describe("standGroups", () => {
+    const DAY = 86400;
+    const entry = (id: string, startS: number, endS: number, status: ShelfEntry["status"] = "issued"): ShelfEntry => ({
+        // The paper's look comes from the list an entry sits in, not from `window.kind`.
+        window: { kind: "weekly", id, startS, endS, tz: "UTC" },
+        status,
+        matches: 5,
+        number: status === "issued" ? 1 : null,
+        onRequest: false,
+    });
+    // Mondays 2026-09-28 and 2026-10-05; 2026-09-01; 2026-01-01.
+    const SEP28 = 1790553600;
+    const OCT5 = SEP28 + 7 * DAY;
+    const SEP1 = 1788220800;
+    const JAN1 = 1767225600;
+    const weekly = [
+        entry("weekly-2026-10-05", OCT5, OCT5 + 7 * DAY),
+        entry("weekly-2026-09-28", SEP28, OCT5, "too_few"),
+    ];
+    const monthly = [entry("monthly-2026-09", SEP1, SEP1 + 30 * DAY, "printable")];
+    const collectors = [entry("collectors-2026-03", JAN1 + 60 * DAY, JAN1 + 90 * DAY)];
+    const yearEnd = [entry("year_end-2025", JAN1 - 365 * DAY, JAN1)];
+    const soFar = { window: entry("weekly-2026-10-12", OCT5 + 7 * DAY, OCT5 + 14 * DAY).window, matches: 3 };
 
-    it("offers only the papers that exist", () => {
-        expect(switchOptions(latest, "weekly-2026-10-12")).toEqual(["weekly", "monthly", "so_far"]);
-        expect(switchOptions({ weekly: null, monthly: "monthly-2026-09" }, null)).toEqual(["monthly"]);
+    const ids = (groups: ReturnType<typeof standGroups>) => groups.map((g) => [g.id, g.items.map((i) => i.id)]);
+
+    it("orders the groups so far, specials, monthly, weekly, each newest first", () => {
+        const groups = standGroups({ weekly, monthly, collectors, year_end: yearEnd }, soFar);
+        expect(ids(groups)).toEqual([
+            ["so_far", ["weekly-2026-10-12"]],
+            ["specials", ["collectors-2026-03", "year_end-2025"]],
+            ["monthly", ["monthly-2026-09"]],
+            ["weekly", ["weekly-2026-10-05", "weekly-2026-09-28"]],
+        ]);
     });
 
-    it("goes to the latest of a kind", () => {
-        expect(switchTarget("weekly", latest, "weekly-2026-10-12")).toBe("weekly-2026-10-05");
-        expect(switchTarget("monthly", latest, "weekly-2026-10-12")).toBe("monthly-2026-09");
-        expect(switchTarget("so_far", latest, "weekly-2026-10-12")).toBe("weekly-2026-10-12");
-        expect(switchTarget("monthly", { weekly: null, monthly: null }, null)).toBeNull();
+    it("gives each paper the look of the list it came from", () => {
+        const groups = standGroups({ weekly, monthly, collectors, year_end: yearEnd }, soFar);
+        expect(groups.flatMap((g) => g.items.map((i) => i.paper))).toEqual([
+            "so_far",
+            "collectors",
+            "year_end",
+            "monthly",
+            "weekly",
+            "weekly",
+        ]);
+        expect(groups[0].items[0]).toMatchObject({ kind: "so_far", matches: 3 });
+        expect(groups[3].items[1]).toMatchObject({ kind: "entry", entry: { status: "too_few" } });
     });
 
-    it("lights the kind of the paper shown", () => {
-        expect(switchValue({ kind: "so_far", id: "weekly-2026-10-12" })).toBe("so_far");
-        expect(switchValue({ kind: "edition", id: "weekly-2026-09-28" })).toBe("weekly");
-        expect(switchValue({ kind: "edition", id: "monthly-2026-08" })).toBe("monthly");
-        expect(switchValue({ kind: "empty" })).toBeNull();
+    it("hides empty groups, and takes a shelf without special lists", () => {
+        expect(ids(standGroups({ weekly, monthly: [] }, null))).toEqual([
+            ["weekly", ["weekly-2026-10-05", "weekly-2026-09-28"]],
+        ]);
+    });
+
+    it("puts the year-end special first when it closes with a collector's copy", () => {
+        const sameEnd = [entry("collectors-2025-12", JAN1 - 31 * DAY, JAN1)];
+        expect(ids(standGroups({ weekly: [], monthly: [], collectors: sameEnd, year_end: yearEnd }, null))).toEqual([
+            ["specials", ["year_end-2025", "collectors-2025-12"]],
+        ]);
     });
 });

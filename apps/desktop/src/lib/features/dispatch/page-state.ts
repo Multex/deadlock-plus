@@ -1,5 +1,6 @@
-import { MIN_EDITION_MATCHES, type DispatchIndex, type EditionKind } from "@deadlock-plus/stats/dispatch/types";
+import { MIN_EDITION_MATCHES, type DispatchIndex, type EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import { soFarWindow } from "@deadlock-plus/stats/dispatch/window";
+import type { ShelfEntry } from "./service";
 
 export type PageSelection =
     | { kind: "edition"; id: string }
@@ -64,22 +65,39 @@ export function firstPaper(nowS: number, tz: string, soFarMatches: number): { da
     return { dateS: soFarWindow(nowS, tz).endS, needed: Math.max(0, MIN_EDITION_MATCHES - soFarMatches) };
 }
 
-export type SwitchKind = EditionKind | "so_far";
+/** The mini paper's look: one per edition kind, plus the unfinished week. */
+export type PaperKind = "so_far" | "weekly" | "monthly" | "collectors" | "year_end";
+export type StandGroupId = "so_far" | "specials" | "monthly" | "weekly";
 
-export function switchOptions(latest: SelectInput["latest"], soFar: string | null): SwitchKind[] {
-    const out: SwitchKind[] = [];
-    if (latest.weekly !== null) out.push("weekly");
-    if (latest.monthly !== null) out.push("monthly");
-    if (soFar !== null) out.push("so_far");
-    return out;
+export type StandItem =
+    | { kind: "so_far"; id: string; paper: "so_far"; window: EditionWindow; matches: number }
+    | { kind: "entry"; id: string; paper: Exclude<PaperKind, "so_far">; entry: ShelfEntry };
+
+export interface StandGroup {
+    id: StandGroupId;
+    items: StandItem[];
 }
 
-export function switchTarget(kind: SwitchKind, latest: SelectInput["latest"], soFar: string | null): string | null {
-    return kind === "so_far" ? soFar : latest[kind];
+export interface StandShelf {
+    weekly: readonly ShelfEntry[];
+    monthly: readonly ShelfEntry[];
+    collectors?: readonly ShelfEntry[];
+    year_end?: readonly ShelfEntry[];
 }
 
-export function switchValue(selection: PageSelection): SwitchKind | null {
-    if (selection.kind === "so_far") return "so_far";
-    if (selection.kind !== "edition") return null;
-    return selection.id.startsWith("monthly-") ? "monthly" : "weekly";
+export function standGroups(shelf: StandShelf, soFar: { window: EditionWindow; matches: number } | null): StandGroup[] {
+    const papers = (paper: Exclude<PaperKind, "so_far">, list: readonly ShelfEntry[] = []): StandItem[] =>
+        list.map((entry) => ({ kind: "entry", id: entry.window.id, paper, entry }));
+    const newest = (a: StandItem, b: StandItem) => endOf(b) - endOf(a);
+    // A year-end special outranks a collector's copy that closes with it.
+    const specials = [...papers("year_end", shelf.year_end), ...papers("collectors", shelf.collectors)].sort(newest);
+    const groups: StandGroup[] = [
+        { id: "so_far", items: soFar ? [{ kind: "so_far", id: soFar.window.id, paper: "so_far", ...soFar }] : [] },
+        { id: "specials", items: specials },
+        { id: "monthly", items: papers("monthly", shelf.monthly).sort(newest) },
+        { id: "weekly", items: papers("weekly", shelf.weekly).sort(newest) },
+    ];
+    return groups.filter((g) => g.items.length > 0);
 }
+
+const endOf = (item: StandItem) => (item.kind === "so_far" ? item.window : item.entry.window).endS;
