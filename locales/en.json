@@ -3436,5 +3436,81 @@
         "item_card": {
             "new": "New"
         }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "{hero} goes {kills}/{deaths}/{assists}",
+                "deck": "You finished on {net_worth} net worth.",
+                "deck_graded": "You finished on {net_worth} net worth. The critics gave you {letter}, {place} of {total}."
+            },
+            "comeback": {
+                "headline": "{team} wins from {deficit} down",
+                "deck": "Behind by {deficit} net worth at {time}, {team} still took the match."
+            },
+            "critics_top": {
+                "headline": "Critics crown {hero}",
+                "deck": "{player} tops the Deadlock+ grades with {letter}, first of {total}."
+            },
+            "first_blood": {
+                "headline": "{hero} draws first blood",
+                "deck": "{player} took down {victim_hero} at {time} for the match's first kill."
+            },
+            "mid_boss": {
+                "headline": "{team} claims the Mid Boss",
+                "deck": "{team} defeated it at {time} and claimed it.",
+                "deck_split": "{killer} defeated it at {time}, but {team} claimed it."
+            },
+            "guardian_fall": {
+                "headline": "{team} topples the first Guardian",
+                "deck": "{owner} lost a Guardian at {time}, the first to fall."
+            },
+            "walker_fall": {
+                "headline": "{team} brings down the first Walker",
+                "deck": "{owner} lost a Walker at {time}, the first to fall."
+            },
+            "base_guardian_fall": {
+                "headline": "{team} downs the first Base Guardian",
+                "deck": "{owner} lost a Base Guardian at {time}, the first to fall."
+            },
+            "shrine_fall": {
+                "headline": "{team} topples a Shrine",
+                "deck": "{owner} lost a Shrine at {time}, the first to fall."
+            },
+            "patron_fall": {
+                "headline": "{team} brings down the Patron",
+                "deck": "{owner} lost its Patron at {time}."
+            },
+            "top_damage": {
+                "headline": "{hero} leads the damage charts",
+                "deck": "{player} dealt {damage} player damage, the most in the match."
+            },
+            "top_healing": {
+                "headline": "{hero} keeps the team standing",
+                "deck": "{player} healed {healing}, more than anyone else."
+            },
+            "richest": {
+                "headline": "{hero} tops the rich list",
+                "deck": "{player} finished on {net_worth} net worth, the most in the match."
+            },
+            "most_last_hits": {
+                "headline_one": "{hero} reaps {count} last hit",
+                "headline_other": "{hero} reaps {count} last hits",
+                "deck": "{player} took more last hits than anyone."
+            }
+        },
+        "kit": {
+            "weather": "Weather",
+            "box_score": "Box score",
+            "critics": "The critics",
+            "lane_report": "Lane report",
+            "in_brief": "In brief",
+            "objectives": "Objectives",
+            "kills": "Kills",
+            "hero": "Hero",
+            "kda": "K/D/A",
+            "net_worth": "Net worth",
+            "grade": "Grade"
+        }
     }
 }
