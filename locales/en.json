@@ -182,6 +182,7 @@
         },
         "items": {
             "theme": "Theme",
+            "theme_effects": "Theme effects",
             "reduced_motion": "Reduced motion",
             "accessible_font": "Accessible font",
             "close_to_tray": "Keep running in the tray",
@@ -223,6 +224,7 @@
         },
         "appearance": {
             "theme_description": "Pick the colours the app uses.",
+            "effects_description": "Art and weather some themes draw behind the page, like Flint Snow's snowfall.",
             "motion_description": "Turn off animations and transitions. \"Follow system\" uses your OS setting.",
             "motion_system": "Follow system",
             "motion_reduce": "Reduce",

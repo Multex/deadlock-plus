@@ -90,6 +90,16 @@ describe("catalog", () => {
         expect(matchingItems("sign in")?.has("autostart")).toBe(true);
     });
 
+    it("finds the theme effects switch by what the effects are", () => {
+        expect(matchingItems("snow")?.has("theme-effects")).toBe(true);
+        expect(matchingItems("background animation")?.has("theme-effects")).toBe(true);
+    });
+
+    it("finds each new theme by name", () => {
+        expect(matchingItems("statlocker")?.has("theme")).toBe(true);
+        expect(matchingItems("flint snow")?.has("theme")).toBe(true);
+    });
+
     it("finds the background work setting by the tasks it covers", () => {
         expect(matchingItems("scan addons at launch")?.has("background-jobs")).toBe(true);
         expect(matchingItems("index patch notes automatically")?.has("background-jobs")).toBe(true);

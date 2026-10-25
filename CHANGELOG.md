@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Flint Snow theme: coral and midnight navy with pink trim.
 - Both new themes are also on the website's theme picker.
 
+#### Theme effects
+
+- Every theme but High contrast now draws its own art and animation behind the page.
+- In the Deadlock theme, dust drifts through the lamp light and swirls when your mouse moves through it.
+- Turn them off with the Theme effects switch in Settings > Appearance.
+- Reduced motion keeps the still art and stops everything that moves.
+- Effects pause while the Deadlock+ window is hidden or not focused.
+
 ### Fixed
 
 - On Linux, the main window shows at startup instead of staying hidden.

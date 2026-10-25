@@ -83,6 +83,22 @@
     </Card>
 {/if}
 
+{#if show("theme-effects")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.theme_effects")}
+            for="theme-effects"
+            description={t("settings.appearance.effects_description")}
+        >
+            <Switch
+                id="theme-effects"
+                checked={settings.themeEffects}
+                onCheckedChange={(v) => settings.setThemeEffects(v)}
+            />
+        </SettingRow>
+    </Card>
+{/if}
+
 {#if show("reduced-motion")}
     <Card as="section">
         <SettingRow

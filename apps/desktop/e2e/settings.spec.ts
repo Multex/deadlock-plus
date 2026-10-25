@@ -13,7 +13,7 @@ const CATEGORIES = settingsCategories();
 // renders fewer has lost a control or changed how it exposes one, and the loop would otherwise pass without
 // having tried it.
 const FLOOR: Record<string, number> = {
-    appearance: 3,
+    appearance: 4,
     language: 1,
     startup: 8,
     notifications: 13,
@@ -23,7 +23,7 @@ const FLOOR: Record<string, number> = {
     diagnostics: 2,
     about: 1,
 };
-const TOTAL_FLOOR = 34;
+const TOTAL_FLOOR = 35;
 
 type Kept = "backend" | "browser" | "nowhere";
 

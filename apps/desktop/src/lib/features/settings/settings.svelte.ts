@@ -33,6 +33,7 @@ import { initialTheme, resolveMotionPreference, resolveTheme, type MotionPrefere
 
 const STORE = "app-settings";
 const ACCESSIBLE_FONT_KEY = "accessibleFont";
+const THEME_EFFECTS_KEY = "themeEffects";
 const INGEST_KEY = "matchIngest";
 const GC_RECOVERY_KEY = "gcRecovery";
 const CLOSE_TO_TRAY_KEY = "closeToTray";
@@ -63,6 +64,7 @@ async function stored<T>(key: string): Promise<T | undefined> {
 
 class Settings {
     accessibleFont = $state(false);
+    themeEffects = $state(true);
     theme = $state<ThemeId>(initialTheme(globalThis.document?.documentElement));
     motion = $state<MotionPreference>("system");
     matchIngest = $state(false);
@@ -90,6 +92,7 @@ class Settings {
     async init() {
         onHeroesRefreshed(() => void this.applyPresence());
         this.accessibleFont = (await stored<boolean>(ACCESSIBLE_FONT_KEY)) ?? false;
+        this.themeEffects = (await stored<boolean>(THEME_EFFECTS_KEY)) ?? true;
         try {
             const consent = resolveIngestConsent(await kvGet<boolean>(STORE, INGEST_KEY));
             this.matchIngest = consent.enabled;
@@ -401,6 +404,15 @@ class Settings {
         this.hardwareAcceleration = value;
         try {
             await kvSet(STORE, HARDWARE_ACCELERATION_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setThemeEffects(value: boolean) {
+        this.themeEffects = value;
+        try {
+            await kvSet(STORE, THEME_EFFECTS_KEY, value);
         } catch {
             // The choice just won't persist across restarts.
         }
