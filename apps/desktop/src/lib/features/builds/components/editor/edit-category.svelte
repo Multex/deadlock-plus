@@ -91,6 +91,7 @@
     const warn = $derived(tag.unsafe || rowWraps);
     // Below three columns the header controls have room for the menu only.
     const narrow = $derived(tag.columns < 3);
+    let controlsWidth = $state(0);
     const selected = $derived(
         new Set(editor.selection.filter((ref) => ref.category === index).map((ref) => ref.index)),
     );
@@ -330,11 +331,12 @@
                 label={category.name || t("builds.editor.unnamed")}
                 unnamed={!category.name}
                 unit={shop.unit}
+                reserve={controlsWidth}
                 ondblclick={startRename}
             />
         {/if}
         <!-- Over the name's first line like the game's edit controls, so the name keeps the game's width to wrap in. -->
-        <span class="controls" style:height="{shop.header}px">
+        <span class="controls" style:height="{shop.header}px" bind:offsetWidth={controlsWidth}>
             {#if !narrow || resizing}
                 <Tooltip.Root delayDuration={200}>
                     <Tooltip.Trigger class="size-tag {warn ? 'warn' : ''} {resizing ? 'live' : ''}">

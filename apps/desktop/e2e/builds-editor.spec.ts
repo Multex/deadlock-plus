@@ -364,3 +364,15 @@ test("editing an own published build says it is published in-game", async ({ pag
     await open(page, "/builds/edit?source=public&id=402117");
     await expect(page.getByTestId("publish-note")).toBeVisible();
 });
+
+test("a category's note stops before its size badge", async ({ page }) => {
+    await open(page, "/builds/edit?source=public&id=402117");
+    const situational = canvas(page).locator("[data-category]").filter({ hasText: "Situational" });
+    const note = situational.locator(".description");
+    await expect(note).toHaveText("Buy into what they build.");
+    const tag = situational.locator(".size-tag");
+    await expect(tag).toBeVisible();
+    const noteBox = (await note.boundingBox())!;
+    const tagBox = (await tag.boundingBox())!;
+    expect(noteBox.x + noteBox.width).toBeLessThanOrEqual(tagBox.x);
+});

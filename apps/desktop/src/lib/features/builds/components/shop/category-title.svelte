@@ -10,6 +10,7 @@
         label = category.name,
         unnamed = false,
         unit,
+        reserve = 0,
         ondblclick,
     }: {
         category: Pick<ModCategoryView, "name" | "description" | "optional" | "width" | "mods">;
@@ -18,6 +19,8 @@
         unnamed?: boolean;
         /** CSS px per game unit. */
         unit: number;
+        /** CSS px at the row's end that something drawn over the header covers; OPTIONAL and the description stop short of it. */
+        reserve?: number;
         ondblclick?: (event: MouseEvent) => void;
     } = $props();
 
@@ -56,6 +59,7 @@
         void category.width;
         void category.mods.length;
         void unit;
+        void reserve;
         const observer = new ResizeObserver(measure);
         observer.observe(row);
         observer.observe(name);
@@ -69,7 +73,7 @@
 </script>
 
 <!-- As the game: a wrapped name takes the whole width; OPTIONAL and the description get what is left, the description first. -->
-<div class="title" bind:this={row} style:--u="{unit}px">
+<div class="title" bind:this={row} style:--u="{unit}px" style:--reserve="{reserve}px">
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span class="name" class:unnamed bind:this={name} {ondblclick}>{label}</span>
     {#if category.optional}
@@ -93,6 +97,9 @@
             </Tooltip.Trigger>
             <Tooltip.Content class="whitespace-pre-line">{description}</Tooltip.Content>
         </Tooltip.Root>
+    {/if}
+    {#if reserve > 0}
+        <span class="reserve" aria-hidden="true"></span>
     {/if}
     {#if fallback}
         <Tooltip.Root delayDuration={100}>
@@ -163,6 +170,9 @@
         font-size: calc(var(--u) * 15);
         font-weight: 600;
     }
+    .reserve {
+        flex: 0 0 var(--reserve);
+    }
     .title :global(.description.squished) {
         cursor: help;
     }
@@ -171,7 +181,7 @@
     }
     .title :global(.more) {
         position: absolute;
-        right: calc(var(--u) * 4);
+        right: calc(var(--reserve) + var(--u) * 4);
         bottom: calc(var(--u) * 4);
         padding: 0 calc(var(--u) * 4);
         border: 0;
