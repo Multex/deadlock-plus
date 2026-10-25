@@ -16,8 +16,8 @@ const OUTSIDE_KV: Record<string, Kept> = {
     Hero: "nowhere",
     "Show Large image": "presence",
     "Show Small image": "presence",
-    "Party size": "presence",
-    Timer: "presence",
+    "Show party size": "presence",
+    "Timer on Discord": "presence",
 };
 
 function keptOutsideKv(name: string): Kept | undefined {
