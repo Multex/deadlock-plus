@@ -39,7 +39,7 @@ const OUTSIDE_KV: Record<string, Record<string, Kept>> = {
         "Start at login": "backend",
         "Allow background work": "backend",
     },
-    diagnostics: { "Auto-scroll": "nowhere", "Minimum level": "nowhere" },
+    diagnostics: { "Auto-scroll": "browser", "Minimum level": "browser" },
 };
 
 // Each background task has its own switch and select, named after the task: "{task} Run by itself".

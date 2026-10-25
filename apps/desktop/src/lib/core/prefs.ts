@@ -5,6 +5,8 @@ export const PREF_KEYS = {
     launchCount: "deadlock-plus:launch-count",
     language: "deadlock-plus:language",
     updateFirstSeen: "deadlock-plus:update-first-seen",
+    logAutoScroll: "deadlock-plus:log-auto-scroll",
+    logMinLevel: "deadlock-plus:log-min-level",
 } as const;
 
 export type PrefKey = keyof typeof PREF_KEYS;

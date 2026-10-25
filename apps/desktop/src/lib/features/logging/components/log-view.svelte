@@ -18,6 +18,7 @@
         type LogEntry,
         type LogLevel,
     } from "$lib/features/logging/logs";
+    import { loadLogViewPrefs, saveLogAutoScroll, saveLogMinLevel } from "$lib/features/logging/view-prefs";
 
     let { full = false }: { full?: boolean } = $props();
 
@@ -33,13 +34,14 @@
 
     let entries = $state<LogEntry[] | null>(null);
     let failed = $state<string | null>(null);
-    let level = $state<LogLevel>("INFO");
+    const saved = loadLogViewPrefs();
+    let level = $state<LogLevel>(saved.level);
     let query = $state("");
 
     const visible = $derived(entries ? filterEntries(entries, level, query) : []);
     const shown = $derived(full ? visible : visible.slice(-COMPACT_ROWS));
 
-    let autoScroll = $state(true);
+    let autoScroll = $state(saved.autoScroll);
     let scroller = $state<HTMLDivElement | null>(null);
 
     $effect(() => {
@@ -93,7 +95,10 @@
         <SelectMenu
             items={LEVEL_ITEMS}
             value={level}
-            onValueChange={(v) => (level = v as LogLevel)}
+            onValueChange={(v) => {
+                level = v as LogLevel;
+                saveLogMinLevel(level);
+            }}
             aria-label={t("logging.min_level")}
             class="w-32"
         >
@@ -108,7 +113,11 @@
             aria-label={t("logging.search_label")}
         />
         <label class="flex items-center gap-2 text-xs text-muted-foreground">
-            <Switch bind:checked={autoScroll} aria-label={t("logging.auto_scroll")} />
+            <Switch
+                bind:checked={autoScroll}
+                onCheckedChange={saveLogAutoScroll}
+                aria-label={t("logging.auto_scroll")}
+            />
             {t("logging.auto_scroll")}
         </label>
         <Button variant="outline" size="sm" onclick={load} aria-label={t("logging.refresh")}><RefreshCw /></Button>
