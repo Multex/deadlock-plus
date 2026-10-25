@@ -426,6 +426,7 @@
             "field_small_image": "Small image",
             "field_small_text": "Small image hover text",
             "field_timer": "Timer",
+            "timer_aria": "Timer on Discord",
             "reset_field": "Reset {field}",
             "reset_scope": "Reset this state",
             "reset_all": "Reset everything",
@@ -563,6 +564,7 @@
             },
             "timer_queueTime": "Time in the queue",
             "field_party_size": "Party size",
+            "party_size_aria": "Show party size",
             "party_size_hint": "Adds the party count, like (2 of 6), when you are in a party of two or more.",
             "preview_party": "({size} of {max})",
             "detailed_only": "Only Detailed uses these states. Basic always shows Playing."
