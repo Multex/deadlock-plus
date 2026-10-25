@@ -6,13 +6,27 @@ export interface Theme {
     id: ThemeId;
     light: boolean;
     grain: boolean;
+    /** Effect layers that can be turned off one by one; empty when the theme's effects are one piece. */
+    effects: string[];
+    /** What the theme is based on, linked from its card. */
+    source?: string;
+    /** Whether the theme takes an accent of the user's own; off where the palette is the point. */
+    customAccent: boolean;
     /** Every token, with the ones this theme leaves out filled from the default theme. */
     tokens: Record<string, string>;
 }
 
 interface ThemeFile {
     default: string;
-    themes: { id: string; light: boolean; grain?: boolean; tokens: Record<string, string> }[];
+    themes: {
+        id: string;
+        light: boolean;
+        grain?: boolean;
+        effects?: string[];
+        source?: string;
+        customAccent?: boolean;
+        tokens: Record<string, string>;
+    }[];
 }
 
 const file = data as ThemeFile;
@@ -24,6 +38,9 @@ export const THEMES: readonly Theme[] = file.themes.map((t) => ({
     id: t.id,
     light: t.light,
     grain: t.grain ?? true,
+    effects: t.effects ?? [],
+    source: t.source,
+    customAccent: t.customAccent ?? true,
     tokens: { ...base?.tokens, ...t.tokens },
 }));
 

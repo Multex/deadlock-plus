@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import { burst, runTicker } from "../../theme-decor-loop";
     import { between, seeded } from "../../theme-decor-random";
 
@@ -53,16 +52,25 @@
     const FOG_PERIOD = 140_000;
     /** Fog this soft moves under a pixel per step at 4 steps a second, so it reads as smooth. */
     const FOG_STEP_MS = 250;
+    /** With the fog off, the windows only need checking once a second. */
+    const BLINK_STEP_MS = 1_000;
+
+    let { layers = {} }: { layers?: Record<string, boolean> } = $props();
+    const drifting = $derived(layers.fog !== false);
+    const blinking = $derived(layers.windows !== false);
 
     let now = $state(Date.now());
     // Each blinking window is dark for the middle stretch of its own cycle.
-    const dark = (l: Light) => l.blink && burst(now, l.period, l.period * 0.4, l.offset + l.period * 0.4).active;
+    const dark = (l: Light) =>
+        blinking && l.blink && burst(now, l.period, l.period * 0.4, l.offset + l.period * 0.4).active;
     const fog = $derived(1 - Math.abs(((now % FOG_PERIOD) / FOG_PERIOD) * 2 - 1));
 
-    onMount(() => {
+    $effect(() => {
+        if (!drifting && !blinking) return;
+        const step = drifting ? FOG_STEP_MS : BLINK_STEP_MS;
         const ticker = runTicker((at) => {
             now = at;
-            return FOG_STEP_MS;
+            return step;
         });
         return ticker.stop;
     });
@@ -70,7 +78,9 @@
 
 <div class="midnight">
     <div class="moon"></div>
-    <div class="fog" data-motion style:transform="translateX({fog * 30}%)"></div>
+    {#if drifting}
+        <div class="fog" data-motion style:transform="translateX({fog * 30}%)"></div>
+    {/if}
     <svg class="skyline" viewBox="0 0 {WIDTH} {HEIGHT}" preserveAspectRatio="xMidYMax slice">
         {#each buildings as b, i (i)}
             <polygon points={outline(b)} />

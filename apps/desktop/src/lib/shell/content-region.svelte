@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import ThemeDecor from "@deadlock-plus/ui/theme-decor.svelte";
-    import { settings } from "$lib/features/registry";
+    import { layersOf, settings } from "$lib/features/registry";
     import { overlayHost } from "./overlay-host.svelte";
 
     let { flush = false, children }: { flush?: boolean; children?: Snippet } = $props();
@@ -19,7 +19,7 @@
     <!-- The panel paints under the page so theme decor can sit between the two without scrolling with it. -->
     <div class={["noir-panel absolute inset-0", !flush && "rounded-l-xl"]}>
         {#if settings.themeEffects}
-            <ThemeDecor theme={settings.theme} />
+            <ThemeDecor theme={settings.theme} layers={layersOf(settings.themeOptions, settings.theme)} />
         {/if}
     </div>
     <main

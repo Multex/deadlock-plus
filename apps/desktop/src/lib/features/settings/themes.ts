@@ -8,6 +8,9 @@ export interface Theme {
     label: string;
     description: string;
     swatch: [string, string, string, string];
+    effects: { id: string; label: string }[];
+    source?: { url: string; label: string };
+    customAccent: boolean;
 }
 
 export const THEMES: Theme[] = THEME_DATA.map((theme) => {
@@ -21,6 +24,21 @@ export const THEMES: Theme[] = THEME_DATA.map((theme) => {
             return t(`settings.themes.${key}.description`);
         },
         swatch: themeSwatch(theme),
+        effects: theme.effects.map((id) => ({
+            id,
+            get label() {
+                return t(`settings.themes.${key}.effects.${id}`);
+            },
+        })),
+        source: theme.source
+            ? {
+                  url: theme.source,
+                  get label() {
+                      return t(`settings.themes.${key}.source`);
+                  },
+              }
+            : undefined,
+        customAccent: theme.customAccent,
     };
 });
 

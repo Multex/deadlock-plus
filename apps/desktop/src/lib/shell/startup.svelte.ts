@@ -3,7 +3,15 @@ import { afterNavigate, beforeNavigate } from "$app/navigation";
 import { initLanguage } from "$lib/core/i18n.svelte";
 import { command, listen } from "$lib/core/tauri";
 import { windowVisibility } from "$lib/core/window-visibility";
-import { SERVICES, resolveReducedMotion, setWindowTheme, settings, updater } from "$lib/features/registry";
+import {
+    SERVICES,
+    accentOf,
+    accentStyle,
+    resolveReducedMotion,
+    setWindowTheme,
+    settings,
+    updater,
+} from "$lib/features/registry";
 import { useLastRoute } from "./last-route.svelte";
 import { overlays } from "./overlays";
 
@@ -18,6 +26,16 @@ export function useAppShell() {
     $effect(() => {
         document.documentElement.dataset.theme = settings.theme;
         setWindowTheme(settings.theme).catch(() => {});
+    });
+
+    // A user's accent overrides the theme's trim on `<html>`, above the generated theme tokens.
+    let accentVars: string[] = [];
+    $effect(() => {
+        const style = document.documentElement.style;
+        for (const name of accentVars) style.removeProperty(name);
+        const vars = accentStyle(settings.theme, accentOf(settings.themeOptions, settings.theme));
+        for (const [name, value] of Object.entries(vars)) style.setProperty(name, value);
+        accentVars = Object.keys(vars);
     });
 
     $effect(() => {

@@ -13,6 +13,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Both new themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
 
+#### Theme options
+
+- Each theme's card in Settings > Appearance now holds that theme's own options.
+- Turn single effects off, like Nightshift's rain or Flint Snow's tail.
+- Pick an accent colour of your own for any theme but High contrast.
+- A custom accent keeps text readable by shifting its lightness only as far as contrast needs.
+- Themes based on something link to it, like Deadlock API or Deadlock Night Shift on Twitch.
+
 #### Theme effects
 
 - Every theme but High contrast now draws its own art and animation behind the page.

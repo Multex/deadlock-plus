@@ -58,11 +58,17 @@
         return { x: r() * 100, y: 62 + r() * 14, size: 1 + r() * 1.5 };
     });
 
-    let canvas: HTMLCanvasElement;
-    let tailCanvas: HTMLCanvasElement;
+    let { layers = {} }: { layers?: Record<string, boolean> } = $props();
+    const snowOn = $derived(layers.snow !== false);
+    const starsOn = $derived(layers.stars !== false);
+    const tailOn = $derived(layers.tail !== false);
+    const tracksOn = $derived(layers.tracks !== false);
 
-    function paintTail() {
-        const ctx = tailCanvas.getContext("2d");
+    let canvas = $state<HTMLCanvasElement>();
+    let tailCanvas = $state<HTMLCanvasElement>();
+
+    function paintTail(target: HTMLCanvasElement) {
+        const ctx = target.getContext("2d");
         if (!ctx) return;
         ctx.scale(2, 2);
         ctx.lineCap = "round";
@@ -95,9 +101,16 @@
         field.height = height;
     }
 
-    onMount(() => {
-        paintTail();
-        const style = getComputedStyle(canvas);
+    $effect(() => {
+        if (tailCanvas) paintTail(tailCanvas);
+    });
+
+    $effect(() => {
+        const target = canvas;
+        const drawSnow = snowOn;
+        const drawStars = starsOn;
+        if (!target) return;
+        const style = getComputedStyle(target);
         const snow = style.getPropertyValue("--foreground").trim();
         const pink = style.getPropertyValue("--brass").trim();
         const flake = glowSprite(snow, snow, 16, 0.35);
@@ -120,8 +133,8 @@
             ctx.restore();
         };
 
-        const stopSky = runCanvas(
-            canvas,
+        return runCanvas(
+            target,
             {
                 fit,
                 frame(ctx, dt, now, pointer, width, height) {
@@ -130,15 +143,16 @@
                     const busy = stepSky(sky, dt, width, height, pointer, random);
                     ctx.clearRect(0, 0, width, height);
 
-                    for (const f of sky.flakes) {
-                        ctx.globalAlpha = f.alpha;
-                        const s = f.size * 2.4;
-                        ctx.drawImage(flake, f.x - s / 2, f.y - s / 2, s, s);
-                    }
+                    if (drawSnow)
+                        for (const f of sky.flakes) {
+                            ctx.globalAlpha = f.alpha;
+                            const s = f.size * 2.4;
+                            ctx.drawImage(flake, f.x - s / 2, f.y - s / 2, s, s);
+                        }
 
                     const c = sky.constellation;
                     const linked = c ? constellationAlpha(c, sky.time) : 0;
-                    if (c && linked > 0) {
+                    if (drawStars && c && linked > 0) {
                         ctx.globalAlpha = 0.28 * linked;
                         ctx.strokeStyle = snow;
                         ctx.lineWidth = 1;
@@ -154,46 +168,49 @@
                         ctx.setLineDash([]);
                     }
 
-                    for (const g of sky.glitter) {
-                        ctx.globalAlpha = 0.7 * (1 - g.age / g.life);
-                        ctx.fillStyle = g.pink ? pink : snow;
-                        ctx.fillRect(g.x - g.size / 2, g.y - g.size / 2, g.size, g.size);
-                    }
+                    if (drawStars)
+                        for (const g of sky.glitter) {
+                            ctx.globalAlpha = 0.7 * (1 - g.age / g.life);
+                            ctx.fillStyle = g.pink ? pink : snow;
+                            ctx.fillRect(g.x - g.size / 2, g.y - g.size / 2, g.size, g.size);
+                        }
 
                     ctx.lineWidth = 1.6;
-                    for (const s of sky.stars) {
-                        // Mostly calm, with a sharp flash now and then.
-                        const flash = Math.max(0, Math.sin(sky.time * 1.1 + s.phase)) ** 6;
-                        const bright =
-                            linked > 0 && c?.links.some(([a, b]) => sky.stars[a] === s || sky.stars[b] === s);
-                        ctx.globalAlpha = Math.min(1, 0.4 + 0.5 * flash + (bright ? 0.25 * linked : 0));
-                        shape(
-                            ctx,
-                            s.kind === "star" ? STAR : SPARKLE,
-                            s.x,
-                            s.y,
-                            s.size * (1 + 0.3 * flash),
-                            s.angle,
-                            () => {
-                                ctx.strokeStyle = s.kind === "star" ? snow : pink;
-                                ctx.lineWidth = (1.6 * 22) / s.size;
-                                ctx.stroke(s.kind === "star" ? STAR : SPARKLE);
-                            },
-                        );
-                    }
+                    if (drawStars)
+                        for (const s of sky.stars) {
+                            // Mostly calm, with a sharp flash now and then.
+                            const flash = Math.max(0, Math.sin(sky.time * 1.1 + s.phase)) ** 6;
+                            const bright =
+                                linked > 0 && c?.links.some(([a, b]) => sky.stars[a] === s || sky.stars[b] === s);
+                            ctx.globalAlpha = Math.min(1, 0.4 + 0.5 * flash + (bright ? 0.25 * linked : 0));
+                            shape(
+                                ctx,
+                                s.kind === "star" ? STAR : SPARKLE,
+                                s.x,
+                                s.y,
+                                s.size * (1 + 0.3 * flash),
+                                s.angle,
+                                () => {
+                                    ctx.strokeStyle = s.kind === "star" ? snow : pink;
+                                    ctx.lineWidth = (1.6 * 22) / s.size;
+                                    ctx.stroke(s.kind === "star" ? STAR : SPARKLE);
+                                },
+                            );
+                        }
 
-                    for (const p of sky.sparks) {
-                        const t = p.age / p.life;
-                        const grow = t < 0.15 ? t / 0.15 : 1 - ((t - 0.15) / 0.85) * 0.6;
-                        ctx.globalAlpha = 0.85 * (1 - t);
-                        shape(ctx, SPARKLE, p.x, p.y, p.size * grow, p.angle, () => {
-                            ctx.fillStyle = p.pink ? pink : snow;
-                            ctx.fill(SPARKLE);
-                        });
-                    }
+                    if (drawStars)
+                        for (const p of sky.sparks) {
+                            const t = p.age / p.life;
+                            const grow = t < 0.15 ? t / 0.15 : 1 - ((t - 0.15) / 0.85) * 0.6;
+                            ctx.globalAlpha = 0.85 * (1 - t);
+                            shape(ctx, SPARKLE, p.x, p.y, p.size * grow, p.angle, () => {
+                                ctx.fillStyle = p.pink ? pink : snow;
+                                ctx.fill(SPARKLE);
+                            });
+                        }
 
                     const shooting = burst(now, SHOOTING_PERIOD, SHOOTING_RUN, 4_000);
-                    if (shooting.active) {
+                    if (drawStars && shooting.active) {
                         const t = shooting.progress;
                         const slope = Math.tan((14 * Math.PI) / 180);
                         const x = width * (0.1 + 0.7 * t);
@@ -215,13 +232,15 @@
                         });
                     }
 
-                    return busy || shooting.active ? BUSY_MS : CALM_MS;
+                    return busy || (drawStars && shooting.active) ? BUSY_MS : CALM_MS;
                 },
             },
             2,
         );
+    });
 
-        const tail = runTicker((now) => {
+    onMount(() => {
+        const ticker = runTicker((now) => {
             const flick = burst(now, FLICK_PERIOD, FLICK_RUN, 2_000);
             const walk = burst(now, WALK_PERIOD, WALK_RUN, 9_000);
             flicking = flick.active;
@@ -229,29 +248,30 @@
             return Math.min(flick.untilChange, walk.untilChange);
         });
 
-        return () => {
-            stopSky();
-            tail.stop();
-        };
+        return ticker.stop;
     });
 </script>
 
 <div class="flint-snow">
-    {#each still as s, i (i)}
-        <svg
-            class="still-star"
-            class:star={s.star}
-            data-still
-            viewBox="-12 -12 24 24"
-            style:left="{s.x}%"
-            style:top="{s.y}%"
-            style:width="{s.size}px"
-        >
-            <path d={s.star ? STAR_SVG : SPARKLE_SVG} stroke-linejoin="round" />
-        </svg>
-    {/each}
+    {#if starsOn}
+        {#each still as s, i (i)}
+            <svg
+                class="still-star"
+                class:star={s.star}
+                data-still
+                viewBox="-12 -12 24 24"
+                style:left="{s.x}%"
+                style:top="{s.y}%"
+                style:width="{s.size}px"
+            >
+                <path d={s.star ? STAR_SVG : SPARKLE_SVG} stroke-linejoin="round" />
+            </svg>
+        {/each}
+    {/if}
 
-    <canvas bind:this={canvas} class="sky" data-motion></canvas>
+    {#if snowOn || starsOn}
+        <canvas bind:this={canvas} class="sky" data-motion></canvas>
+    {/if}
 
     <!-- The snowbank: a shadowed drift behind Flint's tail and a brighter one in front, so the tail lies in the
          snow rather than on it. -->
@@ -259,7 +279,10 @@
         <path class="back" d={BACK_DRIFT.fill} />
     </svg>
     <!-- Flint's tail in the sheet's colours, painted once from fur strokes. -->
-    <canvas bind:this={tailCanvas} class="tail" class:flicking width={TAIL_WIDTH * 2} height={TAIL_HEIGHT * 2}></canvas>
+    {#if tailOn}
+        <canvas bind:this={tailCanvas} class="tail" class:flicking width={TAIL_WIDTH * 2} height={TAIL_HEIGHT * 2}
+        ></canvas>
+    {/if}
     <svg class="snowbank" viewBox="0 0 1000 80" preserveAspectRatio="none">
         <path class="front" d={FRONT_DRIFT.fill} />
         <path class="crest" d={FRONT_DRIFT.crest} />
@@ -271,33 +294,35 @@
     </div>
 
     <!-- Fox tracks crossing the snowbank now and then. -->
-    <div class="tracks" class:walking data-motion>
-        {#each { length: PRINTS } as _, i (i)}
-            <svg
-                class="print"
-                viewBox="0 0 20 20"
-                style:left="{6 + i * 3.4}%"
-                style:bottom="{i % 2 ? 14 : 22}px"
-                style:rotate="{i % 2 ? 98 : 82}deg"
-                style:animation-delay="{i * 0.45}s"
-            >
-                <g class="dent">
-                    <ellipse cx="10" cy="13.5" rx="5.6" ry="4.8" />
-                    <circle cx="4.6" cy="7" r="2.8" />
-                    <circle cx="8.3" cy="3.6" r="2.8" />
-                    <circle cx="11.7" cy="3.6" r="2.8" />
-                    <circle cx="15.4" cy="7" r="2.8" />
-                </g>
-                <g class="pads">
-                    <ellipse cx="10" cy="14" rx="3.8" ry="3" />
-                    <circle cx="4.8" cy="7.4" r="1.6" />
-                    <circle cx="8.4" cy="4.1" r="1.6" />
-                    <circle cx="11.6" cy="4.1" r="1.6" />
-                    <circle cx="15.2" cy="7.4" r="1.6" />
-                </g>
-            </svg>
-        {/each}
-    </div>
+    {#if tracksOn}
+        <div class="tracks" class:walking data-motion>
+            {#each { length: PRINTS } as _, i (i)}
+                <svg
+                    class="print"
+                    viewBox="0 0 20 20"
+                    style:left="{6 + i * 3.4}%"
+                    style:bottom="{i % 2 ? 14 : 22}px"
+                    style:rotate="{i % 2 ? 98 : 82}deg"
+                    style:animation-delay="{i * 0.45}s"
+                >
+                    <g class="dent">
+                        <ellipse cx="10" cy="13.5" rx="5.6" ry="4.8" />
+                        <circle cx="4.6" cy="7" r="2.8" />
+                        <circle cx="8.3" cy="3.6" r="2.8" />
+                        <circle cx="11.7" cy="3.6" r="2.8" />
+                        <circle cx="15.4" cy="7" r="2.8" />
+                    </g>
+                    <g class="pads">
+                        <ellipse cx="10" cy="14" rx="3.8" ry="3" />
+                        <circle cx="4.8" cy="7.4" r="1.6" />
+                        <circle cx="8.4" cy="4.1" r="1.6" />
+                        <circle cx="11.6" cy="4.1" r="1.6" />
+                        <circle cx="15.2" cy="7.4" r="1.6" />
+                    </g>
+                </svg>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <style>

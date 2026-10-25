@@ -18,6 +18,26 @@ describe("THEMES", () => {
             expect(theme.description, theme.id).not.toMatch(/^settings\./);
         }
     });
+
+    it("names every effect layer a theme lets you turn off", () => {
+        for (const theme of THEMES) {
+            for (const layer of theme.effects)
+                expect(layer.label, `${theme.id}.${layer.id}`).not.toMatch(/^settings\./);
+        }
+        expect(THEMES.find((t) => t.id === "nightshift")?.effects.map((l) => l.id)).toEqual([
+            "rain",
+            "lights",
+            "frames",
+            "clock",
+        ]);
+    });
+
+    it("names the source of every theme that links to one", () => {
+        for (const theme of THEMES) {
+            if (theme.source) expect(theme.source.label, theme.id).not.toMatch(/^settings\./);
+        }
+        expect(THEMES.find((t) => t.id === "deadlock-api")?.source?.url).toBe("https://deadlock-api.com");
+    });
 });
 
 describe("app.html", () => {

@@ -4,6 +4,7 @@
         {
             "id": "deadlock",
             "light": false,
+            "source": "https://store.steampowered.com/app/1422450/Deadlock/",
             "tokens": {
                 "background": "oklch(0.17 0.008 70)",
                 "chrome": "oklch(0.125 0.006 65)",
@@ -37,6 +38,7 @@
         {
             "id": "midnight",
             "light": false,
+            "effects": ["fog", "windows"],
             "tokens": {
                 "background": "oklch(0.17 0.02 260)",
                 "chrome": "oklch(0.125 0.018 262)",
@@ -95,6 +97,7 @@
         {
             "id": "contrast",
             "light": false,
+            "customAccent": false,
             "grain": false,
             "tokens": {
                 "background": "oklch(0 0 0)",
@@ -121,6 +124,8 @@
         {
             "id": "nightshift",
             "light": false,
+            "effects": ["rain", "lights", "frames", "clock"],
+            "source": "https://www.twitch.tv/deadlocknightshift",
             "tokens": {
                 "background": "oklch(0.162 0.026 195)",
                 "chrome": "oklch(0.132 0.022 200)",
@@ -148,6 +153,7 @@
         {
             "id": "deadlock-api",
             "light": false,
+            "source": "https://deadlock-api.com",
             "tokens": {
                 "background": "oklch(0.09 0.004 250)",
                 "chrome": "oklch(0.04 0 0)",
@@ -175,6 +181,7 @@
         {
             "id": "statlocker",
             "light": false,
+            "source": "https://statlocker.gg",
             "tokens": {
                 "background": "oklch(0.2 0 0)",
                 "chrome": "oklch(0.145 0 0)",
@@ -208,6 +215,7 @@
         {
             "id": "flint-snow",
             "light": false,
+            "effects": ["snow", "stars", "tail", "tracks"],
             "tokens": {
                 "background": "oklch(0.242 0.032 292)",
                 "chrome": "oklch(0.19 0.028 292)",

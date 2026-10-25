@@ -25,6 +25,23 @@ describe("THEMES", () => {
         expect(theme("contrast").grain).toBe(false);
     });
 
+    it("lists the effect layers a theme lets you turn off one by one, and none for a theme with one layer", () => {
+        expect(theme("nightshift").effects).toEqual(["rain", "lights", "frames", "clock"]);
+        expect(theme("flint-snow").effects).toEqual(["snow", "stars", "tail", "tracks"]);
+        expect(theme(DEFAULT_THEME).effects).toEqual([]);
+    });
+
+    it("links a theme to what it is based on, where there is one", () => {
+        expect(theme("deadlock-api").source).toBe("https://deadlock-api.com");
+        expect(theme("nightshift").source).toBe("https://www.twitch.tv/deadlocknightshift");
+        expect(theme("midnight").source).toBeUndefined();
+        for (const t of THEMES) if (t.source) expect(t.source, t.id).toMatch(/^https:\/\//);
+    });
+
+    it("takes a custom accent on every theme but High contrast", () => {
+        expect(THEMES.filter((t) => !t.customAccent).map((t) => t.id)).toEqual(["contrast"]);
+    });
+
     it("gives every theme a plain oklch background and chrome, which the pre-paint paths convert to hex", () => {
         for (const t of THEMES) {
             expect(() => oklchToHex(t.tokens.background ?? ""), t.id).not.toThrow();

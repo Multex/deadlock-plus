@@ -19,8 +19,10 @@
     /** Condensation creeps back so slowly that four redraws a second keep up, except while being wiped. */
     const FOG_REDRAW_MS = 250;
     const CITY_REDRAW_MS = 60_000;
-    /** The string lights sway slowly enough that ten frames a second keep up while no drop slides. */
+    /** The string lights sway slowly enough that ten frames a second keep up. */
     const LIGHTS_MS = 100;
+    /** New drops landing and the fog creeping back keep up at ten frames a second while no drop slides. */
+    const RAIN_IDLE_MS = 100;
     const LIGHTS_HEIGHT = 200;
     /** The longest step the glass takes at once; a longer gap is walked in steps this size. */
     const GLASS_STEP = 0.05;
@@ -72,10 +74,16 @@
         diamond(22, 108, 3),
     ].join(" ");
 
+    let { layers = {} }: { layers?: Record<string, boolean> } = $props();
+    const rain = $derived(layers.rain !== false);
+    const lit = $derived(layers.lights !== false);
+    const frames = $derived(layers.frames !== false);
+    const clock = $derived(layers.clock !== false);
+
     let cityCanvas: HTMLCanvasElement;
-    let lightsCanvas: HTMLCanvasElement;
-    let fogCanvas: HTMLCanvasElement;
-    let dropsCanvas: HTMLCanvasElement;
+    let lightsCanvas = $state<HTMLCanvasElement>();
+    let fogCanvas = $state<HTMLCanvasElement>();
+    let dropsCanvas = $state<HTMLCanvasElement>();
     let turn = $state(turnAt(Date.now()));
     let glinting = $state(false);
     let shift = $state(onShift(new Date()));
@@ -221,51 +229,70 @@
             paintCity(new Date());
             return CITY_REDRAW_MS;
         });
+        return () => {
+            city.stop();
+            resized.disconnect();
+        };
+    });
 
+    $effect(() => {
+        const canvas = lightsCanvas;
+        const ctx = canvas?.getContext("2d");
+        if (!canvas || !ctx) return;
         const bulb = glowSprite("#ffe6ae", "#f5a94f", 64, 0.75);
-        const lightsCtx = lightsCanvas.getContext("2d");
         let strands: Strand[] = [];
-        let lastLights = 0;
 
-        const paintLights = (now: number) => {
-            if (!lightsCtx) return;
-            lightsCtx.clearRect(0, 0, lightsCanvas.width, lightsCanvas.height);
+        const paint = (now: number) => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (const strand of strands) {
-                lightsCtx.globalAlpha = 1;
-                lightsCtx.beginPath();
+                ctx.globalAlpha = 1;
+                ctx.beginPath();
                 for (let i = 0; i <= 40; i++) {
                     const p = wireAt(strand, i / 40, now);
-                    if (i) lightsCtx.lineTo(p.x, p.y);
-                    else lightsCtx.moveTo(p.x, p.y);
+                    if (i) ctx.lineTo(p.x, p.y);
+                    else ctx.moveTo(p.x, p.y);
                 }
-                lightsCtx.strokeStyle = "rgba(240, 195, 128, 0.22)";
-                lightsCtx.lineWidth = 1.2;
-                lightsCtx.stroke();
+                ctx.strokeStyle = "rgba(240, 195, 128, 0.22)";
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
                 for (const b of strand.bulbs) {
                     const p = wireAt(strand, b.t, now);
-                    lightsCtx.globalAlpha = 0.9;
-                    lightsCtx.fillStyle = "#4a3820";
-                    lightsCtx.fillRect(p.x - 1.5, p.y - 1, 3, b.size * 0.9);
+                    ctx.globalAlpha = 0.9;
+                    ctx.fillStyle = "#4a3820";
+                    ctx.fillRect(p.x - 1.5, p.y - 1, 3, b.size * 0.9);
                     const size = b.size * 12;
-                    lightsCtx.globalAlpha = glow(b, now);
-                    lightsCtx.drawImage(bulb, p.x - size / 2, p.y + b.size * 1.4 - size / 2, size, size);
+                    ctx.globalAlpha = glow(b, now);
+                    ctx.drawImage(bulb, p.x - size / 2, p.y + b.size * 1.4 - size / 2, size, size);
                 }
             }
         };
 
-        // Sized and painted apart from the rain, so the lights still hang in the street while motion is reduced.
-        const fitLights = () => {
-            lightsCanvas.width = Math.max(1, lightsCanvas.clientWidth);
-            lightsCanvas.height = LIGHTS_HEIGHT;
-            strands = stringLights(lightsCanvas.width, seeded(0x11c7));
-            paintLights(Date.now());
+        // Painted on every resize as well, so the lights still hang in the street while motion is reduced.
+        const fit = () => {
+            canvas.width = Math.max(1, canvas.clientWidth);
+            canvas.height = LIGHTS_HEIGHT;
+            strands = stringLights(canvas.width, seeded(0x11c7));
+            paint(Date.now());
         };
-        fitLights();
-        const lightsResized = new ResizeObserver(fitLights);
-        lightsResized.observe(lightsCanvas);
+        fit();
+        const resized = new ResizeObserver(fit);
+        resized.observe(canvas);
+        const sway = runTicker((now) => {
+            paint(now);
+            return LIGHTS_MS;
+        });
+        return () => {
+            sway.stop();
+            resized.disconnect();
+        };
+    });
 
+    $effect(() => {
+        const fog = fogCanvas;
+        const drops = dropsCanvas;
+        const fogCtx = fog?.getContext("2d");
+        if (!fog || !drops || !fogCtx) return;
         const drop = dropSprite();
-        const fogCtx = fogCanvas.getContext("2d");
         const fogTexture = document.createElement("canvas");
         const glassRandom = seeded(0x7a1);
         let lastFog = 0;
@@ -273,7 +300,7 @@
 
         const paintFog = (width: number, height: number) => {
             const glass = field.glass;
-            if (!fogCtx || !glass) return;
+            if (!glass) return;
             fogTexture.width = glass.cols;
             fogTexture.height = glass.rows;
             const tctx = fogTexture.getContext("2d");
@@ -291,7 +318,7 @@
             fogCtx.drawImage(fogTexture, 0, 0, glass.cols * FOG_CELL, glass.rows * FOG_CELL);
         };
 
-        const stopDrops = runCanvas(dropsCanvas, {
+        return runCanvas(drops, {
             fit(width, height) {
                 const old = field.glass;
                 if (!old || Math.abs(field.width - width) > 40 || Math.abs(field.height - height) > 40) {
@@ -299,12 +326,12 @@
                 }
                 field.width = width;
                 field.height = height;
-                fogCanvas.width = width;
-                fogCanvas.height = height;
+                fog.width = width;
+                fog.height = height;
             },
             frame(ctx, _dt, now, pointer, width, height) {
                 const glass = field.glass;
-                if (!glass) return LIGHTS_MS;
+                if (!glass) return RAIN_IDLE_MS;
                 // The shared loop hands a scene no time after a sleep this long, so the glass keeps its own clock.
                 let left = lastStep ? Math.min((now - lastStep) / 1000, 0.25) : 0;
                 lastStep = now;
@@ -319,10 +346,6 @@
                     paintFog(width, height);
                     lastFog = now;
                 }
-                if (now - lastLights >= LIGHTS_MS) {
-                    paintLights(now);
-                    lastLights = now;
-                }
                 ctx.clearRect(0, 0, width, height);
                 for (const d of glass.drops) {
                     // Drawn a little larger than the drop's water, which reads truer at these sizes.
@@ -330,10 +353,13 @@
                     const stretch = d.sliding ? 1.25 : 1;
                     ctx.drawImage(drop, d.x - size / 2, d.y - (size * stretch) / 2, size, size * stretch);
                 }
-                return busy ? BUSY_MS : LIGHTS_MS;
+                return busy ? BUSY_MS : RAIN_IDLE_MS;
             },
         });
+    });
 
+    $effect(() => {
+        if (!frames && !clock) return;
         const medallion = runTicker((now) => {
             turn = turnAt(now);
             const date = new Date(now);
@@ -343,22 +369,19 @@
             glinting = glint.active;
             return Math.min(TURN_STEP_MS - (now % TURN_STEP_MS), glint.untilChange);
         });
-
-        return () => {
-            city.stop();
-            resized.disconnect();
-            stopDrops();
-            lightsResized.disconnect();
-            medallion.stop();
-        };
+        return medallion.stop;
     });
 </script>
 
 <div class="nightshift" class:glinting class:shift>
     <canvas bind:this={cityCanvas} class="layer city"></canvas>
-    <canvas bind:this={lightsCanvas} class="lights"></canvas>
-    <canvas bind:this={fogCanvas} class="layer" data-motion></canvas>
-    <canvas bind:this={dropsCanvas} class="layer" data-motion></canvas>
+    {#if lit}
+        <canvas bind:this={lightsCanvas} class="lights"></canvas>
+    {/if}
+    {#if rain}
+        <canvas bind:this={fogCanvas} class="layer" data-motion></canvas>
+        <canvas bind:this={dropsCanvas} class="layer" data-motion></canvas>
+    {/if}
 
     <!-- Gold leaf on the glass: a stepped deco frame in every corner, after the show's own. -->
     <svg class="defs" aria-hidden="true">
@@ -416,29 +439,33 @@
         </defs>
     </svg>
 
-    {#each ["top-left", "top-right", "bottom-right", "bottom-left"] as corner (corner)}
-        <svg class="corner {corner}" viewBox="0 0 240 170">
-            <use href="#nightshift-corner" class="foil" />
-            <g mask="url(#nightshift-corner-mask)" data-motion>
-                <rect class="sheen" x="-110" y="-60" width="90" height="300" fill="url(#nightshift-sheen)" />
-            </g>
-        </svg>
-    {/each}
+    {#if frames}
+        {#each ["top-left", "top-right", "bottom-right", "bottom-left"] as corner (corner)}
+            <svg class="corner {corner}" viewBox="0 0 240 170">
+                <use href="#nightshift-corner" class="foil" />
+                <g mask="url(#nightshift-corner-mask)" data-motion>
+                    <rect class="sheen" x="-110" y="-60" width="90" height="300" fill="url(#nightshift-sheen)" />
+                </g>
+            </svg>
+        {/each}
+    {/if}
 
-    <div class="clock">
-        <span class="clock-in">Clock In</span>
-        <svg class="medal" viewBox="-64 -64 128 128">
-            <use href="#nightshift-medal" class="foil round" />
-            <g mask="url(#nightshift-medal-mask)" data-motion>
-                <rect class="sheen" x="-170" y="-80" width="60" height="160" fill="url(#nightshift-sheen)" />
-            </g>
-            <g class="hands" data-motion>
-                <line y2="-19" transform="rotate({time.hour})" />
-                <line y2="-29" class="minute" transform="rotate({time.minute})" />
-                <circle r="2.6" />
-            </g>
-        </svg>
-    </div>
+    {#if clock}
+        <div class="clock">
+            <span class="clock-in">Clock In</span>
+            <svg class="medal" viewBox="-64 -64 128 128">
+                <use href="#nightshift-medal" class="foil round" />
+                <g mask="url(#nightshift-medal-mask)" data-motion>
+                    <rect class="sheen" x="-170" y="-80" width="60" height="160" fill="url(#nightshift-sheen)" />
+                </g>
+                <g class="hands" data-motion>
+                    <line y2="-19" transform="rotate({time.hour})" />
+                    <line y2="-29" class="minute" transform="rotate({time.minute})" />
+                    <circle r="2.6" />
+                </g>
+            </svg>
+        </div>
+    {/if}
 </div>
 
 <style>
