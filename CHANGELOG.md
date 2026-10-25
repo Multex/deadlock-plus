@@ -43,6 +43,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
 
+#### Match front page
+
+- A "Front page" button in a match's details prints that match as a newspaper front page.
+- Its headlines come from the match: comebacks, first blood, Mid Boss claims, falls and top performers.
+- It carries a box score, lane report, objectives timeline and short briefs.
+- The critics' column shows the Deadlock+ grades when the match has them.
+- A weather box shows your ping when Deadlock+ recorded it for that match.
+- Save or copy the front page as an image.
+- Close it with Escape, the Close button or a click on the table.
+
 ### Changed
 
 - The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.

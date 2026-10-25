@@ -3511,6 +3511,44 @@
             "kda": "K/D/A",
             "net_worth": "Net worth",
             "grade": "Grade"
+        },
+        "open": "Front page",
+        "close": "Close",
+        "dialog": "Front page for match {id}",
+        "loading": "Printing the front page...",
+        "name": "Deadlock+ Dispatch",
+        "edition": "Match edition · No. {id}",
+        "kicker_viewer": "Your match",
+        "photo_caption": "{hero}, {kills}/{deaths}/{assists}. Hero art: Valve.",
+        "place_of": "{place} of {total}",
+        "lane": {
+            "lead": "{team} +{amount} at 10:00",
+            "even": "Even at 10:00",
+            "matchup": "{hidden_king} vs {archmother}"
+        },
+        "weather": {
+            "forecast_clear": "Clear skies",
+            "forecast_fair": "Fair",
+            "forecast_overcast": "Overcast",
+            "forecast_storm": "Stormy",
+            "ping": "{avg} ms avg · {worst} worst",
+            "jitter": "{jitter} ms jitter"
+        },
+        "objective": {
+            "short_guardian": "G",
+            "short_walker": "W",
+            "short_base_guardian": "BG",
+            "short_shrine": "S",
+            "short_patron": "P",
+            "short_core": "C",
+            "short_mid_boss": "MB",
+            "short_unknown": "O"
+        },
+        "export": {
+            "group": "Export front page",
+            "saved": "Front page image saved.",
+            "copied": "Front page image copied to the clipboard.",
+            "render_failed": "Couldn't make the front page image. Try again."
         }
     }
 }

@@ -7,6 +7,7 @@
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import ExportControl from "$lib/features/match-history/components/detail/export-control.svelte";
+    import FrontPageButton from "$lib/features/front-page/front-page-button.svelte";
     import DeepDive from "$lib/features/match-history/components/detail/deep-dive.svelte";
     import Ping from "$lib/features/match-history/components/detail/ping.svelte";
     import Replay from "$lib/features/match-history/components/detail/replay.svelte";
@@ -74,6 +75,7 @@
             {#snippet actions()}
                 <div class="flex flex-wrap items-start justify-end gap-3">
                     <ReplayStatus matchId={detail.matchId} startTime={detail.startTime} {own} />
+                    <FrontPageButton {detail} {ownAccountId} />
                     <ExportControl node={boardNode} {detail} {ownAccountId} />
                 </div>
             {/snippet}
