@@ -1,6 +1,7 @@
 import { editionKey, indexKey } from "@deadlock-plus/stats/dispatch/archive";
 import type { DispatchIndex, Edition, EditionWindow, Enrichment } from "@deadlock-plus/stats/dispatch/types";
-import { windowFor } from "@deadlock-plus/stats/dispatch/window";
+import { KNOWN_SEASONS } from "@deadlock-plus/stats/dispatch/seasons";
+import { collectorsWindow, windowFor } from "@deadlock-plus/stats/dispatch/window";
 import type { Match } from "@deadlock-plus/stats/stats";
 import { describe, expect, it, vi, type Mock } from "vitest";
 import { alertWhen, createDispatchService, type DispatchDeps } from "./service";
@@ -42,6 +43,22 @@ const HISTORY: Match[] = [
     match(8, oct(22)),
 ];
 
+const SEASON_1 = KNOWN_SEASONS[0];
+/** 2026-05-01 to the start of Beta Season 1. */
+const SEASON_0 = { id: "season_0", name: "Preseason", startS: Date.UTC(2026, 4, 1) / 1000, endS: SEASON_1.startS };
+
+/** `/v1/assets/ranked-seasons` as served: Beta Season 1 has a bogus second interval running to 2028. */
+const RANKED_SEASONS = [
+    {
+        class_name: "season_1",
+        name: "Beta Season 1",
+        intervals: [
+            { interval: 1, start_timestamp: SEASON_1.startS, end_timestamp: SEASON_1.endS },
+            { interval: 2, start_timestamp: SEASON_1.endS, end_timestamp: 1_830_326_400 },
+        ],
+    },
+];
+
 const ENRICHED: Enrichment = {
     mates: [{ accountId: 7, name: "Mate", matches: 4, wins: 3 }],
     enemies: [],
@@ -49,8 +66,9 @@ const ENRICHED: Enrichment = {
     grades: [],
 };
 
-type FakeDeps = Omit<DispatchDeps, "history" | "enrich" | "notify"> & {
+type FakeDeps = Omit<DispatchDeps, "history" | "enrich" | "notify" | "rankedSeasons"> & {
     history: Mock<DispatchDeps["history"]>;
+    rankedSeasons: Mock<DispatchDeps["rankedSeasons"]>;
     enrich: Mock<DispatchDeps["enrich"]>;
     notify: Mock<DispatchDeps["notify"]>;
 };
@@ -74,6 +92,7 @@ function fakeDeps(over: Partial<FakeDeps> = {}, history: Match[] = HISTORY) {
         kv,
         enrich: vi.fn(async () => ENRICHED),
         notify: vi.fn(async () => {}),
+        rankedSeasons: vi.fn(async (): Promise<unknown> => RANKED_SEASONS),
         ...over,
     };
     const read = <T>(key: string) => {
@@ -279,7 +298,7 @@ describe("view", () => {
 
     it("has no shelf without history", async () => {
         const view = await createDispatchService(fakeDeps({}, []).deps).view();
-        expect(view?.shelf).toEqual({ weekly: [], monthly: [] });
+        expect(view?.shelf).toEqual({ weekly: [], monthly: [], collectors: [], year_end: [] });
     });
 
     it("has no edition so far under three matches this week", async () => {
@@ -304,5 +323,141 @@ describe("view", () => {
 
     it("is null while the account is unknown", async () => {
         expect(await createDispatchService(fakeDeps({ accountId: () => null }).deps).view()).toBeNull();
+    });
+});
+
+describe("specials", () => {
+    const ranked = (matchId: number, startTime: number): Match => ({ ...match(matchId, startTime), matchMode: 4 });
+    const at = (y: number, m: number, d: number, h = 18) => Date.UTC(y, m - 1, d, h) / 1000;
+    /** Thursday 2026-11-05 23:00 UTC, an hour after Beta Season 1 ended. */
+    const SEASON_OVER = at(2026, 11, 5, 23);
+    /** Three ranked matches in Preseason, four in Beta Season 1 plus one unranked. */
+    const SEASON_HISTORY: Match[] = [
+        ranked(21, at(2026, 6, 10)),
+        ranked(22, at(2026, 6, 11)),
+        ranked(23, at(2026, 6, 12)),
+        ranked(24, at(2026, 8, 3)),
+        match(25, at(2026, 8, 4)),
+        ranked(26, at(2026, 9, 9)),
+        ranked(27, at(2026, 10, 14)),
+        ranked(28, at(2026, 11, 4)),
+    ];
+    const kindCalls = (f: ReturnType<typeof fakeDeps>, kind: string) =>
+        f.deps.notify.mock.calls.filter(([k]) => k === kind);
+
+    it("issues the Collector's Copy when the season ends, with its season, and announces it once", async () => {
+        const f = fakeDeps({ nowS: () => SEASON_OVER }, SEASON_HISTORY);
+        const service = createDispatchService(f.deps);
+        const issued = await service.issueDue();
+
+        const copy = issued.find((e) => e.window.kind === "collectors");
+        expect([copy?.id, copy?.window.startS, copy?.window.endS, copy?.stats.matches]).toEqual([
+            "collectors-season_1",
+            SEASON_1.startS,
+            SEASON_1.endS,
+            4,
+        ]);
+        expect(copy?.season).toEqual(SEASON_1);
+        expect(f.frozen("collectors-season_1")?.season).toEqual(SEASON_1);
+        expect(await service.issueDue()).toEqual([]);
+        expect(kindCalls(f, "collectors")).toEqual([["collectors"]]);
+    });
+
+    it("is not due before the season ends", async () => {
+        const f = fakeDeps({ nowS: () => SEASON_1.endS - 60 }, SEASON_HISTORY);
+        const issued = await createDispatchService(f.deps).issueDue();
+        expect(issued.map((e) => e.window.kind)).not.toContain("collectors");
+        expect(f.index()?.skipped ?? []).not.toContain("collectors-season_1");
+    });
+
+    it("issues only the newest ended season and offers the older one on the shelf", async () => {
+        const fromApi = [
+            ...RANKED_SEASONS,
+            {
+                class_name: "season_0",
+                name: "Preseason",
+                intervals: [{ interval: 1, start_timestamp: SEASON_0.startS, end_timestamp: SEASON_0.endS }],
+            },
+        ];
+        const f = fakeDeps({ nowS: () => SEASON_OVER, rankedSeasons: vi.fn(async () => fromApi) }, SEASON_HISTORY);
+        const service = createDispatchService(f.deps);
+        const issued = await service.issueDue();
+        const copy = issued.find((e) => e.window.kind === "collectors");
+        expect(issued.filter((e) => e.window.kind === "collectors").map((e) => e.id)).toEqual(["collectors-season_1"]);
+
+        const view = await service.view();
+        expect(view?.shelf.collectors.map((e) => [e.window.id, e.status, e.matches, e.number])).toEqual([
+            ["collectors-season_1", "issued", 4, copy?.number],
+            ["collectors-season_0", "printable", 3, null],
+        ]);
+        expect(view?.latest.collectors?.id).toBe("collectors-season_1");
+
+        const old = await service.print(collectorsWindow(SEASON_0, TZ));
+        expect([old?.id, old?.season, old?.stats.matches]).toEqual(["collectors-season_0", SEASON_0, 3]);
+        expect(f.index()?.issued.find((e) => e.id === "collectors-season_0")?.onRequest).toBe(true);
+        expect(kindCalls(f, "collectors")).toEqual([["collectors"]]);
+    });
+
+    it("falls back to the pinned seasons when the asset fails", async () => {
+        const down = vi.fn(async (): Promise<unknown> => Promise.reject(new Error("down")));
+        const f = fakeDeps({ nowS: () => SEASON_OVER, rankedSeasons: down }, SEASON_HISTORY);
+        const issued = await createDispatchService(f.deps).issueDue();
+        expect(issued.find((e) => e.window.kind === "collectors")?.season).toEqual(SEASON_1);
+    });
+
+    it("fetches the season asset once per session", async () => {
+        const f = fakeDeps({ nowS: () => SEASON_OVER }, SEASON_HISTORY);
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+        await service.view();
+        await service.print(collectorsWindow(SEASON_1, TZ));
+        expect(f.deps.rankedSeasons).toHaveBeenCalledTimes(1);
+    });
+
+    it("issues the Year-End Special on Dec 1 for Jan 1 to Dec 1", async () => {
+        const f = fakeDeps({ nowS: () => at(2026, 12, 1, 0) + 1800 }, SEASON_HISTORY);
+        const service = createDispatchService(f.deps);
+        const issued = await service.issueDue();
+
+        const special = issued.find((e) => e.window.kind === "year_end");
+        expect([special?.id, special?.window.startS, special?.window.endS, special?.stats.matches]).toEqual([
+            "year_end-2026",
+            at(2026, 1, 1, 0),
+            at(2026, 12, 1, 0),
+            8,
+        ]);
+        expect(special?.season).toBeNull();
+        expect(kindCalls(f, "year_end")).toEqual([["year_end"]]);
+
+        const view = await service.view();
+        expect(view?.latest.year_end?.id).toBe("year_end-2026");
+        expect(view?.shelf.year_end.map((e) => [e.window.id, e.status, e.number])).toEqual([
+            ["year_end-2026", "issued", special?.number],
+        ]);
+    });
+
+    it("issues no Year-End Special in October", async () => {
+        const f = fakeDeps({}, [...HISTORY, ...SEASON_HISTORY]);
+        const issued = await createDispatchService(f.deps).issueDue();
+        expect(issued.map((e) => e.window.kind)).not.toContain("year_end");
+        expect(f.index()?.skipped.filter((id) => id.startsWith("year_end"))).toEqual([]);
+    });
+
+    it("prints a past year on request", async () => {
+        const lastYear = [match(31, at(2025, 3, 2)), match(32, at(2025, 7, 9)), match(33, at(2025, 11, 30))];
+        const now = at(2026, 12, 2, 12);
+        const f = fakeDeps({ nowS: () => now }, [...lastYear, ...SEASON_HISTORY]);
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+
+        const view = await service.view();
+        expect(view?.shelf.year_end.map((e) => [e.window.id, e.status, e.matches])).toEqual([
+            ["year_end-2026", "issued", 8],
+            ["year_end-2025", "printable", 3],
+        ]);
+        const printed = await service.print(view!.shelf.year_end[1].window);
+        expect([printed?.id, printed?.stats.matches, printed?.issuedAt]).toEqual(["year_end-2025", 3, now]);
+        expect(f.index()?.issued.find((e) => e.id === "year_end-2025")?.onRequest).toBe(true);
+        expect(kindCalls(f, "year_end")).toEqual([["year_end"]]);
     });
 });

@@ -1,4 +1,4 @@
-import type { DispatchIndex, IssuedEntry } from "./types";
+import type { DispatchIndex, EditionKind, IssuedEntry } from "./types";
 
 export function indexKey(accountId: number): string {
     return `dispatch:${accountId}:index`;
@@ -11,10 +11,13 @@ export function editionKey(accountId: number, editionId: string): string {
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
+const KINDS: readonly unknown[] = ["weekly", "monthly", "collectors", "year_end"] satisfies EditionKind[];
+const isKind = (v: unknown): v is EditionKind => KINDS.includes(v);
+
 function parseEntry(raw: unknown): IssuedEntry | null {
     if (!isRecord(raw)) return null;
     const { id, kind, number, issuedAt, startS, endS, matches, onRequest } = raw;
-    if (typeof id !== "string" || (kind !== "weekly" && kind !== "monthly")) return null;
+    if (typeof id !== "string" || !isKind(kind)) return null;
     if (!isNum(number) || !isNum(issuedAt) || !isNum(startS) || !isNum(endS) || !isNum(matches)) return null;
     if (typeof onRequest !== "boolean") return null;
     return { id, kind, number, issuedAt, startS, endS, matches, onRequest };

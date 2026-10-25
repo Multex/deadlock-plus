@@ -339,6 +339,8 @@ fn dispatch_edition_key(edition: &str) -> Result<&'static str, String> {
     match edition {
         "weekly" => Ok("notifications.dispatch_weekly"),
         "monthly" => Ok("notifications.dispatch_monthly"),
+        "collectors" => Ok("notifications.dispatch_collectors"),
+        "year_end" => Ok("notifications.dispatch_year_end"),
         other => Err(format!("unknown Dispatch edition: {other:?}")),
     }
 }
@@ -471,11 +473,13 @@ mod tests {
     fn each_dispatch_edition_has_its_own_text_key() {
         assert_eq!(dispatch_edition_key("weekly"), Ok("notifications.dispatch_weekly"));
         assert_eq!(dispatch_edition_key("monthly"), Ok("notifications.dispatch_monthly"));
+        assert_eq!(dispatch_edition_key("collectors"), Ok("notifications.dispatch_collectors"));
+        assert_eq!(dispatch_edition_key("year_end"), Ok("notifications.dispatch_year_end"));
     }
 
     #[test]
     fn an_unknown_dispatch_edition_is_refused() {
-        for edition in ["", "Weekly", "season", "weekly ", "year-end"] {
+        for edition in ["", "Weekly", "season", "weekly ", "year-end", "Collectors", "collector"] {
             assert!(dispatch_edition_key(edition).is_err(), "{edition:?}");
         }
     }
@@ -511,6 +515,8 @@ mod tests {
             "notifications.break_reminder",
             "notifications.dispatch_weekly",
             "notifications.dispatch_monthly",
+            "notifications.dispatch_collectors",
+            "notifications.dispatch_year_end",
         ] {
             for part in ["title", "body"] {
                 let full = format!("{key}.{part}");

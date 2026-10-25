@@ -22,6 +22,7 @@ describe("createDeadlockApi", () => {
         await api.heroes();
         await api.items();
         await api.ranks();
+        await api.rankedSeasons();
         await api.playerMatchHistory(77);
         await api.playerRank(77);
         await api.steamProfiles([1, 2, 3]);
@@ -31,6 +32,7 @@ describe("createDeadlockApi", () => {
             [`${BASE}/assets/heroes`],
             [`${BASE}/assets/items`],
             [`${BASE}/assets/ranks`],
+            [`${BASE}/assets/ranked-seasons`],
             [`${BASE}/players/77/match-history`],
             [`${BASE}/players/77/rank`],
             [`${BASE}/players/steam?account_ids=1,2,3`],
@@ -95,6 +97,7 @@ describe("createDeadlockApi", () => {
             () => api.heroes(),
             () => api.items(),
             () => api.ranks(),
+            () => api.rankedSeasons(),
             () => api.playerRank(1),
             () => api.steamProfiles([1]),
             () => api.searchSteamProfiles("x", 1),
@@ -368,6 +371,16 @@ describe("createDeadlockApi", () => {
             expect(fetch.mock.calls).toEqual([
                 [
                     `${BASE}/players/hero-stats?account_ids=501&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799`,
+                ],
+            ]);
+        });
+
+        it("narrows hero-stats to the given match modes", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.playerHeroStats(501, { ...window, matchMode: ["ranked"] });
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/hero-stats?account_ids=501&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799&match_mode=ranked`,
                 ],
             ]);
         });

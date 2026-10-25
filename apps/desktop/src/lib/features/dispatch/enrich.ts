@@ -118,8 +118,10 @@ export async function enrichEdition(
     deps: EnrichDeps,
 ): Promise<Enrichment> {
     const range = { minS: window.startS, maxS: window.endS - 1 };
+    // A Collector's Copy covers ranked games only; mate-stats and enemy-stats take no mode filter.
+    const heroRange = window.kind === "collectors" ? { ...range, matchMode: ["ranked"] } : range;
     const [heroCombat, grades, people] = await Promise.all([
-        attempt(async () => parseHeroCombat(await deps.api.playerHeroStats(accountId, range), accountId)),
+        attempt(async () => parseHeroCombat(await deps.api.playerHeroStats(accountId, heroRange), accountId)),
         Promise.all(candidates.map((m) => gradeCandidate(m, accountId, deps))),
         companions(range, accountId, deps),
     ]);

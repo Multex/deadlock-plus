@@ -1,9 +1,10 @@
 import { untrack } from "svelte";
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { kvGet, kvSet } from "$lib/core/kv";
 import { settings } from "$lib/features/settings/settings.svelte";
 import { stats } from "$lib/features/stats/stats.svelte";
 import { steamAccount } from "$lib/features/steam-account/account.svelte";
-import type { Edition, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
+import type { Edition, EditionKind, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import { notifyDispatchEdition } from "./api";
 import { defaultEnrichDeps, enrichEdition } from "./enrich";
 import { alertWhen, createDispatchService, type DispatchHistory, type DispatchView, type ShelfEntry } from "./service";
@@ -46,19 +47,28 @@ const service = createDispatchService({
         () => settings.dispatchAlerts,
         (kind) => notifyDispatchEdition(kind),
     ),
+    rankedSeasons: () => deadlockApi.rankedSeasons(),
 });
+
+const noLatest = (): Record<EditionKind, Edition | null> => ({
+    weekly: null,
+    monthly: null,
+    collectors: null,
+    year_end: null,
+});
+const noShelf = (): Record<EditionKind, ShelfEntry[]> => ({ weekly: [], monthly: [], collectors: [], year_end: [] });
 
 export type DispatchStatus = "idle" | "loading" | "ready" | "error";
 
 class DispatchStore {
     status = $state<DispatchStatus>("idle");
     /** Newest issued edition of each kind (frozen), loaded from kv. */
-    latest = $state.raw<{ weekly: Edition | null; monthly: Edition | null }>({ weekly: null, monthly: null });
+    latest = $state.raw<Record<EditionKind, Edition | null>>(noLatest());
     /** "This week so far": rows only, no API calls; null under MIN_EDITION_MATCHES. */
     soFar = $state.raw<Edition | null>(null);
     soFarMatches = $state(0);
     /** Closed windows newest first, back to the first history row. */
-    shelf = $state.raw<{ weekly: ShelfEntry[]; monthly: ShelfEntry[] }>({ weekly: [], monthly: [] });
+    shelf = $state.raw<Record<EditionKind, ShelfEntry[]>>(noShelf());
     /** Automatic issues not opened yet (nav badge). */
     unseen = $state(0);
     /** Which ones, newest first. */
@@ -128,10 +138,10 @@ class DispatchStore {
     }
 
     private apply(view: DispatchView | null) {
-        this.latest = view?.latest ?? { weekly: null, monthly: null };
+        this.latest = view?.latest ?? noLatest();
         this.soFar = view?.soFar ?? null;
         this.soFarMatches = view?.soFarMatches ?? 0;
-        this.shelf = view?.shelf ?? { weekly: [], monthly: [] };
+        this.shelf = view?.shelf ?? noShelf();
         this.unseen = view?.unseen ?? 0;
         this.unseenIds = view?.unseenIds ?? [];
     }

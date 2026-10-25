@@ -747,6 +747,14 @@
         "dispatch_monthly": {
             "title": "Deadlock+ Dispatch",
             "body": "Last month's Monthly Edition is out. Read it in Deadlock+."
+        },
+        "dispatch_collectors": {
+            "title": "Deadlock+ Dispatch",
+            "body": "The season is over. Your Collector's Copy is out. Read it in Deadlock+."
+        },
+        "dispatch_year_end": {
+            "title": "Deadlock+ Dispatch",
+            "body": "Your Year-End Special is out. Read it in Deadlock+."
         }
     },
     "admin_access": {

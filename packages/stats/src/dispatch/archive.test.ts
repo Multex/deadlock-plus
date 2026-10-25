@@ -54,6 +54,14 @@ describe("parseIndex", () => {
         expect(parseIndex(JSON.parse(JSON.stringify(good)))).toEqual(good);
     });
 
+    it("keeps Collector's Copy and Year-End Special entries", () => {
+        const good = index([
+            entry("year_end-2026", 300, { kind: "year_end" }),
+            entry("collectors-season_1", 200, { kind: "collectors" }),
+        ]);
+        expect(parseIndex(JSON.parse(JSON.stringify(good)))).toEqual(good);
+    });
+
     it("drops malformed entries and fills missing fields", () => {
         const ok = entry("weekly-2026-10-19", 200);
         const raw = {

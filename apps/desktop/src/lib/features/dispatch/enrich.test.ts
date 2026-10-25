@@ -104,6 +104,15 @@ describe("enrichEdition requests", () => {
         expect(api.enemyStats.mock.calls).toEqual([[ME, window]]);
     });
 
+    it("counts ranked games only in a Collector's Copy's hero stats, and people over every mode", async () => {
+        const { deps, api } = makeDeps();
+        await enrichEdition({ ...WINDOW, kind: "collectors", id: "collectors-season_1" }, ME, [], deps);
+        const window = { minS: 1_791_000_000, maxS: 1_791_604_799 };
+        expect(api.playerHeroStats.mock.calls).toEqual([[ME, { ...window, matchMode: ["ranked"] }]]);
+        expect(api.mateStats.mock.calls).toEqual([[ME, window]]);
+        expect(api.enemyStats.mock.calls).toEqual([[ME, window]]);
+    });
+
     it("grades each candidate once and nothing else", async () => {
         const { deps, gradeMatch } = makeDeps();
         await enrichEdition(WINDOW, ME, [match(11), match(12), match(13)], deps);

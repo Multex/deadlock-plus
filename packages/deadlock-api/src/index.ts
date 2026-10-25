@@ -30,6 +30,7 @@ export {
     type MatchHistoryResponse,
     type PerformanceCurvePoint,
     type PlayerEnemyStats,
+    type PlayerHeroStatsQuery,
     type PlayerHeroStatsRow,
     type PlayerMateStats,
     type PlayerRank,

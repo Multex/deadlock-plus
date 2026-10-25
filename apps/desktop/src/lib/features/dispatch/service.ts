@@ -10,6 +10,7 @@ import {
     unseenIds,
 } from "@deadlock-plus/stats/dispatch/archive";
 import { bestGameCandidates, buildEdition, windowRows } from "@deadlock-plus/stats/dispatch/edition";
+import { KNOWN_SEASONS, mergeSeasons, parseRankedSeasons } from "@deadlock-plus/stats/dispatch/seasons";
 import {
     BEST_GAME_CANDIDATES,
     EDITION_SCHEMA,
@@ -19,8 +20,9 @@ import {
     type EditionKind,
     type EditionWindow,
     type Enrichment,
+    type RankedSeason,
 } from "@deadlock-plus/stats/dispatch/types";
-import { dueWindow, pastWindows, soFarWindow } from "@deadlock-plus/stats/dispatch/window";
+import { collectorsWindow, dueWindow, pastWindows, soFarWindow } from "@deadlock-plus/stats/dispatch/window";
 import type { Match } from "@deadlock-plus/stats/stats";
 
 export type ShelfStatus = "issued" | "printable" | "too_few";
@@ -36,10 +38,10 @@ export interface ShelfEntry {
 }
 
 export interface DispatchView {
-    latest: { weekly: Edition | null; monthly: Edition | null };
+    latest: Record<EditionKind, Edition | null>;
     soFar: Edition | null;
     soFarMatches: number;
-    shelf: { weekly: ShelfEntry[]; monthly: ShelfEntry[] };
+    shelf: Record<EditionKind, ShelfEntry[]>;
     unseen: number;
     /** Unseen automatic issues, newest first. */
     unseenIds: string[];
@@ -59,10 +61,12 @@ export interface DispatchDeps {
     kv: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
     enrich(window: EditionWindow, accountId: number, candidates: readonly Match[]): Promise<Enrichment>;
     notify(kind: EditionKind): Promise<void>;
+    /** The body of `/v1/assets/ranked-seasons`. */
+    rankedSeasons(): Promise<unknown>;
 }
 
 export interface DispatchService {
-    /** Issues the newest closed week and month when due; resolves with what it issued. */
+    /** Issues the newest closed window of each kind when due; resolves with what it issued. */
     issueDue(): Promise<Edition[]>;
     print(window: EditionWindow): Promise<Edition | null>;
     open(editionId: string): Promise<Edition | null>;
@@ -70,7 +74,7 @@ export interface DispatchService {
     view(): Promise<DispatchView | null>;
 }
 
-const KINDS: readonly EditionKind[] = ["weekly", "monthly"];
+const KINDS: readonly EditionKind[] = ["weekly", "monthly", "collectors", "year_end"];
 const NO_ENRICHMENT: Enrichment = { mates: null, enemies: null, heroCombat: null, grades: null };
 
 /** The settings gate for new-edition notifications; the issue itself never depends on it. */
@@ -93,6 +97,18 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
     };
     let issuing: Promise<Edition[]> | null = null;
 
+    let seasons: Promise<RankedSeason[]> | null = null;
+    // Fetched once per session; a failed fetch falls back to the pinned table and is retried on the next call.
+    function loadSeasons(): Promise<RankedSeason[]> {
+        seasons ??= deps.rankedSeasons().then((body) => mergeSeasons(KNOWN_SEASONS, parseRankedSeasons(body)));
+        return seasons.catch(() => {
+            seasons = null;
+            return [...KNOWN_SEASONS];
+        });
+    }
+    const seasonOf = (window: EditionWindow, list: readonly RankedSeason[]) =>
+        list.find((s) => collectorsWindow(s, window.tz).id === window.id);
+
     const readIndex = async (accountId: number) => parseIndex(await deps.kv.get(indexKey(accountId)));
     const saveIndex = (accountId: number, index: DispatchIndex) => deps.kv.set(indexKey(accountId), index);
 
@@ -106,7 +122,10 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         window: EditionWindow,
         history: readonly Match[],
         onRequest: boolean,
+        season: RankedSeason | undefined,
     ): Promise<Edition | null> {
+        // A Collector's Copy is frozen for good, so one is never issued without the season it names.
+        if (window.kind === "collectors" && !season) return null;
         const rows = windowRows(history, window);
         if (rows.length < MIN_EDITION_MATCHES) return null;
         const candidates = bestGameCandidates(rows, BEST_GAME_CANDIDATES);
@@ -121,6 +140,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
             accountId,
             history,
             enrichment,
+            season,
             number: nextNumber(index),
             issuedAt: now,
         });
@@ -149,16 +169,17 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         const history = await deps.history(accountId);
         // A saved copy can miss last week's games, and a window wrongly skipped is never offered automatically again.
         if (!history.live) return [];
+        const known = await loadSeasons();
         const issued: Edition[] = [];
         for (const kind of KINDS) {
             const index = await readIndex(accountId);
-            const window = dueWindow(kind, deps.nowS(), deps.tz(), index);
+            const window = dueWindow(kind, deps.nowS(), deps.tz(), index, known);
             if (!window) continue;
             if (windowRows(history.matches, window).length < MIN_EDITION_MATCHES) {
                 await saveIndex(accountId, recordSkipped(index, window.id));
                 continue;
             }
-            const edition = await issue(accountId, window, history.matches, false);
+            const edition = await issue(accountId, window, history.matches, false, seasonOf(window, known));
             if (edition) issued.push(edition);
         }
         return issued;
@@ -186,7 +207,8 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
                 if (frozen) return frozen;
             }
             const history = await deps.history(accountId);
-            return issue(accountId, window, history.matches, true);
+            const season = window.kind === "collectors" ? seasonOf(window, await loadSeasons()) : undefined;
+            return issue(accountId, window, history.matches, true, season);
         });
     }
 
@@ -206,7 +228,11 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
     async function view(): Promise<DispatchView | null> {
         const accountId = deps.accountId();
         if (accountId === null) return null;
-        const [index, history] = await Promise.all([readIndex(accountId), deps.history(accountId)]);
+        const [index, history, known] = await Promise.all([
+            readIndex(accountId),
+            deps.history(accountId),
+            loadSeasons(),
+        ]);
         const matches = history.matches;
         const now = deps.nowS();
         const tz = deps.tz();
@@ -214,7 +240,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
 
         const shelfOf = (kind: EditionKind): ShelfEntry[] => {
             if (!Number.isFinite(firstS)) return [];
-            return pastWindows(kind, now, tz, firstS).map((window) => {
+            return pastWindows(kind, now, tz, firstS, known).map((window) => {
                 const entry = index.issued.find((e) => e.id === window.id);
                 const count = windowRows(matches, window).length;
                 const status: ShelfStatus = entry ? "issued" : count < MIN_EDITION_MATCHES ? "too_few" : "printable";
@@ -233,9 +259,9 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         };
 
         const live = soFarWindow(now, tz);
-        const [weekly, monthly] = await Promise.all([latestOf("weekly"), latestOf("monthly")]);
+        const [weekly, monthly, collectors, year_end] = await Promise.all(KINDS.map(latestOf));
         return {
-            latest: { weekly, monthly },
+            latest: { weekly, monthly, collectors, year_end },
             soFar: buildEdition({
                 window: live,
                 accountId,
@@ -245,7 +271,12 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
                 issuedAt: null,
             }),
             soFarMatches: windowRows(matches, live).length,
-            shelf: { weekly: shelfOf("weekly"), monthly: shelfOf("monthly") },
+            shelf: {
+                weekly: shelfOf("weekly"),
+                monthly: shelfOf("monthly"),
+                collectors: shelfOf("collectors"),
+                year_end: shelfOf("year_end"),
+            },
             unseen: unseenCount(index),
             unseenIds: unseenIds(index),
         };

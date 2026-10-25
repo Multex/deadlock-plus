@@ -117,6 +117,11 @@ export interface PlayerStatsWindow {
     maxS: number;
 }
 
+export interface PlayerHeroStatsQuery extends PlayerStatsWindow {
+    /** The API defaults to `ranked,unranked`. */
+    matchMode?: readonly string[];
+}
+
 export interface MatchHistoryResponse {
     ok: boolean;
     status: number;
@@ -333,6 +338,8 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
 
         ranks: () => json<unknown>("/assets/ranks"),
 
+        rankedSeasons: () => json<unknown>("/assets/ranked-seasons"),
+
         /** Never rejects on a status: a rate-limited response still carries the stored history in its body. */
         async playerMatchHistory(accountId: number): Promise<MatchHistoryResponse> {
             const res = await send(`/players/${accountId}/match-history`);
@@ -383,8 +390,12 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
             json<PlayerRank[]>(`/players/rank?account_ids=${accountIds.join(",")}`),
 
         /** Rate limit 100 req/s per IP. Covers only matches the API holds metadata for. */
-        playerHeroStats: (accountId: number, window: PlayerStatsWindow) =>
-            json<PlayerHeroStatsRow[]>(`/players/hero-stats?account_ids=${accountId}&${windowQuery(window)}`),
+        playerHeroStats: (accountId: number, query: PlayerHeroStatsQuery) =>
+            json<PlayerHeroStatsRow[]>(
+                `/players/hero-stats?account_ids=${accountId}&${windowQuery(query)}${
+                    query.matchMode?.length ? `&match_mode=${query.matchMode.join(",")}` : ""
+                }`,
+            ),
 
         /** Players who were in the viewer's party, as the API defines a party. Rate limit 100 req/s per IP. */
         mateStats: (accountId: number, window: PlayerStatsWindow) =>
