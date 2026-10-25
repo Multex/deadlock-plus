@@ -56,6 +56,61 @@ describe("themeCss", () => {
         expect(css).not.toContain(':root[data-theme="dusk"] .noir-panel');
     });
 
+    it("gives each variant but the default its own block under the theme, switching the colour scheme where it differs", () => {
+        const flavoured = {
+            ...data,
+            themes: [
+                ...data.themes,
+                {
+                    id: "cafe",
+                    light: false,
+                    defaultVariant: "dark",
+                    tokens: { background: "oklch(0.2 0 0)" },
+                    variants: [
+                        {
+                            id: "milk",
+                            name: "Milk",
+                            light: true,
+                            tokens: { background: "oklch(0.95 0 0)" },
+                            accents: {},
+                        },
+                        { id: "roast", name: "Roast", tokens: { background: "oklch(0.15 0 0)" }, accents: {} },
+                        { id: "dark", name: "Dark", accents: {} },
+                    ],
+                },
+            ],
+        };
+        const css = themeCss(flavoured);
+
+        const milk = block(css, ':root[data-theme="cafe"][data-theme-variant="milk"]');
+        expect(milk).toContain("color-scheme: light;");
+        expect(milk).toContain("--background: oklch(0.95 0 0);");
+        const roast = block(css, ':root[data-theme="cafe"][data-theme-variant="roast"]');
+        expect(roast).toContain("--background: oklch(0.15 0 0);");
+        expect(roast).not.toContain("color-scheme");
+        expect(css).not.toContain('[data-theme-variant="dark"]');
+    });
+
+    it("leaves every other theme's CSS as it was when a theme with variants joins", () => {
+        const withVariants = {
+            ...data,
+            themes: [
+                ...data.themes,
+                {
+                    id: "cafe",
+                    light: false,
+                    tokens: {},
+                    variants: [{ id: "milk", name: "Milk", light: true, tokens: {}, accents: {} }],
+                },
+            ],
+        };
+
+        for (const theme of data.themes) {
+            const selector = theme.id === data.default ? ":root" : `:root[data-theme="${theme.id}"]`;
+            expect(block(themeCss(withVariants), selector), theme.id).toBe(block(themeCss(data), selector));
+        }
+    });
+
     it("rejects data whose default theme is missing", () => {
         expect(() => themeCss({ ...data, default: "neon" })).toThrow(/neon/);
     });
@@ -68,5 +123,16 @@ describe("theme-tokens.css", () => {
         const committed = read("../packages/ui/src/theme-tokens.css").replaceAll("\r\n", "\n");
 
         expect(committed).toBe(themeCss(JSON.parse(read("../packages/ui/src/themes.json"))));
+    });
+
+    it("draws every theme without variants exactly as it would if no theme had variants", () => {
+        const real = JSON.parse(read("../packages/ui/src/themes.json"));
+        const plain = { ...real, themes: real.themes.filter((theme) => !theme.variants) };
+
+        expect(plain.themes.map((theme) => theme.id)).toContain("pretty-in-pink");
+        for (const theme of plain.themes) {
+            const selector = theme.id === real.default ? ":root" : `:root[data-theme="${theme.id}"]`;
+            expect(block(themeCss(real), selector), theme.id).toBe(block(themeCss(plain), selector));
+        }
     });
 });

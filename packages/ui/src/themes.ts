@@ -2,6 +2,18 @@ import data from "./themes.json";
 
 export type ThemeId = string;
 
+/** One palette a theme comes in, like Catppuccin's flavours. */
+export interface ThemeVariant {
+    id: string;
+    /** Shown as is in every language: variants are named by their source. */
+    name: string;
+    light: boolean;
+    /** Every token, filled from the theme and then the default theme. */
+    tokens: Record<string, string>;
+    /** The accents this variant offers by name, in its own exact colours. */
+    accents: Record<string, string>;
+}
+
 export interface Theme {
     id: ThemeId;
     light: boolean;
@@ -14,8 +26,13 @@ export interface Theme {
     source?: string;
     /** Whether the theme takes an accent of the user's own; off where the palette is the point. */
     customAccent: boolean;
-    /** Every token, with the ones this theme leaves out filled from the default theme. */
+    /** Every token, with the ones this theme leaves out filled from the default theme; its default variant's. */
     tokens: Record<string, string>;
+    /** Empty for a theme that comes in one palette. */
+    variants: ThemeVariant[];
+    defaultVariant?: string;
+    /** The named accent each variant's own tokens are drawn with. */
+    defaultAccent?: string;
 }
 
 interface ThemeFile {
@@ -28,7 +45,16 @@ interface ThemeFile {
         effects?: string[];
         source?: string;
         customAccent?: boolean;
+        defaultVariant?: string;
+        defaultAccent?: string;
         tokens: Record<string, string>;
+        variants?: {
+            id: string;
+            name: string;
+            light?: boolean;
+            tokens?: Record<string, string>;
+            accents: Record<string, string>;
+        }[];
     }[];
 }
 
@@ -37,23 +63,48 @@ const base = file.themes.find((t) => t.id === file.default);
 
 export const DEFAULT_THEME: ThemeId = file.default;
 
-export const THEMES: readonly Theme[] = file.themes.map((t) => ({
-    id: t.id,
-    light: t.light,
-    grain: t.grain ?? true,
-    spotlight: t.spotlight ?? false,
-    effects: t.effects ?? [],
-    source: t.source,
-    customAccent: t.customAccent ?? true,
-    tokens: { ...base?.tokens, ...t.tokens },
-}));
+export const THEMES: readonly Theme[] = file.themes.map((t) => {
+    const tokens = { ...base?.tokens, ...t.tokens };
+    return {
+        id: t.id,
+        light: t.light,
+        grain: t.grain ?? true,
+        spotlight: t.spotlight ?? false,
+        effects: t.effects ?? [],
+        source: t.source,
+        customAccent: t.customAccent ?? true,
+        tokens,
+        variants: (t.variants ?? []).map((v) => ({
+            id: v.id,
+            name: v.name,
+            light: v.light ?? t.light,
+            tokens: { ...tokens, ...v.tokens },
+            accents: v.accents,
+        })),
+        defaultVariant: t.defaultVariant,
+        defaultAccent: t.defaultAccent,
+    };
+});
 
 export function resolveTheme(value: unknown): ThemeId {
     return THEMES.find((t) => t.id === value)?.id ?? DEFAULT_THEME;
 }
 
-export function isLightTheme(id: ThemeId): boolean {
-    return THEMES.find((t) => t.id === id)?.light ?? false;
+/** `value` when the theme has that variant, else its default; none for a theme without variants. */
+export function resolveVariant(theme: Theme, value: unknown): string | undefined {
+    if (!theme.variants.length) return undefined;
+    return theme.variants.find((v) => v.id === value)?.id ?? theme.defaultVariant ?? theme.variants[0]?.id;
+}
+
+/** The theme as one of its variants draws it, so contrast checks and swatches read that variant's colours. */
+export function themeVariant(theme: Theme, id?: string): Theme {
+    const variant = theme.variants.find((v) => v.id === resolveVariant(theme, id));
+    return variant ? { ...theme, light: variant.light, tokens: variant.tokens } : theme;
+}
+
+export function isLightTheme(id: ThemeId, variant?: string): boolean {
+    const theme = THEMES.find((t) => t.id === id);
+    return theme ? themeVariant(theme, variant).light : false;
 }
 
 /** Background, card, brass and primary, drawn in the picker swatch. */

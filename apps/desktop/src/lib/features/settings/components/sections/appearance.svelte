@@ -9,7 +9,7 @@
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { THEMES, resolveMotionPreference } from "$lib/features/settings/themes";
-    import { accentOf, layersOf } from "$lib/features/settings/theme-options";
+    import { accentOf, layersOf, namedAccentOf, variantOf } from "$lib/features/settings/theme-options";
     import ThemeCard from "../theme-card.svelte";
     import { UI_SCALE_RANGE } from "$lib/features/settings/app-window";
     import { restartApp } from "$lib/features/settings/api";
@@ -64,9 +64,13 @@
                         effectsOn={settings.themeEffects}
                         layers={layersOf(settings.themeOptions, theme.id)}
                         accent={accentOf(settings.themeOptions, theme.id)}
+                        variant={variantOf(settings.themeOptions, theme.id)}
+                        namedAccent={namedAccentOf(settings.themeOptions, theme.id)}
                         onSelect={() => settings.setTheme(theme.id)}
                         onLayer={(layer, on) => settings.setThemeLayer(theme.id, layer, on)}
                         onAccent={(accent) => settings.setThemeAccent(theme.id, accent)}
+                        onVariant={(variant) => settings.setThemeVariant(theme.id, variant)}
+                        onNamedAccent={(accent) => settings.setThemeNamedAccent(theme.id, accent)}
                         onKeydown={onThemeKeydown}
                     />
                 {/each}

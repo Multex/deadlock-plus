@@ -31,6 +31,7 @@ const LABELS: Record<ThemeId, string> = {
     void: "Void",
     deadchaps: "DeadChaps",
     "pretty-in-pink": "Pretty in Pink",
+    catppuccin: "Catppuccin",
 };
 
 export const THEME_STORAGE_KEY = "theme";

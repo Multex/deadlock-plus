@@ -232,7 +232,7 @@ export { recoveryBarItem } from "./gc/recovery-bar";
 export { discordBarState } from "./presence/presence";
 export { liveBarItem } from "./live/live";
 export { isLightTheme, resolveReducedMotion } from "./settings/themes";
-export { accentOf, accentStyle, layersOf } from "./settings/theme-options";
+export { accentOf, accentStyle, layersOf, namedAccentStyle, variantOf } from "./settings/theme-options";
 export { setWindowTheme } from "./settings/api";
 export { needsOnboarding } from "./onboarding/onboarding";
 export { getAppInfo } from "./settings/about";

@@ -11,6 +11,7 @@
     import { OVERLAY_WINDOW } from "$lib/features/overlay/api";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { DEFAULT_THEME, isLightTheme } from "$lib/features/settings/themes";
+    import { variantOf } from "$lib/features/settings/theme-options";
     import { trackFeature } from "$lib/features/telemetry/api";
     import { trackRoute } from "$lib/features/telemetry/track";
 
@@ -49,7 +50,7 @@
         richColors
         pauseWhenPageIsHidden
         position="bottom-right"
-        theme={isLightTheme(settings.theme) ? "light" : "dark"}
+        theme={isLightTheme(settings.theme, variantOf(settings.themeOptions, settings.theme)) ? "light" : "dark"}
     />
 {/if}
 

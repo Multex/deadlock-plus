@@ -11,7 +11,15 @@ export interface Theme {
     effects: { id: string; label: string }[];
     source?: { url: string; label: string };
     customAccent: boolean;
+    /** Proper nouns from the theme's source, so they stay untranslated. */
+    variants: { id: string; name: string }[];
+    accents: { id: string; name: string }[];
+    /** What the theme's source calls its variants and accents; read only for a theme that has them. */
+    variantLabel: string;
+    accentLabel: string;
 }
+
+const capitalised = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
 export const THEMES: Theme[] = THEME_DATA.map((theme) => {
     const key = theme.id.replaceAll("-", "_");
@@ -39,6 +47,14 @@ export const THEMES: Theme[] = THEME_DATA.map((theme) => {
               }
             : undefined,
         customAccent: theme.customAccent,
+        variants: theme.variants.map((v) => ({ id: v.id, name: v.name })),
+        accents: Object.keys(theme.variants[0]?.accents ?? {}).map((id) => ({ id, name: capitalised(id) })),
+        get variantLabel() {
+            return t(`settings.themes.${key}.variant`);
+        },
+        get accentLabel() {
+            return t(`settings.themes.${key}.accent`);
+        },
     };
 });
 
