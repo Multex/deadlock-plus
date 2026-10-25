@@ -2,7 +2,16 @@ import { onMount } from "svelte";
 import { afterNavigate, beforeNavigate } from "$app/navigation";
 import { initLanguage } from "$lib/core/i18n.svelte";
 import { command, listen } from "$lib/core/tauri";
-import { SERVICES, resolveReducedMotion, setWindowTheme, settings, updater } from "$lib/features/registry";
+import { windowVisibility } from "$lib/core/window-visibility";
+import {
+    SERVICES,
+    accentOf,
+    accentStyle,
+    resolveReducedMotion,
+    setWindowTheme,
+    settings,
+    updater,
+} from "$lib/features/registry";
 import { useLastRoute } from "./last-route.svelte";
 import { overlays } from "./overlays";
 
@@ -17,6 +26,16 @@ export function useAppShell() {
     $effect(() => {
         document.documentElement.dataset.theme = settings.theme;
         setWindowTheme(settings.theme).catch(() => {});
+    });
+
+    // A user's accent overrides the theme's trim on `<html>`, above the generated theme tokens.
+    let accentVars: string[] = [];
+    $effect(() => {
+        const style = document.documentElement.style;
+        for (const name of accentVars) style.removeProperty(name);
+        const vars = accentStyle(settings.theme, accentOf(settings.themeOptions, settings.theme));
+        for (const [name, value] of Object.entries(vars)) style.setProperty(name, value);
+        accentVars = Object.keys(vars);
     });
 
     $effect(() => {
@@ -54,6 +73,17 @@ export function useAppShell() {
 
         const unlistenHidden = listen("window-hidden", () => overlays.closeAll()).catch(() => () => {});
 
+        // Theme decor stops whenever nobody is looking at the window: hidden, minimized, or behind the game.
+        const markDecorPaused = () =>
+            document.documentElement.toggleAttribute(
+                "data-decor-paused",
+                windowVisibility.isHidden() || !document.hasFocus(),
+            );
+        markDecorPaused();
+        const stopVisibility = windowVisibility.onVisibilityChange(markDecorPaused);
+        window.addEventListener("focus", markDecorPaused);
+        window.addEventListener("blur", markDecorPaused);
+
         void lastRoute.start();
 
         return () => {
@@ -61,6 +91,9 @@ export function useAppShell() {
             for (const stop of stops) if (typeof stop === "function") stop();
             lastRoute.stop();
             void unlistenHidden.then((fn) => fn());
+            stopVisibility();
+            window.removeEventListener("focus", markDecorPaused);
+            window.removeEventListener("blur", markDecorPaused);
         };
     });
 }

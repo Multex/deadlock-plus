@@ -9,6 +9,8 @@
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { THEMES, resolveMotionPreference } from "$lib/features/settings/themes";
+    import { accentOf, layersOf } from "$lib/features/settings/theme-options";
+    import ThemeCard from "../theme-card.svelte";
     import { UI_SCALE_RANGE } from "$lib/features/settings/app-window";
     import { restartApp } from "$lib/features/settings/api";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
@@ -41,7 +43,7 @@
         settings.setTheme(THEMES[next].id);
         const radios =
             e.currentTarget instanceof HTMLElement
-                ? (e.currentTarget.parentElement?.querySelectorAll("[role=radio]") ?? [])
+                ? (e.currentTarget.closest("[role=radiogroup]")?.querySelectorAll("[role=radio]") ?? [])
                 : [];
         (radios[next] as HTMLElement | undefined)?.focus();
     }
@@ -56,30 +58,36 @@
             </div>
             <div role="radiogroup" aria-label={t("settings.items.theme")} class="grid grid-cols-2 gap-2">
                 {#each THEMES as theme (theme.id)}
-                    {@const selected = settings.theme === theme.id}
-                    <Button
-                        variant="unstyled"
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        tabindex={selected ? 0 : -1}
-                        onkeydown={onThemeKeydown}
-                        onclick={() => settings.setTheme(theme.id)}
-                        class="flex flex-col gap-2 rounded-md border p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {selected
-                            ? 'border-brass bg-accent'
-                            : ''}"
-                    >
-                        <span class="flex h-6 overflow-hidden rounded border">
-                            {#each theme.swatch as colour}
-                                <span class="flex-1" style="background: {colour}"></span>
-                            {/each}
-                        </span>
-                        <span class="text-sm font-semibold">{theme.label}</span>
-                        <span class="text-xs text-muted-foreground">{theme.description}</span>
-                    </Button>
+                    <ThemeCard
+                        {theme}
+                        selected={settings.theme === theme.id}
+                        effectsOn={settings.themeEffects}
+                        layers={layersOf(settings.themeOptions, theme.id)}
+                        accent={accentOf(settings.themeOptions, theme.id)}
+                        onSelect={() => settings.setTheme(theme.id)}
+                        onLayer={(layer, on) => settings.setThemeLayer(theme.id, layer, on)}
+                        onAccent={(accent) => settings.setThemeAccent(theme.id, accent)}
+                        onKeydown={onThemeKeydown}
+                    />
                 {/each}
             </div>
         </div>
+    </Card>
+{/if}
+
+{#if show("theme-effects")}
+    <Card as="section">
+        <SettingRow
+            label={t("settings.items.theme_effects")}
+            for="theme-effects"
+            description={t("settings.appearance.effects_description")}
+        >
+            <Switch
+                id="theme-effects"
+                checked={settings.themeEffects}
+                onCheckedChange={(v) => settings.setThemeEffects(v)}
+            />
+        </SettingRow>
     </Card>
 {/if}
 

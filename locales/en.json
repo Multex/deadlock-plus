@@ -182,6 +182,7 @@
         },
         "items": {
             "theme": "Theme",
+            "theme_effects": "Theme effects",
             "reduced_motion": "Reduced motion",
             "accessible_font": "Accessible font",
             "close_to_tray": "Keep running in the tray",
@@ -223,6 +224,7 @@
         },
         "appearance": {
             "theme_description": "Pick the colours the app uses.",
+            "effects_description": "Art and weather some themes draw behind the page, like Flint Snow's snowfall.",
             "motion_description": "Turn off animations and transitions. \"Follow system\" uses your OS setting.",
             "motion_system": "Follow system",
             "motion_reduce": "Reduce",
@@ -230,16 +232,26 @@
             "font_description": "Swap the game-style fonts for Atkinson Hyperlegible, designed for low vision and easier reading.",
             "scale_description": "Make everything in Deadlock+ larger or smaller.",
             "hardware_acceleration_description": "Draws Deadlock+ with your graphics card. Turn it off if the window flickers or shows up black in screen captures.",
-            "restart_app": "Restart Deadlock+"
+            "restart_app": "Restart Deadlock+",
+            "accent": "Accent colour",
+            "accent_hue": "Hue",
+            "accent_vividness": "Vividness",
+            "accent_hex": "Hex colour",
+            "accent_reset": "Reset"
         },
         "themes": {
             "deadlock": {
                 "label": "Deadlock",
-                "description": "Warm near-black with brass trim."
+                "description": "Warm near-black with brass trim.",
+                "source": "Deadlock on Steam"
             },
             "midnight": {
                 "label": "Midnight",
-                "description": "Cool blue-black with a soft silver accent."
+                "description": "Cool blue-black with a soft silver accent.",
+                "effects": {
+                    "fog": "Fog",
+                    "windows": "Windows"
+                }
             },
             "daylight": {
                 "label": "Daylight",
@@ -251,11 +263,43 @@
             },
             "nightshift": {
                 "label": "Nightshift",
-                "description": "Teal cyberpunk noir with amber trim."
+                "description": "Dark teal with gold art deco trim.",
+                "source": "Deadlock Night Shift on Twitch",
+                "effects": {
+                    "rain": "Rain",
+                    "lights": "Lights",
+                    "frames": "Frames",
+                    "clock": "Medallion"
+                }
             },
             "deadlock_api": {
                 "label": "Deadlock API",
-                "description": "OLED black with electric red glow."
+                "description": "OLED black with electric red glow.",
+                "source": "Deadlock API"
+            },
+            "statlocker": {
+                "label": "Statlocker",
+                "description": "Graphite panels with a mint-green accent.",
+                "source": "Statlocker"
+            },
+            "flint_snow": {
+                "label": "Flint Snow",
+                "description": "Coral fur on midnight navy with pink trim.",
+                "effects": {
+                    "snow": "Snow",
+                    "stars": "Stars",
+                    "tail": "Tail",
+                    "tracks": "Tracks"
+                }
+            },
+            "void": {
+                "label": "Void",
+                "description": "OLED black with electric violet trim."
+            },
+            "deadchaps": {
+                "label": "DeadChaps",
+                "description": "Near-black panels with DeadChaps purple.",
+                "source": "DeadChaps"
             }
         },
         "autostart": {

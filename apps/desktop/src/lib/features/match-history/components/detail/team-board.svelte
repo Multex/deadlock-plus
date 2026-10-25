@@ -364,8 +364,6 @@
 
 <style>
     .scroller {
-        --team-hidden-king: oklch(0.8 0.125 82);
-        --team-archmother: oklch(0.72 0.11 245);
         overflow-x: auto;
         border: 1px solid var(--border);
         border-top-width: 0;
@@ -376,10 +374,6 @@
             linear-gradient(to left, var(--bar-right), transparent) top right / 50% 3px no-repeat,
             var(--card);
         background-origin: border-box;
-    }
-    :global(:root[data-theme="daylight"]) .scroller {
-        --team-hidden-king: oklch(0.6 0.12 70);
-        --team-archmother: oklch(0.5 0.12 245);
     }
     table {
         width: 100%;
@@ -392,10 +386,10 @@
         width: var(--mid);
     }
     [data-team] {
-        --tc: var(--team-hidden-king);
+        --tc: var(--dd-hk);
     }
     [data-team="archmother"] {
-        --tc: var(--team-archmother);
+        --tc: var(--dd-am);
     }
     th,
     td {

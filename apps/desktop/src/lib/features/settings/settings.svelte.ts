@@ -30,9 +30,12 @@ import {
 import { DEFAULT_UI_SCALE, resolveHardwareAcceleration, resolveUiScale } from "./app-window";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
 import { initialTheme, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
+import { resolveThemeOptions, withAccent, withLayer, type Accent, type ThemeOptions } from "./theme-options";
 
 const STORE = "app-settings";
 const ACCESSIBLE_FONT_KEY = "accessibleFont";
+const THEME_EFFECTS_KEY = "themeEffects";
+const THEME_OPTIONS_KEY = "themeOptions";
 const INGEST_KEY = "matchIngest";
 const GC_RECOVERY_KEY = "gcRecovery";
 const CLOSE_TO_TRAY_KEY = "closeToTray";
@@ -63,6 +66,8 @@ async function stored<T>(key: string): Promise<T | undefined> {
 
 class Settings {
     accessibleFont = $state(false);
+    themeEffects = $state(true);
+    themeOptions = $state<ThemeOptions>({});
     theme = $state<ThemeId>(initialTheme(globalThis.document?.documentElement));
     motion = $state<MotionPreference>("system");
     matchIngest = $state(false);
@@ -90,6 +95,8 @@ class Settings {
     async init() {
         onHeroesRefreshed(() => void this.applyPresence());
         this.accessibleFont = (await stored<boolean>(ACCESSIBLE_FONT_KEY)) ?? false;
+        this.themeEffects = (await stored<boolean>(THEME_EFFECTS_KEY)) ?? true;
+        this.themeOptions = resolveThemeOptions(await stored<unknown>(THEME_OPTIONS_KEY));
         try {
             const consent = resolveIngestConsent(await kvGet<boolean>(STORE, INGEST_KEY));
             this.matchIngest = consent.enabled;
@@ -401,6 +408,32 @@ class Settings {
         this.hardwareAcceleration = value;
         try {
             await kvSet(STORE, HARDWARE_ACCELERATION_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setThemeEffects(value: boolean) {
+        this.themeEffects = value;
+        try {
+            await kvSet(STORE, THEME_EFFECTS_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setThemeLayer(theme: ThemeId, layer: string, on: boolean) {
+        await this.saveThemeOptions(withLayer(this.themeOptions, theme, layer, on));
+    }
+
+    async setThemeAccent(theme: ThemeId, accent: Accent | null) {
+        await this.saveThemeOptions(withAccent(this.themeOptions, theme, accent));
+    }
+
+    private async saveThemeOptions(options: ThemeOptions) {
+        this.themeOptions = options;
+        try {
+            await kvSet(STORE, THEME_OPTIONS_KEY, $state.snapshot(options));
         } catch {
             // The choice just won't persist across restarts.
         }

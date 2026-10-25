@@ -60,7 +60,7 @@
                     : 'border-transparent'}"
             >
                 <span class="flex size-6 overflow-hidden rounded border">
-                    {#each theme.swatch as colour (colour)}
+                    {#each theme.swatch as colour, i (i)}
                         <span class="flex-1" style="background: {colour}"></span>
                     {/each}
                 </span>

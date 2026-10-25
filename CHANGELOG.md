@@ -6,6 +6,46 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- A Statlocker theme: graphite panels with a mint-green accent.
+- A Flint Snow theme: coral and midnight navy with pink trim.
+- Both new themes are also on the website's theme picker.
+- A Void theme: OLED black with electric violet trim, also on the website.
+- A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
+
+#### Theme options
+
+- Each theme's card in Settings > Appearance now holds that theme's own options.
+- Turn single effects off, like Nightshift's rain or Flint Snow's tail.
+- Pick an accent colour of your own for any theme but High contrast.
+- A custom accent keeps text readable by shifting its lightness only as far as contrast needs.
+- Themes based on something link to it, like Deadlock API or Deadlock Night Shift on Twitch.
+
+#### Theme effects
+
+- Every theme but High contrast now draws its own art and animation behind the page.
+- In the Deadlock theme, dust drifts through the air and swirls when your mouse moves through it.
+- In the Nightshift theme, rain runs down a fogged window that your mouse wipes clear.
+- Nightshift's string lights sway over a teal night street whose windows follow your local time.
+- Nightshift's gold art deco frames and eye medallion catch the light now and then.
+- On Wednesday nights while Deadlock Night Shift is live, Nightshift lights up "Clock In" and a clock on your local time.
+- In the Flint Snow theme, snow swirls around your mouse and stars join into constellations.
+- In Flint Snow, your mouse leaves a trail of sparkles.
+- Flint's tail lies in the snowbank and flicks now and then.
+- Paw tracks cross Flint Snow's snowbank every so often.
+- In the Void theme, a black hole turns in the corner, pulling in faint specks of light.
+- In the DeadChaps theme, a sigil turns slowly in the corner while dust drifts past.
+- Turn them off with the Theme effects switch in Settings > Appearance.
+- Reduced motion keeps the still art and stops everything that moves.
+- Effects pause while the Deadlock+ window is hidden or not focused.
+
+### Changed
+
+- The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.
+- Text in every theme now meets a 4.5:1 contrast ratio, most visibly Daylight's darker gold.
+- Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
+
 ### Fixed
 
 - On Linux, the main window shows at startup instead of staying hidden.

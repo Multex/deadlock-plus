@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { THEMES as THEME_DATA, chromeHex } from "@deadlock-plus/ui/themes";
 import { describe, expect, it } from "vitest";
 import {
     DEFAULT_THEME,
@@ -7,6 +10,44 @@ import {
     resolveReducedMotion,
     resolveTheme,
 } from "./themes";
+
+describe("THEMES", () => {
+    it("has a label and description in en for every theme", () => {
+        for (const theme of THEMES) {
+            expect(theme.label, theme.id).not.toMatch(/^settings\./);
+            expect(theme.description, theme.id).not.toMatch(/^settings\./);
+        }
+    });
+
+    it("names every effect layer a theme lets you turn off", () => {
+        for (const theme of THEMES) {
+            for (const layer of theme.effects)
+                expect(layer.label, `${theme.id}.${layer.id}`).not.toMatch(/^settings\./);
+        }
+        expect(THEMES.find((t) => t.id === "nightshift")?.effects.map((l) => l.id)).toEqual([
+            "rain",
+            "lights",
+            "frames",
+            "clock",
+        ]);
+    });
+
+    it("names the source of every theme that links to one", () => {
+        for (const theme of THEMES) {
+            if (theme.source) expect(theme.source.label, theme.id).not.toMatch(/^settings\./);
+        }
+        expect(THEMES.find((t) => t.id === "deadlock-api")?.source?.url).toBe("https://deadlock-api.com");
+    });
+});
+
+describe("app.html", () => {
+    it("paints the default theme's chrome where no native window colour sits behind the page", () => {
+        const html = readFileSync(fileURLToPath(new URL("../../../app.html", import.meta.url)), "utf8");
+        const fallback = /html:not\(\[data-theme\]\) \{\s*background: (#[0-9a-f]{6});/.exec(html)?.[1];
+
+        expect(fallback).toBe(chromeHex(THEME_DATA.find((t) => t.id === DEFAULT_THEME)!));
+    });
+});
 
 describe("initialTheme", () => {
     it("starts from the theme the window set before the page loaded", () => {
