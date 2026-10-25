@@ -4,7 +4,7 @@ import { accentColour, accentHex, accentTokens, contrast, hexToAccent, inGamut, 
 import { THEMES } from "./themes";
 
 /** Every surface the accent is drawn on as text, or drawn behind text. */
-const SURFACES = ["background", "card", "muted", "secondary", "popover", "chrome"];
+const SURFACES = ["background", "card", "muted", "secondary", "popover", "chrome", "accent"];
 const custom = THEMES.filter((t) => t.customAccent);
 const theme = (id: string) => THEMES.find((t) => t.id === id)!;
 
@@ -46,6 +46,46 @@ describe("accentColour", () => {
         const dark = accentColour(theme("void"), hexToAccent("#1a1a40"));
         expect(contrast(dark, theme("void").tokens.muted!)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(dark, theme("void").tokens.muted!)).toBeLessThan(5);
+    });
+});
+
+describe("every theme's own colours", () => {
+    // Each text colour the UI draws over each surface it is drawn on.
+    const PAIRS: [string, string][] = [
+        ["foreground", "background"],
+        ["foreground", "chrome"],
+        ["foreground", "card"],
+        ["foreground", "popover"],
+        ["foreground", "muted"],
+        ["foreground", "accent"],
+        ["card-foreground", "card"],
+        ["popover-foreground", "popover"],
+        ["secondary-foreground", "secondary"],
+        ["accent-foreground", "accent"],
+        ["primary-foreground", "primary"],
+        ["destructive-foreground", "destructive"],
+        ["success-foreground", "success"],
+        ["warning-foreground", "warning"],
+        ["background", "brass"],
+        ...["background", "card", "muted", "popover", "chrome", "accent"].flatMap((surface): [string, string][] => [
+            ["muted-foreground", surface],
+            ["brass", surface],
+            ["primary", surface],
+            ["success", surface],
+            ["warning", surface],
+            ["destructive", surface],
+            ["dd-hk", surface],
+            ["dd-am", surface],
+        ]),
+    ];
+
+    it("keeps every text pair at 4.5:1 or more", () => {
+        const misses = THEMES.flatMap((t) =>
+            PAIRS.filter(([fg, bg]) => contrast(t.tokens[fg]!, t.tokens[bg]!) < 4.5).map(
+                ([fg, bg]) => `${t.id} ${fg}/${bg} ${contrast(t.tokens[fg]!, t.tokens[bg]!).toFixed(2)}`,
+            ),
+        );
+        expect(misses).toEqual([]);
     });
 });
 

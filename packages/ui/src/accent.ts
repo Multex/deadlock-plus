@@ -10,8 +10,8 @@ export interface Accent {
 export const MIN_CONTRAST = 4.5;
 /** The most vivid an accent can ask for; the screen's gamut caps it lower at most hues. */
 export const MAX_CHROMA = 0.37;
-/** The accent is text on these, and `bg-brass` puts the background colour on it as text. */
-const SURFACES = ["background", "card", "muted", "secondary", "popover", "chrome"];
+/** The accent is text on these (`accent` is the hover surface), and `bg-brass` puts the background colour on it as text. */
+const SURFACES = ["background", "card", "muted", "secondary", "popover", "chrome", "accent"];
 const STEP = 0.005;
 
 function parse(value: string): [number, number, number] {
