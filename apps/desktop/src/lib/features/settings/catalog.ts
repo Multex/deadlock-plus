@@ -312,6 +312,18 @@ const BASE_ITEMS: SettingItem[] = [
         keywords: "match found queue pop ready game starting matchmaking alert tabbed out toast overlay popup",
     },
     {
+        id: "queue-stopped",
+        category: "notifications",
+        get title() {
+            return t("settings.items.overlay_queue_stopped");
+        },
+        get description() {
+            return t("settings.notifications.overlay_queue_stopped_description");
+        },
+        keywords:
+            "queue stopped cancelled canceled left matchmaking party leader no match alert tabbed out toast overlay popup",
+    },
+    {
         id: "overlay",
         category: "overlay",
         get title() {
@@ -470,7 +482,9 @@ const BASE_ITEMS: SettingItem[] = [
 
 export const hasOverlay = (p: Platform): boolean => p === "windows";
 
-const needsOverlay = (item: SettingItem) => item.category === "overlay" || item.id === "match-found";
+const OVERLAY_ONLY_ITEMS = new Set(["match-found", "queue-stopped"]);
+
+const needsOverlay = (item: SettingItem) => item.category === "overlay" || OVERLAY_ONLY_ITEMS.has(item.id);
 
 export function itemsFor(p: Platform): SettingItem[] {
     const items = p === "macos" ? BASE_ITEMS.filter((item) => item.id !== "hardware-acceleration") : BASE_ITEMS;

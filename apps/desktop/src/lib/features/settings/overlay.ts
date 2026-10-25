@@ -9,6 +9,7 @@ export const DEFAULT_OVERLAY: OverlaySettings = {
     position: "topRight",
     durationSecs: 6,
     matchFound: true,
+    queueStopped: true,
 };
 
 export const OVERLAY_POSITIONS: readonly OverlayPosition[] = [
@@ -37,11 +38,12 @@ function duration(value: unknown): number {
 
 export function resolveOverlay(stored: unknown): OverlaySettings {
     if (typeof stored !== "object" || stored === null || Array.isArray(stored)) return { ...DEFAULT_OVERLAY };
-    const { enabled, position, durationSecs, matchFound } = stored as Record<string, unknown>;
+    const { enabled, position, durationSecs, matchFound, queueStopped } = stored as Record<string, unknown>;
     return {
         enabled: typeof enabled === "boolean" ? enabled : DEFAULT_OVERLAY.enabled,
         position: isPosition(position) ? position : DEFAULT_OVERLAY.position,
         durationSecs: duration(durationSecs),
         matchFound: typeof matchFound === "boolean" ? matchFound : DEFAULT_OVERLAY.matchFound,
+        queueStopped: typeof queueStopped === "boolean" ? queueStopped : DEFAULT_OVERLAY.queueStopped,
     };
 }
