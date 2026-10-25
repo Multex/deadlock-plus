@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PAPER_HEIGHT, PAPER_WIDTH, type FrontPageView } from "./front-page-view";
+    import { arrangeStories, PAPER_HEIGHT, PAPER_WIDTH, type FrontPageView } from "./front-page-view";
     import BoxScore from "./paper/box-score.svelte";
     import Briefs from "./paper/briefs.svelte";
     import Deck from "./paper/deck.svelte";
@@ -15,7 +15,34 @@
 
     let { view }: { view: FrontPageView } = $props();
 
+    /** Stories tried beside the photo before the rest go in brief. */
+    const SIDE_MAX = 2;
+
     const graded = $derived(view.ratings.length > 0);
+
+    let side = $state<HTMLElement | null>(null);
+    let sideCount = $state(SIDE_MAX);
+    const arranged = $derived(arrangeStories(view.stories, sideCount));
+
+    $effect.pre(() => {
+        void view;
+        sideCount = SIDE_MAX;
+    });
+
+    // The side column is as tall as the photo; a story that pushes the score out of it moves to the briefs.
+    $effect(() => {
+        const el = side;
+        const count = sideCount;
+        void arranged;
+        if (!el || count <= 1) return;
+        let live = true;
+        void (document.fonts?.ready ?? Promise.resolve()).then(() =>
+            requestAnimationFrame(() => {
+                if (live && el.scrollHeight > el.clientHeight + 1) sideCount = count - 1;
+            }),
+        );
+        return () => (live = false);
+    });
 </script>
 
 <Paper width={PAPER_WIDTH} height={PAPER_HEIGHT} angle={0} label={view.label}>
@@ -40,13 +67,13 @@
                     <Stamp text={view.photo.stamp.text} tone={view.photo.stamp.tone} />
                 {/if}
             </Photo>
-            <div class="side">
+            <div class="side" bind:this={side}>
                 {#if view.banner}
                     <Deck text={view.banner.deck} />
                 {/if}
-                {#if view.lead}
-                    <Headline text={view.lead.headline} deck={view.lead.deck} size="story" />
-                {/if}
+                {#each arranged.side as story (story.id)}
+                    <Headline text={story.headline} deck={story.deck} size="story" />
+                {/each}
                 <div class="score"><TeamScore teams={view.score} /></div>
             </div>
         </div>
@@ -58,8 +85,8 @@
                 <Ratings rows={view.ratings} />
             {/if}
             <LaneReport lanes={view.lanes} />
-            {#if view.briefs.length > 0}
-                <Briefs items={view.briefs} />
+            {#if arranged.briefs.length > 0}
+                <Briefs items={arranged.briefs} />
             {/if}
         </div>
 
@@ -96,8 +123,10 @@
     .side {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         min-width: 0;
+        overflow: hidden;
+        contain: size;
     }
 
     .score {

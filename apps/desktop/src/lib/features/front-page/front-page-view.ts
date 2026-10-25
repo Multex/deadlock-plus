@@ -25,15 +25,14 @@ export interface FrontPageView {
     label: string;
     masthead: { name: string; date: string; edition: string; detail: string; weather?: Weather };
     banner?: StoryView & { kicker?: string };
-    /** The story set beside the photo. */
-    lead?: StoryView;
+    /** Column stories, then the briefs, in rank order; `arrangeStories` places them. */
+    stories: StoryView[];
     photo: { src: string | null; alt: string; caption: string; stamp?: { text: string; tone: "spot" | "ink" } };
     score: TeamTotal[];
     box: BoxTeam[];
     /** Empty when the match has no grades; the critics section is left out then. */
     ratings: Rating[];
     lanes: LaneLine[];
-    briefs: Brief[];
     objectives: { marks: ObjectiveMark[]; durationS: number; teamNames: Record<MatchTeam, string> };
 }
 
@@ -42,6 +41,15 @@ export const PAPER_HEIGHT = 960;
 
 /** The paper has room for this many short items under "In brief". */
 export const BRIEF_SLOTS = 3;
+
+export function arrangeStories(stories: StoryView[], sideCount: number): { side: StoryView[]; briefs: Brief[] } {
+    return {
+        side: stories.slice(0, sideCount),
+        briefs: stories
+            .slice(sideCount, sideCount + BRIEF_SLOTS)
+            .map((s): Brief => ({ id: s.id, headline: s.headline, body: s.deck })),
+    };
+}
 
 export function teamName(t: ViewDeps["t"], team: MatchTeam): string {
     return team === "hidden-king" ? t("match_history.team.hidden_king") : t("match_history.team.archmother");
@@ -105,10 +113,7 @@ export function frontPageView(page: FrontPage, deps: ViewDeps): FrontPageView {
         const ours = page.viewerSlot !== undefined && page.banner.subject === page.viewerSlot;
         if (ours) banner.kicker = t("front_page.kicker_viewer");
     }
-    const [lead, ...moreColumns] = page.columns.map((s, i) => story(s, i + 1));
-    const briefs = [...moreColumns, ...page.briefs.map((s, i) => story(s, page.columns.length + i + 1))]
-        .slice(0, BRIEF_SLOTS)
-        .map((s): Brief => ({ id: s.id, headline: s.headline, body: s.deck }));
+    const stories = [...page.columns, ...page.briefs].map((s, i) => story(s, i + 1));
 
     const photoSlot =
         page.banner?.subject ?? page.viewerSlot ?? page.ratings[0]?.slot ?? page.teams[0].rows[0]?.slot ?? 0;
@@ -196,10 +201,9 @@ export function frontPageView(page: FrontPage, deps: ViewDeps): FrontPageView {
         box,
         ratings,
         lanes,
-        briefs,
+        stories,
         objectives: { marks, durationS: dateline.durationS, teamNames },
     };
     if (banner) view.banner = banner;
-    if (lead) view.lead = lead;
     return view;
 }

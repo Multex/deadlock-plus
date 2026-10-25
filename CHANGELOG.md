@@ -50,6 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - It carries a box score, lane report, objectives timeline and short briefs.
 - The critics' column shows the Deadlock+ grades when the match has them.
 - A weather box shows your ping when Deadlock+ recorded it for that match.
+- The paper lands on the table a different way each time, and simply fades in with reduced motion.
 - Save or copy the front page as an image.
 - Close it with Escape, the Close button or a click on the table.
 

@@ -21,6 +21,7 @@
     import { frontPageView, PAPER_HEIGHT, PAPER_WIDTH } from "./front-page-view";
     import { loadExtras, viewDeps, type FrontPageExtras } from "./load";
     import type { Takeover } from "./takeover";
+    import { MAX_ANGLE, MAX_DX, MAX_DY, nextLanding, REST_SHADOW, restTransform, tossMotion } from "./toss";
 
     let {
         detail,
@@ -28,7 +29,6 @@
         takeover,
     }: { detail: MatchDetail; ownAccountId: number | null; takeover: Takeover<HTMLElement> } = $props();
 
-    const ANGLE = 1.6;
     const RAIL = 168;
     const GAP = 28;
     const MARGIN = 24;
@@ -41,6 +41,12 @@
     let stageH = $state(0);
     let extras = $state.raw<FrontPageExtras | null>(null);
     let busy = $state<ExportKind | null>(null);
+    let landed = $state(false);
+
+    const reducedMotion =
+        document.documentElement.hasAttribute("data-reduced-motion") ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const landing = nextLanding(reducedMotion);
 
     const matchId = $derived(detail.matchId);
     const page = $derived(
@@ -50,14 +56,19 @@
     );
     const view = $derived(page && extras ? frontPageView(page, viewDeps(extras.heroes)) : null);
 
-    const rad = (ANGLE * Math.PI) / 180;
+    // Sized for the steepest resting angle and the widest offset, so every landing fits the same spot.
+    const rad = (MAX_ANGLE * Math.PI) / 180;
     const boxW = PAPER_WIDTH * Math.cos(rad) + PAPER_HEIGHT * Math.sin(rad);
     const boxH = PAPER_WIDTH * Math.sin(rad) + PAPER_HEIGHT * Math.cos(rad);
     const scale = $derived(
         stageW && stageH
             ? Math.max(
                   0.1,
-                  Math.min((stageW - RAIL - GAP - MARGIN * 2) / boxW, (stageH - MARGIN * 2) / boxH, MAX_SCALE),
+                  Math.min(
+                      (stageW - RAIL - GAP - MARGIN * 2 - MAX_DX * 2) / boxW,
+                      (stageH - MARGIN * 2 - MAX_DY * 2) / boxH,
+                      MAX_SCALE,
+                  ),
               )
             : 0,
     );
@@ -76,8 +87,39 @@
         dialog?.focus();
     });
 
+    const JOLT: Keyframe[] = [
+        { transform: "translateY(0px)" },
+        { transform: "translateY(5px)", offset: 0.25 },
+        { transform: "translateY(-2px)", offset: 0.6 },
+        { transform: "translateY(0px)" },
+    ];
+
+    function toss(node: HTMLElement) {
+        const motion = tossMotion(
+            landing,
+            untrack(() => PAPER_HEIGHT * scale),
+        );
+        const timing = { duration: motion.duration, easing: motion.easing };
+        const paper = node.animate(motion.keyframes, timing);
+        const shadow = node.querySelector<HTMLElement>(".shadow")?.animate(motion.shadow, timing);
+        const jolt =
+            motion.impactAt === undefined
+                ? undefined
+                : document
+                      .querySelector("main")
+                      ?.animate(JOLT, { duration: 240, delay: motion.impactAt, easing: "ease-out" });
+        paper.addEventListener("finish", () => (landed = true));
+        return () => {
+            paper.cancel();
+            shadow?.cancel();
+            jolt?.cancel();
+        };
+    }
+
     function onkeydown(e: KeyboardEvent) {
-        const focusables = dialog ? [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)] : [];
+        const focusables = dialog
+            ? [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[inert]"))
+            : [];
         const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         takeover.keydown(e, focusables, active);
     }
@@ -122,16 +164,26 @@
         aria-modal="true"
         aria-label={view?.label ?? t("front_page.dialog", { id: matchId })}
         tabindex="-1"
+        data-toss={landing.kind}
+        data-landed={landed ? "" : undefined}
     >
         <div class="tabletop" aria-hidden="true" onclick={() => takeover.close()}></div>
         <div class="stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
             {#if view && scale > 0}
                 <div class="spot" style="width: {boxW * scale}px; height: {boxH * scale}px;">
-                    <div
-                        class="sheet"
-                        style="width: {PAPER_WIDTH}px; height: {PAPER_HEIGHT}px; transform: translate(-50%, -50%) scale({scale}) rotate({ANGLE}deg);"
-                    >
-                        <div bind:this={paperNode}><FrontPage {view} /></div>
+                    <div class="toss" style="transform: {restTransform(landing)};" {@attach toss}>
+                        <div
+                            class="shadow"
+                            style="width: {PAPER_WIDTH * scale}px; height: {PAPER_HEIGHT *
+                                scale}px; margin: {(-PAPER_HEIGHT * scale) / 2}px 0 0 {(-PAPER_WIDTH * scale) /
+                                2}px; opacity: {REST_SHADOW.opacity}; transform: {REST_SHADOW.transform};"
+                        ></div>
+                        <div
+                            class="sheet"
+                            style="width: {PAPER_WIDTH}px; height: {PAPER_HEIGHT}px; transform: translate(-50%, -50%) scale({scale});"
+                        >
+                            <div bind:this={paperNode}><FrontPage {view} /></div>
+                        </div>
                     </div>
                 </div>
             {:else}
@@ -140,7 +192,14 @@
                     {t("front_page.loading")}
                 </p>
             {/if}
-            <div class="rail" style="width: {RAIL}px;" role="group" aria-label={t("front_page.export.group")}>
+            <div
+                class="rail"
+                class:landed
+                inert={!landed}
+                style="width: {RAIL}px;"
+                role="group"
+                aria-label={t("front_page.export.group")}
+            >
                 <Button
                     variant="outline"
                     class="w-full justify-start bg-background/85 backdrop-blur-sm"
@@ -177,6 +236,7 @@
         position: fixed;
         inset: 40px 0 0 0;
         z-index: var(--z-popover);
+        overflow: hidden;
         outline: none;
         animation: fade 220ms ease-out both;
     }
@@ -207,6 +267,21 @@
         pointer-events: auto;
     }
 
+    .toss {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 50%;
+    }
+
+    .shadow {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        border-radius: 2px;
+        background: rgb(0 0 0 / 0.6);
+        filter: blur(14px);
+    }
+
     .sheet {
         position: absolute;
         left: 50%;
@@ -230,6 +305,12 @@
         align-self: flex-end;
         margin-bottom: 32px;
         pointer-events: auto;
+        opacity: 0;
+        transition: opacity 180ms ease-out;
+    }
+
+    .rail.landed {
+        opacity: 1;
     }
 
     @keyframes fade {

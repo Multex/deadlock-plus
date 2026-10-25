@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { formatClock } from "$lib/features/live/live";
 import type { BoxRow, FrontPage, Story, TeamBox } from "@deadlock-plus/match/stories/index";
-import { frontPageView, type ViewDeps } from "./front-page-view";
+import { arrangeStories, frontPageView, type StoryView, type ViewDeps } from "./front-page-view";
 
 const HEROES: Record<number, string> = { 1: "Infernus", 2: "Haze", 3: "Seven", 4: "Vindicta" };
 
@@ -144,7 +144,7 @@ describe("frontPageView", () => {
             deck: "You finished on 38,341 net worth. The critics gave you A, 2nd of 12.",
             kicker: "Your match",
         });
-        expect(view.lead).toMatchObject({
+        expect(view.stories[0]).toMatchObject({
             headline: "The Archmother claims the Mid Boss",
             deck: "The Archmother defeated it at 15:05 and claimed it.",
         });
@@ -153,9 +153,9 @@ describe("frontPageView", () => {
     it("picks the plural form for counted headlines", () => {
         const one = frontPageView(page({ columns: [midBoss, lastHits(1)] }), deps);
         const many = frontPageView(page(), deps);
-        expect(one.briefs[0].headline).toBe("Infernus reaps 1 last hit");
-        expect(many.briefs[0].headline).toBe("Infernus reaps 152 last hits");
-        expect(many.briefs[0].body).toBe("Dovetail took more last hits than anyone.");
+        expect(one.stories[1].headline).toBe("Infernus reaps 1 last hit");
+        expect(many.stories[1].headline).toBe("Infernus reaps 152 last hits");
+        expect(many.stories[1].deck).toBe("Dovetail took more last hits than anyone.");
     });
 
     it("falls back to the hero's name when the player's is unknown", () => {
@@ -168,7 +168,7 @@ describe("frontPageView", () => {
             }),
             deps,
         );
-        expect(view.briefs[0].body).toBe("Infernus took more last hits than anyone.");
+        expect(view.stories[1].deck).toBe("Infernus took more last hits than anyone.");
     });
 
     it("omits the weather without a ping recording", () => {
@@ -222,5 +222,33 @@ describe("frontPageView", () => {
             [905, "archmother", "MB", "Mid Boss"],
         ]);
         expect(objectives.durationS).toBe(1916);
+    });
+});
+
+describe("arrangeStories", () => {
+    const stories: StoryView[] = ["a", "b", "c", "d", "e", "f"].map((id) => ({
+        id,
+        headline: `${id} headline`,
+        deck: `${id} deck`,
+    }));
+
+    it("sets the first stories beside the photo and the next three in brief", () => {
+        const { side, briefs } = arrangeStories(stories, 2);
+        expect(side.map((s) => s.id)).toEqual(["a", "b"]);
+        expect(briefs).toEqual([
+            { id: "c", headline: "c headline", body: "c deck" },
+            { id: "d", headline: "d headline", body: "d deck" },
+            { id: "e", headline: "e headline", body: "e deck" },
+        ]);
+    });
+
+    it("moves a story that no longer fits beside the photo into the briefs", () => {
+        const { side, briefs } = arrangeStories(stories, 1);
+        expect(side.map((s) => s.id)).toEqual(["a"]);
+        expect(briefs.map((b) => b.id)).toEqual(["b", "c", "d"]);
+    });
+
+    it("copes with fewer stories than places", () => {
+        expect(arrangeStories(stories.slice(0, 1), 2)).toEqual({ side: [stories[0]], briefs: [] });
     });
 });
