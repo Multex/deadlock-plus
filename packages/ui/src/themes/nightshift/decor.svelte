@@ -12,7 +12,7 @@
     import { litShare, sky } from "./city";
     import { TURN_STEP_MS, hands, onShift, turnAt } from "./clock";
     import { FOG_CELL, createGlass, stepGlass } from "./glass";
-    import { glow, stringLights, wireAt, type Strand } from "./lights";
+    import { BULB_DROP, HALO, glow, stringLights, wireAt, type Header, type Strand } from "./lights";
 
     const GLINT_PERIOD = 19_000;
     const GLINT_RUN = 2_600;
@@ -260,23 +260,47 @@
                     ctx.globalAlpha = 0.9;
                     ctx.fillStyle = "#4a3820";
                     ctx.fillRect(p.x - 1.5, p.y - 1, 3, b.size * 0.9);
-                    const size = b.size * 12;
+                    const size = b.size * HALO * 2;
                     ctx.globalAlpha = glow(b, now);
-                    ctx.drawImage(bulb, p.x - size / 2, p.y + b.size * 1.4 - size / 2, size, size);
+                    ctx.drawImage(bulb, p.x - size / 2, p.y + b.size * BULB_DROP - size / 2, size, size);
                 }
             }
         };
 
+        const main = document.querySelector("main");
+        // The page's title row on the canvas, measured from the top of the page rather than the scrolled view.
+        const header = (): Header | null => {
+            const title = main?.querySelector("h1");
+            if (!main || !title) return null;
+            const box = (title.closest("header") ?? title).getBoundingClientRect();
+            const origin = canvas.getBoundingClientRect();
+            const top = box.top - origin.top + main.scrollTop;
+            if (top >= LIGHTS_HEIGHT) return null;
+            return { left: box.left - origin.left, right: box.right - origin.left, top };
+        };
+        let laidOut = "";
         // Painted on every resize as well, so the lights still hang in the street while motion is reduced.
         const fit = () => {
-            canvas.width = Math.max(1, canvas.clientWidth);
+            const width = Math.max(1, canvas.clientWidth);
+            const over = header();
+            const key = [width, over?.left, over?.right, over?.top].map((n) => n && Math.round(n)).join();
+            if (key === laidOut) return;
+            laidOut = key;
+            canvas.width = width;
             canvas.height = LIGHTS_HEIGHT;
-            strands = stringLights(canvas.width, seeded(0x11c7));
+            strands = stringLights(width, seeded(0x11c7), over);
             paint(Date.now());
         };
         fit();
         const resized = new ResizeObserver(fit);
         resized.observe(canvas);
+        // A new page brings its own header. Text updates leave the tree alone, so live pages stay quiet here.
+        let refit = 0;
+        const paged = new MutationObserver(() => {
+            cancelAnimationFrame(refit);
+            refit = requestAnimationFrame(fit);
+        });
+        if (main) paged.observe(main, { childList: true, subtree: true });
         const sway = runTicker((now) => {
             paint(now);
             return LIGHTS_MS;
@@ -284,6 +308,8 @@
         return () => {
             sway.stop();
             resized.disconnect();
+            paged.disconnect();
+            cancelAnimationFrame(refit);
         };
     });
 
