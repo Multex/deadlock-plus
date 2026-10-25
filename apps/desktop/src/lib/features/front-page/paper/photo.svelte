@@ -21,13 +21,28 @@
         /** Laid over the top-right corner, e.g. a `Stamp`. */
         children?: Snippet;
     } = $props();
+
+    let loaded = $state(false);
+
+    function watch(img: HTMLImageElement) {
+        const done = () => (loaded = img.complete && img.naturalWidth > 0);
+        done();
+        img.addEventListener("load", done);
+        img.addEventListener("error", done);
+        return () => {
+            img.removeEventListener("load", done);
+            img.removeEventListener("error", done);
+        };
+    }
 </script>
 
 <figure class="photo">
-    <div class="frame" style="height: {height}px;">
+    <div class="frame" class:blank={!loaded} style="height: {height}px;">
         <div class="halftone" style="--dot: {dot}px;" role="img" aria-label={alt}>
             {#if src}
-                <img {src} alt="" style="object-position: {position};" />
+                {#key src}
+                    <img {src} alt="" style="object-position: {position};" {@attach watch} />
+                {/key}
             {/if}
         </div>
     </div>
@@ -60,6 +75,7 @@
         background: #fff;
         filter: grayscale(1) contrast(12);
         mix-blend-mode: multiply;
+        transition: opacity 220ms ease-out;
     }
 
     .halftone img {
@@ -68,6 +84,22 @@
         height: 100%;
         object-fit: cover;
         filter: blur(0.7px) brightness(1.12) contrast(1.15);
+    }
+
+    /* The contrast filter snaps any soft tone to white, so the plate shown until the picture is drawn sits on the
+       frame and the halftone stays hidden over it, fading in once the picture loads. */
+    .frame.blank {
+        background:
+            repeating-linear-gradient(
+                -45deg,
+                color-mix(in oklab, var(--fp-ink) 9%, transparent) 0 1px,
+                transparent 1px 7px
+            ),
+            color-mix(in oklab, var(--fp-ink) 7%, transparent);
+    }
+
+    .frame.blank .halftone {
+        opacity: 0;
     }
 
     .halftone::after {

@@ -24,6 +24,10 @@
     } = $props();
 
     const TICK_S = 300;
+    const MARK_PX = 22;
+
+    let trackW = $state(0);
+    const width = $derived(trackW > 0 ? MARK_PX / trackW : gap);
 
     const clock = (s: number) => formatClock(Math.max(0, Math.round(s))) ?? "";
     const up = $derived(
@@ -31,6 +35,7 @@
             marks.filter((m) => m.team === "hidden-king"),
             durationS,
             gap,
+            width,
         ),
     );
     const down = $derived(
@@ -38,6 +43,7 @@
             marks.filter((m) => m.team === "archmother"),
             durationS,
             gap,
+            width,
         ),
     );
     const rows = $derived(Math.max(1, ...up.map((m) => m.row + 1), ...down.map((m) => m.row + 1)));
@@ -49,13 +55,13 @@
     const kinds = $derived([...new Map(marks.map((m) => [m.short, m.label])).entries()]);
 </script>
 
-<section class="objectives" class:keyed>
+<section class="objectives" class:keyed style="--mark: {MARK_PX}px;">
     <div class="legend">
         <h4>{title}</h4>
         <p><i class="hidden-king"></i>{teamNames["hidden-king"]}</p>
         <p><i class="archmother"></i>{teamNames.archmother}</p>
     </div>
-    <div class="track" style="--rows: {rows};">
+    <div class="track" style="--rows: {rows};" bind:clientWidth={trackW}>
         <div class="side up">
             {#each up as m (m.id)}
                 <span
@@ -93,7 +99,6 @@
 <style>
     .objectives {
         --row: 15px;
-        --mark: 22px;
         display: grid;
         grid-template-columns: 92px 1fr;
         gap: 14px;
