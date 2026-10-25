@@ -159,7 +159,9 @@
                     <div class="sheet" style="transform: scale({scale});">
                         <div bind:this={node} style="width: {target.width}px; height: {target.height}px;">
                             {#if chosen === "front_page"}
-                                <EditionPaper {view} />
+                                <!-- The image is drawn from this wrapper, not the sheet: the renderer paints its
+                                     background over the root it is given and appends the footer inside it. -->
+                                <div><EditionPaper {view} /></div>
                             {:else}
                                 <SectionCard {view} section={chosen} {aspect} />
                             {/if}

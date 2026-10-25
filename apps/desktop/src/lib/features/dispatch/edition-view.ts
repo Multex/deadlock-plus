@@ -259,7 +259,11 @@ function numberLines(edition: Edition, deps: DispatchViewDeps): NumberLine[] {
         lines.push({ id: "winrate", label: t("dispatch.numbers.winrate"), value: deps.percent(stats.winrate) });
     }
     lines.push(
-        { id: "playtime", label: t("dispatch.numbers.playtime"), value: deps.duration(stats.playtimeS) },
+        {
+            id: "playtime",
+            label: t("dispatch.numbers.playtime"),
+            value: t("dispatch.numbers.playtime_value", { hours: deps.number(hoursShort(stats.playtimeS)) }),
+        },
         {
             id: "kda",
             label: t("dispatch.numbers.kda"),
@@ -267,6 +271,12 @@ function numberLines(edition: Edition, deps: DispatchViewDeps): NumberLine[] {
         },
     );
     return lines;
+}
+
+/** One decimal, dropped from 100 hours up: the numbers strip has room for about four digits. */
+function hoursShort(seconds: number): number {
+    const tenths = Math.round(seconds / 360) / 10;
+    return tenths >= 100 ? Math.round(seconds / 3600) : tenths;
 }
 
 const HAS: Record<SectionId, (v: EditionView) => boolean> = {

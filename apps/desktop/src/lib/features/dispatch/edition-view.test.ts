@@ -24,6 +24,7 @@ const CATALOG: Record<string, string> = {
     "dispatch.numbers.winrate": "Win rate",
     "dispatch.numbers.playtime": "Time played",
     "dispatch.numbers.kda": "K/D/A a game",
+    "dispatch.numbers.playtime_value": "{hours} h",
     "dispatch.numbers.record_value": "{wins}-{losses}",
     "dispatch.people.mate_line_one": "{count} match together, {wins} won",
     "dispatch.people.mate_line_other": "{count} matches together, {wins} won",
@@ -308,9 +309,19 @@ describe("editionView numbers", () => {
             { id: "matches", label: "Matches", value: "14" },
             { id: "record", label: "Record", value: "9-5" },
             { id: "winrate", label: "Win rate", value: "64%" },
-            { id: "playtime", label: "Time played", value: "7h 20m" },
+            { id: "playtime", label: "Time played", value: "7.3 h" },
             { id: "kda", label: "K/D/A a game", value: "8/3/10" },
         ]);
+    });
+
+    it("rounds time played to whole hours from 100 hours up, so the value stays short", () => {
+        const base = edition();
+        const playtime = (playtimeS: number) =>
+            editionView(edition({ stats: { ...base.stats, playtimeS } }), deps).numbers.find((n) => n.id === "playtime")
+                ?.value;
+        expect(playtime(99.94 * 3600)).toBe("99.9 h");
+        expect(playtime(125.5 * 3600)).toBe("126 h");
+        expect(playtime(20 * 60)).toBe("0.3 h");
     });
 
     it("leaves the win rate out when no match was scored", () => {

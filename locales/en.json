@@ -3709,7 +3709,8 @@
             "record_value": "{wins}-{losses}",
             "winrate": "Win rate",
             "playtime": "Time played",
-            "kda": "K/D/A a game"
+            "kda": "K/D/A a game",
+            "playtime_value": "{hours} h"
         },
         "heroes": {
             "games": "Games",

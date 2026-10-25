@@ -3,12 +3,25 @@
     import SectionHead from "$lib/features/front-page/paper/section-head.svelte";
     import type { HeroLine } from "../edition-view";
 
-    let { rows, title, scale = 1 }: { rows: HeroLine[]; title: string; scale?: number } = $props();
+    let {
+        rows,
+        title,
+        scale = 1,
+        head = true,
+    }: {
+        rows: HeroLine[];
+        title: string;
+        scale?: number;
+        /** `false` when the card around it already carries the title. */
+        head?: boolean;
+    } = $props();
 </script>
 
 <!-- A grid with table roles, not a <table>: html-to-image grows every table row in the exported image. -->
-<section class="report" style="--s: {scale};">
-    <SectionHead text={title} />
+<section class="report" style="--s: calc({scale} * var(--fit-scale, 1));">
+    {#if head}
+        <SectionHead text={title} />
+    {/if}
     <div role="table" aria-label={title}>
         <div class="row head" role="row">
             <span role="columnheader">{t("front_page.kit.hero")}</span>
@@ -35,7 +48,7 @@
     .row {
         display: grid;
         grid-template-columns: minmax(0, 1fr) calc(40px * var(--s)) calc(34px * var(--s)) calc(58px * var(--s));
-        padding: calc(1px * var(--s)) 0;
+        padding: calc(1px * var(--s) + var(--row-gap, 0px) / 2) 0;
         border-bottom: 1px dotted color-mix(in oklch, var(--fp-ink) 40%, transparent);
         font-family: "Retail Demo", sans-serif;
         font-size: calc(12.5px * var(--s));

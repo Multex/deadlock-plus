@@ -9,6 +9,7 @@
     import Stamp from "$lib/features/front-page/paper/stamp.svelte";
     import { DISPATCH_PAPER, type EditionView } from "../edition-view";
     import BestGame from "./best-game.svelte";
+    import { fillGap, fillScale, fitLines, fitMasthead, overflows, relayout, resetFill } from "./fill";
     import HeroReport from "./hero-report.svelte";
     import NumbersBox from "./numbers-box.svelte";
     import People from "./people.svelte";
@@ -27,10 +28,52 @@
 
     const stamped = $derived(live ?? view.live);
     const hasLower = $derived(view.heroes.length > 0 || !!view.people || view.briefs.length > 0);
+
+    /** The lead photo's height in px: it grows into whatever the lower boxes leave, so the sheet ends full. */
+    const PHOTO = { base: 248, min: 200, max: 370 };
+
+    /**
+     * Fills the fixed sheet: the photo takes the slack the lower boxes leave, the deck and best game grow to the
+     * photo's height, and each lower box grows into its column. Briefs that cannot fit leave whole.
+     */
+    function layout(root: HTMLElement) {
+        void view;
+        return relayout(root, ".banner, .columns", () => {
+            fitMasthead(root);
+            const frame = root.querySelector<HTMLElement>(".lead .frame");
+            const side = root.querySelector<HTMLElement>(".lead:not(.solo) .side");
+            const lower = root.querySelector<HTMLElement>(".lower");
+            const cols = lower ? [...lower.querySelectorAll<HTMLElement>(":scope > .col")] : [];
+            const briefs = lower ? [...lower.querySelectorAll<HTMLElement>(".briefs li")] : [];
+            if (frame) frame.style.height = `${PHOTO.base}px`;
+            if (side) resetFill(side);
+            for (const col of cols) resetFill(col);
+            for (const li of briefs) li.style.display = "";
+
+            if (lower) {
+                const room = () => lower.clientHeight - parseFloat(getComputedStyle(lower).paddingTop);
+                const tallest = () => Math.max(...cols.map((c) => (c.firstElementChild as HTMLElement).offsetHeight));
+                if (frame) {
+                    const photo = Math.min(PHOTO.max, Math.max(PHOTO.min, PHOTO.base + room() - tallest()));
+                    frame.style.height = `${photo}px`;
+                }
+                while (tallest() > room() && briefs.length > 1) briefs.pop()!.style.display = "none";
+                for (const col of cols) {
+                    if (!overflows(col)) fillScale(col, 1, 1.8);
+                    fitLines(col);
+                    fillGap(col, 24);
+                }
+            }
+            if (side) {
+                fillScale(side, 1, 2.4);
+                fitLines(side);
+            }
+        });
+    }
 </script>
 
 <Paper width={DISPATCH_PAPER.width} height={DISPATCH_PAPER.height} {angle} label={view.label}>
-    <div class="layout">
+    <div class="layout" {@attach layout}>
         <Masthead
             name={view.masthead.name}
             date={view.masthead.date}
@@ -81,13 +124,13 @@
         {#if hasLower}
             <div class="lower">
                 {#if view.heroes.length > 0}
-                    <HeroReport rows={view.heroes} title={view.titles.heroes} />
+                    <div class="col"><HeroReport rows={view.heroes} title={view.titles.heroes} /></div>
                 {/if}
                 {#if view.people}
-                    <People people={view.people} title={view.titles.people} />
+                    <div class="col"><People people={view.people} title={view.titles.people} /></div>
                 {/if}
                 {#if view.briefs.length > 0}
-                    <Briefs items={view.briefs} />
+                    <div class="col briefs-col"><Briefs items={view.briefs} /></div>
                 {/if}
             </div>
         {/if}
@@ -145,6 +188,10 @@
         margin-top: auto;
     }
 
+    .side :global(.deck) {
+        font-size: calc(18px * var(--fit-scale, 1));
+    }
+
     .columns {
         display: grid;
         grid-template-columns: repeat(var(--n), minmax(0, 1fr));
@@ -180,5 +227,22 @@
         overflow: hidden;
         padding-top: 8px;
         border-top: 3px solid var(--fp-ink);
+    }
+
+    .col {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .briefs-col :global(h4) {
+        font-size: calc(16px * var(--fit-scale, 1));
+    }
+
+    .briefs-col :global(ul) {
+        font-size: calc(12px * var(--fit-scale, 1));
+    }
+
+    .briefs-col :global(li + li) {
+        margin-top: calc(6px * var(--fit-scale, 1) + var(--row-gap, 0px));
     }
 </style>

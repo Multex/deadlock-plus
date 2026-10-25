@@ -16,6 +16,7 @@
     import ExportFooter from "$lib/features/match-history/components/detail/export-footer.svelte";
     import { CARD_SIZES, type CardAspect, type EditionView, type SectionId } from "../edition-view";
     import BestGame from "./best-game.svelte";
+    import { fillGap, fillScale, fitLines, fitMasthead, overflows, relayout, resetFill } from "./fill";
     import HeroReport from "./hero-report.svelte";
     import NumbersBox from "./numbers-box.svelte";
     import People from "./people.svelte";
@@ -33,24 +34,67 @@
         live?: boolean;
     } = $props();
 
-    /** Columns of the numbers box: a tall ledger on a story card, one row across a wide one. */
-    const NUMBER_COLUMNS: Record<CardAspect, number> = { "9:16": 1, "1:1": 2, "16:9": 5 };
+    /** How far a section's type may grow or shrink to fill the card, then how far apart its rows may spread, in px. */
+    const FILL: Record<Exclude<SectionId, "front">, [number, number, number]> = {
+        stories: [0.75, 2, 60],
+        numbers: [0.6, 2, 60],
+        best_game: [1, 3, 0],
+        heroes: [0.6, 2.5, 56],
+        people: [0.6, 2.5, 60],
+    };
 
     const size = $derived(CARD_SIZES[aspect]);
     const wide = $derived(aspect === "16:9");
+    const tall = $derived(aspect === "9:16");
     const stamped = $derived(live ?? view.live);
+
+    function layout(root: HTMLElement) {
+        void view;
+        void section;
+        void aspect;
+        return relayout(root, ".banner", () => {
+            fitMasthead(root);
+            const body = root.querySelector<HTMLElement>(".body");
+            if (!body) return;
+            if (section === "front") {
+                const deck = body.querySelector<HTMLElement>(".front-deck");
+                if (deck && wide) fillScale(deck, 1, 2.4);
+                return;
+            }
+            resetFill(body);
+            for (const li of body.querySelectorAll<HTMLElement>(".briefs li")) li.style.display = "";
+            const [min, max, gap] = FILL[section];
+            fillScale(body, min, max);
+            // Briefs that still do not fit at the smallest type leave whole, never cut mid-line.
+            const briefs = [...body.querySelectorAll<HTMLElement>(".briefs li")];
+            while (overflows(body) && briefs.length > 1) {
+                briefs.pop()!.style.display = "none";
+                fillScale(body, min, max);
+            }
+            fitLines(body);
+            // Type that stopped growing at the card's width leaves height over: the rows take it.
+            fillGap(body, gap);
+            // Beside the wide card's stories the briefs have a column of their own to fill.
+            const side = wide ? body.querySelector<HTMLElement>(":scope > .briefs") : null;
+            if (side) {
+                const scale = parseFloat(body.style.getPropertyValue("--fit-scale")) || 1;
+                fillScale(side, scale, scale * 1.8);
+                fillGap(side, 24);
+            }
+        });
+    }
 </script>
 
 <div
     class="card"
     class:wide
-    class:tall={aspect === "9:16"}
+    class:tall
     role="group"
     aria-label={view.titles[section]}
     style="width: {size.width}px; height: {size.height}px; --s: {size.scale};"
 >
     <Paper width={size.width} height={size.height - size.footer} angle={0} label={view.label}>
-        <div class="layout">
+        <div class="layout" {@attach layout}>
             <Masthead
                 name={view.masthead.name}
                 date={view.masthead.date}
@@ -61,21 +105,21 @@
                 <h2 class="title">{view.titles[section]}</h2>
             {/if}
 
-            <div class="body {section}">
+            <div class="body is-{section}">
                 {#if section === "front"}
                     {#if view.banner}
                         <div class="banner">
                             <Headline
                                 text={view.banner.headline}
                                 size="banner"
-                                max={wide ? 56 : 68}
+                                max={tall ? 92 : wide ? 84 : 72}
                                 min={30}
-                                lines={aspect === "9:16" || wide ? 3 : 2}
+                                lines={3}
                             />
                         </div>
                     {/if}
-                    <div class="front-lead">
-                        {#if view.photo}
+                    {#if view.photo}
+                        <div class="front-photo">
                             <Photo
                                 src={view.photo.src}
                                 alt={view.photo.alt}
@@ -86,22 +130,17 @@
                                     <Stamp text={t("dispatch.stamp.so_far")} tone="spot" />
                                 {/if}
                             </Photo>
-                        {/if}
-                        {#if view.banner}
-                            <div class="front-deck"><Deck text={view.banner.deck} /></div>
-                        {/if}
-                    </div>
+                        </div>
+                    {/if}
+                    {#if view.banner}
+                        <div class="front-deck"><Deck text={view.banner.deck} /></div>
+                    {/if}
                 {:else if section === "stories"}
                     <div class="stories">
                         {#each view.columns as story (story.id)}
                             <article class="story">
-                                <Headline
-                                    text={story.headline}
-                                    deck={story.deck}
-                                    size="story"
-                                    max={Math.round(18 * size.scale)}
-                                    min={16}
-                                />
+                                <h3>{story.headline}</h3>
+                                <p>{story.deck}</p>
                             </article>
                         {/each}
                     </div>
@@ -113,13 +152,21 @@
                         lines={view.numbers}
                         title={view.titles.numbers}
                         scale={size.scale * 1.3}
-                        columns={NUMBER_COLUMNS[aspect]}
+                        head={false}
+                        ledger
                     />
                 {:else if section === "best_game" && view.bestGame}
-                    {#if wide}
+                    {#if !tall}
                         <div class="best-wide">
-                            <Photo src={view.bestGame.art} alt={view.bestGame.hero} height={size.photo} />
-                            <BestGame game={view.bestGame} title={view.titles.best_game} scale={size.scale} />
+                            <div class="best-photo">
+                                <Photo src={view.bestGame.art} alt={view.bestGame.hero} height={size.photo} />
+                            </div>
+                            <BestGame
+                                game={view.bestGame}
+                                title={view.titles.best_game}
+                                scale={size.scale}
+                                head={false}
+                            />
                         </div>
                     {:else}
                         <BestGame
@@ -127,12 +174,21 @@
                             title={view.titles.best_game}
                             scale={size.scale}
                             photo={size.photo}
+                            head={false}
+                            fill
                         />
                     {/if}
                 {:else if section === "heroes"}
-                    <HeroReport rows={view.heroes} title={view.titles.heroes} scale={size.scale * 1.2} />
+                    <HeroReport rows={view.heroes} title={view.titles.heroes} scale={size.scale * 1.2} head={false} />
                 {:else if section === "people" && view.people}
-                    <People people={view.people} title={view.titles.people} scale={size.scale} />
+                    <People
+                        people={view.people}
+                        title={view.titles.people}
+                        scale={size.scale}
+                        head={false}
+                        row={wide}
+                        spread={!tall && !wide}
+                    />
                 {/if}
             </div>
         </div>
@@ -179,75 +235,110 @@
         overflow: hidden;
     }
 
+    /* A section whose type stops growing at the card's width sits in the middle instead of leaving a band below. */
+    .body.is-numbers,
+    .body.is-heroes,
+    .body.is-people,
+    .card:not(.tall) .body.is-best_game {
+        justify-content: safe center;
+    }
+
     .banner {
+        flex: none;
         padding-bottom: 6px;
         border-bottom: 2px solid var(--fp-ink);
     }
 
-    .front-lead {
+    /* The picture takes whatever height the headline and deck leave; a zero flex basis overrides the kit's fixed one. */
+    .front-photo {
         display: flex;
+        flex: 1 1 0;
         flex-direction: column;
-        gap: 10px;
+        min-height: 160px;
+    }
+
+    .front-photo :global(.photo) {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .front-photo :global(.frame) {
+        flex: 1 1 0;
         min-height: 0;
     }
 
     .front-deck {
+        flex: none;
         min-width: 0;
     }
 
-    .card:not(.tall) .front-lead {
-        display: grid;
-        grid-template-columns: 300px minmax(0, 1fr);
-        gap: 16px;
+    .body.is-front .front-deck :global(.deck) {
+        font-size: calc(18px * var(--s) * var(--fit-scale, 1));
     }
 
-    .card.wide .body.front {
+    .card.wide .body.is-front {
         display: grid;
         grid-template-columns: 380px minmax(0, 1fr);
         grid-template-rows: auto minmax(0, 1fr);
         column-gap: 18px;
     }
 
-    .card.wide .body.front .banner {
+    .card.wide .body.is-front .banner {
         grid-column: 2;
         grid-row: 1;
     }
 
-    .card.wide .front-lead {
-        display: contents;
-    }
-
-    .card.wide .front-lead > :global(.photo) {
+    .card.wide .front-photo {
         grid-column: 1;
         grid-row: 1 / span 2;
+        min-height: 0;
     }
 
     .card.wide .front-deck {
         grid-column: 2;
         grid-row: 2;
+        overflow: hidden;
     }
 
     .stories {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: calc(10px * var(--fit-scale, 1) + var(--row-gap, 0px) / 2);
     }
 
     .card.wide .stories {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 24px;
-        row-gap: 12px;
     }
 
     .story + .story {
-        padding-top: 10px;
+        padding-top: calc(10px * var(--fit-scale, 1) + var(--row-gap, 0px) / 2);
         border-top: 1px solid var(--fp-ink);
     }
 
-    .card.wide .story {
+    .card.wide .story:nth-child(2) {
         padding-top: 0;
         border-top: 0;
+    }
+
+    .story h3 {
+        margin: 0 0 3px;
+        color: var(--fp-ink);
+        font-family: "Retail Demo", sans-serif;
+        font-weight: 700;
+        font-size: calc(18px * var(--s) * var(--fit-scale, 1));
+        line-height: 1.05;
+        text-transform: uppercase;
+        overflow-wrap: break-word;
+    }
+
+    .story p {
+        margin: 0;
+        font-size: calc(9px * var(--s) * var(--fit-scale, 1));
+        line-height: 1.3;
     }
 
     .briefs {
@@ -255,11 +346,75 @@
         border-top: 3px solid var(--fp-ink);
     }
 
+    .briefs :global(h4) {
+        font-size: calc(10px * var(--s) * var(--fit-scale, 1));
+    }
+
+    .briefs :global(ul) {
+        font-size: calc(8px * var(--s) * var(--fit-scale, 1));
+    }
+
+    .card:not(.tall):not(.wide) .briefs :global(ul) {
+        column-gap: 24px;
+        columns: 2;
+    }
+
+    .briefs :global(li) {
+        break-inside: avoid;
+    }
+
+    .briefs :global(li + li) {
+        margin-top: calc(6px * var(--fit-scale, 1) + var(--row-gap, 0px));
+    }
+
+    .card.wide .body.is-stories {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        column-gap: 24px;
+    }
+
+    .card.wide .body.is-stories > .briefs {
+        min-height: 0;
+        overflow: hidden;
+        padding-top: 0;
+        padding-left: 18px;
+        border-top: 0;
+        border-left: 3px solid var(--fp-ink);
+    }
+
     .best-wide {
         display: grid;
-        grid-template-columns: 380px minmax(0, 1fr);
+        grid-template-columns: 300px minmax(0, 1fr);
         gap: 18px;
-        align-items: start;
+        align-items: center;
+        height: 100%;
+    }
+
+    /* On a square card the facts column is narrow: the grade sits above the facts instead of beside them. */
+    .card:not(.tall):not(.wide) .best-wide :global(.line) {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: start;
+    }
+
+    .card.wide .best-wide {
+        grid-template-columns: 380px minmax(0, 1fr);
+    }
+
+    .best-photo {
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+    }
+
+    .best-photo :global(.photo) {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+    }
+
+    .best-photo :global(.frame) {
+        flex: 1 1 0;
+        min-height: 0;
     }
 
     /* The footer fills its fixed slot so every aspect exports at exactly its size. */

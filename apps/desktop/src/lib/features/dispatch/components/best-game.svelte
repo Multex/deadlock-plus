@@ -9,17 +9,31 @@
         title,
         scale = 1,
         photo,
+        head = true,
+        fill = false,
     }: {
         game: BestGameView;
         title: string;
         scale?: number;
-        /** Picture height in px; no picture when absent. */
+        /** Picture height in px; no picture when absent. With `fill`, the least it shrinks to. */
         photo?: number;
+        /** `false` when the card around it already carries the title. */
+        head?: boolean;
+        /** Fills its parent's height: the picture takes whatever the facts leave. */
+        fill?: boolean;
     } = $props();
 </script>
 
-<section class="best" style="--s: {scale};" aria-label={title}>
-    <SectionHead text={title} />
+<section
+    class="best"
+    class:headless={!head}
+    class:fill
+    style="--s: calc({scale} * var(--fit-scale, 1)); --photo-min: {photo ?? 0}px;"
+    aria-label={title}
+>
+    {#if head}
+        <SectionHead text={title} />
+    {/if}
     {#if photo !== undefined}
         <div class="picture">
             <Photo src={game.art} alt={game.hero} height={photo} />
@@ -30,7 +44,7 @@
             <span class="grade" aria-label={t("front_page.kit.grade")}>{game.grade}</span>
         {/if}
         <div class="facts">
-            <b class="hero">{game.hero}</b>
+            <b class="hero" data-fit-line>{game.hero}</b>
             <span class="kda">{game.kda}</span>
             <span class="nw">{t("dispatch.best_game.net_worth", { value: game.netWorth })}</span>
             <span class="date">{game.date}</span>
@@ -45,8 +59,43 @@
         border-top: 2px solid var(--fp-ink);
     }
 
+    .best.headless {
+        padding-top: 0;
+        border-top: 0;
+    }
+
     .picture {
         margin-bottom: calc(6px * var(--s));
+    }
+
+    .best.fill {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    /* A zero flex basis lets the picture's frame ignore the fixed height the kit's Photo gives it. */
+    .fill .picture {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: var(--photo-min);
+    }
+
+    .fill .picture :global(.photo) {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .fill .picture :global(.frame) {
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    .fill .line {
+        flex: none;
     }
 
     .line {
@@ -86,7 +135,7 @@
         overflow: hidden;
         font-family: "Retail Demo", sans-serif;
         font-weight: 700;
-        font-size: calc(20px * var(--s));
+        font-size: calc(20px * var(--s) * var(--line-fit, 1));
         text-transform: uppercase;
         white-space: nowrap;
         text-overflow: ellipsis;

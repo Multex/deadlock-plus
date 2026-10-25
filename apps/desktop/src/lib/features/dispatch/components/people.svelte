@@ -7,12 +7,33 @@
         people,
         title,
         scale = 1,
-    }: { people: NonNullable<EditionView["people"]>; title: string; scale?: number } = $props();
+        head = true,
+        row = false,
+        spread = false,
+    }: {
+        people: NonNullable<EditionView["people"]>;
+        title: string;
+        scale?: number;
+        /** `false` when the card around it already carries the title. */
+        head?: boolean;
+        /** Mates and the wanted poster side by side, for a wide card. */
+        row?: boolean;
+        /** Mates side by side above the poster, for a square card. */
+        spread?: boolean;
+    } = $props();
 </script>
 
-<section class="people" style="--s: {scale};" aria-label={title}>
+<section
+    class="people"
+    class:row
+    class:spread
+    style="--s: calc({scale} * var(--fit-scale, 1)); --mates: {people.mates.length};"
+    aria-label={title}
+>
     {#if people.mates.length > 0}
-        <SectionHead text={title} />
+        {#if head}
+            <SectionHead text={title} />
+        {/if}
         <ul>
             {#each people.mates as mate (mate.id)}
                 <li><b>{mate.name}</b><span>{mate.line}</span></li>
@@ -22,7 +43,7 @@
     {#if people.nemesis}
         <div class="wanted">
             <p class="tag">{t("dispatch.people.nemesis")}</p>
-            <p class="name">{people.nemesis.name}</p>
+            <p class="name" data-fit-line>{people.nemesis.name}</p>
             <p class="line">{people.nemesis.line}</p>
         </div>
     {/if}
@@ -32,8 +53,25 @@
     .people {
         display: flex;
         flex-direction: column;
-        gap: calc(8px * var(--s));
+        gap: calc(8px * var(--s) + var(--row-gap, 0px));
         min-width: 0;
+    }
+
+    .people.row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: calc(16px * var(--s));
+        align-items: center;
+    }
+
+    .spread ul {
+        display: grid;
+        grid-template-columns: repeat(var(--mates), minmax(0, 1fr));
+        column-gap: calc(16px * var(--s));
+    }
+
+    .spread li + li {
+        margin-top: 0;
     }
 
     ul {
@@ -45,7 +83,7 @@
     }
 
     li + li {
-        margin-top: calc(5px * var(--s));
+        margin-top: calc(5px * var(--s) + var(--row-gap, 0px));
     }
 
     li b {
@@ -86,7 +124,7 @@
         overflow: hidden;
         font-family: "Valve Pulp", sans-serif;
         font-weight: 700;
-        font-size: calc(24px * var(--s));
+        font-size: calc(24px * var(--s) * var(--line-fit, 1));
         line-height: 1.05;
         text-transform: uppercase;
         white-space: nowrap;
