@@ -365,8 +365,7 @@
             "status_off": "Desativado",
             "status_none": "Não foi encontrado nenhum Discord em execução.",
             "status_showing": "Exibindo: {clients}.",
-            "client_one": "",
-            "client_other": ""
+            "client_other_label": ""
         },
         "discord_editor": {
             "description": "Altere o que cada atividade exibe. Escolha um estado e, em seguida, edite suas linhas de texto, imagens e temporizador. Tudo o que você não alterar utilizará o padrão integrado.",
@@ -514,8 +513,7 @@
                 "group_match": "Partida",
                 "group_party": "Grupo e fila",
                 "group_streetBrawl": "Briga de Rua",
-                "group_one": "",
-                "group_other": ""
+                "group_misc": ""
             },
             "timer_queueTime": "Tempo na fila",
             "field_party_size": "Tamanho do grupo",
@@ -985,8 +983,7 @@
                 "better": "Você se sai melhor depois de duas derrotas seguidas: {rate} contra {rest} nas demais.",
                 "same": "Duas derrotas seguidas não mudam a forma como você joga: {rate} contra {rest} nas demais.",
                 "bar_after": "Após duas derrotas consecutivas",
-                "bar_one": "",
-                "bar_other": ""
+                "bar_rest": ""
             },
             "session_length": {
                 "title": "Onde parar",
@@ -1139,8 +1136,7 @@
             "addons_differ": "Mods diferentes entre as execuções",
             "only_on_in": "Ativados só em {run}:",
             "delete_run": "Excluir execução {label}",
-            "empty_one": "",
-            "empty_other": "",
+            "empty_single": "",
             "addons_on_one": "",
             "addons_on_other": ""
         },
@@ -1149,13 +1145,13 @@
             "start": "Iniciar",
             "stop": "Parar",
             "waiting": "Aguardando o início do Deadlock...",
-            "recording": "Gravando · {time} · {frames} quadros",
+            "recording_other": "Gravando · {time} · {count} quadros",
             "background": "O Deadlock está em segundo plano, sem contar os quadros",
             "limit": "A gravação está completa. Pare para ver os resultados.",
-            "graph_caption": "Últimos {frames} quadros · topo do gráfico {ms} ms",
+            "graph_caption_other": "Últimos {count} quadros · topo do gráfico {ms} ms",
             "no_frames": "O Deadlock está em execução, mas o Deadlock+ não consegue ver os quadros dele. Reinicie o jogo e tente de novo.",
             "none_recorded": "Nenhum quadro foi registrado.",
-            "summary": "{frames} quadros em {time}. Um pico é um quadro com pelo menos 33 ms e 2,5 vezes a mediana.",
+            "summary_other": "{count} quadros em {time}. Um pico é um quadro com pelo menos 33 ms e 2,5 vezes a mediana.",
             "left_out": "Foram ignorados {time} com o jogo fora de foco.",
             "label_aria": "Nome da execução",
             "label_placeholder": "Nome, por exemplo: Mod desativado",
@@ -1936,7 +1932,7 @@
         "editor": {
             "canvas": "",
             "drag_copy": "",
-            "drag_items": "",
+            "drag_items_other": "",
             "unnamed": "",
             "rename": "",
             "size_tag": "",
@@ -1944,7 +1940,7 @@
             "unsafe_width": "",
             "row_wraps": "",
             "copies": "",
-            "copies_hint": "",
+            "copies_hint_other": "",
             "overflow": "",
             "resize_width": "",
             "resize_height": "",

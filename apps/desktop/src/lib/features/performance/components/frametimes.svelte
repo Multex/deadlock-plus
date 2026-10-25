@@ -132,9 +132,8 @@
                     {#if status.state === "waitingForGame"}
                         {t("performance.frametimes.waiting")}
                     {:else}
-                        {t("performance.frametimes.recording", {
+                        {tn("performance.frametimes.recording", status.frames, {
                             time: formatDuration(status.elapsedMs),
-                            frames: status.frames,
                         })}
                     {/if}
                 </span>
@@ -160,7 +159,7 @@
                     />
                 </svg>
                 <p class="text-xs text-muted-foreground">
-                    {t("performance.frametimes.graph_caption", { frames: recent.length, ms: fps(ceiling) })}
+                    {tn("performance.frametimes.graph_caption", recent.length, { ms: fps(ceiling) })}
                 </p>
             {/if}
             {#if noFrames}
@@ -186,8 +185,7 @@
                 {@render stat(t("performance.metrics.longest_frame"), inMs(result.maxMs))}
             </div>
             <p class="text-xs text-muted-foreground">
-                {t("performance.frametimes.summary", {
-                    frames: formatNumber(result.frameCount),
+                {tn("performance.frametimes.summary", result.frameCount, {
                     time: formatDuration(result.durationMs),
                 })}
                 {#if result.backgroundMs >= 1000}

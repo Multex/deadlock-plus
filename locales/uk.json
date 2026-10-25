@@ -365,10 +365,7 @@
             "status_off": "",
             "status_none": "",
             "status_showing": "",
-            "client_one": "",
-            "client_few": "",
-            "client_many": "",
-            "client_other": ""
+            "client_other_label": ""
         },
         "discord_editor": {
             "description": "",
@@ -516,10 +513,7 @@
                 "group_match": "",
                 "group_party": "",
                 "group_streetBrawl": "",
-                "group_one": "",
-                "group_few": "",
-                "group_many": "",
-                "group_other": ""
+                "group_misc": ""
             },
             "timer_queueTime": "",
             "field_party_size": "",
@@ -1013,10 +1007,7 @@
                 "better": "",
                 "same": "",
                 "bar_after": "",
-                "bar_one": "",
-                "bar_few": "",
-                "bar_many": "",
-                "bar_other": ""
+                "bar_rest": ""
             },
             "session_length": {
                 "title": "",
@@ -1169,10 +1160,7 @@
             "addons_differ": "",
             "only_on_in": "",
             "delete_run": "",
-            "empty_one": "",
-            "empty_few": "",
-            "empty_many": "",
-            "empty_other": "",
+            "empty_single": "",
             "addons_on_one": "",
             "addons_on_few": "",
             "addons_on_many": "",
@@ -1183,13 +1171,13 @@
             "start": "",
             "stop": "",
             "waiting": "",
-            "recording": "",
+            "recording_other": "",
             "background": "",
             "limit": "",
-            "graph_caption": "",
+            "graph_caption_other": "",
             "no_frames": "",
             "none_recorded": "",
-            "summary": "",
+            "summary_other": "",
             "left_out": "",
             "label_aria": "",
             "label_placeholder": "",
@@ -2058,7 +2046,7 @@
         "editor": {
             "canvas": "",
             "drag_copy": "",
-            "drag_items": "",
+            "drag_items_other": "",
             "unnamed": "",
             "rename": "",
             "size_tag": "",
@@ -2066,7 +2054,7 @@
             "unsafe_width": "",
             "row_wraps": "",
             "copies": "",
-            "copies_hint": "",
+            "copies_hint_other": "",
             "overflow": "",
             "resize_width": "",
             "resize_height": "",

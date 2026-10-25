@@ -49,6 +49,13 @@ export function checkCatalogs(catalogs, used, referenced = { literals: new Set()
     const warnings = [];
     const en = flatten(catalogs.en);
 
+    // Crowdin's i18next parser makes any key with a plural suffix a plural form, so a lone one exports blank.
+    for (const key of Object.keys(en)) {
+        const base = key.replace(PLURAL_SUFFIX, "");
+        if (base !== key && !(`${base}_one` in en && `${base}_other` in en))
+            errors.push(`en: ${key} ends in a plural suffix outside a ${base}_one/${base}_other pair`);
+    }
+
     for (const { file, key, plural } of used) {
         if (plural) {
             if (!(`${key}_other` in en)) errors.push(`${file} uses plural ${key} but en has no ${key}_other`);

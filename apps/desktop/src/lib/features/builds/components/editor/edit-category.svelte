@@ -124,7 +124,7 @@
         const name = item?.name ?? t("builds.shop.removed_item");
         drag.begin({ kind: "items", refs }, event, {
             art: item?.art,
-            label: refs.length > 1 ? t("builds.editor.drag_items", { count: refs.length }) : name,
+            label: refs.length > 1 ? tn("builds.editor.drag_items", refs.length) : name,
         });
     }
 
@@ -423,7 +423,7 @@
             >
                 <ItemChip item={items[i]} box={{ x: 0, y: 0 }} scale={shop.unit} />
                 {#if copies > 1}
-                    <span class="copies" title={t("builds.editor.copies_hint", { count: copies })}>
+                    <span class="copies" title={tn("builds.editor.copies_hint", copies)}>
                         {t("builds.editor.copies", { count: copies })}
                     </span>
                 {/if}
