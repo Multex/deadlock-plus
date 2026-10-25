@@ -227,7 +227,7 @@ pub(crate) fn builtin_state(state: StateId) -> PartialSlot {
     match state {
         Playing => partial("Playing Deadlock", "", ElapsedInState),
         MainMenu => partial("Browsing the main menu", "", ElapsedInState),
-        Hideout => with_hero_art(partial("Relaxing in the Hideout", "[[Hanging out as {hero}]]", ElapsedInState)),
+        Hideout => with_hero_art(partial("Relaxing in the Hideout", "[[Hanging out as {hero}]]", MatchTime)),
         FindingMatch => partial("Looking for a match", "", QueueTime),
         MatchFound => partial("Loading into a match", "", ElapsedInState),
         PreGame => with_hero_art(partial("Waiting for the match to start", "[[Playing as {hero}]]", ElapsedInState)),
@@ -417,7 +417,49 @@ mod tests {
         let s = resolve(&c, Hideout, None, None);
         assert_eq!(s.details, "Chilling");
         assert_eq!(s.state, "[[Hanging out as {hero}]]");
-        assert_eq!(s.timer, Timer::ElapsedInState);
+        assert_eq!(s.timer, Timer::MatchTime);
+    }
+
+    #[test]
+    fn the_hideout_shows_the_match_clock_by_default() {
+        assert_eq!(resolve(&Config::default(), Hideout, None, None).timer, Timer::MatchTime);
+        assert_eq!(resolve(&Config::default(), Hideout, Some(Party), None).timer, Timer::MatchTime);
+    }
+
+    #[test]
+    fn a_stored_hideout_timer_beats_the_new_default() {
+        let c = parse(r#"{"states":{"hideout":{"timer":"elapsedInState"}}}"#);
+        assert_eq!(resolve(&c, Hideout, None, None).timer, Timer::ElapsedInState);
+    }
+
+    #[test]
+    fn a_hideout_slot_without_a_timer_picks_up_the_default() {
+        let c = parse(r#"{"states":{"hideout":{"details":"Chilling"}}}"#);
+        let s = resolve(&c, Hideout, None, None);
+        assert_eq!(s.details, "Chilling");
+        assert_eq!(s.timer, Timer::MatchTime);
+    }
+
+    #[test]
+    fn every_state_keeps_its_built_in_timer() {
+        let expected = [
+            (Playing, Timer::ElapsedInState),
+            (MainMenu, Timer::ElapsedInState),
+            (Hideout, Timer::MatchTime),
+            (FindingMatch, Timer::QueueTime),
+            (MatchFound, Timer::ElapsedInState),
+            (PreGame, Timer::ElapsedInState),
+            (InMatch, Timer::MatchTime),
+            (StreetBrawlRound, Timer::MatchTime),
+            (Paused, Timer::None),
+            (Spectating, Timer::MatchTime),
+            (PostGame, Timer::ElapsedInState),
+            (PrivateLobby, Timer::ElapsedInState),
+            (Practice, Timer::ElapsedInState),
+        ];
+        for (state, timer) in expected {
+            assert_eq!(resolve(&Config::default(), state, None, None).timer, timer, "{state:?}");
+        }
     }
 
     #[test]

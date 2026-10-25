@@ -440,7 +440,7 @@
             "source_modeIcon": "Значок режима",
             "source_customUrl": "Пользовательский URL",
             "timer_none": "Без таймера",
-            "timer_elapsedInState": "Время в этом состоянии",
+            "timer_elapsedInState": "",
             "timer_matchTime": "Время матча",
             "preview": "Предпросмотр активности",
             "preview_header": "Играет",
