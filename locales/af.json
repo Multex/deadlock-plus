@@ -182,6 +182,7 @@
         },
         "items": {
             "theme": "Tema",
+            "theme_effects": "",
             "reduced_motion": "Verminderde beweging",
             "accessible_font": "Toeganklike lettertipe",
             "close_to_tray": "Bly in die stelselbalk loop",
@@ -223,6 +224,7 @@
         },
         "appearance": {
             "theme_description": "Kies die kleure wat die toep gebruik.",
+            "effects_description": "",
             "motion_description": "",
             "motion_system": "Volg stelsel",
             "motion_reduce": "Verminder",
@@ -230,16 +232,26 @@
             "font_description": "",
             "scale_description": "",
             "hardware_acceleration_description": "",
-            "restart_app": ""
+            "restart_app": "",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
         },
         "themes": {
             "deadlock": {
                 "label": "Deadlock",
-                "description": ""
+                "description": "",
+                "source": ""
             },
             "midnight": {
                 "label": "Middernag",
-                "description": ""
+                "description": "",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
             },
             "daylight": {
                 "label": "Daglig",
@@ -251,11 +263,43 @@
             },
             "nightshift": {
                 "label": "Nagskof",
-                "description": ""
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
             },
             "deadlock_api": {
                 "label": "Deadlock API",
+                "description": "",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
                 "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
             }
         },
         "autostart": {
