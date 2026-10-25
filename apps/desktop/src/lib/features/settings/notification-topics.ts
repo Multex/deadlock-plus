@@ -15,6 +15,7 @@ const DEFAULT_DELIVERIES: Deliveries = {
     serverBlocksStale: "both",
     breakReminder: "both",
     matchFound: "overlay",
+    queueStopped: "overlay",
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationSettings & { deliveries: Deliveries } = {
@@ -46,12 +47,12 @@ function deliveries(stored: unknown): Deliveries {
     ) as Deliveries;
 }
 
-/** Match found shows in the game overlay only, never as a desktop toast or a center entry. Every other topic
+/** Match found and queue stopped show in the game overlay only, never as a desktop toast or a center entry. Every other topic
  *  set to the overlay falls back to a desktop toast where there is no overlay. */
 function fixed(deliveries: Deliveries, p: Platform): Deliveries {
     const shown = (delivery: Delivery): Delivery => (delivery === "overlay" && !hasOverlay(p) ? "os" : delivery);
     const each = Object.fromEntries(TOPICS.map((topic) => [topic, shown(deliveries[topic])])) as Deliveries;
-    return { ...each, matchFound: "overlay" };
+    return { ...each, matchFound: "overlay", queueStopped: "overlay" };
 }
 
 export function resolveNotifications(

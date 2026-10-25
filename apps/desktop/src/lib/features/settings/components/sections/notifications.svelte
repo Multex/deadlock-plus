@@ -211,3 +211,20 @@
         </SettingRow>
     </Card>
 {/if}
+
+{#if hasOverlay(platform) && show("queue-stopped")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.overlay_queue_stopped")}
+            for="queue-stopped"
+            description={t("settings.notifications.overlay_queue_stopped_description")}
+            hint={overlayOffHint("overlay")}
+        >
+            <Switch
+                id="queue-stopped"
+                checked={settings.overlay.queueStopped}
+                onCheckedChange={(v) => settings.setOverlay({ queueStopped: v })}
+            />
+        </SettingRow>
+    </Card>
+{/if}

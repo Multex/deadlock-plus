@@ -3,4 +3,4 @@
 /**
  * What a notification is about. The user picks a delivery per topic.
  */
-export type NotificationTopic = "updates" | "maintenance" | "serverBlocksUpdated" | "serverBlocksStale" | "breakReminder" | "matchFound";
+export type NotificationTopic = "updates" | "maintenance" | "serverBlocksUpdated" | "serverBlocksStale" | "breakReminder" | "matchFound" | "queueStopped";

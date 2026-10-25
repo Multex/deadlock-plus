@@ -208,6 +208,7 @@
             "overlay_test": "Test the overlay",
             "overlay_notifications": "Overlay notifications",
             "overlay_match_found": "Match found",
+            "overlay_queue_stopped": "Queue stopped",
             "server_blocks_updated": "Server blocks updated",
             "server_blocks_stale": "Server blocks out of date",
             "break_reminder": "Break reminder",
@@ -356,6 +357,7 @@
                 "center": "Match found"
             },
             "overlay_match_found_description": "Tells you when your queue pops, even if another window is in front.",
+            "overlay_queue_stopped_description": "Tells you when your queue stops without a match, even if another window is in front.",
             "server_blocks_updated_description": "Tells you when Valve changes server addresses and Deadlock+ updates your Server Picker blocks to match.",
             "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
             "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
@@ -698,6 +700,10 @@
         "match_found_unknown": {
             "title": "Match found",
             "body": "Your match is loading."
+        },
+        "queue_stopped": {
+            "title": "Queue stopped",
+            "body": "You're no longer in the queue."
         }
     },
     "admin_access": {
