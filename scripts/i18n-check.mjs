@@ -70,8 +70,16 @@ export function checkCatalogs(catalogs, used, referenced = { literals: new Set()
             if (text.trim() === "") continue;
             const reference =
                 en[key] ?? (PLURAL_SUFFIX.test(key) ? en[key.replace(PLURAL_SUFFIX, "_other")] : undefined);
-            if (reference === undefined) errors.push(`${locale}: ${key} is not in en`);
-            else if (placeholders(text) !== placeholders(reference))
+            if (reference === undefined) {
+                errors.push(`${locale}: ${key} is not in en`);
+                continue;
+            }
+            // Plural categories differ by language (Russian "one" also covers 21), so a form may show
+            // a {count} its en form leaves out. `tn` always passes it.
+            const expected =
+                PLURAL_SUFFIX.test(key) && !reference.includes("{count}") ? `${reference}{count}` : reference;
+            const actual = expected === reference ? text : `${text}{count}`;
+            if (placeholders(actual) !== placeholders(expected))
                 errors.push(`${locale}: ${key} placeholders differ from en`);
         }
     }
