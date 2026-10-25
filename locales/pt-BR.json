@@ -182,6 +182,7 @@
         },
         "items": {
             "theme": "Tema",
+            "theme_effects": "",
             "reduced_motion": "Movimento reduzido",
             "accessible_font": "Fonte acessível",
             "close_to_tray": "Manter em execução na bandeja",
@@ -223,6 +224,7 @@
         },
         "appearance": {
             "theme_description": "Escolha as cores usadas pelo aplicativo.",
+            "effects_description": "",
             "motion_description": "Desative animações e transições. \"Seguir o sistema\" usa a configuração do seu sistema operacional.",
             "motion_system": "Seguir o sistema",
             "motion_reduce": "Reduzir",
@@ -230,16 +232,26 @@
             "font_description": "Substitua as fontes no estilo do jogo pela Atkinson Hyperlegible, projetada para baixa visão e leitura mais fácil.",
             "scale_description": "Aumente ou diminua o tamanho de tudo no Deadlock+.",
             "hardware_acceleration_description": "O Deadlock+ é renderizado pela sua placa de vídeo. Desative essa opção se a janela piscar ou aparecer preta nas capturas de tela.",
-            "restart_app": "Reiniciar o Deadlock+"
+            "restart_app": "Reiniciar o Deadlock+",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
         },
         "themes": {
             "deadlock": {
                 "label": "Deadlock",
-                "description": "Quase-preto quente com detalhes em latão."
+                "description": "Quase-preto quente com detalhes em latão.",
+                "source": ""
             },
             "midnight": {
                 "label": "Meia-noite",
-                "description": "Preto-azulado frio com um detalhe em prata suave."
+                "description": "Preto-azulado frio com um detalhe em prata suave.",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
             },
             "daylight": {
                 "label": "Luz do dia",
@@ -251,11 +263,43 @@
             },
             "nightshift": {
                 "label": "Nightshift",
-                "description": "Cyberpunk noir verde-água com detalhes em âmbar."
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
             },
             "deadlock_api": {
                 "label": "Deadlock API",
-                "description": "Preto OLED com brilho vermelho elétrico."
+                "description": "Preto OLED com brilho vermelho elétrico.",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
             }
         },
         "autostart": {

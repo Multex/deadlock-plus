@@ -182,6 +182,7 @@
         },
         "items": {
             "theme": "Tema",
+            "theme_effects": "",
             "reduced_motion": "Azaltılmış hareket",
             "accessible_font": "Erişilebilirlik fontu",
             "close_to_tray": "Sistem tepsisinde çalışmaya devam et",
@@ -223,6 +224,7 @@
         },
         "appearance": {
             "theme_description": "Uygulamanın kullanacağı renkleri seç.",
+            "effects_description": "",
             "motion_description": "Animasyonları ve geçişleri kapatır. \"Sistem\" işletim sistemi ayarını kullanır.",
             "motion_system": "Sistem",
             "motion_reduce": "Azalt",
@@ -230,16 +232,26 @@
             "font_description": "Oyun tarzı yazı tiplerini, az gören kullanıcılar için tasarlanmış ve okunması kolay Atkinson Hyperlegible ile değiştirin.",
             "scale_description": "",
             "hardware_acceleration_description": "",
-            "restart_app": ""
+            "restart_app": "",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
         },
         "themes": {
             "deadlock": {
                 "label": "Deadlock",
-                "description": "Pirinç detaylı, siyaha yakın ton."
+                "description": "Pirinç detaylı, siyaha yakın ton.",
+                "source": ""
             },
             "midnight": {
                 "label": "Gece yarısı",
-                "description": "Soğuk mavi-siyah, yumuşak gümüş vurgulu."
+                "description": "Soğuk mavi-siyah, yumuşak gümüş vurgulu.",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
             },
             "daylight": {
                 "label": "Gün ışığı",
@@ -251,11 +263,43 @@
             },
             "nightshift": {
                 "label": "Gece vardiyası",
-                "description": "Kehribar kenarlı camgöbeği."
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
             },
             "deadlock_api": {
                 "label": "Deadlock API",
-                "description": "Kızıl parıltılı OLED siyah."
+                "description": "Kızıl parıltılı OLED siyah.",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
             }
         },
         "autostart": {
