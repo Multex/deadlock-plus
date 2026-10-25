@@ -77,6 +77,8 @@ async function matchEnds(page: Page) {
 }
 
 test.describe("after a match", () => {
+    test.use({ scenario: "post-match" });
+
     test("tosses the front page onto whatever page is open, once per match", async ({ page }) => {
         await open(page, "/stats");
         await matchEnds(page);

@@ -2,7 +2,7 @@ import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { ItemStats } from "@deadlock-plus/ipc-types/ItemStats";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { install, type DemoHandle } from "../../scenario";
-import { defaultScenario } from "./index";
+import { defaultScenario, postMatchScenario } from "./index";
 
 const OPTIONS = { appVersion: "1.2.3", changelog: "# Changelog\n", mapItemsTsv: "" };
 const ASSETS = "https://api.deadlock-api.com/v1/assets";
@@ -360,8 +360,14 @@ describe("captured post-game detail", () => {
         while (handles.length) handles.pop()!.uninstall();
     });
 
-    it("answers the newest match, as the game capture would right after it, and nothing older", async () => {
+    it("has no captured match in the default scenario, so pages without details stay as they are", async () => {
         const handle = install(defaultScenario(OPTIONS));
+        handles.push(handle);
+        expect(await handle.invoke("get_postgame_detail", { matchId: 990000060 })).toBeNull();
+    });
+
+    it("answers the newest match right after it ended, and nothing older", async () => {
+        const handle = install(postMatchScenario(OPTIONS));
         handles.push(handle);
         const newest = (await handle.invoke("get_postgame_detail", { matchId: 990000060 })) as {
             match_info: { match_id: number; players: unknown[] };

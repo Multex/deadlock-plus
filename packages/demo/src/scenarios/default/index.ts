@@ -19,6 +19,11 @@ export function defaultScenario(options: ScenarioOptions): Scenario {
     return scenarioNamed("default", options);
 }
 
+/** The default scenario a moment after its newest match ended: the game capture holds that match. */
+export function postMatchScenario(options: ScenarioOptions): Scenario {
+    return scenarioNamed("post-match", { ...options, captured: true });
+}
+
 /** The default scenario seen through one of the recovery presets, such as `recovery-running`. */
 export function recoveryScenario(id: string, options: ScenarioOptions): Scenario {
     const recovery = RECOVERY_PRESETS[id];
