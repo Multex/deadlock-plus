@@ -2,15 +2,18 @@
     import type { Component } from "svelte";
     import {
         Building2,
+        Cloud,
         CloudFog,
         CloudRain,
         ExternalLink,
         Eye,
         Feather,
         Frame,
+        Heart,
         Layers,
         Lightbulb,
         PawPrint,
+        Ribbon,
         Snowflake,
         Sparkles,
     } from "@lucide/svelte";
@@ -48,6 +51,9 @@
         tracks: PawPrint,
         fog: CloudFog,
         windows: Building2,
+        clouds: Cloud,
+        hearts: Heart,
+        bow: Ribbon,
     };
 
     const data = $derived(THEME_DATA.find((d) => d.id === theme.id));
