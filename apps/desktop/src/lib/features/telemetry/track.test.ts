@@ -16,6 +16,10 @@ describe("featureForPath", () => {
         expect(featureForPath("/live")).toBe("live");
     });
 
+    it("names the Dispatch page", () => {
+        expect(featureForPath("/dispatch")).toBe("dispatch");
+    });
+
     it("names the presence page", () => {
         expect(featureForPath("/presence")).toBe("presence");
     });

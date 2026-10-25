@@ -2,7 +2,17 @@ import type { Locator, Page } from "@playwright/test";
 import { focusIsVisible, open } from "./support/flows";
 import { expect, settle, test } from "./support/test";
 
-const MAIN_HREFS = ["/", "/server-picker", "/live", "/stats", "/match-history", "/builds", "/alerts", "/presence"];
+const MAIN_HREFS = [
+    "/",
+    "/server-picker",
+    "/live",
+    "/stats",
+    "/match-history",
+    "/builds",
+    "/alerts",
+    "/presence",
+    "/dispatch",
+];
 const MAIN_PAGES = MAIN_HREFS.length;
 
 const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });

@@ -3746,6 +3746,44 @@
             "saved": "Dispatch image saved.",
             "copied": "Dispatch image copied to the clipboard.",
             "render_failed": "Couldn't make the Dispatch image. Try again."
+        },
+        "page": {
+            "title": "Dispatch",
+            "subtitle": "Your weeks and months in Deadlock, in print.",
+            "switch": "Edition",
+            "switch_weekly": "Weekly",
+            "switch_monthly": "Monthly",
+            "switch_so_far": "This week so far",
+            "read_story": "Read as story",
+            "export": "Export",
+            "loading": "Loading the paper...",
+            "open_failed": "This paper could not be opened."
+        },
+        "shelf": {
+            "title": "Past editions",
+            "weekly": "Weekly editions",
+            "monthly": "Monthly editions",
+            "number": "No. {number}",
+            "new": "New",
+            "matches_one": "{count} match",
+            "matches_other": "{count} matches",
+            "too_few_one": "{count} match, too few for a paper",
+            "too_few_other": "{count} matches, too few for a paper",
+            "print": "Print this edition",
+            "printing": "Printing...",
+            "print_not_enough": "Too few matches for a paper.",
+            "print_failed": "This edition could not be printed.",
+            "show_fewer": "Show fewer",
+            "show_older_weekly_one": "Show {count} older week",
+            "show_older_weekly_other": "Show {count} older weeks",
+            "show_older_monthly_one": "Show {count} older month",
+            "show_older_monthly_other": "Show {count} older months"
+        },
+        "empty": {
+            "no_account": "No Steam account found, so there is no paper to print.",
+            "offline": "Deadlock+ could not load your match history, so the Dispatch cannot print right now.",
+            "first_paper_one": "Play {count} more match this week and your first paper comes out {date}.",
+            "first_paper_other": "Play {count} more matches this week and your first paper comes out {date}."
         }
     }
 }
