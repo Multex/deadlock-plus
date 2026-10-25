@@ -8,7 +8,7 @@ const data = {
     themes: [
         { id: "base", light: false, tokens: { background: "oklch(0.1 0 0)", brass: "oklch(0.8 0.1 82)" } },
         { id: "paper", light: true, grain: false, tokens: { background: "oklch(0.97 0 0)" } },
-        { id: "dusk", light: false, tokens: { brass: "oklch(0.7 0.1 230)" } },
+        { id: "dusk", light: false, spotlight: true, tokens: { brass: "oklch(0.7 0.1 230)" } },
     ],
 };
 
@@ -44,6 +44,16 @@ describe("themeCss", () => {
 
         expect(css).toContain(':root[data-theme="paper"] body::after');
         expect(css).not.toContain(':root[data-theme="dusk"] body::after');
+    });
+
+    it("flattens the panel top glow for every theme that does not opt in", () => {
+        const css = themeCss(data);
+
+        const flat = block(css, ':root[data-theme="paper"] .noir-panel');
+
+        expect(flat).toContain("background: var(--background);");
+        expect(css).toContain(':root[data-theme="base"] .noir-panel,');
+        expect(css).not.toContain(':root[data-theme="dusk"] .noir-panel');
     });
 
     it("rejects data whose default theme is missing", () => {

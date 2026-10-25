@@ -25,6 +25,10 @@ describe("THEMES", () => {
         expect(theme("contrast").grain).toBe(false);
     });
 
+    it("keeps the panel top glow only on Deadlock and Midnight", () => {
+        expect(THEMES.filter((t) => t.spotlight).map((t) => t.id)).toEqual(["deadlock", "midnight"]);
+    });
+
     it("lists the effect layers a theme lets you turn off one by one, and none for a theme with one layer", () => {
         expect(theme("nightshift").effects).toEqual(["rain", "lights", "frames", "clock"]);
         expect(theme("flint-snow").effects).toEqual(["snow", "stars", "tail", "tracks"]);

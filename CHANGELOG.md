@@ -62,6 +62,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Diagnostics log remembers Auto-scroll and Minimum level.
 - In the build editor, a category's note no longer runs under its size badge.
 - Nightshift's string lights no longer hang over page titles and buttons.
+- The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
 
 ## [0.14.0] - 2026-10-24
 

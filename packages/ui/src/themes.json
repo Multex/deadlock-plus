@@ -4,6 +4,7 @@
         {
             "id": "deadlock",
             "light": false,
+            "spotlight": true,
             "source": "https://store.steampowered.com/app/1422450/Deadlock/",
             "tokens": {
                 "background": "oklch(0.17 0.008 70)",
@@ -38,6 +39,7 @@
         {
             "id": "midnight",
             "light": false,
+            "spotlight": true,
             "effects": ["fog", "windows"],
             "tokens": {
                 "background": "oklch(0.17 0.02 260)",
