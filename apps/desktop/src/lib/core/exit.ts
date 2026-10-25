@@ -15,6 +15,17 @@ export async function runBeforeExit(): Promise<void> {
     await Promise.allSettled([...tasks].map(async (task) => task()));
 }
 
+const RESTART_SAVE_LIMIT_MS = 3000;
+
+/** A restart has no backend grace period like a quit, so a task that never settles is cut off after a short limit. */
+export async function restartAfterSaves(): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<void>((resolve) => (timer = setTimeout(resolve, RESTART_SAVE_LIMIT_MS)));
+    await Promise.race([runBeforeExit(), limit]);
+    clearTimeout(timer);
+    await command("restart_app");
+}
+
 /** The backend exits on its own after a short grace period, so a page that never answers cannot block a quit. */
 export function listenForQuit(): () => void {
     const unlisten = listen(QUIT_REQUESTED_EVENT, () => {
