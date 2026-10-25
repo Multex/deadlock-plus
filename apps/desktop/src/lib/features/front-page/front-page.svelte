@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { arrangeStories, PAPER_HEIGHT, PAPER_WIDTH, type FrontPageView } from "./front-page-view";
+    import { t } from "$lib/core/i18n.svelte";
+    import { arrangeStories, PAPER_HEIGHT, PAPER_WIDTH, type CriticsNote, type FrontPageView } from "./front-page-view";
+    import SectionHead from "./paper/section-head.svelte";
     import BoxScore from "./paper/box-score.svelte";
     import Briefs from "./paper/briefs.svelte";
     import Deck from "./paper/deck.svelte";
@@ -13,7 +15,7 @@
     import Stamp from "./paper/stamp.svelte";
     import TeamScore from "./paper/team-score.svelte";
 
-    let { view }: { view: FrontPageView } = $props();
+    let { view, critics }: { view: FrontPageView; critics?: CriticsNote } = $props();
 
     /** Stories tried beside the photo before the rest go in brief. */
     const SIDE_MAX = 2;
@@ -80,9 +82,14 @@
 
         <BoxScore teams={view.box} />
 
-        <div class="lower" class:graded>
+        <div class="lower" class:graded={graded || !!critics}>
             {#if graded}
                 <Ratings rows={view.ratings} />
+            {:else if critics}
+                <section class="critics-note" role="status">
+                    <SectionHead text={t("front_page.kit.critics")} />
+                    <p>{t(`front_page.critics_${critics}`)}</p>
+                </section>
             {/if}
             <LaneReport lanes={view.lanes} />
             {#if arranged.briefs.length > 0}
@@ -143,6 +150,13 @@
 
     .lower.graded {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);
+    }
+
+    .critics-note p {
+        margin: 0;
+        color: var(--fp-ink-soft);
+        font-size: 12px;
+        font-style: italic;
     }
 
     .objectives {

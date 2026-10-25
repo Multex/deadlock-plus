@@ -18,7 +18,9 @@
         waitForWindowFocus,
     } from "$lib/features/match-history/export-dom";
     import FrontPage from "./front-page.svelte";
-    import { frontPageView, PAPER_HEIGHT, PAPER_WIDTH } from "./front-page-view";
+    import { criticsNote, frontPageView, PAPER_HEIGHT, PAPER_WIDTH } from "./front-page-view";
+    import { liveGradeDeps, watchMatchGrade } from "$lib/features/match-history/mvp";
+    import type { GradeInput } from "@deadlock-plus/match/stories/index";
     import { loadExtras, viewDeps, type FrontPageExtras } from "./load";
     import type { Takeover } from "./takeover";
     import { MAX_ANGLE, MAX_DX, MAX_DY, nextLanding, REST_SHADOW, restTransform, tossMotion } from "./toss";
@@ -27,12 +29,20 @@
         detail,
         ownAccountId,
         takeover,
-    }: { detail: MatchDetail; ownAccountId: number | null; takeover: Takeover<HTMLElement> } = $props();
+        requestGrade = false,
+    }: {
+        detail: MatchDetail;
+        ownAccountId: number | null;
+        takeover: Takeover<HTMLElement>;
+        /** Asks for a grade and fills the critics when it lands, instead of reading a stored one. */
+        requestGrade?: boolean;
+    } = $props();
 
     const RAIL = 168;
     const GAP = 28;
     const MARGIN = 24;
     const MAX_SCALE = 1.25;
+    const GRADE_WAIT_MS = 30_000;
     const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
     let dialog = $state<HTMLElement | null>(null);
@@ -42,6 +52,8 @@
     let extras = $state.raw<FrontPageExtras | null>(null);
     let busy = $state<ExportKind | null>(null);
     let landed = $state(false);
+    let requested = $state.raw<GradeInput[]>([]);
+    let gradeTimedOut = $state(false);
 
     const reducedMotion =
         document.documentElement.hasAttribute("data-reduced-motion") ||
@@ -51,10 +63,16 @@
     const matchId = $derived(detail.matchId);
     const page = $derived(
         extras
-            ? buildFrontPage({ detail, viewerAccountId: ownAccountId, grades: extras.grades, ping: extras.ping })
+            ? buildFrontPage({
+                  detail,
+                  viewerAccountId: ownAccountId,
+                  grades: requestGrade ? requested : extras.grades,
+                  ping: extras.ping,
+              })
             : null,
     );
     const view = $derived(page && extras ? frontPageView(page, viewDeps(extras.heroes)) : null);
+    const critics = $derived(criticsNote(requestGrade, (page?.ratings.length ?? 0) > 0, gradeTimedOut));
 
     // Sized for the steepest resting angle and the widest offset, so every landing fits the same spot.
     const rad = (MAX_ANGLE * Math.PI) / 180;
@@ -77,10 +95,28 @@
         void matchId;
         let live = true;
         extras = null;
-        void loadExtras(untrack(() => detail)).then((x) => {
+        void loadExtras(
+            untrack(() => detail),
+            !requestGrade,
+        ).then((x) => {
             if (live) extras = x;
         });
         return () => (live = false);
+    });
+
+    $effect(() => {
+        const id = matchId;
+        if (!requestGrade) return;
+        requested = [];
+        gradeTimedOut = false;
+        const timer = setTimeout(() => (gradeTimedOut = true), GRADE_WAIT_MS);
+        const stop = watchMatchGrade(id, liveGradeDeps, (grade) => {
+            if (grade && grade.players.length > 0) requested = grade.players;
+        });
+        return () => {
+            clearTimeout(timer);
+            stop();
+        };
     });
 
     $effect(() => {
@@ -182,7 +218,7 @@
                             class="sheet"
                             style="width: {PAPER_WIDTH}px; height: {PAPER_HEIGHT}px; transform: translate(-50%, -50%) scale({scale});"
                         >
-                            <div bind:this={paperNode}><FrontPage {view} /></div>
+                            <div bind:this={paperNode}><FrontPage {view} {critics} /></div>
                         </div>
                     </div>
                 </div>

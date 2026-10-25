@@ -45,6 +45,7 @@ const ALERTS_KEY = "updateAlerts";
 const OVERLAY_KEY = "overlay";
 const NOTIFICATIONS_KEY = "notifications";
 const BREAK_HINT_KEY = "breakHint";
+const FRONT_PAGE_KEY = "frontPageAfterMatch";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
 const AUTO_UPDATE_KEY = "autoUpdateCheck";
@@ -82,6 +83,7 @@ class Settings {
     overlay = $state<OverlaySettings>({ ...DEFAULT_OVERLAY });
     notifications = $state(resolveNotifications(DEFAULT_NOTIFICATIONS));
     breakHint = $state(false);
+    frontPageAfterMatch = $state(true);
     autoUpdateCheck = $state(true);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
     uiScale = $state(DEFAULT_UI_SCALE);
@@ -119,6 +121,8 @@ class Settings {
         this.overlay = resolveOverlay(await stored<unknown>(OVERLAY_KEY));
         this.notifications = resolveNotifications(await stored<unknown>(NOTIFICATIONS_KEY));
         this.breakHint = (await stored<boolean>(BREAK_HINT_KEY)) ?? false;
+        const frontPage = await stored<unknown>(FRONT_PAGE_KEY);
+        this.frontPageAfterMatch = typeof frontPage === "boolean" ? frontPage : true;
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
         this.autoUpdateCheck = (await stored<boolean>(AUTO_UPDATE_KEY)) ?? true;
@@ -259,6 +263,15 @@ class Settings {
         this.breakHint = value;
         try {
             await kvSet(STORE, BREAK_HINT_KEY, value);
+        } catch {
+            // The choice just won't persist across restarts.
+        }
+    }
+
+    async setFrontPageAfterMatch(value: boolean) {
+        this.frontPageAfterMatch = value;
+        try {
+            await kvSet(STORE, FRONT_PAGE_KEY, value);
         } catch {
             // The choice just won't persist across restarts.
         }

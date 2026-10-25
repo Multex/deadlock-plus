@@ -51,6 +51,14 @@ export function arrangeStories(stories: StoryView[], sideCount: number): { side:
     };
 }
 
+export type CriticsNote = "grading" | "pending";
+
+/** What the critics column says while a grade was asked for and has not come yet. */
+export function criticsNote(requested: boolean, graded: boolean, timedOut: boolean): CriticsNote | undefined {
+    if (!requested || graded) return undefined;
+    return timedOut ? "pending" : "grading";
+}
+
 export function teamName(t: ViewDeps["t"], team: MatchTeam): string {
     return team === "hidden-king" ? t("match_history.team.hidden_king") : t("match_history.team.archmother");
 }

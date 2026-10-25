@@ -301,6 +301,17 @@ const BASE_ITEMS: SettingItem[] = [
             "break hint reminder tilt loss streak losing sessions rest shows as desktop notification toast overlay notification center popup",
     },
     {
+        id: "front-page-after-match",
+        category: "notifications",
+        get title() {
+            return t("settings.items.front_page_after_match");
+        },
+        get description() {
+            return t("settings.notifications.front_page_after_match_description");
+        },
+        keywords: "front page newspaper dispatch after match post-game postgame end of match recap paper toss",
+    },
+    {
         id: "match-found",
         category: "notifications",
         get title() {

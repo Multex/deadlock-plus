@@ -353,3 +353,21 @@ describe("game files from the default scenario", () => {
         expect(tags.every((t) => t.icon === undefined)).toBe(true);
     });
 });
+
+describe("captured post-game detail", () => {
+    const handles: DemoHandle[] = [];
+    afterEach(() => {
+        while (handles.length) handles.pop()!.uninstall();
+    });
+
+    it("answers the newest match, as the game capture would right after it, and nothing older", async () => {
+        const handle = install(defaultScenario(OPTIONS));
+        handles.push(handle);
+        const newest = (await handle.invoke("get_postgame_detail", { matchId: 990000060 })) as {
+            match_info: { match_id: number; players: unknown[] };
+        } | null;
+        expect(newest?.match_info.match_id).toBe(990000060);
+        expect(newest?.match_info.players).toHaveLength(12);
+        expect(await handle.invoke("get_postgame_detail", { matchId: 990000059 })).toBeNull();
+    });
+});

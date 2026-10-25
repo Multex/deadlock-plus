@@ -6,7 +6,7 @@ import TeamScore from "./team-score.svelte";
 const base = {
     name: "Deadlock+ Dispatch",
     date: "Mon, Oct 12, 2026",
-    edition: "Match edition · No. 1",
+    edition: "Extra! · No. 1",
     detail: "Ranked",
 };
 
@@ -22,7 +22,7 @@ describe("Masthead", () => {
 
     it("prints the dateline in order: date, edition, detail", () => {
         const body = render(Masthead, { props: base }).body;
-        const order = ["Mon, Oct 12, 2026", "Match edition · No. 1", "Ranked"].map((s) => body.indexOf(s));
+        const order = ["Mon, Oct 12, 2026", "Extra! · No. 1", "Ranked"].map((s) => body.indexOf(s));
         expect(order.every((i) => i > 0)).toBe(true);
         expect([...order].sort((a, b) => a - b)).toEqual(order);
     });

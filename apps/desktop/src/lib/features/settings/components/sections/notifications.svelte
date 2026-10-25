@@ -195,6 +195,22 @@
     </Card>
 {/if}
 
+{#if show("front-page-after-match")}
+    <Card as="section" class="flex flex-col gap-4">
+        <SettingRow
+            label={t("settings.items.front_page_after_match")}
+            for="front-page-after-match"
+            description={t("settings.notifications.front_page_after_match_description")}
+        >
+            <Switch
+                id="front-page-after-match"
+                checked={settings.frontPageAfterMatch}
+                onCheckedChange={(v) => settings.setFrontPageAfterMatch(v)}
+            />
+        </SettingRow>
+    </Card>
+{/if}
+
 {#if hasOverlay(platform) && show("match-found")}
     <Card as="section" class="flex flex-col gap-4">
         <SettingRow

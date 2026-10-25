@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { formatClock } from "$lib/features/live/live";
 import type { BoxRow, FrontPage, Story, TeamBox } from "@deadlock-plus/match/stories/index";
-import { arrangeStories, frontPageView, type StoryView, type ViewDeps } from "./front-page-view";
+import { arrangeStories, criticsNote, frontPageView, type StoryView, type ViewDeps } from "./front-page-view";
 
 const HEROES: Record<number, string> = { 1: "Infernus", 2: "Haze", 3: "Seven", 4: "Vindicta" };
 
@@ -191,7 +191,7 @@ describe("frontPageView", () => {
         expect(masthead).toMatchObject({
             name: "Deadlock+ Dispatch",
             date: "2026-10-14",
-            edition: "Match edition · No. 990000060",
+            edition: "Extra! · No. 990000060",
             detail: "Ranked · 31:56",
         });
     });
@@ -250,5 +250,22 @@ describe("arrangeStories", () => {
 
     it("copes with fewer stories than places", () => {
         expect(arrangeStories(stories.slice(0, 1), 2)).toEqual({ side: [stories[0]], briefs: [] });
+    });
+});
+
+describe("criticsNote", () => {
+    it("says nothing when no grade was asked for", () => {
+        expect(criticsNote(false, false, false)).toBeUndefined();
+        expect(criticsNote(false, false, true)).toBeUndefined();
+    });
+
+    it("says grading while the grade is on its way, then pending once the wait is over", () => {
+        expect(criticsNote(true, false, false)).toBe("grading");
+        expect(criticsNote(true, false, true)).toBe("pending");
+    });
+
+    it("gives way to the grades once they arrive", () => {
+        expect(criticsNote(true, true, false)).toBeUndefined();
+        expect(criticsNote(true, true, true)).toBeUndefined();
     });
 });
