@@ -32,6 +32,7 @@ describe("THEMES", () => {
     it("lists the effect layers a theme lets you turn off one by one, and none for a theme with one layer", () => {
         expect(theme("nightshift").effects).toEqual(["rain", "lights", "frames", "clock"]);
         expect(theme("flint-snow").effects).toEqual(["snow", "stars", "tail", "tracks"]);
+        expect(theme("pretty-in-pink").effects).toEqual(["clouds", "hearts", "bow"]);
         expect(theme(DEFAULT_THEME).effects).toEqual([]);
     });
 
@@ -40,6 +41,13 @@ describe("THEMES", () => {
         expect(theme("nightshift").source).toBe("https://www.twitch.tv/deadlocknightshift");
         expect(theme("midnight").source).toBeUndefined();
         for (const t of THEMES) if (t.source) expect(t.source, t.id).toMatch(/^https:\/\//);
+    });
+
+    it("ends the list with Pretty in Pink, a light theme of its own with no film grain and nothing to link to", () => {
+        expect(THEMES.at(-1)?.id).toBe("pretty-in-pink");
+        expect(isLightTheme("pretty-in-pink")).toBe(true);
+        expect(theme("pretty-in-pink").grain).toBe(false);
+        expect(theme("pretty-in-pink").source).toBeUndefined();
     });
 
     it("takes a custom accent on every theme but High contrast", () => {

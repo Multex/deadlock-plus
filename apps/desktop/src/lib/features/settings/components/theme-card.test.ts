@@ -58,6 +58,18 @@ describe("ThemeCard", () => {
         ]);
     });
 
+    it("gives Pretty in Pink's clouds, hearts and bow toggles their own icons", () => {
+        const body = html("pretty-in-pink");
+        const toggles = [...body.matchAll(/<button\b[^>]*aria-pressed="true"[^>]*>(.*?)<\/button>/gs)].map(
+            (m) => m[1]!,
+        );
+
+        expect(toggles.map((t) => t.replace(/<[^>]+>/g, "").trim())).toEqual(["Clouds", "Hearts", "Bow"]);
+        expect(toggles[0]).toContain("lucide-cloud");
+        expect(toggles[1]).toContain("lucide-heart");
+        expect(toggles[2]).toContain("lucide-ribbon");
+    });
+
     it("greys the layer toggles out while theme effects are off", () => {
         const body = html("flint-snow", { effectsOn: false });
 

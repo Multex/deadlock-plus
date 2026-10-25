@@ -301,6 +301,15 @@
                 "label": "DeadChaps",
                 "description": "Near-black panels with DeadChaps purple.",
                 "source": "DeadChaps"
+            },
+            "pretty_in_pink": {
+                "label": "Pretty in Pink",
+                "description": "Candy pink and cream with pastel clouds and hearts.",
+                "effects": {
+                    "clouds": "Clouds",
+                    "hearts": "Hearts",
+                    "bow": "Bow"
+                }
             }
         },
         "autostart": {
