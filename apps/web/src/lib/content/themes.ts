@@ -29,6 +29,7 @@ const LABELS: Record<ThemeId, string> = {
     statlocker: "Statlocker",
     "flint-snow": "Flint Snow",
     void: "Void",
+    deadchaps: "DeadChaps",
 };
 
 export const THEME_STORAGE_KEY = "theme";

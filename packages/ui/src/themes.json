@@ -270,6 +270,40 @@
                 "input": "oklch(0.628 0.23 297 / 32%)",
                 "ring": "oklch(0.628 0.23 297)"
             }
+        },
+        {
+            "id": "deadchaps",
+            "light": false,
+            "source": "https://www.deadchaps.gg",
+            "tokens": {
+                "background": "oklch(0.145 0 0)",
+                "chrome": "oklch(0.116 0.003 286)",
+                "foreground": "oklch(1 0 0)",
+                "card": "oklch(0.218 0 0)",
+                "card-foreground": "oklch(1 0 0)",
+                "popover": "oklch(0.191 0 0)",
+                "popover-foreground": "oklch(1 0 0)",
+                "primary": "oklch(0.8 0.182 152)",
+                "primary-foreground": "oklch(0.145 0 0)",
+                "secondary": "oklch(0.264 0 0)",
+                "secondary-foreground": "oklch(1 0 0)",
+                "muted": "oklch(0.264 0 0)",
+                "muted-foreground": "oklch(0.706 0 0)",
+                "accent": "oklch(0.264 0 0)",
+                "accent-foreground": "oklch(1 0 0)",
+                "brass": "oklch(0.72 0.193 309)",
+                "destructive": "oklch(0.68 0.2 25)",
+                "destructive-foreground": "oklch(0.145 0 0)",
+                "success": "oklch(0.8 0.182 152)",
+                "success-foreground": "oklch(0.145 0 0)",
+                "warning": "oklch(0.837 0.164 84)",
+                "warning-foreground": "oklch(0.145 0 0)",
+                "border": "oklch(0.72 0.193 309 / 18%)",
+                "input": "oklch(0.72 0.193 309 / 26%)",
+                "ring": "oklch(0.72 0.193 309)",
+                "dd-hk": "oklch(0.665 0.142 69)",
+                "dd-am": "oklch(0.66 0.124 263)"
+            }
         }
     ]
 }

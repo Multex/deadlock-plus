@@ -295,6 +295,11 @@
             "void": {
                 "label": "Void",
                 "description": "OLED black with electric violet trim."
+            },
+            "deadchaps": {
+                "label": "DeadChaps",
+                "description": "Near-black panels with DeadChaps purple.",
+                "source": "DeadChaps"
             }
         },
         "autostart": {

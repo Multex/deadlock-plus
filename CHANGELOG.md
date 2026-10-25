@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Flint Snow theme: coral and midnight navy with pink trim.
 - Both new themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
+- A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
 
 #### Theme options
 
@@ -30,6 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Nightshift's gold art deco frames and eye medallion catch the light now and then.
 - On Wednesday nights while Deadlock Night Shift is live, Nightshift lights up "Clock In" and a clock on your local time.
 - In the Void theme, a black hole turns in the corner, pulling in faint specks of light.
+- In the DeadChaps theme, a sigil turns slowly in the corner while dust drifts past.
 - Turn them off with the Theme effects switch in Settings > Appearance.
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
