@@ -59,7 +59,7 @@
                         </div>
                         <IconButton
                             size="sm"
-                            label={t("voice_bans.row.open_aria")}
+                            label={t("voice_bans.row.open_named_aria", { name: p.name || p.steamid64 })}
                             title={t("voice_bans.row.open_title")}
                             onclick={() => onopen(p.steamid64)}
                         >
@@ -72,7 +72,7 @@
                                 size="sm"
                                 variant="outline"
                                 disabled={busy || locked}
-                                aria-label={t("voice_bans.add.mute_named", { name: p.name })}
+                                aria-label={t("voice_bans.add.mute_named", { name: p.name || p.steamid64 })}
                                 onclick={() => onmute(p.steamid64)}>{t("voice_bans.add.mute")}</Button
                             >
                         {/if}

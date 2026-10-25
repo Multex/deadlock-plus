@@ -1796,7 +1796,6 @@
         },
         "row": {
             "select": "Select {name}",
-            "open_aria": "Open Statlocker profile",
             "open_title": "Statlocker profile",
             "unmute": "Unmute",
             "unmute_named": "Unmute {name}",

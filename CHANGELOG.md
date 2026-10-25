@@ -57,6 +57,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The app opens straight on your last page instead of switching to it.
 - Some labels that stayed in English can now be translated, such as "Every other game" in Stats insights.
 - Frame and item counts read correctly in every language, including a count of one.
+- Screen readers now name the player on each Statlocker profile button in Mutes search results.
 - Restart app no longer loses a Discord presence edit made just before.
 - In the Discord presence editor, screen readers now hear "Show party size" and "Timer on Discord" instead of the bare labels.
 - The Diagnostics log remembers Auto-scroll and Minimum level.

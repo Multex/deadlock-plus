@@ -1888,7 +1888,6 @@
         },
         "row": {
             "select": "Выбрать {name}",
-            "open_aria": "Открыть профиль Statlocker",
             "open_title": "Профиль Statlocker",
             "unmute": "Снять заглушение",
             "unmute_named": "Снять заглушение с {name}",

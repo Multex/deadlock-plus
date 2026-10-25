@@ -66,13 +66,27 @@ test("every mute and unmute button names the player it acts on", async ({ page }
     await searchFor(page, "light");
     await expect(page.getByRole("button", { name: /^Mute \S/ }).first()).toBeVisible();
 
-    for (const pattern of [/^Unmute (?!selected)/, /^Open Statlocker profile of /]) {
-        const names = await page
+    // A muted player found by the search has a profile button in both lists, so names are unique per list.
+    const mutedRows = page.getByRole("listitem").filter({ has: page.getByRole("checkbox") });
+    const results = page.getByRole("listitem").filter({ hasNot: page.getByRole("checkbox") });
+    for (const [scope, pattern] of [
+        [page, /^Unmute (?!selected)/],
+        [mutedRows, /^Open Statlocker profile of /],
+        [results, /^Open Statlocker profile of /],
+    ] as const) {
+        const names = await scope
             .getByRole("button", { name: pattern })
             .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label") ?? ""));
         expect(names.length).toBeGreaterThan(1);
         expect(new Set(names).size).toBe(names.length);
     }
+
+    await expect(
+        searchResult(page, "Lowlight").getByRole("button", {
+            name: "Open Statlocker profile of Lowlight",
+            exact: true,
+        }),
+    ).toBeVisible();
 });
 
 test("a name nobody has says so", async ({ page }) => {
