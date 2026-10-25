@@ -16,6 +16,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Every theme but High contrast now draws its own art and animation behind the page.
 - In the Deadlock theme, dust drifts through the lamp light and swirls when your mouse moves through it.
+- In the Nightshift theme, rain runs down a fogged window that your mouse wipes clear.
+- Nightshift's string lights sway over a teal night street whose windows follow your local time.
+- Nightshift's gold art deco frames and eye medallion catch the light now and then.
+- On Wednesday nights while Deadlock Night Shift is live, Nightshift lights up "Clock In" and a clock on your local time.
 - Turn them off with the Theme effects switch in Settings > Appearance.
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
