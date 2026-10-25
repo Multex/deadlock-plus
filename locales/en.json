@@ -3591,5 +3591,138 @@
             "copied": "Front page image copied to the clipboard.",
             "render_failed": "Couldn't make the front page image. Try again."
         }
+    },
+    "dispatch": {
+        "story": {
+            "record": {
+                "headline_winning": "Winning ways: {wins}-{losses}",
+                "headline_losing": "Tough stretch at {wins}-{losses}",
+                "headline_even": "Dead even at {wins}-{losses}",
+                "deck_one": "{count} match played, {winrate} won.",
+                "deck_other": "{count} matches played, {winrate} won."
+            },
+            "hours": {
+                "headline_one": "{count} hour on the clock",
+                "headline_other": "{count} hours on the clock",
+                "deck": "{playtime} spent in matches, start to finish.",
+                "deck_days_one": "That's {count} day of Deadlock.",
+                "deck_days_other": "That's {count} days of Deadlock."
+            },
+            "top_hero": {
+                "headline": "{hero} runs the show",
+                "deck_one": "{hero} took {share} of your matches: {count} game.",
+                "deck_other": "{hero} took {share} of your matches: {count} games."
+            },
+            "new_hero": {
+                "headline": "New in town: {hero}",
+                "deck_one": "Your first time on {hero}, as far as the records go.",
+                "deck_other": "{count} heroes played for the first time on record, {hero} among them."
+            },
+            "best_game": {
+                "headline": "{hero} steals the show",
+                "deck": "{kills}/{deaths}/{assists} and {net_worth} net worth on {date}.",
+                "deck_graded": "{kills}/{deaths}/{assists} on {date}. The critics gave it {letter}."
+            },
+            "best_streak": {
+                "headline_one": "{count} win in a row",
+                "headline_other": "Unstoppable: {count} wins in a row",
+                "deck": "The longest unbroken run of wins this edition."
+            },
+            "longest_session": {
+                "headline_one": "Marathon: {count} match in one sitting",
+                "headline_other": "Marathon: {count} matches in one sitting",
+                "deck": "It began {date} and ran for {duration}."
+            },
+            "busiest_day": {
+                "headline_one": "{count} match in a single day",
+                "headline_other": "{count} matches in a single day",
+                "deck": "{date} was the busiest day on the calendar."
+            },
+            "longest_match": {
+                "headline": "The {duration} slog",
+                "deck": "The longest match of this edition ran {duration}."
+            },
+            "rank_move": {
+                "headline_up": "Climbing to {to}",
+                "deck_up": "Up from {from}, peaking at {peak}.",
+                "headline_down": "Slipping to {to}",
+                "deck_down": "Down from {from}; the high point was {peak}.",
+                "headline_held_up": "{to} holds, the bar climbs",
+                "deck_held_up": "The badge stayed at {to}, but the progress bar moved up.",
+                "headline_held_down": "Hanging on at {to}",
+                "deck_held_down": "The badge stayed at {to}, but the progress bar slipped."
+            },
+            "played_with": {
+                "headline": "Partners in crime: you and {player}",
+                "deck_one": "{count} match in a party together, {wins} of them won.",
+                "deck_other": "{count} matches in a party together, {wins} of them won."
+            },
+            "nemesis": {
+                "headline": "Wanted: {player}",
+                "deck_one": "Beat you once in {matches} meetings.",
+                "deck_other": "Beat you {count} times in {matches} meetings."
+            },
+            "damage": {
+                "headline": "Damage report: {damage}",
+                "deck_one": "Player damage across {count} match with full stats on record.",
+                "deck_other": "Player damage across {count} matches with full stats on record."
+            },
+            "mvp_count": {
+                "headline_one": "On the MVP board once",
+                "headline_other": "On the MVP board {count} times",
+                "deck": "Out of {rated} rated matches, as counted by Valve's end-of-match MVP rankings."
+            },
+            "night_owl": {
+                "headline": "Burning the midnight oil",
+                "deck_one": "{count} match, {share} of the edition, started between midnight and 6 a.m.",
+                "deck_other": "{count} matches, {share} of the edition, started between midnight and 6 a.m."
+            }
+        },
+        "masthead": {
+            "name": "Deadlock+ Dispatch",
+            "edition_weekly": "Weekly Edition",
+            "edition_monthly": "Monthly Edition",
+            "edition_live": "This week so far",
+            "issue": "Vol. {volume} · No. {number}",
+            "issue_live": "Vol. {volume}"
+        },
+        "paper_label": "{name}, {edition}, {date}",
+        "player_fallback": "Unnamed player",
+        "photo_caption_one": "{hero}, {count} game this edition",
+        "photo_caption_other": "{hero}, {count} games this edition",
+        "stamp": {
+            "so_far": "So far"
+        },
+        "section": {
+            "stories": "Also inside",
+            "numbers": "By the numbers",
+            "best_game_weekly": "Game of the week",
+            "best_game_monthly": "Game of the month",
+            "heroes": "Hero report",
+            "people": "The company you keep"
+        },
+        "numbers": {
+            "matches": "Matches",
+            "record": "Record",
+            "record_value": "{wins}-{losses}",
+            "winrate": "Win rate",
+            "playtime": "Time played",
+            "kda": "K/D/A a game"
+        },
+        "heroes": {
+            "games": "Games",
+            "wins": "Won",
+            "time": "Time"
+        },
+        "best_game": {
+            "net_worth": "{value} net worth"
+        },
+        "people": {
+            "mate_line_one": "{count} match together, {wins} won",
+            "mate_line_other": "{count} matches together, {wins} won",
+            "nemesis": "Most wanted",
+            "nemesis_line_one": "Beat you once in {matches}",
+            "nemesis_line_other": "Beat you {count} times in {matches}"
+        }
     }
 }
