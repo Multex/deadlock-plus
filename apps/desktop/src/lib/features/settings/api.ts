@@ -1,3 +1,4 @@
+import { restartAfterSaves } from "$lib/core/exit";
 import { command, listen, type Unlisten } from "$lib/core/tauri";
 import type { AppInfo } from "@deadlock-plus/ipc-types/AppInfo";
 import type { AutostartStatus } from "@deadlock-plus/ipc-types/AutostartStatus";
@@ -66,7 +67,7 @@ export function setOpenOnGameStart(enabled: boolean) {
 }
 
 export function restartApp() {
-    return command("restart_app");
+    return restartAfterSaves();
 }
 
 export function setIngestEnabled(enabled: boolean) {
