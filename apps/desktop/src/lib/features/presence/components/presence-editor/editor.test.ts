@@ -32,31 +32,31 @@ describe("withDeadlockPlusLogo", () => {
         ...over,
     });
 
-    it("shows the Deadlock+ logo where no large image is sent", () => {
-        const shown = withDeadlockPlusLogo(card(), true);
-        expect(shown.largeText).toBe("Deadlock+");
-        expect(shown.largeImage).toBe(withDeadlockPlusLogo(card({ largeText: "x" }), true).largeImage);
+    it("marks the card for the Deadlock+ logo where no large image is sent", () => {
+        expect(withDeadlockPlusLogo(card(), true)).toEqual({
+            ...card({ largeText: "Deadlock+" }),
+            deadlockPlusLogo: true,
+        });
     });
 
-    it("draws the logo from the app bundle, never from the network", () => {
-        const logo = withDeadlockPlusLogo(card(), true).largeImage ?? "";
-        expect(logo).toMatch(/brand-mark/);
-        expect(logo).not.toMatch(/^https?:/);
+    it("never puts an image address on the card for the logo", () => {
+        expect(withDeadlockPlusLogo(card(), true).largeImage).toBeNull();
     });
 
     it("keeps the configured hover text", () => {
-        const shown = withDeadlockPlusLogo(card({ largeText: "In the Hideout" }), true);
-        expect(shown.largeText).toBe("In the Hideout");
-        expect(shown.largeImage).toMatch(/brand-mark/);
+        expect(withDeadlockPlusLogo(card({ largeText: "In the Hideout" }), true)).toEqual({
+            ...card({ largeText: "In the Hideout" }),
+            deadlockPlusLogo: true,
+        });
     });
 
     it("never replaces a sent large image", () => {
         const hero = card({ largeImage: "https://x/hero.png" });
-        expect(withDeadlockPlusLogo(hero, true)).toEqual(hero);
+        expect(withDeadlockPlusLogo(hero, true)).toEqual({ ...hero, deadlockPlusLogo: false });
     });
 
     it("leaves the card alone when off", () => {
-        expect(withDeadlockPlusLogo(card(), false)).toEqual(card());
+        expect(withDeadlockPlusLogo(card(), false)).toEqual({ ...card(), deadlockPlusLogo: false });
     });
 });
 
