@@ -104,6 +104,23 @@ describe("checkCatalogs", () => {
         expect(errors).toEqual([expect.stringContaining("fr: common.hi placeholders")]);
     });
 
+    it("lets a plural form add {count} where the en form leaves it out", () => {
+        // Russian "one" also covers 21, 31 and so on, so it needs the number where English "one" does not.
+        const enSync = { syncing_one: "Syncing", syncing_other: "{count} syncing" };
+        const ru = { syncing_one: "{count} матч синхронизируется", syncing_few: "{count} матча синхронизируются" };
+        expect(checkCatalogs({ en: enSync, ru }, []).errors).toEqual([]);
+    });
+
+    it("still reports a plural form that drops {count} or adds another placeholder", () => {
+        const enSync = { syncing_one: "Syncing", syncing_other: "{count} syncing" };
+        const ru = { syncing_one: "{count} {name}", syncing_other: "Синхронизация" };
+        const errors = checkCatalogs({ en: enSync, ru }, []).errors;
+        expect(errors).toEqual([
+            expect.stringContaining("ru: syncing_one placeholders"),
+            expect.stringContaining("ru: syncing_other placeholders"),
+        ]);
+    });
+
     it("reports an invalid plural suffix in other locales", () => {
         const fr = { n_few_other: "x", n_bad: "{count}" };
         const errors = checkCatalogs({ en, fr }, []).errors;
