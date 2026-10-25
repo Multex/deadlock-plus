@@ -87,7 +87,7 @@ function afterLosses(games: Game[]): Finding {
         tone,
         bars: [
             bar(t("sessions.insights.after_losses.bar_after"), a, tone),
-            bar(t("sessions.insights.after_losses.bar_other"), rest, "same"),
+            bar(t("sessions.insights.after_losses.bar_rest"), rest, "same"),
         ],
     };
 }

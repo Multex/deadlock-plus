@@ -44,7 +44,9 @@
                         style:box-shadow={isRunning ? `0 0 8px ${CLIENT_COLOR[kind]}` : undefined}
                     ></span>
                     <span class="flex min-w-0 flex-col">
-                        <span class="text-sm font-semibold">{t(`settings.discord.client_${kind}`)}</span>
+                        <span class="text-sm font-semibold"
+                            >{t(`settings.discord.client_${kind === "other" ? "other_label" : kind}`)}</span
+                        >
                         <span class="truncate text-xs font-normal text-muted-foreground">
                             {kind === "other"
                                 ? t("settings.discord.client_other_hint")

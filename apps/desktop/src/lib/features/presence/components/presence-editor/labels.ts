@@ -94,7 +94,7 @@ export const PLACEHOLDER_GROUP_LABELS: Record<PlaceholderGroupId, () => string> 
     match: () => t("settings.discord_editor.syntax.group_match"),
     party: () => t("settings.discord_editor.syntax.group_party"),
     streetBrawl: () => t("settings.discord_editor.syntax.group_streetBrawl"),
-    other: () => t("settings.discord_editor.syntax.group_other"),
+    other: () => t("settings.discord_editor.syntax.group_misc"),
 };
 
 export const SYNTAX_LABELS = {

@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - On Linux, the main window shows at startup instead of staying hidden.
 - The window opens in your theme's colour, with no white or dark flash first.
 - The app opens straight on your last page instead of switching to it.
+- Some labels that stayed in English can now be translated, such as "Every other game" in Stats insights.
+- Frame and item counts read correctly in every language, including a count of one.
 
 ## [0.14.0] - 2026-10-24
 

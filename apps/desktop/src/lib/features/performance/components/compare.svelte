@@ -100,7 +100,7 @@
 
     {#if runs.length < 2}
         <Card radius="md" padding="none" class="px-4 py-6 text-center text-sm text-muted-foreground">
-            {runs.length === 0 ? t("performance.compare.empty_none") : t("performance.compare.empty_one")}
+            {runs.length === 0 ? t("performance.compare.empty_none") : t("performance.compare.empty_single")}
             {t("performance.compare.empty_hint")}
         </Card>
     {:else}

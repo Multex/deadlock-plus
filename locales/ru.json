@@ -365,10 +365,7 @@
             "status_off": "Выключено",
             "status_none": "Запущенный Discord не найден.",
             "status_showing": "Показывается в: {clients}.",
-            "client_one": "Другое",
-            "client_few": "Другое",
-            "client_many": "Другое",
-            "client_other": "Другое"
+            "client_other_label": "Другое"
         },
         "discord_editor": {
             "description": "Измените, что сообщает каждая активность. Выберите состояние, затем отредактируйте его строки, изображения и таймер. Все, что вы не меняете, использует встроенное значение по умолчанию.",
@@ -516,10 +513,7 @@
                 "group_match": "Матч",
                 "group_party": "Группа и очередь",
                 "group_streetBrawl": "Уличная стычка",
-                "group_one": "Другое",
-                "group_few": "Другое",
-                "group_many": "Другое",
-                "group_other": "Другое"
+                "group_misc": "Другое"
             },
             "timer_queueTime": "Время в очереди",
             "field_party_size": "Размер группы",
@@ -1013,10 +1007,7 @@
                 "better": "После двух поражений подряд у вас получается лучше: {rate} против {rest} в остальных случаях.",
                 "same": "Два поражения подряд не меняют вашу игру: {rate} против {rest} в остальных случаях.",
                 "bar_after": "После двух поражений подряд",
-                "bar_one": "",
-                "bar_few": "",
-                "bar_many": "",
-                "bar_other": ""
+                "bar_rest": ""
             },
             "session_length": {
                 "title": "Когда остановиться",
@@ -1169,10 +1160,7 @@
             "addons_differ": "Моды, которые различаются между замерами",
             "only_on_in": "Только в замере {run}:",
             "delete_run": "Удалить замер {label}",
-            "empty_one": "",
-            "empty_few": "",
-            "empty_many": "",
-            "empty_other": "",
+            "empty_single": "",
             "addons_on_one": "{count} мод включен",
             "addons_on_few": "{count} мода включены",
             "addons_on_many": "{count} модов включено",
@@ -1183,13 +1171,13 @@
             "start": "Старт",
             "stop": "Стоп",
             "waiting": "Ожидание запуска Deadlock...",
-            "recording": "Запись · {time} · {frames} кадров",
+            "recording_other": "Запись · {time} · {count} кадров",
             "background": "Deadlock в фоне, кадры не считаются",
             "limit": "Запись заполнена. Остановите, чтобы увидеть результаты.",
-            "graph_caption": "Последние {frames} кадров · верх графика {ms} мс",
+            "graph_caption_other": "Последние {count} кадров · верх графика {ms} мс",
             "no_frames": "Deadlock запущен, но Deadlock+ не видит его кадры. Перезапустите игру и попробуйте снова.",
             "none_recorded": "Кадры не записаны.",
-            "summary": "{frames} кадров за {time}. Скачок — это кадр длительностью не менее 33 мс и в 2.5 раза больше медианы.",
+            "summary_other": "{count} кадров за {time}. Скачок — это кадр длительностью не менее 33 мс и в 2.5 раза больше медианы.",
             "left_out": "Не учтено время вне игры: {time}.",
             "label_aria": "Название замера",
             "label_placeholder": "Название, например \"Мод выключен\"",
@@ -2058,7 +2046,7 @@
         "editor": {
             "canvas": "",
             "drag_copy": "",
-            "drag_items": "",
+            "drag_items_other": "",
             "unnamed": "",
             "rename": "",
             "size_tag": "",
@@ -2066,7 +2054,7 @@
             "unsafe_width": "",
             "row_wraps": "",
             "copies": "",
-            "copies_hint": "",
+            "copies_hint_other": "",
             "overflow": "",
             "resize_width": "",
             "resize_height": "",

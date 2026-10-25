@@ -84,7 +84,13 @@ describe("checkCatalogs", () => {
 
     it("reports a plural base without an _other form", () => {
         const errors = checkCatalogs({ en: { n_one: "{count} a" } }, [{ file: "a.ts", key: "n", plural: true }]).errors;
-        expect(errors).toEqual([expect.stringContaining("n_other")]);
+        expect(errors).toContainEqual(expect.stringContaining("a.ts uses plural n but en has no n_other"));
+    });
+
+    it("reports an en key with a plural suffix that is not part of a plural set", () => {
+        const lone = { bar_after: "After", bar_other: "Every other game", empty_one: "One run" };
+        const errors = checkCatalogs({ en: { ...en, ...lone } }, []).errors;
+        expect(errors).toEqual([expect.stringContaining("en: bar_other"), expect.stringContaining("en: empty_one")]);
     });
 
     it("ignores blank strings, which Crowdin exports for untranslated keys", () => {
