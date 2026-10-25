@@ -12,6 +12,22 @@ export const PRESENCE_LEVELS: PresenceLevelSetting[] = ["off", "basic", "detaile
 
 export const DEFAULT_PRESENCE: PresenceSettings = { level: "off", clients: ALL_CLIENT_KINDS, supportButton: true };
 export const DEFAULT_DEADLOCK_PLUS_LOGO = false;
+export const DEFAULT_DELAY_SECS = 0;
+export const MAX_DELAY_SECS = 120;
+export const DELAY_RANGE = { min: 0, max: MAX_DELAY_SECS, step: 5 };
+
+export function delaySecsOf(settings: PresenceSettings): number {
+    return settings.delaySecs ?? DEFAULT_DELAY_SECS;
+}
+
+export function delayLabel(secs: number): string {
+    return secs === 0 ? t("settings.discord.delay_off") : t("settings.discord.delay_seconds", { seconds: secs });
+}
+
+function clampDelay(value: unknown): number | undefined {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+    return Math.min(MAX_DELAY_SECS, Math.round(value));
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
@@ -29,6 +45,8 @@ export function resolvePresence(raw: unknown): PresenceSettings {
     const supportButton = typeof stored.supportButton === "boolean" ? stored.supportButton : true;
     const resolved: PresenceSettings = { level, clients, supportButton };
     if (typeof stored.deadlockPlusLogo === "boolean") resolved.deadlockPlusLogo = stored.deadlockPlusLogo;
+    const delaySecs = clampDelay(stored.delaySecs);
+    if (delaySecs !== undefined && delaySecs !== DEFAULT_DELAY_SECS) resolved.delaySecs = delaySecs;
     return resolved;
 }
 
@@ -36,12 +54,16 @@ export function showsDeadlockPlusLogo(settings: PresenceSettings): boolean {
     return settings.deadlockPlusLogo ?? DEFAULT_DEADLOCK_PLUS_LOGO;
 }
 
-/** The logo choice is kept only while it differs from the default, so a new default reaches everyone who never chose. */
+/** The logo and delay choices are kept only while they differ from the default, so a new default reaches everyone who
+ * never chose. */
 export function patchPresence(current: PresenceSettings, patch: Partial<PresenceSettings>): PresenceSettings {
     const next = { ...current, ...patch };
     if (next.deadlockPlusLogo === undefined || next.deadlockPlusLogo === DEFAULT_DEADLOCK_PLUS_LOGO) {
         delete next.deadlockPlusLogo;
     }
+    const delaySecs = clampDelay(next.delaySecs);
+    if (delaySecs === undefined || delaySecs === DEFAULT_DELAY_SECS) delete next.delaySecs;
+    else next.delaySecs = delaySecs;
     return next;
 }
 

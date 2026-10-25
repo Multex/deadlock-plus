@@ -1,13 +1,22 @@
 <script lang="ts">
     import Card from "@deadlock-plus/ui/card.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
+    import Slider from "@deadlock-plus/ui/slider.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { presenceStatus } from "../status.svelte";
-    import { PRESENCE_LEVELS, discordBarState, runningLine, showsDeadlockPlusLogo } from "../presence";
+    import {
+        DELAY_RANGE,
+        PRESENCE_LEVELS,
+        delayLabel,
+        delaySecsOf,
+        discordBarState,
+        runningLine,
+        showsDeadlockPlusLogo,
+    } from "../presence";
 
     const on = $derived(settings.presence.level !== "off");
     const line = $derived(on ? runningLine(on, presenceStatus.status) : "");
@@ -86,6 +95,25 @@
                     checked={showsDeadlockPlusLogo(settings.presence)}
                     onCheckedChange={(v) => settings.setPresence({ deadlockPlusLogo: v })}
                 />
+            </SettingRow>
+            <SettingRow label={t("settings.discord.delay_label")} description={t("settings.discord.delay_description")}>
+                <div class="flex w-48 shrink-0 items-center gap-3">
+                    <Slider
+                        class="min-w-0 flex-1"
+                        value={delaySecsOf(settings.presence)}
+                        {...DELAY_RANGE}
+                        formatValue={delayLabel}
+                        bubble={false}
+                        aria-label={t("settings.discord.delay_label")}
+                        onValueChange={(v) => settings.setPresence({ delaySecs: v })}
+                    />
+                    <span
+                        class="min-w-12 whitespace-nowrap text-right text-sm tabular-nums text-muted-foreground"
+                        aria-hidden="true"
+                    >
+                        {delayLabel(delaySecsOf(settings.presence))}
+                    </span>
+                </div>
             </SettingRow>
         {/if}
     </div>

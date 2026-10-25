@@ -6,4 +6,8 @@ export type PresenceSettings = { level: PresenceLevelSetting, clients: Array<Dis
 /**
  * Absent until the user changes it, so the default can change for everyone who never did.
  */
-deadlockPlusLogo?: boolean, };
+deadlockPlusLogo?: boolean, 
+/**
+ * Seconds to hold back what Discord shows. Absent while it is the default, like the logo choice.
+ */
+delaySecs?: number, };

@@ -1,6 +1,7 @@
 mod art;
 mod coalescer;
 mod config;
+mod delay;
 mod map;
 mod state;
 mod template;
@@ -9,6 +10,7 @@ pub use coalescer::{Coalescer, Poll, MIN_SEND_INTERVAL_MS};
 pub use config::{
     builtin_config, resolve_slot, Config, HeroOverrides, Image, ImageSource, PartialImage, PartialSlot, Slot, Timer,
 };
+pub use delay::{clamp_delay_secs, Delay, MAX_DELAY_SECS};
 pub use map::{
     map, map_with, preview, preview_with, with_deadlock_plus_logo, with_support_button, Button, Context, GameFacts,
     GameMode, LiveFacts, MatchMode, PartyFacts, Perspective, Phase, Presence, PresenceLevel, PreviewSample,

@@ -36,7 +36,7 @@ function savedPresence(page: Page): Promise<string> {
 }
 
 interface Control {
-    kind: "switch" | "checkbox" | "select" | "radiogroup";
+    kind: "switch" | "checkbox" | "select" | "slider" | "radiogroup";
     index: number;
     name: string;
 }
@@ -62,7 +62,7 @@ async function accessibleName(locator: Locator): Promise<string> {
 
 async function controlsOn(page: Page): Promise<Control[]> {
     const controls: Control[] = [];
-    for (const kind of ["switch", "checkbox", "radiogroup"] as const) {
+    for (const kind of ["switch", "checkbox", "slider", "radiogroup"] as const) {
         const found = main(page).getByRole(kind);
         for (let index = 0; index < (await found.count()); index++) {
             controls.push({ kind, index, name: await accessibleName(found.nth(index)) });
@@ -95,6 +95,8 @@ async function valueOf(page: Page, control: Control): Promise<string> {
             return (await locator.getAttribute("aria-checked")) ?? "";
         case "checkbox":
             return String(await locator.isChecked());
+        case "slider":
+            return (await locator.getAttribute("aria-valuenow")) ?? "";
         case "select":
             return (await locator.innerText()).trim();
         case "radiogroup":
@@ -110,6 +112,15 @@ async function change(page: Page, control: Control, target?: string): Promise<vo
         case "checkbox":
             await locator.click();
             return;
+        case "slider": {
+            await locator.focus();
+            const [now, max] = await Promise.all(
+                ["aria-valuenow", "aria-valuemax"].map(async (name) => Number(await locator.getAttribute(name))),
+            );
+            const forward = target === undefined ? now! < max! : Number(target) > now!;
+            await page.keyboard.press(forward ? "ArrowRight" : "ArrowLeft");
+            return;
+        }
         case "select": {
             await locator.click();
             const options = page.getByRole("listbox").getByRole("option");
