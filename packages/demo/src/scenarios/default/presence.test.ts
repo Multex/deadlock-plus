@@ -114,6 +114,31 @@ describe("default scenario: Discord activity", () => {
         expect(handle.invoke("presence_config", {})).toEqual(EMPTY);
     });
 
+    it("gives every state the built-in timer the app gives it", () => {
+        // Pinned beside the same table in the Rust test `every_state_keeps_its_built_in_timer`; change both together.
+        const timers = Object.fromEntries(
+            Object.entries((start().invoke("presence_defaults", {}) as PresenceConfig).states).map(([id, slot]) => [
+                id,
+                slot!.timer,
+            ]),
+        );
+        expect(timers).toEqual({
+            playing: "elapsedInState",
+            mainMenu: "elapsedInState",
+            hideout: "matchTime",
+            findingMatch: "queueTime",
+            matchFound: "elapsedInState",
+            preGame: "elapsedInState",
+            inMatch: "matchTime",
+            streetBrawlRound: "matchTime",
+            paused: "none",
+            spectating: "matchTime",
+            postGame: "elapsedInState",
+            privateLobby: "elapsedInState",
+            practice: "elapsedInState",
+        });
+    });
+
     it("previews a ranked match with the hero, the rank badge and the match timer", () => {
         const card = preview(start(), { state: "inMatch", variant: "ranked", sample: SAMPLE });
         expect(card).toEqual({

@@ -440,7 +440,7 @@
             "source_modeIcon": "Ícone de modo",
             "source_customUrl": "URL personalizada",
             "timer_none": "Sem temporizador",
-            "timer_elapsedInState": "Tempo neste estado",
+            "timer_elapsedInState": "",
             "timer_matchTime": "Tempo da partida",
             "preview": "Pré-visualização da atividade",
             "preview_header": "Jogando",

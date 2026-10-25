@@ -44,7 +44,7 @@ type StateRow = [id: PresenceStateId, details: string, state: string, timer: Pre
 const STATES: StateRow[] = [
     ["playing", "Playing Deadlock", "", "elapsedInState", "plain"],
     ["mainMenu", "Browsing the main menu", "", "elapsedInState", "plain"],
-    ["hideout", "Relaxing in the Hideout", "[[Hanging out as {hero}]]", "elapsedInState", "hero"],
+    ["hideout", "Relaxing in the Hideout", "[[Hanging out as {hero}]]", "matchTime", "hero"],
     ["findingMatch", "Looking for a match", "", "queueTime", "plain"],
     ["matchFound", "Loading into a match", "", "elapsedInState", "plain"],
     ["preGame", "Waiting for the match to start", "[[Playing as {hero}]]", "elapsedInState", "hero"],

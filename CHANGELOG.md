@@ -45,6 +45,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.
 - Text in every theme now meets a 4.5:1 contrast ratio, most visibly Daylight's darker gold.
 - Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
+- Discord shows the match clock in the Hideout by default.
+- The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
 
 ### Fixed
 

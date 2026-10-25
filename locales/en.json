@@ -440,7 +440,7 @@
             "source_modeIcon": "Mode icon",
             "source_customUrl": "Custom URL",
             "timer_none": "No timer",
-            "timer_elapsedInState": "Time in this state",
+            "timer_elapsedInState": "Time since Deadlock started",
             "timer_matchTime": "Match time",
             "preview": "Activity preview",
             "preview_header": "Playing",
