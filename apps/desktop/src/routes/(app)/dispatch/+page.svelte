@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, untrack } from "svelte";
     import { toast } from "svelte-sonner";
-    import { BookOpen, LoaderCircle, Share2 } from "@lucide/svelte";
+    import { BookOpen, LoaderCircle, RotateCcw, Share2 } from "@lucide/svelte";
 
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -10,6 +10,7 @@
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import type { Edition, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
@@ -22,6 +23,7 @@
     import ExportPanel from "$lib/features/dispatch/components/export-panel.svelte";
     import Shelf from "$lib/features/dispatch/components/shelf.svelte";
     import StoryMode from "$lib/features/dispatch/components/story-mode.svelte";
+    import VideoPanel from "$lib/features/dispatch/video/video-panel.svelte";
     import { dispatchViewDeps } from "$lib/features/dispatch/components/view-deps";
     import { firstPaper, pageMode, pinFor, selectEdition, standGroups } from "$lib/features/dispatch/page-state";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
@@ -42,6 +44,11 @@
     let openFailed = $state<string | null>(null);
     let story = $state(false);
     let exporting = $state(false);
+    /** The edition whose arrival plays: an automatic issue that was still unseen when the page opened it. */
+    let revealId = $state<string | null>(null);
+    /** The edition `revealId` was last decided for; the paper waits for it so it never mounts at rest first. */
+    let decidedFor = $state<string | null>(null);
+    let replays = $state(0);
     let rowW = $state(0);
     let stageW = $state(0);
     let stageH = $state(0);
@@ -103,6 +110,9 @@
     $effect(() => {
         const id = selectedId;
         openFailed = null;
+        // Read before `open` marks it seen, and only here: a reload or a later visit finds it seen and shows it at rest.
+        revealId = id !== null && untrack(() => dispatch.unseenIds.includes(id)) ? id : null;
+        decidedFor = id;
         if (id === null) return;
         let live = true;
         void dispatch
@@ -125,6 +135,12 @@
     function navigate(id: string, replace = false) {
         const params = withParam(page.url.searchParams, PARAM, id).toString();
         void goto(`${page.url.pathname}?${params}`, { replaceState: replace, keepFocus: true, noScroll: true });
+    }
+
+    function replay() {
+        if (selection.kind !== "edition") return;
+        revealId = selection.id;
+        replays++;
     }
 
     async function print(window: EditionWindow) {
@@ -173,8 +189,16 @@
         <div class="stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
             {#if mode === "first_paper"}
                 <EmptyState size="base">{@render firstPaperNote()}</EmptyState>
-            {:else if view && shown && stageW > 0}
-                <EditionObject edition={shown} {view} stage={{ width: stageW, height: stageH }} reveal={false} />
+            {:else if view && shown && stageW > 0 && (selection.kind === "so_far" || decidedFor === shown.id)}
+                {#key `${shown.id}#${replays}`}
+                    <EditionObject
+                        edition={shown}
+                        {view}
+                        stage={{ width: stageW, height: stageH }}
+                        reveal={selection.kind === "edition" && revealId === shown.id}
+                        onrevealed={() => (revealId = null)}
+                    />
+                {/key}
             {:else if openFailed !== null}
                 <p class="text-sm text-muted-foreground" role="alert">{t("dispatch.page.open_failed")}</p>
             {:else}
@@ -191,6 +215,18 @@
                     <h1 class="text-2xl">{t("dispatch.page.title")}</h1>
                     {#if mode === "paper"}
                         <div class="flex gap-2">
+                            {#if selection.kind === "edition"}
+                                <IconButton
+                                    label={t("dispatch.page.replay")}
+                                    tooltip
+                                    variant="outline"
+                                    class="size-8"
+                                    disabled={!view}
+                                    onclick={replay}
+                                >
+                                    <RotateCcw aria-hidden="true" />
+                                </IconButton>
+                            {/if}
                             <Button variant="outline" size="sm" disabled={!view} onclick={() => (story = true)}>
                                 <BookOpen aria-hidden="true" />
                                 {t("dispatch.page.read_story")}
@@ -247,6 +283,7 @@
         <Dialog.Content class="max-w-5xl overflow-y-auto">
             <Dialog.Title>{t("dispatch.page.export")}</Dialog.Title>
             <ExportPanel {view} />
+            <VideoPanel {view} />
         </Dialog.Content>
     </Dialog.Root>
 {/if}

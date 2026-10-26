@@ -3798,7 +3798,8 @@
             "read_story": "Read as story",
             "export": "Export",
             "loading": "Loading the paper...",
-            "open_failed": "This paper could not be opened."
+            "open_failed": "This paper could not be opened.",
+            "replay": "Replay the reveal"
         },
         "shelf": {
             "number": "No. {number}",
@@ -3962,6 +3963,9 @@
             "cert_body_anon_other": "This Collector's Copy was printed at the close of {season}, from {count} ranked matches.",
             "issued_by": "Issued by",
             "copy_number": "Copy No."
+        },
+        "weekly": {
+            "extra": "Extra!"
         }
     }
 }
