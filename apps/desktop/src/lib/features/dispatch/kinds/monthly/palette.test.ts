@@ -6,6 +6,7 @@ import {
     PAGE_TEXT_PAIRS,
     PALETTE_TEXT_PAIRS,
     PAGE_TOKENS,
+    coverPalette,
     heroPalette,
     monthPalette,
     type MonthPalette,
@@ -144,5 +145,21 @@ describe("hero palettes", () => {
 
     it("reads the hex with or without a hash, in either case", () => {
         expect(heroPalette("c93c26")).toEqual(heroPalette("#C93C26"));
+    });
+});
+
+describe("coverPalette", () => {
+    it("takes the backdrop art's colour first", () => {
+        expect(coverPalette("#cf5f26", "#2092AE", 3)).toEqual(heroPalette("#cf5f26"));
+    });
+
+    it("falls back to the hero's own colour when the art gave none", () => {
+        expect(coverPalette(null, "#2092AE", 3)).toEqual(heroPalette("#2092AE"));
+        expect(coverPalette(undefined, "2092AE", 3)).toEqual(heroPalette("#2092AE"));
+    });
+
+    it("falls back to the month's colour last, and skips anything that is not a colour", () => {
+        expect(coverPalette(null, null, 3)).toBe(MONTH_PALETTES[2]);
+        expect(coverPalette("mud", "", 3)).toBe(MONTH_PALETTES[2]);
     });
 });

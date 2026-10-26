@@ -3,13 +3,24 @@
     import MiniMast from "../mini-mast.svelte";
     import MiniPrint from "../mini-print.svelte";
     import { miniFormat, miniMonth, miniText, type MiniCopy, type MiniCover, type MonthlyMiniText } from "../minis";
-    import { MONTH_PALETTES } from "./palette";
+    import { artColour, sampleArtColour } from "./cover-colour.svelte";
+    import { MONTH_PALETTES, coverPalette } from "./palette";
 
     let { copy, cover, height }: { copy: MiniCopy; cover?: MiniCover; height: number } = $props();
 
     const text = $derived(miniText(copy, cover, miniFormat()) as MonthlyMiniText);
     const proof = $derived(copy.state === "proof");
-    const pal = $derived(MONTH_PALETTES[miniMonth(copy.window)]);
+    // An issued copy wears its cover's colour; a proof has no cover yet, so it keeps the month's.
+    const starId = $derived(proof ? null : (cover?.heroId ?? null));
+    const pal = $derived(
+        starId === null
+            ? MONTH_PALETTES[miniMonth(copy.window)]!
+            : coverPalette(artColour(starId), cover?.colour, miniMonth(copy.window) + 1),
+    );
+
+    $effect(() => {
+        if (starId !== null) void sampleArtColour(starId);
+    });
     // Sized to the part of the cover still showing when copies pack over each other.
     const monthSize = $derived(Math.min(40, 132 / (text.month.length * 0.62)));
 </script>

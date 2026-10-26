@@ -4,6 +4,7 @@ import type { EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import CollectorsMini from "./collectors/collectors-mini.svelte";
 import type { MiniCopy, MiniCover, MiniKind, MiniState } from "./minis";
 import MonthlyMini from "./monthly/monthly-mini.svelte";
+import { MONTH_PALETTES, heroPalette } from "./monthly/palette";
 import SoFarMini from "./weekly/so-far-mini.svelte";
 import WeeklyMini from "./weekly/weekly-mini.svelte";
 import YearEndMini from "./year_end/year-end-mini.svelte";
@@ -18,6 +19,8 @@ const WINDOWS: Record<MiniKind, EditionWindow> = {
 };
 
 const COVER: MiniCover = {
+    heroId: 31,
+    colour: "#4174BB",
     portrait: "lash.png",
     hero: "Lash",
     headline: "Winning ways",
@@ -79,6 +82,11 @@ describe("edition minis", () => {
         expect(html("collectors", "issued", { sealed: true })).toContain('class="bag');
         expect(html("collectors", "issued")).not.toContain('class="bag');
         expect(html("collectors", "proof", { sealed: true })).not.toContain('class="bag');
+    });
+
+    it("colours an issued Monthly like its cover and a proof in its month's colour", () => {
+        expect(html("monthly", "issued")).toContain(`--bg: ${heroPalette("#4174BB").bg};`);
+        expect(html("monthly", "proof")).toContain(`--bg: ${MONTH_PALETTES[9]!.bg};`);
     });
 
     it("puts the cover star on an issued Monthly and the peak badge on a Collector's Copy", () => {

@@ -3,6 +3,7 @@ import type { Hero } from "$lib/features/heroes/heroes";
 import { badgeName } from "$lib/features/stats/rank-view";
 import { formatPlaytime } from "$lib/features/stats/stats";
 import { badgeParts, type RankTier } from "@deadlock-plus/stats/rank";
+import { artColour } from "./cover-colour.svelte";
 import type { MagazineDeps } from "./magazine";
 
 export function magazineDeps(heroes: Record<number, Hero>, ranks: RankTier[]): MagazineDeps {
@@ -19,7 +20,9 @@ export function magazineDeps(heroes: Record<number, Hero>, ranks: RankTier[]): M
         date: (s, tz, options) => new Intl.DateTimeFormat(i18n.locale, { ...options, timeZone: tz }).format(s * 1000),
         hero: (id) => {
             const h = heroes[id];
-            return h ? { name: h.name, icon: h.icon, art: h.portrait, colour: h.colour } : undefined;
+            return h
+                ? { name: h.name, icon: h.icon, art: h.portrait, colour: h.colour, artColour: artColour(id) }
+                : undefined;
         },
         rank: (badge) => {
             const tier = badgeParts(badge)?.tier;

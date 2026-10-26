@@ -165,6 +165,18 @@ describe("buildMagazine cover", () => {
         expect(buildMagazine(e, editionView(e, viewDeps), coloured).palette).toEqual(heroPalette("#4174BB"));
     });
 
+    it("takes the cover colour from the cover hero's backdrop art before the hero's own colour", () => {
+        const sampled: MagazineDeps = {
+            ...deps,
+            hero: (id) => {
+                const h = deps.hero(id);
+                return h && { ...h, colour: "#2092AE", artColour: id === 4 ? "#cf5f26" : "#319826" };
+            },
+        };
+        const e = edition();
+        expect(buildMagazine(e, editionView(e, viewDeps), sampled).palette).toEqual(heroPalette("#cf5f26"));
+    });
+
     it("falls back to the month's colour when the cover hero has none, and teases the next month in its own", () => {
         const m = build(edition());
         expect(m.palette).toBe(MONTH_PALETTES[8]);

@@ -38,6 +38,10 @@ export interface MiniBadge {
 
 /** What an issued copy's cover shows, read from its frozen edition. */
 export interface MiniCover {
+    /** The cover star; a Monthly mini takes its colour from this hero's backdrop art, as the issued cover does. */
+    heroId: number | null;
+    /** The cover star's own colour, for when its art gives none. */
+    colour: string | null;
     portrait: string | null;
     hero: string | null;
     headline: string | null;
@@ -99,7 +103,7 @@ export const miniYear = (w: EditionWindow) =>
 const FALLBACK_TIER_COLOR = "#8a6aa8";
 
 export interface MiniCoverDeps {
-    hero: (id: number) => { name: string; portrait: string | null } | undefined;
+    hero: (id: number) => { name: string; portrait: string | null; colour?: string | null } | undefined;
     tiers: readonly RankTier[];
     t: MiniFormat["t"];
 }
@@ -109,11 +113,15 @@ export function miniCover(
     view: Pick<EditionView, "banner" | "photo">,
     deps: MiniCoverDeps,
 ): MiniCover {
-    const top = [...edition.heroes].sort((a, b) => b.games - a.games || b.playtimeS - a.playtimeS)[0];
+    const top = [...edition.heroes].sort(
+        (a, b) => b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId,
+    )[0];
     const hero = top ? deps.hero(top.heroId) : undefined;
     const peak = badgeParts(edition.rank?.peakBadge ?? null);
     const tier = peak ? deps.tiers.find((x) => x.tier === peak.tier) : undefined;
     return {
+        heroId: top?.heroId ?? null,
+        colour: hero?.colour ?? null,
         portrait: hero?.portrait ?? null,
         hero: hero?.name ?? null,
         headline: view.banner?.headline ?? null,

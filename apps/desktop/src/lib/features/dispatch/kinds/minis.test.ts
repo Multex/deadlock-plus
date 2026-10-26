@@ -118,7 +118,7 @@ describe("miniCover", () => {
         playerName: "Lantern",
     } as unknown as Edition;
     const deps = {
-        hero: (id: number) => (id === 2 ? { name: "Lash", portrait: "lash.png" } : undefined),
+        hero: (id: number) => (id === 2 ? { name: "Lash", portrait: "lash.png", colour: "#4174BB" } : undefined),
         tiers: TIERS,
         t: fmt,
     };
@@ -127,6 +127,23 @@ describe("miniCover", () => {
         const cover = miniCover(edition, {}, deps);
         expect(cover.hero).toBe("Lash");
         expect(cover.portrait).toBe("lash.png");
+    });
+
+    it("carries the cover hero and its colour, so the mini can colour itself like the issued cover", () => {
+        const cover = miniCover(edition, {}, deps);
+        expect(cover.heroId).toBe(2);
+        expect(cover.colour).toBe("#4174BB");
+    });
+
+    it("breaks a full tie on the lower hero id, as the Monthly's cover does", () => {
+        const tied = {
+            ...edition,
+            heroes: [
+                { heroId: 9, games: 5, wins: 1, playtimeS: 90 },
+                { heroId: 2, games: 5, wins: 1, playtimeS: 90 },
+            ],
+        } as unknown as Edition;
+        expect(miniCover(tied, {}, deps).heroId).toBe(2);
     });
 
     it("takes the headline and photo from the edition's view", () => {
@@ -163,6 +180,8 @@ describe("miniCover", () => {
     it("has no badge, hero or player when the edition lacks them", () => {
         const bare = { ...edition, heroes: [], rank: null, playerName: undefined } as unknown as Edition;
         expect(miniCover(bare, {}, deps)).toEqual({
+            heroId: null,
+            colour: null,
             portrait: null,
             hero: null,
             headline: null,

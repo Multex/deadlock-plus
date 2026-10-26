@@ -1,4 +1,4 @@
-import { MIN_CONTRAST, contrast, hexToAccent, hexToOklch, inGamut } from "@deadlock-plus/ui/accent";
+import { MIN_CONTRAST, contrast, hexToAccent, hexToOklch, inGamut, isHex } from "@deadlock-plus/ui/accent";
 import { oklchToHex } from "@deadlock-plus/ui/themes";
 
 export interface MonthPalette {
@@ -133,4 +133,18 @@ export function heroPalette(hex: string): MonthPalette {
         ink: readable(0.42, -LIGHTNESS_STEP, Math.min(chroma, 0.16), hue, [PAGE_TOKENS.paper]),
         night: readable(0.82, LIGHTNESS_STEP, Math.min(chroma, 0.12), hue, [PAGE_TOKENS.dark]),
     };
+}
+
+const asHex = (colour: string | null | undefined) => {
+    const hex = colour && (colour.startsWith("#") ? colour : `#${colour}`);
+    return hex && isHex(hex) ? hex : null;
+};
+
+/**
+ * A cover's palette: from the colour sampled off the hero's backdrop art, else the hero's own colour, else the
+ * month's. `month` is 1-12.
+ */
+export function coverPalette(art: string | null | undefined, hero: string | null | undefined, month: number) {
+    const hex = asHex(art) ?? asHex(hero);
+    return hex ? heroPalette(hex) : monthPalette(month);
 }
