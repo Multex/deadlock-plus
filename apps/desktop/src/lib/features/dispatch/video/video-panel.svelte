@@ -1,151 +1,242 @@
 <script lang="ts">
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy, onMount, untrack } from "svelte";
     import { toast } from "svelte-sonner";
-    import { Clapperboard, Music, X } from "@lucide/svelte";
+    import { Check, Download, RotateCcw, TriangleAlert, X } from "@lucide/svelte";
 
     import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
-    import Card from "@deadlock-plus/ui/card.svelte";
-    import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
-    import { radioTarget } from "@deadlock-plus/ui/radio-group";
-    import ProgressBar from "$lib/features/match-history/components/recovery/progress-bar.svelte";
     import type { CardAspect, EditionView } from "../edition-view";
-    import { EXPORT_ASPECTS } from "../export-plan";
-    import { DEFAULT_TRACKS, exportVideo, videoSupport, type VideoSupport } from "./export-video";
-    import { MUSIC_TRACKS, type MusicTrackId } from "./music";
-    import { isVideoKind } from "./scene";
+    import { afterVideoExport, type VideoStatus } from "../components/share-sheet";
+    import { exportVideo, videoSupport, type VideoSupport } from "./export-video";
+    import type { MusicTrackId } from "./music";
+    import type { VideoKind } from "./scene";
+    import { VIDEO_SIZES } from "./timeline";
 
-    let { view }: { view: EditionView } = $props();
-
-    const ASPECT_NAMES: Record<CardAspect, string> = { "9:16": "tall", "1:1": "square", "16:9": "wide" };
+    /** The video's actions: save, its progress, cancel, and how it ended. `status` drives the sheet's preview. */
+    let {
+        view,
+        kind,
+        aspect,
+        track,
+        fileName,
+        seconds,
+        status = $bindable({ state: "idle" }),
+    }: {
+        view: EditionView;
+        kind: VideoKind;
+        aspect: CardAspect;
+        track: MusicTrackId;
+        fileName: string;
+        seconds: number;
+        status?: VideoStatus;
+    } = $props();
 
     /** `undefined` while the probe runs. */
     let support = $state<VideoSupport | undefined>(undefined);
-    let aspect = $state<CardAspect>("9:16");
-    let picked = $state<MusicTrackId | null>(null);
-    let progress = $state<number | null>(null);
     let controller: AbortController | null = null;
 
-    const kind = $derived(isVideoKind(view.kind) ? view.kind : null);
-    const track = $derived(picked ?? (kind ? DEFAULT_TRACKS[kind] : "postgame"));
-    const tracks = $derived(MUSIC_TRACKS.map((m) => ({ value: m.id, label: t(m.labelKey) })));
-    const busy = $derived(progress !== null);
+    const size = $derived(VIDEO_SIZES[aspect]);
 
     onMount(() => {
         void videoSupport().then((found) => (support = found));
     });
     onDestroy(() => controller?.abort());
 
-    function onAspectKeydown(e: KeyboardEvent) {
-        const next = radioTarget(e.key, EXPORT_ASPECTS.indexOf(aspect), EXPORT_ASPECTS.length);
-        if (next === null) return;
-        e.preventDefault();
-        aspect = EXPORT_ASPECTS[next];
-        const radios =
-            e.currentTarget instanceof HTMLElement
-                ? (e.currentTarget.parentElement?.querySelectorAll("[role=radio]") ?? [])
-                : [];
-        (radios[next] as HTMLElement | undefined)?.focus();
-    }
+    // A finished or failed save belongs to the shape and track it was made with.
+    $effect(() => {
+        void [aspect, track];
+        untrack(() => {
+            if (status.state === "done" || status.state === "error") status = { state: "idle" };
+        });
+    });
 
     async function save() {
-        if (!kind || !support || busy) return;
+        if (!support || status.state === "encoding") return;
         const own = new AbortController();
         controller = own;
-        progress = 0;
-        try {
-            const result = await exportVideo({
-                view,
-                kind,
-                aspect,
-                track,
-                audioCodec: support.audioCodec,
-                signal: own.signal,
-                onProgress: (done) => (progress = done),
-            });
-            if (result.status === "saved")
-                toast.success(t(result.silent ? "dispatch.video.saved_silent" : "dispatch.video.saved"));
-            else if (result.status === "failed")
-                toast.error(failureText(result.error, t("dispatch.video.save_failed")));
-        } finally {
-            if (controller === own) controller = null;
-            progress = null;
-        }
+        const name = fileName;
+        status = { state: "encoding", progress: 0 };
+        const result = await exportVideo({
+            view,
+            kind,
+            aspect,
+            track,
+            audioCodec: support.audioCodec,
+            signal: own.signal,
+            onProgress: (done) => {
+                if (controller === own) status = { state: "encoding", progress: done };
+            },
+        });
+        if (controller !== own) return;
+        controller = null;
+        status = afterVideoExport(result, name);
+        if (result.status === "saved")
+            toast.success(t(result.silent ? "dispatch.video.saved_silent" : "dispatch.video.saved"));
     }
 </script>
 
-{#if kind}
-    <Card as="section" aria-label={t("dispatch.video.group")} class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold">{t("dispatch.video.group")}</h3>
-        {#if support === null}
-            <p class="text-sm text-muted-foreground">{t("dispatch.video.unsupported")}</p>
-        {:else}
-            <div class="flex max-w-[15rem] flex-col gap-3">
-                <div
-                    role="radiogroup"
-                    aria-label={t("dispatch.video.aspect")}
-                    class="grid grid-cols-3 gap-2"
-                    inert={busy}
+<div class="video-actions" data-video-state={support === null ? "unsupported" : status.state}>
+    {#if support === null}
+        <p class="note" role="status">{t("dispatch.video.unsupported")}</p>
+    {:else if status.state === "encoding"}
+        <div class="busy" role="status">
+            <span class="pct tabular-nums">{Math.round(status.progress * 100)}%</span>
+            <div class="grow">
+                <span class="what">{t("dispatch.video.progress")}</span>
+                <span
+                    class="meter"
+                    role="progressbar"
+                    aria-label={t("dispatch.video.progress")}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(status.progress * 100)}
+                    ><i style="width: {status.progress * 100}%"></i></span
                 >
-                    {#each EXPORT_ASPECTS as option (option)}
-                        {@const selected = aspect === option}
-                        <Button
-                            variant="unstyled"
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            tabindex={selected ? 0 : -1}
-                            onkeydown={onAspectKeydown}
-                            onclick={() => (aspect = option)}
-                            class="flex flex-col items-center gap-1.5 rounded-md border p-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {selected
-                                ? 'border-brass bg-accent'
-                                : ''}"
-                        >
-                            <span
-                                class="block rounded-[2px] border-2 border-current opacity-70"
-                                style="aspect-ratio: {option.replace(':', ' / ')}; height: 22px;"
-                                aria-hidden="true"
-                            ></span>
-                            <span class="text-xs font-semibold"
-                                >{t(`dispatch.export.aspect.${ASPECT_NAMES[option]}`)}</span
-                            >
-                            <span class="text-[11px] text-muted-foreground tabular-nums">{option}</span>
-                        </Button>
-                    {/each}
-                </div>
-
-                <SelectMenu
-                    items={tracks}
-                    bind:value={() => track, (next) => (picked = next as MusicTrackId)}
-                    aria-label={t("dispatch.video.music_pick")}
-                    disabled={busy}
-                    class="w-full"
-                >
-                    {#snippet leading()}
-                        <Music aria-hidden="true" />
-                    {/snippet}
-                </SelectMenu>
-
-                {#if progress === null}
-                    <Button variant="outline" class="justify-start" onclick={save} disabled={support === undefined}>
-                        <Clapperboard />
-                        {t("dispatch.video.save")}
-                    </Button>
-                {:else}
-                    <div class="flex flex-col gap-2">
-                        <ProgressBar
-                            done={Math.round(progress * 100)}
-                            total={100}
-                            label={t("dispatch.video.progress")}
-                        />
-                        <Button variant="outline" class="justify-start" onclick={() => controller?.abort()}>
-                            <X />
-                            {t("dispatch.video.cancel")}
-                        </Button>
-                    </div>
-                {/if}
             </div>
+            <Button variant="outline" size="lg" onclick={() => controller?.abort()}>
+                <X aria-hidden="true" />
+                {t("dispatch.video.cancel")}
+            </Button>
+        </div>
+    {:else if status.state === "error"}
+        <div class="end err" role="alert">
+            <span class="badge"><TriangleAlert aria-hidden="true" /></span>
+            <span class="grow what">{failureText(status.error, t("dispatch.share.video_failed"))}</span>
+            <Button size="lg" onclick={save}>
+                <RotateCcw aria-hidden="true" />
+                {t("dispatch.share.retry")}
+            </Button>
+        </div>
+    {:else}
+        <Button size="lg" class="big" onclick={save} disabled={support === undefined}>
+            {#if status.state === "done"}<Check aria-hidden="true" />{:else}<Download aria-hidden="true" />{/if}
+            {t("dispatch.video.save")}
+        </Button>
+        {#if status.state === "done"}
+            <p class="slug" role="status">
+                <span class="saved">{t("dispatch.share.video_saved")}</span>
+                <span class="file">{status.fileName}</span>
+            </p>
+        {:else}
+            <p class="slug">
+                <span class="file">{fileName}</span>
+                <span class="meta tabular-nums"
+                    >{t("dispatch.share.video_meta", {
+                        width: size.width,
+                        height: size.height,
+                        seconds: Math.round(seconds),
+                    })}</span
+                >
+            </p>
         {/if}
-    </Card>
-{/if}
+    {/if}
+</div>
+
+<style>
+    .video-actions {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 16px;
+        min-height: 56px;
+    }
+
+    .video-actions :global(.big) {
+        height: 52px;
+        padding: 0 28px;
+        font-size: 16px;
+    }
+
+    .video-actions :global(.big svg) {
+        width: 20px;
+        height: 20px;
+    }
+
+    .busy,
+    .end {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .grow {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .pct {
+        min-width: 3.2em;
+        font:
+            400 34px/1.25 "Retail Demo",
+            sans-serif;
+    }
+
+    .what {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .meter {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--muted);
+        overflow: hidden;
+    }
+
+    .meter i {
+        display: block;
+        height: 100%;
+        background: var(--primary);
+        transition: width 200ms;
+    }
+
+    .badge {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        color: var(--destructive);
+        background: color-mix(in oklch, var(--destructive) 14%, transparent);
+    }
+
+    .badge :global(svg) {
+        width: 20px;
+    }
+
+    .err .what {
+        color: var(--destructive);
+    }
+
+    .slug {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .saved {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .file,
+    .meta {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        overflow-wrap: anywhere;
+    }
+
+    .note {
+        font-size: 14px;
+        color: var(--muted-foreground);
+    }
+</style>

@@ -23,7 +23,6 @@
     import ReadingRoom from "$lib/features/dispatch/components/reading-room.svelte";
     import Table from "$lib/features/dispatch/components/table.svelte";
     import { tableCopies, tablePiles } from "$lib/features/dispatch/components/table";
-    import VideoPanel from "$lib/features/dispatch/video/video-panel.svelte";
     import { dispatchViewDeps } from "$lib/features/dispatch/components/view-deps";
     import { miniCover, type MiniCopy } from "$lib/features/dispatch/kinds/minis";
     import { firstPaper } from "$lib/features/dispatch/page-state";
@@ -351,10 +350,10 @@
 
 {#if view && shown}
     <Dialog.Root bind:open={exporting}>
-        <Dialog.Content class="max-w-5xl overflow-y-auto">
-            <Dialog.Title>{t("dispatch.page.export")}</Dialog.Title>
+        <Dialog.Content
+            class="h-[min(900px,calc(100%-2.5rem))] w-[min(1440px,calc(100%-2.5rem))] max-w-none gap-0 overflow-hidden p-0"
+        >
             <ExportPanel edition={shown} {view} />
-            <VideoPanel {view} />
         </Dialog.Content>
     </Dialog.Root>
 {/if}

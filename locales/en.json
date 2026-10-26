@@ -5823,12 +5823,9 @@
             "nemesis_line_other": "Beat you {count} times in {matches}"
         },
         "export": {
-            "group": "Export images",
-            "pick": "Page to export",
             "front_page": "Front page",
             "lead_story": "Lead story",
             "aspect": {
-                "group": "Image shape",
                 "tall": "Tall",
                 "square": "Square",
                 "wide": "Wide"
@@ -5882,15 +5879,12 @@
                 "koth": "King of the Hill",
                 "menu": "Main Menu"
             },
-            "group": "Video",
-            "aspect": "Video shape",
             "music_pick": "Music",
             "save": "Save video",
             "progress": "Making the video",
             "cancel": "Cancel",
             "saved": "Dispatch video saved.",
             "saved_silent": "Dispatch video saved without music: the game's music could not be read.",
-            "save_failed": "Couldn't make the Dispatch video. Try again.",
             "unsupported": "Video export is not available on this system.",
             "collectors": {
                 "end_cta": "Get your own copy",
@@ -7770,6 +7764,28 @@
             "close": "Close",
             "gather": "Put the pile back"
         },
-        "range_join": "to"
+        "range_join": "to",
+        "share": {
+            "kicker": "Share",
+            "close": "Close",
+            "format": "Format",
+            "picture": "Picture",
+            "video": "Video",
+            "pages": "Pages",
+            "made_for": "Made for",
+            "where": {
+                "tall": "TikTok, Shorts, Reels",
+                "square": "Instagram, Discord",
+                "wide": "YouTube, X"
+            },
+            "chat_you": "You",
+            "chat_today": "Today",
+            "preview_video": "Video preview",
+            "retry": "Try again",
+            "video_saved": "Video saved",
+            "video_meta": "MP4, {width}x{height}, {seconds} s",
+            "scenes": "Scenes",
+            "video_failed": "The video could not be made."
+        }
     }
 }

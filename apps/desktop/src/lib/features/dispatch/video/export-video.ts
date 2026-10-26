@@ -164,6 +164,21 @@ async function loadImages(view: EditionView, extra: ScenePrep["images"]): Promis
     return Object.fromEntries(loaded.filter((entry): entry is [string, ImageBitmap] => entry[1] !== null));
 }
 
+export interface SceneInputs {
+    /** A plain copy: the worker cannot clone Svelte's state proxies. */
+    view: EditionView;
+    prep: ScenePrep | null;
+    images: Record<string, ImageBitmap>;
+}
+
+/** The view, the kind's prepared data and the decoded art a scene draws from: the worker's and the preview's. */
+export async function sceneInputs(source: EditionView, kind: VideoKind): Promise<SceneInputs> {
+    const view: EditionView = JSON.parse(JSON.stringify(source));
+    const prepare = SCENE_PREP[kind];
+    const prep = prepare ? await (await prepare()).prepareScene(view) : null;
+    return { view, prep, images: await loadImages(view, prep?.images ?? {}) };
+}
+
 function encodeInWorker(
     job: EncodeJob,
     signal: AbortSignal,
@@ -218,14 +233,10 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
         const track = musicTrack(request.track);
         const timeline = videoTimeline(track);
         const plan = audioPlan(track, timeline);
-        // The worker cannot clone Svelte's state proxies.
-        const view: EditionView = JSON.parse(JSON.stringify(request.view));
-        const prepare = SCENE_PREP[kind];
-        const prep = prepare ? await (await prepare()).prepareScene(view) : null;
-        const [audio, fonts, images] = await Promise.all([
+        const { view, prep, images } = await sceneInputs(request.view, kind);
+        const [audio, fonts] = await Promise.all([
             renderMusic(request.track, timeline, request.sfx ?? prep?.sfx?.(timeline)),
             loadFonts(),
-            loadImages(view, prep?.images ?? {}),
         ]);
         if (signal.aborted) {
             Object.values(images).forEach((image) => image.close());
