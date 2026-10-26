@@ -94,6 +94,8 @@
         bottom: 0;
         width: 370px;
         filter: drop-shadow(0 12px 24px rgb(0 0 0 / 0.5));
+        /* Cards often crop the body flat at the sides; fade those crops into the photo. */
+        mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 82%, transparent 99%);
     }
 
     .tag {

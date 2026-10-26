@@ -177,6 +177,11 @@
         height: auto;
         z-index: 2;
         filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.35)) saturate(1.08) contrast(1.04);
+        /* Cards crop the body flat at the bottom and often at the sides; fade those crops into the cover. */
+        mask-image:
+            linear-gradient(to bottom, #000 66%, transparent 97%),
+            linear-gradient(to right, transparent 0%, #000 9%, #000 80%, transparent 99%);
+        mask-composite: intersect;
     }
 
     .scrim {

@@ -106,6 +106,8 @@
         bottom: 0;
         width: 380px;
         filter: drop-shadow(0 12px 24px rgb(0 0 0 / 0.35));
+        /* Some cards crop the body flat at the left; fade that crop into the panel. */
+        mask-image: linear-gradient(to right, transparent 0%, #000 14%);
     }
 
     .words {
