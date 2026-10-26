@@ -3849,6 +3849,60 @@
             "saved_silent": "Dispatch video saved without music: the game's music could not be read.",
             "save_failed": "Couldn't make the Dispatch video. Try again.",
             "unsupported": "Video export is not available on this system."
+        },
+        "year_end": {
+            "player_of_the_year": "Player of the Year",
+            "title": "{year}: the year of {player}",
+            "title_anonymous": "{year}: the year in review",
+            "cover": {
+                "matches_one": "Match",
+                "matches_other": "Matches",
+                "hours_one": "Hour",
+                "hours_other": "Hours",
+                "days_one": "Day played",
+                "days_other": "Days played",
+                "star_one": "{hero} · {count} game",
+                "star_other": "{hero} · {count} games"
+            },
+            "streak": "Best streak",
+            "streak_line_one": "win in a row",
+            "streak_line_other": "wins in a row",
+            "flap": "Fold-out poster inside",
+            "unfold": "Unfold the Year-End Special",
+            "fold_up": "Fold up",
+            "band_issue": "{edition} · {issue}",
+            "numbers": {
+                "title": "The year in numbers",
+                "hours": "Hours",
+                "days": "Days played",
+                "heroes": "Heroes tried",
+                "longest_match": "Longest match",
+                "longest_session": "Longest session",
+                "session_value_one": "{count} game",
+                "session_value_other": "{count} games"
+            },
+            "top_heroes_one": "Top hero",
+            "top_heroes_other": "Top {count} heroes",
+            "hero_of_the_year": "Hero of the year",
+            "hero_games_one": "{count} game",
+            "hero_games_other": "{count} games",
+            "hero_wins_one": "{count} win",
+            "hero_wins_other": "{count} wins",
+            "hero_hours_one": "{count} hour",
+            "hero_hours_other": "{count} hours",
+            "grade": "Grade {grade}",
+            "ran_with": "Ran with",
+            "nemesis": "Nemesis",
+            "month": {
+                "title": "Month by month",
+                "sub": "matches played",
+                "issue": "This issue",
+                "busiest": "Busiest · {count}"
+            },
+            "inside": {
+                "kicker": "Deadlock+ Dispatch presents",
+                "title": "The year in review"
+            }
         }
     }
 }
