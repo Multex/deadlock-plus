@@ -176,6 +176,7 @@ pub fn run() {
             features::gamedata::commands::game_build_tags,
             features::gamedata::commands::game_ui_strings,
             features::gamedata::commands::game_hero_art,
+            features::gamedata::commands::game_hero_backdrop,
             features::gamedata::commands::game_rank_art,
             features::gamedata::commands::game_ability_art,
             features::gamedata::commands::game_item_art,

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { command } from "$lib/core/tauri";
 import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
-import { heroPortrait } from "./art";
+import { heroBackdrop, heroPortrait } from "./art";
 
 vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
+vi.mock("$lib/core/tauri", () => ({ command: vi.fn(), fileSrc: (path: string) => `asset://${path}` }));
+
+const invoke = vi.mocked(command);
 
 const heroes = vi.mocked(loadHeroes);
 
@@ -17,6 +21,7 @@ const hero = (id: number, portrait: string | null): Hero => ({
 
 beforeEach(() => {
     heroes.mockReset();
+    invoke.mockReset();
 });
 
 describe("heroPortrait", () => {
@@ -44,5 +49,23 @@ describe("heroPortrait", () => {
     it("is null when the roster cannot load", async () => {
         heroes.mockRejectedValue(new Error("offline"));
         expect(await heroPortrait(15)).toBeNull();
+    });
+});
+
+describe("heroBackdrop", () => {
+    it("asks the game for that hero's backdrop and returns it as an asset url", async () => {
+        invoke.mockResolvedValue("C:/art/hero_haze_bg.png");
+        expect(await heroBackdrop(15)).toBe("asset://C:/art/hero_haze_bg.png");
+        expect(invoke).toHaveBeenCalledWith("game_hero_backdrop", { heroId: 15 });
+    });
+
+    it("is null when the hero has no backdrop", async () => {
+        invoke.mockResolvedValue(null);
+        expect(await heroBackdrop(15)).toBeNull();
+    });
+
+    it("is null when the command fails", async () => {
+        invoke.mockRejectedValue(new Error("no game"));
+        expect(await heroBackdrop(15)).toBeNull();
     });
 });

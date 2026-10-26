@@ -9,10 +9,14 @@ pub(crate) fn browser_image(compiled_path: &str, bytes: &[u8]) -> Result<Vec<u8>
         let data = resource.data().ok_or_else(|| format!("{compiled_path}: no DATA block"))?;
         return svg_source(data).map(<[u8]>::to_vec).ok_or_else(|| format!("{compiled_path}: no SVG source"));
     }
+    decoded_image(compiled_path, bytes)?.to_png().map_err(|e| format!("{compiled_path}: {e}"))
+}
+
+/// The top mip of a compiled texture as 8-bit RGBA.
+pub(crate) fn decoded_image(compiled_path: &str, bytes: &[u8]) -> Result<deadlock_data::art::Image, String> {
+    let resource = Resource::parse(bytes).map_err(|e| format!("{compiled_path}: {e}"))?;
     let image = resource.decode_texture_rgba8(0).map_err(|e| format!("{compiled_path}: {e}"))?;
-    deadlock_data::art::Image { width: image.width, height: image.height, rgba: image.rgba }
-        .to_png()
-        .map_err(|e| format!("{compiled_path}: {e}"))
+    Ok(deadlock_data::art::Image { width: image.width, height: image.height, rgba: image.rgba })
 }
 
 /// Whether the compiled image is a vector one, which is stored as `.svg`.

@@ -1,9 +1,9 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
 use std::time::UNIX_EPOCH;
 
-use deadlock_data::art::{Art, ArtArchive, HeroArtKind, ItemArtKind, MinimapArtKind, RankArtKind};
+use deadlock_data::art::{Art, ArtArchive, HeroArtKind, Image, ItemArtKind, MinimapArtKind, RankArtKind};
 use serde::{Deserialize, Serialize};
 use source2::vpk::Vpk;
 use ts_rs::TS;
@@ -654,6 +654,11 @@ pub enum Miss {
 /// Where decoded images come from. Each `write_*` returns `Ok` once `dest` holds a complete PNG.
 pub trait ArtSource: Send + Sync + 'static {
     fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss>;
+    /// Writes the hero's backdrop, a half-size PNG of the game's 4096x2312 art. A separate call because
+    /// decoding it costs far more than the other hero images together.
+    fn write_backdrop(&self, _class_name: &str, _dest: &Path) -> Result<(), Miss> {
+        Err(Miss::Absent)
+    }
     fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss>;
     fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss>;
     fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss>;
@@ -667,13 +672,26 @@ pub trait ArtSource: Send + Sync + 'static {
     }
 }
 
+/// The game's hero-select stylesheet; each `.hero_<class>` rule names that hero's backdrop texture.
+const BACKDROP_STYLESHEET: &str = "panorama/styles/hero_backgrounds/hero_background_default.vcss_c";
+
 struct ArchiveSource {
     art: ArtArchive,
     /// `ArtArchive` keeps its own archive handle private, so UI images need a second one.
     vpk: Vpk,
+    /// Backdrop texture per hero class, read from `BACKDROP_STYLESHEET` on first use.
+    backdrops: OnceLock<HashMap<String, String>>,
 }
 
 impl ArchiveSource {
+    fn backdrop_paths(&self) -> Result<&HashMap<String, String>, Miss> {
+        if let Some(paths) = self.backdrops.get() {
+            return Ok(paths);
+        }
+        let css = self.ui_stylesheet(BACKDROP_STYLESHEET)?;
+        Ok(self.backdrops.get_or_init(|| backdrop_paths(&css)))
+    }
+
     fn read_ui(&self, compiled_path: &str) -> Result<Vec<u8>, Miss> {
         self.vpk.read_path(compiled_path).map_err(|e| {
             log::debug!("no game UI file {compiled_path}: {e}");
@@ -706,6 +724,21 @@ impl ArtSource for ArchiveSource {
             HeroImage::Mm => HeroArtKind::Mm,
         };
         self.write(&Art::hero(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
+    }
+
+    fn write_backdrop(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
+        let compiled = self.backdrop_paths()?.get(class_name).ok_or(Miss::Absent)?;
+        let bytes = self.read_ui(compiled)?;
+        let png = ui_art::decoded_image(compiled, &bytes)
+            .and_then(|image| downscale_half(&image).to_png().map_err(|e| format!("{compiled}: {e}")))
+            .map_err(|e| {
+                log::debug!("no local backdrop for {class_name}: {e}");
+                Miss::Absent
+            })?;
+        write_whole(dest, &png).map_err(|e| {
+            log::debug!("no local backdrop for {class_name}: {}: {e}", dest.display());
+            Miss::Transient
+        })
     }
 
     fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
@@ -756,6 +789,53 @@ impl ArtSource for ArchiveSource {
             Miss::Absent
         })
     }
+}
+
+/// Hero class to compiled backdrop path, from the hero-select stylesheet's
+/// `.hero_<class> #CustomHeroBackground #HeroBackground` rules.
+fn backdrop_paths(css: &str) -> HashMap<String, String> {
+    const SELECTOR: &str = "#CustomHeroBackground #HeroBackground";
+    const DIR: &str = "images/heroes/backgrounds/";
+    let mut out = HashMap::new();
+    for rule in css.split('}') {
+        let Some((selector, body)) = rule.split_once('{') else { continue };
+        let Some(class) = selector.trim().strip_suffix(SELECTOR).and_then(|c| c.trim().strip_prefix('.')) else {
+            continue;
+        };
+        if !class.starts_with("hero_") || class.contains(char::is_whitespace) {
+            continue;
+        }
+        let Some(file) = body.split_once(DIR).and_then(|(_, rest)| rest.split_once(".vtex")) else { continue };
+        out.insert(class.to_string(), format!("panorama/{DIR}{}.vtex_c", file.0));
+    }
+    out
+}
+
+/// Halves each side by averaging 2x2 blocks. Colour is weighted by alpha so the hidden colour of a transparent
+/// pixel never bleeds into a cutout's edge. An odd last row or column is dropped.
+fn downscale_half(image: &Image) -> Image {
+    let (width, height) = ((image.width / 2).max(1), (image.height / 2).max(1));
+    let at = |x: u32, y: u32| {
+        let i = (y.min(image.height - 1) as usize * image.width as usize + x.min(image.width - 1) as usize) * 4;
+        &image.rgba[i..i + 4]
+    };
+    let mut rgba = Vec::with_capacity(width as usize * height as usize * 4);
+    for y in 0..height {
+        for x in 0..width {
+            let block = [at(2 * x, 2 * y), at(2 * x + 1, 2 * y), at(2 * x, 2 * y + 1), at(2 * x + 1, 2 * y + 1)];
+            let weight: u32 = block.iter().map(|p| u32::from(p[3])).sum();
+            if weight == 0 {
+                rgba.extend_from_slice(&[0; 4]);
+                continue;
+            }
+            for channel in 0..3 {
+                let sum: u32 = block.iter().map(|p| u32::from(p[channel]) * u32::from(p[3])).sum();
+                rgba.push(((sum + weight / 2) / weight) as u8);
+            }
+            rgba.push(((weight + 2) / 4) as u8);
+        }
+    }
+    Image { width, height, rgba }
 }
 
 /// Writes beside `dest` and renames, so a file that exists is always complete.
@@ -854,7 +934,7 @@ fn open_archive(citadel_dir: &Path) -> Option<Arc<dyn ArtSource>> {
     let vpk = Vpk::open(citadel_dir.join(deadlock_data::vdata::ARCHIVE))
         .map_err(|e| log::debug!("game UI art unavailable: {e}"))
         .ok()?;
-    Some(Arc::new(ArchiveSource { art, vpk }))
+    Some(Arc::new(ArchiveSource { art, vpk, backdrops: OnceLock::new() }))
 }
 
 fn fingerprint(dir: &Path) -> Option<String> {
@@ -933,6 +1013,19 @@ impl<I: Install> ArtCache<I> {
             out
         })
         .unwrap_or_default()
+    }
+
+    /// The hero's backdrop: a half-size PNG of the game's 4096x2312 hero-coloured silhouette, decoded on the
+    /// first ask and kept in the build directory. `None` when the hero has none or the game cannot be read.
+    pub fn hero_backdrop(&self, hero: &HeroEntry) -> Option<String> {
+        if !file_safe(&hero.class_name) {
+            return None;
+        }
+        self.with_build(|build, build_dir| {
+            let name = format!("{}_bg.png", hero.class_name);
+            self.ensure(build, build_dir, name, |s, p| s.write_backdrop(&hero.class_name, p))
+        })
+        .flatten()
     }
 
     /// Local `lg` and `chalk` badge files per rank tier, decoding what the cache lacks. Tiers with no
@@ -1289,6 +1382,10 @@ mod tests {
             self.write_class(class_name, dest)
         }
 
+        fn write_backdrop(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
+            self.write_class(class_name, dest)
+        }
+
         fn write_rank(&self, tier: u8, _image: RankImage, dest: &Path) -> Result<(), Miss> {
             self.writes.fetch_add(1, Ordering::Relaxed);
             if self.failing_tiers.contains(&tier) {
@@ -1475,6 +1572,108 @@ mod tests {
         assert_eq!(art.len(), 1);
         assert!(art[0].sm.is_none());
         assert!(art[0].card.is_some());
+    }
+
+    #[test]
+    fn a_backdrop_is_decoded_once_into_its_own_file() {
+        let rig = Rig::new("backdrop", &[]);
+        let cache = rig.cache();
+        let heroes = hero(1, "hero_inferno");
+        let path = PathBuf::from(cache.hero_backdrop(&heroes).unwrap());
+        assert_eq!(path.file_name().unwrap(), "hero_inferno_bg.png");
+        assert!(path.is_file() && path.starts_with(&rig.root));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+        assert_eq!(cache.hero_backdrop(&heroes), Some(path.to_string_lossy().into_owned()));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn hero_art_never_decodes_the_backdrop() {
+        let rig = Rig::new("backdrop-lazy", &[]);
+        let art = rig.cache().hero_art(&[hero(1, "hero_inferno")]);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 3);
+        let card = PathBuf::from(art[0].card.as_ref().unwrap());
+        assert!(!card.with_file_name("hero_inferno_bg.png").exists());
+    }
+
+    #[test]
+    fn a_hero_without_a_backdrop_has_none_and_is_not_retried() {
+        let rig = Rig::new("backdrop-missing", &["hero_vindicta"]);
+        let cache = rig.cache();
+        let heroes = hero(2, "hero_vindicta");
+        assert_eq!(cache.hero_backdrop(&heroes), None);
+        assert_eq!(cache.hero_backdrop(&heroes), None);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn a_class_name_that_is_not_file_safe_reaches_no_archive() {
+        let rig = Rig::new("backdrop-unsafe", &[]);
+        assert_eq!(rig.cache().hero_backdrop(&hero(1, "../hero_inferno")), None);
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn the_hero_select_stylesheet_names_each_heros_backdrop() {
+        let css = r#"
+#CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/generic_bg_psd.vtex");
+}
+
+.hero_atlas #CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/abrams_bg_psd.vtex");
+}
+
+.hero_bookworm #CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/patience_bg_psd.vtex");
+}
+
+.AspectRatio16x10 #CustomHeroBackground #HeroBackground
+{
+	background-size: cover;
+}
+
+.ShowPregame .hero_forge #CustomHeroBackground .HeroIntro2DElement
+{
+	visibility: visible;
+}
+
+.hero_forge #CustomHeroBackground #HeroBackground
+{
+	saturation: 1;
+}
+"#;
+        let paths = backdrop_paths(css);
+        assert_eq!(paths.len(), 2, "{paths:?}");
+        assert_eq!(paths["hero_atlas"], "panorama/images/heroes/backgrounds/abrams_bg_psd.vtex_c");
+        assert_eq!(paths["hero_bookworm"], "panorama/images/heroes/backgrounds/patience_bg_psd.vtex_c");
+    }
+
+    #[test]
+    fn halving_averages_blocks_and_ignores_the_colour_of_transparent_pixels() {
+        let image = Image {
+            width: 4,
+            height: 2,
+            #[rustfmt::skip]
+            rgba: vec![
+                255, 0, 0, 255,   0, 0, 255, 0,   10, 20, 30, 255,   10, 20, 30, 255,
+                255, 0, 0, 255,   0, 255, 0, 0,   10, 20, 30, 255,   10, 20, 30, 255,
+            ],
+        };
+        let half = downscale_half(&image);
+        assert_eq!((half.width, half.height), (2, 1));
+        assert_eq!(half.rgba, vec![255, 0, 0, 128, 10, 20, 30, 255]);
+    }
+
+    #[test]
+    fn halving_keeps_a_one_pixel_side_and_fully_transparent_blocks_clear() {
+        let image = Image { width: 2, height: 1, rgba: vec![9, 9, 9, 0, 7, 7, 7, 0] };
+        let half = downscale_half(&image);
+        assert_eq!((half.width, half.height), (1, 1));
+        assert_eq!(half.rgba, vec![0, 0, 0, 0]);
     }
 
     struct MmOnly(Arc<FakeSource>);
@@ -2681,6 +2880,27 @@ mod tests {
             }
         }
         assert!(failed.is_empty(), "icons that did not decode: {failed:?}");
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_hero_backdrops_at_half_size() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-backdrop-real-{}", std::process::id()));
+        let css = open_archive(&dir).and_then(|s| s.ui_stylesheet(BACKDROP_STYLESHEET).ok()).expect("the stylesheet");
+        assert!(backdrop_paths(&css).len() >= 40, "{:?}", backdrop_paths(&css).len());
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        for class in ["hero_inferno", "hero_haze", "hero_atlas", "hero_bookworm"] {
+            let path = cache.hero_backdrop(&hero(1, class)).unwrap_or_else(|| panic!("{class} has no backdrop"));
+            let bytes = fs::read(&path).unwrap();
+            assert_eq!(&bytes[1..4], b"PNG");
+            assert_eq!(u32::from_be_bytes(bytes[16..20].try_into().unwrap()), 2048, "{class} width");
+            assert_eq!(u32::from_be_bytes(bytes[20..24].try_into().unwrap()), 1156, "{class} height");
+            println!("{class}: {} bytes at {path}", bytes.len());
+        }
+        if std::env::var_os("KEEP_UI_ART").is_none() {
+            fs::remove_dir_all(root).ok();
+        }
     }
 
     #[test]

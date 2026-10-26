@@ -450,6 +450,7 @@ const HEROES = [
         id: 1,
         class_name: "hero_inferno",
         name: "Infernus",
+        images: { background_image_webp: `${RES}/images/heroes/backgrounds/infernus_bg.webp` },
         items: { weapon_primary: "citadel_weapon_inferno_set", weapon_melee: "ability_melee_inferno" },
         starting_stats: {
             max_move_speed: { value: 6.7, display_stat_name: "EMaxMoveSpeed" },
@@ -797,6 +798,15 @@ describe("build editor game data from the default scenario", () => {
         expect(await handle.invoke("game_hero_stats", { heroId: 999 })).toBeNull();
     });
 
+    it("gives a hero's backdrop as the API's copy, null for a hero without one or an unknown hero", async () => {
+        const handle = start();
+        expect(await handle.invoke("game_hero_backdrop", { heroId: 1 })).toBe(
+            `${RES}/images/heroes/backgrounds/infernus_bg.webp`,
+        );
+        expect(await handle.invoke("game_hero_backdrop", { heroId: 2 })).toBeNull();
+        expect(await handle.invoke("game_hero_backdrop", { heroId: 999 })).toBeNull();
+    });
+
     it("gives the game's English UI strings for English, and none for another language", async () => {
         const handle = start();
         const english = (await handle.invoke("game_ui_strings", { locale: "en" })) as Record<string, string>;
@@ -819,5 +829,6 @@ describe("build editor game data from the default scenario", () => {
         expect(await handle.invoke("game_ability_tooltips", { locale: "en" })).toEqual([]);
         expect(await handle.invoke("game_property_icon_art", {})).toEqual([]);
         expect(await handle.invoke("game_hero_stats", { heroId: 1 })).toBeNull();
+        expect(await handle.invoke("game_hero_backdrop", { heroId: 1 })).toBeNull();
     });
 });

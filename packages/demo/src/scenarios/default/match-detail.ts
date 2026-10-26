@@ -1393,7 +1393,7 @@ interface AssetAccolade {
 
 interface AssetHero extends GameAssetHero {
     id: number;
-    images?: { minimap_image_webp?: string | null };
+    images?: { minimap_image_webp?: string | null; background_image_webp?: string | null };
     items?: Record<string, string>;
     level_info?: Record<string, { required_gold: number; bonus_currencies?: string[] }>;
     popular_items?: {
@@ -1758,6 +1758,13 @@ export function matchDetailModule({ mapItemsTsv, recoverySession, captured = fal
                         mm: hero.images?.minimap_image_webp ?? null,
                     }));
                 },
+                game_hero_backdrop: (args) =>
+                    orNoGame(
+                        async () =>
+                            (await asset<AssetHero[]>("heroes")).find((hero) => hero.id === Number(args.heroId))?.images
+                                ?.background_image_webp ?? null,
+                        null,
+                    ),
                 game_minimap_art: async (): Promise<MinimapArtResult> => {
                     const map = await asset<AssetMap>("map");
                     const path = map.images?.minimap;

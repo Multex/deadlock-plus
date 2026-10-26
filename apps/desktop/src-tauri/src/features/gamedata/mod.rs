@@ -103,6 +103,23 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(move || art.hero_art(&data.heroes("en"))).await.map_err(AppError::internal)
     }
 
+    /// The hero's backdrop PNG, decoded on the first ask. Null when the game cannot be read or has none for the hero.
+    #[tauri::command]
+    pub async fn game_hero_backdrop(
+        data: State<'_, GameData>,
+        art: State<'_, ArtCache>,
+        hero_id: u32,
+    ) -> Result<Option<String>, AppError> {
+        let data = data.inner().clone();
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let heroes = data.heroes("en");
+            heroes.iter().find(|h| h.id == hero_id).and_then(|hero| art.hero_backdrop(hero))
+        })
+        .await
+        .map_err(AppError::internal)
+    }
+
     #[tauri::command]
     pub async fn game_rank_art(art: State<'_, ArtCache>) -> Result<Vec<RankArt>, AppError> {
         let art = art.inner().clone();

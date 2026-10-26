@@ -72,6 +72,7 @@ describe("offline scenarios", () => {
             expect(await handle.invoke(command, { names: ["upgrade_x"], kind: "shop" }), command).toEqual([]);
         }
         expect(await handle.invoke("game_minimap_art", {})).toEqual({ status: "unavailable", local: "noInstall" });
+        expect(await handle.invoke("game_hero_backdrop", { heroId: 1 })).toBeNull();
         expect(network).not.toHaveBeenCalled();
         expect(handle.unhandled()).toEqual([]);
     });
