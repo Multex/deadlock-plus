@@ -4,6 +4,7 @@ import { defaultScenario, type ScenarioOptions } from "../default";
 import { gradeBook } from "./grades";
 import { allRows, olderRows, laterRows, specialsRows } from "./history";
 import { enemyStatsRows, heroStatsRows, mateStatsRows, windowOf } from "./player-stats";
+import { personaName, personaRoutes, personaRows, personaScenarioId, type PersonaId } from "./personas";
 import { RANKED_SEASONS, SPECIALS_NOW_MS } from "./seasons";
 
 const accountOf = (url: URL) => Number(url.pathname.split("/")[3]);
@@ -76,6 +77,14 @@ export function dispatchScenario(options: ScenarioOptions): Scenario {
     return scenario.with({ routes: dispatchRoutes(scenario, bookOf(scenario).all) });
 }
 
+/** A module that builds its data at `now`, whatever clock the scenario runs on. */
+const anchoredTo =
+    (now: number) =>
+    (module: Module): Module => ({
+        ...module,
+        create: (context, replaced) => module.create({ ...context, now }, replaced),
+    });
+
 /**
  * The `dispatch` scenario seen on the evening of 2026-12-02, once a Collector's Copy for Beta Season 1 and the
  * Year-End Special are due. The match history runs on from the default 60 matches to 2026-12-01, climbing to a
@@ -89,10 +98,7 @@ export function dispatchSpecialsScenario(options: ScenarioOptions): Scenario {
         all: specialsRows(anchor),
         generated: [...olderRows(anchor), ...laterRows(anchor)],
     });
-    const anchored = (module: Module): Module => ({
-        ...module,
-        create: (context, replaced) => module.create({ ...context, now: base.now }, replaced),
-    });
+    const anchored = anchoredTo(base.now);
     const scenario = defineScenario({
         id: "dispatch-specials",
         identity: base.identity,
@@ -101,4 +107,24 @@ export function dispatchSpecialsScenario(options: ScenarioOptions): Scenario {
         modules: [...base.modules.map(anchored), gradeModule(bookOf)],
     });
     return scenario.with({ routes: dispatchRoutes(scenario, bookOf().all) });
+}
+
+/**
+ * `dispatch-specials` with the whole match history replaced by one demo player's year: December 2025 to
+ * November 2026 and a few months before it. Each persona's results are written out so that a Year-End Special,
+ * the Collector's Copy of Beta Season 1 and the November Monthly each show different notable things. Ranked
+ * play ends with the season. Open it with `?demo=dispatch-specials-lantern`, `-moth` or `-kettle`.
+ */
+export function dispatchPersonaScenario(id: PersonaId, options: ScenarioOptions): Scenario {
+    const base = defaultScenario(options);
+    const identity = { ...base.identity, persona: personaName(id) };
+    const rows = personaRows(id, identity.accountId);
+    const scenario = defineScenario({
+        id: personaScenarioId(id),
+        identity,
+        now: SPECIALS_NOW_MS,
+        seed: base.seed,
+        modules: [...base.modules.map(anchoredTo(base.now)), gradeModule(() => ({ all: rows, generated: rows }))],
+    });
+    return scenario.with({ routes: personaRoutes(id, identity) });
 }

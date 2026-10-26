@@ -1,7 +1,8 @@
 import type { Scenario } from "../scenario";
 import { defaultScenario, postMatchScenario, recoveryScenario, type ScenarioOptions } from "./default";
 import { RECOVERY_PRESETS } from "./default/recovery";
-import { dispatchScenario, dispatchSpecialsScenario } from "./dispatch";
+import { dispatchPersonaScenario, dispatchScenario, dispatchSpecialsScenario } from "./dispatch";
+import { PERSONA_IDS, personaScenarioId } from "./dispatch/personas";
 import { liveMatchScenario } from "./live-match";
 import { newUserScenario } from "./new-user";
 import { apiDownScenario, offlineScenario } from "./offline";
@@ -24,6 +25,12 @@ export const scenarios: Record<string, ScenarioFactory> = {
     "post-match": postMatchScenario,
     dispatch: dispatchScenario,
     "dispatch-specials": dispatchSpecialsScenario,
+    ...Object.fromEntries(
+        PERSONA_IDS.map((id): [string, ScenarioFactory] => [
+            personaScenarioId(id),
+            (options) => dispatchPersonaScenario(id, options),
+        ]),
+    ),
     unelevated: unelevatedScenario,
     "unelevated-game-admin": unelevatedGameAdminScenario,
     ...Object.fromEntries(

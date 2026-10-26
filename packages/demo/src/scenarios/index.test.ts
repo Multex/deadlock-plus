@@ -15,6 +15,9 @@ describe("scenario registry", () => {
             "post-match",
             "dispatch",
             "dispatch-specials",
+            "dispatch-specials-lantern",
+            "dispatch-specials-moth",
+            "dispatch-specials-kettle",
             "unelevated",
             "unelevated-game-admin",
             "recovery-missing",
@@ -33,7 +36,7 @@ describe("scenario registry", () => {
 
     it("fails loudly on an id it does not know, and names the ones it does", () => {
         expect(() => scenarioFactory("nope")).toThrow(
-            '[demo] unknown scenario "nope" (known: default, new-user, live-match, offline, api-down, update-available, post-match, dispatch, dispatch-specials, unelevated, unelevated-game-admin, recovery-missing, recovery-running, recovery-paused, recovery-limit, recovery-gc-off, recovery-replays, recovery-game-open, recovery-replay-run)',
+            '[demo] unknown scenario "nope" (known: default, new-user, live-match, offline, api-down, update-available, post-match, dispatch, dispatch-specials, dispatch-specials-lantern, dispatch-specials-moth, dispatch-specials-kettle, unelevated, unelevated-game-admin, recovery-missing, recovery-running, recovery-paused, recovery-limit, recovery-gc-off, recovery-replays, recovery-game-open, recovery-replay-run)',
         );
         expect(() => scenarioFactory("toString")).toThrow('[demo] unknown scenario "toString"');
     });
