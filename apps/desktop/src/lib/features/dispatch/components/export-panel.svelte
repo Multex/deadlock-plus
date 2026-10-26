@@ -106,7 +106,7 @@
         return { kind: "weekly" };
     });
 
-    let format = $state<ShareFormat>("picture");
+    let format = $state<ShareFormat>(videoKind ? "video" : "picture");
     let pick = $state("front_page");
     let cardAspect = $state<CardAspect>("9:16");
     let videoAspect = $state<CardAspect>("9:16");
@@ -159,7 +159,7 @@
     );
     const shapes = SHAPES.map((s) => s.aspect);
     const tracks = MUSIC_TRACKS.map((m) => m.id);
-    const formats: ShareFormat[] = ["picture", "video"];
+    const formats: ShareFormat[] = ["video", "picture"];
 
     function clock(seconds: number): string {
         const s = Math.max(0, Math.floor(seconds));
