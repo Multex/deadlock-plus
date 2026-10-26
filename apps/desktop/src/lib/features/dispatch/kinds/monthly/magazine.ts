@@ -1,5 +1,5 @@
 import type { DispatchStoryKind, Edition } from "@deadlock-plus/stats/dispatch/types";
-import { COLUMN_MAX, HERO_ROWS, type BestGameView, type EditionView } from "../../edition-view";
+import { HERO_ROWS, type BestGameView, type EditionView } from "../../edition-view";
 import { coverPalette, monthPalette, type MonthPalette } from "./palette";
 
 type Params = Record<string, string | number>;
@@ -225,16 +225,7 @@ export function buildMagazine(edition: Edition, view: EditionView, deps: Magazin
             pageRef: page === null ? null : t("dispatch.monthly.page_ref", { page: deps.number(page) }),
         };
     };
-    const stories: Coverline[] = edition.stories.flatMap((s, i) => {
-        if (i === 0)
-            return view.banner ? [coverline(view.banner.id, s.kind, view.banner.headline, view.banner.deck)] : [];
-        if (i <= COLUMN_MAX) {
-            const c = view.columns[i - 1];
-            return c ? [coverline(c.id, s.kind, c.headline, c.deck)] : [];
-        }
-        const b = view.briefs[i - 1 - COLUMN_MAX];
-        return b ? [coverline(String(b.id), s.kind, b.headline, b.body)] : [];
-    });
+    const stories: Coverline[] = (view.stories ?? []).map((s) => coverline(s.id, s.kind, s.headline, s.deck));
     const find = (kind: DispatchStoryKind) => stories.find((s) => s.kind === kind);
 
     const sorted = [...edition.heroes].sort(

@@ -8,6 +8,9 @@ import type {
     EditionHero,
     EditionKind,
 } from "@deadlock-plus/stats/dispatch/types";
+import { copySeed } from "@deadlock-plus/stats/dispatch/copy";
+import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
+import { arrangeStories, storyCopy, type StoryCopy } from "@deadlock-plus/stats/dispatch/stories";
 import type { ViewDeps } from "$lib/features/front-page/front-page-view";
 import { PAPER_TOKENS } from "$lib/features/front-page/paper/tokens";
 import type { Brief } from "$lib/features/front-page/paper/types";
@@ -65,6 +68,27 @@ export interface DispatchStoryView {
     matchId?: number;
 }
 
+export type StoryRole = "banner" | "column" | "brief";
+
+/**
+ * Character caps for a headline in each role, sized to the narrowest layout that prints it (a Monthly coverline,
+ * a Weekly column). Over the cap the tail goes first, then the kicker; the core line alone always fits.
+ */
+export const HEADLINE_CAPS: Record<StoryRole, number> = { banner: 72, column: 56, brief: 56 };
+
+const LABEL_END = /:\s*$/;
+const CLOSED = /[!?.\u2026]\s*$/;
+
+export const roleAt = (position: number): StoryRole =>
+    position === 0 ? "banner" : position <= COLUMN_MAX ? "column" : "brief";
+
+/** What the view needs to vary its words: the same kind's earlier editions. */
+export interface EditionCopyContext {
+    /** Ids of every earlier edition of this kind, oldest first; without it only `previous` is avoided. */
+    chain?: readonly string[];
+    previous?: Edition | null;
+}
+
 export interface NumberLine {
     id: "matches" | "record" | "winrate" | "playtime" | "kda";
     label: string;
@@ -110,6 +134,8 @@ export interface EditionView {
     columns: DispatchStoryView[];
     briefs: Brief[];
     photo?: { src: string | null; alt: string; caption: string };
+    /** Every story in page order: `banner`, then `columns`, then the briefs. Absent on hand-built views. */
+    stories?: DispatchStoryView[];
     /** Empty when the edition has no matches. */
     numbers: NumberLine[];
     bestGame?: BestGameView;
@@ -121,7 +147,35 @@ export interface EditionView {
 const byPlay = (a: EditionHero, b: EditionHero) =>
     b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId;
 
-export function editionView(edition: Edition, deps: DispatchViewDeps): EditionView {
+/** One story's headline and deck in the words its copy plan picked, fitted to `role`. */
+export function renderStory(
+    copy: StoryCopy,
+    role: StoryRole,
+    resolve: (p: DispatchParam) => string,
+    deps: Pick<DispatchViewDeps, "t" | "tn">,
+): { headline: string; deck: string } {
+    const { t, tn } = deps;
+    const params: Params = Object.fromEntries(Object.entries(copy.params).map(([k, p]) => [k, resolve(p)]));
+    for (const [k, key] of Object.entries(copy.phrases)) params[k] = t(key);
+    const text = (s: DispatchText) => (s.count === undefined ? t(s.key, params) : tn(s.key, s.count, params));
+    const core = text(copy.core);
+    const label = copy.kicker && role !== "brief" ? t(copy.kicker) : null;
+    // A "Label:" kicker before a line that has its own "Label:" reads as two labels.
+    const kicker = label && !(LABEL_END.test(label) && core.includes(":")) ? label : null;
+    const tail = copy.tail && role !== "brief" ? text(copy.tail) : null;
+    const options: string[] = [];
+    // A tail is its own sentence; a core that already closes with ! ? or … takes it without a full stop.
+    const after = CLOSED.test(core) ? "_after" : "";
+    if (role === "banner" && kicker && tail) {
+        options.push(t(`dispatch.story.frame.both${after}`, { kicker, core, tail }));
+    }
+    if (kicker) options.push(t("dispatch.story.frame.kicker", { kicker, core }));
+    if (tail && (role === "banner" || !kicker)) options.push(t(`dispatch.story.frame.tail${after}`, { core, tail }));
+    const cap = HEADLINE_CAPS[role];
+    return { headline: options.find((o) => o.length <= cap) ?? core, deck: text(copy.deck) };
+}
+
+export function editionView(edition: Edition, deps: DispatchViewDeps, context: EditionCopyContext = {}): EditionView {
     const { t, tn } = deps;
     const { window: win } = edition;
     const live = edition.number === null;
@@ -150,16 +204,15 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
                 return deps.rank(p.badge);
         }
     };
-    const text = (s: DispatchText, params: Params) =>
-        s.count === undefined ? t(s.key, params) : tn(s.key, s.count, params);
+    const previous = context.previous ?? null;
+    const chain = context.chain ?? (previous ? [previous.id] : []);
+    const seeds = [...chain, edition.id].map((id) => copySeed(edition.accountId, id));
+    const signals = editionSignals(edition, previous);
+    const arranged = arrangeStories(edition.stories, signals, seeds[seeds.length - 1]);
+    const copyContext = { edition, seeds, signals, previous };
     const story = (s: DispatchStory, i: number): DispatchStoryView => {
-        const params = Object.fromEntries(Object.entries(s.params).map(([k, p]) => [k, param(p)]));
-        const view: DispatchStoryView = {
-            id: `${s.kind}-${i}`,
-            kind: s.kind,
-            headline: text(s.headline, params),
-            deck: text(s.deck, params),
-        };
+        const words = renderStory(storyCopy(s, i, copyContext), roleAt(i), param, deps);
+        const view: DispatchStoryView = { id: `${s.kind}-${i}`, kind: s.kind, ...words };
         if (s.matchId !== undefined) view.matchId = s.matchId;
         return view;
     };
@@ -182,7 +235,7 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
         date: win.kind === "monthly" ? deps.month(win.startS, win.tz) : deps.dayRange(win.startS, win.endS - 1, win.tz),
     };
 
-    const stories = edition.stories.map(story);
+    const stories = arranged.map(story);
     const [banner, ...rest] = stories;
     const columns = rest.slice(0, COLUMN_MAX);
     const briefs = rest.slice(COLUMN_MAX).map((s): Brief => ({ id: s.id, headline: s.headline, body: s.deck }));
@@ -205,6 +258,7 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
         masthead,
         columns,
         briefs,
+        stories,
         numbers: numberLines(edition, deps),
         heroes: heroes.slice(0, HERO_ROWS).map((h) => ({
             id: h.heroId,
@@ -220,7 +274,7 @@ export function editionView(edition: Edition, deps: DispatchViewDeps): EditionVi
         if (season) view.seal.season = season.name;
     }
 
-    const lead = edition.stories[0]?.params.hero;
+    const lead = arranged[0]?.params.hero;
     const photoHero = lead?.type === "hero" ? lead.heroId : heroes[0]?.heroId;
     if (photoHero !== undefined) {
         const name = heroName(photoHero);

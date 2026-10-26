@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
+import { copySeed } from "@deadlock-plus/stats/dispatch/copy";
+import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
+import { arrangeStories } from "@deadlock-plus/stats/dispatch/stories";
 import type { DispatchStory, Edition } from "@deadlock-plus/stats/dispatch/types";
 import { MIN_CONTRAST, contrast } from "@deadlock-plus/ui/accent";
 import { PAPER_TOKENS } from "$lib/features/front-page/paper/tokens";
@@ -55,11 +58,19 @@ const CATALOG: Record<string, string> = {
     "dispatch.story.busiest_month.headline_other": "Peak season: {count} matches in {month}",
 };
 
-const t = (key: string, params?: Record<string, string | number>) => interpolate(CATALOG[key] ?? key, params);
-const tn = (key: string, count: number, params?: Record<string, string | number>) => {
-    const full = `${key}_${count === 1 ? "one" : "other"}`;
-    return interpolate(CATALOG[full] ?? full, { count, ...params });
+/**
+ * Story lines resolve to the kind-free fixture lines above (`dispatch.story.record.weekly.deck_2` reads
+ * `dispatch.story.record.deck`), and kickers and tails to nothing, so these tests pin the params, not the words.
+ */
+const STORY_LINE = /^(dispatch\.story\.\w+)\.\w+\.(\w+?)_\d+(_one|_other)?$/;
+const lookup = (key: string) => {
+    if (key.startsWith("dispatch.story.voice.")) return "";
+    const m = STORY_LINE.exec(key);
+    return CATALOG[m ? `${m[1]}.${m[2]}${m[3] ?? ""}` : key] ?? key;
 };
+const t = (key: string, params?: Record<string, string | number>) => interpolate(lookup(key), params);
+const tn = (key: string, count: number, params?: Record<string, string | number>) =>
+    interpolate(lookup(`${key}_${count === 1 ? "one" : "other"}`), { count, ...params });
 
 const HEROES: Record<number, string> = { 1: "Infernus", 2: "Haze", 3: "Seven" };
 
@@ -270,10 +281,24 @@ describe("editionView stories", () => {
     const many = ranked.map((kind, i) => story(kind, 60 - i));
 
     it("puts the top story in the banner, the next four in columns and the rest in brief", () => {
-        const view = editionView(edition({ stories: many }), deps);
-        expect(view.banner?.kind).toBe("record");
-        expect(view.columns.map((s) => s.kind)).toEqual(["hours", "top_hero", "nemesis", "best_game"]);
-        expect(view.briefs.map((b) => b.id)).toEqual(["rank_move-5", "night_owl-6"]);
+        const e = edition({ stories: many });
+        const order = arrangeStories(many, editionSignals(e), copySeed(e.accountId, e.id)).map((s) => s.kind);
+        const view = editionView(e, deps);
+        expect(view.stories!.map((s) => s.kind)).toEqual(order);
+        expect(view.banner?.kind).toBe(order[0]);
+        expect(view.columns.map((s) => s.kind)).toEqual(order.slice(1, 5));
+        expect(view.briefs.map((b) => b.id)).toEqual([`${order[5]}-5`, `${order[6]}-6`]);
+    });
+
+    it("orders the page by what stands out, not only by the frozen scores", () => {
+        const orders = new Set(
+            ["weekly-2026-10-05", "weekly-2026-10-12", "weekly-2026-10-19", "weekly-2026-10-26"].map((id) =>
+                editionView(edition({ id, stories: many }), deps)
+                    .stories!.map((s) => s.kind)
+                    .join(),
+            ),
+        );
+        expect(orders.size).toBeGreaterThan(1);
     });
 
     it("leaves the briefs empty when the stories run out in the columns", () => {
@@ -333,16 +358,17 @@ describe("editionView stories", () => {
                 },
             }),
         ];
-        const view = editionView(edition({ stories }), deps);
-        expect(view.banner).toMatchObject({
+        const view = editionView(edition({ stories, nemesis: null, heroes: [] }), deps);
+        const byKind = Object.fromEntries(view.stories!.map((s) => [s.kind, s]));
+        expect(byKind.best_game).toMatchObject({
             headline: "Haze steals the show",
             deck: `15/2/11 on 2026-10-06@${TZ}. The critics gave it A+.`,
             matchId: 77,
         });
-        expect(view.columns.map((s) => [s.headline, s.deck])).toEqual([
+        expect(["hours", "nemesis", "top_hero", "rank_move"].map((k) => [byKind[k].headline, byKind[k].deck])).toEqual([
             ["7 hours on the clock", "7h 20m spent in matches, start to finish."],
             ["Wanted: Unnamed player", "Beat you 3 times in 1,200 meetings."],
-            ["Hero 99 runs the show", "dispatch.story.top_hero.deck"],
+            ["Hero 99 runs the show", expect.stringMatching(/^dispatch\.story\.top_hero\.weekly\.deck_[1-3]$/)],
             ["Climbing to Badge 81", "Up from Badge 73, peaking at Badge 82."],
         ]);
     });
@@ -359,7 +385,7 @@ describe("editionView stories", () => {
 
     it("names a known player by name", () => {
         const nemesis = story("nemesis", 50, { params: { player: { type: "player", accountId: 9, name: "Grim" } } });
-        expect(editionView(edition({ stories: [nemesis] }), deps).banner?.headline).toBe("Wanted: Grim");
+        expect(editionView(edition({ stories: [nemesis], nemesis: null }), deps).banner?.headline).toBe("Wanted: Grim");
     });
 });
 

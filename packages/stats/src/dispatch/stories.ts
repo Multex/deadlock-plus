@@ -1,6 +1,8 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
 import { badgeParts } from "../rank";
+import { pickAlong, variantHash } from "./copy";
 import type { EditionCalendar } from "./edition";
+import type { Signal, SignalId } from "./signals";
 import type {
     DispatchParam,
     DispatchStory,
@@ -449,5 +451,252 @@ export function rankDispatchStories(stories: readonly DispatchStory[]): Dispatch
 export function detectDispatchStories(edition: DispatchEditionInput): DispatchStory[] {
     return rankDispatchStories(
         DETECTORS.flatMap((detect) => detect(edition)).map((d) => finish(d, edition.window.kind)),
+    );
+}
+
+/** Variants per slot; every slot of one type holds exactly this many lines in the catalog. */
+export const STORY_COPY = { core: 5, angle: 4, deck: 3, kicker: 10, tail: 10, versus: 3 } as const;
+/** Kicker and tail positions that print nothing, so not every line shouts. */
+const QUIET = 2;
+
+export type CopyMood = "up" | "down";
+
+export interface CopyContext {
+    edition: Edition;
+    /** `copySeed` of every earlier edition of this kind, oldest first, then this one. */
+    seeds: readonly string[];
+    signals: readonly Signal[];
+    /** The same kind's previous edition, for "up from 4 last week". */
+    previous?: Pick<Edition, "stats" | "longestWin"> | null;
+}
+
+/**
+ * One story's printable parts as locale keys. `phrases` maps a placeholder to a locale key whose text fills it;
+ * `kicker` and `tail` go around `core` through the `dispatch.story.frame.*` keys when the layout has room.
+ */
+export interface StoryCopy {
+    core: DispatchText;
+    angle: SignalId | null;
+    params: Record<string, DispatchParam>;
+    phrases: Record<string, string>;
+    mood: CopyMood;
+    kicker: string | null;
+    tail: DispatchText | null;
+    deck: DispatchText;
+}
+
+/** The signals that give a story its own angle, first match wins. */
+const ANGLES: Partial<Record<DispatchStoryKind, readonly SignalId[]>> = {
+    best_streak: ["streak"],
+    top_hero: ["one_trick"],
+    played_with: ["duo"],
+    nemesis: ["nemesis"],
+    record: ["losing_then_winning"],
+    best_game: ["big_game"],
+    longest_session: ["marathon"],
+    new_hero: ["debut", "explorer"],
+    rank_move: ["climb", "slide"],
+    season_climb: ["bounce_back"],
+    days_played: ["grinder"],
+    night_owl: ["night_owl"],
+    mvp_count: ["mvp"],
+    heroes_tried: ["explorer"],
+};
+
+/** Signals that pull a story up the page without changing its words. */
+const PULLS: Partial<Record<SignalId, readonly DispatchStoryKind[]>> = {
+    winning: ["record"],
+    losing: ["record"],
+    vs_last: ["record", "hours"],
+    swing_month: ["busiest_month"],
+    weekender: ["busiest_day"],
+    dry_spell: ["days_played"],
+};
+
+interface Angle {
+    count?: number;
+    params?: Record<string, DispatchParam>;
+}
+
+function angleOf(story: DispatchStory, part: string, signal: Signal): Angle | null {
+    switch (signal.id) {
+        case "streak":
+            return { count: signal.facts.wins };
+        case "one_trick":
+            return { params: { share: percent(signal.facts.share), games: number(signal.facts.games) } };
+        case "duo":
+            return { params: { share: percent(signal.facts.share) } };
+        case "nemesis":
+            return { count: signal.facts.losses };
+        case "losing_then_winning": {
+            const f = signal.facts;
+            return { count: f.losses, params: { wins: number(f.wins), of: number(f.of) } };
+        }
+        case "big_game": {
+            const g = signal.facts.game;
+            return g.matchId === story.matchId && g.letter
+                ? { params: { letter: { type: "grade", letter: g.letter } } }
+                : null;
+        }
+        case "marathon":
+            return { count: signal.facts.matches };
+        case "debut":
+            return { params: { hero: hero(signal.facts.heroId), games: number(signal.facts.games) } };
+        case "explorer":
+            return { count: signal.facts.heroes };
+        case "climb":
+            return part === "headline_up" ? { count: Math.abs(signal.facts.steps) } : null;
+        case "slide":
+            return part === "headline_down" ? { count: Math.abs(signal.facts.steps) } : null;
+        case "bounce_back":
+            return { params: { low: rank(signal.facts.lowBadge) } };
+        case "grinder":
+        case "night_owl":
+            return { params: { share: percent(signal.facts.share) } };
+        case "mvp":
+            return { count: signal.facts.placements };
+        default:
+            return null;
+    }
+}
+
+/** Numbers a same-kind previous edition can be compared on, as "up from 4 last week". */
+const VERSUS: Partial<Record<DispatchStoryKind, (e: Pick<Edition, "stats" | "longestWin">) => number>> = {
+    record: (e) => e.stats.matches,
+    hours: (e) => Math.floor(e.stats.playtimeS / HOUR_S),
+    best_streak: (e) => e.longestWin,
+};
+
+/** Stories without a hero of their own name the most played one as `{top}`. */
+const TOP_HERO_IN: ReadonlySet<DispatchStoryKind> = new Set([
+    "record",
+    "hours",
+    "longest_session",
+    "busiest_day",
+    "night_owl",
+    "days_played",
+    "busiest_month",
+]);
+
+const hourFormat = new Map<string, Intl.DateTimeFormat>();
+function partOfDay(unixS: number, tz: string): "night" | "morning" | "afternoon" | "evening" {
+    let f = hourFormat.get(tz);
+    if (!f) {
+        f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" });
+        hourFormat.set(tz, f);
+    }
+    const hour = Number(f.format(unixS * 1000)) % 24;
+    return hour < 6 ? "night" : hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+}
+
+const partOf = (t: DispatchText) => {
+    const part = t.key.slice(t.key.lastIndexOf(".") + 1);
+    return part === "headline_year" ? "headline" : part;
+};
+
+function moodOf(story: DispatchStory, part: string): CopyMood {
+    return story.kind === "nemesis" || part.endsWith("_losing") || part.endsWith("_down") ? "down" : "up";
+}
+
+function line(key: string, count: number | undefined): DispatchText {
+    return count === undefined ? { key } : { key, count };
+}
+
+/**
+ * The words for `story` at `position` on the page (0 = banner). Every pick walks `ctx.seeds`, so it is stable for a
+ * frozen edition and differs from the previous same-kind edition's pick in each slot; positions on one page get
+ * distinct kickers and tails.
+ */
+export function storyCopy(story: DispatchStory, position: number, ctx: CopyContext): StoryCopy {
+    const { edition, seeds } = ctx;
+    const kind = edition.window.kind;
+    const base = `${story.kind}.${kind}`;
+    const part = partOf(story.headline);
+    const pick = (slot: string, n: number) => pickAlong(seeds, slot, n);
+
+    let angle: SignalId | null = null;
+    let found: Angle | null = null;
+    for (const id of ANGLES[story.kind] ?? []) {
+        const signal = ctx.signals.find((s) => s.id === id);
+        found = signal ? angleOf(story, part, signal) : null;
+        if (found) {
+            angle = id;
+            break;
+        }
+    }
+
+    const params: Record<string, DispatchParam> = { ...story.params, ...found?.params };
+    if (story.kind === "record") {
+        const w = story.params.wins;
+        const l = story.params.losses;
+        if (w?.type === "number" && l?.type === "number") params.margin = number(Math.abs(w.value - l.value));
+    }
+    const top = [...edition.heroes].sort(
+        (a, b) => b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId,
+    )[0];
+    if (top && TOP_HERO_IN.has(story.kind)) params.top = hero(top.heroId);
+    const phrases: Record<string, string> = {};
+    const when = story.params.date;
+    if (when?.type === "date" && (story.kind === "best_game" || story.kind === "longest_session")) {
+        phrases.when = `${STORY_NS}.when.${partOfDay(when.unixS, edition.window.tz)}`;
+    }
+
+    const core = angle
+        ? line(`${STORY_NS}.${base}.angle_${angle}_${pick(`${base}.angle_${angle}`, STORY_COPY.angle)}`, found?.count)
+        : line(`${STORY_NS}.${base}.${part}_${pick(`${base}.${part}`, STORY_COPY.core)}`, story.headline.count);
+    const deckPart = partOf(story.deck);
+    const deck = line(
+        `${STORY_NS}.${base}.${deckPart}_${pick(`${base}.${deckPart}`, STORY_COPY.deck)}`,
+        story.deck.count,
+    );
+
+    const mood = moodOf(story, part);
+    const voice = (bank: "kicker" | "tail", size: number) => {
+        const options = size + QUIET;
+        const at = ((pick(`voice.${bank}.${mood}`, options) - 1 + position) % options) + 1;
+        return at <= size ? `${STORY_NS}.voice.${kind}.${bank}_${mood}_${at}` : null;
+    };
+
+    let tail: DispatchText | null = null;
+    const measure = VERSUS[story.kind];
+    const before = ctx.previous && measure ? measure(ctx.previous) : 0;
+    const now = measure ? measure(edition) : 0;
+    if (measure && before > 0 && now !== before) {
+        const dir = now > before ? "up" : "down";
+        tail = line(`${STORY_NS}.${base}.versus_${dir}_${pick(`${base}.versus_${dir}`, STORY_COPY.versus)}`, before);
+    } else {
+        const key = voice("tail", STORY_COPY.tail);
+        if (key) tail = { key };
+    }
+
+    return { core, angle, params, phrases, mood, kicker: voice("kicker", STORY_COPY.kicker), tail, deck };
+}
+
+const PULL = 20;
+const JITTER = 9;
+
+/**
+ * The page order for one edition: the frozen scores, plus a pull for each story a fired signal speaks to, plus a
+ * seeded nudge, so two players' (and two weeks') front pages differ in structure. A special edition's lead kinds
+ * keep `LEAD_BOOST`, which outweighs both.
+ */
+export function arrangeStories(
+    stories: readonly DispatchStory[],
+    signals: readonly Signal[],
+    seed: string,
+): DispatchStory[] {
+    const pull = (kind: DispatchStoryKind) =>
+        signals.reduce((best, s) => {
+            const speaks = ANGLES[kind]?.includes(s.id) || PULLS[s.id]?.includes(kind);
+            return speaks ? Math.max(best, s.strength) : best;
+        }, 0);
+    const score = new Map(
+        stories.map((s) => [
+            s,
+            s.score + Math.round(PULL * pull(s.kind)) + (variantHash(seed, `order.${s.kind}`) % JITTER),
+        ]),
+    );
+    return [...stories].sort(
+        (a, b) => score.get(b)! - score.get(a)! || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
     );
 }

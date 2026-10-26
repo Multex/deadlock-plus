@@ -7,6 +7,7 @@ import type { EditionView } from "../../../edition-view";
 import { collectorsView, type CollectorsDeps } from "../../../kinds/collectors/view";
 import type { ScenePrep } from "../../scene";
 import { collectorsSceneData } from "./data";
+import { dateRange } from "../../../date-range";
 
 const dates = (tz: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(i18n.locale, { ...options, timeZone: tz });
@@ -21,7 +22,12 @@ export async function prepareScene(view: EditionView): Promise<ScenePrep> {
         number: (n) => formatNumber(n),
         percent: (v) => formatNumber(v, { style: "percent", maximumFractionDigits: 0 }),
         dayRange: (a, b, tz) =>
-            dates(tz, { month: "short", day: "numeric", year: "numeric" }).formatRange(a * 1000, b * 1000),
+            dateRange(
+                dates(tz, { month: "short", day: "numeric", year: "numeric" }),
+                a * 1000,
+                b * 1000,
+                t("dispatch.range_join"),
+            ),
         day: (s, tz) => dates(tz, { weekday: "short", month: "short", day: "numeric" }).format(s * 1000),
         month: (s) => dates("UTC", { month: "short" }).format(s * 1000),
         tiers,

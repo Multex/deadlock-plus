@@ -185,11 +185,15 @@ describe("buildMagazine cover", () => {
     });
 
     it("puts the top hero on the cover and leaves the top-hero story off the coverlines", () => {
-        const m = build(edition());
+        const e = edition();
+        const m = build(e);
         expect(m.coverHero).toMatchObject({ heroId: 4, name: "Lash", line: "15 games, 29% of your September" });
         expect(m.lead?.kind).toBe("best_game");
-        expect(m.coverlines.map((c) => c.kind)).toEqual(["hours", "rank_move", "played_with"]);
-        expect(m.coverlines.map((c) => c.pageRef)).toEqual(["p. 2", "p. 5", "p. 5"]);
+        const pageOrder = editionView(e, viewDeps).stories!.map((s) => s.kind);
+        const lines = pageOrder.filter((k) => k !== "best_game" && k !== "top_hero").slice(0, 3);
+        expect(m.coverlines.map((c) => c.kind)).toEqual(lines);
+        const pages: Record<string, string> = { hours: "p. 2", record: "p. 2", rank_move: "p. 5", played_with: "p. 5" };
+        expect(m.coverlines.map((c) => c.pageRef)).toEqual(lines.map((k) => pages[k]));
         expect(m.lead?.kicker).toBe("Game of the month");
     });
 

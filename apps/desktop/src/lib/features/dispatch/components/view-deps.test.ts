@@ -14,7 +14,7 @@ describe("dispatchViewDeps", () => {
 
     it("prints a week as one inclusive range and a month by name", () => {
         const last = BERLIN_MONDAY + 7 * 86400 - 1;
-        expect(deps.dayRange(BERLIN_MONDAY, last, "Europe/Berlin")).toMatch(/^Oct 5\s–\s11, 2026$/);
+        expect(deps.dayRange(BERLIN_MONDAY, last, "Europe/Berlin")).toBe("Oct 5 to 11, 2026");
         expect(deps.month(BERLIN_MONDAY, "Europe/Berlin")).toBe("October 2026");
     });
 

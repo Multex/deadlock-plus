@@ -4,6 +4,7 @@ import { badgeName } from "$lib/features/stats/rank-view";
 import { formatPlaytime } from "$lib/features/stats/stats";
 import type { RankTier } from "@deadlock-plus/stats/rank";
 import type { DispatchViewDeps } from "../edition-view";
+import { dateRange } from "../date-range";
 
 const dates = (tz: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(i18n.locale, { ...options, timeZone: tz });
@@ -20,7 +21,12 @@ export function dispatchViewDeps(heroes: Record<number, Hero>, ranks: RankTier[]
         },
         day: (s, tz) => dates(tz, { weekday: "short", month: "short", day: "numeric" }).format(s * 1000),
         dayRange: (a, b, tz) =>
-            dates(tz, { month: "short", day: "numeric", year: "numeric" }).formatRange(a * 1000, b * 1000),
+            dateRange(
+                dates(tz, { month: "short", day: "numeric", year: "numeric" }),
+                a * 1000,
+                b * 1000,
+                t("dispatch.range_join"),
+            ),
         month: (s, tz) => dates(tz, { month: "long", year: "numeric" }).format(s * 1000),
         percent: (v) => formatNumber(v, { style: "percent", maximumFractionDigits: 0 }),
         duration: formatPlaytime,

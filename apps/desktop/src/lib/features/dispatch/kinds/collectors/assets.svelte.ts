@@ -3,6 +3,7 @@ import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/h
 import { loadRankTiers } from "$lib/features/ranks/ranks";
 import type { RankTier } from "@deadlock-plus/stats/rank";
 import type { CollectorsDeps } from "./view";
+import { dateRange } from "../../date-range";
 
 const dates = (tz: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(i18n.locale, { ...options, timeZone: tz });
@@ -40,7 +41,12 @@ export function collectorsAssets() {
                 number: (n) => formatNumber(n),
                 percent: (v) => formatNumber(v, { style: "percent", maximumFractionDigits: 0 }),
                 dayRange: (a, b, tz) =>
-                    dates(tz, { month: "short", day: "numeric", year: "numeric" }).formatRange(a * 1000, b * 1000),
+                    dateRange(
+                        dates(tz, { month: "short", day: "numeric", year: "numeric" }),
+                        a * 1000,
+                        b * 1000,
+                        t("dispatch.range_join"),
+                    ),
                 day: (s, tz) => dates(tz, { weekday: "short", month: "short", day: "numeric" }).format(s * 1000),
                 // Month rules sit on UTC month starts, so they are named in UTC too.
                 month: (s) => dates("UTC", { month: "short" }).format(s * 1000),

@@ -17,6 +17,7 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import { withParam } from "$lib/features/builds/build-list";
     import { dispatch } from "$lib/features/dispatch/dispatch.svelte";
+    import { copyContext } from "$lib/features/dispatch/copy-chain";
     import { editionView } from "$lib/features/dispatch/edition-view";
     import ExportPanel from "$lib/features/dispatch/components/export-panel.svelte";
     import ReadingRoom from "$lib/features/dispatch/components/reading-room.svelte";
@@ -94,8 +95,6 @@
               : (latest.find((e) => e.id === editionId) ?? null),
     );
     const deps = $derived(dispatchViewDeps(heroes, ranks));
-    const view = $derived(shown ? editionView(shown, deps) : null);
-
     const known = $derived.by(() => {
         const out: Record<string, Edition> = { ...read };
         for (const e of latest) out[e.id] = e;
@@ -103,11 +102,15 @@
         if (opened) out[opened.id] = opened;
         return out;
     });
+    const view = $derived(shown ? editionView(shown, deps, copyContext(shown, dispatch.shelf, known)) : null);
     const covers = $derived.by(() => {
         if (Object.keys(heroes).length === 0) return {};
         const coverDeps = { hero: (id: number) => heroes[id], tiers, t };
         return Object.fromEntries(
-            Object.values(known).map((e) => [e.id, miniCover(e, editionView(e, deps), coverDeps)]),
+            Object.values(known).map((e) => [
+                e.id,
+                miniCover(e, editionView(e, deps, copyContext(e, dispatch.shelf, known)), coverDeps),
+            ]),
         );
     });
     /** Issued copies whose cover is in view: the tops of the piles, the specials and a dealt-out bundle. */

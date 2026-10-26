@@ -4,6 +4,7 @@ import { i18n, t, tn } from "$lib/core/i18n.svelte";
 import type { EditionView } from "../edition-view";
 import type { PaperKind } from "../page-state";
 import type { ShelfEntry } from "../service";
+import { dateRange } from "../date-range";
 
 type Params = Record<string, string | number>;
 
@@ -65,7 +66,7 @@ export function miniFormat(): MiniFormat {
         t,
         tn,
         date: (s, tz, options) => dates(tz, options).format(s * 1000),
-        range: (a, b, tz, options) => dates(tz, options).formatRange(a * 1000, b * 1000),
+        range: (a, b, tz, options) => dateRange(dates(tz, options), a * 1000, b * 1000, t("dispatch.range_join")),
         upper: (text) => text.toLocaleUpperCase(i18n.locale),
     };
 }
