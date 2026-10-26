@@ -121,6 +121,8 @@
         font-weight: 700;
         font-size: calc(34px * var(--s));
         line-height: 1;
+        /* The tilt swings the corners past the box; the card and paper around it clip anything outside. */
+        margin: calc(3px * var(--s));
         transform: rotate(-4deg);
     }
 
