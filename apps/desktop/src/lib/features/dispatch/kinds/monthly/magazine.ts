@@ -304,11 +304,15 @@ export function buildMagazine(edition: Edition, view: EditionView, deps: Magazin
             tn("dispatch.monthly.fact.busiest_day_note", b.matches, { matches: deps.number(b.matches) }),
         );
     }
-    fact(
-        "days_played",
-        deps.number(stats.daysPlayed),
-        tn("dispatch.monthly.fact.days_played_note", daysInMonth, { days: deps.number(daysInMonth) }),
-    );
+    // Editions frozen before `daysPlayed` existed lack it: count their calendar instead, or leave the cell out.
+    const daysPlayed = stats.daysPlayed ?? edition.days?.filter((d) => d.matches > 0).length;
+    if (daysPlayed !== undefined) {
+        fact(
+            "days_played",
+            deps.number(daysPlayed),
+            tn("dispatch.monthly.fact.days_played_note", daysInMonth, { days: deps.number(daysInMonth) }),
+        );
+    }
     if (stats.nightShare !== null) {
         fact("night", deps.percent(stats.nightShare), t("dispatch.monthly.fact.night_note"));
     }
