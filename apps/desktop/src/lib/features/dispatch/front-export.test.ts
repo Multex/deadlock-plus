@@ -1,28 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EditionView } from "./edition-view";
-import { CARD_SIZES } from "./edition-view";
-import { frontExportTarget, inlineSvgStyles, SVG_INLINE_PROPS } from "./front-export";
-
-const viewOf = (kind: EditionView["kind"]) => ({ id: `${kind}-2026-10-05`, kind }) as EditionView;
-
-describe("frontExportTarget", () => {
-    it.each([
-        ["weekly", 720, 1080],
-        ["monthly", 720, 936],
-        ["collectors", 720, 1080],
-        ["year_end", 600, 900],
-    ] as const)("exports the %s front page at its own cover size", (kind, width, height) => {
-        const target = frontExportTarget(viewOf(kind), "front_page", "9:16");
-        expect([target.width, target.height]).toEqual([width, height]);
-        expect(target.aspect).toBeNull();
-        expect(target.fileName).toBe(`deadlock-plus-dispatch-${kind.replace("_", "-")}-2026-10-05-front-page.png`);
-    });
-
-    it("keeps section cards at their aspect size", () => {
-        const target = frontExportTarget(viewOf("year_end"), "numbers", "1:1");
-        expect([target.width, target.height]).toEqual([CARD_SIZES["1:1"].width, CARD_SIZES["1:1"].height]);
-    });
-});
+import { inlineSvgStyles, SVG_INLINE_PROPS } from "./front-export";
 
 describe("inlineSvgStyles", () => {
     type Fake = { tag: string; style: Map<string, string> };
@@ -53,7 +30,15 @@ describe("inlineSvgStyles", () => {
     });
 
     it("covers the properties a text-on-path medal needs", () => {
-        for (const p of ["fill", "stroke", "font-family", "font-size", "font-weight", "letter-spacing", "text-transform"])
+        for (const p of [
+            "fill",
+            "stroke",
+            "font-family",
+            "font-size",
+            "font-weight",
+            "letter-spacing",
+            "text-transform",
+        ])
             expect(SVG_INLINE_PROPS).toContain(p);
     });
 });

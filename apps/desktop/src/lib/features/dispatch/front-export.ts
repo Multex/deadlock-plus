@@ -1,25 +1,3 @@
-import type { EditionKind } from "@deadlock-plus/stats/dispatch/types";
-import { DISPATCH_PAPER, type CardAspect, type EditionView } from "./edition-view";
-import { exportTarget, type ExportPick, type ExportTarget } from "./export-plan";
-import { COVER as COLLECTORS_COVER } from "./kinds/collectors/layout";
-import { PAGE as MONTHLY_PAGE } from "./kinds/monthly/layout";
-import { YEAR_END_COVER } from "./kinds/year_end/reveal";
-
-/** Each kind's own cover, at the size it is drawn: the "front page" export is that cover, not the weekly paper. */
-export const FRONT_PAGE_SIZES: Record<EditionKind, { width: number; height: number }> = {
-    weekly: DISPATCH_PAPER,
-    monthly: MONTHLY_PAGE,
-    collectors: COLLECTORS_COVER,
-    year_end: YEAR_END_COVER,
-};
-
-export function frontExportTarget(view: EditionView, pick: ExportPick, aspect: CardAspect): ExportTarget {
-    const target = exportTarget(view, pick, aspect);
-    if (pick !== "front_page") return target;
-    const { width, height } = FRONT_PAGE_SIZES[view.kind];
-    return { ...target, width, height };
-}
-
 /** The properties a cover's SVG art takes from its stylesheet: paint, stroke and type. */
 export const SVG_INLINE_PROPS = [
     "fill",

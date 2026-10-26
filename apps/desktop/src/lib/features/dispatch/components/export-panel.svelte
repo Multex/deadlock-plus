@@ -1,7 +1,22 @@
 <script lang="ts">
     import { toast } from "svelte-sonner";
-    import type { Component } from "svelte";
-    import { Columns3, Copy, Hash, ImageDown, Megaphone, Newspaper, Swords, Trophy, Users } from "@lucide/svelte";
+    import { onMount, untrack, type Component } from "svelte";
+    import {
+        Award,
+        BookOpen,
+        Columns3,
+        Copy,
+        GalleryHorizontal,
+        Hash,
+        ImageDown,
+        Megaphone,
+        Newspaper,
+        Star,
+        Swords,
+        TrendingUp,
+        Trophy,
+        Users,
+    } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -18,20 +33,23 @@
         waitForWindowFocus,
     } from "$lib/features/match-history/export-dom";
     import type { Edition } from "@deadlock-plus/stats/dispatch/types";
+    import type { RankTier } from "@deadlock-plus/stats/rank";
+    import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
+    import { loadApiRanks } from "$lib/features/ranks/ranks";
     import type { CardAspect, EditionView } from "../edition-view";
-    import { EXPORT_ASPECTS, exportPicks, type ExportPick } from "../export-plan";
-    import { frontExportTarget, inlineSvgStyles } from "../front-export";
-    import CollectorsFront from "../kinds/collectors/collectors-front.svelte";
-    import MonthlyFront from "../kinds/monthly/monthly-front.svelte";
-    import { isHotWeek } from "../kinds/weekly/hot";
-    import WeeklyCover from "../kinds/weekly/weekly-cover.svelte";
-    import YearEndFront from "../kinds/year_end/year-end-front.svelte";
-    import SectionCard from "./section-card.svelte";
+    import { EXPORT_ASPECTS, exportFile, exportSections, type ExportModel } from "../export-plan";
+    import { inlineSvgStyles } from "../front-export";
+    import { collectorsAssets } from "../kinds/collectors/assets.svelte";
+    import { collectorsView } from "../kinds/collectors/view";
+    import { coverArt, type CoverArt } from "../kinds/monthly/art";
+    import { magazineDeps } from "../kinds/monthly/deps";
+    import { buildMagazine } from "../kinds/monthly/magazine";
+    import { useYearEnd } from "../kinds/year_end/year-end-data.svelte";
 
     let { edition, view }: { edition: Edition; view: EditionView } = $props();
 
     const PREVIEW_MAX_HEIGHT = 520;
-    const ICONS: Record<ExportPick, Component> = {
+    const ICONS: Record<string, Component> = {
         front_page: Newspaper,
         front: Megaphone,
         stories: Columns3,
@@ -39,26 +57,73 @@
         best_game: Trophy,
         heroes: Swords,
         people: Users,
+        cover_story: Swords,
+        spread_1: BookOpen,
+        spread_2: BookOpen,
+        climb: TrendingUp,
+        peak: Award,
+        inside: BookOpen,
+        poster: GalleryHorizontal,
+        panel_numbers: Hash,
+        panel_heroes: Swords,
+        panel_highlights: Star,
     };
     const ASPECT_NAMES: Record<CardAspect, string> = { "9:16": "tall", "1:1": "square", "16:9": "wide" };
 
-    let pick = $state<ExportPick>("front_page");
+    // The dialog mounts this panel each time it opens, so the edition's kind holds for the panel's life, and each
+    // kind loads only what its own pages are drawn from.
+    const kind = untrack(() => edition.window.kind);
+    const collectors = kind === "collectors" ? collectorsAssets() : null;
+    const yearEnd =
+        kind === "year_end"
+            ? useYearEnd(
+                  () => edition,
+                  () => view,
+              )
+            : null;
+    let heroes = $state.raw<Record<number, Hero> | null>(null);
+    let ranks = $state.raw<RankTier[]>([]);
+    let art = $state.raw<CoverArt>({ card: null, backdrop: null });
+    const mag = $derived(
+        kind === "monthly" && heroes ? buildMagazine(edition, view, magazineDeps(heroes, ranks)) : null,
+    );
+    const coverHeroId = $derived(mag?.coverHero?.heroId ?? null);
+
+    onMount(() => {
+        if (kind !== "monthly") return;
+        void Promise.all([loadHeroes(), loadApiRanks()]).then(([h, r]) => {
+            ranks = r;
+            heroes = h;
+        });
+    });
+
+    $effect(() => {
+        const id = coverHeroId;
+        let live = true;
+        if (id !== null) void coverArt(id).then((a) => live && (art = a));
+        return () => (live = false);
+    });
+
+    const model = $derived.by((): ExportModel | null => {
+        if (kind === "monthly") return mag ? { kind, mag, art } : null;
+        if (kind === "collectors")
+            return collectors?.ready ? { kind, v: collectorsView(edition, collectors.deps) } : null;
+        if (kind === "year_end") return yearEnd ? { kind, poster: yearEnd.view.poster } : null;
+        return { kind: "weekly" };
+    });
+
+    let pick = $state("front_page");
     let aspect = $state<CardAspect>("9:16");
     let busy = $state<ExportKind | null>(null);
     let node = $state<HTMLElement | null>(null);
     let previewW = $state(0);
 
-    const picks = $derived(exportPicks(view));
-    const chosen = $derived(picks.includes(pick) ? pick : "front_page");
-    const target = $derived(frontExportTarget(view, chosen, aspect));
-    const items = $derived(picks.map((value) => ({ value, label: pickLabel(value) })));
-    const scale = $derived(previewW > 0 ? Math.min(1, previewW / target.width, PREVIEW_MAX_HEIGHT / target.height) : 0);
-
-    function pickLabel(value: ExportPick): string {
-        if (value === "front_page") return t("dispatch.export.front_page");
-        if (value === "front") return t("dispatch.export.lead_story");
-        return view.titles[value];
-    }
+    const sections = $derived(exportSections(edition, view, { model, aspect, t }));
+    const chosen = $derived(sections.find((s) => s.id === pick) ?? sections[0]);
+    const items = $derived(sections.map((s) => ({ value: s.id, label: s.label })));
+    const size = $derived(chosen.size);
+    const offset = $derived(chosen.offset ?? { x: 0, y: 0 });
+    const scale = $derived(previewW > 0 ? Math.min(1, previewW / size.width, PREVIEW_MAX_HEIGHT / size.height) : 0);
 
     function onAspectKeydown(e: KeyboardEvent) {
         const next = radioTarget(e.key, EXPORT_ASPECTS.indexOf(aspect), EXPORT_ASPECTS.length);
@@ -72,7 +137,7 @@
         (radios[next] as HTMLElement | undefined)?.focus();
     }
 
-    function frontCopy(live: Element | null): HTMLElement | null {
+    function pageCopy(live: Element | null): HTMLElement | null {
         if (!(live instanceof HTMLElement)) return null;
         const copy = live.cloneNode(true) as HTMLElement;
         inlineSvgStyles(live, copy);
@@ -84,11 +149,13 @@
         busy = kind;
         try {
             const source = node;
-            const { width, height, fileName } = target;
+            const { width, height } = chosen.size;
+            const card = chosen.card === true;
+            const fileName = exportFile(view.id, chosen.id, card ? aspect : null);
             const label = t("match_history.detail.export.made_with");
-            const paper = chosen === "front_page" ? frontCopy(source.firstElementChild) : null;
+            const paper = card ? null : pageCopy(source.firstElementChild);
             const result = await runExport(kind, fileName, {
-                // A card draws its own footer inside its fixed frame; the front page gets the shared one below it.
+                // A card draws its own footer inside its fixed frame; a page gets the shared one below it.
                 render: () =>
                     paper instanceof HTMLElement
                         ? renderNodeToPng(paper, label, width)
@@ -113,12 +180,12 @@
         <div class="flex flex-col gap-3">
             <SelectMenu
                 {items}
-                bind:value={() => chosen, (next) => (pick = next as ExportPick)}
+                bind:value={() => chosen.id, (next) => (pick = next)}
                 aria-label={t("dispatch.export.pick")}
                 class="w-full"
             >
                 {#snippet leading(item)}
-                    {@const Icon = ICONS[item.value as ExportPick]}
+                    {@const Icon = ICONS[item.value] ?? Newspaper}
                     <Icon aria-hidden="true" />
                 {/snippet}
             </SelectMenu>
@@ -126,8 +193,8 @@
             <div
                 role="radiogroup"
                 aria-label={t("dispatch.export.aspect.group")}
-                class="grid grid-cols-3 gap-2 {chosen === 'front_page' ? 'invisible' : ''}"
-                inert={chosen === "front_page"}
+                class="grid grid-cols-3 gap-2 {chosen.card ? '' : 'invisible'}"
+                inert={!chosen.card}
             >
                 {#each EXPORT_ASPECTS as option (option)}
                     {@const selected = aspect === option}
@@ -168,25 +235,28 @@
 
         <div class="preview" bind:clientWidth={previewW}>
             {#if scale > 0}
-                <div class="frame" style="width: {target.width * scale}px; height: {target.height * scale}px;">
+                <div class="frame" style="width: {size.width * scale}px; height: {size.height * scale}px;">
                     <div class="sheet" style="transform: scale({scale});">
-                        <div bind:this={node} style="width: {target.width}px; height: {target.height}px;">
-                            {#if chosen === "front_page"}
+                        <div bind:this={node} style="width: {size.width}px; height: {size.height}px;">
+                            {#if chosen.card}
+                                <chosen.component {...chosen.props} />
+                            {:else}
                                 <!-- The image is drawn from this wrapper, not the sheet: the renderer paints its
                                      background over the root it is given and appends the footer inside it. -->
                                 <div>
-                                    {#if edition.window.kind === "monthly"}
-                                        <MonthlyFront {edition} {view} />
-                                    {:else if edition.window.kind === "collectors"}
-                                        <CollectorsFront {edition} />
-                                    {:else if edition.window.kind === "year_end"}
-                                        <YearEndFront {edition} {view} />
-                                    {:else}
-                                        <WeeklyCover {view} hot={isHotWeek(edition)} />
-                                    {/if}
+                                    <div class="shot" style="width: {size.width}px; height: {size.height}px;">
+                                        <div
+                                            class="at"
+                                            style="left: {-offset.x}px; top: {-offset.y}px; width: {size.width +
+                                                offset.x}px; height: {size.height + offset.y}px;"
+                                        >
+                                            <chosen.component {...chosen.props} />
+                                            {#if chosen.facing}
+                                                <chosen.facing.component {...chosen.facing.props} />
+                                            {/if}
+                                        </div>
+                                    </div>
                                 </div>
-                            {:else}
-                                <SectionCard {view} section={chosen} {aspect} />
                             {/if}
                         </div>
                     </div>
@@ -211,5 +281,15 @@
 
     .sheet {
         transform-origin: 0 0;
+    }
+
+    .shot {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .at {
+        position: absolute;
+        display: flex;
     }
 </style>
