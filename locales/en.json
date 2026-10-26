@@ -3838,7 +3838,17 @@
                 "title": "Title Theme",
                 "koth": "King of the Hill",
                 "menu": "Main Menu"
-            }
+            },
+            "group": "Video",
+            "aspect": "Video shape",
+            "music_pick": "Music",
+            "save": "Save video",
+            "progress": "Making the video",
+            "cancel": "Cancel",
+            "saved": "Dispatch video saved.",
+            "saved_silent": "Dispatch video saved without music: the game's music could not be read.",
+            "save_failed": "Couldn't make the Dispatch video. Try again.",
+            "unsupported": "Video export is not available on this system."
         }
     }
 }
