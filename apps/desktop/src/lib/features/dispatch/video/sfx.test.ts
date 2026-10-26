@@ -57,7 +57,7 @@ describe("Dispatch video sound cues", () => {
         vi.restoreAllMocks();
     });
 
-    it("lists the 19 game sounds the user picked by ear, each at the stretch and level it was heard at", () => {
+    it("lists the 19 game sounds and the bundled crowd sound the user picked by ear, each at the stretch and level it was heard at", () => {
         expect(Object.keys(SFX_CUES)).toEqual([
             "shutter",
             "flash",
@@ -78,14 +78,24 @@ describe("Dispatch video sound cues", () => {
             "envelope_tear",
             "spotlight",
             "winner_sting",
+            "crowd",
         ]);
-        for (const cue of Object.values(SFX_CUES)) {
-            expect(cue.source).toEqual({ kind: "game" });
+        for (const [id, cue] of Object.entries(SFX_CUES)) {
+            if (id !== "crowd") expect(cue.source).toEqual({ kind: "game" });
             expect(cue.lengthSeconds).toBeGreaterThan(0);
             expect(cue.startSeconds).toBeGreaterThanOrEqual(0);
         }
         expect(SFX_CUES.shutter).toMatchObject({ startSeconds: 0, lengthSeconds: 0.3, levelDb: 7.8 });
         expect(SFX_CUES.chase_build).toMatchObject({ startSeconds: 0.105, lengthSeconds: 5.43, levelDb: -10.9 });
+    });
+
+    it("bundles the crowd cue as an app asset whose URL resolves", () => {
+        const source = SFX_CUES.crowd.source;
+        expect(source.kind).toBe("asset");
+        if (source.kind !== "asset") return;
+        expect(source.url).toMatch(/crowd.*\.mp3$/);
+        expect(SFX_CUES.crowd).toMatchObject({ startSeconds: 0, levelDb: 0 });
+        expect(SFX_CUES.crowd.lengthSeconds).toBeCloseTo(5, 0);
     });
 
     it("reads each cue's bytes out of the framed body, in the asked order", () => {

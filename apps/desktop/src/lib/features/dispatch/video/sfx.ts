@@ -1,4 +1,5 @@
 import { command } from "$lib/core/tauri";
+import crowdUrl from "./sfx-assets/crowd.mp3?url";
 
 export type SfxCueId =
     | "shutter"
@@ -19,7 +20,8 @@ export type SfxCueId =
     | "confetti"
     | "envelope_tear"
     | "spotlight"
-    | "winner_sting";
+    | "winner_sting"
+    | "crowd";
 
 /** Where a cue's bytes come from: the user's own install, or a file bundled with the app. */
 export type SfxSource = { kind: "game" } | { kind: "asset"; url: string };
@@ -53,6 +55,14 @@ const game = (startSeconds: number, lengthSeconds: number, levelDb: number, duck
     ducks,
 });
 
+const asset = (url: string, lengthSeconds: number, ducks = false): SfxCueDef => ({
+    source: { kind: "asset", url },
+    startSeconds: 0,
+    lengthSeconds,
+    levelDb: 0,
+    ducks,
+});
+
 // Each stretch and level is the preview the user picked by ear: from just before the sound's onset through its
 // ring-out, with the loudest 100 ms brought to -14 dBFS RMS.
 export const SFX_CUES: Readonly<Record<SfxCueId, SfxCueDef>> = {
@@ -75,6 +85,8 @@ export const SFX_CUES: Readonly<Record<SfxCueId, SfxCueDef>> = {
     envelope_tear: game(0, 0.82, -6.3),
     spotlight: game(0, 1.49, -10.1, true),
     winner_sting: game(0, 4.12, -11.5, true),
+    // The file is the approved preview itself: already at -14 dBFS RMS with its fades baked in.
+    crowd: asset(crowdUrl, 5, true),
 };
 
 /** -1 dBFS, the limiter ceiling the previews were heard through. */
