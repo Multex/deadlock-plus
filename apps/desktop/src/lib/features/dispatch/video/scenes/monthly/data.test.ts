@@ -7,7 +7,16 @@ import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { MUSIC_TRACKS } from "../../music";
 import { SFX_CUES } from "../../sfx";
 import { videoTimeline } from "../../timeline";
-import { allCopy, allStats, monthlySfx, monthlyVideoData, streakRun, type Copy, type MonthlyVideoDeps } from "./data";
+import {
+    allCopy,
+    allStats,
+    monthlySfx,
+    monthlyVideoData,
+    spokenDuration,
+    streakRun,
+    type Copy,
+    type MonthlyVideoDeps,
+} from "./data";
 import { MONTHLY_SLOTS, slotKeys } from "./slots";
 
 type Catalog = Record<string, string>;
@@ -253,5 +262,21 @@ describe("monthlySfx", () => {
                 if (i > 0) expect(cues[i]!.atSeconds).toBeGreaterThanOrEqual(cues[i - 1]!.atSeconds);
             }
         }
+    });
+});
+
+describe("spokenDuration", () => {
+    it("says whole hours in words, never a stray zero minutes", () => {
+        expect(spokenDuration(10 * 3600, "en-US")).toBe("10 hours");
+        expect(spokenDuration(3600, "en-US")).toBe("1 hour");
+        expect(spokenDuration(10 * 3600 + 25 * 60, "en-US")).toBe("10 hours");
+    });
+    it("keeps a tenth of an hour under ten hours, and minutes under one", () => {
+        expect(spokenDuration(3 * 3600 + 42 * 60, "en-US")).toBe("3.7 hours");
+        expect(spokenDuration(3 * 3600 + 2 * 60, "en-US")).toBe("3 hours");
+        expect(spokenDuration(45 * 60, "en-US")).toBe("45 minutes");
+    });
+    it("speaks the reader's language", () => {
+        expect(spokenDuration(10 * 3600, "de")).toBe("10 Stunden");
     });
 });

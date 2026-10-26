@@ -1,6 +1,6 @@
 import { flashAt } from "../../../kit/beat";
 import { feathered } from "../../../kit/bitmap";
-import { clamp01, easeInOut, easeOutBack, easeOutCubic } from "../../../kit/ease";
+import { clamp01, easeOutBack, easeOutCubic } from "../../../kit/ease";
 import { setFont, type TextStyle } from "../../../kit/text";
 import type { Bitmap, Ctx, Rect } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
@@ -19,11 +19,9 @@ import {
     PAGE_BODY,
     PAGE_H,
     PAGE_W,
-    readShift,
+    liveRows,
     rule,
     spreadLayout,
-    type PageCamera,
-    type Spread,
 } from "./print";
 import {
     drawBlock,
@@ -41,7 +39,6 @@ import {
     stage,
     tint,
     type MonthlyDraw,
-    type Stage,
 } from "./studio";
 
 /** How the spread pictures its angle. */
@@ -199,6 +196,7 @@ const LOG_TOP_GAP = 34;
 function log(
     ctx: Ctx,
     top: number,
+    foot: number,
     local: number,
     beat: number,
     f: FeatureData,
@@ -206,7 +204,7 @@ function log(
     assets: SceneAssets,
 ): number {
     const fonts = assets.fonts;
-    const room = PAGE_H - 120 - top - LOG_TOP_GAP;
+    const room = foot - top - LOG_TOP_GAP;
     const { shown, rowH } = logRows(f.reel.length, room, 84, 112);
     const rows = logPick(f.reel, shown);
     const more = f.reel.length - rows.length;
@@ -293,6 +291,7 @@ function log(
 function makeover(
     ctx: Ctx,
     top: number,
+    foot: number,
     local: number,
     beat: number,
     f: FeatureData,
@@ -303,7 +302,7 @@ function makeover(
     const fonts = assets.fonts;
     const gap = 60;
     const pw = (PAGE_W - 2 * MARGIN - gap) / 2;
-    const ph = Math.min(pw * 1.15, PAGE_H - 130 - top - 200);
+    const ph = Math.min(pw * 1.15, foot - 10 - top - 200);
     const y = top + 50;
     const up = f.angle === "climb";
     const labels = d.print?.labels;
@@ -396,6 +395,7 @@ function makeover(
 function pair(
     ctx: Ctx,
     top: number,
+    foot: number,
     local: number,
     beat: number,
     f: FeatureData,
@@ -405,7 +405,7 @@ function pair(
     const fonts = assets.fonts;
     const gap = 30;
     const pw = (PAGE_W - 2 * MARGIN - gap) / 2;
-    const ph = Math.min(pw * 1.3, PAGE_H - 140 - top - 140);
+    const ph = Math.min(pw * 1.3, foot - 20 - top - 140);
     const y = top + 50;
     const duo = f.angle === "duo";
     const other = String(
@@ -478,7 +478,15 @@ function heart(ctx: Ctx, cx: number, cy: number, s: number, k: number): void {
 }
 
 /** The month's cast: every hero tried, a contact strip of different faces with their names. */
-function cast(ctx: Ctx, top: number, local: number, beat: number, d: MonthlyDraw, assets: SceneAssets): number {
+function cast(
+    ctx: Ctx,
+    top: number,
+    foot: number,
+    local: number,
+    beat: number,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): number {
     const ids = d.video.beats.m_wardrobe?.swatches.map((s) => s.heroId) ?? [];
     const fonts = assets.fonts;
     const cols = 3;
@@ -486,7 +494,7 @@ function cast(ctx: Ctx, top: number, local: number, beat: number, d: MonthlyDraw
     const tw = (PAGE_W - 2 * MARGIN - gap * (cols - 1)) / cols;
     const capH = 70;
     const rows = Math.ceil(ids.length / cols);
-    const room = PAGE_H - 140 - top - 40;
+    const room = foot - 20 - top - 40;
     const th = Math.max(150, Math.min(tw * 1.05, room / Math.max(1, rows) - capH));
     const fit = Math.max(1, Math.floor(room / (th + capH)));
     const shown = ids.slice(0, Math.min(rows, fit) * cols);
@@ -524,6 +532,7 @@ function cast(ctx: Ctx, top: number, local: number, beat: number, d: MonthlyDraw
 function number(
     ctx: Ctx,
     top: number,
+    foot: number,
     local: number,
     beat: number,
     f: FeatureData,
@@ -531,7 +540,7 @@ function number(
     assets: SceneAssets,
 ): number {
     const fonts = assets.fonts;
-    const ph = Math.min(560, PAGE_H - 140 - top - 40);
+    const ph = Math.min(560, foot - 20 - top - 40);
     const r = { x: PAGE_W - MARGIN - 470, y: top + 40, w: 470, h: ph };
     const k = easeOutCubic(clamp01((local - beat) / 0.5));
     ctx.save();
@@ -609,19 +618,6 @@ export function folioOf(d: MonthlyDraw, id: string): number {
     return 2 + 2 * Math.max(0, order.indexOf(id as never));
 }
 
-export function featureCamera(st: Stage, sp: Spread, local: number, span: number, shift: number): PageCamera {
-    const push = easeInOut(local / span);
-    const focus = st.aspect === "tall" ? sp.right : { ...sp.left, w: sp.left.w + sp.right.w };
-    return {
-        ox: focus.x + focus.w / 2,
-        oy: st.h / 2,
-        zoom: 1 + 0.035 * push,
-        dx: 0,
-        dy: shift,
-        rot: 0,
-    };
-}
-
 /** The feature spread: the opener photo on the left, the story on the right with its own picture of the angle. */
 export function draw(
     ctx: Ctx,
@@ -648,25 +644,22 @@ export function draw(
         { px: 66, floor: PAGE_BODY, maxW: w, maxLines: 3 },
         1.12,
     );
-    const headTop = 90 + PAGE_BODY;
+    const live = liveRows(st, sp);
+    const headTop = live.top + PAGE_BODY;
     const deckTop = headTop + head.height + 24;
     const modTop = deckTop + deck.height + 20;
 
     const paintModule = (c: Ctx) => {
-        if (kind === "log") log(c, modTop, local, beat, f, d, assets);
-        else if (kind === "makeover") makeover(c, modTop, local, beat, f, d, assets);
-        else if (kind === "pair") pair(c, modTop, local, beat, f, d, assets);
-        else if (kind === "cast") cast(c, modTop, local, beat, d, assets);
-        else number(c, modTop, local, beat, f, d, assets);
+        if (kind === "log") log(c, modTop, live.bottom, local, beat, f, d, assets);
+        else if (kind === "makeover") makeover(c, modTop, live.bottom, local, beat, f, d, assets);
+        else if (kind === "pair") pair(c, modTop, live.bottom, local, beat, f, d, assets);
+        else if (kind === "cast") cast(c, modTop, live.bottom, local, beat, d, assets);
+        else number(c, modTop, live.bottom, local, beat, f, d, assets);
     };
-    // On 9:16 the page follows the reader's eye down to the newest row of the log.
-    const probe = moduleReach(kind, modTop, local, beat, f);
-    const shift = readShift(st, sp, Math.max(0, probe - (st.safe.bottom - st.safe.top) / sp.s + 40), probe);
-    const smooth = shift * easeInOut(clamp01((local - beat * 2) / (beat * 2)));
     drawSpread(ctx, st, sp, d, assets, {
         left: (c) => opener(c, local, span, f, d, assets),
         right: (c) => {
-            kicker(c, say(d, f.kicker), MARGIN, 90, w, fonts.display, d.palette.ink, clamp01(local / 0.3));
+            kicker(c, say(d, f.kicker), MARGIN, live.top, w, fonts.display, d.palette.ink, clamp01(local / 0.3));
             const hk = easeOutBack(clamp01(local / 0.28), 1.8);
             c.save();
             c.translate(MARGIN, headTop + head.height / 2);
@@ -682,19 +675,7 @@ export function draw(
         },
         folio: folioOf(d, "m_feature"),
         section: d.print?.labels?.coverStory ?? "",
-        cam: featureCamera(st, sp, local, span, smooth),
     });
     grain(ctx, st, local, 0.05);
     flashOverlay(ctx, st, flashAt(local, 0) * 0.25);
-}
-
-/** Where the module's newest landed row ends, without drawing it. */
-function moduleReach(kind: FeatureArt, top: number, local: number, beat: number, f: FeatureData): number {
-    if (kind !== "log") return Math.min(PAGE_H - 120, top + 700);
-    const room = PAGE_H - 120 - top - LOG_TOP_GAP;
-    const { shown, rowH } = logRows(f.reel.length, room, 84, 112);
-    const n = shown + (f.reel.length > shown ? 1 : 0);
-    const step = Math.min(beat, (beat * 10) / Math.max(1, n));
-    const landed = clamp01((local - beat * 2) / (step * Math.max(1, n - 1) + 0.01));
-    return top + LOG_TOP_GAP + rowH * Math.max(1, Math.ceil(landed * n));
 }

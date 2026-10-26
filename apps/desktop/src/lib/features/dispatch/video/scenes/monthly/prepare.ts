@@ -12,7 +12,7 @@ import { magazineDeps } from "../../../kinds/monthly/deps";
 import { buildMagazine } from "../../../kinds/monthly/magazine";
 import type { ScenePrep } from "../../scene";
 import { imageKeys, monthlyLines, type MonthlyDraw } from "./beats/studio";
-import { monthlySfx, monthlyVideoData, takeFrames, type MonthlyVideoDeps } from "./data";
+import { monthlySfx, monthlyVideoData, spokenDuration, takeFrames, type MonthlyVideoDeps } from "./data";
 
 /** The frozen edition behind the view, its words translated and its art named for the cover shoot's beats. */
 export async function prepareScene(view: EditionView): Promise<ScenePrep> {
@@ -34,7 +34,7 @@ export async function prepareScene(view: EditionView): Promise<ScenePrep> {
         number: magDeps.number,
         percent: magDeps.percent,
         date: magDeps.date,
-        duration: magDeps.duration,
+        duration: (seconds) => spokenDuration(seconds, i18n.locale),
     };
     const video = monthlyVideoData(edition, deps, previous);
     const shown = edition.heroes.map((h) => h.heroId);

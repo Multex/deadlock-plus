@@ -217,8 +217,6 @@ export interface PageCamera {
     rot: number;
 }
 
-export const STILL: PageCamera = { ox: 0, oy: 0, zoom: 1, dx: 0, dy: 0, rot: 0 };
-
 export function withPageCamera(ctx: Ctx, cam: PageCamera, paint: () => void): void {
     ctx.save();
     ctx.translate(cam.ox + cam.dx, cam.oy + cam.dy);
@@ -230,18 +228,18 @@ export function withPageCamera(ctx: Ctx, cam: PageCamera, paint: () => void): vo
 }
 
 /**
- * The vertical shift that keeps page rows `top`..`bottom` (page units) inside the safe band on 9:16, as little as
- * it takes; other aspects show the whole page and never shift.
+ * The page rows key text may use, in page units. The page never moves or scales, so a beat lays its words out
+ * inside these rows: on 9:16 the sheet runs past the safe band and only the rows inside the band are live.
  */
-export function readShift(st: Stage, sp: Spread, top: number, bottom: number): number {
-    if (st.aspect !== "tall") return 0;
-    const a = pagePoint(sp.right, 0, top).y;
-    const b = pagePoint(sp.right, 0, bottom).y;
-    const band = { top: st.safe.top + 20 * st.u, bottom: st.safe.bottom - 10 * st.u };
-    if (b - a > band.bottom - band.top) return band.top - a;
-    if (b > band.bottom) return band.bottom - b;
-    if (a < band.top) return band.top - a;
-    return 0;
+export function liveRows(st: Stage, sp: Spread): { top: number; bottom: number } {
+    const top = 90;
+    const bottom = PAGE_H - 120;
+    if (st.aspect !== "tall") return { top, bottom };
+    const row = (y: number) => (y - sp.right.y) / sp.s;
+    return {
+        top: Math.max(top, Math.ceil(row(st.safe.top + 20 * st.u))),
+        bottom: Math.min(bottom, Math.floor(row(st.safe.bottom - 10 * st.u))),
+    };
 }
 
 export interface Spec {
@@ -250,27 +248,27 @@ export interface Spec {
     /** Page numbers; the left page's is `folio`, the right page's one more. */
     folio: number;
     section: string;
-    cam: PageCamera;
 }
 
-/** The open spread on the desk, each page printed by `spec`, under the camera. */
+/**
+ * The open spread on the desk, each page printed by `spec`. The magazine is a physical object: it lies where
+ * `spreadLayout` puts it for the whole video, whatever is printed on it.
+ */
 export function drawSpread(ctx: Ctx, st: Stage, sp: Spread, d: MonthlyDraw, assets: SceneAssets, spec: Spec): void {
     desk(ctx, st, d);
-    withPageCamera(ctx, spec.cam, () => {
-        spreadShadow(ctx, sp, st.u);
-        if (sp.leftShown > 0.02)
-            onPage(ctx, sp.left, () => {
-                paper(ctx);
-                spec.left(ctx);
-                folio(ctx, "left", spec.folio, d, assets, spec.section);
-                binding(ctx, "left");
-            });
-        onPage(ctx, sp.right, () => {
+    spreadShadow(ctx, sp, st.u);
+    if (sp.leftShown > 0.02)
+        onPage(ctx, sp.left, () => {
             paper(ctx);
-            spec.right(ctx);
-            folio(ctx, "right", spec.folio + 1, d, assets, spec.section);
-            binding(ctx, "right");
+            spec.left(ctx);
+            folio(ctx, "left", spec.folio, d, assets, spec.section);
+            binding(ctx, "left");
         });
+    onPage(ctx, sp.right, () => {
+        paper(ctx);
+        spec.right(ctx);
+        folio(ctx, "right", spec.folio + 1, d, assets, spec.section);
+        binding(ctx, "right");
     });
 }
 
@@ -343,7 +341,27 @@ export function headlineBlock(
 export const headStyle = (family: string, fill: string) => ({ family, weight: 600, fill, track: -0.02 });
 export const deckStyle = (family: string, fill: string = INK) => ({ family, weight: 500, fill, italic: true });
 
-/** A drop cap: the answer's first letter three lines deep. Returns the width it takes from the first lines. */
+const CAP_SCALE = 2.3;
+const CAP_GAP = 0.08;
+
+/** A drop cap's ink: how far it sits right of its pen position, and how wide it prints. */
+function capInk(ctx: Ctx, letter: string, lineH: number, family: string): { left: number; w: number } {
+    setFont(ctx, { family, weight: 600, px: lineH * CAP_SCALE } as TextStyle);
+    const m = ctx.measureText(letter);
+    const left = m.actualBoundingBoxLeft ?? 0;
+    const right = m.actualBoundingBoxRight ?? m.width;
+    return { left, w: left + right };
+}
+
+/**
+ * The width a drop cap takes from the lines beside it: its ink, measured, plus one fixed gap, so the text sits the
+ * same distance from a narrow I as from a wide W (the advance width carries side bearings that vary per letter).
+ */
+export function capWidth(ctx: Ctx, letter: string, lineH: number, family: string): number {
+    return capInk(ctx, letter, lineH, family).w + lineH * CAP_GAP;
+}
+
+/** A drop cap: the answer's first letter two lines deep, its ink flush with the column's left edge. */
 export function dropCap(
     ctx: Ctx,
     letter: string,
@@ -352,17 +370,14 @@ export function dropCap(
     lineH: number,
     family: string,
     fill: string,
-): number {
-    const px = lineH * 2.3;
+): void {
     ctx.save();
-    setFont(ctx, { family, weight: 600, px } as TextStyle);
+    const ink = capInk(ctx, letter, lineH, family);
     ctx.fillStyle = fill;
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "left";
-    ctx.fillText(letter, x, top + lineH * 1.85);
-    const w = ctx.measureText(letter).width;
+    ctx.fillText(letter, x + ink.left, top + lineH * 1.85);
     ctx.restore();
-    return w + lineH * 0.25;
 }
 
 /** A photo credit set up the side of a picture, the way the print runs them. */

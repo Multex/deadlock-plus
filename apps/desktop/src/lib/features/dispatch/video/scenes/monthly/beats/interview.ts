@@ -1,4 +1,4 @@
-import { clamp01, easeInOut, easeOutCubic } from "../../../kit/ease";
+import { clamp01, easeOutCubic } from "../../../kit/ease";
 import { setFont, type TextStyle } from "../../../kit/text";
 import type { Ctx } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
@@ -8,6 +8,7 @@ import {
     credit,
     deckStyle,
     drawSpread,
+    capWidth,
     dropCap,
     headlineBlock,
     headStyle,
@@ -17,7 +18,7 @@ import {
     PAGE_BODY,
     PAGE_H,
     PAGE_W,
-    readShift,
+    liveRows,
     rule,
     spreadLayout,
 } from "./print";
@@ -33,7 +34,6 @@ export function typedLength(text: string, local: number, at: number, cps: number
 const CPS = 48;
 const Q_PX = 66;
 const A_PX = 88;
-const PAGE_FOOT = PAGE_H - 110;
 
 interface Qa {
     q: Block;
@@ -71,7 +71,7 @@ export function wrapAround(
 const CAP_LINES = 2;
 
 /** The questions in bold sans, the answers in the serif, the first answer opening on a drop cap. */
-function layoutQa(ctx: Ctx, d: MonthlyDraw, family: { q: string; a: string }, top: number): Qa[] {
+function layoutQa(ctx: Ctx, d: MonthlyDraw, family: { q: string; a: string }, top: number, foot: number): Qa[] {
     const data = d.video.beats.m_interview!;
     const w = PAGE_W - 2 * MARGIN;
     const fit = (aPx: number) => {
@@ -88,8 +88,7 @@ function layoutQa(ctx: Ctx, d: MonthlyDraw, family: { q: string; a: string }, to
             let a = fitBlock(ctx, text, deckStyle(family.a), { px: aPx, floor: PAGE_BODY, maxW: w, maxLines: 4 }, 1.1);
             let cap = 0;
             if (i === 0 && /^\p{L}/u.test(text)) {
-                setFont(ctx, { family: family.a, weight: 600, px: a.lineH * 2.3 } as TextStyle);
-                cap = ctx.measureText(text[0]!).width + a.lineH * 0.25;
+                cap = capWidth(ctx, text[0]!, a.lineH, family.a);
                 setFont(ctx, { ...deckStyle(family.a), px: a.px } as TextStyle);
                 const lines = wrapAround((str) => ctx.measureText(str).width, text.slice(1), w, cap, CAP_LINES);
                 if (lines.length >= CAP_LINES) a = { ...a, lines, height: a.lineH * lines.length };
@@ -101,7 +100,7 @@ function layoutQa(ctx: Ctx, d: MonthlyDraw, family: { q: string; a: string }, to
         });
     };
     let blocks = fit(A_PX);
-    if (blocks.at(-1)!.bottom > PAGE_FOOT) blocks = fit(PAGE_BODY);
+    if (blocks.at(-1)!.bottom > foot) blocks = fit(PAGE_BODY);
     return blocks;
 }
 
@@ -128,18 +127,13 @@ export function draw(
     const star = d.video.beats.m_flash.heroId;
     const player = String(d.video.beats.m_flash.slate.params.player ?? "");
 
-    const inset = tall ? { x: PAGE_W - MARGIN - 300, y: 90, w: 300, h: 360 } : null;
+    const live = liveRows(st, sp);
+    const inset = tall ? { x: PAGE_W - MARGIN - 300, y: live.top, w: 300, h: 360 } : null;
     const nameW = inset ? w - inset.w - 30 : w;
     const name = headlineBlock(ctx, (player || say(d, data.title)).toUpperCase(), fonts.body, nameW, 2, 170);
-    const nameTop = 90 + PAGE_BODY;
+    const nameTop = live.top + PAGE_BODY;
     const headBottom = Math.max(nameTop + name.height, inset ? inset.y + inset.h : 0) + 34;
-    const blocks = layoutQa(ctx, d, { q: fonts.display, a: fonts.body }, headBottom + 40);
-
-    // On 9:16 the page moves up to each answer as it is asked.
-    const shifts = blocks.map((b, i) => readShift(st, sp, i === 0 ? 0 : b.top - 30, b.bottom + 30));
-    let shift = shifts[0]!;
-    for (let i = 1; i < n; i++)
-        shift += (shifts[i]! - shifts[i - 1]!) * easeInOut((local - moments[i]!.question + 0.35) / 0.5);
+    const blocks = layoutQa(ctx, d, { q: fonts.display, a: fonts.body }, headBottom + 40, live.bottom);
 
     const caption = d.print?.labels?.coverStar;
     const starName = star === null ? "" : (d.heroes?.[star]?.name ?? "");
@@ -168,7 +162,7 @@ export function draw(
             );
         },
         right: (c) => {
-            kicker(c, say(d, data.title), MARGIN, 90, nameW, fonts.display, d.palette.ink, clamp01(local / 0.3));
+            kicker(c, say(d, data.title), MARGIN, live.top, nameW, fonts.display, d.palette.ink, clamp01(local / 0.3));
             drawBlock(c, name, MARGIN, nameTop, headStyle(fonts.body, INK), { reveal: clamp01(local / 0.35) });
             if (inset) {
                 pagePhoto(c, inset, d, assets, star, { zoom: 1.2 });
@@ -189,14 +183,6 @@ export function draw(
         },
         folio: folioOf(d, "m_interview"),
         section: d.print?.labels?.people ?? "",
-        cam: {
-            ox: tall ? sp.right.x + sp.right.w / 2 : st.w / 2,
-            oy: st.h / 2,
-            zoom: 1 + 0.03 * easeInOut(local / span),
-            dx: 0,
-            dy: shift,
-            rot: 0,
-        },
     });
     grain(ctx, st, local, 0.05);
 }

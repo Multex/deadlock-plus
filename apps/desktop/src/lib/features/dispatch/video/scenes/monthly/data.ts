@@ -18,6 +18,24 @@ export interface MonthlyVideoDeps {
     duration: (seconds: number) => string;
 }
 
+/**
+ * A length of time as the video's copy says it, in the reader's language: whole hours from ten up, a tenth of an
+ * hour below that, minutes under one. Cover lines set it in capitals, where "10h 0m" reads as "10H 0M".
+ */
+export function spokenDuration(seconds: number, locale: string): string {
+    const hours = seconds / 3600;
+    if (hours < 1)
+        return new Intl.NumberFormat(locale, { style: "unit", unit: "minute", unitDisplay: "long" }).format(
+            Math.round(seconds / 60),
+        );
+    return new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit: "hour",
+        unitDisplay: "long",
+        maximumFractionDigits: hours < 10 ? 1 : 0,
+    }).format(hours < 10 ? hours : Math.round(hours));
+}
+
 /** A line to translate: `t(key, params)`, or `tn(key, count, params)` when `count` is set. */
 export interface Copy {
     key: string;

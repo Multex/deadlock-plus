@@ -1,4 +1,4 @@
-import { clamp01, easeInOut, easeOutBack, easeOutCubic } from "../../../kit/ease";
+import { clamp01, easeOutBack, easeOutCubic } from "../../../kit/ease";
 import { setFont, type TextStyle } from "../../../kit/text";
 import type { Ctx, Rect } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
@@ -16,7 +16,7 @@ import {
     PAGE_BODY,
     PAGE_H,
     PAGE_W,
-    readShift,
+    liveRows,
     spreadLayout,
 } from "./print";
 import {
@@ -144,7 +144,8 @@ export function draw(
         { px: 66, floor: PAGE_BODY, maxW: w, maxLines: 2 },
         1.1,
     );
-    const titleTop = 90 + PAGE_BODY;
+    const live = liveRows(st, sp);
+    const titleTop = live.top + PAGE_BODY;
     const deckTop = titleTop + title.height + 18;
     const boardTop = deckTop + deck.height + 60;
 
@@ -154,7 +155,7 @@ export function draw(
     const tw = (w - gap * (cols - 1)) / cols;
     const rows = Math.ceil(items.length / cols);
     const nameH = 70;
-    const room = PAGE_H - 120 - boardTop;
+    const room = live.bottom - boardTop;
     const fh = Math.max(110, Math.min(tw * 1.1, room / rows - nameH - 40));
     const tile = (i: number): Rect => ({
         x: MARGIN + (i % cols) * (tw + gap),
@@ -168,8 +169,6 @@ export function draw(
     );
     const pinAt = (i: number) => beat * 2 + i * beat;
     const ringAt = pinAt(items.length) + beat;
-    const lastRow = tile(items.length - 1);
-    const shift = readShift(st, sp, deckTop, lastRow.y + lastRow.h + nameH);
 
     drawSpread(ctx, st, sp, d, assets, {
         left: (c) => {
@@ -196,7 +195,7 @@ export function draw(
             );
         },
         right: (c) => {
-            kicker(c, labels?.rotation ?? "", MARGIN, 90, w, fonts.display, d.palette.ink, clamp01(local / 0.3));
+            kicker(c, labels?.rotation ?? "", MARGIN, live.top, w, fonts.display, d.palette.ink, clamp01(local / 0.3));
             drawBlock(c, title, MARGIN, titleTop, headStyle(fonts.body, INK), { reveal: clamp01(local / 0.4) });
             drawBlock(c, deck, MARGIN, deckTop, deckStyle(fonts.body), {
                 reveal: clamp01((local - beat) / (beat * 2)),
@@ -244,14 +243,6 @@ export function draw(
         },
         folio: folioOf(d, "m_wardrobe"),
         section: labels?.rotation ?? "",
-        cam: {
-            ox: st.aspect === "tall" ? sp.right.x + sp.right.w / 2 : st.w / 2,
-            oy: st.h / 2,
-            zoom: 1 + 0.03 * easeInOut(local / span),
-            dx: 0,
-            dy: shift * easeInOut(clamp01((local - pinAt(3)) / (beat * 3))),
-            rot: 0,
-        },
     });
     grain(ctx, st, local, 0.05);
 }

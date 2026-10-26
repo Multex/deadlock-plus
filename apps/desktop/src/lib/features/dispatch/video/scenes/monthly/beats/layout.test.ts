@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { featureArt, logPick, logRows } from "./feature";
-import { readShift, spreadLayout } from "./print";
+import { liveRows, spreadLayout } from "./print";
 import { stage } from "./studio";
 import { typedLength, wrapAround } from "./interview";
 import { keepLens } from "./takes";
@@ -70,20 +70,23 @@ describe("wrapAround", () => {
     });
 });
 
-describe("readShift", () => {
-    const tall = stage({ w: 1080, h: 1920 });
-    const sp = spreadLayout(tall);
-    it("leaves rows already inside the safe band where they are", () => {
-        expect(readShift(tall, sp, 200, 900)).toBe(0);
+describe("liveRows", () => {
+    it("keeps the live rows of a 9:16 page inside the safe band", () => {
+        const tall = stage({ w: 1080, h: 1920 });
+        const sp = spreadLayout(tall);
+        const live = liveRows(tall, sp);
+        expect(sp.right.y + live.top * sp.s).toBeGreaterThanOrEqual(tall.safe.top);
+        expect(sp.right.y + live.bottom * sp.s).toBeLessThanOrEqual(tall.safe.bottom);
+        expect(live.bottom - live.top).toBeGreaterThan(1000);
     });
-    it("lifts rows below the band just enough to bring their foot in", () => {
-        const shift = readShift(tall, sp, 900, 1250);
-        expect(shift).toBeLessThan(0);
-        expect(sp.right.y + 1250 * sp.s + shift).toBeCloseTo(tall.safe.bottom - 10, 6);
-    });
-    it("never shifts a square or wide spread", () => {
-        const sq = stage({ w: 1440, h: 1440 });
-        expect(readShift(sq, spreadLayout(sq), 900, 1250)).toBe(0);
+    it("gives a square or wide page its whole printed area", () => {
+        for (const size of [
+            { w: 1440, h: 1440 },
+            { w: 1920, h: 1080 },
+        ]) {
+            const st = stage(size);
+            expect(liveRows(st, spreadLayout(st))).toEqual({ top: 90, bottom: 1333 - 120 });
+        }
     });
 });
 

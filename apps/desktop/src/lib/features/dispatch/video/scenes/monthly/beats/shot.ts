@@ -20,11 +20,12 @@ import {
     PAGE_H,
     PAGE_W,
     pagePoint,
-    readShift,
+    liveRows,
     rule,
     spreadLayout,
     type PageCamera,
     type Spread,
+    withPageCamera,
 } from "./print";
 import {
     drawBlock,
@@ -44,6 +45,9 @@ import {
     type Stage,
 } from "./studio";
 import { onScreen, paintTakes, takesGeometry, takesView, type SheetView } from "./takes";
+
+/** The shortest the 9:16 photograph gets above the words, in page units. */
+const MIN_PHOTO = 420;
 
 /** When each part of the shot lands, in seconds into the beat; the shutter is on the second bar line. */
 export function shotTimes(bar: number, span: number) {
@@ -217,15 +221,14 @@ function loosePrint(
     ctx.restore();
 }
 
-/** The photograph on the page: on 9:16 across the top of the right page, elsewhere the whole left page. */
-function photoRect(st: Stage): Rect {
-    return st.aspect === "tall" ? { x: 0, y: 0, w: PAGE_W, h: 600 } : { x: 0, y: 0, w: PAGE_W, h: PAGE_H };
+/** The photograph on the page: on 9:16 across the top of the right page down to `bottom`, elsewhere the whole left page. */
+function photoRect(st: Stage, bottom: number): Rect {
+    return st.aspect === "tall" ? { x: 0, y: 0, w: PAGE_W, h: bottom } : { x: 0, y: 0, w: PAGE_W, h: PAGE_H };
 }
 
-/** The camera that shows the photograph filling the frame at `k` = 0 and the whole spread at 1. */
-function pullCamera(st: Stage, sp: Spread, k: number, shift: number): PageCamera {
+/** The camera that shows the photograph filling the frame at `k` = 0 and the page at rest, as laid, at 1. */
+function pullCamera(st: Stage, sp: Spread, k: number, ph: Rect): PageCamera {
     const page = st.aspect === "tall" ? sp.right : sp.left;
-    const ph = photoRect(st);
     const a = pagePoint(page, ph.x, ph.y);
     const b = pagePoint(page, ph.x + ph.w, ph.y + ph.h);
     const cx = (a.x + b.x) / 2;
@@ -234,7 +237,7 @@ function pullCamera(st: Stage, sp: Spread, k: number, shift: number): PageCamera
     const zoom = Math.exp(lerp(Math.log(fill), 0, k));
     const sx = st.w / 2;
     const sy = st.h / 2;
-    return { ox: cx, oy: cy, zoom, dx: lerp(sx - cx, 0, k), dy: lerp(sy - cy, shift, k), rot: 0 };
+    return { ox: cx, oy: cy, zoom, dx: lerp(sx - cx, 0, k), dy: lerp(sy - cy, 0, k), rot: 0 };
 }
 
 function page(
@@ -256,7 +259,7 @@ function page(
     const backdrop = image(assets, imageKeys.heroBackdrop(data.heroId)) ?? image(assets, imageKeys.backdrop);
     const name = (d.heroes?.[data.heroId]?.name ?? "").toUpperCase();
     const photo = (c: Ctx) => {
-        const r = photoRect(st);
+        const r = photoRect(st, photoBottom);
         pagePhoto(c, r, d, assets, data.heroId, { zoom: 1.12 - 0.08 * easeOutCubic(since / 3), fy: 0.06, backdrop });
         credit(
             c,
@@ -268,8 +271,9 @@ function page(
         );
     };
 
-    // The words: kicker, the hero, the line, the stat strip and the caption, laid from `top`.
-    const top = tall ? 650 : 110;
+    // The words: kicker, the hero, the stat strip, the caption and the net worth, set inside the page's live rows.
+    // On 9:16 they stack up from the foot of the live rows and the photograph takes what is left above them.
+    const live = liveRows(st, sp);
     const head = headlineBlock(ctx, name, fonts.body, w, 1, tall ? 170 : 200);
     const kda = [data.kda.kills, data.kda.deaths, data.kda.assists].map((v) => formatNumber(d, v));
     const cap = fitBlock(
@@ -279,11 +283,17 @@ function page(
         { px: 64, floor: PAGE_BODY, maxW: w, maxLines: tall ? 2 : 3 },
         1.12,
     );
+    const kdaH = tall ? 140 : 210;
+    const capGap = tall ? 30 : 100;
+    const worthH = data.netWorth ? 30 + PAGE_BODY * 0.8 : 0;
+    const body = PAGE_BODY + head.height + 20 + kdaH + capGap + cap.height;
+    const room = live.bottom - (tall ? 0 : live.top + 20);
+    const showWorth = worthH > 0 && (tall ? live.bottom - body - worthH - 50 >= MIN_PHOTO : body + worthH <= room);
+    const top = tall ? live.bottom - body - (showWorth ? worthH : 0) : live.top + 20;
+    const photoBottom = top - 50;
     const headTop = top + PAGE_BODY;
     const kdaTop = headTop + head.height + 20;
-    const kdaH = tall ? 140 : 210;
-    const capTop = kdaTop + kdaH + (tall ? 30 : 100);
-    const shift = readShift(st, sp, top - 20, Math.min(PAGE_H - 120, capTop + cap.height));
+    const capTop = kdaTop + kdaH + capGap;
     const words = (c: Ctx) => {
         const show = (at: number) => clamp01((local - at) / 0.35);
         kicker(c, labels?.bestGame ?? "", MARGIN, top, w, fonts.display, d.palette.ink, show(times.pull[0]));
@@ -294,7 +304,7 @@ function page(
         if (data.netWorth) {
             const worth = say(d, netWorthCopy(formatNumber(d, data.netWorth.value)));
             const k = show(times.worth);
-            if (k > 0 && capTop + cap.height + 90 < PAGE_H - 110) {
+            if (k > 0 && showWorth) {
                 c.save();
                 c.globalAlpha = k;
                 setFont(c, { family: fonts.display, weight: 700, px: PAGE_BODY * 0.8, track: 0.12 } as TextStyle);
@@ -305,18 +315,19 @@ function page(
             }
         }
     };
-    drawSpread(ctx, st, sp, d, assets, {
-        left: (c) => {
-            if (!tall) photo(c);
-        },
-        right: (c) => {
-            if (tall) photo(c);
-            words(c);
-        },
-        folio: folioOf(d, "m_shot"),
-        section: labels?.bestGame ?? "",
-        cam: pullCamera(st, sp, pull, shift),
-    });
+    withPageCamera(ctx, pullCamera(st, sp, pull, photoRect(st, photoBottom)), () =>
+        drawSpread(ctx, st, sp, d, assets, {
+            left: (c) => {
+                if (!tall) photo(c);
+            },
+            right: (c) => {
+                if (tall) photo(c);
+                words(c);
+            },
+            folio: folioOf(d, "m_shot"),
+            section: labels?.bestGame ?? "",
+        }),
+    );
 }
 
 /** K, D and A as the print sets them: three numbers with their labels under, and the grade when there is one. */
