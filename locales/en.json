@@ -4078,7 +4078,6 @@
             },
             "next_label": "Next issue",
             "next_line": "{month}, out {date}",
-            "open": "Open",
             "close": "Close",
             "prev": "Previous pages",
             "next": "Next pages",

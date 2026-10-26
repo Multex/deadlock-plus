@@ -76,8 +76,10 @@
         return null;
     }
 
-    /** The object's own first control, else the way back to the table. */
+    /** The object's own focus target or first control, else the way back to the table. */
     function control(): HTMLElement | null {
+        const target = stageEl?.querySelector<HTMLElement>("[data-object-focus]");
+        if (target && !target.closest("[inert]")) return target;
         const own = [...(stageEl?.querySelectorAll<HTMLElement>("button:not([disabled])") ?? [])].find(
             (b) =>
                 !b.closest("[inert]") && b.getClientRects().length > 0 && getComputedStyle(b).visibility !== "hidden",

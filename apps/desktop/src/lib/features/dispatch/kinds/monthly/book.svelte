@@ -15,6 +15,7 @@
         a2,
         glare,
         sticker,
+        curl = null,
     }: {
         mag: Magazine;
         art: CoverArt;
@@ -23,6 +24,8 @@
         a2: number;
         glare: number;
         sticker: number;
+        /** The page corner that lifts under the pointer: the one a click would turn. */
+        curl?: "next" | "prev" | null;
     } = $props();
 
     const shade = (a: number) => Math.sin((Math.min(180, Math.max(0, -a)) * Math.PI) / 180);
@@ -46,6 +49,9 @@
 <div class="book" style="width: {PAGE.width * 2}px; height: {PAGE.height}px;">
     <div class="edge-l" style="opacity: {open > 0.5 ? 1 : 0};" aria-hidden="true"></div>
     <div class="edge-r" aria-hidden="true"></div>
+
+    <div class="curl next" class:on={curl === "next"} data-curl="next" aria-hidden="true"></div>
+    <div class="curl prev" class:on={curl === "prev"} data-curl="prev" aria-hidden="true"></div>
 
     <div class="slot" inert={spread !== 2}>
         <PagePeople {mag} />
@@ -166,5 +172,55 @@
     .edge-l {
         left: -6px;
         border-radius: 2px 0 0 2px;
+    }
+    /* A dog-ear: the corner peels up showing the paper's back, with the page beneath in its shadow. */
+    .curl {
+        position: absolute;
+        bottom: 0;
+        z-index: 40;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        filter: drop-shadow(0 0 6px rgb(0 0 0 / 0.35));
+        transition:
+            width 160ms ease-out,
+            height 160ms ease-out;
+    }
+
+    .curl.on {
+        width: 96px;
+        height: 96px;
+    }
+
+    .curl.next {
+        right: 0;
+        border-top-left-radius: 6px;
+        background: linear-gradient(
+            to top left,
+            rgb(20 16 12 / 0.55) 0,
+            rgb(20 16 12 / 0.2) calc(50% - 1px),
+            #fbf8f1 50%,
+            #e4ddcf 72%,
+            #c8bfae 100%
+        );
+    }
+
+    .curl.prev {
+        left: 0;
+        border-top-right-radius: 6px;
+        background: linear-gradient(
+            to top right,
+            rgb(20 16 12 / 0.55) 0,
+            rgb(20 16 12 / 0.2) calc(50% - 1px),
+            #fbf8f1 50%,
+            #e4ddcf 72%,
+            #c8bfae 100%
+        );
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .curl {
+            transition: none;
+        }
     }
 </style>
