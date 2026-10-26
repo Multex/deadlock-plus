@@ -1,5 +1,5 @@
 import { loadTrack, musicTrack, type MusicTrack, type MusicTrackId } from "./music";
-import { SFX_CUES, decodeCues, limit, loadSfx, mixCues, type SfxCue } from "./sfx";
+import { SFX_CUES, decodeCues, limit, loadSfx, mixCues, type SfxCue, type SfxProfile } from "./sfx";
 import type { VideoTimeline } from "./timeline";
 
 /** Opus encodes only at 48 kHz; AAC takes it too, so one rate serves both. */
@@ -80,15 +80,69 @@ export function capPeak(planes: Float32Array[]): void {
     for (const plane of planes) for (let i = 0; i < plane.length; i++) plane[i] *= k;
 }
 
+/** -2 dBFS: the AAC encode overshoots sample peaks by up to a dB, so the video's true peak stays under -1 dBTP. */
+export const LIMIT_CEILING = 10 ** (-2 / 20);
 /** How long the mix's limiter takes to come back to full gain after a peak. */
 export const LIMIT_RELEASE_SECONDS = 0.04;
 
 /**
- * Holds every sample under `PEAK_CEILING`, in place, by dipping the gain just around each peak. A cue's transient
+ * Holds every sample under `LIMIT_CEILING`, in place, by dipping the gain just around each peak. A cue's transient
  * past full scale is shaved for a few milliseconds instead of the whole video being turned down to fit it.
  */
 export function limitPeaks(planes: Float32Array[], sampleRate: number): void {
-    limit(planes, sampleRate, PEAK_CEILING, LIMIT_RELEASE_SECONDS);
+    limit(planes, sampleRate, LIMIT_CEILING, LIMIT_RELEASE_SECONDS);
+}
+
+/** Every video plays at this integrated loudness, so no kind or track is louder than another on a phone. */
+export const LOUDNESS_TARGET_LUFS = -14;
+
+/** ITU-R BS.1770's K-weighting at 48 kHz: a high shelf, then a high-pass. Each is [b0, b1, b2, a1, a2]. */
+const K_WEIGHTING = [
+    [1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585],
+    [1, -2, 1, -1.99004745483398, 0.99007225036621],
+] as const;
+
+/** Integrated loudness in LUFS (ITU-R BS.1770-4: 400 ms blocks, absolute and relative gates), at 48 kHz. */
+export function loudnessLufs(planes: readonly Float32Array[], sampleRate: number): number {
+    const length = planes[0]?.length ?? 0;
+    const block = Math.round(0.4 * sampleRate);
+    const hop = Math.round(0.1 * sampleRate);
+    const blocks = length >= block ? Math.floor((length - block) / hop) + 1 : 0;
+    const energy = new Float64Array(blocks);
+    for (const plane of planes) {
+        const weighted = new Float64Array(plane);
+        for (const [b0, b1, b2, a1, a2] of K_WEIGHTING) {
+            let x1 = 0,
+                x2 = 0,
+                y1 = 0,
+                y2 = 0;
+            for (let i = 0; i < length; i++) {
+                const x = weighted[i]!;
+                const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+                [x2, x1, y2, y1] = [x1, x, y1, y];
+                weighted[i] = y;
+            }
+        }
+        const sums = new Float64Array(length + 1);
+        for (let i = 0; i < length; i++) sums[i + 1] = sums[i]! + weighted[i]! ** 2;
+        for (let j = 0; j < blocks; j++) energy[j]! += (sums[j * hop + block]! - sums[j * hop]!) / block;
+    }
+    const lufs = (z: number) => -0.691 + 10 * Math.log10(z);
+    const gated = (floor: number) => [...energy].filter((z) => z > 0 && lufs(z) > floor);
+    const absolute = gated(-70);
+    if (absolute.length === 0) return -Infinity;
+    const mean = (zs: number[]) => zs.reduce((a, z) => a + z, 0) / zs.length;
+    return lufs(mean(gated(lufs(mean(absolute)) - 10)));
+}
+
+/** Brings the mix to `LOUDNESS_TARGET_LUFS` with one gain, in place, then limits what that pushes past `LIMIT_CEILING`. */
+export function finishMix(planes: Float32Array[], sampleRate: number): void {
+    const loudness = loudnessLufs(planes, sampleRate);
+    if (Number.isFinite(loudness)) {
+        const k = 10 ** ((LOUDNESS_TARGET_LUFS - loudness) / 20);
+        for (const plane of planes) for (let i = 0; i < plane.length; i++) plane[i] = plane[i]! * k;
+    }
+    limitPeaks(planes, sampleRate);
 }
 
 export function silence(plan: AudioPlan): VideoAudio {
@@ -148,13 +202,15 @@ export async function mixAudio(plan: AudioPlan, layers: ArrayBuffer[]): Promise<
 }
 
 /**
- * The track's mix for this video with the sound cues laid over it, or null when the game music cannot be read or
- * decoded: the video goes silent. A cue that cannot be read or decoded plays as silence.
+ * The track's mix for this video with the sound cues laid over it as `profile` places them, brought to
+ * `LOUDNESS_TARGET_LUFS`, or null when the game music cannot be read or decoded: the video goes silent. A cue that
+ * cannot be read or decoded plays as silence.
  */
 export async function renderMusic(
     id: MusicTrackId,
     timeline: VideoTimeline,
     cues: readonly SfxCue[] = [],
+    profile: SfxProfile = "gentle",
 ): Promise<VideoAudio | null> {
     const [layers, sfx] = await Promise.all([loadTrack(id), loadSfx(cues.map((c) => c.cue))]);
     if (!layers) return null;
@@ -162,8 +218,8 @@ export async function renderMusic(
         const audio = await mixAudio(audioPlan(musicTrack(id), timeline), layers);
         const clips = sfx.size > 0 ? await decodeCues(sfx, audio.sampleRate, SFX_CUES) : new Map();
         capPeak(audio.planes);
-        mixCues(audio.planes, audio.sampleRate, cues, clips, SFX_CUES);
-        limitPeaks(audio.planes, audio.sampleRate);
+        mixCues(audio.planes, audio.sampleRate, cues, clips, SFX_CUES, profile);
+        finishMix(audio.planes, audio.sampleRate);
         return audio;
     } catch (e) {
         console.warn(`[dispatch] music track ${id} could not be mixed:`, e);

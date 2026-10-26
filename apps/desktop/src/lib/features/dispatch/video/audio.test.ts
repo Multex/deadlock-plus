@@ -4,16 +4,43 @@ import { musicTrack } from "./music";
 import {
     AUDIO_SAMPLE_RATE,
     FADE_IN_SECONDS,
+    LIMIT_CEILING,
     LIMIT_RELEASE_SECONDS,
+    LOUDNESS_TARGET_LUFS,
     PEAK_CEILING,
     SEAM_SECONDS,
     audioPlan,
     capPeak,
+    finishMix,
     limitPeaks,
+    loudnessLufs,
     silence,
 } from "./audio";
 import { LIMIT_LOOKAHEAD_SECONDS } from "./sfx";
 import { videoTimeline } from "./timeline";
+
+/** Stereo, the same on both channels. */
+const both = (plane: Float32Array) => [plane, plane.slice()];
+
+function sine(seconds: number, hz: number, amplitude: number): Float32Array {
+    return Float32Array.from(
+        { length: seconds * AUDIO_SAMPLE_RATE },
+        (_, i) => amplitude * Math.sin((2 * Math.PI * hz * i) / AUDIO_SAMPLE_RATE),
+    );
+}
+
+/** Deterministic white noise in [-1, 1) (mulberry32). */
+function noise(length: number, seed: number): Float32Array {
+    const out = new Float32Array(length);
+    let s = seed >>> 0;
+    for (let i = 0; i < length; i++) {
+        s = (s + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(s ^ (s >>> 15), s | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        out[i] = ((t ^ (t >>> 14)) >>> 0) / 2 ** 31 - 1;
+    }
+    return out;
+}
 
 const planFor = (id: Parameters<typeof musicTrack>[0]) => {
     const track = musicTrack(id);
@@ -107,15 +134,15 @@ describe("Dispatch video audio plan", () => {
         expect([...planes[1]]).toEqual([0.1, 0.2].map(Math.fround));
     });
 
-    it("limits a cue's peak past full scale to -1 dBFS without turning the rest of the mix down", () => {
+    it("limits a cue's peak to -2 dBFS, so the encoded true peak stays under -1 dBTP, without turning the rest of the mix down", () => {
         const rate = 1000;
         const planes = [new Float32Array(1000).fill(0.3), new Float32Array(1000).fill(-0.3)];
         planes[0]![500] = 2;
         planes[1]![501] = -1.5;
         limitPeaks(planes, rate);
         const peak = Math.max(...planes.flatMap((p) => [...p].map(Math.abs)));
-        expect(peak).toBeLessThanOrEqual(PEAK_CEILING + 1e-6);
-        expect(planes[0]![500]).toBeCloseTo(PEAK_CEILING, 5);
+        expect(peak).toBeLessThanOrEqual(LIMIT_CEILING + 1e-6);
+        expect(planes[0]![500]).toBeCloseTo(LIMIT_CEILING, 5);
         const ahead = LIMIT_LOOKAHEAD_SECONDS * rate;
         const release = LIMIT_RELEASE_SECONDS * rate;
         expect(planes[0]![500 - ahead - 1]).toBeCloseTo(0.3, 6);
@@ -126,9 +153,38 @@ describe("Dispatch video audio plan", () => {
     });
 
     it("leaves a limited mix under the ceiling as it is", () => {
-        const planes = [new Float32Array([0.5, -0.8, 0.89]), new Float32Array([0.1, 0.2, -0.3])];
+        const planes = [new Float32Array([0.5, -0.79, 0.7]), new Float32Array([0.1, 0.2, -0.3])];
         limitPeaks(planes, 1000);
-        expect([...planes[0]!]).toEqual([0.5, -0.8, 0.89].map(Math.fround));
+        expect([...planes[0]!]).toEqual([0.5, -0.79, 0.7].map(Math.fround));
         expect([...planes[1]!]).toEqual([0.1, 0.2, -0.3].map(Math.fround));
+    });
+
+    it("measures loudness as ITU-R BS.1770 does: a 997 Hz sine at -23 dBFS on both channels reads -23 LUFS", () => {
+        expect(loudnessLufs(both(sine(10, 997, 10 ** (-23 / 20))), AUDIO_SAMPLE_RATE)).toBeCloseTo(-23, 1);
+        expect(loudnessLufs(both(sine(10, 997, 10 ** (-33 / 20))), AUDIO_SAMPLE_RATE)).toBeCloseTo(-33, 1);
+    });
+
+    it("gates out silence, so a quiet start does not drag the reading down", () => {
+        const tone = sine(10, 997, 10 ** (-23 / 20));
+        const padded = new Float32Array(20 * AUDIO_SAMPLE_RATE);
+        padded.set(tone, 10 * AUDIO_SAMPLE_RATE);
+        expect(Math.abs(loudnessLufs(both(padded), AUDIO_SAMPLE_RATE) + 23)).toBeLessThan(0.1);
+    });
+
+    it("brings a finished mix to -14 LUFS with one gain, its peaks still under the limiter ceiling", () => {
+        expect(LOUDNESS_TARGET_LUFS).toBe(-14);
+        expect(LIMIT_CEILING).toBeCloseTo(10 ** (-2 / 20), 9);
+        for (const db of [-6, -20]) {
+            const k = 10 ** (db / 20) * Math.sqrt(3);
+            const planes = [noise(10 * AUDIO_SAMPLE_RATE, 1), noise(10 * AUDIO_SAMPLE_RATE, 2)].map((p) =>
+                p.map((v) => v * k),
+            );
+            const ratio = planes[0]![1000]! / planes[1]![2000]!;
+            finishMix(planes, AUDIO_SAMPLE_RATE);
+            expect(loudnessLufs(planes, AUDIO_SAMPLE_RATE)).toBeCloseTo(-14, 0);
+            expect(Math.abs(loudnessLufs(planes, AUDIO_SAMPLE_RATE) + 14)).toBeLessThan(0.3);
+            expect(planes.every((p) => p.every((v) => Math.abs(v) <= LIMIT_CEILING + 1e-6))).toBe(true);
+            expect(planes[0]![1000]! / planes[1]![2000]!).toBeCloseTo(ratio, 4);
+        }
     });
 });

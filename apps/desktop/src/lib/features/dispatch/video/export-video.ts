@@ -5,7 +5,7 @@ import { AUDIO_SAMPLE_RATE, audioPlan, renderMusic, type VideoAudio } from "./au
 import type { EncodeJob, EncodeReply, EncodeRequest, WorkerFont } from "./encode.worker";
 import { musicTrack, type MusicTrackId } from "./music";
 import { SCENE_FONTS, type ScenePrep, type VideoKind } from "./scene";
-import type { SfxCue } from "./sfx";
+import { VIDEO_SFX_PROFILE, type SfxCue } from "./sfx";
 import { VIDEO_FPS, VIDEO_SIZES, videoTimeline } from "./timeline";
 
 import brandMark from "../../../../../../../packages/ui/src/brand-mark.png";
@@ -235,7 +235,7 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
         const plan = audioPlan(track, timeline);
         const { view, prep, images } = await sceneInputs(request.view, kind);
         const [audio, fonts] = await Promise.all([
-            renderMusic(request.track, timeline, request.sfx ?? prep?.sfx?.(timeline)),
+            renderMusic(request.track, timeline, request.sfx ?? prep?.sfx?.(timeline), VIDEO_SFX_PROFILE[kind]),
             loadFonts(),
         ]);
         if (signal.aborted) {
