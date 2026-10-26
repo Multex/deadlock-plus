@@ -5,7 +5,7 @@ import { dispatchPersonaScenario, dispatchScenario, dispatchSpecialsScenario } f
 import { PERSONA_IDS, personaScenarioId } from "./dispatch/personas";
 import { liveMatchScenario } from "./live-match";
 import { newUserScenario } from "./new-user";
-import { apiDownScenario, offlineScenario } from "./offline";
+import { apiDownScenario, offlineScenario, rateLimitedScenario } from "./offline";
 import { unelevatedGameAdminScenario, unelevatedScenario } from "./unelevated";
 import { updateAvailableScenario } from "./update-available";
 
@@ -21,6 +21,7 @@ export const scenarios: Record<string, ScenarioFactory> = {
     "live-match": liveMatchScenario,
     offline: offlineScenario,
     "api-down": apiDownScenario,
+    "rate-limited": rateLimitedScenario,
     "update-available": updateAvailableScenario,
     "post-match": postMatchScenario,
     dispatch: dispatchScenario,
