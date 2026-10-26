@@ -57,6 +57,7 @@ interface F {
     h: number;
     u: number;
     box: Rect;
+    safe: { top: number; bottom: number };
     /** Seconds in a bar and in a beat. */
     B: number;
     b: number;
@@ -90,7 +91,7 @@ const fallback = placeholderScene({ ground: INK.black, accent: INK.gold });
 export const yearEndScene: Scene = (ctx, t, size, assets) => {
     const v = assets.data as YearEndVideo | undefined;
     if (!v) return fallback(ctx, t, size, assets);
-    const { u, box } = sceneFrame(size.w, size.h);
+    const { u, box, safe } = sceneFrame(size.w, size.h);
     const B = assets.timing.barSeconds;
     const f: F = {
         ctx,
@@ -99,6 +100,7 @@ export const yearEndScene: Scene = (ctx, t, size, assets) => {
         h: size.h,
         u,
         box,
+        safe,
         B,
         b: B / 4,
         v,
@@ -124,7 +126,6 @@ export const yearEndScene: Scene = (ctx, t, size, assets) => {
 };
 
 const at = (f: F, bar: number, beat = 0) => (bar + beat / 4) * f.B;
-const since = (f: F, s: number) => f.t - s;
 const slamScale = (dt: number, from: number) => (dt < 0 ? from : lerp(from, 1, easeOutBack(dt / SLAM)));
 const fadeIn = (dt: number, d = 0.08) => clamp01(dt / d);
 
@@ -139,6 +140,8 @@ interface CoverState {
     name: number;
     star: number;
     peel: number;
+    /** Where a glint runs round the frame, 0 to 1; null for none. */
+    glint: number | null;
 }
 
 /** Where the cover sits on screen at its rest size, before the camera moves it. */
@@ -152,12 +155,10 @@ function coverRect(f: F, zoom = 1): { x: number; y: number; s: number } {
 function buildCues(f: F) {
     const { intro } = f.p.plan;
     const mastEnd = intro.mast.bar + intro.mast.bars;
-    const twoBars = intro.mast.bars >= 2;
-    const frameFrom = twoBars ? at(f, mastEnd - 2) : intro.mast.bars === 1 ? at(f, mastEnd - 1) : -1;
+    // The first frame is the thumbnail: frame and masthead are already lit, the issue row lands on the next bar.
     return {
-        frame: [frameFrom, frameFrom + (twoBars ? 4 : 2) * f.b] as const,
-        mast: twoBars ? at(f, mastEnd - 1) : at(f, mastEnd - 1, 2),
-        row: twoBars ? at(f, mastEnd - 1, 2) : at(f, mastEnd - 1, 3),
+        mastEnd: at(f, mastEnd),
+        row: intro.mast.bars >= 2 ? at(f, mastEnd - 1) : at(f, mastEnd - 1, 2),
         digits: at(f, intro.digits.bar),
         title: at(f, intro.title.bar),
         name: at(f, intro.name.bar),
@@ -176,16 +177,17 @@ function drawBuild(f: F): void {
     const lastLock = locked > 0 ? locks[locked - 1] : -Infinity;
 
     // The room comes up a step with each digit, and fully once the year is home.
-    const light = t >= cue.title ? 1 : 0.3 + (0.55 * locked) / Math.max(1, locks.length);
+    const light = t >= cue.title ? 1 : 0.42 + (0.45 * locked) / Math.max(1, locks.length);
     const riser = cue.riserBars > 0 ? clamp01((t - cue.riser) / (cue.drop - cue.riser)) : 0;
     const suck = clamp01((t - (cue.drop - f.b)) / f.b);
     room(f.ctx, f.w, f.h, light * (1 - suck * 0.7));
     dust(ctx, f.w, f.h, t, u, 0.5 + riser * 0.5, riser * 4);
 
     const state: CoverState = {
-        frame: clamp01((t - cue.frame[0]) / (cue.frame[1] - cue.frame[0])),
-        mast: clamp01((t - cue.mast) / (f.b * 1.5)),
+        frame: 1,
+        mast: 1,
         row: fadeIn(t - cue.row, 0.2),
+        glint: t < cue.mastEnd ? (t / (2 * f.B)) % 1 : null,
         light: light * (1 - suck * 0.6),
         title: t - cue.title,
         name: t - cue.name,
@@ -263,7 +265,7 @@ function drawCover(f: F, st: CoverState): void {
         ctx.globalAlpha = 1;
     }
 
-    drawFrame(ctx, st.frame);
+    drawFrame(ctx, st.frame, st.glint);
 
     if (st.mast > 0) {
         const name = v.cover.name.toLocaleUpperCase(v.locale);
@@ -359,8 +361,19 @@ function shade(ctx: Ctx): void {
 }
 
 /** The double gold rule, drawn round from the top-left corner as `p` goes 0 to 1. */
-function drawFrame(ctx: Ctx, p: number): void {
+function drawFrame(ctx: Ctx, p: number, glint: number | null = null): void {
     if (p <= 0) return;
+    if (glint !== null) {
+        const [gx, gy] = alongFrame(glint);
+        const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, 90);
+        g.addColorStop(0, "rgb(255 236 180 / 0.9)");
+        g.addColorStop(1, "rgb(255 236 180 / 0)");
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = g;
+        ctx.fillRect(gx - 90, gy - 90, 180, 180);
+        ctx.restore();
+    }
     const rule = (inset: number, width: number, color: string) => {
         const x0 = inset;
         const y0 = inset;
@@ -389,6 +402,20 @@ function drawFrame(ctx: Ctx, p: number): void {
     };
     rule(17.5, 3, INK.gold);
     rule(24.5, 1, INK.goldDeep);
+}
+
+/** A point on the outer gold rule, `p` of the way round from the top-left corner. */
+function alongFrame(p: number): [number, number] {
+    const [x0, y0, x1, y1] = [17.5, 17.5, COVER.w - 17.5, COVER.h - 17.5];
+    const w = x1 - x0;
+    const h = y1 - y0;
+    let d = (((p % 1) + 1) % 1) * 2 * (w + h);
+    if (d < w) return [x0 + d, y0];
+    d -= w;
+    if (d < h) return [x1, y0 + d];
+    d -= h;
+    if (d < w) return [x1 - d, y1];
+    return [x0, y1 - (d - w)];
 }
 
 /** "Player of the Year", a word a beat over the title's first bar. */
@@ -508,7 +535,6 @@ function drawYear(
 ): void {
     const { ctx, t, u, fonts } = f;
     const year = f.v.year;
-    if (t < cue.digits - f.b) return;
     const base: TextStyle = { family: fonts.pulp, weight: 700, px: 100 };
     setFont(ctx, base);
     const widths = [...year].map((d) => ctx.measureText(d).width);
@@ -522,7 +548,18 @@ function drawYear(
     const cx = lerp(giant.x, slot.x, fly);
     const cy = lerp(giant.y, slot.y, fly);
     const k = px / 100;
-    const dim = clamp01((t - (cue.digits - f.b)) / f.b);
+    // Until a digit locks, the real one ghosts through its spinning slot on every beat: brighter before the
+    // locking starts, so the very first frame already shows the year.
+    const sinceBeat = t % f.b;
+    const ghost = (t < cue.digits ? 0.55 : 0.16) * Math.exp(-sinceBeat / 0.22);
+    if (t < cue.title) {
+        const bloom = Math.exp(-sinceBeat / 0.25) * (t < cue.digits ? 0.45 : 0.2);
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, px * 1.6);
+        g.addColorStop(0, `rgb(222 184 102 / ${bloom})`);
+        g.addColorStop(1, "rgb(222 184 102 / 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(cx - px * 1.6, cy - px * 1.6, px * 3.2, px * 3.2);
+    }
 
     setFont(ctx, base, px);
     ctx.textAlign = "left";
@@ -548,11 +585,15 @@ function drawYear(
                 [0.08, 0.05],
                 [-0.08, 0.05],
             ] as const) {
-                ctx.globalAlpha = a * dim;
+                ctx.globalAlpha = a;
                 ctx.fillText(String(roll.digit), x, cy - off + smear * h);
                 ctx.fillText(String(roll.next), x, cy + h - off + smear * h);
             }
             ctx.restore();
+            ctx.globalAlpha = ghost;
+            ctx.fillStyle = goldGradient(ctx, x, cy - px / 2, x, cy + px / 2);
+            ctx.fillText(digit, x, cy);
+            ctx.globalAlpha = 1;
         } else {
             const s = slamScale(dt, 1.7);
             ctx.save();
@@ -671,6 +712,7 @@ function drawUnfold(f: F): void {
             name: 10,
             star: 10,
             peel: 1,
+            glint: null,
         });
         const s = 178;
         setFont(ctx, { family: fonts.pulp, weight: 700, px: s });
@@ -739,30 +781,48 @@ function drawInside(f: F): void {
 /* ---------- The poster ---------- */
 
 /** The black band across the top: kicker row and "2026: the year of NAME". `dt` < 0 holds the title back. */
-function bandBottom(f: F): number {
-    return f.box.y + 190 * f.u;
+/** In 9:16 the band hugs the top of the safe area, its kicker just above it, so sections get the height. */
+function band(f: F): { kicker: number; title: number; bottom: number } {
+    const { u, safe } = f;
+    return f.h > f.w
+        ? { kicker: safe.top - 34 * u, title: safe.top + 50 * u, bottom: safe.top + 112 * u }
+        : { kicker: safe.top + 52 * u, title: safe.top + 122 * u, bottom: safe.top + 190 * u };
 }
 
 function drawBand(f: F, dt: number): void {
     const { ctx, u, v, fonts, box } = f;
-    const bottom = bandBottom(f);
+    const geo = band(f);
+    const bottom = geo.bottom;
     const g = ctx.createLinearGradient(0, 0, 0, bottom);
     g.addColorStop(0, INK.band);
     g.addColorStop(1, "#1d1912");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, f.w, bottom);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, f.w, bottom);
+    ctx.clip();
+    ctx.strokeStyle = "rgb(222 184 102 / 0.07)";
+    ctx.lineWidth = 2 * u;
+    for (let d = -bottom; d < f.w; d += 26 * u) {
+        ctx.beginPath();
+        ctx.moveTo(d, bottom);
+        ctx.lineTo(d + bottom, 0);
+        ctx.stroke();
+    }
+    ctx.restore();
     ctx.fillStyle = INK.gold;
     ctx.fillRect(0, bottom - 7 * u, f.w, 7 * u);
 
     const wide = stage(f);
-    const left = f.w > f.h ? wide.x : box.x + 48 * u;
-    const right = f.w > f.h ? wide.x + wide.w : box.x + box.w - 48 * u;
+    const left = wide.x;
+    const right = wide.x + wide.w;
     const kick: TextStyle = { family: fonts.display, weight: 700, px: 20 * u, track: 0.22, fill: INK.gold };
-    text(ctx, v.kicker.name.toLocaleUpperCase(v.locale), left, box.y + 52 * u, { ...kick, maxW: box.w * 0.45 });
-    text(ctx, v.kicker.span.toLocaleUpperCase(v.locale), right, box.y + 52 * u, {
+    text(ctx, v.kicker.name.toLocaleUpperCase(v.locale), left, geo.kicker, { ...kick, maxW: wide.w * 0.48 });
+    text(ctx, v.kicker.span.toLocaleUpperCase(v.locale), right, geo.kicker, {
         ...kick,
         align: "right",
-        maxW: box.w * 0.45,
+        maxW: wide.w * 0.48,
     });
     if (dt < 0) return;
 
@@ -777,7 +837,7 @@ function drawBand(f: F, dt: number): void {
     const s = { ...style, px };
     const wb = measure(ctx, before, s);
     const wp = measure(ctx, player, s);
-    const y = box.y + 122 * u;
+    const y = geo.title;
     ctx.save();
     ctx.globalAlpha *= fadeIn(dt, 0.05);
     ctx.translate(f.w / 2, y);
@@ -791,23 +851,24 @@ function drawBand(f: F, dt: number): void {
 
 /** The area under the band that sections lay out in; 16:9 widens it. */
 function stage(f: F): Rect {
-    const top = bandBottom(f) + 46 * f.u;
-    const w = f.w > f.h ? Math.min(f.w - 160 * f.u, f.box.w * 1.6) : f.box.w - 110 * f.u;
-    return { x: (f.w - w) / 2, y: top, w, h: f.box.y + f.box.h - 44 * f.u - top };
+    const top = band(f).bottom + 44 * f.u;
+    const bottom = f.h > f.w ? f.safe.bottom : f.box.y + f.box.h - 44 * f.u;
+    const w = f.w > f.h ? Math.min(f.w - 160 * f.u, f.box.w * 1.6) : f.box.w - 100 * f.u;
+    return { x: (f.w - w) / 2, y: top, w, h: bottom - top };
 }
 
 function drawPoster(f: F): void {
     const { ctx, t, u, v } = f;
     paper(ctx, 0, 0, f.w, f.h);
     // A faint year on the paper's foot, so the room 9:16 leaves under the content reads as print, not empty.
-    const foot = f.h - f.box.y - f.box.h;
+    const foot = f.h - f.safe.bottom;
     if (foot > 200 * u) {
         ctx.save();
         ctx.globalAlpha = 0.07;
         text(ctx, v.year, f.w / 2, f.h - 40 * u, {
             family: f.fonts.pulp,
             weight: 700,
-            px: Math.max(320 * u, f.h - f.box.y - f.box.h + 140 * u),
+            px: Math.max(320 * u, foot + 140 * u),
             fill: INK.goldInk,
             align: "center",
             baseline: "alphabetic",
@@ -844,7 +905,7 @@ function sectionTitle(f: F, label: string, x: number, y: number, dt: number, max
     text(f.ctx, label.toLocaleUpperCase(f.v.locale), x - 30 * f.u * (1 - easeOutCubic(dt / 0.2)), y, {
         family: f.fonts.display,
         weight: 700,
-        px: 30 * f.u,
+        px: 34 * f.u,
         track: 0.22,
         fill: INK.goldInk,
         maxW,
@@ -862,11 +923,11 @@ function drawNumbers(f: F, start: number, bars: number): void {
     const rows = Math.ceil(tiles.length / cols);
     const step = Math.min(f.b, (bars * 4 * f.b - f.b) / Math.max(1, tiles.length));
     const top = area.y + 60 * u;
-    const kdaH = kda ? 110 * u : 0;
-    const rowH = Math.min((rows > 2 ? 185 : 250) * u, (area.h - 60 * u - kdaH) / rows);
+    const kdaH = kda ? 130 * u : 0;
+    const rowH = Math.min((rows > 2 ? 240 : 280) * u, (area.h - 64 * u - kdaH) / rows);
     const gap = 40 * u;
     const colW = (area.w - gap * (cols - 1)) / cols;
-    const valuePx = Math.min(130 * u, rowH * 0.56);
+    const valuePx = Math.min(150 * u, rowH * 0.56);
 
     tiles.forEach((tile, i) => {
         const land = start + i * step;
@@ -893,10 +954,10 @@ function drawNumbers(f: F, start: number, bars: number): void {
         text(ctx, value, 0, 0, { family: f.fonts.pulp, weight: 700, px: valuePx, fill: INK.ink, maxW: colW });
         ctx.restore();
         ctx.globalAlpha = fadeIn(dt, 0.12);
-        text(ctx, tile.label.toLocaleUpperCase(v.locale), x, y + 34 * u + valuePx, {
+        text(ctx, tile.label.toLocaleUpperCase(v.locale), x, y + 38 * u + valuePx, {
             family: f.fonts.display,
             weight: 700,
-            px: 22 * u,
+            px: 27 * u,
             track: 0.16,
             fill: INK.inkSoft,
             maxW: colW,
@@ -912,22 +973,22 @@ function drawNumbers(f: F, start: number, bars: number): void {
             ctx.fillStyle = INK.ink;
             ctx.fillRect(area.x, y, area.w * easeOutCubic(dt / 0.16), 3 * u);
             ctx.globalAlpha = fadeIn(dt, 0.08);
-            const label = text(ctx, kda.label.toLocaleUpperCase(v.locale), area.x, y + 52 * u, {
+            const label = text(ctx, kda.label.toLocaleUpperCase(v.locale), area.x, y + 64 * u, {
                 family: f.fonts.display,
                 weight: 700,
-                px: 22 * u,
+                px: 27 * u,
                 track: 0.16,
                 fill: INK.inkSoft,
                 maxW: area.w * 0.4,
             });
             const k = slamScale(dt, 1.3);
             ctx.save();
-            ctx.translate(area.x + label.w + 28 * u, y + 52 * u);
+            ctx.translate(area.x + label.w + 28 * u, y + 64 * u);
             ctx.scale(k, k);
             text(ctx, kda.value, 0, 0, {
                 family: f.fonts.pulp,
                 weight: 700,
-                px: 56 * u,
+                px: 76 * u,
                 fill: INK.ink,
                 maxW: area.w - label.w - 28 * u,
             });
@@ -1005,16 +1066,26 @@ function drawHeroes(f: F, start: number, bars: number): void {
 
     const rest = list.slice(1);
     const smallGap = 24 * u;
-    const side = f.w > f.h;
-    const sideRoom = area.w - (440 * u * 280) / 380 - 56 * u - 420 * u - 30 * u;
-    const smallW = Math.min(200 * u, ((side ? sideRoom : area.w) - smallGap * 3) / 4);
-    const smallH = (smallW * 380) / 280;
-    const namesH = 78 * u;
+    const namesH = 96 * u;
     const top = area.y + 70 * u;
-    // Landscape sets the four beside the hero of the year instead of under it.
-    const avail = area.h - 70 * u - (rest.length && !side ? smallH + namesH + 40 * u : 0);
-    // The 280x380 portrait goes soft past 1.5x its own size.
-    const bigH = Math.min(avail, 440 * u, 380 * 1.5);
+    // Landscape sets the four beside the hero of the year instead of under it. The 280x380 portrait goes soft
+    // past 1.5x its own size.
+    const side = f.w > f.h;
+    const textW = 430 * u;
+    let smallW = Math.min(230 * u, (area.w - smallGap * 3) / 4);
+    let bigH: number;
+    if (side) {
+        bigH = Math.min(area.h - 70 * u, 600 * u, 380 * 1.5);
+        const room = area.w - (bigH * 280) / 380 - 56 * u - textW - 30 * u;
+        smallW = Math.min(230 * u, (room - smallGap * 3) / 4);
+    } else {
+        // The hero of the year stays at least a third taller than the four under it.
+        const fitH = (area.h - 110 * u - namesH) / 2.35;
+        smallW = Math.min(smallW, (fitH * 280) / 380);
+        const below = rest.length ? (smallW * 380) / 280 + namesH + 40 * u : 0;
+        bigH = Math.min(area.h - 70 * u - below, 600 * u, 380 * 1.5);
+    }
+    const smallH = (smallW * 380) / 280;
     const bigW = (bigH * 280) / 380;
     const lead = list[0];
 
@@ -1042,30 +1113,31 @@ function drawHeroes(f: F, start: number, bars: number): void {
         }
 
         const tx = area.x + bigW + 56 * u;
-        const tw = side ? Math.min(420 * u, area.x + area.w - tx) : area.x + area.w - tx;
+        const tw = side ? Math.min(textW, area.x + area.w - tx) : area.x + area.w - tx;
         if (dt1 >= 0) {
             ctx.globalAlpha = fadeIn(dt1, 0.08);
-            setFont(ctx, { family: f.fonts.display, weight: 700, px: 22 * u, track: 0.16 });
+            setFont(ctx, { family: f.fonts.display, weight: 700, px: 27 * u, track: 0.16 });
             const tag = v.heroes.tag.toLocaleUpperCase(v.locale);
-            const tagW = Math.min(tw, ctx.measureText(tag).width + 28 * u);
+            const tagW = Math.min(tw, ctx.measureText(tag).width + 32 * u);
+            ctx.letterSpacing = "0px";
             ctx.fillStyle = INK.ink;
-            ctx.fillRect(tx, top + 20 * u, tagW, 44 * u);
-            text(ctx, tag, tx + 14 * u, top + 43 * u, {
+            ctx.fillRect(tx, top + 16 * u, tagW, 54 * u);
+            text(ctx, tag, tx + 16 * u, top + 44 * u, {
                 family: f.fonts.display,
                 weight: 700,
-                px: 22 * u,
+                px: 27 * u,
                 track: 0.16,
                 fill: INK.gold,
                 maxW: tagW - 28 * u,
             });
             const nk = slamScale(dt1 - 0.04, 1.4);
             ctx.save();
-            ctx.translate(tx, top + 130 * u);
+            ctx.translate(tx, top + 144 * u);
             ctx.scale(nk, nk);
             text(ctx, lead.name.toLocaleUpperCase(v.locale), 0, 0, {
                 family: f.fonts.pulp,
                 weight: 700,
-                px: 84 * u,
+                px: 104 * u,
                 fill: INK.ink,
                 maxW: tw,
             });
@@ -1077,10 +1149,10 @@ function drawHeroes(f: F, start: number, bars: number): void {
             const dt = t - cue(2 + i);
             if (dt < 0) return;
             ctx.globalAlpha = fadeIn(dt, 0.1);
-            text(ctx, line, tx + 20 * u * (1 - easeOutCubic(dt / 0.2)), top + (215 + i * 50) * u, {
+            text(ctx, line, tx + 20 * u * (1 - easeOutCubic(dt / 0.2)), top + (240 + i * 58) * u, {
                 family: f.fonts.body,
                 weight: 500,
-                px: 34 * u,
+                px: 42 * u,
                 fill: INK.inkSoft,
                 maxW: tw,
             });
@@ -1098,18 +1170,18 @@ function drawHeroes(f: F, start: number, bars: number): void {
         const drop = (1 - easeOutBack(dt / 0.22)) * -90 * u;
         ctx.globalAlpha = fadeIn(dt, 0.06);
         card(f, hero.id, hero.name, x, rowY + drop, smallW, smallH, false);
-        medal(f, i + 2, x + 4 * u, rowY + drop + 4 * u, 24 * u, false);
-        text(ctx, hero.name.toLocaleUpperCase(v.locale), x, rowY + smallH + 26 * u, {
+        medal(f, i + 2, x + 4 * u, rowY + drop + 4 * u, 28 * u, false);
+        text(ctx, hero.name.toLocaleUpperCase(v.locale), x, rowY + smallH + 32 * u, {
             family: f.fonts.display,
             weight: 700,
-            px: 22 * u,
+            px: 27 * u,
             fill: INK.ink,
             maxW: smallW + smallGap * 0.6,
         });
-        text(ctx, hero.games, x, rowY + smallH + 56 * u, {
+        text(ctx, hero.games, x, rowY + smallH + 68 * u, {
             family: f.fonts.body,
             weight: 500,
-            px: 22 * u,
+            px: 27 * u,
             fill: INK.inkSoft,
             maxW: smallW + smallGap * 0.6,
         });
@@ -1131,7 +1203,7 @@ function drawMonths(f: F, start: number, bars: number): void {
     const slot = area.w / n;
     const barW = slot * 0.72;
     const base = area.y + area.h - 70 * u;
-    const maxH = Math.min(area.h - 230 * u, 560 * u);
+    const maxH = Math.min(area.h - 210 * u, 760 * u);
     const grow = growth(t, start, f.b);
     const goldAt = start + (bars * 4 - 1) * f.b;
     const lit = t - goldAt;
@@ -1142,45 +1214,16 @@ function drawMonths(f: F, start: number, bars: number): void {
     months.bars.forEach((m, i) => {
         const cx = area.x + slot * (i + 0.5);
         ctx.globalAlpha = fadeIn(dt - i * 0.015, 0.1);
-        text(ctx, m.label.toLocaleUpperCase(v.locale), cx, base + 36 * u, {
+        text(ctx, m.label.toLocaleUpperCase(v.locale), cx, base + 40 * u, {
             family: f.fonts.display,
             weight: 700,
-            px: 22 * u,
+            px: 27 * u,
             track: 0.1,
             fill: INK.ink,
             align: "center",
             maxW: slot * 0.96,
         });
         ctx.globalAlpha = 1;
-        if (m.issue) {
-            const h = 70 * u;
-            ctx.save();
-            ctx.globalAlpha = countsIn;
-            ctx.strokeStyle = INK.goldInk;
-            ctx.lineWidth = 2 * u;
-            ctx.strokeRect(cx - barW / 2, base - h, barW, h);
-            ctx.beginPath();
-            ctx.rect(cx - barW / 2, base - h, barW, h);
-            ctx.clip();
-            for (let d = -h; d < barW; d += 9 * u) {
-                ctx.beginPath();
-                ctx.moveTo(cx - barW / 2 + d, base);
-                ctx.lineTo(cx - barW / 2 + d + h, base - h);
-                ctx.stroke();
-            }
-            ctx.restore();
-            ctx.globalAlpha = countsIn;
-            text(ctx, `★ ${months.issue.toLocaleUpperCase(v.locale)}`, cx, base - h - 22 * u, {
-                family: f.fonts.display,
-                weight: 700,
-                px: 16 * u,
-                fill: INK.goldInk,
-                align: "center",
-                maxW: slot * 1.3,
-            });
-            ctx.globalAlpha = 1;
-            return;
-        }
         const h = maxH * m.share * grow;
         if (h <= 0) return;
         const gold = m.busiest && lit >= 0;
@@ -1233,53 +1276,68 @@ function drawMonths(f: F, start: number, bars: number): void {
     });
 }
 
-/** Best streak on the downbeat, counting up; game of the year on beat 2, its grade stamped on beat 3. */
+/**
+ * Best streak on the downbeat, counting up; game of the year on beat 2, its grade stamped on beat 3. Stacked in
+ * 9:16 and 1:1, side by side in 16:9.
+ */
 function drawHighlights(f: F, start: number, bars: number): void {
     const { ctx, t, u, v, p } = f;
     const area = stage(f);
     const { streak, bestGame } = v;
     const span = bars * 4 * f.b;
     const gameAt = streak ? start + span / 2 : start;
-    const half = streak && bestGame ? area.h * 0.44 : area.h;
+    const side = f.w > f.h && !!streak && !!bestGame;
+    const gap = 40 * u;
+    const sRect: Rect = side
+        ? { x: area.x, y: area.y, w: area.w * 0.42, h: area.h }
+        : { x: area.x, y: area.y, w: area.w, h: bestGame ? area.h * 0.4 : area.h };
+    const gRect: Rect = !streak
+        ? area
+        : side
+          ? { x: area.x + area.w * 0.42 + gap * 2, y: area.y, w: area.w * 0.58 - gap * 2, h: area.h }
+          : { x: area.x, y: area.y + sRect.h + gap, w: area.w, h: area.h - sRect.h - gap };
 
     if (streak) {
         const dt = t - start;
         const value = p.num.format(countUp(streak.count, t, start, start + f.b));
-        const px = Math.min(300 * u, half * 0.9);
+        const px = side ? Math.min(420 * u, sRect.h * 0.55) : Math.min(400 * u, sRect.h * 0.9);
+        const numY = side ? sRect.y + sRect.h * 0.4 : sRect.y + sRect.h / 2;
         const k = slamScale(dt, 1.5);
         ctx.save();
-        ctx.translate(area.x, area.y + half / 2);
+        ctx.translate(sRect.x, numY);
         ctx.scale(k, k);
         ctx.shadowColor = "rgb(0 0 0 / 0.18)";
         ctx.shadowBlur = 12 * u;
         ctx.shadowOffsetY = 6 * u;
-        const num = text(ctx, value, 0, 0, {
+        text(ctx, value, 0, 0, {
             family: f.fonts.pulp,
             weight: 700,
             px,
             fill: inkGoldGradient(ctx, -px / 2, px / 2),
-            maxW: area.w * 0.5,
+            maxW: side ? sRect.w : sRect.w * 0.5,
         });
         ctx.restore();
         setFont(ctx, { family: f.fonts.pulp, weight: 700, px });
-        const finalW = Math.min(area.w * 0.5, ctx.measureText(p.num.format(streak.count)).width);
-        const tx = area.x + Math.max(num.w, finalW) + 40 * u;
-        const tw = area.x + area.w - tx;
+        const finalW = Math.min(sRect.w * 0.5, ctx.measureText(p.num.format(streak.count)).width);
+        ctx.letterSpacing = "0px";
+        const tx = side ? sRect.x : sRect.x + finalW + 44 * u;
+        const ty = side ? numY + px * 0.55 + 40 * u : numY - 40 * u;
+        const tw = sRect.x + sRect.w - tx;
         const dt1 = t - (start + f.b);
         if (dt1 >= 0) {
             ctx.globalAlpha = fadeIn(dt1, 0.1);
-            text(ctx, streak.title.toLocaleUpperCase(v.locale), tx, area.y + half / 2 - 34 * u, {
+            text(ctx, streak.title.toLocaleUpperCase(v.locale), tx, ty, {
                 family: f.fonts.display,
                 weight: 700,
-                px: 28 * u,
+                px: 34 * u,
                 track: 0.2,
                 fill: INK.goldInk,
                 maxW: tw,
             });
-            text(ctx, streak.line, tx + 16 * u * (1 - easeOutCubic(dt1 / 0.2)), area.y + half / 2 + 30 * u, {
+            text(ctx, streak.line, tx + 16 * u * (1 - easeOutCubic(dt1 / 0.2)), ty + 76 * u, {
                 family: f.fonts.body,
                 weight: 600,
-                px: 52 * u,
+                px: 64 * u,
                 italic: true,
                 fill: INK.ink,
                 maxW: tw,
@@ -1287,46 +1345,55 @@ function drawHighlights(f: F, start: number, bars: number): void {
             ctx.globalAlpha = 1;
         }
         if (bestGame) {
+            const grow = easeOutCubic((t - gameAt) / 0.2);
             ctx.fillStyle = INK.ink;
-            ctx.fillRect(area.x, area.y + half + 10 * u, area.w * easeOutCubic((t - gameAt) / 0.2), 3 * u);
+            if (side) ctx.fillRect(gRect.x - gap, area.y, 3 * u, area.h * grow);
+            else ctx.fillRect(area.x, gRect.y - gap / 2, area.w * grow, 3 * u);
         }
     }
 
     if (bestGame) {
         const dt = t - gameAt;
         if (dt < 0) return;
-        const y0 = streak ? area.y + half + 40 * u : area.y + area.h * 0.2;
-        sectionTitle(f, bestGame.title, area.x, y0 + 18 * u, dt, area.w);
-        const thumbH = Math.min(230 * u, area.y + area.h - y0 - 70 * u);
+        sectionTitle(f, bestGame.title, gRect.x, gRect.y + 18 * u, dt, gRect.w);
+        const ty = gRect.y + 70 * u;
+        const thumbH = Math.min(420 * u, 380 * 1.5, gRect.y + gRect.h - ty);
         const thumbW = (thumbH * 280) / 380;
-        const ty = y0 + 62 * u;
         const k = slamScale(dt, 1.3);
         ctx.save();
         ctx.globalAlpha = fadeIn(dt, 0.06);
-        ctx.translate(area.x + thumbW / 2, ty + thumbH / 2);
+        ctx.translate(gRect.x + thumbW / 2, ty + thumbH / 2);
         ctx.scale(k, k);
         card(f, bestGame.heroId, bestGame.hero, -thumbW / 2, -thumbH / 2, thumbW, thumbH, true);
         ctx.restore();
-        const tx = area.x + thumbW + 40 * u;
-        const tw = area.x + area.w - tx;
-        text(ctx, `${bestGame.hero.toLocaleUpperCase(v.locale)} · ${bestGame.kda}`, tx, ty + 50 * u, {
+        ctx.globalAlpha = fadeIn(dt, 0.06);
+        const tx = gRect.x + thumbW + 44 * u;
+        const tw = gRect.x + gRect.w - tx;
+        text(ctx, bestGame.hero.toLocaleUpperCase(v.locale), tx, ty + 48 * u, {
             family: f.fonts.pulp,
             weight: 700,
-            px: 60 * u,
+            px: 84 * u,
             fill: INK.ink,
             maxW: tw,
         });
-        text(ctx, bestGame.date, tx, ty + 116 * u, {
+        text(ctx, bestGame.kda, tx, ty + 136 * u, {
+            family: f.fonts.pulp,
+            weight: 700,
+            px: 72 * u,
+            fill: inkGoldGradient(ctx, ty + 100 * u, ty + 172 * u),
+            maxW: tw,
+        });
+        text(ctx, bestGame.date, tx, ty + 210 * u, {
             family: f.fonts.body,
             weight: 500,
-            px: 32 * u,
+            px: 38 * u,
             fill: INK.inkSoft,
             maxW: tw,
         });
         ctx.globalAlpha = 1;
         if (bestGame.grade) {
             const st = t - (gameAt + (streak ? span / 4 : span / 2));
-            if (st >= 0) stamp(f, bestGame.grade, tx + 140 * u, ty + thumbH - 40 * u, st);
+            if (st >= 0) stamp(f, bestGame.grade, tx + 150 * u, Math.min(ty + 300 * u, ty + thumbH - 30 * u), st);
         }
     }
 }
@@ -1375,27 +1442,27 @@ function drawPeople(f: F, start: number, bars: number): void {
 
     if (mates && rows.length) {
         sectionTitle(f, mates.title, area.x, area.y + 16 * u, t - start, listW);
-        const rowH = Math.min(96 * u, (listH - 60 * u) / rows.length);
+        const rowH = Math.min(140 * u, (listH - 60 * u) / rows.length);
         rows.forEach((row, i) => {
             const dt = t - (start + i * rowStep);
             if (dt < 0) return;
             const y = area.y + 60 * u + i * rowH;
             const slide = (1 - easeOutCubic(dt / 0.18)) * 60 * u;
             ctx.globalAlpha = fadeIn(dt, 0.08);
-            const name = text(ctx, row.name, area.x + slide, y + rowH * 0.5, {
+            // Name over its line: side by side, the line would shrink below phone-readable size.
+            text(ctx, row.name, area.x + slide, y + rowH * 0.34, {
                 family: f.fonts.display,
                 weight: 700,
-                px: 38 * u,
+                px: Math.min(50 * u, rowH * 0.38),
                 fill: INK.ink,
-                maxW: listW * 0.5,
+                maxW: listW,
             });
-            text(ctx, row.line, area.x + listW + slide, y + rowH * 0.5, {
+            text(ctx, row.line, area.x + slide, y + rowH * 0.7, {
                 family: f.fonts.body,
                 weight: 500,
-                px: 26 * u,
+                px: Math.min(34 * u, rowH * 0.26),
                 fill: INK.inkSoft,
-                align: "right",
-                maxW: listW - name.w - 30 * u,
+                maxW: listW,
             });
             ctx.fillStyle = "rgb(24 22 17 / 0.35)";
             for (let x = area.x; x < area.x + listW * easeOutCubic(dt / 0.2); x += 10 * u) {
@@ -1408,9 +1475,11 @@ function drawPeople(f: F, start: number, bars: number): void {
     if (nemesis) {
         const dt = t - nemAt;
         if (dt < 0) return;
-        const h = side ? 380 * u : Math.min(area.h - (rows.length ? listH + 20 * u : area.h * 0.12), 330 * u);
+        const h = side
+            ? Math.min(area.h, 520 * u)
+            : Math.min(area.h - (rows.length ? listH + 20 * u : area.h * 0.12), 470 * u);
         const top = side ? area.y + (area.h - h) / 2 : rows.length ? area.y + listH + 20 * u : area.y + area.h * 0.12;
-        const w = side ? area.w - listW - 60 * u : Math.min(area.w, 760 * u);
+        const w = side ? area.w - listW - 60 * u : Math.min(area.w, 900 * u);
         const x = side ? area.x + listW + 60 * u : area.x + (area.w - w) / 2;
         const k = slamScale(dt, 1.5);
         ctx.save();
@@ -1427,10 +1496,10 @@ function drawPeople(f: F, start: number, bars: number): void {
         ctx.strokeStyle = INK.gold;
         ctx.lineWidth = 4 * u;
         ctx.strokeRect(-w / 2 + 12 * u, -h / 2 + 12 * u, w - 24 * u, h - 24 * u);
-        text(ctx, nemesis.title.toLocaleUpperCase(v.locale), 0, -h / 2 + 62 * u, {
+        text(ctx, nemesis.title.toLocaleUpperCase(v.locale), 0, -h / 2 + 76 * u, {
             family: f.fonts.display,
             weight: 700,
-            px: 34 * u,
+            px: 42 * u,
             track: 0.3,
             fill: INK.gold,
             align: "center",
@@ -1439,15 +1508,15 @@ function drawPeople(f: F, start: number, bars: number): void {
         text(ctx, nemesis.row.name.toLocaleUpperCase(v.locale), 0, 6 * u, {
             family: f.fonts.pulp,
             weight: 700,
-            px: Math.min(96 * u, h * 0.3),
-            fill: goldGradient(ctx, 0, -40 * u, 0, 40 * u),
+            px: Math.min(128 * u, h * 0.3),
+            fill: goldGradient(ctx, 0, -60 * u, 0, 60 * u),
             align: "center",
             maxW: w - 80 * u,
         });
-        text(ctx, nemesis.row.line, 0, h / 2 - 58 * u, {
+        text(ctx, nemesis.row.line, 0, h / 2 - 72 * u, {
             family: f.fonts.body,
             weight: 600,
-            px: 32 * u,
+            px: 40 * u,
             italic: true,
             fill: INK.cream,
             align: "center",

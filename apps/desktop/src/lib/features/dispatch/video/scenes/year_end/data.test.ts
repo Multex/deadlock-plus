@@ -33,29 +33,32 @@ const deps: YearEndVideoDeps = {
     number: (n) => n.toLocaleString("en-US"),
     hero: (id) => ({ name: `Hero${id}`, art: `art/${id}.png` }),
     day: (s) => `day ${s}`,
-    dayRange: () => "Jan 1 – Nov 30, 2026",
+    dayRange: () => "Dec 1, 2025 – Nov 30, 2026",
     month: (s) => `month ${s}`,
     percent: (v) => `${Math.round(v * 100)}%`,
     duration: (s) => `${Math.floor(s / 60)}m`,
     netWorth: (n) => `${n}`,
     rank: (b) => `rank ${b}`,
-    monthShort: (s) => ["Jan", "Feb", "Mar"][new Date(s * 1000).getUTCMonth()] ?? "?",
+    monthShort: (s) => MONTHS[new Date(s * 1000).getUTCMonth()],
     locale: "en-US",
 };
 
-const monthStart = (m: number) => Date.UTC(2026, m, 1) / 1000;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** Month `m` of the window: 0 is Dec 2025, 11 is Nov 2026. */
+const monthStart = (m: number) => Date.UTC(2025, 11 + m, 1) / 1000;
 const months = (counts: number[]): EditionMonth[] =>
     counts.map((matches, m) => ({ monthStartS: monthStart(m), matches, wins: 0 }));
+const YEAR = [37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23, 10];
 
 function edition(over: Partial<Edition> = {}): Edition {
     return {
         schema: 1,
         id: "year_end-2026",
-        window: { kind: "year_end", id: "year_end-2026", startS: monthStart(0), endS: monthStart(11), tz: "UTC" },
+        window: { kind: "year_end", id: "year_end-2026", startS: monthStart(0), endS: monthStart(12), tz: "UTC" },
         accountId: 1,
         number: 4,
         volume: 2026,
-        issuedAt: monthStart(11),
+        issuedAt: monthStart(12),
         stats: {
             matches: 456,
             wins: 264,
@@ -88,7 +91,7 @@ function edition(over: Partial<Edition> = {}): Edition {
         combat: null,
         stories: [],
         playerName: "Lantern",
-        months: months([10, 40, 20]),
+        months: months(YEAR),
         ...over,
     };
 }
@@ -113,14 +116,12 @@ describe("yearEndVideo", () => {
         expect(build(edition()).people?.nemesis?.title).toBe("Most wanted");
     });
 
-    it("gives each month its share of the busiest one and flags that month", () => {
+    it("runs the strip Dec to Nov, each month a share of the busiest one, which is flagged", () => {
         const bars = build(edition()).months!.bars;
-        expect(bars.slice(0, 3).map((b) => [b.share, b.busiest])).toEqual([
-            [0.25, false],
-            [1, true],
-            [0.5, false],
-        ]);
-        expect(bars.map((b) => b.value)).toEqual(["10", "40", "20"]);
+        expect(bars.map((b) => b.label)).toEqual([...MONTHS.slice(11), ...MONTHS.slice(0, 11)]);
+        expect(bars[9]).toMatchObject({ share: 1, busiest: true, value: "56", count: "Busiest · 56" });
+        expect(bars[11]).toMatchObject({ share: 10 / 56, busiest: false, value: "10" });
+        expect(bars.filter((b) => b.busiest)).toHaveLength(1);
     });
 
     it("keeps the year as digits and the streak as a number for the scene to count", () => {

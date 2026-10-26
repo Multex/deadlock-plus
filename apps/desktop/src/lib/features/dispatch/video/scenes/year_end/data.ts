@@ -36,9 +36,8 @@ export interface YearEndVideo {
     months: {
         title: string;
         sub: string;
-        issue: string;
         /** `count` reads "Busiest · 56" on the busiest month; `value` is the plain number. */
-        bars: { label: string; count: string; value: string; share: number; busiest: boolean; issue: boolean }[];
+        bars: { label: string; count: string; value: string; share: number; busiest: boolean }[];
     } | null;
     streak: { count: number; value: string; title: string; line: string } | null;
     bestGame: { title: string; heroId: number; hero: string; kda: string; grade: string | null; date: string } | null;
@@ -95,14 +94,12 @@ export function yearEndVideo(edition: Edition, view: EditionView, deps: YearEndV
         months: poster.months && {
             title: poster.months.title,
             sub: poster.months.sub,
-            issue: poster.months.issue,
             bars: poster.months.bars.map((b, i) => ({
                 label: b.label,
                 count: b.count,
-                value: b.issue ? "" : deps.number(edition.months?.[i]?.matches ?? 0),
+                value: deps.number(edition.months?.[i]?.matches ?? 0),
                 share: b.height / BAR_MAX,
                 busiest: b.busiest,
-                issue: b.issue,
             })),
         },
         streak: poster.streak && { count: edition.longestWin, ...poster.streak },
