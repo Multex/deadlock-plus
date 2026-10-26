@@ -17,12 +17,18 @@
         saveImage,
         waitForWindowFocus,
     } from "$lib/features/match-history/export-dom";
+    import type { Edition } from "@deadlock-plus/stats/dispatch/types";
     import type { CardAspect, EditionView } from "../edition-view";
-    import { EXPORT_ASPECTS, exportPicks, exportTarget, type ExportPick } from "../export-plan";
-    import EditionPaper from "./edition-paper.svelte";
+    import { EXPORT_ASPECTS, exportPicks, type ExportPick } from "../export-plan";
+    import { frontExportTarget, inlineSvgStyles } from "../front-export";
+    import CollectorsFront from "../kinds/collectors/collectors-front.svelte";
+    import MonthlyFront from "../kinds/monthly/monthly-front.svelte";
+    import { isHotWeek } from "../kinds/weekly/hot";
+    import WeeklyCover from "../kinds/weekly/weekly-cover.svelte";
+    import YearEndFront from "../kinds/year_end/year-end-front.svelte";
     import SectionCard from "./section-card.svelte";
 
-    let { view }: { view: EditionView } = $props();
+    let { edition, view }: { edition: Edition; view: EditionView } = $props();
 
     const PREVIEW_MAX_HEIGHT = 520;
     const ICONS: Record<ExportPick, Component> = {
@@ -44,7 +50,7 @@
 
     const picks = $derived(exportPicks(view));
     const chosen = $derived(picks.includes(pick) ? pick : "front_page");
-    const target = $derived(exportTarget(view, chosen, aspect));
+    const target = $derived(frontExportTarget(view, chosen, aspect));
     const items = $derived(picks.map((value) => ({ value, label: pickLabel(value) })));
     const scale = $derived(previewW > 0 ? Math.min(1, previewW / target.width, PREVIEW_MAX_HEIGHT / target.height) : 0);
 
@@ -66,6 +72,13 @@
         (radios[next] as HTMLElement | undefined)?.focus();
     }
 
+    function frontCopy(live: Element | null): HTMLElement | null {
+        if (!(live instanceof HTMLElement)) return null;
+        const copy = live.cloneNode(true) as HTMLElement;
+        inlineSvgStyles(live, copy);
+        return copy;
+    }
+
     async function run(kind: ExportKind) {
         if (!node || busy) return;
         busy = kind;
@@ -73,7 +86,7 @@
             const source = node;
             const { width, height, fileName } = target;
             const label = t("match_history.detail.export.made_with");
-            const paper = chosen === "front_page" ? source.firstElementChild : null;
+            const paper = chosen === "front_page" ? frontCopy(source.firstElementChild) : null;
             const result = await runExport(kind, fileName, {
                 // A card draws its own footer inside its fixed frame; the front page gets the shared one below it.
                 render: () =>
@@ -161,7 +174,17 @@
                             {#if chosen === "front_page"}
                                 <!-- The image is drawn from this wrapper, not the sheet: the renderer paints its
                                      background over the root it is given and appends the footer inside it. -->
-                                <div><EditionPaper {view} /></div>
+                                <div>
+                                    {#if edition.window.kind === "monthly"}
+                                        <MonthlyFront {edition} {view} />
+                                    {:else if edition.window.kind === "collectors"}
+                                        <CollectorsFront {edition} />
+                                    {:else if edition.window.kind === "year_end"}
+                                        <YearEndFront {edition} {view} />
+                                    {:else}
+                                        <WeeklyCover {view} hot={isHotWeek(edition)} />
+                                    {/if}
+                                </div>
                             {:else}
                                 <SectionCard {view} section={chosen} {aspect} />
                             {/if}

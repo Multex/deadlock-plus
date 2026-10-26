@@ -3799,7 +3799,8 @@
             "export": "Export",
             "loading": "Loading the paper...",
             "open_failed": "This paper could not be opened.",
-            "replay": "Replay the reveal"
+            "replay": "Replay the reveal",
+            "table": "Table"
         },
         "shelf": {
             "number": "No. {number}",
@@ -3813,19 +3814,15 @@
             "print_not_enough": "Too few matches for a paper.",
             "print_failed": "This edition could not be printed.",
             "stand": "Editions",
-            "entry": "{date}, {detail}",
             "kind_weekly": "Weekly",
             "kind_monthly": "Monthly",
             "kind_collectors": "Collector's Copy",
             "kind_year_end": "Year-End Special",
             "kind_so_far": "This week",
             "print_short": "Print",
-            "group_so_far": "This week so far",
-            "group_specials": "Specials",
-            "group_monthly": "Monthly",
-            "group_weekly": "Weekly",
             "pile_one": "{label}, {count} edition",
-            "pile_other": "{label}, {count} editions"
+            "pile_other": "{label}, {count} editions",
+            "entry": "{date}, {detail}"
         },
         "empty": {
             "no_account": "No Steam account found, so there is no paper to print.",
