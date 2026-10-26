@@ -1,4 +1,6 @@
-export type Ctx = OffscreenCanvasRenderingContext2D;
+import { bake } from "../../kit/bitmap";
+import { seeded } from "../../kit/rng";
+import type { Bitmap, Ctx } from "../../kit/types";
 
 /** The Year-End cover and poster inks (their oklch tokens, in sRGB). */
 export const INK = {
@@ -14,49 +16,6 @@ export const INK = {
     ink: "#181611",
     inkSoft: "#484137",
 } as const;
-
-export interface TextStyle {
-    family: string;
-    weight: number;
-    px: number;
-    italic?: boolean;
-    /** Letter spacing in em. */
-    track?: number;
-    fill?: string | CanvasGradient;
-    align?: CanvasTextAlign;
-    baseline?: CanvasTextBaseline;
-    /** The text shrinks to fit this width. */
-    maxW?: number;
-}
-
-export function setFont(ctx: Ctx, s: TextStyle, px = s.px): void {
-    ctx.font = `${s.italic ? "italic " : ""}${s.weight} ${px}px "${s.family}"`;
-    ctx.letterSpacing = `${(s.track ?? 0) * px}px`;
-}
-
-/** The size `s` must drop to for `text` to fit `s.maxW`. */
-export function fitPx(ctx: Ctx, text: string, s: TextStyle): number {
-    setFont(ctx, s);
-    if (!s.maxW) return s.px;
-    const w = ctx.measureText(text).width;
-    return w > s.maxW ? (s.px * s.maxW) / w : s.px;
-}
-
-/** Draws one line; returns its width and the size it was set at. */
-export function text(ctx: Ctx, str: string, x: number, y: number, s: TextStyle): { w: number; px: number } {
-    const px = fitPx(ctx, str, s);
-    setFont(ctx, s, px);
-    ctx.textAlign = s.align ?? "left";
-    ctx.textBaseline = s.baseline ?? "middle";
-    ctx.fillStyle = s.fill ?? INK.ink;
-    // Spacing trails the last letter; centred text would sit half a gap left of centre.
-    const trail = (s.track ?? 0) * px;
-    const shift = ctx.textAlign === "center" ? trail / 2 : ctx.textAlign === "right" ? trail : 0;
-    ctx.fillText(str, x + shift, y);
-    const w = ctx.measureText(str).width;
-    ctx.letterSpacing = "0px";
-    return { w, px };
-}
 
 export function goldGradient(ctx: Ctx, x0: number, y0: number, x1: number, y1: number): CanvasGradient {
     const g = ctx.createLinearGradient(x0, y0, x1, y1);
@@ -76,28 +35,10 @@ export function inkGoldGradient(ctx: Ctx, y0: number, y1: number): CanvasGradien
     return g;
 }
 
-export function rng(seed: number): () => number {
-    let s = seed >>> 0;
-    return () => {
-        s = (s + 0x6d2b79f5) >>> 0;
-        let x = s;
-        x = Math.imul(x ^ (x >>> 15), x | 1);
-        x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-/** A hit's shake, `dt` seconds after it: a quick decaying wobble. */
-export function shake(dt: number, amp: number, seed: number): [number, number] {
-    if (dt < 0 || dt > 0.6) return [0, 0];
-    const k = amp * Math.exp(-dt / 0.12);
-    return [k * Math.sin(dt * 71 + seed), k * Math.cos(dt * 59 + seed * 1.7)];
-}
-
 /** Gold sparks thrown from a point by a hit, `dt` seconds after it. */
 export function sparks(ctx: Ctx, x: number, y: number, dt: number, u: number, seed: number, count = 12): void {
     if (dt < 0 || dt > 0.7) return;
-    const r = rng(seed);
+    const r = seeded(seed);
     const fade = 1 - dt / 0.7;
     ctx.fillStyle = INK.gold;
     for (let i = 0; i < count; i++) {
@@ -121,7 +62,7 @@ interface Mote {
 }
 
 const MOTES: Mote[] = (() => {
-    const r = rng(1172);
+    const r = seeded(1172);
     return Array.from({ length: 70 }, () => ({
         x: r(),
         y: r(),
@@ -176,48 +117,11 @@ export function containImage(
     ctx.drawImage(img, x + (w - img.width * k) / 2, y + h - img.height * k, img.width * k, img.height * k);
 }
 
-type Bitmap = CanvasImageSource & { width: number; height: number };
-const baked = new WeakMap<object, Record<string, Bitmap>>();
-
-/** Draws `img` through `paint` once and keeps the result: filters and masks cost too much to redo every frame. */
-export function bake(img: Bitmap, key: string, paint: (c: Ctx, img: Bitmap) => void): Bitmap {
-    const slot = baked.get(img) ?? {};
-    if (slot[key]) return slot[key];
-    if (typeof OffscreenCanvas === "undefined") return img;
-    const canvas = new OffscreenCanvas(img.width, img.height);
-    const c = canvas.getContext("2d");
-    if (!c) return img;
-    paint(c, img);
-    slot[key] = canvas;
-    baked.set(img, slot);
-    return canvas;
-}
-
 /** The cover's sepia-gold wash over the hero's backdrop collage. */
 export function tinted(img: Bitmap): Bitmap {
     return bake(img, "tint", (c, i) => {
         c.filter = "grayscale(1) sepia(1) saturate(1.7) hue-rotate(-6deg) brightness(0.8) contrast(1.15)";
         c.drawImage(i, 0, 0);
-    });
-}
-
-/** The portrait card is a bust cut off at its edges: fade those cuts out. */
-export function feathered(img: Bitmap): Bitmap {
-    return bake(img, "feather", (c, i) => {
-        c.drawImage(i, 0, 0);
-        c.globalCompositeOperation = "destination-in";
-        const v = c.createLinearGradient(0, 0, 0, i.height);
-        v.addColorStop(0.7, "#000");
-        v.addColorStop(0.97, "rgb(0 0 0 / 0)");
-        c.fillStyle = v;
-        c.fillRect(0, 0, i.width, i.height);
-        const hz = c.createLinearGradient(0, 0, i.width, 0);
-        hz.addColorStop(0, "rgb(0 0 0 / 0)");
-        hz.addColorStop(0.14, "#000");
-        hz.addColorStop(0.86, "#000");
-        hz.addColorStop(1, "rgb(0 0 0 / 0)");
-        c.fillStyle = hz;
-        c.fillRect(0, 0, i.width, i.height);
     });
 }
 
@@ -251,8 +155,4 @@ export function room(ctx: Ctx, w: number, h: number, light: number): void {
     g.addColorStop(1, "rgb(70 52 24 / 0)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
-}
-
-export function lerp(a: number, b: number, k: number): number {
-    return a + (b - a) * k;
 }

@@ -1,5 +1,8 @@
 import { SLEEVE } from "../../kinds/collectors/layout";
 import { TEAR_MS, tearFrame } from "../../kinds/collectors/tear";
+import { clamp01, easeInOut, easeOutCubic } from "../kit/ease";
+import { seeded } from "../kit/rng";
+import type { Ctx } from "../kit/types";
 import type { Scene, SceneAssets } from "../scene";
 import { drawBag } from "./collectors/bag";
 import { drawChart, type Region } from "./collectors/chart";
@@ -14,18 +17,15 @@ import {
     renderCover,
 } from "./collectors/cover";
 import { fill, type CollectorsSceneData } from "./collectors/data";
-import { INK, drawContained, fit, foilText, font, roundRect, seeded, type Ctx, type Fonts } from "./collectors/paint";
+import { INK, drawContained, fit, foilText, font, roundRect, type Fonts } from "./collectors/paint";
 import {
     climbTiming,
-    clamp01,
     collectorsPlan,
     countUp,
     drawnMatches,
     heroCue,
     HERO_SLIDE_BEATS,
-    inOutCubic,
     outBack,
-    outCubic,
     punch,
     recordCues,
     segmentAt,
@@ -148,11 +148,11 @@ function coverScale(st: Stage) {
 function sealed(s: Shot) {
     const { ctx, beats, length } = s;
     const p = punch(beats);
-    const scale = bagScale(s.stage) * (0.94 + 0.06 * inOutCubic(beats / length)) * (p.alpha ? p.scale * 0.2 + 0.8 : 1);
+    const scale = bagScale(s.stage) * (0.94 + 0.06 * easeInOut(beats / length)) * (p.alpha ? p.scale * 0.2 + 0.8 : 1);
     const lastBar = beats >= length - 4;
     const frac = beats % 1;
     const nudge =
-        beats >= length - 1 ? 16 * outCubic((beats - (length - 1)) / 0.5) : lastBar ? 7 * Math.exp(-frac * 6) : 0;
+        beats >= length - 1 ? 16 * easeOutCubic((beats - (length - 1)) / 0.5) : lastBar ? 7 * Math.exp(-frac * 6) : 0;
     ctx.save();
     ctx.rotate(((1.2 * Math.PI) / 180) * Math.sin((beats / length) * Math.PI * 2));
     ctx.scale(scale, scale);

@@ -1,3 +1,5 @@
+import { entranceCues } from "../../kit/beat";
+
 export type SectionId = "numbers" | "heroes" | "highlights" | "people";
 
 export interface Span {
@@ -88,29 +90,6 @@ export function digitLocks(plan: YearEndPlan, digits: number, barSeconds: number
     return Array.from({ length: digits }, (_, i) => (bar + (bars * i) / digits) * barSeconds);
 }
 
-export const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-export const easeOutCubic = (x: number) => 1 - (1 - clamp01(x)) ** 3;
-export const easeInOut = (x: number) => {
-    const k = clamp01(x);
-    return k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
-};
-/** Overshoots by about 10% before it settles: the "slam". */
-export const easeOutBack = (x: number) => {
-    const k = clamp01(x) - 1;
-    const c = 1.70158;
-    return 1 + (c + 1) * k ** 3 + c * k ** 2;
-};
-
-/**
- * A number counting up from zero between `start` and `end` seconds, racing first and settling last. Whole steps of
- * `1 / steps`, so a share counts in whole percent with `steps = 100`.
- */
-export function countUp(value: number, t: number, start: number, end: number, steps = 1): number {
-    if (t >= end) return value;
-    if (t <= start) return 0;
-    return Math.round(value * easeOutCubic((t - start) / (end - start)) * steps) / steps;
-}
-
 /** A slot-machine digit: `rate` digits a second from `seed`, and how far the next one has rolled in. */
 export function rollingDigit(seed: number, t: number, rate: number): { digit: number; next: number; frac: number } {
     const p = seed + t * rate;
@@ -121,58 +100,10 @@ export function rollingDigit(seed: number, t: number, rate: number): { digit: nu
 
 /** A count-up runs two beats: long enough to watch the digits climb. */
 export const COUNT_BEATS = 2;
-/** Entrances and their count-ups finish within this share of a section; the rest holds the full page to read. */
-const ENTER_SHARE = 0.75;
-const MOST_APART_BEATS = 2;
+/** Entrances and their count-ups finish within 75% of a section, at most two beats apart; the rest holds the page. */
+const PACE = { share: 0.75, countBeats: COUNT_BEATS, apartBeats: 2 };
 
-/**
- * When each of `n` entrances lands, in seconds: the first on the section's downbeat at `start`, the rest evenly
- * apart, at most two beats, with the last one's count-up done by the end of the entrance share of `span`.
- */
+/** When each of `n` entrances lands, in seconds: the first on the section's downbeat at `start`. */
 export function entrances(n: number, start: number, span: number, beat: number): number[] {
-    const room = span * ENTER_SHARE - COUNT_BEATS * beat;
-    const step = n > 1 ? Math.min(MOST_APART_BEATS * beat, room / (n - 1)) : 0;
-    return Array.from({ length: n }, (_, i) => start + i * step);
-}
-
-const FLASH_RAMP = 0.06;
-const FLASH_DECAY = 0.17;
-
-/** A flashbulb: a short ramp up to white on the hit, then an exponential fade. */
-export function flashAt(t: number, at: number): number {
-    const since = t - at;
-    if (since < -FLASH_RAMP) return 0;
-    if (since < 0) return (since + FLASH_RAMP) / FLASH_RAMP;
-    const v = Math.exp(-since / FLASH_DECAY);
-    return v < 0.04 ? 0 : v;
-}
-
-/** Seconds since the last of `every`-second ticks from `from`; Infinity before the first. */
-export function sinceTick(t: number, from: number, every: number): number {
-    if (t < from) return Infinity;
-    return (t - from) % every;
-}
-
-export interface Rect {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
-/**
- * The content square, sized from the shorter side so every aspect is designed rather than cropped. In 9:16 it sits
- * above centre, and `safe` is the band key text keeps to: short-video apps lay their captions and buttons over the
- * lower part and their tabs over the top.
- */
-export function sceneFrame(w: number, h: number): { u: number; box: Rect; safe: { top: number; bottom: number } } {
-    const s = Math.min(w, h);
-    const tall = h > w;
-    const cy = tall ? h * 0.42 : h / 2;
-    const y = Math.round(Math.min(h - s, Math.max(0, cy - s / 2)));
-    return {
-        u: s / 1080,
-        box: { x: Math.round((w - s) / 2), y, w: s, h: s },
-        safe: tall ? { top: Math.round(h * 0.125), bottom: Math.round(h * 0.7084) } : { top: 0, bottom: h },
-    };
+    return entranceCues(n, start, span, beat, PACE);
 }

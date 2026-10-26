@@ -1,6 +1,6 @@
+import type { Ctx } from "../../kit/types";
 import type { SCENE_FONTS } from "../../scene";
 
-export type Ctx = OffscreenCanvasRenderingContext2D;
 export type Fonts = typeof SCENE_FONTS;
 
 export const INK = {
@@ -82,33 +82,6 @@ export function foilText(ctx: Ctx, text: string, x: number, y: number, shift = 0
         ctx.fillText(text, x, y);
         ctx.restore();
     }
-}
-
-/** Words onto lines no wider than `max`. */
-export function wrap(ctx: Ctx, text: string, max: number): string[] {
-    const lines: string[] = [];
-    let line = "";
-    for (const word of text.split(/\s+/).filter(Boolean)) {
-        const next = line ? `${line} ${word}` : word;
-        if (line && ctx.measureText(next).width > max) {
-            lines.push(line);
-            line = word;
-        } else line = next;
-    }
-    if (line) lines.push(line);
-    return lines;
-}
-
-/** Mulberry32: the same stream for the same seed, so every frame and every retry agree. */
-export function seeded(seed: number): () => number {
-    let a = seed >>> 0;
-    return () => {
-        a = (a + 0x6d2b79f5) >>> 0;
-        let t = a;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
 }
 
 export function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {

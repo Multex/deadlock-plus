@@ -2,39 +2,21 @@ import { drawScraps, makeScraps, type Scrap } from "../../kinds/year_end/scraps"
 import type { Scene, SceneAssets } from "../scene";
 import { placeholderScene } from "./placeholder";
 import { fillCount, presentSections, type YearEndVideo } from "./year_end/data";
+import { flashAt } from "../kit/beat";
+import { feathered } from "../kit/bitmap";
+import { countUp } from "../kit/count";
+import { clamp01, easeInOut, easeOutBack, easeOutCubic, lerp } from "../kit/ease";
+import { sceneFrame } from "../kit/frame";
+import { shake } from "../kit/motion";
+import { setFont, text, type TextStyle } from "../kit/text";
+import type { Ctx, Rect } from "../kit/types";
+import { INK, coverImage, containImage, dust, goldGradient, inkGoldGradient, paper, room, sparks, tinted } from "./year_end/draw";
 import {
-    INK,
-    coverImage,
-    containImage,
-    dust,
-    feathered,
-    goldGradient,
-    inkGoldGradient,
-    lerp,
-    paper,
-    room,
-    setFont,
-    shake,
-    sparks,
-    text,
-    tinted,
-    type Ctx,
-    type TextStyle,
-} from "./year_end/draw";
-import {
-    clamp01,
     COUNT_BEATS,
-    countUp,
     digitLocks,
-    easeInOut,
-    easeOutBack,
-    easeOutCubic,
     entrances,
-    flashAt,
     rollingDigit,
-    sceneFrame,
     yearEndPlan,
-    type Rect,
     type SectionId,
     type YearEndPlan,
 } from "./year_end/plan";

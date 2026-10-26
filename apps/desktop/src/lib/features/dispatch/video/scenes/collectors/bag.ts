@@ -2,7 +2,8 @@ import { SLEEVE, SLOT } from "../../../kinds/collectors/layout";
 import type { TearFrame } from "../../../kinds/collectors/tear";
 import { COVER_H, COVER_W } from "./cover";
 import type { CollectorsSceneData } from "./data";
-import { INK, fit, font, roundRect, type Ctx, type Fonts } from "./paint";
+import { INK, fit, font, roundRect, type Fonts } from "./paint";
+import type { Ctx } from "../../kit/types";
 import { burstAt } from "./plan";
 
 const W = SLEEVE.width;

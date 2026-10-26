@@ -1,3 +1,5 @@
+import { entranceCues } from "../../kit/beat";
+
 export type SectionId = "numbers" | "calendar" | "heroes" | "best" | "people" | "rank";
 export type PageId = "cover" | SectionId | "end";
 
@@ -92,16 +94,10 @@ export function pageAt(plan: MonthlyPlan, t: number, barSeconds: number): PageMo
 
 /** A count-up runs a whole bar: slow enough to watch the number climb. */
 export const COUNT_BEATS = 4;
-/** Entrances and their count-ups finish within this share of a page; the rest holds the full page to read. */
-const ENTER_SHARE = 0.7;
-const MOST_APART_BEATS = 2;
+/** Entrances and their count-ups finish within 70% of a page, at most two beats apart; the rest holds the page. */
+const PACE = { share: 0.7, countBeats: COUNT_BEATS, apartBeats: 2 };
 
-/**
- * When each of `n` entrances lands, in seconds: the first on the page's downbeat at `start`, the rest evenly apart,
- * at most two beats, with the last one's count-up done by the end of the entrance share of `span`.
- */
+/** When each of `n` entrances lands, in seconds: the first on the page's downbeat at `start`. */
 export function staggers(n: number, start: number, span: number, beat: number): number[] {
-    const room = span * ENTER_SHARE - COUNT_BEATS * beat;
-    const step = n > 1 ? Math.min(MOST_APART_BEATS * beat, room / (n - 1)) : 0;
-    return Array.from({ length: n }, (_, i) => start + i * step);
+    return entranceCues(n, start, span, beat, PACE);
 }

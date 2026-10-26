@@ -2,8 +2,13 @@ import type { Scene, SceneAssets } from "../scene";
 import { placeholderScene } from "./placeholder";
 import { presentSections, type MonthlyVideo } from "./monthly/data";
 import { COUNT_BEATS, monthlyPlan, pageAt, staggers, type MonthlyPlan, type PageId } from "./monthly/plan";
-import { feathered, lerp, setFont, shake, text, type Ctx, type TextStyle } from "./year_end/draw";
-import { clamp01, countUp, easeInOut, easeOutBack, easeOutCubic, sceneFrame, type Rect } from "./year_end/plan";
+import { feathered } from "../kit/bitmap";
+import { countUp } from "../kit/count";
+import { clamp01, easeInOut, easeOutBack, easeOutCubic, lerp } from "../kit/ease";
+import { sceneFrame } from "../kit/frame";
+import { shake } from "../kit/motion";
+import { setFont, text, wrap, type TextStyle } from "../kit/text";
+import type { Ctx, Rect } from "../kit/types";
 
 /** Every page is laid out in a 1080 px square, then scaled to the frame's shorter side. */
 const S = 1080;
@@ -213,20 +218,6 @@ function serif(f: F, px: number, fill: string, extra: Partial<TextStyle> = {}): 
 
 function kicker(f: F, label: string, x: number, y: number, fill: string, extra: Partial<TextStyle> = {}): void {
     text(f.ctx, upper(f, label), x, y, display(f, 22, fill, { track: 0.18, ...extra }));
-}
-
-function wrap(ctx: Ctx, str: string, maxW: number): string[] {
-    const lines: string[] = [];
-    let line = "";
-    for (const word of str.split(/\s+/).filter(Boolean)) {
-        const next = line ? `${line} ${word}` : word;
-        if (line && ctx.measureText(next).width > maxW) {
-            lines.push(line);
-            line = word;
-        } else line = next;
-    }
-    if (line) lines.push(line);
-    return lines;
 }
 
 /**

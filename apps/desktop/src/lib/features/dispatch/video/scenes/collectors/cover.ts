@@ -8,9 +8,9 @@ import {
     font,
     rainbowAcross,
     roundRect,
-    type Ctx,
     type Fonts,
 } from "./paint";
+import type { Ctx } from "../../kit/types";
 
 /** The printed cover's own frame, as `cover.svelte` lays it out. */
 export const COVER_W = 720;

@@ -4,13 +4,10 @@ import { MUSIC_TRACKS } from "../../music";
 import { videoTimeline } from "../../timeline";
 import {
     COUNT_BEATS,
-    countUp,
     digitLocks,
     entrances,
-    flashAt,
     introBars,
     rollingDigit,
-    sceneFrame,
     sectionAt,
     yearEndPlan,
     type SectionId,
@@ -145,63 +142,11 @@ describe("digitLocks", () => {
     });
 });
 
-describe("countUp", () => {
-    it("starts at zero, lands exactly on the value at the end and never runs back", () => {
-        expect(countUp(456, 1, 1, 2)).toBe(0);
-        expect(countUp(456, 2, 1, 2)).toBe(456);
-        expect(countUp(456, 9, 1, 2)).toBe(456);
-        let last = -1;
-        for (let t = 0; t <= 2.5; t += 0.01) {
-            const v = countUp(456, t, 1, 2);
-            expect(Number.isInteger(v)).toBe(true);
-            expect(v).toBeGreaterThanOrEqual(last);
-            last = v;
-        }
-    });
-
-    it("counts a share in whole percent steps", () => {
-        expect(countUp(0.58, 1.5, 1, 2, 100)).toBeGreaterThan(0.3);
-        expect((countUp(0.58, 1.5, 1, 2, 100) * 100) % 1).toBeCloseTo(0, 6);
-        expect(countUp(0.58, 2, 1, 2, 100)).toBe(0.58);
-    });
-});
-
 describe("rollingDigit", () => {
     it("rolls through the digits in order and wraps from 9 to 0", () => {
         const a = rollingDigit(0, 0.25, 4);
         expect(a).toEqual({ digit: 1, next: 2, frac: 0 });
         expect(rollingDigit(0, 2.25, 4)).toEqual({ digit: 9, next: 0, frac: 0 });
         expect(rollingDigit(3, 0, 4).digit).toBe(3);
-    });
-});
-
-describe("flashAt", () => {
-    it("whites out on the hit and is gone within half a second", () => {
-        expect(flashAt(4.9, 5)).toBe(0);
-        expect(flashAt(5, 5)).toBe(1);
-        expect(flashAt(5.2, 5)).toBeLessThan(0.35);
-        expect(flashAt(5.6, 5)).toBe(0);
-    });
-});
-
-describe("sceneFrame", () => {
-    it("keeps the 9:16 content square in the band clear of the app UI", () => {
-        const f = sceneFrame(1080, 1920);
-        expect(f.u).toBe(1);
-        expect(f.box.x).toBe(0);
-        expect(f.box.w).toBe(1080);
-        expect(f.box.y).toBeGreaterThanOrEqual(240);
-        expect(f.box.y + f.box.h).toBeLessThanOrEqual(1360);
-    });
-
-    it("gives 9:16 the band key text may use, and the whole height elsewhere", () => {
-        expect(sceneFrame(1080, 1920).safe).toEqual({ top: 240, bottom: 1360 });
-        expect(sceneFrame(1440, 1440).safe).toEqual({ top: 0, bottom: 1440 });
-        expect(sceneFrame(1920, 1080).safe).toEqual({ top: 0, bottom: 1080 });
-    });
-
-    it("fills the square and centres the 16:9 box", () => {
-        expect(sceneFrame(1440, 1440).box).toEqual({ x: 0, y: 0, w: 1440, h: 1440 });
-        expect(sceneFrame(1920, 1080).box).toEqual({ x: 420, y: 0, w: 1080, h: 1080 });
     });
 });

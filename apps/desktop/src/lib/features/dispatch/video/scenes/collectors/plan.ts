@@ -1,3 +1,5 @@
+import { easeOutBack, easeOutCubic } from "../../kit/ease";
+
 export type SegmentId = "sealed" | "tear" | "cover" | "climb" | "record" | "heroes" | "certificate" | "end";
 
 export interface Segment {
@@ -86,22 +88,12 @@ export function drawnMatches(bar: number, c: ClimbTiming, peakIndex: number, tot
     return atPeak + ((total - atPeak) * (bar - c.peak)) / (c.to - c.peak);
 }
 
-export const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
-export const outCubic = (p: number) => 1 - (1 - clamp01(p)) ** 3;
-export const inOutCubic = (p: number) => {
-    const x = clamp01(p);
-    return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
-};
-
-export function outBack(p: number): number {
-    const x = clamp01(p);
-    const c = 1.9;
-    return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2;
-}
+/** A snappier overshoot than the default, for stamps and pops on the beat. */
+export const outBack = (p: number) => easeOutBack(p, 1.9);
 
 /** A count-up's shown value at progress `p`: fast at first, easing onto the exact value. */
 export function countUp(value: number, p: number): number {
-    return Math.round(value * outCubic(p));
+    return Math.round(value * easeOutCubic(p));
 }
 
 /**
@@ -144,14 +136,14 @@ const PUNCH_BEATS = 0.4;
 /** A punch `beats` after its hit: already there and big on the hit frame, settling within the beat. */
 export function punch(beats: number): { scale: number; alpha: number } {
     if (beats < 0) return { scale: 0, alpha: 0 };
-    return { scale: 1 + (PUNCH_FROM - 1) * (1 - outCubic(beats / PUNCH_BEATS)), alpha: 1 };
+    return { scale: 1 + (PUNCH_FROM - 1) * (1 - easeOutCubic(beats / PUNCH_BEATS)), alpha: 1 };
 }
 
 const SLIDE_BEATS = 0.5;
 
 /** How far off its place a slide is, 1 to 0, `beats` from the beat it lands on. */
 export function slideIn(beats: number, over = SLIDE_BEATS): number {
-    return 1 - outCubic((beats + over) / over);
+    return 1 - easeOutCubic((beats + over) / over);
 }
 
 /** How long a fleck flies, at most. */
