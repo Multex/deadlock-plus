@@ -708,11 +708,51 @@ function rateArt(ctx: Ctx, s: ArtState) {
     }
 }
 
+/**
+ * The chase's peak: the badge big and lifting into the window over a halo, with the main hero in their smug card
+ * behind it when the season's main was a winning one.
+ */
+function peakArt(ctx: Ctx, s: ArtState) {
+    const { rect: r, card, deck, assets } = s;
+    const badge = card.badges?.[0];
+    const main = deck.video.cards.find((c) => c.beat === "c_main")?.hero;
+    const gloat = main?.mood === "gloat" ? assets.images[moodKey(main.id, "gloat")] : undefined;
+    if (gloat) {
+        const k = easeOutCubic((s.since - 0.15) / 0.9);
+        ctx.save();
+        ctx.globalAlpha = 0.75 * k;
+        contain(ctx, gloat, r.x + r.w * 0.24, r.y + r.h * 0.6 + (1 - k) * 60, r.w * 0.75, r.h * 1.15);
+        ctx.restore();
+    }
+    if (badge === undefined) return;
+    const cx = r.x + r.w * (gloat ? 0.62 : 0.5);
+    const cy = r.y + r.h * 0.5;
+    const size = Math.min(r.w * (gloat ? 0.62 : 0.72), r.h * 0.86);
+    const halo = ctx.createRadialGradient(cx, cy, size * 0.1, cx, cy, size * 0.75);
+    halo.addColorStop(0, "rgb(255 255 255 / 0.55)");
+    halo.addColorStop(1, "rgb(255 255 255 / 0)");
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = clamp01((s.since - 0.1) / 0.4);
+    ctx.fillStyle = halo;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.restore();
+    const k = easeOutBack(clamp01((s.since - 0.2) / 0.55), 2.2);
+    if (k <= 0) return;
+    ctx.save();
+    ctx.translate(cx, cy + (1 - clamp01(k)) * 50);
+    ctx.scale(k, k);
+    drawBadge(ctx, badge, 0, 0, size, assets);
+    ctx.restore();
+}
+
 /** The art window of a face: every face draws its own picture of its fact. */
 export function drawArt(ctx: Ctx, s: ArtState): void {
     backdrop(ctx, s);
     const { card } = s;
     switch (card.face) {
+        case "peak":
+            return peakArt(ctx, s);
         case "grind":
             return grindArt(ctx, s);
         case "main":

@@ -9,6 +9,10 @@ import { deckLines, type BeatDraw, type Deck } from "./card";
 import { CARD_DRAWS, EXIT_S, FLIP_S } from "./cards";
 import { glintAt, draw as pack, packYaw } from "./pack";
 import { draw as tear, tearTimes } from "./tear";
+import { draw as chase } from "./chase";
+import { draw as slab } from "./slab";
+import { draw as fan } from "./fan";
+import { collectorsScene } from "../../collectors";
 
 /** A 2D context that accepts every call and measures text at half its size per character. */
 function stubCtx(): Ctx {
@@ -51,7 +55,14 @@ const SIZES = [
     { w: 1440, h: 1440 },
     { w: 1920, h: 1080 },
 ];
-const DRAWS: Record<string, BeatDraw> = { c_pack: pack, c_tear: tear, ...CARD_DRAWS };
+const DRAWS: Record<string, BeatDraw> = {
+    c_pack: pack,
+    c_tear: tear,
+    ...CARD_DRAWS,
+    c_chase: chase,
+    c_slab: slab,
+    c_fan: fan,
+};
 
 describe("Pack Opening beats", () => {
     for (const p of PERSONAS) {
@@ -59,8 +70,15 @@ describe("Pack Opening beats", () => {
         const video = collectorsVideoData(e, editionSignals(e), deps);
         const deck: Deck = { video, lines: deckLines(copyRefs(video), (r) => `${r.key} ${JSON.stringify(r.params)}`) };
         const beats = collectorsPlan(video.casting, 26).filter((b) => b.id in DRAWS);
+        it(`${p}: the whole video draws, bar by bar, in every aspect`, () => {
+            for (const size of SIZES) {
+                for (let t = 0; t < 26 * BAR + 1; t += BAR / 3) {
+                    expect(() => collectorsScene(stubCtx(), t, size, { ...assets, data: deck })).not.toThrow();
+                }
+            }
+        });
         it(`${p}: every beat draws at five moments in every aspect`, () => {
-            expect(beats.length).toBeGreaterThanOrEqual(6);
+            expect(beats.map((b) => b.id)).toEqual(expect.arrayContaining(["c_chase", "c_slab", "c_fan"]));
             for (const b of beats) {
                 const span = b.bars * BAR;
                 for (const size of SIZES) {
