@@ -1,28 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { featureArt, tallyMarks } from "./feature";
-import { typedLength } from "./interview";
+import { featureArt, logPick, logRows } from "./feature";
+import { readShift, spreadLayout } from "./print";
+import { stage } from "./studio";
+import { typedLength, wrapAround } from "./interview";
 import { keepLens } from "./takes";
-import { railWidths } from "./wardrobe";
-
-describe("railWidths", () => {
-    it("fills the rail exactly, gaps included", () => {
-        const w = railWidths([0.5, 0.3, 0.1, 0.1], 1000, 80, 20);
-        expect(w.reduce((a, b) => a + b, 0) + 3 * 20).toBeCloseTo(1000, 6);
-    });
-    it("gives a bigger share a wider swatch and never goes under the minimum", () => {
-        const w = railWidths([0.6, 0.2, 0.05, 0.01], 1000, 120, 10);
-        expect(w[0]).toBeGreaterThan(w[1]!);
-        expect(w[1]).toBeGreaterThan(w[2]!);
-        for (const x of w) expect(x).toBeGreaterThanOrEqual(120 - 1e-9);
-    });
-    it("shares the rail evenly when every share is zero", () => {
-        expect(railWidths([0, 0], 500, 50, 20)).toEqual([240, 240]);
-    });
-    it("shrinks the minimum when the rail is too short for it", () => {
-        const w = railWidths([0.5, 0.5, 0.5], 300, 200, 0);
-        expect(w.reduce((a, b) => a + b, 0)).toBeCloseTo(300, 6);
-    });
-});
 
 describe("typedLength", () => {
     it("types nothing before the cue and everything once the time is up", () => {
@@ -43,33 +24,92 @@ describe("keepLens", () => {
     });
 });
 
-describe("tallyMarks", () => {
-    const stat = (value: number) => ({ value, source: "test" });
-    it("circles every win of a streak", () => {
-        expect(tallyMarks({ angle: "streak", stats: [stat(8)] })).toEqual(Array(8).fill("w"));
+describe("logRows", () => {
+    it("shows the whole run when it fits, rows no taller than the cap", () => {
+        expect(logRows(8, 800, 84, 112)).toEqual({ shown: 8, rowH: 100 });
+        expect(logRows(3, 800, 84, 112)).toEqual({ shown: 3, rowH: 112 });
     });
-    it("crosses out the losses before the comeback's wins", () => {
-        expect(tallyMarks({ angle: "losing_then_winning", stats: [stat(3), stat(5), stat(6)] })).toEqual([
-            "l",
-            "l",
-            "l",
-            "w",
-            "w",
-            "w",
-            "w",
-            "w",
-        ]);
+    it("keeps a row for the '+N' line when the run is longer than the page", () => {
+        const r = logRows(14, 700, 84, 112);
+        expect(r.shown).toBe(7);
+        expect(r.rowH * (r.shown + 1)).toBeLessThanOrEqual(700 + 1e-9);
+        expect(r.rowH).toBeGreaterThanOrEqual(84);
     });
-    it("never deals more frames than the table holds", () => {
-        expect(tallyMarks({ angle: "winning", stats: [stat(40)] })).toHaveLength(16);
+});
+
+describe("logPick", () => {
+    const m = (outcome: "win" | "loss", i: number) => ({
+        date: `${i}`,
+        heroId: i,
+        outcome,
+        kda: { kills: i, deaths: 0, assists: 0 },
+    });
+    it("keeps the end of the losing run and the start of the turn", () => {
+        const reel = [
+            ...Array.from({ length: 6 }, (_, i) => m("loss", i)),
+            ...Array.from({ length: 8 }, (_, i) => m(i === 3 ? "loss" : "win", 6 + i)),
+        ];
+        const picked = logPick(reel, 7);
+        expect(picked).toHaveLength(7);
+        expect(picked[0]!.outcome).toBe("loss");
+        expect(picked.at(-1)!.outcome).toBe("win");
+        expect(picked.map((x) => x.heroId)).toEqual([4, 5, 6, 7, 8, 9, 10]);
+    });
+    it("returns a short run whole", () => {
+        const reel = [m("win", 1), m("win", 2)];
+        expect(logPick(reel, 5)).toEqual(reel);
+    });
+});
+
+describe("wrapAround", () => {
+    const measure = (s: string) => s.length * 10;
+    it("keeps the first lines clear of the drop cap and lets the rest run full width", () => {
+        const lines = wrapAround(measure, "aaaa bbbb cccc dddd eeee ffff gggg", 100, 50, 2);
+        expect(lines.slice(0, 2).every((l) => measure(l) <= 50)).toBe(true);
+        expect(lines.slice(2).some((l) => measure(l) > 50)).toBe(true);
+    });
+});
+
+describe("readShift", () => {
+    const tall = stage({ w: 1080, h: 1920 });
+    const sp = spreadLayout(tall);
+    it("leaves rows already inside the safe band where they are", () => {
+        expect(readShift(tall, sp, 200, 900)).toBe(0);
+    });
+    it("lifts rows below the band just enough to bring their foot in", () => {
+        const shift = readShift(tall, sp, 900, 1250);
+        expect(shift).toBeLessThan(0);
+        expect(sp.right.y + 1250 * sp.s + shift).toBeCloseTo(tall.safe.bottom - 10, 6);
+    });
+    it("never shifts a square or wide spread", () => {
+        const sq = stage({ w: 1440, h: 1440 });
+        expect(readShift(sq, spreadLayout(sq), 900, 1250)).toBe(0);
+    });
+});
+
+describe("spreadLayout", () => {
+    it("sets page body type at or over the phone floor in every aspect", () => {
+        for (const size of [
+            { w: 1080, h: 1920 },
+            { w: 1440, h: 1440 },
+            { w: 1920, h: 1080 },
+        ]) {
+            const st = stage(size);
+            const sp = spreadLayout(st);
+            expect(60 * sp.s).toBeGreaterThanOrEqual(44 * st.u - 1e-9);
+            expect(130 * sp.s).toBeGreaterThanOrEqual(96 * st.u - 1e-9);
+            expect(sp.right.x + sp.right.w).toBeLessThanOrEqual(st.w);
+        }
     });
 });
 
 describe("featureArt", () => {
-    it("pictures each angle its own way", () => {
-        expect(featureArt("climb")).toBe("makeover");
-        expect(featureArt("streak")).toBe("tally");
-        expect(featureArt("nemesis")).toBe("pair");
-        expect(featureArt("one_trick")).toBe("popart");
+    it("pictures each angle its own way, and a run without a tape as its number", () => {
+        expect(featureArt("climb", 0)).toBe("makeover");
+        expect(featureArt("streak", 8)).toBe("log");
+        expect(featureArt("streak", 0)).toBe("number");
+        expect(featureArt("nemesis", 0)).toBe("pair");
+        expect(featureArt("explorer", 0)).toBe("cast");
+        expect(featureArt("one_trick", 0)).toBe("number");
     });
 });

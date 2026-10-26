@@ -63,7 +63,8 @@ describe("monthlyPlan", () => {
             const lead = editionSignals(e)[0]!;
             const plan = monthlyPlan(castOf(e), 26);
             expect(plan[1]!.signal).toBe(lead.id);
-            const middle = plan.slice(1, -3);
+            // The interview is sized by its reading time, not by its signal.
+            const middle = plan.slice(1, -3).filter((b) => b.id !== "m_interview" || b === plan[1]);
             expect(plan[1]!.bars).toBe(Math.max(...middle.map((b) => b.bars)));
         }
     });
@@ -74,6 +75,19 @@ describe("monthlyPlan", () => {
             const stats = plan.flatMap((b) => b.presents.map((x) => x.split(":")[0]));
             expect(new Set(stats).size).toBe(stats.length);
             for (const b of plan) if (b.signal) expect(b.presents.map((x) => x.split(":")[0])).toContain(b.signal);
+        }
+    });
+
+    it("asks at most two questions and gives each one two and a half bars to read", () => {
+        for (const e of [...PERSONAS.map((p) => personaEdition(p, "monthly")), thin()]) {
+            const cast = castOf(e);
+            const topics = cast.beats.find((b) => b.id === "m_interview")?.topics;
+            if (!topics) continue;
+            expect(topics.length).toBeLessThanOrEqual(2);
+            for (const bars of TRACK_BARS) {
+                const beat = monthlyPlan(cast, bars).find((b) => b.id === "m_interview")!;
+                expect(beat.bars).toBeGreaterThanOrEqual(Math.ceil(topics.length * 2.5));
+            }
         }
     });
 

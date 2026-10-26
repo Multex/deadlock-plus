@@ -58,6 +58,23 @@ export async function prepareScene(view: EditionView): Promise<ScenePrep> {
             issueLine: mag.issueLine,
             barcode: mag.barcode,
             site: new URL(SITE_URL).host,
+            folio: mag.folio,
+            labels: {
+                coverStar: t("dispatch.monthly.kicker.top_hero"),
+                newFace: t("dispatch.monthly.kicker.new_hero"),
+                bestGame: t("dispatch.monthly.kicker.best_game"),
+                coverStory: t("dispatch.monthly.section.cover_story"),
+                people: t("dispatch.monthly.section.people"),
+                rotation: t("dispatch.monthly.heroes.rotation"),
+                kills: t("dispatch.monthly.best.kills"),
+                deaths: t("dispatch.monthly.best.deaths"),
+                assists: t("dispatch.monthly.best.assists"),
+                netWorth: t("dispatch.monthly.best.net_worth"),
+                grade: t("dispatch.monthly.best.grade"),
+                rankStart: t("dispatch.monthly.rank.start", { month: mag.monthName }),
+                rankEnd: t("dispatch.monthly.rank.end", { month: mag.monthName }),
+                games: t("dispatch.monthly.heroes.col_games"),
+            },
         },
     };
 
@@ -65,11 +82,12 @@ export async function prepareScene(view: EditionView): Promise<ScenePrep> {
     const star = b.m_flash.heroId;
     const shot = b.m_shot?.heroId;
     const inView = new Set(view.heroes.slice(0, 8).map((h) => h.id));
-    // Portraits the export does not load itself: every hero on the contact sheet, the rail and the feature.
+    // Portraits the export does not load itself: every hero on the contact sheet, the rail, the feature and its log.
     const portraits = new Set([
         ...takeFrames(edition).flatMap((f) => (f.heroId === null ? [] : [f.heroId])),
         ...(b.m_wardrobe?.swatches.map((s) => s.heroId) ?? []),
         ...(b.m_feature?.heroId != null ? [b.m_feature.heroId] : []),
+        ...(b.m_feature?.reel.map((m) => m.heroId) ?? []),
         ...(shot !== undefined ? [shot] : []),
     ]);
     const extra = [...portraits].filter((id) => !inView.has(id));

@@ -7,7 +7,7 @@ import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { MUSIC_TRACKS } from "../../music";
 import { SFX_CUES } from "../../sfx";
 import { videoTimeline } from "../../timeline";
-import { allCopy, allStats, monthlySfx, monthlyVideoData, type Copy, type MonthlyVideoDeps } from "./data";
+import { allCopy, allStats, monthlySfx, monthlyVideoData, streakRun, type Copy, type MonthlyVideoDeps } from "./data";
 import { MONTHLY_SLOTS, slotKeys } from "./slots";
 
 type Catalog = Record<string, string>;
@@ -198,6 +198,38 @@ describe("monthlyVideoData", () => {
     it("circles the best game's day on the contact sheet", () => {
         const data = monthlyVideoData(personaEdition("P1", "monthly"), deps);
         expect(data.beats.m_shot!.frame).toBe(3);
+    });
+
+    it("logs the streak's real matches on the feature, not one picture copied", () => {
+        const e = { ...personaEdition("P1", "monthly"), rank: null };
+        const f = monthlyVideoData(e, deps).beats.m_feature!;
+        expect(f.angle).toBe("streak");
+        expect(f.reel).toHaveLength(8);
+        expect(f.reel.every((m) => m.outcome === "win")).toBe(true);
+        expect(f.reel.map((m) => [m.heroId, m.kda.kills, m.kda.deaths, m.kda.assists])).toEqual(
+            streakRun(e).map((m) => [m[1], m[3], m[4], m[5]]),
+        );
+        for (const m of f.reel) expect(m.date).toMatch(/\d/);
+    });
+
+    it("logs the comeback as its losses, then the run that turned it", () => {
+        const e = { ...personaEdition("P3", "monthly"), mates: [], nemesis: null };
+        const f = monthlyVideoData(e, deps).beats.m_feature!;
+        expect(f.angle).toBe("losing_then_winning");
+        const [losses, wins, of] = f.stats.map((s) => s.value);
+        expect(f.reel).toHaveLength(losses! + of!);
+        expect(f.reel.slice(0, losses).every((m) => m.outcome === "loss")).toBe(true);
+        expect(f.reel.slice(losses).filter((m) => m.outcome === "win")).toHaveLength(wins!);
+    });
+
+    it("keeps the game log empty when the edition has no tape", () => {
+        const e = { ...personaEdition("P1", "monthly"), rank: null, tape: undefined };
+        expect(monthlyVideoData(e, deps).beats.m_feature?.reel ?? []).toEqual([]);
+    });
+
+    it("labels the best game as the month's best, with the month, whatever its grade", () => {
+        const shot = monthlyVideoData(personaEdition("P2", "monthly"), deps).beats.m_shot!;
+        expect(shot.label.params.month).toBe("October");
     });
 
     it("leaves a nameless player's slate without a name", () => {

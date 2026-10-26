@@ -116,8 +116,9 @@ describe("shot timing", () => {
     it("fires the shutter on the second bar line, as the sound cue does, and lands the rest after it in order", () => {
         const t = shotTimes(BAR, 3 * BAR);
         expect(t.shutter).toBeCloseTo(BAR, 9);
+        expect(t.travel[1]).toBeLessThan(t.pencil[1]);
         expect(t.pencil[1]).toBeLessThan(t.shutter);
-        const order = [t.shutter, t.stamp, t.kda, t.grade, t.worth, t.caption];
+        const order = [t.shutter, t.pull[0], t.kda, t.worth, t.caption];
         expect([...order].sort((a, b) => a - b)).toEqual(order);
         expect(t.caption).toBeLessThan(3 * BAR * 0.85);
     });

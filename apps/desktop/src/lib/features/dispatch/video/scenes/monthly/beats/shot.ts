@@ -1,89 +1,83 @@
 import { flashAt } from "../../../kit/beat";
-import { feathered } from "../../../kit/bitmap";
-import { countUp } from "../../../kit/count";
 import { clamp01, easeInOut, easeOutCubic, lerp } from "../../../kit/ease";
 import { setFont, type TextStyle } from "../../../kit/text";
-import type { Bitmap, Ctx, Rect } from "../../../kit/types";
+import type { Ctx, Rect } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
 import type { ShotData } from "../data";
+import { monthlyPlan } from "../plan";
+import { folioOf, pagePhoto } from "./feature";
 import {
-    BODY_PX,
-    coverRect,
+    credit,
+    deckStyle,
+    drawSpread,
+    headlineBlock,
+    headStyle,
+    INK,
+    kicker,
+    MARGIN,
+    MUTED,
+    PAGE_BODY,
+    PAGE_H,
+    PAGE_W,
+    pagePoint,
+    readShift,
+    rule,
+    spreadLayout,
+    type PageCamera,
+    type Spread,
+} from "./print";
+import {
     drawBlock,
     fitBlock,
     flashOverlay,
     formatNumber,
     grain,
     greasePencil,
-    HEADLINE_PX,
-    heroPhoto,
     image,
     imageKeys,
-    mix,
     netWorthCopy,
     PENCIL,
-    photoPrint,
     say,
     sheetLayout,
     stage,
-    studioSet,
-    vignette,
-    withCamera,
     type MonthlyDraw,
     type Stage,
 } from "./studio";
-import { drawSheet, sheetPan, takesGeometry } from "./takes";
+import { onScreen, paintTakes, takesGeometry, takesView, type SheetView } from "./takes";
 
 /** When each part of the shot lands, in seconds into the beat; the shutter is on the second bar line. */
 export function shotTimes(bar: number, span: number) {
     const shutter = Math.min(bar, span * 0.4);
     const rest = span - shutter;
     return {
-        pencil: [shutter * 0.08, shutter * 0.78] as const,
+        /** The loupe travels from where the takes left it to the best game's frame. */
+        travel: [0, shutter * 0.36] as const,
+        pencil: [shutter * 0.3, shutter * 0.7] as const,
         shutter,
-        blowUp: 0.35,
-        stamp: shutter + rest * 0.1,
-        kda: shutter + rest * 0.18,
-        grade: shutter + rest * 0.32,
+        /** The photograph fills the frame, then the camera pulls back to the page it is printed on. */
+        pull: [shutter + rest * 0.12, shutter + rest * 0.42] as const,
+        kda: shutter + rest * 0.3,
         worth: shutter + rest * 0.42,
-        caption: shutter + rest * 0.52,
+        caption: shutter + rest * 0.5,
     };
 }
 
-export interface ShotLayout {
-    /** The hero's cut-out. */
-    art: Rect;
-    stamp: { x: number; y: number };
-    grade: { x: number; y: number; r: number };
-    /** The stack of K/D/A, net worth and caption, laid from `text.y` down. */
-    text: Rect;
-}
+const spans = new WeakMap<MonthlyDraw, Map<number, number>>();
 
-export function shotLayout(st: Stage): ShotLayout {
-    const { u, m, w, h, safe } = st;
-    if (st.aspect === "wide") {
-        const artH = h * 1.08;
-        const artW = (artH * 280) / 380;
-        return {
-            art: { x: w * 0.27 - artW / 2, y: h * 0.02, w: artW, h: artH },
-            stamp: { x: w * 0.53 + 200 * u, y: h * 0.17 },
-            grade: { x: w * 0.46, y: h * 0.24, r: 110 * u },
-            text: { x: w * 0.53, y: h * 0.34, w: w * 0.47 - m, h: h * 0.6 },
-        };
+/** Seconds the takes beat runs on this export's grid, so the shot can start from its last frame. */
+function takesSpan(d: MonthlyDraw, bars: number, bar: number): number | null {
+    let byBars = spans.get(d);
+    if (!byBars) spans.set(d, (byBars = new Map()));
+    if (!byBars.has(bars)) {
+        const plan = monthlyPlan(d.video.cast, bars);
+        const i = plan.findIndex((b) => b.id === "m_shot");
+        byBars.set(bars, plan[i - 1]?.id === "m_takes" ? plan[i - 1]!.bars : -1);
     }
-    const tall = st.aspect === "tall";
-    const artW = (tall ? 980 : 860) * u;
-    const artH = (artW * 380) / 280;
-    const textH = (tall ? 360 : 380) * u;
-    return {
-        art: { x: (w - artW) / 2, y: safe.top + (tall ? 120 : 40) * u, w: artW, h: artH },
-        stamp: { x: m + 230 * u, y: safe.top + 80 * u },
-        grade: { x: w - m - 120 * u, y: safe.top + (tall ? 270 : 230) * u, r: 115 * u },
-        text: { x: m, y: (tall ? safe.bottom - 10 * u : h - m) - textH, w: w - 2 * m, h: textH },
-    };
+    const n = byBars.get(bars)!;
+    return n > 0 ? n * bar : null;
 }
 
-/** The circled frame on the sheet, then the flash, then the frame blown up to a full photograph. */
+/** The circled frame on the sheet, the shutter, then the frame as the month's best game, printed on its page. */
 export function draw(
     ctx: Ctx,
     local: number,
@@ -97,11 +91,15 @@ export function draw(
     const st = stage(size);
     const times = shotTimes(assets.timing.barSeconds, span);
     if (local < times.shutter) circle(ctx, st, local, times, data, d, assets);
-    else photo(ctx, st, local, times, data, d, assets);
-    grain(ctx, st, local, 0.08);
+    else page(ctx, st, local, times, data, d, assets);
+    grain(ctx, st, local, 0.06);
     flashOverlay(ctx, st, flashAt(local, times.shutter));
 }
 
+/**
+ * One continuous camera from the takes: the loupe leaves the busiest day for the best game's frame, the pencil
+ * rings it while the loupe lifts away, and the camera keeps pushing in until the shutter.
+ */
 function circle(
     ctx: Ctx,
     st: Stage,
@@ -112,54 +110,87 @@ function circle(
     assets: SceneAssets,
 ): void {
     const takes = d.video.beats.m_takes;
-    studioSet(ctx, st, d.palette, { backdrop: image(assets, imageKeys.backdrop), light: 0.55, art: 0.35 });
-    ctx.fillStyle = "rgb(0 0 0 / 0.35)";
-    ctx.fillRect(0, 0, st.w, st.h);
-    const push = easeInOut(local / times.shutter);
-    let target: Rect;
-    let paint: () => void;
-    if (takes && data.frame !== null) {
-        const lay = takesGeometry(ctx, st, d, assets)!.lay;
-        const { sheet: area, cols } = lay;
-        const frames = sheetLayout(takes.frames.length, area, cols).frames;
-        // The sheet starts where the takes left it, panned to the busiest day.
-        const pan = sheetPan(lay, frames[takes.loupe] ?? frames[0]!, 1);
-        const at = frames[data.frame]!;
-        target = { ...at, y: at.y + pan };
-        paint = () =>
-            drawSheet(ctx, st, d, assets, takes.frames, area, cols, { develop: () => 1, rot: -0.012, dy: pan });
-    } else {
-        // No sheet to circle on: one loose print on the table.
-        const pw = Math.min(st.w, st.h) * 0.55;
-        target = { x: (st.w - pw) / 2, y: (st.h - pw / 1.5) / 2, w: pw, h: pw / 1.5 };
-        paint = () =>
-            photoPrint(
-                ctx,
-                target,
-                (r) => heroPhoto(ctx, r, heroArt(assets, data.heroId), d.palette.glow, { fy: 0.12 }),
-                {
-                    border: 16 * st.u,
-                    rot: -0.03,
-                    shadow: 30 * st.u,
-                },
-            );
+    const bar = assets.timing.barSeconds;
+    const geo = takes && data.frame !== null ? takesGeometry(ctx, st, d, assets) : null;
+    if (!takes || !geo || data.frame === null) {
+        loosePrint(ctx, st, local, times, data, d, assets);
+        return;
     }
-    const tx = target.x + target.w / 2;
-    const ty = target.y + target.h / 2;
-    const zoom = lerp(1, Math.min(3, (st.w * 0.42) / target.w), push);
-    const cam = { ox: tx, oy: ty, zoom, dx: (st.w / 2 - tx) * push, dy: (st.h * 0.45 - ty) * push };
-    withCamera(ctx, cam, () => {
-        paint();
-        const k = (local - times.pencil[0]) / (times.pencil[1] - times.pencil[0]);
-        greasePencil(ctx, tx, ty, target.w * 0.72, target.h * 0.82, data.heroId + 17, k, Math.max(4, target.w * 0.06));
+    const prior = takesSpan(d, assets.timing.bars, bar);
+    // From the takes' last frame; when the shot opens the video, from the sheet already landed.
+    const from = takesView(st, geo, takes.frames.length, takes.loupe, prior ?? 4 * bar, prior ?? 4 * bar, bar);
+    const frames = sheetLayout(takes.frames.length, geo.lay.sheet, geo.lay.cols).frames;
+    const f = frames[data.frame]!;
+    const target = { x: f.x + f.w / 2, y: f.y + f.h / 2 + from.pan };
+    const travel = easeInOut((local - times.travel[0]) / (times.travel[1] - times.travel[0]));
+    const push = easeInOut((local - times.pencil[0]) / (times.shutter - times.pencil[0]));
+    const end = Math.min(3.2, (st.w * (st.aspect === "tall" ? 0.62 : 0.42)) / f.w);
+    const focus = { x: lerp(from.focus.x, target.x, travel), y: lerp(from.focus.y, target.y, travel) };
+    const centre = { x: st.w / 2, y: st.aspect === "tall" ? st.h * 0.42 : st.h / 2 };
+    const at = {
+        x: lerp(lerp(from.at.x, target.x, travel), centre.x, push),
+        y: lerp(lerp(from.at.y, target.y, travel), centre.y, push),
+    };
+    const zoom = lerp(from.zoom, end, push ** 1.6);
+    // Never pan past the sheet's edge: the light table round it would show.
+    const pad = 22 * st.u;
+    const sx0 = geo.lay.sheet.x - pad;
+    const sx1 = geo.lay.sheet.x + geo.lay.sheet.w + pad;
+    const sy0 = geo.lay.sheet.y - pad + from.pan;
+    const keep = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+    at.x = keep(at.x, st.w - (sx1 - focus.x) * zoom, (focus.x - sx0) * zoom);
+    at.y = Math.min(at.y, Math.max(from.at.y, (focus.y - sy0) * zoom));
+    const v: SheetView = { ...from, focus, at, zoom, words: 1 - clamp01(local / 0.3) };
+    if (from.lens) {
+        const s = onScreen(v, target);
+        const lift = easeInOut((local - times.pencil[0] - 0.15) / 0.45);
+        const lx = lerp(lerp(from.lens.x, s.x, travel), st.w + from.lens.r * 1.6, lift);
+        const ly = lerp(lerp(from.lens.y, s.y, travel), s.y + st.h * 0.3, lift);
+        v.lens = {
+            x: lx,
+            y: ly,
+            r: from.lens.r,
+            look: { x: lerp(from.lens.look.x, s.x, travel), y: lerp(from.lens.look.y, s.y, travel) },
+        };
+    }
+    paintTakes(ctx, st, d, assets, geo, v, 99, () => {
+        const pk = (local - times.pencil[0]) / (times.pencil[1] - times.pencil[0]);
+        greasePencil(ctx, target.x, target.y, f.w * 0.72, f.h * 0.84, data.heroId + 17, pk, Math.max(4, f.w * 0.06));
+        note(
+            ctx,
+            say(d, data.label),
+            target.x - f.w * 0.55,
+            target.y + f.h * 1.05,
+            f.h * 0.4,
+            f.w * 1.3,
+            assets.fonts.pulp,
+            clamp01((pk - 0.6) / 0.4),
+        );
     });
 }
 
-function heroArt(assets: SceneAssets, heroId: number): Bitmap | undefined {
-    return image(assets, imageKeys.gloat(heroId)) ?? image(assets, imageKeys.hero(heroId));
+/** The editor's note beside the circle, in the same red pencil. */
+function note(ctx: Ctx, text: string, x: number, y: number, px: number, maxW: number, family: string, k: number): void {
+    if (k <= 0 || !text) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.12);
+    setFont(ctx, { family, weight: 700, px } as TextStyle);
+    const fit = ctx.measureText(text).width;
+    if (fit > maxW) setFont(ctx, { family, weight: 700, px: (px * maxW) / fit } as TextStyle);
+    ctx.fillStyle = PENCIL;
+    ctx.globalAlpha = 0.92;
+    ctx.textBaseline = "middle";
+    const w = ctx.measureText(text).width;
+    ctx.beginPath();
+    ctx.rect(0, -px, w * k, px * 2);
+    ctx.clip();
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
 }
 
-function photo(
+/** No sheet to circle on: one loose print on the desk, ringed, then pushed in on. */
+function loosePrint(
     ctx: Ctx,
     st: Stage,
     local: number,
@@ -168,171 +199,164 @@ function photo(
     d: MonthlyDraw,
     assets: SceneAssets,
 ): void {
-    const u = st.u;
-    const fonts = assets.fonts;
-    const since = local - times.shutter;
-    const lay = shotLayout(st);
-    const blow = easeOutCubic(since / times.blowUp);
-    const border = 34 * u;
-    const scale = lerp(0.82, 1, blow);
-    const full = { x: -border, y: -border, w: st.w + 2 * border, h: st.h + 2 * border };
-    const cx = st.w / 2;
-    const cy = st.h / 2;
-    ctx.fillStyle = "#0b0a09";
+    ctx.fillStyle = "#14110e";
     ctx.fillRect(0, 0, st.w, st.h);
-    withCamera(ctx, { ox: cx, oy: cy, zoom: scale, rot: lerp(0.05, 0, blow) }, () =>
-        photoPrint(
-            ctx,
-            full,
-            () => {
-                const backdrop =
-                    image(assets, imageKeys.heroBackdrop(data.heroId)) ?? image(assets, imageKeys.backdrop);
-                studioSet(ctx, st, d.palette, { backdrop, light: 1, drift: since / 4, art: 0.8 });
-                const art = heroArt(assets, data.heroId);
-                const kb = 1.07 - 0.07 * easeOutCubic(since / 3);
-                if (art) {
-                    const r = lay.art;
-                    const c = coverRect(art.width, art.height, r);
-                    withCamera(ctx, { ox: r.x + r.w / 2, oy: r.y + r.h, zoom: kb }, () => {
-                        ctx.save();
-                        ctx.shadowColor = "rgb(0 0 0 / 0.55)";
-                        ctx.shadowBlur = 60 * u;
-                        ctx.shadowOffsetX = 24 * u;
-                        ctx.drawImage(feathered(art), c.x, c.y, c.w, c.h);
-                        ctx.restore();
-                    });
-                }
-                scrim(ctx, st, lay);
-                vignette(ctx, st, 0.45);
-            },
-            { border, shadow: 50 * u, sheen: clamp01(since / 1.2) },
-        ),
-    );
-
-    stampLabel(ctx, st, say(d, data.label), lay, since - (times.stamp - times.shutter), fonts.display);
-    if (data.grade) grade(ctx, st, data, lay, local - times.grade, d, fonts.display, assets.timing.barSeconds);
-
-    const kdaStyle = { family: fonts.display, weight: 700, fill: "#ffffff" };
-    const k = data.kda;
-    const t0 = times.kda;
-    const parts = [k.kills, k.deaths, k.assists].map((v) => formatNumber(d, countUp(v, local, t0, t0 + 0.6)));
-    const kdaText = parts.join(" / ");
-    const finalText = [k.kills, k.deaths, k.assists].map((v) => formatNumber(d, v)).join(" / ");
-    const kda = fitBlock(ctx, finalText, kdaStyle, {
-        px: 170 * u,
-        floor: HEADLINE_PX * u,
-        maxW: lay.text.w,
-        maxLines: 1,
-    });
-    const kdaFit = { ...kda, lines: [kdaText] };
-
-    const worthStyle = { family: fonts.body, weight: 600, fill: d.palette.accent };
-    const worth = data.netWorth
-        ? fitBlock(ctx, say(d, netWorthCopy(formatNumber(d, data.netWorth.value))), worthStyle, {
-              px: 60 * u,
-              floor: BODY_PX * u,
-              maxW: lay.text.w,
-              maxLines: 1,
-          })
-        : null;
-    const capStyle = { family: fonts.body, weight: 600, fill: "#f4efe4" };
-    const cap = fitBlock(ctx, say(d, data.caption), capStyle, {
-        px: 52 * u,
-        floor: BODY_PX * u,
-        maxW: lay.text.w,
-        maxLines: 2,
-    });
-    const gap = 14 * u;
-    const total = kda.height + (worth ? worth.height + gap : 0) + gap + cap.height;
-    let y = st.aspect === "wide" ? lay.text.y : lay.text.y + lay.text.h - total;
-    const show = (at: number) => clamp01((local - at) / 0.35);
-    if (local >= t0) drawBlock(ctx, kdaFit, lay.text.x, y, kdaStyle, { reveal: show(t0) });
-    y += kda.height + gap;
-    if (worth) {
-        drawBlock(ctx, worth, lay.text.x, y, worthStyle, { reveal: show(times.worth) });
-        y += worth.height + gap;
-    }
-    drawBlock(ctx, cap, lay.text.x, y, capStyle, { reveal: show(times.caption) });
-}
-
-/** Darkens behind the words so they read on any art. */
-function scrim(ctx: Ctx, st: Stage, lay: ShotLayout): void {
-    if (st.aspect === "wide") {
-        const g = ctx.createLinearGradient(lay.text.x - 200 * st.u, 0, st.w, 0);
-        g.addColorStop(0, "rgb(0 0 0 / 0)");
-        g.addColorStop(0.35, "rgb(0 0 0 / 0.55)");
-        g.addColorStop(1, "rgb(0 0 0 / 0.7)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, st.w, st.h);
-        return;
-    }
-    const g = ctx.createLinearGradient(0, lay.text.y - 260 * st.u, 0, lay.text.y + lay.text.h);
-    g.addColorStop(0, "rgb(0 0 0 / 0)");
-    g.addColorStop(0.5, "rgb(0 0 0 / 0.6)");
-    g.addColorStop(1, "rgb(0 0 0 / 0.78)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, lay.text.y - 260 * st.u, st.w, st.h);
-}
-
-function stampLabel(ctx: Ctx, st: Stage, label: string, lay: ShotLayout, k: number, family: string): void {
-    if (k < 0) return;
-    const e = clamp01(k / 0.14);
-    const scale = 1.5 - 0.5 * e;
-    const px = 84 * st.u;
+    const pw = Math.min(st.w, st.h) * 0.55;
+    const r = { x: (st.w - pw) / 2, y: (st.h - pw / 1.5) / 2, w: pw, h: pw / 1.5 };
+    const push = easeInOut(local / times.shutter);
+    const zoom = lerp(1, 1.8, push);
     ctx.save();
-    setFont(ctx, { family, weight: 700, px, track: 0.08 } as TextStyle, px);
-    const maxW = st.aspect === "wide" ? st.w * 0.3 : st.w * 0.55;
-    let w = ctx.measureText(label).width;
-    let size = px;
-    if (w > maxW) {
-        size = Math.max(HEADLINE_PX * st.u * 0.75, (px * maxW) / w);
-        setFont(ctx, { family, weight: 700, px: size, track: 0.08 } as TextStyle, size);
-        w = ctx.measureText(label).width;
-    }
-    const pad = size * 0.35;
-    const bw = w + 2 * pad;
-    const bh = size * 1.35;
-    const x = st.aspect === "wide" ? lay.text.x + bw / 2 : Math.max(st.m + bw / 2, lay.stamp.x);
-    ctx.translate(x, lay.stamp.y);
-    ctx.rotate(-0.06);
-    ctx.scale(scale, scale);
-    ctx.globalAlpha = Math.min(1, e * 1.4);
-    ctx.fillStyle = PENCIL;
-    ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.strokeStyle = "rgb(255 255 255 / 0.85)";
-    ctx.lineWidth = size * 0.05;
-    ctx.strokeRect(-bw / 2 + size * 0.12, -bh / 2 + size * 0.12, bw - size * 0.24, bh - size * 0.24);
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, size * 0.04, size * 0.06);
+    ctx.translate(st.w / 2, st.h / 2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-st.w / 2, -st.h / 2);
+    ctx.fillStyle = "#fbf8f1";
+    ctx.fillRect(r.x - 14, r.y - 14, r.w + 28, r.h + 28);
+    pagePhoto(ctx, r, d, assets, data.heroId, { zoom: 1.1 });
+    const pk = (local - times.pencil[0]) / (times.pencil[1] - times.pencil[0]);
+    greasePencil(ctx, r.x + r.w / 2, r.y + r.h / 2, r.w * 0.62, r.h * 0.7, data.heroId + 17, pk, 8 * st.u);
     ctx.restore();
 }
 
-/** The grade as a teacher marks it: the letter, then the red circle drawn round it. */
-function grade(
+/** The photograph on the page: on 9:16 across the top of the right page, elsewhere the whole left page. */
+function photoRect(st: Stage): Rect {
+    return st.aspect === "tall" ? { x: 0, y: 0, w: PAGE_W, h: 600 } : { x: 0, y: 0, w: PAGE_W, h: PAGE_H };
+}
+
+/** The camera that shows the photograph filling the frame at `k` = 0 and the whole spread at 1. */
+function pullCamera(st: Stage, sp: Spread, k: number, shift: number): PageCamera {
+    const page = st.aspect === "tall" ? sp.right : sp.left;
+    const ph = photoRect(st);
+    const a = pagePoint(page, ph.x, ph.y);
+    const b = pagePoint(page, ph.x + ph.w, ph.y + ph.h);
+    const cx = (a.x + b.x) / 2;
+    const cy = (a.y + b.y) / 2;
+    const fill = Math.max(st.w / (b.x - a.x), st.h / (b.y - a.y)) * 1.02;
+    const zoom = Math.exp(lerp(Math.log(fill), 0, k));
+    const sx = st.w / 2;
+    const sy = st.h / 2;
+    return { ox: cx, oy: cy, zoom, dx: lerp(sx - cx, 0, k), dy: lerp(sy - cy, shift, k), rot: 0 };
+}
+
+function page(
     ctx: Ctx,
     st: Stage,
+    local: number,
+    times: ReturnType<typeof shotTimes>,
     data: ShotData,
-    lay: ShotLayout,
-    k: number,
     d: MonthlyDraw,
-    family: string,
-    bar: number,
+    assets: SceneAssets,
 ): void {
-    if (k < 0) return;
-    const { x, y, r } = lay.grade;
-    const px = 190 * st.u;
-    const e = easeOutCubic(k / 0.25);
-    ctx.save();
-    ctx.globalAlpha = e;
-    setFont(ctx, { family, weight: 700, px } as TextStyle, px);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.shadowColor = "rgb(0 0 0 / 0.5)";
-    ctx.shadowBlur = 20 * st.u;
-    ctx.fillStyle = mix(d.palette.accent, "#ffffff", 0.1);
-    ctx.fillText(data.grade!, x, y + px * 0.05);
-    ctx.restore();
-    greasePencil(ctx, x, y, r, r * 0.86, data.heroId + 31, clamp01((k - 0.1) / (bar * 0.45)), 10 * st.u);
+    const sp = spreadLayout(st);
+    const fonts = assets.fonts;
+    const labels = d.print?.labels;
+    const since = local - times.shutter;
+    const pull = easeInOut((local - times.pull[0]) / (times.pull[1] - times.pull[0]));
+    const tall = st.aspect === "tall";
+    const w = PAGE_W - 2 * MARGIN;
+    const backdrop = image(assets, imageKeys.heroBackdrop(data.heroId)) ?? image(assets, imageKeys.backdrop);
+    const name = (d.heroes?.[data.heroId]?.name ?? "").toUpperCase();
+    const photo = (c: Ctx) => {
+        const r = photoRect(st);
+        pagePhoto(c, r, d, assets, data.heroId, { zoom: 1.12 - 0.08 * easeOutCubic(since / 3), fy: 0.06, backdrop });
+        credit(
+            c,
+            d.print?.brand ? `${d.print.brand} Studio` : "",
+            r.x + r.w - 40,
+            r.y + r.h - 40,
+            fonts.display,
+            "rgb(255 255 255 / 0.75)",
+        );
+    };
+
+    // The words: kicker, the hero, the line, the stat strip and the caption, laid from `top`.
+    const top = tall ? 650 : 110;
+    const head = headlineBlock(ctx, name, fonts.body, w, 1, tall ? 170 : 200);
+    const kda = [data.kda.kills, data.kda.deaths, data.kda.assists].map((v) => formatNumber(d, v));
+    const cap = fitBlock(
+        ctx,
+        say(d, data.caption),
+        deckStyle(fonts.body),
+        { px: 64, floor: PAGE_BODY, maxW: w, maxLines: tall ? 2 : 3 },
+        1.12,
+    );
+    const headTop = top + PAGE_BODY;
+    const kdaTop = headTop + head.height + 20;
+    const kdaH = tall ? 140 : 210;
+    const capTop = kdaTop + kdaH + (tall ? 30 : 100);
+    const shift = readShift(st, sp, top - 20, Math.min(PAGE_H - 120, capTop + cap.height));
+    const words = (c: Ctx) => {
+        const show = (at: number) => clamp01((local - at) / 0.35);
+        kicker(c, labels?.bestGame ?? "", MARGIN, top, w, fonts.display, d.palette.ink, show(times.pull[0]));
+        drawBlock(c, head, MARGIN, headTop, headStyle(fonts.body, INK), { reveal: show(times.pull[0] + 0.1) });
+        statStrip(c, kda, labels, data, d, fonts.display, fonts.body, kdaTop, kdaH, show(times.kda));
+        rule(c, MARGIN, capTop - 24, w * show(times.caption), INK, 3);
+        drawBlock(c, cap, MARGIN, capTop, deckStyle(fonts.body), { reveal: show(times.caption) });
+        if (data.netWorth) {
+            const worth = say(d, netWorthCopy(formatNumber(d, data.netWorth.value)));
+            const k = show(times.worth);
+            if (k > 0 && capTop + cap.height + 90 < PAGE_H - 110) {
+                c.save();
+                c.globalAlpha = k;
+                setFont(c, { family: fonts.display, weight: 700, px: PAGE_BODY * 0.8, track: 0.12 } as TextStyle);
+                c.fillStyle = MUTED;
+                c.textBaseline = "top";
+                c.fillText(worth.toUpperCase(), MARGIN, capTop + cap.height + 30, w);
+                c.restore();
+            }
+        }
+    };
+    drawSpread(ctx, st, sp, d, assets, {
+        left: (c) => {
+            if (!tall) photo(c);
+        },
+        right: (c) => {
+            if (tall) photo(c);
+            words(c);
+        },
+        folio: folioOf(d, "m_shot"),
+        section: labels?.bestGame ?? "",
+        cam: pullCamera(st, sp, pull, shift),
+    });
+}
+
+/** K, D and A as the print sets them: three numbers with their labels under, and the grade when there is one. */
+function statStrip(
+    c: Ctx,
+    kda: string[],
+    labels: NonNullable<MonthlyDraw["print"]>["labels"],
+    data: ShotData,
+    d: MonthlyDraw,
+    display: string,
+    serif: string,
+    top: number,
+    h: number,
+    k: number,
+): void {
+    if (k <= 0) return;
+    const names = [labels?.kills ?? "", labels?.deaths ?? "", labels?.assists ?? ""];
+    const cols = data.grade ? 4 : 3;
+    const cw = (PAGE_W - 2 * MARGIN) / cols;
+    const px = Math.min(h * 0.72, 130);
+    c.save();
+    c.globalAlpha = k;
+    kda.forEach((v, i) => {
+        const x = MARGIN + i * cw;
+        setFont(c, { family: serif, weight: 600, px } as TextStyle);
+        c.fillStyle = INK;
+        c.textBaseline = "alphabetic";
+        c.fillText(v, x, top + px * 0.9, cw - 20);
+        setFont(c, { family: display, weight: 700, px: 34, track: 0.14 } as TextStyle);
+        c.fillStyle = MUTED;
+        c.fillText(names[i]!.toUpperCase(), x, top + px * 0.9 + 46, cw - 20);
+    });
+    if (data.grade) {
+        const x = MARGIN + 3 * cw;
+        setFont(c, { family: serif, weight: 600, px } as TextStyle);
+        c.fillStyle = d.palette.ink;
+        c.fillText(data.grade, x, top + px * 0.9, cw - 20);
+        setFont(c, { family: display, weight: 700, px: 34, track: 0.14 } as TextStyle);
+        c.fillStyle = MUTED;
+        c.fillText((labels?.grade ?? "").toUpperCase(), x, top + px * 0.9 + 46, cw - 20);
+    }
+    c.restore();
 }

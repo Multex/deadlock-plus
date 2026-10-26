@@ -60,7 +60,10 @@ const HOMES: Partial<Record<SignalId, readonly Placed[]>> = {
     mvp: ["m_interview", "m_cover"],
 };
 
-const ROOM: Record<Placed, number> = { m_takes: 1, m_shot: 1, m_wardrobe: 1, m_interview: 3, m_feature: 1, m_cover: 3 };
+// Two questions: each needs its question read and its answer held for at least two and a half seconds.
+const ROOM: Record<Placed, number> = { m_takes: 1, m_shot: 1, m_wardrobe: 1, m_interview: 2, m_feature: 1, m_cover: 3 };
+/** Bars each interview question takes: the question, then its answer held long enough to read. */
+export const BARS_PER_QUESTION = 2.5;
 const MIN_TOPICS = 2;
 /** `vs_last` also fires on a winrate move; the Monthly only words a move in the match count this big. */
 export const VS_LAST_SHARE = 0.2;
@@ -190,7 +193,7 @@ const BASE: Record<MonthlyBeatId, number> = {
     m_takes: 2,
     m_shot: 3,
     m_wardrobe: 3,
-    m_interview: 3,
+    m_interview: 5,
     m_feature: 3,
     m_cover: 4,
     m_stand: 2,
@@ -226,7 +229,9 @@ const PRESENTS: Record<MonthlyBeatId, string> = {
 /** Lays the cast on the bar grid: every bar used, the lead beat at least as long as any other middle beat. */
 export function monthlyPlan(cast: MonthlyCast, bars: number): Beat<MonthlyBeatId>[] {
     const leadId = cast.lead ? cast.beats.find((b) => b.signals[0] === cast.lead)?.id : undefined;
-    const share = new Map(cast.beats.map((b) => [b.id, BASE[b.id]]));
+    const base = (b: CastBeat) =>
+        b.id === "m_interview" ? Math.ceil((b.topics?.length ?? 2) * BARS_PER_QUESTION) : BASE[b.id];
+    const share = new Map(cast.beats.map((b) => [b.id, base(b)]));
     let spare = bars - [...share.values()].reduce((a, b) => a + b, 0);
     const order = [...(leadId ? [leadId] : []), ...GROW.filter((id) => id !== leadId && share.has(id))];
     for (let cap = FIRST_CAP; spare > 0; cap++) {

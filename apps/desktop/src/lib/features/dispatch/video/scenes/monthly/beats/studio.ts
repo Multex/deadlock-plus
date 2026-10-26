@@ -29,6 +29,27 @@ export interface PrintCover {
     issueLine: string;
     barcode: { bars: number[]; digits: string };
     site: string;
+    /** The print's folio line, "Dispatch · November". */
+    folio?: string;
+    /** The print's own page furniture, so the video's pages carry the same labels. */
+    labels?: PrintLabels;
+}
+
+export interface PrintLabels {
+    coverStar: string;
+    newFace: string;
+    bestGame: string;
+    coverStory: string;
+    people: string;
+    rotation: string;
+    kills: string;
+    deaths: string;
+    assists: string;
+    netWorth: string;
+    grade: string;
+    rankStart: string;
+    rankEnd: string;
+    games: string;
 }
 
 /** `draw(ctx, local, span, size, data, assets)`: `local` seconds into the beat, `span` the beat's length. */

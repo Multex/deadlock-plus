@@ -328,10 +328,46 @@ export function draw(
             paintCover(ctx, page, d, assets, clock, st.u, local);
         },
     );
+    viewfinder(ctx, st, 1 - clamp01((local - m.masthead) / 0.35));
     if (st.aspect !== "tall") vignette(ctx, st, 0.4);
     grain(ctx, st, local, 0.06);
     flashOverlay(ctx, st, flashAt(local, m.shutter));
     // A pop of the photographer's flash on every coverline: the shoot is still going.
     const pop = Math.max(0, ...m.lines.map((x) => flashAt(local, x) * 0.18));
     flashOverlay(ctx, st, pop);
+}
+
+/** The photographer's viewfinder over the frame the shutter takes: it clears as the page is set round the photo. */
+function viewfinder(ctx: Ctx, st: Stage, k: number): void {
+    if (k <= 0) return;
+    const u = st.u;
+    const m = 70 * u;
+    const arm = 90 * u;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 6 * u;
+    ctx.shadowColor = "rgb(0 0 0 / 0.5)";
+    ctx.shadowBlur = 8 * u;
+    const top = st.aspect === "tall" ? st.safe.top - 40 * u : m;
+    const bottom = st.aspect === "tall" ? st.safe.bottom + 120 * u : st.h - m;
+    for (const [x, y, dx, dy] of [
+        [m, top, 1, 1],
+        [st.w - m, top, -1, 1],
+        [m, bottom, 1, -1],
+        [st.w - m, bottom, -1, -1],
+    ] as const) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + dy * arm);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + dx * arm, y);
+        ctx.stroke();
+    }
+    const cx = st.w / 2;
+    const cy = (top + bottom) / 2;
+    const f = 60 * u;
+    ctx.strokeStyle = "#7dff8a";
+    ctx.lineWidth = 4 * u;
+    ctx.strokeRect(cx - f, cy - f * 0.7, f * 2, f * 1.4);
+    ctx.restore();
 }

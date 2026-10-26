@@ -20,8 +20,6 @@ import {
     say,
     sheetLayout,
     stage,
-    studioSet,
-    withCamera,
     type Block,
     type MonthlyDraw,
     type SheetLayout,
@@ -104,14 +102,14 @@ export function takesGeometry(ctx: Ctx, st: Stage, d: MonthlyDraw, assets: Scene
     if (!data) return null;
     const wide = st.aspect === "wide";
     const textW = wide ? st.w * 0.4 - st.m * 1.5 : st.w - 2 * st.m;
-    const titleStyle = { family: assets.fonts.display, weight: 700, fill: d.palette.fg };
+    const titleStyle = { family: assets.fonts.body, weight: 600, fill: d.palette.fg, track: -0.02 };
     const title = fitBlock(ctx, say(d, data.title), titleStyle, {
         px: 116 * st.u,
         floor: HEADLINE_PX * st.u,
         maxW: textW,
         maxLines: 2,
     });
-    const captionStyle = { family: assets.fonts.body, weight: 600, fill: "#ffffff" };
+    const captionStyle = { family: assets.fonts.body, weight: 500, fill: "#ffffff", italic: true };
     const caption = fitBlock(ctx, say(d, data.caption), captionStyle, {
         px: 58 * st.u,
         floor: BODY_PX * st.u,
@@ -268,6 +266,153 @@ export function blankRun(frames: readonly TakeFrame[]): [number, number] | null 
     return best;
 }
 
+/**
+ * How the sheet is seen: sheet point `focus` sits at screen point `at`, `zoom` times its size, the lens (if any)
+ * at `lens` looking at screen point `look`, the words at `words` opacity.
+ */
+export interface SheetView {
+    focus: { x: number; y: number };
+    at: { x: number; y: number };
+    zoom: number;
+    lens: { x: number; y: number; r: number; look: { x: number; y: number } } | null;
+    words: number;
+    /** How far the sheet has slid in, 0-1, and the busiest day's pan. */
+    slide: number;
+    pan: number;
+}
+
+export function viewCamera(ctx: Ctx, v: SheetView, paint: () => void): void {
+    ctx.save();
+    ctx.translate(v.at.x, v.at.y);
+    ctx.scale(v.zoom, v.zoom);
+    ctx.translate(-v.focus.x, -v.focus.y);
+    paint();
+    ctx.restore();
+}
+
+/** Where a sheet point lands on screen under `v`. */
+export function onScreen(v: SheetView, p: { x: number; y: number }): { x: number; y: number } {
+    return { x: (p.x - v.focus.x) * v.zoom + v.at.x, y: (p.y - v.focus.y) * v.zoom + v.at.y };
+}
+
+/** The takes' own choreography at `local`: the sheet slides up, pans to the busiest day, the loupe lands on it. */
+export function takesView(
+    st: Stage,
+    geo: TakesGeometry,
+    frames: number,
+    loupeAt: number,
+    local: number,
+    span: number,
+    bar: number,
+): SheetView {
+    const lay = geo.lay;
+    const times = takesTimes(bar, span, frames);
+    const sheetLay = sheetLayout(frames, lay.sheet, lay.cols);
+    const target = sheetLay.frames[loupeAt] ?? sheetLay.frames[0]!;
+    const pan = sheetPan(lay, target, local / times.land);
+    const slide = easeOutCubic(local / times.slide);
+    const t = { x: target.x + target.w / 2, y: target.y + target.h / 2 + pan };
+    const zoom = 1 + 0.07 * easeInOut(local / span);
+    const v: SheetView = { focus: t, at: t, zoom, lens: null, words: 1, slide, pan };
+    if (local >= times.loupeFrom) {
+        const lk = easeInOut((local - times.loupeFrom) / (times.land - times.loupeFrom));
+        const r = Math.min(190 * st.u, target.w * 1.1);
+        const s = onScreen(v, t);
+        const hover = local > times.land ? Math.sin((local - times.land) * 2.2) * 4 * st.u : 0;
+        const lx = lerp(st.w + r, s.x, lk) + hover;
+        const ly = lerp(s.y + st.h * 0.25, s.y, lk) - Math.sin(lk * Math.PI) * 80 * st.u;
+        const kept = keepLens(lx, ly, r + 6 * st.u, lay.lens);
+        v.lens = { x: lerp(lx, kept.x, lk), y: lerp(ly, kept.y, lk), r, look: { x: lx, y: ly } };
+    }
+    return v;
+}
+
+/** The light table with the sheet on it under `v`, the loupe and the words. */
+export function paintTakes(
+    ctx: Ctx,
+    st: Stage,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+    geo: TakesGeometry,
+    v: SheetView,
+    local: number,
+    extra?: () => void,
+): void {
+    const data = d.video.beats.m_takes!;
+    const lay = geo.lay;
+    const bar = assets.timing.barSeconds;
+    const times = takesTimes(bar, 1e9, data.frames.length);
+    lightTable(ctx, st, d);
+    const sheetLay = sheetLayout(data.frames.length, lay.sheet, lay.cols);
+    const develop = (i: number) => (local - times.develop(i)) / times.developFor;
+    const sheet = { rot: lerp(-0.07, -0.012, v.slide), dy: (1 - v.slide) * st.h * 0.5 + v.pan };
+    const paintSheet = () => {
+        drawSheet(ctx, st, d, assets, data.frames, lay.sheet, lay.cols, { develop, ...sheet });
+        const dry = data.signal === "dry_spell" ? blankRun(data.frames) : null;
+        if (dry) {
+            const a = sheetLay.frames[dry[0]];
+            const b = sheetLay.frames[dry[1]];
+            const k = clamp01((local - takesTimes(bar, 1e9, 0).land) / (bar * 0.4));
+            if (a && b && k > 0) {
+                ctx.save();
+                ctx.strokeStyle = PENCIL;
+                ctx.lineWidth = 7 * st.u;
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                const y = a.y + a.h * 0.5 + v.pan;
+                ctx.moveTo(a.x, y);
+                ctx.lineTo(lerp(a.x, b.x + b.w, k), y + (b.y - a.y) * k);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+        extra?.();
+    };
+    viewCamera(ctx, v, paintSheet);
+    if (v.lens)
+        loupe(
+            ctx,
+            v.lens.x,
+            v.lens.y,
+            v.lens.r,
+            2.1,
+            () => {
+                lightTable(ctx, st, d);
+                viewCamera(ctx, v, paintSheet);
+            },
+            v.lens.look,
+        );
+    if (v.words > 0) {
+        ctx.save();
+        ctx.globalAlpha = v.words;
+        ctx.fillStyle = "rgb(12 10 8 / 0.62)";
+        ctx.fillRect(0, 0, st.w, lay.caption.y + geo.caption.height + 28 * st.u);
+        drawBlock(ctx, geo.title, lay.title.x, lay.title.y, geo.titleStyle, {
+            reveal: 0.3 + 0.7 * clamp01(local / (bar * 0.3)),
+        });
+        const capK = clamp01((local - times.land) / (bar * 0.35));
+        if (capK > 0) drawBlock(ctx, geo.caption, lay.caption.x, lay.caption.y, geo.captionStyle, { reveal: capK });
+        ctx.restore();
+    }
+}
+
+/** The editor's light table: an opal glass box glowing from under the sheet, the month's colour at its edges. */
+function lightTable(ctx: Ctx, st: Stage, d: MonthlyDraw): void {
+    const g = ctx.createRadialGradient(
+        st.w * 0.5,
+        st.h * 0.55,
+        0,
+        st.w * 0.5,
+        st.h * 0.55,
+        Math.hypot(st.w, st.h) * 0.6,
+    );
+    g.addColorStop(0, "#f7f3ea");
+    g.addColorStop(0.55, mix("#e9e2d2", d.palette.glow, 0.12));
+    g.addColorStop(1, mix(d.palette.bg, "#000000", 0.55));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, st.w, st.h);
+}
+
 export function draw(
     ctx: Ctx,
     local: number,
@@ -279,88 +424,10 @@ export function draw(
     const data = d.video.beats.m_takes;
     if (!data) return;
     const st = stage(size);
-    const bar = assets.timing.barSeconds;
-    const times = takesTimes(bar, span, data.frames.length);
     const geo = takesGeometry(ctx, st, d, assets)!;
-    const lay = geo.lay;
-
-    studioSet(ctx, st, d.palette, {
-        backdrop: image(assets, imageKeys.backdrop),
-        light: 0.55,
-        art: 0.35,
-        drift: local / span,
-    });
-    ctx.fillStyle = "rgb(0 0 0 / 0.35)";
-    ctx.fillRect(0, 0, st.w, st.h);
-
-    const slideK = easeOutCubic(local / times.slide);
-    const sheetLay = sheetLayout(data.frames.length, lay.sheet, lay.cols);
-    const target = sheetLay.frames[data.loupe] ?? sheetLay.frames[0]!;
-    // The eye runs down the sheet to the busiest day while it develops.
-    const pan = sheetPan(lay, target, local / times.land);
-    const sheet = { rot: lerp(-0.07, -0.012, slideK), dy: (1 - slideK) * st.h * 0.5 + pan };
-    const tx = target.x + target.w / 2;
-    const ty = target.y + target.h / 2 + pan;
-    const develop = (i: number) => (local - times.develop(i)) / times.developFor;
-
-    const push = easeInOut(local / span);
-    const cam = { ox: tx, oy: ty, zoom: 1 + 0.07 * push };
-    const paintSheet = () => {
-        drawSheet(ctx, st, d, assets, data.frames, lay.sheet, lay.cols, { develop, ...sheet });
-        const dry = data.signal === "dry_spell" ? blankRun(data.frames) : null;
-        if (dry) {
-            const a = sheetLay.frames[dry[0]];
-            const b = sheetLay.frames[dry[1]];
-            const k = clamp01((local - times.land) / (bar * 0.4));
-            if (a && b && k > 0) {
-                ctx.save();
-                ctx.strokeStyle = PENCIL;
-                ctx.lineWidth = 7 * st.u;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                const y = a.y + a.h * 0.5 + pan;
-                ctx.moveTo(a.x, y);
-                ctx.lineTo(lerp(a.x, b.x + b.w, k), y + (b.y - a.y) * k);
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-    };
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(lay.view.x, lay.view.y, lay.view.w, lay.view.h);
-    ctx.clip();
-    withCamera(ctx, cam, paintSheet);
-    ctx.restore();
-
-    // The loupe glides in from the lower right and settles on the frame on the bar line, clear of the words.
-    const lk = easeInOut((local - times.loupeFrom) / (times.land - times.loupeFrom));
-    if (local >= times.loupeFrom) {
-        const r = Math.min(190 * st.u, target.w * 1.1);
-        const sx = (tx - cam.ox) * cam.zoom + cam.ox;
-        const sy = (ty - cam.oy) * cam.zoom + cam.oy;
-        const hover = local > times.land ? Math.sin((local - times.land) * 2.2) * 4 * st.u : 0;
-        const lx = lerp(st.w + r, sx, lk) + hover;
-        const ly = lerp(sy + st.h * 0.25, sy, lk) - Math.sin(lk * Math.PI) * 80 * st.u;
-        const kept = keepLens(lx, ly, r + 6 * st.u, lay.lens);
-        loupe(ctx, lerp(lx, kept.x, lk), lerp(ly, kept.y, lk), r, 2.1, () => withCamera(ctx, cam, paintSheet), {
-            x: lx,
-            y: ly,
-        });
-    }
-
-    drawBlock(ctx, geo.title, lay.title.x, lay.title.y, geo.titleStyle, {
-        reveal: 0.3 + 0.7 * clamp01(local / (bar * 0.3)),
-    });
-    const capK = clamp01((local - times.land) / (bar * 0.35));
-    if (capK > 0) {
-        ctx.save();
-        ctx.fillStyle = `rgb(0 0 0 / ${0.4 * capK})`;
-        ctx.fillRect(0, lay.caption.y - 14 * st.u, st.w, geo.caption.height + 28 * st.u);
-        ctx.restore();
-        drawBlock(ctx, geo.caption, lay.caption.x, lay.caption.y, geo.captionStyle, { reveal: capK });
-    }
-    grain(ctx, st, local, 0.08);
+    const v = takesView(st, geo, data.frames.length, data.loupe, local, span, assets.timing.barSeconds);
+    paintTakes(ctx, st, d, assets, geo, v, local);
+    grain(ctx, st, local, 0.06);
 }
 
 /** A lens of radius `r` moved the least it takes to sit wholly inside `area`. */

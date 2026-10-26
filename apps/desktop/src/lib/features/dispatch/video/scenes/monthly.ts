@@ -4,12 +4,13 @@ import type { Ctx } from "../kit/types";
 import type { Scene, SceneAssets, SceneSize } from "../scene";
 import { draw as cover } from "./monthly/beats/cover";
 import { draw as end } from "./monthly/beats/end";
-import { draw as feature } from "./monthly/beats/feature";
+import { draw as feature, PAGED } from "./monthly/beats/feature";
+import { spreadLayout, turnPage } from "./monthly/beats/print";
 import { draw as flash } from "./monthly/beats/flash";
 import { draw as interview } from "./monthly/beats/interview";
 import { draw as shot } from "./monthly/beats/shot";
 import { draw as stand } from "./monthly/beats/stand";
-import type { BeatDraw, MonthlyDraw } from "./monthly/beats/studio";
+import { stage, type BeatDraw, type MonthlyDraw } from "./monthly/beats/studio";
 import { draw as takes } from "./monthly/beats/takes";
 import { draw as wardrobe } from "./monthly/beats/wardrobe";
 import { monthlyPlan, type MonthlyBeatId } from "./monthly/plan";
@@ -27,10 +28,10 @@ const BEATS: Record<MonthlyBeatId, BeatDraw> = {
     m_end: end,
 };
 
-/** Beats that open on their own move (a flash, a slide, a drop); the rest are whipped in from the right. */
-const OWN_ENTRANCE: ReadonlySet<string> = new Set(["m_flash", "m_takes", "m_shot", "m_cover", "m_stand", "m_end"]);
-/** Seconds the whip pan between two beats takes, starting on the bar line. */
-const WHIP = 0.24;
+/** Beats the reader turns a page to reach; the rest open on their own move (a flash, a slide, a drop). */
+const TURNED: ReadonlySet<string> = new Set(["m_feature", "m_wardrobe", "m_interview"]);
+/** Seconds a page takes to turn, from the bar line. */
+const TURN = 0.5;
 
 /** The beat playing at `t`: the first before the start, the last after the end. */
 export function beatAt(
@@ -72,7 +73,29 @@ function paint(
 
 const fallback = placeholderScene({ ground: "#1b3768", accent: "#ffd23f" });
 
-/** The cover shoot: each beat drawn on its own clock, cut or whipped on the bar lines. */
+let buffers: { w: number; h: number; a: OffscreenCanvas; b: OffscreenCanvas } | null = null;
+
+/** Two frame-sized canvases for a page turn; null where there is no OffscreenCanvas. */
+function frameBuffers(size: SceneSize): { a: Ctx; b: Ctx; ca: OffscreenCanvas; cb: OffscreenCanvas } | null {
+    if (typeof OffscreenCanvas === "undefined") return null;
+    if (!buffers || buffers.w !== size.w || buffers.h !== size.h)
+        buffers = {
+            w: size.w,
+            h: size.h,
+            a: new OffscreenCanvas(size.w, size.h),
+            b: new OffscreenCanvas(size.w, size.h),
+        };
+    const a = buffers.a.getContext("2d");
+    const b = buffers.b.getContext("2d");
+    if (!a || !b) return null;
+    for (const c of [a, b]) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, size.w, size.h);
+    }
+    return { a, b, ca: buffers.a, cb: buffers.b };
+}
+
+/** The cover shoot: each beat drawn on its own clock; inside the issue the reader turns the pages between them. */
 export const monthlyScene: Scene = (ctx, t, size, assets) => {
     const d = assets.data as MonthlyDraw | undefined;
     if (!d?.video) return fallback(ctx, t, size, assets);
@@ -82,31 +105,21 @@ export const monthlyScene: Scene = (ctx, t, size, assets) => {
     if (!at) return fallback(ctx, t, size, assets);
     const { beat, index, local, span } = at;
     const prev = plan[index - 1];
-    if (!prev || OWN_ENTRANCE.has(beat.id) || local >= WHIP) {
+    const bufs = prev && TURNED.has(beat.id) && local < TURN ? frameBuffers(size) : null;
+    if (!prev || !bufs) {
         paint(ctx, beat, local, span, size, d, assets);
         return;
     }
-    // A whip pan: the outgoing beat slides off left as the next one comes in from the right, with a streak at the seam.
-    const p = easeInOut(local / WHIP);
-    const seam = size.w * (1 - p);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, seam, size.h);
-    ctx.clip();
-    ctx.translate(-p * size.w, 0);
-    paint(ctx, prev, prev.bars * bar + local, prev.bars * bar, size, d, assets);
-    ctx.restore();
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(seam, 0, size.w - seam, size.h);
-    ctx.clip();
-    ctx.translate(seam, 0);
-    paint(ctx, beat, local, span, size, d, assets);
-    ctx.restore();
-    const streak = ctx.createLinearGradient(seam - size.w * 0.12, 0, seam + size.w * 0.12, 0);
-    streak.addColorStop(0, "rgb(255 255 255 / 0)");
-    streak.addColorStop(0.5, `rgb(255 255 255 / ${0.35 * Math.sin(p * Math.PI)})`);
-    streak.addColorStop(1, "rgb(255 255 255 / 0)");
-    ctx.fillStyle = streak;
-    ctx.fillRect(seam - size.w * 0.12, 0, size.w * 0.24, size.h);
+    // The outgoing page is the sheet that turns; a spread turns its right-hand page, anything else the whole frame.
+    paint(bufs.a, prev, prev.bars * bar - 1e-3, prev.bars * bar, size, d, assets);
+    paint(bufs.b, beat, local, span, size, d, assets);
+    const k = easeInOut(local / TURN);
+    ctx.drawImage(bufs.cb, 0, 0);
+    if (PAGED.has(prev.id)) {
+        const sp = spreadLayout(stage(size));
+        const back = Math.max(0, -Math.cos(Math.PI * k)) * sp.left.w;
+        const keep = { ...sp.left, w: sp.left.w - back };
+        if (keep.w > 0) ctx.drawImage(bufs.ca, keep.x, keep.y, keep.w, keep.h, keep.x, keep.y, keep.w, keep.h);
+        turnPage(ctx, k, bufs.ca, sp.right, bufs.cb, sp.left);
+    } else turnPage(ctx, k, bufs.ca, { x: 0, y: 0, w: size.w, h: size.h }, null, null);
 };

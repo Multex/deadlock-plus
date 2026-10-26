@@ -1,185 +1,120 @@
-import { feathered } from "../../../kit/bitmap";
-import { clamp01, easeInOut, easeOutBack, easeOutCubic, lerp } from "../../../kit/ease";
+import { clamp01, easeInOut, easeOutBack, easeOutCubic } from "../../../kit/ease";
 import { setFont, type TextStyle } from "../../../kit/text";
-import type { Bitmap, Ctx, Rect } from "../../../kit/types";
+import type { Ctx, Rect } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
+import { folioOf, heroTone, pagePhoto } from "./feature";
 import {
-    BODY_PX,
+    credit,
+    deckStyle,
+    drawSpread,
+    headlineBlock,
+    headStyle,
+    INK,
+    kicker,
+    MARGIN,
+    MUTED,
+    PAGE_BODY,
+    PAGE_H,
+    PAGE_W,
+    readShift,
+    spreadLayout,
+} from "./print";
+import {
     drawBlock,
-    drawCover,
     fitBlock,
     formatNumber,
     grain,
-    HEADLINE_PX,
+    greasePencil,
     image,
     imageKeys,
     mix,
     PENCIL,
     say,
     stage,
-    stamp,
-    studioSet,
-    vignette,
-    withCamera,
     type MonthlyDraw,
-    type Stage,
 } from "./studio";
 
-/**
- * Swatch widths along a rail `avail` long with `gap` between them: each at least `minW` (less when the rail is
- * too short for that), the rest shared out by `shares`.
- */
-export function railWidths(shares: number[], avail: number, minW: number, gap: number): number[] {
-    const n = shares.length;
-    if (n === 0) return [];
-    const room = Math.max(0, avail - gap * (n - 1));
-    const floor = Math.min(minW, room / n);
-    const spare = room - floor * n;
-    const total = shares.reduce((a, b) => a + Math.max(0, b), 0);
-    return shares.map((s) => floor + (total > 0 ? (spare * Math.max(0, s)) / total : spare / n));
-}
-
-export interface WardrobeLayout {
-    title: Rect;
-    railY: number;
-    rail: { x0: number; x1: number };
-    /** How far the fabric hangs below the hanger. */
-    drop: number;
-    caption: Rect;
-    /** Where the pulled garment hangs once it is out in front. */
-    front: Rect;
-}
-
-export function wardrobeLayout(st: Stage, titleH: number, capH: number): WardrobeLayout {
-    const { u, m, w, h, safe } = st;
-    const top = st.aspect === "tall" ? safe.top + 16 * u : m * 0.8;
-    const bottom = st.aspect === "tall" ? safe.bottom : h - m * 0.8;
-    const railY = top + titleH + 60 * u;
-    const capY = bottom - capH;
-    const drop = Math.max(260 * u, capY - railY - 120 * u);
-    const fw = st.aspect === "wide" ? w * 0.3 : w * 0.56;
-    const fh = Math.min(drop * 1.05, capY - railY - 40 * u);
-    return {
-        title: { x: m, y: top, w: w - 2 * m, h: titleH },
-        railY,
-        rail: { x0: m * 0.6, x1: w - m * 0.6 },
-        drop,
-        caption: { x: m, y: capY, w: w - 2 * m, h: capH },
-        front: { x: (w - fw) / 2, y: railY - 30 * u, w: fw, h: fh },
-    };
-}
-
-/** A garment hung `local` seconds after the rail stopped at `stop`: a swing that dies away. */
-function swing(local: number, stop: number, i: number): number {
-    const k = local - stop;
-    if (k < 0) return 0.16 * Math.sin(local * 9 + i);
-    return (
-        0.16 * Math.exp(-k * 2.6) * Math.cos(k * (7.5 + i * 0.6) + i * 0.3) + 0.012 * Math.sin(local * 1.7 + i * 1.3)
-    );
-}
-
-function heroColour(d: MonthlyDraw, id: number, i: number): string {
-    const c = d.heroes?.[id]?.colour;
-    if (c) return c;
-    return mix(d.palette.accent, i % 2 ? "#3a3f55" : "#7a5a3a", 0.35 + (i % 3) * 0.15);
-}
-
-/** Fabric: the colour, folds as soft vertical bands, a scalloped hem, and the hero printed across it. */
-function fabric(
-    ctx: Ctx,
-    r: Rect,
-    colour: string,
-    art: Bitmap | undefined,
-    u: number,
-    seed: number,
-    print: number,
-): void {
+/** A cloth swatch cut with pinking shears: the hero's colour, a twill weave and a zigzag edge all round. */
+function swatch(ctx: Ctx, r: Rect, colour: string, seed: number): void {
+    const tooth = 14;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(r.x + r.w * 0.08, r.y);
-    ctx.lineTo(r.x + r.w * 0.92, r.y);
-    ctx.lineTo(r.x + r.w, r.y + r.h * 0.12);
-    const folds = Math.max(2, Math.round(r.w / (70 * u)));
-    for (let i = folds; i >= 0; i--) {
-        const x = r.x + (r.w * i) / folds;
-        const dip = (i % 2 ? 1 : -1) * 14 * u * (0.6 + 0.4 * Math.sin(seed + i));
-        ctx.lineTo(x, r.y + r.h + dip);
-    }
-    ctx.lineTo(r.x, r.y + r.h * 0.12);
+    const edge = (x0: number, y0: number, x1: number, y1: number) => {
+        const len = Math.hypot(x1 - x0, y1 - y0);
+        const n = Math.max(2, Math.round(len / tooth));
+        const nx = -(y1 - y0) / len;
+        const ny = (x1 - x0) / len;
+        for (let i = 0; i <= n; i++) {
+            const k = i / n;
+            const out = i % 2 ? tooth * 0.45 : 0;
+            ctx.lineTo(x0 + (x1 - x0) * k + nx * out, y0 + (y1 - y0) * k + ny * out);
+        }
+    };
+    edge(r.x, r.y, r.x + r.w, r.y);
+    edge(r.x + r.w, r.y, r.x + r.w, r.y + r.h);
+    edge(r.x + r.w, r.y + r.h, r.x, r.y + r.h);
+    edge(r.x, r.y + r.h, r.x, r.y);
     ctx.closePath();
-    ctx.shadowColor = "rgb(0 0 0 / 0.55)";
-    ctx.shadowBlur = 30 * u;
-    ctx.shadowOffsetY = 16 * u;
+    ctx.shadowColor = "rgb(0 0 0 / 0.35)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 8;
     ctx.fillStyle = colour;
     ctx.fill();
     ctx.shadowColor = "transparent";
     ctx.clip();
-    if (art && print > 0) {
-        ctx.globalAlpha = print;
-        ctx.globalCompositeOperation = "luminosity";
-        drawCover(ctx, art, { x: r.x, y: r.y + r.h * 0.08, w: r.w, h: r.h * 0.92 }, 0.5, 0.12);
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = mix(colour, colour, 0, 0.35);
-        ctx.fillRect(r.x, r.y, r.w, r.h + 20 * u);
+    ctx.strokeStyle = "rgb(255 255 255 / 0.12)";
+    ctx.lineWidth = 3;
+    for (let x = r.x - r.h; x < r.x + r.w; x += 9) {
+        ctx.beginPath();
+        ctx.moveTo(x, r.y + r.h);
+        ctx.lineTo(x + r.h, r.y);
+        ctx.stroke();
     }
-    const g = ctx.createLinearGradient(r.x, 0, r.x + r.w, 0);
-    for (let i = 0; i <= folds * 2; i++) {
-        const k = i / (folds * 2);
-        g.addColorStop(k, i % 2 ? "rgb(255 255 255 / 0.13)" : "rgb(0 0 0 / 0.3)");
+    ctx.strokeStyle = "rgb(0 0 0 / 0.12)";
+    for (let x = r.x - r.h + 4; x < r.x + r.w; x += 9) {
+        ctx.beginPath();
+        ctx.moveTo(x, r.y + r.h);
+        ctx.lineTo(x + r.h, r.y);
+        ctx.stroke();
     }
-    ctx.fillStyle = g;
-    ctx.fillRect(r.x, r.y, r.w, r.h + 20 * u);
-    const top = ctx.createLinearGradient(0, r.y, 0, r.y + r.h * 0.25);
-    top.addColorStop(0, "rgb(0 0 0 / 0.35)");
-    top.addColorStop(1, "rgb(0 0 0 / 0)");
-    ctx.fillStyle = top;
-    ctx.fillRect(r.x, r.y, r.w, r.h * 0.25);
+    const light = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+    light.addColorStop(0, "rgb(255 255 255 / 0.22)");
+    light.addColorStop(0.5 + 0.1 * Math.sin(seed), "rgb(255 255 255 / 0)");
+    light.addColorStop(1, "rgb(0 0 0 / 0.2)");
+    ctx.fillStyle = light;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
     ctx.restore();
-}
-
-function hanger(ctx: Ctx, cx: number, railY: number, top: number, halfW: number, u: number): void {
+    // The dressmaker's pin holding it to the page.
     ctx.save();
-    ctx.strokeStyle = "#cfd3d8";
-    ctx.lineWidth = 5 * u;
-    ctx.lineCap = "round";
+    ctx.fillStyle = "#c9c4ba";
+    ctx.fillRect(r.x + r.w * 0.5 - 2, r.y - 6, 4, 34);
+    ctx.fillStyle = PENCIL;
     ctx.beginPath();
-    ctx.arc(cx, railY + 2 * u, 14 * u, Math.PI * 1.05, Math.PI * 2.2);
-    ctx.moveTo(cx + 13 * u, railY + 8 * u);
-    ctx.lineTo(cx, top - 26 * u);
-    ctx.moveTo(cx, top - 26 * u);
-    ctx.lineTo(cx - halfW, top + 4 * u);
-    ctx.lineTo(cx + halfW, top + 4 * u);
-    ctx.closePath();
-    ctx.stroke();
+    ctx.arc(r.x + r.w * 0.5, r.y - 8, 11, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 }
 
-/** The count printed down the garment's edge with the hero's name: the size label. */
-function label(ctx: Ctx, r: Rect, name: string, games: string, family: string, u: number): void {
-    const px = Math.max(BODY_PX * u, Math.min(64 * u, r.w * 0.34));
+/** A small tag on a swatch's corner. */
+function tag(ctx: Ctx, text: string, x: number, y: number, family: string): void {
     ctx.save();
-    ctx.translate(r.x + r.w / 2, r.y + r.h * 0.2);
-    ctx.shadowColor = "rgb(0 0 0 / 0.65)";
-    ctx.shadowBlur = 14 * u;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = "#ffffff";
-    setFont(ctx, { family, weight: 700, px: px * 1.5 } as TextStyle, px * 1.5);
-    ctx.fillText(games, 0, 0);
-    ctx.rotate(-Math.PI / 2);
-    setFont(ctx, { family, weight: 700, px, track: 0.04 } as TextStyle, px);
-    let size = px;
-    const room = r.h * 0.6;
-    const w = ctx.measureText(name.toUpperCase()).width;
-    if (w > room) size = Math.max(BODY_PX * u, (px * room) / w);
-    setFont(ctx, { family, weight: 700, px: size, track: 0.04 } as TextStyle, size);
-    ctx.textAlign = "right";
+    ctx.translate(x, y);
+    ctx.rotate(0.12);
+    setFont(ctx, { family, weight: 700, px: 34, track: 0.12 } as TextStyle);
+    const w = ctx.measureText(text).width + 28;
+    ctx.fillStyle = "#fbf8f1";
+    ctx.shadowColor = "rgb(0 0 0 / 0.3)";
+    ctx.shadowBlur = 8;
+    ctx.fillRect(-w, -26, w, 52);
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = PENCIL;
     ctx.textBaseline = "middle";
-    ctx.fillText(name.toUpperCase(), -px * 1.9, 0);
+    ctx.textAlign = "right";
+    ctx.fillText(text, -14, 2);
     ctx.restore();
 }
 
+/** The fashion pages: the lead look photographed full bleed, the month's rotation pinned up as cloth swatches. */
 export function draw(
     ctx: Ctx,
     local: number,
@@ -191,196 +126,132 @@ export function draw(
     const data = d.video.beats.m_wardrobe;
     if (!data) return;
     const st = stage(size);
-    const u = st.u;
-    const bar = assets.timing.barSeconds;
+    const sp = spreadLayout(st);
     const fonts = assets.fonts;
+    const beat = assets.timing.barSeconds / 4;
+    const labels = d.print?.labels;
+    const w = PAGE_W - 2 * MARGIN;
+    const star = d.video.beats.m_flash.heroId;
+    const lead = data.lead;
+    const leadName = d.heroes?.[lead]?.name ?? "";
+    const leadLabel = lead === star ? labels?.coverStar : (labels?.newFace ?? labels?.coverStar);
 
-    const titleStyle = { family: fonts.display, weight: 700, fill: d.palette.fg };
-    const title = fitBlock(ctx, say(d, data.title), titleStyle, {
-        px: 120 * u,
-        floor: HEADLINE_PX * u,
-        maxW: st.w - 2 * st.m,
-        maxLines: 1,
-    });
-    const capStyle = { family: fonts.display, weight: 700, fill: "#ffffff" };
-    const cap = fitBlock(ctx, say(d, data.caption), capStyle, {
-        px: 76 * u,
-        floor: BODY_PX * u,
-        maxW: st.w - 2 * st.m,
-        maxLines: 2,
-    });
-    const lay = wardrobeLayout(st, title.height, cap.height);
-
-    const slide = Math.min(0.75, bar * 0.5);
-    const pull = Math.min(span * 0.42, bar * 1.25);
-    const pullK = easeInOut((local - pull) / (bar * 0.45));
-    const cam = { ox: st.w / 2, oy: lay.railY + lay.drop / 2, zoom: 1 + 0.04 * (local / span) };
-
-    withCamera(ctx, cam, () => {
-        studioSet(ctx, st, d.palette, {
-            backdrop: image(assets, imageKeys.backdrop),
-            light: 0.7,
-            art: 0.3,
-            drift: local / span,
-        });
-        ctx.fillStyle = "rgb(0 0 0 / 0.25)";
-        ctx.fillRect(0, 0, st.w, st.h);
-    });
-
-    const sw = data.swatches;
-    const widths = railWidths(
-        sw.map((s) => s.share),
-        lay.rail.x1 - lay.rail.x0 - 40 * u,
-        (st.aspect === "tall" ? 120 : 140) * u,
-        18 * u,
+    const title = headlineBlock(ctx, say(d, data.title), fonts.body, w, 2, 150);
+    const deck = fitBlock(
+        ctx,
+        say(d, data.caption),
+        deckStyle(fonts.body),
+        { px: 66, floor: PAGE_BODY, maxW: w, maxLines: 2 },
+        1.1,
     );
-    const slideX = (1 - easeOutCubic(local / slide)) * st.w * 0.9;
-    const hangTop = lay.railY + 60 * u;
+    const titleTop = 90 + PAGE_BODY;
+    const deckTop = titleTop + title.height + 18;
+    const boardTop = deckTop + deck.height + 60;
 
-    withCamera(ctx, cam, () => {
-        ctx.save();
-        const rail = ctx.createLinearGradient(0, lay.railY - 9 * u, 0, lay.railY + 9 * u);
-        rail.addColorStop(0, "#f5f7fa");
-        rail.addColorStop(0.5, "#8b9097");
-        rail.addColorStop(1, "#3b3f45");
-        ctx.fillStyle = rail;
-        ctx.shadowColor = "rgb(0 0 0 / 0.5)";
-        ctx.shadowBlur = 16 * u;
-        ctx.shadowOffsetY = 8 * u;
-        ctx.fillRect(
-            lay.rail.x0 - 200 * u + slideX * 0.3,
-            lay.railY - 9 * u,
-            lay.rail.x1 - lay.rail.x0 + 400 * u,
-            18 * u,
-        );
-        ctx.restore();
-
-        let x = lay.rail.x0 + 20 * u + slideX;
-        sw.forEach((s, i) => {
-            const wdt = widths[i]!;
-            const isLead = s.heroId === data.lead;
-            const cx = x + wdt / 2;
-            x += wdt + 18 * u;
-            if (isLead && pullK > 0.98) return;
-            const len = lay.drop * (0.86 + (0.14 * ((i * 37) % 7)) / 6);
-            const r = { x: cx - wdt / 2, y: hangTop, w: wdt, h: len };
-            ctx.save();
-            ctx.translate(cx, lay.railY);
-            ctx.rotate(swing(local, slide, i));
-            ctx.translate(-cx, -lay.railY);
-            if (isLead) ctx.globalAlpha = 1 - pullK;
-            hanger(ctx, cx, lay.railY, hangTop, wdt * 0.42, u);
-            fabric(ctx, r, heroColour(d, s.heroId, i), image(assets, imageKeys.hero(s.heroId)), u, i * 1.7, 0.55);
-            label(ctx, r, d.heroes?.[s.heroId]?.name ?? "", formatNumber(d, s.games.value), fonts.display, u);
-            if (s.debut && data.debutTag) {
-                stamp(
-                    ctx,
-                    say(d, data.debutTag),
-                    cx,
-                    r.y + r.h * 0.82,
-                    {
-                        family: fonts.display,
-                        px: BODY_PX * u,
-                        colour: PENCIL,
-                        rot: -0.2,
-                        maxW: Math.max(wdt * 1.4, 160 * u),
-                    },
-                    local - (slide + 0.15 + i * 0.12),
-                );
-            }
-            ctx.restore();
-        });
+    const items = data.swatches;
+    const cols = 3;
+    const gap = 30;
+    const tw = (w - gap * (cols - 1)) / cols;
+    const rows = Math.ceil(items.length / cols);
+    const nameH = 70;
+    const room = PAGE_H - 120 - boardTop;
+    const fh = Math.max(110, Math.min(tw * 1.1, room / rows - nameH - 40));
+    const tile = (i: number): Rect => ({
+        x: MARGIN + (i % cols) * (tw + gap),
+        y: boardTop + Math.floor(i / cols) * (fh + nameH + 40),
+        w: tw,
+        h: fh,
     });
+    const leadAt = Math.max(
+        0,
+        items.findIndex((s) => s.heroId === lead),
+    );
+    const pinAt = (i: number) => beat * 2 + i * beat;
+    const ringAt = pinAt(items.length) + beat;
+    const lastRow = tile(items.length - 1);
+    const shift = readShift(st, sp, deckTop, lastRow.y + lastRow.h + nameH);
 
-    if (pullK > 0) {
-        ctx.save();
-        ctx.fillStyle = `rgb(0 0 0 / ${0.55 * pullK})`;
-        ctx.fillRect(0, 0, st.w, st.h);
-        ctx.restore();
-        const idx = Math.max(
-            0,
-            sw.findIndex((s) => s.heroId === data.lead),
-        );
-        const lead = sw[idx]!;
-        const fx = lay.rail.x0 + 20 * u + widths.slice(0, idx).reduce((a, b) => a + b + 18 * u, 0);
-        const f = { x: fx, y: hangTop, w: widths[idx]!, h: lay.drop };
-        const r = {
-            x: lerp(f.x, lay.front.x, pullK),
-            y: lerp(f.y, lay.front.y + 40 * u, pullK),
-            w: lerp(f.w, lay.front.w, pullK),
-            h: lerp(f.h, lay.front.h, pullK),
-        };
-        const sway = Math.sin(local * 2.1) * 0.015 * pullK;
-        withCamera(ctx, { ox: r.x + r.w / 2, oy: r.y, zoom: 1, rot: sway }, () => {
-            hanger(ctx, r.x + r.w / 2, r.y - 60 * u, r.y, r.w * 0.42, u);
-            const art = image(assets, imageKeys.gloat(lead.heroId)) ?? image(assets, imageKeys.hero(lead.heroId));
-            fabric(ctx, r, heroColour(d, lead.heroId, idx), undefined, u, idx * 1.7, 0);
-            if (art) {
-                ctx.save();
-                ctx.globalAlpha = pullK;
-                const ar = { x: r.x + r.w * 0.04, y: r.y + r.h * 0.1, w: r.w * 0.92, h: r.h * 0.86 };
-                ctx.beginPath();
-                ctx.rect(ar.x, ar.y, ar.w, ar.h);
-                ctx.clip();
-                const c = Math.min(ar.w / art.width, ar.h / art.height) * 1.15;
-                ctx.drawImage(
-                    feathered(art),
-                    ar.x + (ar.w - art.width * c) / 2,
-                    ar.y + ar.h - art.height * c * 0.98,
-                    art.width * c,
-                    art.height * c,
-                );
-                ctx.restore();
-            }
-            label(
-                ctx,
-                { ...r, x: r.x + r.w * 0.36, w: r.w * 0.3 },
-                "",
-                formatNumber(d, lead.games.value),
+    drawSpread(ctx, st, sp, d, assets, {
+        left: (c) => {
+            pagePhoto(c, { x: 0, y: 0, w: PAGE_W, h: PAGE_H }, d, assets, lead, {
+                zoom: 1.08 + 0.05 * easeOutCubic(local / span),
+                fy: 0.05,
+                backdrop: lead === star ? image(assets, imageKeys.backdrop) : undefined,
+            });
+            const g = c.createLinearGradient(0, PAGE_H * 0.65, 0, PAGE_H);
+            g.addColorStop(0, "rgb(0 0 0 / 0)");
+            g.addColorStop(1, "rgb(0 0 0 / 0.6)");
+            c.fillStyle = g;
+            c.fillRect(0, PAGE_H * 0.65, PAGE_W, PAGE_H * 0.35);
+            if (leadLabel) kicker(c, leadLabel, MARGIN, PAGE_H - 280, w, fonts.display, d.palette.accent);
+            const nb = headlineBlock(c, leadName.toUpperCase(), fonts.body, w, 1, 150);
+            drawBlock(c, nb, MARGIN, PAGE_H - 230, headStyle(fonts.body, "#ffffff"));
+            credit(
+                c,
+                d.print?.brand ? `${d.print.brand} Studio` : "",
+                PAGE_W - 44,
+                PAGE_H - 330,
                 fonts.display,
-                u,
+                "rgb(255 255 255 / 0.7)",
             );
-        });
-        const tagK = easeOutBack(clamp01((local - pull - bar * 0.4) / 0.3));
-        if (tagK > 0 && d.heroes?.[lead.heroId]) {
-            const name = d.heroes[lead.heroId]!.name.toUpperCase();
-            const px = 64 * u;
-            ctx.save();
-            setFont(ctx, { family: fonts.display, weight: 700, px, track: 0.06 } as TextStyle, px);
-            const tw = Math.min(ctx.measureText(name).width + 50 * u, st.w - 2 * st.m);
-            const tx = Math.min(r.x + r.w - 20 * u, st.w - st.m - tw);
-            const ty = r.y + r.h * 0.12;
-            ctx.translate(tx, ty);
-            ctx.rotate(0.08);
-            ctx.scale(tagK, tagK);
-            ctx.fillStyle = "#f6f1e5";
-            ctx.shadowColor = "rgb(0 0 0 / 0.5)";
-            ctx.shadowBlur = 18 * u;
-            ctx.fillRect(0, 0, tw, px * 1.5);
-            ctx.shadowColor = "transparent";
-            ctx.fillStyle = "#16130f";
-            ctx.textBaseline = "middle";
-            ctx.fillText(name, 25 * u, px * 0.78, tw - 50 * u);
-            ctx.restore();
-        }
-    }
-
-    vignette(ctx, st, 0.35);
-    drawBlock(ctx, title, lay.title.x, lay.title.y, titleStyle, {
-        reveal: clamp01(local / (bar * 0.3)) * 0.7 + 0.3,
-        shadow: "rgb(0 0 0 / 0.5)",
+        },
+        right: (c) => {
+            kicker(c, labels?.rotation ?? "", MARGIN, 90, w, fonts.display, d.palette.ink, clamp01(local / 0.3));
+            drawBlock(c, title, MARGIN, titleTop, headStyle(fonts.body, INK), { reveal: clamp01(local / 0.4) });
+            drawBlock(c, deck, MARGIN, deckTop, deckStyle(fonts.body), {
+                reveal: clamp01((local - beat) / (beat * 2)),
+            });
+            items.forEach((s, i) => {
+                const k = easeOutBack(clamp01((local - pinAt(i)) / 0.3), 1.6);
+                if (k <= 0) return;
+                const r = tile(i);
+                c.save();
+                c.globalAlpha = clamp01(k * 1.5);
+                c.translate(r.x + r.w / 2, r.y);
+                c.rotate((((i * 37) % 7) - 3) * 0.012 + (1 - k) * 0.2);
+                c.translate(-(r.x + r.w / 2), -r.y - (1 - k) * 40);
+                swatch(c, r, mix(heroTone(d, s.heroId), "#000000", 0.08), i * 1.7);
+                if (s.debut && data.debutTag)
+                    tag(c, say(d, data.debutTag).toUpperCase(), r.x + r.w + 6, r.y + 26, fonts.display);
+                c.restore();
+                c.save();
+                c.globalAlpha = clamp01(k);
+                const name = (d.heroes?.[s.heroId]?.name ?? "").toUpperCase();
+                const games = formatNumber(d, s.games.value);
+                setFont(c, { family: fonts.body, weight: 600, px: PAGE_BODY * 1.1 } as TextStyle);
+                const gw = c.measureText(games).width;
+                c.fillStyle = d.palette.ink;
+                c.textBaseline = "alphabetic";
+                c.textAlign = "right";
+                c.fillText(games, r.x + r.w, r.y + r.h + nameH);
+                setFont(c, { family: fonts.display, weight: 700, px: PAGE_BODY * 0.8, track: 0.04 } as TextStyle);
+                c.fillStyle = i === leadAt ? INK : MUTED;
+                c.textAlign = "left";
+                c.fillText(name, r.x, r.y + r.h + nameH, r.w - gw - 14);
+                c.restore();
+            });
+            const lt = tile(leadAt);
+            greasePencil(
+                c,
+                lt.x + lt.w / 2,
+                lt.y + (lt.h + nameH) / 2,
+                lt.w * 0.66,
+                (lt.h + nameH) * 0.66,
+                lead + 9,
+                (local - ringAt) / (beat * 2),
+                9,
+            );
+        },
+        folio: folioOf(d, "m_wardrobe"),
+        section: labels?.rotation ?? "",
+        cam: {
+            ox: st.aspect === "tall" ? sp.right.x + sp.right.w / 2 : st.w / 2,
+            oy: st.h / 2,
+            zoom: 1 + 0.03 * easeInOut(local / span),
+            dx: 0,
+            dy: shift * easeInOut(clamp01((local - pinAt(3)) / (beat * 3))),
+            rot: 0,
+        },
     });
-    const capK = clamp01((local - pull - bar * 0.2) / (bar * 0.35));
-    if (capK > 0) {
-        ctx.save();
-        const g = ctx.createLinearGradient(0, lay.caption.y - 120 * u, 0, lay.caption.y + lay.caption.h + 40 * u);
-        g.addColorStop(0, "rgb(0 0 0 / 0)");
-        g.addColorStop(0.4, `rgb(0 0 0 / ${0.6 * capK})`);
-        g.addColorStop(1, `rgb(0 0 0 / ${0.7 * capK})`);
-        ctx.fillStyle = g;
-        ctx.fillRect(0, lay.caption.y - 120 * u, st.w, lay.caption.h + 160 * u);
-        ctx.restore();
-        drawBlock(ctx, cap, lay.caption.x, lay.caption.y, capStyle, { reveal: capK, shadow: "rgb(0 0 0 / 0.6)" });
-    }
-    grain(ctx, st, local, 0.07);
+    grain(ctx, st, local, 0.05);
 }

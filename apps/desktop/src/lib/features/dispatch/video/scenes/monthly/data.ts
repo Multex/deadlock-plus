@@ -1,6 +1,6 @@
 import { copySeed, pickVariant } from "@deadlock-plus/stats/dispatch/copy";
 import { editionSignals, type Signal, type SignalFacts, type SignalId } from "@deadlock-plus/stats/dispatch/signals";
-import type { Edition } from "@deadlock-plus/stats/dispatch/types";
+import type { Edition, TapeMatch } from "@deadlock-plus/stats/dispatch/types";
 import { videoCopyKey, type Beat } from "../../beats";
 import type { SceneTiming } from "../../scene";
 import type { SfxCue } from "../../sfx";
@@ -96,6 +96,15 @@ export interface InterviewData {
     qa: { topic: InterviewTopic; q: Copy; a: Copy }[];
 }
 
+/** One real match in the feature's game log. */
+export interface ReelMatch {
+    /** The day it was played, short: "5 Nov". */
+    date: string;
+    heroId: number;
+    outcome: "win" | "loss";
+    kda: Kda;
+}
+
 export interface FeatureData {
     angle: FeatureAngle;
     kicker: Copy;
@@ -105,6 +114,8 @@ export interface FeatureData {
     /** Before and after, for a climb or a slide. */
     badges: { start: number; end: number } | null;
     heroId: number | null;
+    /** The run the angle tells, match by match, oldest first; empty without a tape or a run. */
+    reel: ReelMatch[];
 }
 
 export interface CoverData {
@@ -202,6 +213,46 @@ function busiestFrame(e: Edition, frames: TakeFrame[]): number {
 }
 
 const stat = (value: number, source: string): Stat => ({ value, source });
+
+type Scored = TapeMatch & { 2: "win" | "loss" };
+
+/** The tape's scored matches, oldest first. */
+function scoredTape(e: Edition): Scored[] {
+    return (e.tape ?? []).filter((m): m is Scored => m[2] !== "unscored").sort((a, b) => a[0] - b[0]);
+}
+
+/** The first longest run of wins on the tape, as `streaks` counts it. */
+export function streakRun(e: Edition): TapeMatch[] {
+    const tape = scoredTape(e);
+    let best: [number, number] = [0, 0];
+    let from = 0;
+    tape.forEach((m, i) => {
+        if (m[2] !== "win") from = i + 1;
+        else if (i + 1 - from > best[1] - best[0]) best = [from, i + 1];
+    });
+    return tape.slice(best[0], best[1]);
+}
+
+/** The matches an angle tells as a run: the streak, the comeback, the marathon night. */
+function reelOf(e: Edition, s: Signal): TapeMatch[] {
+    switch (s.id) {
+        case "streak":
+            return streakRun(e);
+        case "losing_then_winning": {
+            const f = s.facts as SignalFacts["losing_then_winning"];
+            const tape = scoredTape(e);
+            const from = tape.findIndex((m) => m[0] === f.lossStartS);
+            return from < 0 ? [] : tape.slice(from, from + f.losses + f.of);
+        }
+        case "marathon": {
+            const f = s.facts as SignalFacts["marathon"];
+            const tape = [...(e.tape ?? [])].sort((a, b) => a[0] - b[0]);
+            return tape.filter((m) => m[0] >= f.startS && m[2] !== "unscored").slice(0, f.matches);
+        }
+        default:
+            return [];
+    }
+}
 
 /** The video's words and numbers for one frozen edition: copy as keys, numbers with their source. */
 export function monthlyVideoData(e: Edition, deps: MonthlyVideoDeps, previous?: Edition | null): MonthlyVideoData {
@@ -388,7 +439,7 @@ export function monthlyVideoData(e: Edition, deps: MonthlyVideoDeps, previous?: 
         const kda = `${n(g.kills)}/${n(g.deaths)}/${n(g.assists)}`;
         const big = shotCast.signals[0]?.id === "big_game" && g.letter;
         beats.m_shot = {
-            label: copy("m_shot", "label"),
+            label: copy("m_shot", "label", { month }),
             caption: big
                 ? copy("m_shot", "caption_big_game", {
                       hero: deps.hero(g.heroId),
@@ -471,6 +522,18 @@ export function monthlyVideoData(e: Edition, deps: MonthlyVideoDeps, previous?: 
             stats: t.stats,
             badges: r && { start: r.startBadge, end: r.endBadge },
             heroId: heroOf,
+            reel: reelOf(e, fs).flatMap((m): ReelMatch[] =>
+                m[2] === "unscored"
+                    ? []
+                    : [
+                          {
+                              date: deps.date(m[0], tz, { day: "numeric", month: "short" }),
+                              heroId: m[1],
+                              outcome: m[2],
+                              kda: { kills: m[3], deaths: m[4], assists: m[5] },
+                          },
+                      ],
+            ),
         };
     }
 
