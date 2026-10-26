@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
 import en from "../../../../../../locales/en.json";
 import { PERSONA_HEROES, PERSONAS, personaEdition, type Persona } from "@deadlock-plus/stats/dispatch/personas.fixture";
-import { HEADLINE_SHAPES, STORY_COPY, type HeadlineShape } from "@deadlock-plus/stats/dispatch/stories";
+import { cellConditions, HEADLINE_SHAPES, STORY_COPY, type HeadlineShape } from "@deadlock-plus/stats/dispatch/stories";
 import type { DispatchStoryKind, EditionKind } from "@deadlock-plus/stats/dispatch/types";
 import { dateRange } from "./date-range";
 import { editionView, HEADLINE_CAP, type DispatchViewDeps } from "./edition-view";
@@ -43,7 +43,7 @@ interface StoryShape {
     decks: Part[];
     angles: Part[];
     versus?: boolean;
-    /** Placeholders the story's lines may use, beyond `count`. */
+    /** Placeholders the story's lines may use, beyond `count` and `me`. */
     params: string[];
 }
 
@@ -59,7 +59,7 @@ const STORIES: StoryShape[] = [
         decks: [c("deck")],
         angles: [c("angle_losing_then_winning")],
         versus: true,
-        params: ["wins", "losses", "winrate", "margin", "top", "of"],
+        params: ["wins", "losses", "winrate", "margin", "of", "played"],
     },
     {
         story: "hours",
@@ -68,7 +68,7 @@ const STORIES: StoryShape[] = [
         decks: [p("deck"), c("deck_days")],
         angles: [],
         versus: true,
-        params: ["hours", "playtime", "top", "days"],
+        params: ["hours", "playtime", "days", "played"],
     },
     {
         story: "top_hero",
@@ -76,15 +76,15 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [p("angle_one_trick")],
-        params: ["hero", "share", "wins", "games"],
+        params: ["hero", "share", "wins", "games", "played"],
     },
     {
         story: "new_hero",
         kinds: KINDS,
-        headlines: [p("headline")],
+        headlines: [c("headline")],
         decks: [c("deck")],
         angles: [p("angle_debut"), c("angle_explorer")],
-        params: ["hero", "games"],
+        params: ["hero", "games", "fresh", "played"],
     },
     {
         story: "best_game",
@@ -101,7 +101,7 @@ const STORIES: StoryShape[] = [
         decks: [p("deck")],
         angles: [c("angle_streak")],
         versus: true,
-        params: ["wins"],
+        params: ["wins", "played"],
     },
     {
         story: "longest_session",
@@ -109,7 +109,7 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck")],
         angles: [c("angle_marathon")],
-        params: ["duration", "date", "top", "when"],
+        params: ["duration", "date", "when", "played"],
     },
     {
         story: "busiest_day",
@@ -117,7 +117,7 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck")],
         angles: [],
-        params: ["date", "top"],
+        params: ["date", "played"],
     },
     {
         story: "longest_match",
@@ -125,7 +125,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [p("deck")],
         angles: [],
-        params: ["duration"],
+        params: ["duration", "played"],
     },
     {
         story: "rank_move",
@@ -133,7 +133,7 @@ const STORIES: StoryShape[] = [
         headlines: ["up", "down", "held_up", "held_down"].map((v) => p(`headline_${v}`)),
         decks: ["up", "down", "held_up", "held_down"].map((v) => p(`deck_${v}`)),
         angles: [c("angle_climb"), c("angle_slide")],
-        params: ["from", "to", "peak"],
+        params: ["from", "to", "peak", "played"],
     },
     {
         story: "rank_move",
@@ -141,7 +141,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline_held_up"), p("headline_held_down")],
         decks: [p("deck_held_up"), p("deck_held_down")],
         angles: [],
-        params: ["from", "to", "peak"],
+        params: ["from", "to", "peak", "played"],
     },
     {
         story: "played_with",
@@ -149,7 +149,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [p("angle_duo")],
-        params: ["player", "wins", "share", "together"],
+        params: ["player", "wins", "share", "together", "played"],
     },
     {
         story: "nemesis",
@@ -159,7 +159,14 @@ const STORIES: StoryShape[] = [
         angles: [c("angle_nemesis")],
         params: ["player", "matches"],
     },
-    { story: "damage", kinds: KINDS, headlines: [p("headline")], decks: [c("deck")], angles: [], params: ["damage"] },
+    {
+        story: "damage",
+        kinds: KINDS,
+        headlines: [p("headline")],
+        decks: [c("deck")],
+        angles: [],
+        params: ["damage", "games"],
+    },
     {
         story: "mvp_count",
         kinds: KINDS,
@@ -174,7 +181,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [p("angle_night_owl")],
-        params: ["share", "top"],
+        params: ["share", "games", "played"],
     },
     {
         story: "peak_rank",
@@ -182,7 +189,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [p("deck"), p("deck_top")],
         angles: [],
-        params: ["peak", "end"],
+        params: ["peak", "end", "played"],
     },
     {
         story: "season_climb",
@@ -190,7 +197,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline_up"), p("headline_down")],
         decks: [c("deck_up"), c("deck_down")],
         angles: [p("angle_bounce_back")],
-        params: ["from", "to", "steps", "low"],
+        params: ["from", "to", "steps", "low", "played"],
     },
     {
         story: "days_played",
@@ -198,7 +205,7 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck")],
         angles: [p("angle_grinder")],
-        params: ["days", "total", "share", "top"],
+        params: ["days", "total", "share", "played"],
     },
     {
         story: "heroes_tried",
@@ -214,45 +221,63 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck")],
         angles: [],
-        params: ["month", "top"],
+        params: ["month", "played"],
     },
 ];
 
 const forms = (key: string, counted?: boolean) => (counted ? [`${key}_one`, `${key}_other`] : [key]);
-const variants = (base: string, n: number, counted?: boolean) =>
-    Array.from({ length: n }, (_, i) => forms(`${base}_${i + 1}`, counted)).flat();
 
 interface Line {
     key: string;
     story: StoryShape;
     role: "core" | "deck" | "versus";
     shape?: HeadlineShape;
+    /** The condition the picker checks before printing the line; empty when it always may. */
+    cond: string;
 }
 
+/** Every line the picker can print for a story in a kind: each cell's lines come from the condition table. */
 function storyLines(): Line[] {
     return STORIES.flatMap((story) =>
         story.kinds.flatMap((kind) => {
-            const base = `dispatch.story.${story.story}.${kind}`;
+            const base = `${story.story}.${kind}`;
+            const cell = (name: string, counted: boolean | undefined, role: Line["role"], shape?: HeadlineShape) => {
+                const conds = role === "versus" ? Array<string>(STORY_COPY.versus).fill("") : cellConditions(name);
+                return conds.flatMap((cond, i) =>
+                    forms(`dispatch.story.${name}_${i + 1}`, counted).map((key): Line => ({
+                        key,
+                        story,
+                        role,
+                        cond,
+                        ...(shape ? { shape } : {}),
+                    })),
+                );
+            };
             const shaped = (parts: Part[]) =>
                 parts.flatMap((x) =>
-                    HEADLINE_SHAPES.flatMap((shape) =>
-                        forms(`${base}.${x.part}_${shape}`, x.counted).map((key): Line => ({
-                            key,
-                            story,
-                            role: "core",
-                            shape,
-                        })),
-                    ),
+                    HEADLINE_SHAPES.flatMap((shape) => cell(`${base}.${x.part}_${shape}`, x.counted, "core", shape)),
                 );
-            const numbered = (parts: Part[], n: number, role: Line["role"]) =>
-                parts.flatMap((x) => variants(`${base}.${x.part}`, n, x.counted).map((key) => ({ key, story, role })));
             return [
                 ...shaped(story.headlines),
                 ...shaped(story.angles),
-                ...numbered(story.decks, STORY_COPY.deck, "deck"),
-                ...(story.versus ? numbered([c("versus_up"), c("versus_down")], STORY_COPY.versus, "versus") : []),
+                ...story.decks.flatMap((x) => cell(`${base}.${x.part}`, x.counted, "deck")),
+                ...(story.versus
+                    ? ["versus_up", "versus_down"].flatMap((v) => cell(`${base}.${v}`, true, "versus"))
+                    : []),
             ];
         }),
+    );
+}
+
+/** Every cell the picker can ask for, by story, kind and part, with its shape for headline cells. */
+function storyCells(): string[] {
+    return STORIES.flatMap((story) =>
+        story.kinds.flatMap((kind) => [
+            ...[...story.headlines, ...story.angles].flatMap((x) =>
+                HEADLINE_SHAPES.map((shape) => `${story.story}.${kind}.${x.part}_${shape}`),
+            ),
+            ...story.decks.map((x) => `${story.story}.${kind}.${x.part}`),
+        ]),
     );
 }
 
@@ -299,8 +324,10 @@ const VALUES: Record<string, string> = {
     count: "12",
     played: "23",
     together: "14",
+    me: "Wintermoth",
+    fresh: "4",
 };
-const VALUE_ENTITIES = ["hero", "player", "top", "from", "to", "peak", "end", "low", "month", "date"].map(
+const VALUE_ENTITIES = ["hero", "player", "me", "from", "to", "peak", "end", "low", "month", "date"].map(
     (k) => VALUES[k],
 );
 
@@ -329,6 +356,8 @@ const catalogMissing = (keys: readonly string[]) => keys.filter((k) => !(k in CA
 
 describe("Dispatch print copy catalog", () => {
     it("holds every line the copy picker can ask for", () => {
+        const empty = storyCells().filter((cell) => cellConditions(cell).length < 3);
+        expect(empty).toEqual([]);
         expect(catalogMissing([...storyLines().map((l) => l.key), ...FIXED_KEYS])).toEqual([]);
     });
 
@@ -340,11 +369,65 @@ describe("Dispatch print copy catalog", () => {
 
     it("uses only the placeholders each story has", () => {
         const bad = storyLines().flatMap(({ key, story }) => {
-            const allowed = new Set([...story.params, "count", "top", "played"]);
+            const allowed = new Set([...story.params, "count", "me"]);
             const used = [...(CATALOG[key] ?? "").matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
             return used.filter((u) => !allowed.has(u)).map((u) => `${key}: {${u}}`);
         });
         expect(bad).toEqual([]);
+    });
+
+    it("conditions lines only on numbers the story has", () => {
+        const bad = storyLines().flatMap(({ key, story, cond }) => {
+            const facts = new Set([...story.params, "count", "me", ...(story.versus ? ["prev", "now"] : [])]);
+            const names = cond.split(/[^a-z_]+/).filter((n) => n && !/^\d/.test(n));
+            return names.filter((n) => !facts.has(n)).map((n) => `${key}: ${n}`);
+        });
+        expect(bad).toEqual([]);
+    });
+
+    it("prints the reader's name and a grade only where the line checks for them", () => {
+        const bad = storyLines().filter(({ key, cond, role }) => {
+            const tpl = CATALOG[key] ?? "";
+            const has = (name: string) =>
+                cond.split(",").some(
+                    (a) =>
+                        a
+                            .trim()
+                            .replace(/^!/, "")
+                            .split(/[<>=!]/)[0] === name,
+                );
+            if (tpl.includes("{me}") && !has("me")) return true;
+            return (
+                role === "core" &&
+                key.includes(".best_game.") &&
+                !key.includes("angle_big_game") &&
+                tpl.includes("{letter}") &&
+                !has("letter")
+            );
+        });
+        expect(bad.map((l) => l.key)).toEqual([]);
+    });
+
+    it("gives every headline and deck a real detail: a name, a number, a date or a rank", () => {
+        const bare = storyLines()
+            .filter(({ role }) => role !== "versus")
+            .filter(({ key }) => ![...(CATALOG[key] ?? "").matchAll(/\{(\w+)\}/g)].some((m) => m[1] !== "when"));
+        expect(bare.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("never words two lines of one story and kind the same", () => {
+        const seen = new Map<string, string>();
+        const twice: string[] = [];
+        for (const { key } of storyLines()) {
+            const scope = key.split(".").slice(2, 4).join(".");
+            const text = `${scope}|${CATALOG[key]}`;
+            const other = seen.get(text);
+            if (other && other.replace(/_(one|other)$/, "") !== key.replace(/_(one|other)$/, "")) {
+                twice.push(`${key} = ${other}`);
+            }
+            seen.set(text, key);
+        }
+        expect(twice).toEqual([]);
     });
 
     it("reads cleanly and in the shape its key names", () => {
@@ -405,6 +488,9 @@ const ENTITIES = [
     "Copperhead",
     "Saltmarsh",
     "Gloam",
+    "Lantern",
+    "Moth",
+    "Kettle",
     "Rank ",
     ...MONTHS,
     ...MONTHS.map((m) => m.slice(0, 3)),
@@ -471,7 +557,7 @@ describe("Dispatch print headline shapes", () => {
         }
     });
 
-    it("rarely reprints the previous edition's headline for a story", () => {
+    it("never reprints the previous edition's headline for a story", () => {
         let repeats = 0;
         let pairs = 0;
         for (const kind of KINDS) {
@@ -495,7 +581,7 @@ describe("Dispatch print headline shapes", () => {
             }
         }
         if (REPORT) appendFileSync(REPORT, `same story, same headline as the previous edition: ${repeats}/${pairs}\n`);
-        expect(repeats / pairs).toBeLessThan(0.08);
+        expect(repeats).toBe(0);
     }, 60_000);
 
     it("rarely gives two players the same sentence for the same story", () => {
@@ -513,7 +599,7 @@ describe("Dispatch print headline shapes", () => {
             }
         }
         if (REPORT) appendFileSync(REPORT, `P1/P3 same-id collisions: ${shared}/${pairs}\n`);
-        expect(shared / pairs).toBeLessThan(0.05);
+        expect(shared / pairs).toBeLessThan(0.01);
     }, 60_000);
 });
 

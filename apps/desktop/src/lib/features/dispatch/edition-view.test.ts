@@ -63,7 +63,7 @@ const CATALOG: Record<string, string> = {
  * `dispatch.story.record.deck`), and kickers and tails to nothing, so these tests pin the params, not the words.
  */
 const STORY_LINE =
-    /^(dispatch\.story\.\w+)\.\w+\.(\w+?)_(?:\d+|name|num|ask|shout|quote|label|pair|plain)(_one|_other)?$/;
+    /^(dispatch\.story\.\w+)\.\w+\.(\w+?)(?:_(?:name|num|ask|shout|quote|label|pair|plain))?(?:_\d+)?(_one|_other)?$/;
 const lookup = (key: string) => {
     if (key.startsWith("dispatch.story.voice.")) return "";
     const m = STORY_LINE.exec(key);
@@ -369,7 +369,7 @@ describe("editionView stories", () => {
         expect(["hours", "nemesis", "top_hero", "rank_move"].map((k) => [byKind[k].headline, byKind[k].deck])).toEqual([
             ["7 hours on the clock", "7h 20m spent in matches, start to finish."],
             ["Wanted: Unnamed player", "Beat you 3 times in 1,200 meetings."],
-            ["Hero 99 runs the show", expect.stringMatching(/^dispatch\.story\.top_hero\.weekly\.deck_[1-3]$/)],
+            ["Hero 99 runs the show", expect.stringMatching(/^dispatch\.story\.top_hero\.weekly\.deck_\d+$/)],
             ["Climbing to Badge 81", "Up from Badge 73, peaking at Badge 82."],
         ]);
     });

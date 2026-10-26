@@ -10,7 +10,13 @@ import type {
 } from "@deadlock-plus/stats/dispatch/types";
 import { copySeed } from "@deadlock-plus/stats/dispatch/copy";
 import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
-import { arrangeStories, pageShapes, storyCopy, type StoryCopy } from "@deadlock-plus/stats/dispatch/stories";
+import {
+    arrangeStories,
+    fitShapes,
+    pageShapes,
+    storyCopy,
+    type StoryCopy,
+} from "@deadlock-plus/stats/dispatch/stories";
 import type { ViewDeps } from "$lib/features/front-page/front-page-view";
 import { PAPER_TOKENS } from "$lib/features/front-page/paper/tokens";
 import type { Brief } from "$lib/features/front-page/paper/types";
@@ -188,7 +194,7 @@ export function editionView(edition: Edition, deps: DispatchViewDeps, context: E
     const signals = editionSignals(edition, previous);
     const arranged = arrangeStories(edition.stories, signals, seeds[seeds.length - 1]);
     const copyContext = { edition, seeds, signals, previous };
-    const shapes = pageShapes(seeds, arranged.length);
+    const shapes = fitShapes(arranged, pageShapes(seeds, arranged.length), copyContext);
     const story = (s: DispatchStory, i: number): DispatchStoryView => {
         const words = renderStory(storyCopy(s, shapes[i], copyContext), param, deps);
         const view: DispatchStoryView = { id: `${s.kind}-${i}`, kind: s.kind, ...words };

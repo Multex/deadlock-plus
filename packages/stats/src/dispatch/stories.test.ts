@@ -170,7 +170,7 @@ describe("top hero", () => {
 describe("new hero", () => {
     it("names the first new hero and counts them all", () => {
         expect(story(edition({ newHeroes: [31, 2] }), "new_hero")).toMatchObject({
-            headline: { key: "dispatch.story.new_hero.headline" },
+            headline: { key: "dispatch.story.new_hero.headline", count: 2 },
             deck: { key: "dispatch.story.new_hero.deck", count: 2 },
             params: { hero: { type: "hero", heroId: 31 } },
         });

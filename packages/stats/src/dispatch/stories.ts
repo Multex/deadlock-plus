@@ -3,6 +3,7 @@ import { badgeParts } from "../rank";
 import { pickAlong, pickVariant, variantHash } from "./copy";
 import type { EditionCalendar } from "./edition";
 import type { Signal, SignalId } from "./signals";
+import { STORY_LINES } from "./story-lines";
 import type {
     DispatchParam,
     DispatchStory,
@@ -167,6 +168,7 @@ const newHero: Detector = ({ newHeroes }) => {
         {
             kind: "new_hero",
             extra: (newHeroes.length - 1) * 3,
+            headlineCount: newHeroes.length,
             deckCount: newHeroes.length,
             params: { hero: hero(newHeroes[0]) },
         },
@@ -464,8 +466,115 @@ export function detectDispatchStories(edition: DispatchEditionInput): DispatchSt
 export const HEADLINE_SHAPES = ["name", "num", "ask", "shout", "quote", "label", "pair", "plain"] as const;
 export type HeadlineShape = (typeof HEADLINE_SHAPES)[number];
 
-/** Variants per deck and versus slot; every slot of one type holds exactly this many lines in the catalog. */
-export const STORY_COPY = { deck: 3, versus: 3 } as const;
+/** Variants per versus slot; every versus slot holds exactly this many lines in the catalog. */
+export const STORY_COPY = { versus: 3 } as const;
+
+/**
+ * The conditions of a cell's lines (a headline shape or a deck slot, as `<story>.<kind>.<part>`), line 1 first.
+ * An empty condition always holds.
+ */
+export function cellConditions(cell: string): readonly string[] {
+    const entry = STORY_LINES[cell];
+    if (entry === undefined) return [];
+    return typeof entry === "number" ? Array<string>(entry).fill("") : entry;
+}
+
+/** The condition of one printed line, from its full locale key. */
+export function lineCondition(key: string): string {
+    const m = /^dispatch\.story\.(.+)_(\d+)(?:_one|_other)?$/.exec(key);
+    return m ? (cellConditions(m[1])[Number(m[2]) - 1] ?? "") : "";
+}
+
+const ATOM = /^(!?)(\w+)(?:(>=|<=|!=|=|>|<)(\w+%?))?$/;
+
+/**
+ * Whether a line's condition holds for `facts`. A condition is comma-separated parts that must all hold: `name` is a
+ * fact that is present and not zero, `!name` the opposite, and `name<op>value` compares a fact with a number, a
+ * percent (`50%` is 0.5) or another fact, with `>=`, `<=`, `>`, `<`, `=` or `!=`. A comparison with a fact the
+ * edition does not have fails.
+ */
+export function lineHolds(condition: string, facts: Readonly<Record<string, number>>): boolean {
+    for (const raw of condition.split(",")) {
+        const part = raw.trim();
+        if (!part) continue;
+        const m = ATOM.exec(part);
+        if (!m) return false;
+        const [, not, name, op, rhs] = m;
+        const value = facts[name];
+        if (!op) {
+            if ((value !== undefined && value !== 0) === (not === "!")) return false;
+            continue;
+        }
+        const other = /^-?\d/.test(rhs)
+            ? rhs.endsWith("%")
+                ? Number(rhs.slice(0, -1)) / 100
+                : Number(rhs)
+            : facts[rhs];
+        if (value === undefined || other === undefined) return false;
+        const ok =
+            op === ">="
+                ? value >= other
+                : op === "<="
+                  ? value <= other
+                  : op === ">"
+                    ? value > other
+                    : op === "<"
+                      ? value < other
+                      : op === "="
+                        ? value === other
+                        : value !== other;
+        if (!ok) return false;
+    }
+    return true;
+}
+
+/** The numbers a line's condition may test, from a story's params. */
+function factsOf(params: Record<string, DispatchParam>): Record<string, number> {
+    const facts: Record<string, number> = {};
+    for (const [name, p] of Object.entries(params)) {
+        switch (p.type) {
+            case "number":
+            case "percent":
+                facts[name] = p.value;
+                break;
+            case "duration":
+                facts[name] = p.seconds;
+                break;
+            case "date":
+            case "month":
+                facts[name] = p.unixS;
+                break;
+            case "grade":
+                facts[name] = GRADE_ORDER.length - GRADE_ORDER.indexOf(p.letter);
+                break;
+            case "rank":
+                facts[name] = step(p.badge);
+                break;
+            case "hero":
+                facts[name] = 1;
+                break;
+            case "player":
+                facts[name] = p.name ? 1 : 0;
+                break;
+        }
+    }
+    return facts;
+}
+
+/**
+ * The line to print from a cell, as its 1-based number. Lines alternate between the editions of a chain: an even
+ * edition takes even lines and an odd one odd lines, so a story never prints the line its previous edition printed,
+ * whatever shape or position each edition gave it. Within that half the pick is seeded among the lines whose
+ * condition holds.
+ */
+function pickLine(cell: string, facts: Record<string, number>, seeds: readonly string[]): number {
+    const conds = cellConditions(cell);
+    const parity = (seeds.length + 1) % 2;
+    const ok = conds.flatMap((c, i) => (lineHolds(c, facts) ? [i] : []));
+    const half = ok.filter((i) => i % 2 === parity);
+    const pool = half.length ? half : ok.length ? ok : [0];
+    return pool[variantHash(seeds[seeds.length - 1] ?? "", cell) % pool.length] + 1;
+}
 
 export interface CopyContext {
     edition: Edition;
@@ -485,6 +594,8 @@ export interface StoryCopy {
     shape: HeadlineShape;
     angle: SignalId | null;
     params: Record<string, DispatchParam>;
+    /** What the line conditions were checked against, less each line's own `count`. */
+    facts: Record<string, number>;
     phrases: Record<string, string>;
     deck: DispatchText;
     versus: DispatchText | null;
@@ -623,16 +734,21 @@ export function pageShapes(seeds: readonly string[], length: number): HeadlineSh
     return Array.from({ length }, (_, i) => page[i % page.length]);
 }
 
-/**
- * The words for `story` printed in `shape` (from `pageShapes`). Picks walk `ctx.seeds`, so they are stable for a
- * frozen edition, and a deck never repeats the previous same-kind edition's deck for that story.
- */
-export function storyCopy(story: DispatchStory, shape: HeadlineShape, ctx: CopyContext): StoryCopy {
-    const { edition, seeds } = ctx;
-    const kind = edition.window.kind;
-    const base = `${story.kind}.${kind}`;
+interface CopyBasis {
+    base: string;
+    /** The headline cell without its shape: `<story>.<kind>.<part or angle>`. */
+    head: string;
+    angle: SignalId | null;
+    coreCount: number | undefined;
+    params: Record<string, DispatchParam>;
+    facts: Record<string, number>;
+    measure: { before: number; now: number } | null;
+}
+
+function copyBasis(story: DispatchStory, ctx: CopyContext): CopyBasis {
+    const { edition } = ctx;
+    const base = `${story.kind}.${edition.window.kind}`;
     const part = partOf(story.headline);
-    const pick = (slot: string, n: number) => pickAlong(seeds, slot, n);
 
     let angle: SignalId | null = null;
     let found: Angle | null = null;
@@ -651,37 +767,105 @@ export function storyCopy(story: DispatchStory, shape: HeadlineShape, ctx: CopyC
         const l = story.params.losses;
         if (w?.type === "number" && l?.type === "number") params.margin = number(Math.abs(w.value - l.value));
     }
-    if (story.kind === "played_with" && story.deck.count !== undefined) params.together = number(story.deck.count);
+    const deckCount = story.deck.count;
+    if (deckCount !== undefined) {
+        if (story.kind === "played_with") params.together = number(deckCount);
+        if (story.kind === "new_hero") params.fresh = number(deckCount);
+        if (GAMES_FROM_DECK.includes(story.kind) && !params.games) params.games = number(deckCount);
+    }
     params.played = number(edition.stats.matches);
-    const top = [...edition.heroes].sort(
-        (a, b) => b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId,
-    )[0];
-    if (top && !params.top) params.top = hero(top.heroId);
+    params.me = { type: "player", accountId: edition.accountId, name: edition.playerName ?? null };
+
+    const versus = VERSUS[story.kind];
+    const measure = versus ? { before: ctx.previous ? versus(ctx.previous) : 0, now: versus(edition) } : null;
+    const facts = factsOf(params);
+    if (measure) {
+        facts.now = measure.now;
+        if (measure.before > 0) facts.prev = measure.before;
+    }
+    return {
+        base,
+        head: angle ? `${base}.angle_${angle}` : `${base}.${part}`,
+        angle,
+        coreCount: angle ? found?.count : story.headline.count,
+        params,
+        facts,
+        measure,
+    };
+}
+
+/** Stories whose deck count is also worth printing in the headline, as `{games}`. */
+const GAMES_FROM_DECK: readonly DispatchStoryKind[] = ["top_hero", "damage", "night_owl"];
+
+const withCount = (facts: Record<string, number>, count: number | undefined) =>
+    count === undefined ? facts : { ...facts, count };
+
+/** Whether `story` has a line it may print in `shape` for this edition. */
+export function canPrint(story: DispatchStory, shape: HeadlineShape, ctx: CopyContext): boolean {
+    const b = copyBasis(story, ctx);
+    const facts = withCount(b.facts, b.coreCount);
+    return cellConditions(`${b.head}_${shape}`).some((c) => lineHolds(c, facts));
+}
+
+/**
+ * `shapes` (from `pageShapes`) with a story that has no line in its shape swapped onto one it has: a cell can need a
+ * fact the edition lacks, such as the reader's name. Swaps stay inside each run of `HEADLINE_SHAPES.length` positions,
+ * so the shapes in a run stay distinct; a story no swap fits takes a shape its run does not use yet, if it can print
+ * one.
+ */
+export function fitShapes(
+    stories: readonly DispatchStory[],
+    shapes: readonly HeadlineShape[],
+    ctx: CopyContext,
+): HeadlineShape[] {
+    const out = [...shapes];
+    const fits = (i: number, shape: HeadlineShape) => canPrint(stories[i], shape, ctx);
+    const n = HEADLINE_SHAPES.length;
+    for (let i = 0; i < out.length; i++) {
+        if (fits(i, out[i])) continue;
+        const start = i - (i % n);
+        const run = out.slice(start, start + n);
+        const j = run.findIndex((s, k) => start + k !== i && s !== out[i] && fits(i, s) && fits(start + k, out[i]));
+        if (j >= 0) {
+            [out[i], out[start + j]] = [out[start + j], out[i]];
+            continue;
+        }
+        const free = HEADLINE_SHAPES.find((s) => !run.includes(s) && fits(i, s));
+        if (free) out[i] = free;
+    }
+    return out;
+}
+
+/**
+ * The words for `story` printed in `shape` (from `pageShapes`, through `fitShapes`). A line is only printed when its
+ * condition holds for the story's numbers, and picks follow `ctx.seeds`, so they are stable for a frozen edition and
+ * neither headline nor deck repeats the previous same-kind edition's line for that story.
+ */
+export function storyCopy(story: DispatchStory, shape: HeadlineShape, ctx: CopyContext): StoryCopy {
+    const { edition, seeds } = ctx;
+    const { base, head, angle, coreCount, params, facts, measure } = copyBasis(story, ctx);
     const phrases: Record<string, string> = {};
     const when = story.params.date;
     if (when?.type === "date" && (story.kind === "best_game" || story.kind === "longest_session")) {
         phrases.when = `${STORY_NS}.when.${partOfDay(when.unixS, edition.window.tz)}`;
     }
 
-    const core = angle
-        ? line(`${STORY_NS}.${base}.angle_${angle}_${shape}`, found?.count)
-        : line(`${STORY_NS}.${base}.${part}_${shape}`, story.headline.count);
-    const deckPart = partOf(story.deck);
+    const coreCell = `${head}_${shape}`;
+    const core = line(`${STORY_NS}.${coreCell}_${pickLine(coreCell, withCount(facts, coreCount), seeds)}`, coreCount);
+    const deckCell = `${base}.${partOf(story.deck)}`;
     const deck = line(
-        `${STORY_NS}.${base}.${deckPart}_${pick(`${base}.${deckPart}`, STORY_COPY.deck)}`,
+        `${STORY_NS}.${deckCell}_${pickLine(deckCell, withCount(facts, story.deck.count), seeds)}`,
         story.deck.count,
     );
 
     let versus: DispatchText | null = null;
-    const measure = VERSUS[story.kind];
-    const before = ctx.previous && measure ? measure(ctx.previous) : 0;
-    const now = measure ? measure(edition) : 0;
-    if (measure && before > 0 && now !== before) {
-        const dir = now > before ? "up" : "down";
-        versus = line(`${STORY_NS}.${base}.versus_${dir}_${pick(`${base}.versus_${dir}`, STORY_COPY.versus)}`, before);
+    if (measure && measure.before > 0 && measure.now !== measure.before) {
+        const dir = measure.now > measure.before ? "up" : "down";
+        const n = pickAlong(seeds, `${base}.versus_${dir}`, STORY_COPY.versus);
+        versus = line(`${STORY_NS}.${base}.versus_${dir}_${n}`, measure.before);
     }
 
-    return { core, shape, angle, params, phrases, deck, versus };
+    return { core, shape, angle, params, facts, phrases, deck, versus };
 }
 
 const PULL = 20;

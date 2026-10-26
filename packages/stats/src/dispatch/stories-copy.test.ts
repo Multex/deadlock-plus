@@ -4,7 +4,12 @@ import { PERSONAS, personaEdition } from "./personas.fixture";
 import { editionSignals } from "./signals";
 import {
     arrangeStories,
+    canPrint,
+    fitShapes,
     HEADLINE_SHAPES,
+    cellConditions,
+    lineCondition,
+    lineHolds,
     pageShapes,
     rankDispatchStories,
     STORY_COPY,
@@ -12,6 +17,7 @@ import {
     type CopyContext,
     type HeadlineShape,
 } from "./stories";
+import { STORY_LINES } from "./story-lines";
 import type { DispatchStoryKind, Edition, EditionKind } from "./types";
 
 const KINDS: readonly EditionKind[] = ["weekly", "monthly", "collectors", "year_end"];
@@ -71,6 +77,36 @@ describe("pageShapes", () => {
     });
 });
 
+describe("fitShapes", () => {
+    it("moves a story off a shape it has no line for, keeping the page's shapes distinct", () => {
+        let moved = 0;
+        for (const kind of KINDS) {
+            for (const p of PERSONAS) {
+                const named = personaEdition(p, kind);
+                const e = { ...named, playerName: null };
+                for (let i = 0; i < 100; i++) {
+                    const c = ctx({ ...e, id: `${kind}-fit-${i}` });
+                    const stories = arrangeStories(e.stories, c.signals, c.seeds[c.seeds.length - 1]);
+                    const planned = pageShapes(c.seeds, stories.length);
+                    const shapes = fitShapes(stories, planned, c);
+                    stories.forEach((s, n) => expect(canPrint(s, shapes[n], c), `${s.kind} ${shapes[n]}`).toBe(true));
+                    const front = shapes.slice(0, HEADLINE_SHAPES.length);
+                    expect(new Set(front).size).toBe(front.length);
+                    if (shapes.join() !== planned.join()) moved++;
+                }
+            }
+        }
+        expect(moved).toBeGreaterThan(0);
+    });
+
+    it("leaves a page alone when every story can take its shape", () => {
+        const e = personaEdition("P1", "weekly");
+        const c = ctx(e);
+        const shapes = pageShapes(c.seeds, e.stories.length);
+        expect(fitShapes(e.stories, shapes, c)).toEqual(shapes);
+    });
+});
+
 describe("storyCopy", () => {
     it("is deterministic", () => {
         const e = personaEdition("P1", "weekly");
@@ -82,17 +118,21 @@ describe("storyCopy", () => {
     it("keys each headline by story, kind, part and shape", () => {
         const e = personaEdition("P2", "monthly");
         const c = coreOf(e, "longest_match", "quote");
-        expect(c.core.key).toBe("dispatch.story.longest_match.monthly.headline_quote");
+        expect(c.core.key).toMatch(/^dispatch\.story\.longest_match\.monthly\.headline_quote_\d+$/);
         expect(c.shape).toBe("quote");
-        expect(c.deck.key).toMatch(/^dispatch\.story\.longest_match\.monthly\.deck_[1-3]$/);
-        expect(coreOf(e, "record", "ask").core.key).toBe("dispatch.story.record.monthly.headline_losing_ask");
+        expect(c.deck.key).toMatch(/^dispatch\.story\.longest_match\.monthly\.deck_\d+$/);
+        expect(coreOf(e, "record", "ask").core.key).toMatch(
+            /^dispatch\.story\.record\.monthly\.headline_losing_ask_\d+$/,
+        );
     });
 
     it("takes the signal's angle when one fires", () => {
         const p1 = personaEdition("P1", "weekly");
         expect(coreOf(p1, "best_streak").angle).toBe("streak");
         expect(coreOf(p1, "best_streak").core).toMatchObject({ count: 8 });
-        expect(coreOf(p1, "best_streak", "pair").core.key).toBe("dispatch.story.best_streak.weekly.angle_streak_pair");
+        expect(coreOf(p1, "best_streak", "pair").core.key).toMatch(
+            /^dispatch\.story\.best_streak\.weekly\.angle_streak_pair_\d+$/,
+        );
         expect(coreOf(p1, "top_hero").angle).toBe("one_trick");
         expect(coreOf(p1, "best_game").angle).toBe("big_game");
         const p3 = personaEdition("P3", "monthly");
@@ -107,13 +147,80 @@ describe("storyCopy", () => {
         expect(coreOf(personaEdition("P2", "weekly"), "longest_match").angle).toBeNull();
     });
 
-    it("gives every story a hero and a match count to lead with", () => {
+    it("names the reader when the edition knows their name", () => {
+        const e = personaEdition("P1", "weekly");
+        expect(storyCopy(e.stories[0], "name", ctx(e)).params.me).toEqual({
+            type: "player",
+            accountId: e.accountId,
+            name: "Lantern",
+        });
+        const anon = { ...e, playerName: null };
+        expect(storyCopy(anon.stories[0], "name", ctx(anon)).facts.me).toBe(0);
+    });
+
+    it("prints only lines whose condition holds for the edition's numbers", () => {
+        const bad: string[] = [];
         for (const kind of KINDS) {
-            const e = personaEdition("P2", kind);
-            for (const s of e.stories) {
-                const c = storyCopy(s, "name", ctx(e));
-                expect(c.params.top, `${kind} ${s.kind}`).toBeDefined();
-                expect(c.params.played).toEqual({ type: "number", value: e.stats.matches });
+            for (const p of PERSONAS) {
+                const chain: string[] = [];
+                let previous: Edition | null = null;
+                for (let n = 0; n < 30; n++) {
+                    const e = personaEdition(p, kind, n);
+                    const c = ctx(e, chain, previous);
+                    for (const s of e.stories) {
+                        for (const shape of HEADLINE_SHAPES) {
+                            const copy = storyCopy(s, shape, c);
+                            for (const t of [copy.core, copy.deck]) {
+                                const facts = { ...copy.facts, ...(t.count === undefined ? {} : { count: t.count }) };
+                                if (!lineHolds(lineCondition(t.key), facts)) {
+                                    bad.push(`${t.key} ${JSON.stringify(facts)}`);
+                                }
+                            }
+                        }
+                    }
+                    previous = e;
+                    chain.push(e.id);
+                }
+            }
+        }
+        expect(bad.slice(0, 10)).toEqual([]);
+    });
+
+    it("keeps a year of thin attendance off the high-attendance lines", () => {
+        const e = personaEdition("P1", "year_end");
+        const days = e.stories.find((s) => s.kind === "days_played")!;
+        expect(days.params.share).toMatchObject({ value: 16 / 365 });
+        const picked = new Set<string>();
+        for (let i = 0; i < 200; i++) {
+            const c = ctx({ ...e, id: `year_end-seed-${i}` });
+            for (const shape of HEADLINE_SHAPES) picked.add(storyCopy(days, shape, c).core.key);
+        }
+        expect([...picked].filter((k) => /share>=/.test(lineCondition(k)))).toEqual([]);
+        const all = Object.keys(STORY_LINES).filter((cell) => cell.startsWith("days_played.year_end.headline_"));
+        const gated = all.filter((cell) => cellConditions(cell).some((c) => /share>=/.test(c)));
+        expect(gated.length).toBeGreaterThan(0);
+    });
+
+    it("never prints the same line for a story two editions running", () => {
+        for (const kind of KINDS) {
+            for (const p of PERSONAS) {
+                const chain: string[] = [];
+                let prev = new Set<string>();
+                for (let n = 0; n < 40; n++) {
+                    const e = { ...personaEdition(p, kind, n), id: `${kind}-run-${n}` };
+                    const c = ctx(e, chain);
+                    const keys = new Set<string>();
+                    for (const s of e.stories) {
+                        // Every shape, so a story that moves position on the page is covered too.
+                        for (const shape of HEADLINE_SHAPES) {
+                            const key = storyCopy(s, shape, c).core.key;
+                            keys.add(key);
+                            expect(prev.has(key), `${key} twice in a row`).toBe(false);
+                        }
+                    }
+                    prev = keys;
+                    chain.push(e.id);
+                }
             }
         }
     });
@@ -153,7 +260,7 @@ describe("storyCopy", () => {
     });
 
     it("gives the variant counts the catalog holds", () => {
-        expect(STORY_COPY).toEqual({ deck: 3, versus: 3 });
+        expect(STORY_COPY).toEqual({ versus: 3 });
         expect(HEADLINE_SHAPES).toHaveLength(8);
     });
 });
@@ -208,5 +315,86 @@ describe("arrangeStories", () => {
             });
             expect(new Set(banners).size, `${kind}: ${banners.join(" | ")}`).toBe(3);
         }
+    });
+});
+
+describe("lineHolds", () => {
+    it("always holds an empty condition", () => {
+        expect(lineHolds("", {})).toBe(true);
+    });
+
+    it("compares a fact with a number, a percent or another fact", () => {
+        expect(lineHolds("share>=50%", { share: 0.5 })).toBe(true);
+        expect(lineHolds("share>=50%", { share: 0.49 })).toBe(false);
+        expect(lineHolds("count<3", { count: 2 })).toBe(true);
+        expect(lineHolds("count<3", { count: 3 })).toBe(false);
+        expect(lineHolds("deaths=0", { deaths: 0 })).toBe(true);
+        expect(lineHolds("deaths!=0", { deaths: 0 })).toBe(false);
+        expect(lineHolds("wins>losses", { wins: 9, losses: 4 })).toBe(true);
+        expect(lineHolds("now<prev", { now: 9, prev: 4 })).toBe(false);
+    });
+
+    it("reads a bare name as present and a bang as absent", () => {
+        expect(lineHolds("letter", { letter: 17 })).toBe(true);
+        expect(lineHolds("letter", {})).toBe(false);
+        expect(lineHolds("!letter", {})).toBe(true);
+        expect(lineHolds("me", { me: 0 })).toBe(false);
+    });
+
+    it("needs every comma-separated part, and fails on a fact it does not have", () => {
+        expect(lineHolds("kills>=10, deaths=0", { kills: 12, deaths: 0 })).toBe(true);
+        expect(lineHolds("kills>=10, deaths=0", { kills: 12, deaths: 1 })).toBe(false);
+        expect(lineHolds("prev, now>prev", { now: 5 })).toBe(false);
+    });
+});
+
+describe("the line catalog", () => {
+    const atoms = (cond: string) =>
+        cond
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean);
+    /** Values around every threshold a cell's conditions name, so each side of each line is tried. */
+    function grid(conds: readonly string[]): Record<string, number>[] {
+        const values = new Map<string, Set<number>>();
+        const add = (name: string, ...v: number[]) => {
+            const set = values.get(name) ?? new Set<number>([0, 1]);
+            for (const x of v) set.add(x);
+            values.set(name, set);
+        };
+        for (const a of conds.flatMap(atoms)) {
+            const m = /^(!?)(\w+)(?:(>=|<=|!=|=|>|<)(.+))?$/.exec(a)!;
+            if (!m[3]) {
+                add(m[2]);
+                continue;
+            }
+            const rhs = m[4].endsWith("%") ? Number(m[4].slice(0, -1)) / 100 : Number(m[4]);
+            if (Number.isNaN(rhs)) {
+                add(m[2], 2, 5, 9);
+                add(m[4], 2, 5, 9);
+            } else {
+                const eps = m[4].endsWith("%") ? 0.01 : 1;
+                add(m[2], rhs - eps, rhs, rhs + eps);
+            }
+        }
+        let cases: Record<string, number>[] = [{}];
+        for (const [name, vs] of values) cases = cases.flatMap((c) => [...vs].map((v) => ({ ...c, [name]: v })));
+        return cases;
+    }
+
+    it("leaves every cell three lines on both sides of the edition parity, or none so the page skips the shape", () => {
+        const thin: string[] = [];
+        for (const cell of Object.keys(STORY_LINES)) {
+            const conds = cellConditions(cell);
+            for (const facts of grid(conds)) {
+                const ok = conds.flatMap((c, i) => (lineHolds(c, facts) ? [i] : []));
+                if (ok.length === 0) continue;
+                if (ok.length < 3 || !ok.some((i) => i % 2 === 0) || !ok.some((i) => i % 2 === 1)) {
+                    thin.push(`${cell} ${JSON.stringify(facts)}: ${ok.length}`);
+                    break;
+                }
+            }
+        }
+        expect(thin.slice(0, 10)).toEqual([]);
     });
 });
