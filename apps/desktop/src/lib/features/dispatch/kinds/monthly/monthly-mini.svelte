@@ -79,6 +79,8 @@
         bottom: 0;
         height: 78%;
         filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.45));
+        /* Some cards crop the body flat at the left; fade that crop into the cover. */
+        mask-image: linear-gradient(to right, transparent 0%, #000 14%);
     }
 
     .top {

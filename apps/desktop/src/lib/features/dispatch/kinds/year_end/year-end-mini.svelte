@@ -70,7 +70,11 @@
         bottom: 40px;
         height: 64%;
         opacity: 0.55;
-        mask-image: linear-gradient(to bottom, black 40%, transparent 92%);
+        /* Cards crop the body flat at the sides too: fade those crops into the cover like the bottom. */
+        mask-image:
+            linear-gradient(to bottom, black 40%, transparent 92%),
+            linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%);
+        mask-composite: intersect;
     }
 
     .y-frame {
