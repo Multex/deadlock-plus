@@ -9,4 +9,9 @@ export interface EditionObjectProps {
     /** First view of an issued edition: play the kind's arrival; otherwise show it at rest. */
     reveal: boolean;
     onrevealed?: () => void;
+    /**
+     * An opened spread (magazine pages, fold-out poster, inside spread) needs the whole room: the page then slides
+     * the rack away and grows `stage`. Call it again with `false` when the object closes.
+     */
+    onexpand?: (expanded: boolean) => void;
 }

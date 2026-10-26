@@ -16,7 +16,7 @@
     const HOVER_PEEK = 14;
     const SCRAP_COUNT = 150;
 
-    let { edition, view, stage, reveal, onrevealed }: EditionObjectProps = $props();
+    let { edition, view, stage, reveal, onrevealed, onexpand }: EditionObjectProps = $props();
 
     const data = useYearEnd(
         () => edition,
@@ -30,6 +30,7 @@
     let front = $state<HTMLCanvasElement | null>(null);
     let raf = 0;
     let played = false;
+    let expanded = false;
 
     const frame = $derived(fold === "closed" ? CLOSED : fold === "open" ? OPEN : frameAt(clock));
     const fit = $derived(foldFit(frame, stage));
@@ -48,6 +49,16 @@
         document.documentElement.hasAttribute("data-reduced-motion") ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    /**
+     * The open poster is three panels wide: the page gives it the whole room. Asked for as the unfold starts, so the
+     * rack slides away while the cover swings.
+     */
+    function expand(next: boolean) {
+        if (expanded === next) return;
+        expanded = next;
+        onexpand?.(next);
+    }
+
     function finish() {
         cancelAnimationFrame(raf);
         fold = "open";
@@ -57,6 +68,7 @@
     function play() {
         cancelAnimationFrame(raf);
         hover = false;
+        expand(true);
         if (reducedMotion()) {
             finish();
             return;
@@ -75,6 +87,7 @@
     function foldUp() {
         cancelAnimationFrame(raf);
         fold = "closed";
+        expand(false);
     }
 
     $effect(() => {
@@ -92,7 +105,10 @@
         }
     });
 
-    $effect(() => () => cancelAnimationFrame(raf));
+    $effect(() => () => {
+        cancelAnimationFrame(raf);
+        expand(false);
+    });
 
     $effect(() => {
         const t = (clock - REVEAL.burstAt) / 1000;
