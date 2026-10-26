@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MUSIC_TRACKS, musicTrack } from "./music";
-import { VIDEO_FPS, VIDEO_SIZES, barSeconds, frameTime, videoTimeline } from "./timeline";
+import { VIDEO_FPS, VIDEO_SECONDS, VIDEO_SIZES, barSeconds, frameTime, videoTimeline } from "./timeline";
 
 describe("Dispatch video timeline", () => {
     it("runs at 30 fps in the three export shapes, all even-sized for H.264", () => {
@@ -19,42 +19,38 @@ describe("Dispatch video timeline", () => {
         expect(barSeconds(172)).toBeCloseTo(1.395349, 6);
     });
 
-    it("cuts each track on the last whole bar its loud section allows, capped at 30 s", () => {
+    it("runs each track for the most whole bars that fit in 41 s, about 40 s", () => {
         expect(
             MUSIC_TRACKS.map((track) => {
                 const { bars, frames, seconds } = videoTimeline(track);
                 return [track.id, bars, frames, +seconds.toFixed(4)];
             }),
         ).toEqual([
-            ["postgame", 17, 790, 26.3333],
-            ["title", 18, 836, 27.8667],
-            ["koth", 20, 900, 30],
-            ["menu", 20, 837, 27.9],
+            ["postgame", 26, 1208, 40.2667],
+            ["title", 26, 1208, 40.2667],
+            ["koth", 27, 1215, 40.5],
+            ["menu", 29, 1214, 40.4667],
         ]);
     });
 
-    it("keeps every cut within a frame of its bar line and inside 20-30 s", () => {
+    it("keeps every cut within a frame of its bar line and inside 39-41 s", () => {
         for (const track of MUSIC_TRACKS) {
             const timeline = videoTimeline(track);
-            expect(timeline.seconds).toBeGreaterThanOrEqual(20);
-            expect(timeline.seconds).toBeLessThanOrEqual(30);
+            expect(timeline.seconds).toBeGreaterThanOrEqual(39);
+            expect(timeline.seconds).toBeLessThanOrEqual(VIDEO_SECONDS);
             expect(Math.abs(timeline.seconds - timeline.bars * timeline.barSeconds)).toBeLessThanOrEqual(
                 0.5 / timeline.fps,
             );
         }
     });
 
-    it("takes a limit that lands exactly on a bar line as that bar", () => {
-        expect(videoTimeline({ bpm: 160, maxSeconds: 24 }).bars).toBe(16);
-        expect(videoTimeline({ bpm: 155, maxSeconds: 16 * barSeconds(155) }).bars).toBe(16);
+    it("takes a length that lands exactly on 41 s as that many bars", () => {
+        expect(videoTimeline({ bpm: 240 }).bars).toBe(41);
+        expect(videoTimeline({ bpm: (240 * 20) / 41 }).bars).toBe(20);
     });
 
     it("scales the frame count with the frame rate", () => {
-        expect(videoTimeline(musicTrack("koth"), 60).frames).toBe(1800);
-    });
-
-    it("refuses a track too short for a 20 s video", () => {
-        expect(() => videoTimeline({ bpm: 120, maxSeconds: 19 })).toThrow(/20 s/);
+        expect(videoTimeline(musicTrack("koth"), 60).frames).toBe(2430);
     });
 
     it("times frame i at i / fps, without drift", () => {

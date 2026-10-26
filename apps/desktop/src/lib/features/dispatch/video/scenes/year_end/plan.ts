@@ -1,4 +1,4 @@
-export type SectionId = "numbers" | "heroes" | "months" | "highlights" | "people";
+export type SectionId = "numbers" | "heroes" | "highlights" | "people";
 
 export interface Span {
     bar: number;
@@ -13,12 +13,19 @@ export interface YearEndPlan {
     end: Span;
 }
 
-const SECTION_BARS: Record<SectionId, number> = { numbers: 2, heroes: 2, months: 1, highlights: 1, people: 1 };
-const SECTION_ORDER: SectionId[] = ["numbers", "heroes", "months", "highlights", "people"];
+/**
+ * Bars each section holds, about 4-6 s on every track. The month strip has no section of its own: it splits the
+ * match count the numbers already give.
+ */
+const SECTION_BARS: Record<SectionId, number> = { numbers: 4, heroes: 4, highlights: 4, people: 3 };
+const SECTION_ORDER: SectionId[] = ["numbers", "heroes", "highlights", "people"];
 /** Who gets a missing section's bars first: the sections that hold the most to read. */
-const EXTRA_ORDER: SectionId[] = ["heroes", "numbers", "highlights", "people", "months"];
+const EXTRA_ORDER: SectionId[] = ["heroes", "numbers", "highlights", "people"];
+/** A section never takes more than this from a missing one; the rest goes to the end card. */
+const MOST_BARS = 6;
+const END_BARS = 2;
 /** The unfold bar, every section at its full share, and the end card. */
-const AFTER_DROP = 1 + Object.values(SECTION_BARS).reduce((a, b) => a + b, 0) + 1;
+const AFTER_DROP = 1 + Object.values(SECTION_BARS).reduce((a, b) => a + b, 0) + END_BARS;
 
 /**
  * Bars before the drop. The menu track builds for 11 bars, which this fills exactly; shorter intros (tracks that
@@ -52,12 +59,16 @@ export function yearEndPlan(bars: number, present: readonly SectionId[]): YearEn
 
     const shown = SECTION_ORDER.filter((id) => present.includes(id));
     const share = new Map(shown.map((id) => [id, SECTION_BARS[id]]));
-    let spare = AFTER_DROP - 2 - shown.reduce((sum, id) => sum + SECTION_BARS[id], 0);
-    for (const id of EXTRA_ORDER) {
-        if (spare === 0) break;
-        if (!share.has(id)) continue;
-        share.set(id, share.get(id)! + 1);
-        spare--;
+    let spare = AFTER_DROP - 1 - END_BARS - shown.reduce((sum, id) => sum + SECTION_BARS[id], 0);
+    for (let given = true; spare > 0 && given;) {
+        given = false;
+        for (const id of EXTRA_ORDER) {
+            if (spare === 0) break;
+            if (!share.has(id) || share.get(id)! >= MOST_BARS) continue;
+            share.set(id, share.get(id)! + 1);
+            spare--;
+            given = true;
+        }
     }
 
     bar = drop + 1;
@@ -108,16 +119,20 @@ export function rollingDigit(seed: number, t: number, rate: number): { digit: nu
     return { digit, next: (digit + 1) % 10, frac: Math.max(0, p - whole) };
 }
 
-const STEPS = 3;
-const STEP_RISE = 0.6;
+/** A count-up runs two beats: long enough to watch the digits climb. */
+export const COUNT_BEATS = 2;
+/** Entrances and their count-ups finish within this share of a section; the rest holds the full page to read. */
+const ENTER_SHARE = 0.75;
+const MOST_APART_BEATS = 2;
 
-/** A bar's height, 0 to 1: a third more on each of three beats from `start`, each step slamming a little past. */
-export function growth(t: number, start: number, beat: number): number {
-    if (t < start) return 0;
-    const beats = (t - start) / beat;
-    if (beats >= STEPS) return 1;
-    const step = Math.floor(beats);
-    return (step + easeOutBack((beats - step) / STEP_RISE)) / STEPS;
+/**
+ * When each of `n` entrances lands, in seconds: the first on the section's downbeat at `start`, the rest evenly
+ * apart, at most two beats, with the last one's count-up done by the end of the entrance share of `span`.
+ */
+export function entrances(n: number, start: number, span: number, beat: number): number[] {
+    const room = span * ENTER_SHARE - COUNT_BEATS * beat;
+    const step = n > 1 ? Math.min(MOST_APART_BEATS * beat, room / (n - 1)) : 0;
+    return Array.from({ length: n }, (_, i) => start + i * step);
 }
 
 const FLASH_RAMP = 0.06;

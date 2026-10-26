@@ -1,4 +1,4 @@
-export type SegmentId = "sealed" | "tear" | "cover" | "peak" | "climb" | "record" | "heroes" | "certificate" | "end";
+export type SegmentId = "sealed" | "tear" | "cover" | "climb" | "record" | "heroes" | "certificate" | "end";
 
 export interface Segment {
     id: SegmentId;
@@ -7,24 +7,26 @@ export interface Segment {
     bars: number;
 }
 
-/** Story order with each segment's bars at the postgame track's 17 bars, and the fewest it can play in. */
+/**
+ * Story order with each segment's bars at the postgame track's 26 bars, and the fewest it can play in. The season
+ * peak has no shot of its own: the cover's star and the climb's peak callout both name it.
+ */
 const STORY: { id: SegmentId; bars: number; min: number }[] = [
     { id: "sealed", bars: 2, min: 1 },
     { id: "tear", bars: 1, min: 1 },
-    { id: "cover", bars: 2, min: 1 },
-    { id: "peak", bars: 2, min: 1 },
-    { id: "climb", bars: 4, min: 3 },
-    { id: "record", bars: 2, min: 1 },
-    { id: "heroes", bars: 2, min: 1 },
-    { id: "certificate", bars: 1, min: 1 },
-    { id: "end", bars: 1, min: 1 },
+    { id: "cover", bars: 3, min: 2 },
+    { id: "climb", bars: 7, min: 5 },
+    { id: "record", bars: 4, min: 3 },
+    { id: "heroes", bars: 4, min: 3 },
+    { id: "certificate", bars: 3, min: 2 },
+    { id: "end", bars: 2, min: 1 },
 ];
 
 export const BASE_BARS = STORY.reduce((n, s) => n + s.bars, 0);
 
 /** A longer track's spare bars go round this list; a short one takes bars back in the other. */
-const GROW: SegmentId[] = ["climb", "end", "heroes", "peak", "cover", "record", "certificate", "sealed"];
-const SHRINK: SegmentId[] = ["sealed", "cover", "record", "heroes", "peak", "end", "climb"];
+const GROW: SegmentId[] = ["climb", "record", "heroes", "cover", "certificate", "end", "sealed"];
+const SHRINK: SegmentId[] = ["sealed", "cover", "record", "heroes", "certificate", "end", "climb"];
 
 export function collectorsPlan(bars: number, has: { chart: boolean; heroes: boolean }): Segment[] {
     const kept = STORY.filter((s) => (s.id !== "climb" || has.chart) && (s.id !== "heroes" || has.heroes));
@@ -66,10 +68,10 @@ export interface ClimbTiming {
     to: number;
 }
 
-/** The headline gets the first half bar and the finished chart the last. */
+/** The headline gets the first half bar; the finished chart and its summary line hold the last bar and a half. */
 export function climbTiming(bars: number, peakIndex: number, total: number): ClimbTiming {
     const from = 0.5;
-    const to = bars - 0.5;
+    const to = bars - 1.5;
     const share = total > 0 ? (peakIndex + 1) / total : 1;
     const peak = Math.min(Math.floor(to), Math.max(Math.ceil(from), Math.round(from + (to - from) * share)));
     return { from, peak, to };
@@ -102,6 +104,24 @@ export function countUp(value: number, p: number): number {
     return Math.round(value * outCubic(p));
 }
 
+/**
+ * Beats into the record shot where the record has counted up, the win rate has counted up after it, and the
+ * best streak and match count land. Fixed for a shot of four bars or more, so the rest of it holds the finished
+ * numbers to read; a shorter shot squeezes them in proportion.
+ */
+export function recordCues(length: number): { record: number; rate: number; row: number } {
+    const k = Math.min(1, length / 16);
+    return { record: 4 * k, rate: 6 * k, row: 7 * k };
+}
+
+/** Beats a hero card takes to slide in. */
+export const HERO_SLIDE_BEATS = 1;
+
+/** The beat hero `i` lands on: two apart when the shot has room to read each one, closer in a short shot. */
+export function heroCue(i: number, length: number): number {
+    return 1 + i * (length >= 12 ? 2 : length >= 8 ? 1 : 0.5);
+}
+
 /** How long, in beats, a stamp falls before it hits. */
 const STAMP_LEAD = 0.25;
 const STAMP_FROM = 2.4;
@@ -130,8 +150,8 @@ export function punch(beats: number): { scale: number; alpha: number } {
 const SLIDE_BEATS = 0.5;
 
 /** How far off its place a slide is, 1 to 0, `beats` from the beat it lands on. */
-export function slideIn(beats: number): number {
-    return 1 - outCubic((beats + SLIDE_BEATS) / SLIDE_BEATS);
+export function slideIn(beats: number, over = SLIDE_BEATS): number {
+    return 1 - outCubic((beats + over) / over);
 }
 
 /** How long a fleck flies, at most. */

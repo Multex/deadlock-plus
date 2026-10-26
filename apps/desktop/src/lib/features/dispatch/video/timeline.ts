@@ -2,8 +2,8 @@ import type { CardAspect } from "../edition-view";
 import type { MusicTrack } from "./music";
 
 export const VIDEO_FPS = 30;
-export const MIN_VIDEO_SECONDS = 20;
-export const MAX_VIDEO_SECONDS = 30;
+/** About 40 s: long enough to read each story, short enough to keep. Every track loops, so any tempo fills it. */
+export const VIDEO_SECONDS = 41;
 
 /** Every size here encoded in Edge with H.264 in hardware at 30 fps; 1440x1440 at 60 fps did not. */
 export const VIDEO_SIZES: Record<CardAspect, { width: number; height: number }> = {
@@ -27,14 +27,10 @@ export function barSeconds(bpm: number): number {
 }
 
 /** Track offsets sit on bar lines, so a whole number of bars from there ends the video on one too. */
-export function videoTimeline(track: Pick<MusicTrack, "bpm" | "maxSeconds">, fps = VIDEO_FPS): VideoTimeline {
+export function videoTimeline(track: Pick<MusicTrack, "bpm">, fps = VIDEO_FPS): VideoTimeline {
     const bar = barSeconds(track.bpm);
-    const limit = Math.min(MAX_VIDEO_SECONDS, track.maxSeconds ?? Infinity);
-    // A limit measured as exactly N bars can come out a hair under N in floating point.
-    const bars = Math.floor(limit / bar + 1e-9);
-    if (bars * bar < MIN_VIDEO_SECONDS) {
-        throw new Error(`a ${track.bpm} BPM track with ${limit} s to play cannot fill ${MIN_VIDEO_SECONDS} s`);
-    }
+    // A length of exactly N bars can come out a hair under N in floating point.
+    const bars = Math.floor(VIDEO_SECONDS / bar + 1e-9);
     const frames = Math.round(bars * bar * fps);
     return { fps, bars, barSeconds: bar, frames, seconds: frames / fps };
 }

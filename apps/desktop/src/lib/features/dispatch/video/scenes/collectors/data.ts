@@ -65,10 +65,8 @@ export type SceneText =
     | "teaser"
     | "code"
     | "arc"
-    | "peakLabel"
     | "peakName"
     | "peakLine"
-    | "reached"
     | "climbTitle"
     | "kicker"
     | "calloutPeak"
@@ -202,10 +200,8 @@ export function collectorsSceneData(
             teaser: t("dispatch.collectors.teaser"),
             code: v.code,
             arc: v.arc,
-            peakLabel: t("dispatch.collectors.peak_label"),
             peakName: v.peakName,
             peakLine: v.peakLine,
-            reached: v.reached ?? "",
             climbTitle: t("dispatch.collectors.climb_title"),
             kicker: `${v.season} · ${v.dates}`,
             calloutPeak: t("dispatch.collectors.callout_peak"),

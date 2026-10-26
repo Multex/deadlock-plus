@@ -14,14 +14,12 @@ describe("Dispatch video music", () => {
         tauri.command.mockReset();
     });
 
-    it("lists the four picked tracks with their measured grids", () => {
-        expect(
-            MUSIC_TRACKS.map((t) => [t.id, t.bpm, t.offsetSeconds, t.maxSeconds, t.loopSeconds, t.layerGains.length]),
-        ).toEqual([
-            ["postgame", 155, 0, 26.4, null, 1],
-            ["title", 155, 43.695, 27.88, null, 2],
-            ["koth", 160, 0, null, 24, 3],
-            ["menu", 172, 23.83, 28.2, null, 1],
+    it("lists the four picked tracks with their measured grids and loops", () => {
+        expect(MUSIC_TRACKS.map((t) => [t.id, t.bpm, t.offsetSeconds, t.loop, t.layerGains.length])).toEqual([
+            ["postgame", 155, 0, { start: 18.5806, end: 24.7742 }, 1],
+            ["title", 155, 43.695, { start: 60.7331, end: 68.4776 }, 2],
+            ["koth", 160, 0, { start: 0, end: 24 }, 3],
+            ["menu", 172, 23.83, { start: 41.9655, end: 48.9422 }, 1],
         ]);
         expect(musicTrack("koth").layerGains).toEqual([0.5, 0.5, 0.5]);
         expect(MUSIC_TRACKS.map((t) => t.labelKey)).toEqual([
@@ -30,6 +28,14 @@ describe("Dispatch video music", () => {
             "dispatch.video.music.koth",
             "dispatch.video.music.menu",
         ]);
+    });
+
+    it("loops a whole number of bars inside each track's loud section, past where playback starts", () => {
+        for (const t of MUSIC_TRACKS) {
+            const bars = (t.loop.end - t.loop.start) / (240 / t.bpm);
+            expect(Math.abs(bars - Math.round(bars)) * (240 / t.bpm)).toBeLessThan(0.005);
+            expect(t.loop.start).toBeGreaterThanOrEqual(t.offsetSeconds);
+        }
     });
 
     it("asks for every layer of a track by id and index, and returns them in order", async () => {

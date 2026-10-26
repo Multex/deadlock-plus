@@ -116,14 +116,6 @@ describe("yearEndVideo", () => {
         expect(build(edition()).people?.nemesis?.title).toBe("Most wanted");
     });
 
-    it("runs the strip Dec to Nov, each month a share of the busiest one, which is flagged", () => {
-        const bars = build(edition()).months!.bars;
-        expect(bars.map((b) => b.label)).toEqual([...MONTHS.slice(11), ...MONTHS.slice(0, 11)]);
-        expect(bars[9]).toMatchObject({ share: 1, busiest: true, value: "56", count: "Busiest · 56" });
-        expect(bars[11]).toMatchObject({ share: 10 / 56, busiest: false, value: "10" });
-        expect(bars.filter((b) => b.busiest)).toHaveLength(1);
-    });
-
     it("keeps the year as digits and the streak as a number for the scene to count", () => {
         const v = build(edition());
         expect(v.year).toBe("2026");
@@ -133,8 +125,8 @@ describe("yearEndVideo", () => {
     });
 
     it("lists only the sections the edition has", () => {
-        expect(presentSections(build(edition()))).toEqual(["numbers", "heroes", "months", "highlights", "people"]);
-        const bare = build(edition({ months: undefined, longestWin: 0, nemesis: null }));
+        expect(presentSections(build(edition()))).toEqual(["numbers", "heroes", "highlights", "people"]);
+        const bare = build(edition({ longestWin: 0, nemesis: null }));
         expect(presentSections(bare)).toEqual(["numbers", "heroes"]);
     });
 });

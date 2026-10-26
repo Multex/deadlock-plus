@@ -1,7 +1,7 @@
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import type { EditionView, PersonLine } from "../../../edition-view";
 import { SITE_URL } from "@deadlock-plus/links";
-import { BAR_MAX, yearEndView, type TitleParts, type YearEndDeps } from "../../../kinds/year_end/year-end-view";
+import { yearEndView, type TitleParts, type YearEndDeps } from "../../../kinds/year_end/year-end-view";
 import type { SectionId } from "./plan";
 
 export interface YearEndVideoDeps extends YearEndDeps {
@@ -33,12 +33,6 @@ export interface YearEndVideo {
     title: TitleParts;
     numbers: { title: string; tiles: CountTile[]; kda: { label: string; value: string } | null };
     heroes: { title: string; tag: string; list: { id: number; name: string; games: string; record?: string }[] };
-    months: {
-        title: string;
-        sub: string;
-        /** `count` reads "Busiest · 56" on the busiest month; `value` is the plain number. */
-        bars: { label: string; count: string; value: string; share: number; busiest: boolean }[];
-    } | null;
     streak: { count: number; value: string; title: string; line: string } | null;
     bestGame: { title: string; heroId: number; hero: string; kda: string; grade: string | null; date: string } | null;
     people: { mates: { title: string; rows: PersonLine[] } | null; nemesis: { title: string; row: PersonLine } | null };
@@ -91,17 +85,6 @@ export function yearEndVideo(edition: Edition, view: EditionView, deps: YearEndV
                 record ? { id, name, games, record } : { id, name, games },
             ),
         },
-        months: poster.months && {
-            title: poster.months.title,
-            sub: poster.months.sub,
-            bars: poster.months.bars.map((b, i) => ({
-                label: b.label,
-                count: b.count,
-                value: deps.number(edition.months?.[i]?.matches ?? 0),
-                share: b.height / BAR_MAX,
-                busiest: b.busiest,
-            })),
-        },
         streak: poster.streak && { count: edition.longestWin, ...poster.streak },
         bestGame: poster.bestGame && {
             title: poster.bestGame.title,
@@ -123,7 +106,6 @@ export function presentSections(v: YearEndVideo): SectionId[] {
     const has: Record<SectionId, boolean> = {
         numbers: v.numbers.tiles.length > 0,
         heroes: v.heroes.list.length > 0,
-        months: v.months !== null && v.months.bars.length > 0,
         highlights: v.streak !== null || v.bestGame !== null,
         people: v.people.mates !== null || v.people.nemesis !== null,
     };

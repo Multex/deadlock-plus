@@ -5,6 +5,18 @@ import type { VideoTimeline } from "./timeline";
 export const AUDIO_SAMPLE_RATE = 48_000;
 /** The same fade the user heard the tracks with when picking them. */
 export const FADE_IN_SECONDS = 0.3;
+/**
+ * Each loop seam crossfades over this long, centred on the cut. A hard jump between two waveforms clicks; a
+ * longer blend would smear the downbeat the loop lands on.
+ */
+export const SEAM_SECONDS = 0.01;
+
+/** A stretch of the source played straight through: `seconds` long from `from`, at `at` in the video. */
+export interface AudioPiece {
+    at: number;
+    from: number;
+    seconds: number;
+}
 
 export interface AudioPlan {
     sampleRate: number;
@@ -12,10 +24,8 @@ export interface AudioPlan {
     seconds: number;
     /** Sample frames per channel. */
     length: number;
-    /** Where playback starts in the source file. */
-    offsetSeconds: number;
-    /** Source seconds the track repeats between, for a track that loops. */
-    loop: { start: number; end: number } | null;
+    /** Back to back from 0 to `seconds`: the offset to the loop's end, then the loop over and over. */
+    pieces: AudioPiece[];
     fadeIn: { from: number; to: number };
     fadeOut: { from: number; to: number };
     layerGains: readonly number[];
@@ -27,6 +37,19 @@ export interface VideoAudio {
     planes: Float32Array[];
 }
 
+export function audioPieces(track: MusicTrack, seconds: number): AudioPiece[] {
+    const pieces: AudioPiece[] = [];
+    let at = 0;
+    let from = track.offsetSeconds;
+    while (at < seconds) {
+        const length = Math.min(track.loop.end - from, seconds - at);
+        pieces.push({ at, from, seconds: length });
+        at += length;
+        from = track.loop.start;
+    }
+    return pieces;
+}
+
 export function audioPlan(track: MusicTrack, timeline: VideoTimeline, sampleRate = AUDIO_SAMPLE_RATE): AudioPlan {
     const { seconds } = timeline;
     return {
@@ -34,11 +57,7 @@ export function audioPlan(track: MusicTrack, timeline: VideoTimeline, sampleRate
         channels: 2,
         seconds,
         length: Math.round(seconds * sampleRate),
-        offsetSeconds: track.offsetSeconds,
-        loop:
-            track.loopSeconds === null
-                ? null
-                : { start: track.offsetSeconds, end: track.offsetSeconds + track.loopSeconds },
+        pieces: audioPieces(track, seconds),
         fadeIn: { from: 0, to: FADE_IN_SECONDS },
         fadeOut: { from: seconds - timeline.barSeconds, to: seconds },
         layerGains: track.layerGains,
@@ -78,19 +97,34 @@ export async function mixAudio(plan: AudioPlan, layers: ArrayBuffer[]): Promise<
     master.connect(ctx.destination);
 
     const buffers = await Promise.all(layers.map((bytes) => ctx.decodeAudioData(bytes)));
+    const half = SEAM_SECONDS / 2;
     buffers.forEach((buffer, i) => {
-        const gain = ctx.createGain();
-        gain.gain.value = plan.layerGains[i] ?? 1;
-        gain.connect(master);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        if (plan.loop) {
-            source.loop = true;
-            source.loopStart = plan.loop.start;
-            source.loopEnd = plan.loop.end;
-        }
-        source.connect(gain);
-        source.start(0, plan.offsetSeconds);
+        const layer = ctx.createGain();
+        layer.gain.value = plan.layerGains[i] ?? 1;
+        layer.connect(master);
+        plan.pieces.forEach((piece, k) => {
+            const first = k === 0;
+            const last = k === plan.pieces.length - 1;
+            // Past a seam the outgoing piece plays on into what the file holds next while the loop fades in; a
+            // piece starting at the file's head has nothing before it, so it starts on the cut.
+            const lead = first ? 0 : Math.min(half, piece.from);
+            const start = piece.at - lead;
+            const end = piece.at + piece.seconds + (last ? 0 : half);
+            const gain = ctx.createGain();
+            if (!first) {
+                gain.gain.setValueAtTime(0, piece.at - half);
+                gain.gain.linearRampToValueAtTime(1, piece.at + half);
+            }
+            if (!last) {
+                gain.gain.setValueAtTime(1, end - SEAM_SECONDS);
+                gain.gain.linearRampToValueAtTime(0, end);
+            }
+            gain.connect(layer);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(gain);
+            source.start(start, piece.from - lead, end - start);
+        });
     });
 
     const rendered = await ctx.startRendering();

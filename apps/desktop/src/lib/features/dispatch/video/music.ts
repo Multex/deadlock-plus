@@ -4,17 +4,17 @@ export type MusicTrackId = "postgame" | "title" | "koth" | "menu";
 
 /**
  * A game music track the Dispatch video can play, read from the user's own install at export time. Times are in
- * seconds of the source file: playback starts at `offsetSeconds` and stays on the loud section for at most
- * `maxSeconds`; a track with `loopSeconds` repeats seamlessly at that length instead. Layers play together at
- * their gains.
+ * seconds of the source file: playback starts at `offsetSeconds`, runs to the loop's end, then repeats the loop
+ * until the video ends. Each loop spans whole bars where the track repeats itself, inside its loud section; the
+ * spans were picked by measuring how closely the bar after the loop's end matches the bar at its start. Layers
+ * play together at their gains.
  */
 export interface MusicTrack {
     id: MusicTrackId;
     labelKey: string;
     bpm: number;
     offsetSeconds: number;
-    maxSeconds: number | null;
-    loopSeconds: number | null;
+    loop: { start: number; end: number };
     layerGains: readonly number[];
 }
 
@@ -24,8 +24,8 @@ export const MUSIC_TRACKS: readonly MusicTrack[] = [
         labelKey: "dispatch.video.music.postgame",
         bpm: 155,
         offsetSeconds: 0,
-        maxSeconds: 26.4,
-        loopSeconds: null,
+        // Bars 12-16 of 17 loud ones; nothing in this track repeats exactly, and these four sit closest.
+        loop: { start: 18.5806, end: 24.7742 },
         layerGains: [1],
     },
     {
@@ -33,8 +33,8 @@ export const MUSIC_TRACKS: readonly MusicTrack[] = [
         labelKey: "dispatch.video.music.title",
         bpm: 155,
         offsetSeconds: 43.695,
-        maxSeconds: 27.88,
-        loopSeconds: null,
+        // The section repeats every five bars; bars 39-44 on the file's own 154.95 BPM grid.
+        loop: { start: 60.7331, end: 68.4776 },
         layerGains: [1, 1],
     },
     {
@@ -42,8 +42,7 @@ export const MUSIC_TRACKS: readonly MusicTrack[] = [
         labelKey: "dispatch.video.music.koth",
         bpm: 160,
         offsetSeconds: 0,
-        maxSeconds: null,
-        loopSeconds: 24,
+        loop: { start: 0, end: 24 },
         layerGains: [0.5, 0.5, 0.5],
     },
     {
@@ -51,8 +50,8 @@ export const MUSIC_TRACKS: readonly MusicTrack[] = [
         labelKey: "dispatch.video.music.menu",
         bpm: 172,
         offsetSeconds: 23.83,
-        maxSeconds: 28.2,
-        loopSeconds: null,
+        // The full section after the build repeats every five bars; bars 30-35, before it cuts out at bar 38.
+        loop: { start: 41.9655, end: 48.9422 },
         layerGains: [1],
     },
 ];

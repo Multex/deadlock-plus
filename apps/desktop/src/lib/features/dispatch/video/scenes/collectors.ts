@@ -7,8 +7,6 @@ import {
     COVER_H,
     COVER_W,
     drawGloss,
-    drawMedalBadge,
-    drawMedalRing,
     drawPlate,
     drawRays,
     drawSweep,
@@ -23,10 +21,13 @@ import {
     collectorsPlan,
     countUp,
     drawnMatches,
+    heroCue,
+    HERO_SLIDE_BEATS,
     inOutCubic,
     outBack,
     outCubic,
     punch,
+    recordCues,
     segmentAt,
     slideIn,
     stamp,
@@ -100,12 +101,12 @@ const DUST = (() => {
     }));
 })();
 
-function background(ctx: Ctx, w: number, h: number, s: Stage, t: number, beatSeconds: number, tint: string) {
+function background(ctx: Ctx, w: number, h: number, s: Stage, t: number, beatSeconds: number) {
     ctx.fillStyle = INK.night;
     ctx.fillRect(0, 0, w, h);
     const reach = Math.max(w, h) * 0.75;
     const glow = ctx.createRadialGradient(s.cx, s.cy, 0, s.cx, s.cy, reach);
-    glow.addColorStop(0, `${tint}55`);
+    glow.addColorStop(0, "#3a2a1055");
     glow.addColorStop(0.45, "#1a120820");
     glow.addColorStop(1, "#00000000");
     ctx.fillStyle = glow;
@@ -227,47 +228,6 @@ function popped(ctx: Ctx, p: { scale: number; alpha: number }, x: number, y: num
     ctx.restore();
 }
 
-function peak(s: Shot) {
-    const { ctx, beats, data, fonts, stage, t } = s;
-    const t2 = data.text;
-    const wide = stage.wide;
-    const mx = wide ? -stage.hw * 0.45 : 0;
-    const my = wide ? 0 : -150 * stage.v;
-    const ms = wide ? 1.55 : 1.3 * stage.v;
-    const ring = punch(beats);
-    drawRays(ctx, mx, my, 900, 0.1 + 0.25 * Math.exp(-beats * 1.5), t * 0.12);
-    popped(ctx, ring, mx, my, () => {
-        ctx.save();
-        ctx.translate(mx, my);
-        ctx.rotate(t * 0.18);
-        drawMedalRing(ctx, 0, 0, ms, t2.arc, fonts);
-        ctx.restore();
-        drawMedalBadge(ctx, mx, my, ms, data, s.images, 0.6 + 0.3 * Math.exp(-(beats % 4) * 2));
-    });
-
-    ctx.textBaseline = "middle";
-    const textX = wide ? -40 : 0;
-    const maxW = wide ? stage.hw - 40 + 0 : 2 * stage.hw;
-    ctx.textAlign = wide ? "left" : "center";
-    const [ky, ny, ly] = wide ? [-130, -20, 75] : [215, 300, 385].map((y) => y * stage.v);
-    popped(ctx, punch(beats - 1), textX, ky, () => kicker(ctx, t2.peakLabel, fonts, textX, ky, maxW, 34));
-    popped(ctx, stamp(beats - 2), textX, ny, () => {
-        ctx.letterSpacing = "2px";
-        fit(ctx, t2.peakName.toUpperCase(), 700, wide ? 150 : 132, fonts.pulp, maxW, 60);
-        foilText(ctx, t2.peakName.toUpperCase(), textX, ny, 0.3 + 0.25 * Math.sin(t * 0.9), 0.4);
-        ctx.letterSpacing = "0px";
-    });
-    const off = slideIn(beats - 3);
-    if (beats >= 2.5 && t2.reached) {
-        ctx.save();
-        ctx.globalAlpha = 1 - off;
-        ctx.fillStyle = INK.creamSoft;
-        fit(ctx, t2.reached, 500, 38, fonts.body, maxW, 18);
-        ctx.fillText(t2.reached, textX, ly + off * 40);
-        ctx.restore();
-    }
-}
-
 function climb(s: Shot) {
     const { ctx, beats, length, data, fonts, stage } = s;
     const chart = data.chart!;
@@ -293,7 +253,7 @@ function climb(s: Shot) {
     const region: Region = { x: -stage.hw, y: -250 * v, w: 2 * stage.hw, h: 600 * v };
     const now = drawChart(ctx, data, chart, fonts, s.images, region, {
         drawn,
-        frame: clamp01((beats - 0.3) / 1.5),
+        frame: clamp01((beats - 0.3) / 2.5),
         sincePeak: (bar - timing.peak) * 4,
     });
 
@@ -362,10 +322,7 @@ function record(s: Shot) {
     const t2 = data.text;
     const n = new Intl.NumberFormat(data.locale);
     const pct = new Intl.NumberFormat(data.locale, { style: "percent", maximumFractionDigits: 0 });
-    const k = length / 8;
-    const recordHit = 4 * k;
-    const rateHit = 5 * k;
-    const smallHit = 6 * k;
+    const { record: recordHit, rate: rateHit, row: smallHit } = recordCues(length);
     const wide = stage.wide;
     const hasRate = data.winrate !== null;
     ctx.textAlign = "center";
@@ -425,11 +382,10 @@ function heroes(s: Shot) {
     ctx.textAlign = "center";
     const v = stage.v;
     popped(ctx, punch(beats), 0, -440 * v, () => kicker(ctx, data.text.carried, fonts, 0, -440 * v, 2 * stage.hw, 36));
-    const step = length >= 8 ? 1 : 0.5;
     data.heroes.forEach((h, i) => {
-        const hit = 1 + i * step;
-        const off = slideIn(beats - hit);
-        if (beats < hit - 0.5) return;
+        const hit = heroCue(i, length);
+        const off = slideIn(beats - hit, HERO_SLIDE_BEATS);
+        if (beats < hit - HERO_SLIDE_BEATS) return;
         const image = s.images[`hero:${h.id}`];
         ctx.save();
         ctx.globalAlpha = 1 - off * 0.9;
@@ -716,7 +672,6 @@ const SHOTS: Record<SegmentId, (s: Shot) => void> = {
     sealed,
     tear,
     cover,
-    peak,
     climb,
     record,
     heroes,
@@ -729,7 +684,6 @@ const CUT: Record<SegmentId, boolean> = {
     sealed: false,
     tear: false,
     cover: false,
-    peak: true,
     climb: true,
     record: true,
     heroes: true,
@@ -746,7 +700,7 @@ export const collectorsScene: Scene = (ctx, t, { w, h }, assets) => {
     const stage = stageOf(w, h);
     const beats = local * 4;
 
-    background(ctx, w, h, stage, t, beatSeconds, segment.id === "peak" ? data.tierColor : "#3a2a10");
+    background(ctx, w, h, stage, t, beatSeconds);
     const kick = 1 + 0.012 * Math.exp(-((t / timing.barSeconds) % 1) * 10);
     ctx.save();
     ctx.translate(stage.cx, stage.cy);

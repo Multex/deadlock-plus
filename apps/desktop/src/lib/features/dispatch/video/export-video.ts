@@ -14,7 +14,7 @@ import valveOracleMedium from "../../../../../../../packages/ui/src/fonts/valveo
 import valveOracleSemibold from "../../../../../../../packages/ui/src/fonts/valveoracle-semibold.ttf?url";
 import valvePulpBold from "../../../../../../../packages/ui/src/fonts/valvepulp-bold.ttf?url";
 
-/** 25 s at this rate came to 14-26 MB in Edge, under the 64 MB a save may carry. */
+/** About 40 s at this rate came to 21-38 MB in Edge, under the 64 MB a save may carry. */
 export const VIDEO_BITRATE = 8_000_000;
 export const AUDIO_BITRATE = 128_000;
 /** The backend refuses a save name longer than this. */

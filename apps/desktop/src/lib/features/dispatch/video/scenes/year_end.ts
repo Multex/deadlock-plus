@@ -23,13 +23,14 @@ import {
 } from "./year_end/draw";
 import {
     clamp01,
+    COUNT_BEATS,
     countUp,
     digitLocks,
     easeInOut,
     easeOutBack,
     easeOutCubic,
+    entrances,
     flashAt,
-    growth,
     rollingDigit,
     sceneFrame,
     yearEndPlan,
@@ -890,7 +891,6 @@ function drawPoster(f: F): void {
     const draw: Record<SectionId, (f: F, start: number, bars: number) => void> = {
         numbers: drawNumbers,
         heroes: drawHeroes,
-        months: drawMonths,
         highlights: drawHighlights,
         people: drawPeople,
     };
@@ -913,7 +913,7 @@ function sectionTitle(f: F, label: string, x: number, y: number, dt: number, max
     f.ctx.globalAlpha = 1;
 }
 
-/** One tile a beat, each counting up until the next one lands. */
+/** The tiles land one after another, each counting up over two beats, then the K/D/A line under them. */
 function drawNumbers(f: F, start: number, bars: number): void {
     const { ctx, t, u, v, p } = f;
     const area = stage(f);
@@ -921,7 +921,7 @@ function drawNumbers(f: F, start: number, bars: number): void {
     sectionTitle(f, v.numbers.title, area.x, area.y + 16 * u, t - start, area.w);
     const cols = f.w > f.h ? 4 : 2;
     const rows = Math.ceil(tiles.length / cols);
-    const step = Math.min(f.b, (bars * 4 * f.b - f.b) / Math.max(1, tiles.length));
+    const cues = entrances(tiles.length + (kda ? 1 : 0), start, bars * 4 * f.b, f.b);
     const top = area.y + 60 * u;
     const kdaH = kda ? 130 * u : 0;
     const rowH = Math.min((rows > 2 ? 240 : 280) * u, (area.h - 64 * u - kdaH) / rows);
@@ -930,7 +930,7 @@ function drawNumbers(f: F, start: number, bars: number): void {
     const valuePx = Math.min(150 * u, rowH * 0.56);
 
     tiles.forEach((tile, i) => {
-        const land = start + i * step;
+        const land = cues[i];
         const dt = t - land;
         if (dt < 0) return;
         const x = area.x + (i % cols) * (colW + gap);
@@ -942,7 +942,7 @@ function drawNumbers(f: F, start: number, bars: number): void {
         const value = count
             ? fillCount(
                   count.template,
-                  count.values.map((n) => countUp(n, t, land, land + step, count.percent ? 100 : 1)),
+                  count.values.map((n) => countUp(n, t, land, land + COUNT_BEATS * f.b, count.percent ? 100 : 1)),
                   (n) => (count.percent ? p.pct : p.num).format(n),
               )
             : tile.value;
@@ -966,7 +966,7 @@ function drawNumbers(f: F, start: number, bars: number): void {
     });
 
     if (kda) {
-        const land = start + (bars * 4 - 1) * f.b;
+        const land = cues[tiles.length];
         const dt = t - land;
         if (dt >= 0) {
             const y = top + rows * rowH + 20 * u;
@@ -1055,13 +1055,13 @@ function medal(f: F, n: number, x: number, y: number, r: number, lead: boolean):
     });
 }
 
-/** #1 large with its medal, then the next four dropping in a beat apart. */
+/** #1 large with its medal and lines, then the next four dropping in one after another. */
 function drawHeroes(f: F, start: number, bars: number): void {
     const { ctx, t, u, v } = f;
     const area = stage(f);
     const list = v.heroes.list;
-    const step = (bars * 4 * f.b) / 8;
-    const cue = (i: number) => start + i * step;
+    const cues = entrances(8, start, bars * 4 * f.b, f.b);
+    const cue = (i: number) => cues[i];
     sectionTitle(f, v.heroes.title, area.x, area.y + 16 * u, t - start, area.w);
 
     const rest = list.slice(1);
@@ -1167,7 +1167,7 @@ function drawHeroes(f: F, start: number, bars: number): void {
         const dt = t - cue(4 + i);
         if (dt < 0) return;
         const x = rowX + i * (smallW + smallGap);
-        const drop = (1 - easeOutBack(dt / 0.22)) * -90 * u;
+        const drop = (1 - easeOutBack(dt / 0.36)) * -90 * u;
         ctx.globalAlpha = fadeIn(dt, 0.06);
         card(f, hero.id, hero.name, x, rowY + drop, smallW, smallH, false);
         medal(f, i + 2, x + 4 * u, rowY + drop + 4 * u, 28 * u, false);
@@ -1189,103 +1189,16 @@ function drawHeroes(f: F, start: number, bars: number): void {
     });
 }
 
-/** Bars grow from zero a step a beat; the busiest flashes gold on the last beat. */
-function drawMonths(f: F, start: number, bars: number): void {
-    const { ctx, t, u, v } = f;
-    const months = v.months;
-    if (!months) return;
-    const area = stage(f);
-    const dt = t - start;
-    const title = `${months.title} · ${months.sub}`;
-    sectionTitle(f, title, area.x, area.y + 16 * u, dt, area.w);
-
-    const n = months.bars.length;
-    const slot = area.w / n;
-    const barW = slot * 0.72;
-    const base = area.y + area.h - 70 * u;
-    const maxH = Math.min(area.h - 210 * u, 760 * u);
-    const grow = growth(t, start, f.b);
-    const goldAt = start + (bars * 4 - 1) * f.b;
-    const lit = t - goldAt;
-    const countsIn = fadeIn(t - (start + 2.4 * f.b), 0.15);
-
-    ctx.fillStyle = INK.ink;
-    ctx.fillRect(area.x, base, area.w * easeOutCubic(dt / 0.25), 4 * u);
-    months.bars.forEach((m, i) => {
-        const cx = area.x + slot * (i + 0.5);
-        ctx.globalAlpha = fadeIn(dt - i * 0.015, 0.1);
-        text(ctx, m.label.toLocaleUpperCase(v.locale), cx, base + 40 * u, {
-            family: f.fonts.display,
-            weight: 700,
-            px: 27 * u,
-            track: 0.1,
-            fill: INK.ink,
-            align: "center",
-            maxW: slot * 0.96,
-        });
-        ctx.globalAlpha = 1;
-        const h = maxH * m.share * grow;
-        if (h <= 0) return;
-        const gold = m.busiest && lit >= 0;
-        if (gold) {
-            const g = ctx.createLinearGradient(0, base - h, 0, base);
-            g.addColorStop(0, "#e8cf8c");
-            g.addColorStop(0.5, INK.goldFill);
-            g.addColorStop(1, "#966b26");
-            ctx.fillStyle = g;
-        } else {
-            ctx.fillStyle = INK.ink;
-        }
-        const pop = gold ? slamScale(lit, 1.12) : 1;
-        ctx.save();
-        ctx.translate(cx, base);
-        ctx.scale(pop, pop);
-        ctx.fillRect(-barW / 2, -h, barW, h);
-        if (gold) {
-            ctx.lineWidth = 3 * u;
-            ctx.strokeStyle = INK.ink;
-            ctx.strokeRect(-barW / 2, -h, barW, h);
-            const white = Math.exp(-lit / 0.12);
-            if (white > 0.02) {
-                ctx.fillStyle = `rgb(255 250 235 / ${white})`;
-                ctx.fillRect(-barW / 2, -h, barW, h);
-            }
-        }
-        ctx.restore();
-        if (gold) sparks(ctx, cx, base - h, lit, u, 99, 14);
-
-        // The busiest month shows its plain count like the rest until it lights up.
-        const crowned = gold;
-        ctx.globalAlpha = crowned ? 1 : countsIn;
-        if (ctx.globalAlpha > 0) {
-            const k = crowned ? slamScale(lit, 1.6) : 1;
-            ctx.save();
-            ctx.translate(cx, base - h - (crowned ? 30 : 22) * u);
-            ctx.scale(k, k);
-            text(ctx, crowned ? m.count : m.value, 0, 0, {
-                family: f.fonts.display,
-                weight: 700,
-                px: (crowned ? 28 : 24) * u,
-                fill: crowned ? INK.goldInk : INK.ink,
-                align: "center",
-                maxW: crowned ? slot * 2.6 : slot,
-            });
-            ctx.restore();
-        }
-        ctx.globalAlpha = 1;
-    });
-}
-
 /**
- * Best streak on the downbeat, counting up; game of the year on beat 2, its grade stamped on beat 3. Stacked in
- * 9:16 and 1:1, side by side in 16:9.
+ * Best streak on the downbeat, counting up; game of the year a bar and a half later, its grade stamped three
+ * beats after that. Stacked in 9:16 and 1:1, side by side in 16:9.
  */
 function drawHighlights(f: F, start: number, bars: number): void {
     const { ctx, t, u, v, p } = f;
     const area = stage(f);
     const { streak, bestGame } = v;
     const span = bars * 4 * f.b;
-    const gameAt = streak ? start + span / 2 : start;
+    const gameAt = streak ? start + Math.min(span / 2, 6 * f.b) : start;
     const side = f.w > f.h && !!streak && !!bestGame;
     const gap = 40 * u;
     const sRect: Rect = side
@@ -1299,7 +1212,7 @@ function drawHighlights(f: F, start: number, bars: number): void {
 
     if (streak) {
         const dt = t - start;
-        const value = p.num.format(countUp(streak.count, t, start, start + f.b));
+        const value = p.num.format(countUp(streak.count, t, start, start + COUNT_BEATS * f.b));
         const px = side ? Math.min(420 * u, sRect.h * 0.55) : Math.min(400 * u, sRect.h * 0.9);
         const numY = side ? sRect.y + sRect.h * 0.4 : sRect.y + sRect.h / 2;
         const k = slamScale(dt, 1.5);
@@ -1323,7 +1236,7 @@ function drawHighlights(f: F, start: number, bars: number): void {
         const tx = side ? sRect.x : sRect.x + finalW + 44 * u;
         const ty = side ? numY + px * 0.55 + 40 * u : numY - 40 * u;
         const tw = sRect.x + sRect.w - tx;
-        const dt1 = t - (start + f.b);
+        const dt1 = t - (start + COUNT_BEATS * f.b);
         if (dt1 >= 0) {
             ctx.globalAlpha = fadeIn(dt1, 0.1);
             text(ctx, streak.title.toLocaleUpperCase(v.locale), tx, ty, {
@@ -1392,7 +1305,7 @@ function drawHighlights(f: F, start: number, bars: number): void {
         });
         ctx.globalAlpha = 1;
         if (bestGame.grade) {
-            const st = t - (gameAt + (streak ? span / 4 : span / 2));
+            const st = t - (gameAt + Math.min(streak ? span / 4 : span / 2, 3 * f.b));
             if (st >= 0) stamp(f, bestGame.grade, tx + 150 * u, Math.min(ty + 300 * u, ty + thumbH - 30 * u), st);
         }
     }
@@ -1435,7 +1348,7 @@ function drawPeople(f: F, start: number, bars: number): void {
     const span = bars * 4 * f.b;
     const rows = mates?.rows ?? [];
     const nemAt = rows.length ? start + span / 2 : start;
-    const rowStep = rows.length ? Math.min(f.b, span / 2 / rows.length) : 0;
+    const rowStep = rows.length ? Math.min(2 * f.b, span / 2 / rows.length) : 0;
     const side = f.w > f.h && rows.length > 0 && !!nemesis;
     const listH = nemesis && !side ? area.h * 0.46 : area.h;
     const listW = side ? area.w * 0.52 : area.w;
