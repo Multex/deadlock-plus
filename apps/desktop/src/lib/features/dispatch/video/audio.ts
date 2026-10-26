@@ -1,4 +1,5 @@
 import { loadTrack, musicTrack, type MusicTrack, type MusicTrackId } from "./music";
+import { SFX_CUES, decodeCues, loadSfx, mixCues, type SfxCue } from "./sfx";
 import type { VideoTimeline } from "./timeline";
 
 /** Opus encodes only at 48 kHz; AAC takes it too, so one rate serves both. */
@@ -86,7 +87,10 @@ export function silence(plan: AudioPlan): VideoAudio {
     };
 }
 
-/** Decodes and sums the layers through one fade envelope. `layers` are MP3 bytes in the track's layer order. */
+/**
+ * Decodes and sums the layers through one fade envelope. `layers` are MP3 bytes in the track's layer order. The
+ * mix is not peak-capped yet: cues go on top first.
+ */
 export async function mixAudio(plan: AudioPlan, layers: ArrayBuffer[]): Promise<VideoAudio> {
     const ctx = new OfflineAudioContext(plan.channels, plan.length, plan.sampleRate);
     const master = ctx.createGain();
@@ -129,16 +133,26 @@ export async function mixAudio(plan: AudioPlan, layers: ArrayBuffer[]): Promise<
 
     const rendered = await ctx.startRendering();
     const planes = Array.from({ length: rendered.numberOfChannels }, (_, c) => rendered.getChannelData(c));
-    capPeak(planes);
     return { sampleRate: rendered.sampleRate, planes };
 }
 
-/** The track's mix for this video, or null when the game music cannot be read or decoded: the video goes silent. */
-export async function renderMusic(id: MusicTrackId, timeline: VideoTimeline): Promise<VideoAudio | null> {
-    const layers = await loadTrack(id);
+/**
+ * The track's mix for this video with the sound cues laid over it, or null when the game music cannot be read or
+ * decoded: the video goes silent. A cue that cannot be read or decoded plays as silence.
+ */
+export async function renderMusic(
+    id: MusicTrackId,
+    timeline: VideoTimeline,
+    cues: readonly SfxCue[] = [],
+): Promise<VideoAudio | null> {
+    const [layers, sfx] = await Promise.all([loadTrack(id), loadSfx(cues.map((c) => c.cue))]);
     if (!layers) return null;
     try {
-        return await mixAudio(audioPlan(musicTrack(id), timeline), layers);
+        const audio = await mixAudio(audioPlan(musicTrack(id), timeline), layers);
+        const clips = sfx.size > 0 ? await decodeCues(sfx, audio.sampleRate, SFX_CUES) : new Map();
+        mixCues(audio.planes, audio.sampleRate, cues, clips, SFX_CUES);
+        capPeak(audio.planes);
+        return audio;
     } catch (e) {
         console.warn(`[dispatch] music track ${id} could not be mixed:`, e);
         return null;

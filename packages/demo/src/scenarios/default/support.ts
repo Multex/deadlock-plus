@@ -96,6 +96,7 @@ export function supportModule({ appVersion }: SupportOptions): Module {
                 save_text_file: () => true,
                 save_binary_file: () => true,
                 dispatch_music_track: () => new ArrayBuffer(0),
+                dispatch_sfx: () => new ArrayBuffer(0),
             };
             return { handlers };
         },

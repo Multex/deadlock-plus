@@ -66,6 +66,76 @@ pub fn read_music_layer(citadel_dir: Option<&Path>, id: &str, layer: usize) -> R
     }
 }
 
+/// A sound effect the Dispatch video may lay over its music, by cue id. Only these paths are ever read, so the
+/// frontend never names a file in the archive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SfxCue {
+    pub id: &'static str,
+    pub path: &'static str,
+}
+
+pub const SFX_CUES: [SfxCue; 19] = [
+    SfxCue { id: "shutter", path: "sounds/weapons/hornet/zoom/vindicta_wpn_zoom_in_05.vsnd_c" },
+    SfxCue { id: "flash", path: "sounds/npc/neutrals/vaults/vault_fast_flash.vsnd_c" },
+    SfxCue { id: "grease_pencil", path: "sounds/player/footsteps/wraith/wraith_foley_paper_01.vsnd_c" },
+    SfxCue { id: "page", path: "sounds/ui/ui_shop_panel_page_05.vsnd_c" },
+    SfxCue { id: "type_tick", path: "sounds/ui/ui_keybind_press_05.vsnd_c" },
+    SfxCue { id: "slam", path: "sounds/abilities/wraith/wraith_card_trick_hit_01.vsnd_c" },
+    SfxCue { id: "stand_drop", path: "sounds/ui/ui_shop_purchase_item_01.vsnd_c" },
+    SfxCue { id: "foil_glint", path: "sounds/player/movement/unicorn/unicorn_sparkle_sweetener_04.vsnd_c" },
+    SfxCue { id: "foil_rip", path: "sounds/cosmetics/hero_poster/cosmetic_decal_poster_destroy_04.vsnd_c" },
+    SfxCue { id: "card_deal", path: "sounds/abilities/wraith/wraith_cardtrick_summon_default.vsnd_c" },
+    SfxCue { id: "card_flip", path: "sounds/player/footsteps/wraith/wraith_foley_paper_05.vsnd_c" },
+    SfxCue { id: "chase_build", path: "sounds/world/teleport/teleporter_buildup.vsnd_c" },
+    SfxCue { id: "holo_reveal", path: "sounds/ui/ui_draft_item_legendary.vsnd_c" },
+    SfxCue { id: "slab_click", path: "sounds/gameplay/shared_reloads/shared_reload_clip_in.vsnd_c" },
+    SfxCue { id: "marquee_bulb", path: "sounds/ui/ui_get_gold_03.vsnd_c" },
+    SfxCue { id: "confetti", path: "sounds/world/breakables/pottery/powerup_statue_paper_burst_06.vsnd_c" },
+    SfxCue { id: "envelope_tear", path: "sounds/world/breakables/present/seasonal_present_smash_04.vsnd_c" },
+    SfxCue { id: "spotlight", path: "sounds/world/teleport/teleporter_appear.vsnd_c" },
+    SfxCue { id: "winner_sting", path: "sounds/ui/ui_ranked_rankup_01.vsnd_c" },
+];
+
+pub fn sfx_cue(id: &str) -> Option<&'static SfxCue> {
+    SFX_CUES.iter().find(|c| c.id == id)
+}
+
+/// Each asked cue's MP3 bytes, in the asked order. `None` for a cue when there is no install, or the archive or
+/// the file is missing or does not hold MP3: that cue goes silent and the rest still play. An id outside
+/// `SFX_CUES` refuses the whole ask before anything is read.
+pub fn read_sfx(citadel_dir: Option<&Path>, ids: &[String]) -> Result<Vec<Option<Vec<u8>>>, String> {
+    let cues = ids
+        .iter()
+        .map(|id| sfx_cue(id).ok_or_else(|| format!("unknown sound cue {id:?}")))
+        .collect::<Result<Vec<_>, _>>()?;
+    let Some(archive) = citadel_dir.map(|d| d.join(ARCHIVE)).filter(|a| a.is_file()) else {
+        return Ok(vec![None; cues.len()]);
+    };
+    let vpk = Vpk::open(&archive).map_err(|e| format!("{}: {e}", archive.display()))?;
+    Ok(cues
+        .iter()
+        .map(|cue| match vpk.read_path(cue.path).map_err(|e| e.to_string()).and_then(|b| embedded_mp3(&b)) {
+            Ok(mp3) => Some(mp3),
+            Err(e) => {
+                log::warn!("sound cue {} ({}): {e}", cue.id, cue.path);
+                None
+            }
+        })
+        .collect())
+}
+
+/// The cues as one body: per cue in order, its byte length as a little-endian `u32`, then its bytes. A missing
+/// cue is a length of 0.
+pub fn sfx_body(cues: &[Option<Vec<u8>>]) -> Vec<u8> {
+    let mut body = Vec::with_capacity(cues.iter().map(|c| 4 + c.as_ref().map_or(0, Vec::len)).sum());
+    for cue in cues {
+        let bytes = cue.as_deref().unwrap_or_default();
+        body.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
+        body.extend_from_slice(bytes);
+    }
+    body
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -168,6 +238,73 @@ mod tests {
                 if let Some(dump) = &dump {
                     std::fs::write(dump.join(format!("{}-{layer}.mp3", track.id)), &mp3).unwrap();
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn each_sfx_cue_is_found_by_id_and_names_only_sound_files() {
+        assert_eq!(SFX_CUES.len(), 19);
+        for cue in &SFX_CUES {
+            assert_eq!(sfx_cue(cue.id), Some(cue));
+            assert!(cue.path.starts_with("sounds/") && cue.path.ends_with(".vsnd_c"), "{}", cue.path);
+            assert!(!cue.path.starts_with("sounds/music/"), "{}", cue.path);
+        }
+        let mut ids: Vec<_> = SFX_CUES.iter().map(|c| c.id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), SFX_CUES.len());
+        assert_eq!(
+            sfx_cue("shutter").map(|c| c.path),
+            Some("sounds/weapons/hornet/zoom/vindicta_wpn_zoom_in_05.vsnd_c")
+        );
+        assert_eq!(sfx_cue("crowd"), None);
+        assert_eq!(sfx_cue("sounds/ui/ui_get_gold_03.vsnd_c"), None);
+    }
+
+    #[test]
+    fn an_unknown_sfx_cue_refuses_the_whole_ask_before_any_read() {
+        let dir = PathBuf::from("does-not-exist");
+        let ids = ["shutter".to_string(), "../../pak01_dir".to_string()];
+        assert!(read_sfx(Some(&dir), &ids).unwrap_err().contains("unknown sound cue"));
+        assert!(read_sfx(None, &ids).unwrap_err().contains("unknown sound cue"));
+    }
+
+    #[test]
+    fn no_install_or_no_archive_reads_as_every_cue_missing() {
+        let ids = ["shutter".to_string(), "winner_sting".to_string()];
+        assert_eq!(read_sfx(None, &ids), Ok(vec![None, None]));
+        let dir = std::env::temp_dir().join(format!("dp-gamedata-sfx-missing-{}", std::process::id()));
+        assert_eq!(read_sfx(Some(&dir), &ids), Ok(vec![None, None]));
+        assert_eq!(read_sfx(None, &[]), Ok(vec![]));
+    }
+
+    #[test]
+    fn the_sfx_body_frames_each_cue_by_its_length_and_a_missing_one_as_zero() {
+        let body = sfx_body(&[Some(vec![1, 2, 3]), None, Some(vec![9])]);
+        assert_eq!(body, [3, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 1, 0, 0, 0, 9]);
+        assert_eq!(sfx_body(&[]), Vec::<u8>::new());
+    }
+
+    /// Reads every cue from the installed game. With `DP_SFX_DUMP` set, writes each as `<id>.mp3` there for a
+    /// look with ffprobe.
+    #[test]
+    #[ignore = "reads the installed game"]
+    fn every_sfx_cue_reads_as_mp3_from_the_installed_game() {
+        let dir = std::env::var_os("DEADLOCK_CITADEL_DIR").map(PathBuf::from).or_else(|| SteamInstall.citadel_dir());
+        let Some(dir) = dir.filter(|d| d.join(ARCHIVE).is_file()) else {
+            eprintln!("skipped: no installed Deadlock");
+            return;
+        };
+        let ids: Vec<String> = SFX_CUES.iter().map(|c| c.id.to_string()).collect();
+        let cues = read_sfx(Some(&dir), &ids).unwrap();
+        let dump = std::env::var_os("DP_SFX_DUMP").map(PathBuf::from);
+        for (cue, mp3) in SFX_CUES.iter().zip(cues) {
+            let mp3 = mp3.unwrap_or_else(|| panic!("{} is not in the archive", cue.id));
+            assert!(mp3.len() > 1_000, "{}: {} bytes", cue.id, mp3.len());
+            assert!(is_mp3_start(&mp3), "{}", cue.id);
+            if let Some(dump) = &dump {
+                std::fs::write(dump.join(format!("{}.mp3", cue.id)), &mp3).unwrap();
             }
         }
     }

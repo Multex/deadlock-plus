@@ -297,4 +297,18 @@ pub mod commands {
         .map_err(|e| e.to_string())??;
         Ok(tauri::ipc::Response::new(bytes.unwrap_or_default()))
     }
+
+    /// The asked Dispatch video sound cues as MP3 bytes from the user's own install, in one body: per cue in
+    /// order, a little-endian `u32` length then the bytes, 0 for a cue the game is missing. One call opens the
+    /// archive once for every cue a video uses.
+    #[tauri::command]
+    pub async fn dispatch_sfx(cues: Vec<String>) -> Result<tauri::ipc::Response, String> {
+        use dp_gamedata::{Install, SteamInstall};
+        let read = tauri::async_runtime::spawn_blocking(move || {
+            dp_gamedata::read_sfx(SteamInstall.citadel_dir().as_deref(), &cues)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+        Ok(tauri::ipc::Response::new(dp_gamedata::sfx_body(&read)))
+    }
 }

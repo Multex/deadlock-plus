@@ -188,6 +188,7 @@ pub fn run() {
             features::gamedata::commands::release_old_game_art,
             features::gamedata::commands::game_map_items,
             features::gamedata::commands::dispatch_music_track,
+            features::gamedata::commands::dispatch_sfx,
             features::steam_account::commands::current_steam_account,
             features::steam_account::commands::local_steam_account_ids,
             features::builds::commands::builds_local,

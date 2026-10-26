@@ -5,6 +5,7 @@ import { AUDIO_SAMPLE_RATE, audioPlan, renderMusic, type VideoAudio } from "./au
 import type { EncodeJob, EncodeReply, EncodeRequest, WorkerFont } from "./encode.worker";
 import { musicTrack, type MusicTrackId } from "./music";
 import { SCENE_FONTS, type ScenePrep, type VideoKind } from "./scene";
+import type { SfxCue } from "./sfx";
 import { VIDEO_FPS, VIDEO_SIZES, videoTimeline } from "./timeline";
 
 import brandMark from "../../../../../../../packages/ui/src/brand-mark.png";
@@ -203,6 +204,8 @@ export interface VideoExportRequest {
     kind: VideoKind;
     aspect: CardAspect;
     track: MusicTrackId;
+    /** Sounds laid over the music, in video seconds. */
+    sfx?: readonly SfxCue[];
     audioCodec: "aac" | "opus";
     signal: AbortSignal;
     onProgress: (done: number) => void;
@@ -220,7 +223,7 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
         const prepare = SCENE_PREP[kind];
         const prep = prepare ? await (await prepare()).prepareScene(view) : null;
         const [audio, fonts, images] = await Promise.all([
-            renderMusic(request.track, timeline),
+            renderMusic(request.track, timeline, request.sfx),
             loadFonts(),
             loadImages(view, prep?.images ?? {}),
         ]);
