@@ -4096,6 +4096,17 @@
                 "cover": "Cover",
                 "pages": "Pages {from}–{to}"
             }
+        },
+        "mini": {
+            "pair": "{first} · {second}",
+            "the_monthly": "The Monthly",
+            "proof": "Proof",
+            "not_printed": "Not printed yet",
+            "still_printing": "Still\nprinting",
+            "fold_out": "Fold-out\nposter",
+            "so_far_foot_one": "{count} match · out {day}",
+            "so_far_foot_other": "{count} matches · out {day}",
+            "aria": "{kind}, {date}, {detail}"
         }
     }
 }
