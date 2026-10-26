@@ -368,10 +368,17 @@ describe("editionSignals", () => {
         expect(ids(base(), weekly)).not.toContain("vs_last");
     });
 
-    it("mvp: 3 Valve MVP placements, not 2", () => {
-        const combat = (counts: number[]) => [{ ...base().combat![0], mvpRankCounts: counts }];
-        expect(find(base({ combat: combat([1, 1, 1]) }), "mvp")?.facts).toEqual({ placements: 3, rated: 5 });
-        expect(ids(base({ combat: combat([1, 1, 0]) }))).not.toContain("mvp");
+    it("mvp: placed in 40% of at least 10 rated matches, not 35%, not by count alone", () => {
+        const combat = (counts: number[], rated: number) => [
+            { ...base().combat![0], mvpRankCounts: counts, mvpRated: rated },
+        ];
+        const at = find(base({ combat: combat([3, 3, 2], 20) }), "mvp");
+        expect(at?.facts).toEqual({ placements: 8, rated: 20, share: 0.4 });
+        expect(at?.strength).toBe(0.5);
+        expect(find(base({ combat: combat([6, 5, 2], 20) }), "mvp")?.strength).toBe(1);
+        expect(ids(base({ combat: combat([3, 2, 2], 20) }))).not.toContain("mvp");
+        expect(ids(base({ combat: combat([20, 20, 20], 200) }))).not.toContain("mvp");
+        expect(ids(base({ combat: combat([3, 3, 3], 9) }))).not.toContain("mvp");
         expect(ids(base({ combat: null }))).not.toContain("mvp");
     });
 

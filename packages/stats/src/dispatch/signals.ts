@@ -73,7 +73,8 @@ export interface SignalFacts {
         prevWinrate: number | null;
         winrateChange: number | null;
     };
-    mvp: { placements: number; rated: number };
+    /** `share` = placements over rated matches. */
+    mvp: { placements: number; rated: number; share: number };
 }
 
 export type Signal = { [K in SignalId]: { id: K; strength: number; facts: SignalFacts[K] } }[SignalId];
@@ -105,7 +106,8 @@ export const WINNING_RATE = 0.6;
 export const LOSING_RATE = 0.4;
 export const MIN_SCORED = 10;
 export const VS_LAST_CHANGE = 0.2;
-export const MVP_PLACEMENTS = 3;
+/** Top-3 MVP placements over rated matches; three of twelve players place, so 25% is par and 40% stands out. */
+export const MVP_SHARE = 0.4;
 /** Shares of a handful of matches say nothing; same floor as the winrate signals. */
 export const SHARE_MIN_MATCHES = 10;
 
@@ -130,7 +132,7 @@ const FULL = {
     winning: 0.8,
     losing: 0.2,
     vs_last: 1,
-    mvp: 15,
+    mvp: 0.65,
 } as const;
 
 /** Breaks equal strengths, most telling first. */
@@ -471,12 +473,15 @@ const vsLast: Detector = (e, previous) => {
     ];
 };
 
+// A raw count grows with games played, so a busy season would always max it out; the share does not.
 const mvp: Detector = ({ combat }) => {
     if (!combat) return [];
     const placements = combat.reduce((sum, row) => sum + row.mvpRankCounts.reduce((a, b) => a + b, 0), 0);
-    if (placements < MVP_PLACEMENTS) return [];
     const rated = combat.reduce((sum, row) => sum + row.mvpRated, 0);
-    return [{ id: "mvp", strength: ramp(placements, MVP_PLACEMENTS, FULL.mvp), facts: { placements, rated } }];
+    if (rated < SHARE_MIN_MATCHES) return [];
+    const share = placements / rated;
+    if (!atLeast(share, MVP_SHARE)) return [];
+    return [{ id: "mvp", strength: ramp(share, MVP_SHARE, FULL.mvp), facts: { placements, rated, share } }];
 };
 
 const DETECTORS: readonly Detector[] = [
