@@ -3903,7 +3903,6 @@
             "month": {
                 "title": "Month by month",
                 "sub": "matches played",
-                "issue": "This issue",
                 "busiest": "Busiest · {count}"
             },
             "inside": {

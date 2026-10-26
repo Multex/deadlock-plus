@@ -15,9 +15,9 @@ export interface MonthBar {
     label: string;
     count: string;
     height: number;
+    /** The won share of `height`, on the same scale. */
+    winHeight: number;
     busiest: boolean;
-    /** The month this issue comes out in: no matches counted yet. */
-    issue: boolean;
 }
 
 export interface Line {
@@ -76,7 +76,7 @@ export interface YearEndPoster {
     } | null;
     mates: { title: string; rows: PersonLine[] } | null;
     nemesis: { title: string; row: PersonLine } | null;
-    months: { title: string; sub: string; issue: string; bars: MonthBar[] } | null;
+    months: { title: string; sub: string; won: string; bars: MonthBar[] } | null;
     /** The back of the inside flap, seen between the cover swinging away and the flap opening. */
     inside: { kicker: string; title: string; span: string };
 }
@@ -98,8 +98,8 @@ export function monthBars(months: EditionMonth[], tz: string, deps: YearEndDeps)
                 ? deps.t("dispatch.year_end.month.busiest", { count: deps.number(m.matches) })
                 : deps.number(m.matches),
         height: peak > 0 ? (m.matches / peak) * BAR_MAX : 0,
+        winHeight: peak > 0 ? (m.wins / peak) * BAR_MAX : 0,
         busiest: i === busiest,
-        issue: false,
     }));
 }
 
@@ -263,7 +263,7 @@ export function yearEndView(edition: Edition, view: EditionView, deps: YearEndDe
                 ? {
                       title: t("dispatch.year_end.month.title"),
                       sub: t("dispatch.year_end.month.sub"),
-                      issue: t("dispatch.year_end.month.issue"),
+                      won: t("dispatch.heroes.wins"),
                       bars: monthBars(months, win.tz, deps),
                   }
                 : null,

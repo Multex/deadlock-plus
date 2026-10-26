@@ -30,6 +30,7 @@ const CATALOG: Record<string, string> = {
     "dispatch.year_end.numbers.hours": "Hours",
     "dispatch.year_end.numbers.days": "Days played",
     "dispatch.year_end.numbers.heroes": "Heroes tried",
+    "dispatch.heroes.wins": "Won",
     "dispatch.year_end.numbers.longest_match": "Longest match",
     "dispatch.year_end.numbers.longest_session": "Longest session",
     "dispatch.year_end.numbers.session_value_one": "{count} game",
@@ -120,8 +121,21 @@ describe("monthBars", () => {
         expect(bars.slice(0, 3).map((b) => b.height)).toEqual([BAR_MAX / 4, BAR_MAX, BAR_MAX / 2]);
     });
 
+    it("fills each bar with its wins on the same scale, so the gold reads against every month", () => {
+        const bars = monthBars(
+            [
+                { monthStartS: monthStart(0), matches: 40, wins: 30 },
+                { monthStartS: monthStart(1), matches: 20, wins: 5 },
+            ],
+            "UTC",
+            deps,
+        );
+        expect(bars.map((b) => b.winHeight)).toEqual([(BAR_MAX * 3) / 4, BAR_MAX / 8]);
+    });
+
     it("gives an empty month no bar at all", () => {
-        expect(monthBars(months([0, 12]), "UTC", deps)[0].height).toBe(0);
+        const [empty] = monthBars(months([0, 12]), "UTC", deps);
+        expect([empty.height, empty.winHeight]).toEqual([0, 0]);
     });
 
     it("marks only the first of two equally busy months", () => {
@@ -134,13 +148,11 @@ describe("monthBars", () => {
     it("runs the strip Dec to Nov, one bar per month and nothing after", () => {
         const bars = monthBars(months(Array(12).fill(5)), "UTC", deps);
         expect(bars.map((b) => b.label)).toEqual(["Dec", ...MONTHS.slice(0, 11)]);
-        expect(bars.some((b) => b.issue)).toBe(false);
     });
 
     it("adds no slot for the month the issue comes out in, which the next special covers", () => {
         const bars = monthBars(months([37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23]), "UTC", deps);
         expect(bars).toHaveLength(11);
-        expect(bars.some((b) => b.issue)).toBe(false);
     });
 });
 
@@ -220,5 +232,9 @@ describe("yearEndView", () => {
     it("leaves the month strip out of an edition frozen before months were stored", () => {
         expect(build(edition({ months: undefined })).poster.months).toBeNull();
         expect(build(edition()).poster.months?.bars.map((b) => b.label)).toEqual(["Dec", ...MONTHS.slice(0, 11)]);
+    });
+
+    it("keys the gold share of the month strip as wins", () => {
+        expect(build(edition()).poster.months?.won).toBe("Won");
     });
 });

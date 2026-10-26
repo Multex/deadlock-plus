@@ -127,17 +127,17 @@
 
     {#if poster.months}
         <section class="months">
-            <h2>{poster.months.title} <span>· {poster.months.sub}</span></h2>
+            <h2>
+                {poster.months.title} <span>· {poster.months.sub}</span>
+                <span class="key"><i></i>{poster.months.won}</span>
+            </h2>
             <ol>
                 {#each poster.months.bars as month (month.id)}
-                    <li class:busiest={month.busiest} class:upcoming={month.issue}>
-                        {#if month.issue}
-                            <span class="count issue">★ {poster.months.issue}</span>
-                            <span class="month-bar" style="height: 34px"></span>
-                        {:else}
-                            <span class="count">{month.count}</span>
-                            <span class="month-bar" style="height: {month.height}px"></span>
-                        {/if}
+                    <li class:busiest={month.busiest}>
+                        <span class="count">{month.count}</span>
+                        <span class="month-bar" style="height: {month.height}px">
+                            <span class="won" style="height: {month.winHeight}px"></span>
+                        </span>
                         <span class="month-label">{month.label}</span>
                     </li>
                 {/each}
@@ -560,6 +560,20 @@
         color: var(--ink-soft);
     }
 
+    .months h2 .key {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 18px;
+    }
+
+    .key i {
+        width: 14px;
+        height: 14px;
+        background: var(--gold-fill);
+        box-shadow: 0 0 0 2px var(--black);
+    }
+
     /* Twelve columns of 150 px: four to a panel, so every fold falls between two months. */
     .months ol {
         display: grid;
@@ -584,30 +598,27 @@
         font-weight: 700;
     }
 
+    /* Black for the whole month, gold from the base for the games won. */
     .month-bar {
-        width: 74px;
-        background: var(--ink);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        width: 44px;
+        background: var(--black);
+    }
+
+    .won {
+        display: block;
+        border-top: 2px solid var(--black);
+        background: linear-gradient(90deg, oklch(0.62 0.11 78), oklch(0.86 0.09 90) 45%, var(--gold-fill));
     }
 
     .busiest .month-bar {
-        background: linear-gradient(180deg, oklch(0.86 0.09 90), var(--gold-fill) 50%, oklch(0.56 0.1 76));
-        box-shadow: 0 0 0 2px var(--black);
+        outline: 3px solid var(--gold-fill);
+        outline-offset: 3px;
     }
 
     .busiest .count {
-        color: var(--gold-ink);
-    }
-
-    .upcoming .month-bar {
-        outline: 2px dashed var(--gold-ink);
-        outline-offset: -2px;
-        background: repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.47 0.095 76 / 0.5) 6px 8px);
-    }
-
-    .issue {
-        font-size: 15px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
         color: var(--gold-ink);
     }
 
