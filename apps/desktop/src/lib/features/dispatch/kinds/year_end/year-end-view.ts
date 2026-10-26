@@ -86,14 +86,11 @@ export interface YearEndView {
     poster: YearEndPoster;
 }
 
-/**
- * One bar per month, scaled from zero against the busiest month so heights compare honestly. While the window
- * stops short of a full year, the month the issue comes out in closes the strip as an empty "this issue" slot.
- */
-export function monthBars(months: EditionMonth[], endS: number, tz: string, deps: YearEndDeps): MonthBar[] {
+/** One bar per month, scaled from zero against the busiest month so heights compare honestly. */
+export function monthBars(months: EditionMonth[], tz: string, deps: YearEndDeps): MonthBar[] {
     const peak = Math.max(0, ...months.map((m) => m.matches));
     const busiest = peak > 0 ? months.findIndex((m) => m.matches === peak) : -1;
-    const bars = months.map((m, i): MonthBar => ({
+    return months.map((m, i): MonthBar => ({
         id: m.monthStartS,
         label: deps.monthShort(m.monthStartS, tz),
         count:
@@ -104,10 +101,6 @@ export function monthBars(months: EditionMonth[], endS: number, tz: string, deps
         busiest: i === busiest,
         issue: false,
     }));
-    if (months.length > 0 && months.length < 12) {
-        bars.push({ id: endS, label: deps.monthShort(endS, tz), count: "", height: 0, busiest: false, issue: true });
-    }
-    return bars;
 }
 
 /** Cuts a translated title around `{player}` so the name can be set in its own ink. */
@@ -271,7 +264,7 @@ export function yearEndView(edition: Edition, view: EditionView, deps: YearEndDe
                       title: t("dispatch.year_end.month.title"),
                       sub: t("dispatch.year_end.month.sub"),
                       issue: t("dispatch.year_end.month.issue"),
-                      bars: monthBars(months, win.endS, win.tz, deps),
+                      bars: monthBars(months, win.tz, deps),
                   }
                 : null,
         inside: {

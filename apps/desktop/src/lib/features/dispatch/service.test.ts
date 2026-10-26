@@ -439,17 +439,18 @@ describe("specials", () => {
         expect(f.deps.rankedSeasons).toHaveBeenCalledTimes(1);
     });
 
-    it("issues the Year-End Special on Dec 1 for Jan 1 to Dec 1", async () => {
-        const f = fakeDeps({ nowS: () => at(2026, 12, 1, 0) + 1800 }, SEASON_HISTORY);
+    it("issues the Year-End Special on Dec 1 for Dec 1 of the year before to Dec 1", async () => {
+        const lastDecember = [match(19, at(2025, 11, 30, 23)), match(20, at(2025, 12, 15))];
+        const f = fakeDeps({ nowS: () => at(2026, 12, 1, 0) + 1800 }, [...lastDecember, ...SEASON_HISTORY]);
         const service = createDispatchService(f.deps);
         const issued = await service.issueDue();
 
         const special = issued.find((e) => e.window.kind === "year_end");
         expect([special?.id, special?.window.startS, special?.window.endS, special?.stats.matches]).toEqual([
             "year_end-2026",
-            at(2026, 1, 1, 0),
+            at(2025, 12, 1, 0),
             at(2026, 12, 1, 0),
-            8,
+            9,
         ]);
         expect(special?.season).toBeNull();
         expect(kindCalls(f, "year_end")).toEqual([["year_end"]]);
@@ -458,6 +459,7 @@ describe("specials", () => {
         expect(view?.latest.year_end?.id).toBe("year_end-2026");
         expect(view?.shelf.year_end.map((e) => [e.window.id, e.status, e.number])).toEqual([
             ["year_end-2026", "issued", special?.number],
+            ["year_end-2025", "too_few", null],
         ]);
     });
 

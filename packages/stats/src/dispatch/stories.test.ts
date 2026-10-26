@@ -419,8 +419,8 @@ const COLLECTORS: EditionWindow = {
 const YEAR_END: EditionWindow = {
     kind: "year_end",
     id: "year_end-2026",
-    startS: 1_767_225_600,
-    endS: 1_767_225_600 + 334 * DAY,
+    startS: 1_764_547_200,
+    endS: 1_764_547_200 + 365 * DAY,
     tz: "UTC",
 };
 const MONTHLY: EditionWindow = {
@@ -510,8 +510,8 @@ describe("days played", () => {
             deck: { key: "dispatch.story.days_played.deck" },
             params: {
                 days: { type: "number", value: 40 },
-                total: { type: "number", value: 334 },
-                share: { type: "percent", value: 40 / 334 },
+                total: { type: "number", value: 365 },
+                share: { type: "percent", value: 40 / 365 },
             },
         });
     });

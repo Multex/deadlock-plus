@@ -209,24 +209,39 @@ describe("dueWindow", () => {
 });
 
 describe("year_end windows", () => {
-    it("runs Jan 1 00:00 to Dec 1 00:00 local in Berlin", () => {
+    it("runs Dec 1 00:00 of the year before to Dec 1 00:00 local in Berlin", () => {
         expect(windowFor("year_end", utc(2026, 6, 15), "Europe/Berlin")).toEqual({
             kind: "year_end",
             id: "year_end-2026",
-            startS: utc(2025, 12, 31, 23),
+            startS: utc(2025, 11, 30, 23),
             endS: utc(2026, 11, 30, 23),
             tz: "Europe/Berlin",
         });
     });
 
-    it("runs Jan 1 00:00 to Dec 1 00:00 local in Los Angeles", () => {
+    it("runs Dec 1 00:00 of the year before to Dec 1 00:00 local in Los Angeles", () => {
         expect(windowFor("year_end", utc(2026, 6, 15), "America/Los_Angeles")).toEqual({
             kind: "year_end",
             id: "year_end-2026",
-            startS: utc(2026, 1, 1, 8),
+            startS: utc(2025, 12, 1, 8),
             endS: utc(2026, 12, 1, 8),
             tz: "America/Los_Angeles",
         });
+    });
+
+    it("starts in summer time where December is summer, and spans 365 days across both DST changes", () => {
+        // Sydney keeps AEDT (+11) from October to April, so both edges sit at 13:00 UTC on Nov 30.
+        const w = windowFor("year_end", utc(2026, 6, 15), "Australia/Sydney");
+        expect([w.id, w.startS, w.endS]).toEqual(["year_end-2026", utc(2025, 11, 30, 13), utc(2026, 11, 30, 13)]);
+        const berlin = windowFor("year_end", utc(2026, 6, 15), "Europe/Berlin");
+        expect(berlin.endS - berlin.startS).toBe(365 * DAY);
+    });
+
+    it("files a December day under the next year's special, named for the year it ends in", () => {
+        const tz = "America/Los_Angeles";
+        expect(windowFor("year_end", utc(2026, 12, 1, 8), tz).id).toBe("year_end-2027");
+        expect(windowFor("year_end", utc(2026, 12, 1, 8) - 1, tz).id).toBe("year_end-2026");
+        expect(windowFor("year_end", utc(2025, 12, 20), tz).id).toBe("year_end-2026");
     });
 
     it("closes this year's window only once Dec 1 has started locally", () => {
@@ -234,6 +249,7 @@ describe("year_end windows", () => {
         expect(closedWindowBefore("year_end", utc(2026, 12, 1, 8) - 1, tz).id).toBe("year_end-2025");
         expect(closedWindowBefore("year_end", utc(2026, 12, 1, 8), tz).id).toBe("year_end-2026");
         expect(closedWindowBefore("year_end", utc(2027, 1, 1, 8), tz).id).toBe("year_end-2026");
+        expect(closedWindowBefore("year_end", utc(2027, 11, 30), tz).id).toBe("year_end-2026");
     });
 
     it("is not due before Dec 1, is due on Dec 1, and not twice", () => {
@@ -241,8 +257,12 @@ describe("year_end windows", () => {
         const dec1 = utc(2026, 12, 1, 8);
         expect(dueWindow("year_end", dec1 - 1, tz, emptyIndex())).toBeNull();
         expect(dueWindow("year_end", utc(2026, 10, 26), tz, emptyIndex())).toBeNull();
-        expect(dueWindow("year_end", dec1, tz, emptyIndex())?.id).toBe("year_end-2026");
-        expect(dueWindow("year_end", utc(2026, 12, 31, 12), tz, emptyIndex())?.id).toBe("year_end-2026");
+        expect(dueWindow("year_end", dec1, tz, emptyIndex())).toMatchObject({
+            id: "year_end-2026",
+            startS: utc(2025, 12, 1, 8),
+            endS: dec1,
+        });
+        expect(dueWindow("year_end", utc(2027, 1, 1, 8) - 1, tz, emptyIndex())?.id).toBe("year_end-2026");
         expect(dueWindow("year_end", dec1, tz, { ...emptyIndex(), issued: [issued("year_end-2026")] })).toBeNull();
         expect(dueWindow("year_end", dec1, tz, { ...emptyIndex(), skipped: ["year_end-2026"] })).toBeNull();
     });
@@ -258,17 +278,28 @@ describe("year_end windows", () => {
             "year_end-2025",
             "year_end-2024",
         ]);
-        // A first match in December is after that year's special closed.
+        // A first match in December counts toward the next year's special.
         expect(pastWindows("year_end", now, "UTC", utc(2023, 12, 15)).map((w) => w.id)).toEqual([
             "year_end-2026",
             "year_end-2025",
             "year_end-2024",
+        ]);
+        expect(pastWindows("year_end", now, "UTC", utc(2023, 11, 30)).map((w) => w.id)).toEqual([
+            "year_end-2026",
+            "year_end-2025",
+            "year_end-2024",
+            "year_end-2023",
+        ]);
+        expect(pastWindows("year_end", now, "UTC", utc(2024, 12, 1)).map((w) => [w.id, w.startS, w.endS])).toEqual([
+            ["year_end-2026", utc(2025, 12, 1), utc(2026, 12, 1)],
+            ["year_end-2025", utc(2024, 12, 1), utc(2025, 12, 1)],
         ]);
         expect(pastWindows("year_end", utc(2026, 10, 26), "UTC", utc(2024, 3, 1)).map((w) => w.id)).toEqual([
             "year_end-2025",
             "year_end-2024",
         ]);
         expect(pastWindows("year_end", utc(2026, 10, 26), "UTC", utc(2026, 2, 1))).toEqual([]);
+        expect(pastWindows("year_end", utc(2026, 10, 26), "UTC", utc(2025, 12, 1))).toEqual([]);
     });
 });
 

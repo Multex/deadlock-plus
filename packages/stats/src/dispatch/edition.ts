@@ -334,7 +334,8 @@ export function buildEditionBase(input: BuildInput): EditionBase | null {
         window,
         accountId: input.accountId,
         number: input.number,
-        volume: localTime(window.startS, window.tz).year,
+        // A Year-End Special starts the December before the year it is named for.
+        volume: localTime(window.kind === "year_end" ? window.endS - 1 : window.startS, window.tz).year,
         issuedAt: input.issuedAt,
         stats: editionStats(rows, window.tz),
         heroes: heroBreakdown(rows).map((h) => ({

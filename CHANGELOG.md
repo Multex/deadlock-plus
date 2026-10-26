@@ -72,7 +72,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Weekly Edition comes out every Monday and covers the week before.
 - A Monthly Edition comes out on the 1st and covers the month before.
 - A Collector's Copy in gold foil comes out when a ranked season ends and covers that season's ranked matches.
-- A Year-End Special in black and gold comes out on December 1 and covers January to November.
+- A Year-End Special in black and gold comes out on December 1 and covers the twelve months before it.
 - An edition needs at least three matches in what it covers.
 - "This week so far" shows the current week's paper as it fills up.
 - Editions stand on a newsstand rack beside the paper, one shelf for each kind.

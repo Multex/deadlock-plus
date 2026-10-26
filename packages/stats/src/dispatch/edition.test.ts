@@ -159,7 +159,7 @@ const COLLECTORS: EditionWindow = {
 const YEAR_END: EditionWindow = {
     kind: "year_end",
     id: "year_end-2026",
-    startS: at(2026, 1, 1),
+    startS: at(2025, 12, 1),
     endS: at(2026, 12, 1),
     tz: "UTC",
 };
@@ -374,16 +374,22 @@ describe("Collector's Copy", () => {
 });
 
 describe("Year-End Special", () => {
-    it("covers every match of the year to Dec 1", () => {
+    it("covers every match from Dec 1 of the year before to Dec 1", () => {
         const rows = [
+            m({ startTime: at(2025, 11, 30, 23, 59) }),
+            m({ startTime: at(2025, 12, 1, 0) }),
+            m({ startTime: at(2025, 12, 24, 20) }),
             m({ startTime: at(2026, 3, 4, 18), matchMode: 1 }),
             m({ startTime: at(2026, 6, 4, 18) }),
             m({ startTime: at(2026, 6, 9, 18), gameMode: 4, matchMode: 1 }),
+            m({ startTime: at(2026, 6, 20, 18) }),
             m({ startTime: at(2026, 12, 1, 0) }),
         ];
         const e = build(rows, { window: YEAR_END });
-        expect(e.stats.matches).toBe(3);
-        expect(e.stats.busiestMonth).toEqual({ monthStartS: at(2026, 6, 1), matches: 2 });
+        expect(e.stats.matches).toBe(6);
+        expect(e.stats.busiestMonth).toEqual({ monthStartS: at(2026, 6, 1), matches: 3 });
+        expect(e.months?.[0]).toEqual({ monthStartS: at(2025, 12, 1), matches: 2, wins: 2 });
+        expect(e.volume).toBe(2026);
         expect(e.season).toBeNull();
     });
 });
@@ -485,6 +491,18 @@ describe("time zones", () => {
         const rows = [1, 2, 3].map((i) => m({ startTime: at(2026, 1, 10, i) }));
         expect(build(rows, { window: auckland }).volume).toBe(2026);
     });
+
+    it("names a Year-End Special's volume for the year it ends in, not the December it starts in", () => {
+        const berlinYear: EditionWindow = {
+            kind: "year_end",
+            id: "year_end-2026",
+            startS: at(2025, 11, 30, 23),
+            endS: at(2026, 11, 30, 23),
+            tz: "Europe/Berlin",
+        };
+        const rows = [1, 2, 3].map((i) => m({ startTime: at(2026, 5, 10, i) }));
+        expect(build(rows, { window: berlinYear }).volume).toBe(2026);
+    });
 });
 
 describe("frozen calendar", () => {
@@ -535,15 +553,16 @@ describe("frozen calendar", () => {
         expect(days.reduce((s, d) => s + d.matches, 0)).toBe(3);
     });
 
-    it("lists the months of a Year-End Special, Jan to Nov, from local midnight on the 1st", () => {
+    it("lists the 12 months of a Year-End Special, Dec to Nov, from local midnight on the 1st", () => {
         const berlinYear: EditionWindow = {
             kind: "year_end",
             id: "year_end-2026",
-            startS: at(2025, 12, 31, 23),
+            startS: at(2025, 11, 30, 23),
             endS: at(2026, 11, 30, 23),
             tz: "Europe/Berlin",
         };
         const rows = [
+            m({ startTime: at(2025, 11, 30, 23, 30) }), // Dec 1 00:30 CET
             m({ startTime: at(2025, 12, 31, 23, 30) }), // Jan 1 00:30 CET
             m({ startTime: at(2026, 6, 4, 18), outcome: "loss" }),
             m({ startTime: at(2026, 6, 9, 18) }),
@@ -551,6 +570,7 @@ describe("frozen calendar", () => {
         ];
         const e = build(rows, { window: berlinYear });
         const starts = [
+            at(2025, 11, 30, 23),
             at(2025, 12, 31, 23),
             at(2026, 1, 31, 23),
             at(2026, 2, 28, 23),
@@ -563,7 +583,7 @@ describe("frozen calendar", () => {
             at(2026, 9, 30, 22),
             at(2026, 10, 31, 23),
         ];
-        const counts: Record<number, [number, number]> = { 0: [1, 1], 5: [2, 1], 10: [1, 1] };
+        const counts: Record<number, [number, number]> = { 0: [1, 1], 1: [1, 1], 6: [2, 1], 11: [1, 1] };
         expect(e.months).toEqual(
             starts.map((monthStartS, i) => ({
                 monthStartS,

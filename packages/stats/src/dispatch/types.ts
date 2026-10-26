@@ -169,7 +169,7 @@ export interface Edition {
     accountId: number;
     /** Issue number, assigned at freeze; `null` while live ("This week so far"). */
     number: number | null;
-    /** The year of `window.startS` in `window.tz`. */
+    /** The year of `window.startS` in `window.tz`; for a Year-End Special, the year it ends in. */
     volume: number;
     issuedAt: number | null;
     stats: EditionStats;

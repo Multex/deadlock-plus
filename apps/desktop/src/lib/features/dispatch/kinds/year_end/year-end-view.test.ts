@@ -48,7 +48,10 @@ const deps: YearEndDeps = {
     number: (n) => n.toLocaleString("en-US"),
     hero: (id) => ({ name: `Hero${id}`, art: `art/${id}.png` }),
     day: (s) => `day ${s}`,
-    dayRange: () => "Jan 1 – Nov 30, 2026",
+    dayRange: (a, b, tz) =>
+        new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: tz })
+            .formatRange(a * 1000, b * 1000)
+            .replace(/\s/g, " "),
     month: (s) => `month ${s}`,
     percent: (v) => `${Math.round(v * 100)}%`,
     duration: (s) => `${Math.floor(s / 60)}m`,
@@ -57,7 +60,8 @@ const deps: YearEndDeps = {
     monthShort: (s) => MONTHS[new Date(s * 1000).getUTCMonth()],
 };
 
-const monthStart = (m: number) => Date.UTC(2026, m, 1) / 1000;
+/** Month `m` of the Year-End window: 0 is Dec 2025, 11 is Nov 2026. */
+const monthStart = (m: number) => Date.UTC(2025, 11 + m, 1) / 1000;
 const months = (counts: number[]): EditionMonth[] =>
     counts.map((matches, m) => ({ monthStartS: monthStart(m), matches, wins: Math.floor(matches / 2) }));
 
@@ -65,11 +69,11 @@ function edition(over: Partial<Edition> = {}): Edition {
     return {
         schema: 1,
         id: "year_end-2026",
-        window: { kind: "year_end", id: "year_end-2026", startS: monthStart(0), endS: monthStart(11), tz: "UTC" },
+        window: { kind: "year_end", id: "year_end-2026", startS: monthStart(0), endS: monthStart(12), tz: "UTC" },
         accountId: 1,
         number: 4,
         volume: 2026,
-        issuedAt: monthStart(11),
+        issuedAt: monthStart(12),
         stats: {
             matches: 456,
             wins: 264,
@@ -103,7 +107,7 @@ function edition(over: Partial<Edition> = {}): Edition {
         combat: null,
         stories: [],
         playerName: "Lantern",
-        months: months([37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23]),
+        months: months([48, 37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23]),
         ...over,
     };
 }
@@ -112,30 +116,31 @@ const build = (e: Edition) => yearEndView(e, editionView(e, deps), deps);
 
 describe("monthBars", () => {
     it("scales every bar from zero against the busiest month, so heights compare honestly", () => {
-        const bars = monthBars(months([10, 40, 20]), monthStart(3), "UTC", deps);
+        const bars = monthBars(months([10, 40, 20]), "UTC", deps);
         expect(bars.slice(0, 3).map((b) => b.height)).toEqual([BAR_MAX / 4, BAR_MAX, BAR_MAX / 2]);
     });
 
     it("gives an empty month no bar at all", () => {
-        expect(monthBars(months([0, 12]), monthStart(2), "UTC", deps)[0].height).toBe(0);
+        expect(monthBars(months([0, 12]), "UTC", deps)[0].height).toBe(0);
     });
 
     it("marks only the first of two equally busy months", () => {
-        const bars = monthBars(months([30, 30, 5]), monthStart(3), "UTC", deps);
-        expect(bars.map((b) => b.busiest)).toEqual([true, false, false, false]);
+        const bars = monthBars(months([30, 30, 5]), "UTC", deps);
+        expect(bars.map((b) => b.busiest)).toEqual([true, false, false]);
         expect(bars[0].count).toBe("Busiest · 30");
         expect(bars[1].count).toBe("30");
     });
 
-    it("adds this issue's own month at the end while the year still has one left", () => {
-        const bars = monthBars(months([37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23]), monthStart(11), "UTC", deps);
-        expect(bars).toHaveLength(12);
-        expect(bars.at(-1)).toMatchObject({ label: "Dec", issue: true, height: 0 });
-        expect(bars.map((b) => b.label).slice(0, 3)).toEqual(["Jan", "Feb", "Mar"]);
+    it("runs the strip Dec to Nov, one bar per month and nothing after", () => {
+        const bars = monthBars(months(Array(12).fill(5)), "UTC", deps);
+        expect(bars.map((b) => b.label)).toEqual(["Dec", ...MONTHS.slice(0, 11)]);
+        expect(bars.some((b) => b.issue)).toBe(false);
     });
 
-    it("adds no extra month to a full year", () => {
-        expect(monthBars(months(Array(12).fill(5)), Date.UTC(2027, 0, 1) / 1000, "UTC", deps)).toHaveLength(12);
+    it("adds no slot for the month the issue comes out in, which the next special covers", () => {
+        const bars = monthBars(months([37, 43, 36, 41, 35, 41, 41, 51, 52, 56, 23]), "UTC", deps);
+        expect(bars).toHaveLength(11);
+        expect(bars.some((b) => b.issue)).toBe(false);
     });
 });
 
@@ -162,6 +167,10 @@ describe("yearEndView", () => {
         const { cover } = build(edition());
         expect(cover.year).toBe("2026");
         expect(cover.issue).toBe("Vol. 2026 · No. 4");
+        expect(cover.span).toBe("Dec 1, 2025 – Nov 30, 2026");
+        const { poster } = build(edition());
+        expect(poster.title).toEqual({ before: "2026: the year of ", player: "Lantern", after: "" });
+        expect(poster.kicker.span).toBe("Dec 1, 2025 – Nov 30, 2026");
         expect(cover.player).toBe("Lantern");
         expect(cover.title).toBe("Player of the Year");
         expect(cover.lines.map((l) => [l.value, l.label])).toEqual([
@@ -210,6 +219,6 @@ describe("yearEndView", () => {
 
     it("leaves the month strip out of an edition frozen before months were stored", () => {
         expect(build(edition({ months: undefined })).poster.months).toBeNull();
-        expect(build(edition()).poster.months?.bars).toHaveLength(12);
+        expect(build(edition()).poster.months?.bars.map((b) => b.label)).toEqual(["Dec", ...MONTHS.slice(0, 11)]);
     });
 });

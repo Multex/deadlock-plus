@@ -68,20 +68,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 type CalendarKind = Exclude<EditionKind, "collectors">;
 
+/** Year `y`'s special runs Dec 1 of `y - 1` to Dec 1 of `y`, so it can come out on Dec 1 and still miss no day. */
 function yearEnd(y: number, tz: string): EditionWindow {
     return {
         kind: "year_end",
         id: `year_end-${y}`,
-        startS: startOfDay(civil(y, 1, 1), tz),
+        startS: startOfDay(civil(y - 1, 12, 1), tz),
         endS: startOfDay(civil(y, 12, 1), tz),
         tz,
     };
-}
-
-/** The local year whose Year-End window most recently closed at `nowS`. */
-function closedYear(nowS: number, tz: string): number {
-    const y = civilDate(nowS, tz).y;
-    return nowS >= yearEnd(y, tz).endS ? y : y - 1;
 }
 
 function windowOf(kind: CalendarKind, at: CivilDate, tz: string): EditionWindow {
@@ -96,7 +91,7 @@ function windowOf(kind: CalendarKind, at: CivilDate, tz: string): EditionWindow 
             tz,
         };
     }
-    if (kind === "year_end") return yearEnd(at.y, tz);
+    if (kind === "year_end") return yearEnd(at.m === 12 ? at.y + 1 : at.y, tz);
     return {
         kind,
         id: `monthly-${at.y}-${pad(at.m)}`,
@@ -112,8 +107,8 @@ export function collectorsWindow(season: RankedSeason, tz: string): EditionWindo
 }
 
 /**
- * The window of `kind` that contains `atS`, in local time of `tz`. `year_end` gives the window of `atS`'s local
- * year even in December, after it closed. `collectors` gives the season running at `atS`, or null between seasons.
+ * The window of `kind` that contains `atS`, in local time of `tz`. A December day belongs to the next year's
+ * `year_end`. `collectors` gives the season running at `atS`, or null between seasons.
  */
 export function windowFor(kind: CalendarKind, atS: number, tz: string): EditionWindow;
 export function windowFor(
@@ -153,7 +148,6 @@ export function closedWindowBefore(
         const ended = seasons.filter((s) => s.endS <= nowS).sort((a, b) => b.endS - a.endS);
         return ended.length > 0 ? collectorsWindow(ended[0], tz) : null;
     }
-    if (kind === "year_end") return yearEnd(closedYear(nowS, tz), tz);
     return windowFor(kind, windowFor(kind, nowS, tz).startS - 1, tz);
 }
 
@@ -177,10 +171,6 @@ export function pastWindows(
             .map((s) => collectorsWindow(s, tz));
     }
     const out: EditionWindow[] = [];
-    if (kind === "year_end") {
-        for (let y = closedYear(nowS, tz); yearEnd(y, tz).endS > earliestS; y--) out.push(yearEnd(y, tz));
-        return out;
-    }
     let w = windowFor(kind, nowS, tz);
     while (w.startS > earliestS) {
         w = windowFor(kind, w.startS - 1, tz);
@@ -202,7 +192,7 @@ export function dueWindow(
 ): EditionWindow | null {
     const w = closedWindowBefore(kind, nowS, tz, seasons);
     if (!w) return null;
-    if (kind === "year_end" && w.id !== windowFor(kind, nowS, tz).id) return null;
+    if (kind === "year_end" && civilDate(nowS, tz).m !== 12) return null;
     if (index.issued.some((e) => e.id === w.id) || index.skipped.includes(w.id)) return null;
     return w;
 }
