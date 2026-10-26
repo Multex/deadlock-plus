@@ -3831,6 +3831,14 @@
             "offline": "Deadlock+ could not load your match history, so the Dispatch cannot print right now.",
             "first_paper_one": "Play {count} more match this week and your first paper comes out {date}.",
             "first_paper_other": "Play {count} more matches this week and your first paper comes out {date}."
+        },
+        "video": {
+            "music": {
+                "postgame": "Postgame",
+                "title": "Title Theme",
+                "koth": "King of the Hill",
+                "menu": "Main Menu"
+            }
         }
     }
 }

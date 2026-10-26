@@ -8,6 +8,7 @@ mod item_stats;
 mod item_tooltip;
 mod locale;
 mod map_items;
+mod music;
 mod progression;
 mod property_icons;
 mod shop;
@@ -37,6 +38,7 @@ pub use map_items::{
     MapItemsPayload, MapItemsSource, NoExtractor, RawEntity, Resolved, TableSource, VentsSource, VpkVentsSource,
     MAP_ITEMS_SCHEMA,
 };
+pub use music::{embedded_mp3, music_track, read_music_layer, MusicTrack, MUSIC_TRACKS};
 pub use progression::{
     ability_id, hero_abilities, hero_progression, popular_items, HeroAbilities, HeroProgression, HeroTable, HeroVdata,
     HeroesSource, LevelInfo, PopularItem, PopularItems,

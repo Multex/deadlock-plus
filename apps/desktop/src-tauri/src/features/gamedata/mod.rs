@@ -237,4 +237,17 @@ pub mod commands {
         let table = tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
         Ok(table.and_then(|t| t.stats.get(&hero_id).cloned()))
     }
+
+    /// One layer of a Dispatch video music track as MP3 bytes, read from the user's own install. The body is
+    /// empty when the game or the file is missing, so the export goes silent.
+    #[tauri::command]
+    pub async fn dispatch_music_track(id: String, layer: usize) -> Result<tauri::ipc::Response, String> {
+        use dp_gamedata::{Install, SteamInstall};
+        let bytes = tauri::async_runtime::spawn_blocking(move || {
+            dp_gamedata::read_music_layer(SteamInstall.citadel_dir().as_deref(), &id, layer)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+        Ok(tauri::ipc::Response::new(bytes.unwrap_or_default()))
+    }
 }

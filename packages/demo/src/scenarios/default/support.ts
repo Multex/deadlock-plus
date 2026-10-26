@@ -95,6 +95,7 @@ export function supportModule({ appVersion }: SupportOptions): Module {
                 // True means the file was written; false is the user closing the save dialog.
                 save_text_file: () => true,
                 save_binary_file: () => true,
+                dispatch_music_track: () => new ArrayBuffer(0),
             };
             return { handlers };
         },
