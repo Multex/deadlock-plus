@@ -78,6 +78,15 @@ describe("edition minis", () => {
         expect(html("weekly", "issued")).toContain("transform: scale(" + 180 / 176 + ")");
     });
 
+    it("tightens the weekly date line only when the week spans two years", () => {
+        const render1 = (w: EditionWindow) =>
+            render(WeeklyMini, { props: { copy: { ...copy("weekly", "issued"), window: w }, cover: COVER, height: 180 } })
+                .body;
+        const across = render1({ ...WINDOWS.weekly, startS: at(2025, 11, 29), endS: at(2026, 0, 5) });
+        expect(across).toMatch(/class="when[^"]*tight/);
+        expect(html("weekly", "issued")).not.toMatch(/class="when[^"]*tight/);
+    });
+
     it("bags a sealed Collector's Copy, never a proof", () => {
         expect(html("collectors", "issued", { sealed: true })).toContain('class="bag');
         expect(html("collectors", "issued")).not.toContain('class="bag');

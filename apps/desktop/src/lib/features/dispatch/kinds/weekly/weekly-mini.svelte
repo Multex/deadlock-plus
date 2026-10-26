@@ -13,7 +13,7 @@
 <MiniFrame {copy} {height}>
     <span class="weekly" class:proof>
         <span class="band"><span class="word">{text.band}</span></span>
-        <span class="when">{text.when}</span>
+        <span class="when" class:tight={text.spansYears}>{text.when}</span>
         {#if proof}
             <span class="w-proof">
                 <span class="bar"></span><span class="bar short"></span>
@@ -79,6 +79,10 @@
         letter-spacing: 0.02em;
         white-space: nowrap;
         overflow: hidden;
+    }
+
+    .when.tight {
+        letter-spacing: 0;
     }
 
     .proof .when {

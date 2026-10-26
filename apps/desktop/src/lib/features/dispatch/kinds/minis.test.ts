@@ -237,6 +237,15 @@ describe("miniText", () => {
         expect(text.when).toContain("DEC 29..JAN 4");
     });
 
+    it("marks a week that spans two years so its longer date line can tighten", () => {
+        const across = miniText(copy({ window: win("weekly", at(2025, 11, 29), at(2026, 0, 5)) }), undefined, format);
+        if (across.kind !== "weekly") throw new Error();
+        expect(across.spansYears).toBe(true);
+        const within = miniText(copy({}), undefined, format);
+        if (within.kind !== "weekly") throw new Error();
+        expect(within.spansYears).toBe(false);
+    });
+
     it("tells the so-far sheet's match count and when it comes out", () => {
         const text = miniText(soFarMini("live", WEEK, 1), undefined, format);
         expect(text).toMatchObject({

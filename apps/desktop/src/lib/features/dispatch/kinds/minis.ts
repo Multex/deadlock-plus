@@ -141,6 +141,8 @@ export interface WeeklyMiniText {
     kind: "weekly";
     band: string;
     when: string;
+    /** The range prints both years, which needs tighter letter-spacing to fit the mini. */
+    spansYears: boolean;
     headline: string;
     print: string;
 }
@@ -227,6 +229,7 @@ export function miniText(copy: MiniCopy, cover: Partial<MiniCover> | undefined, 
                 kind: "weekly",
                 band: upper(t("dispatch.masthead.name")),
                 when: upper(numbered(dayRange(w, fmt))),
+                spansYears: part(w.startS, w.tz, { year: "numeric" }) !== part(w.endS - 1, w.tz, { year: "numeric" }),
                 headline:
                     cover?.headline ?? (copy.state === "too_few" ? tn("dispatch.shelf.matches", copy.matches) : ""),
                 print,
