@@ -39,6 +39,8 @@ export interface AssetHero {
     player_selectable?: boolean;
     /** `release` or `pre_release`; absent for heroes the game has not released. */
     development_state?: string | null;
+    /** `style_hex` is the hero's own colour; `ui` repeats one value across many heroes. */
+    colors?: { style_hex?: string | null };
     images?: {
         icon_image_small_webp?: string | null;
         icon_hero_card?: string | null;

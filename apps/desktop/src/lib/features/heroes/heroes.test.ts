@@ -38,7 +38,15 @@ function entry(over: Partial<HeroEntry> & { id: number }): HeroEntry {
 }
 
 function apiHero(over: Partial<Hero> & { id: number }): Hero {
-    return { name: `Api ${over.id}`, icon: null, portrait: null, artIcon: null, hideoutLine: null, ...over };
+    return {
+        name: `Api ${over.id}`,
+        icon: null,
+        portrait: null,
+        artIcon: null,
+        hideoutLine: null,
+        colour: null,
+        ...over,
+    };
 }
 
 describe("mergeHeroes local art", () => {
@@ -80,12 +88,13 @@ describe("mergeHeroes local art", () => {
 describe("mergeHeroes", () => {
     it("takes names and roster from the game and art extras from the API by id", () => {
         const out = mergeHeroes([entry({ id: 2, name: "Sieben" }), entry({ id: 88, name: "Baba" })], {
-            2: apiHero({ id: 2, icon: "i.webp", hideoutLine: "Plotting" }),
+            2: apiHero({ id: 2, icon: "i.webp", hideoutLine: "Plotting", colour: "#CC861E" }),
         });
         expect(out[2].name).toBe("Sieben");
         expect(out[2].icon).toBe("i.webp");
         expect(out[2].hideoutLine).toBe("Plotting");
-        expect(out[88]).toMatchObject({ name: "Baba", icon: null, hideoutLine: null });
+        expect(out[2].colour).toBe("#CC861E");
+        expect(out[88]).toMatchObject({ name: "Baba", icon: null, hideoutLine: null, colour: null });
     });
 
     it("prefers art from the game command and falls back to the API's", () => {
@@ -410,6 +419,7 @@ describe("slimHeroes", () => {
                 name: "Venator",
                 images: { icon_image_small_webp: "u.webp", icon_hero_card: "card.png", icon_image_small: "sm.png" },
                 hideout_rich_presence: "Plotting in the Hideout",
+                colors: { style_hex: "#BD3599" },
             },
             { id: 2, name: "Seven" },
         ]);
@@ -420,6 +430,7 @@ describe("slimHeroes", () => {
             portrait: "card.png",
             artIcon: "sm.png",
             hideoutLine: "Plotting in the Hideout",
+            colour: "#BD3599",
         });
         expect(out[2]).toEqual({
             id: 2,
@@ -428,6 +439,7 @@ describe("slimHeroes", () => {
             portrait: null,
             artIcon: null,
             hideoutLine: null,
+            colour: null,
         });
     });
 });
@@ -435,7 +447,9 @@ describe("slimHeroes", () => {
 describe("parseHeroCache", () => {
     const raw = JSON.stringify({
         at: 1000,
-        heroes: { 2: { id: 2, name: "Seven", icon: null, portrait: null, artIcon: null, hideoutLine: null } },
+        heroes: {
+            2: { id: 2, name: "Seven", icon: null, portrait: null, artIcon: null, hideoutLine: null, colour: null },
+        },
     });
     const week = 7 * 24 * 60 * 60 * 1000;
 
@@ -446,6 +460,15 @@ describe("parseHeroCache", () => {
     it("drops an expired cache unless stale data is acceptable", () => {
         expect(parseHeroCache(raw, 1000 + week, false)).toBeNull();
         expect(parseHeroCache(raw, 1000 + week, true)?.[2].name).toBe("Seven");
+    });
+
+    it("treats a cache saved before the hero colour existed as expired", () => {
+        const old = JSON.stringify({
+            at: 1000,
+            heroes: { 2: { id: 2, name: "Seven", icon: null, portrait: null, artIcon: null, hideoutLine: null } },
+        });
+        expect(parseHeroCache(old, 1001, false)).toBeNull();
+        expect(parseHeroCache(old, 1001, true)?.[2].name).toBe("Seven");
     });
 
     it("treats a cache saved before the hideout line existed as expired", () => {

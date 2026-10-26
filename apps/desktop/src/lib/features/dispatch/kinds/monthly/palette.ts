@@ -1,3 +1,6 @@
+import { MIN_CONTRAST, contrast, hexToAccent, hexToOklch, inGamut } from "@deadlock-plus/ui/accent";
+import { oklchToHex } from "@deadlock-plus/ui/themes";
+
 export interface MonthPalette {
     /** Cover and feature colour. */
     bg: string;
@@ -75,4 +78,59 @@ const pageStyle = Object.entries(PAGE_TOKENS)
 /** The palette as CSS custom properties for a page's `style`. */
 export function paletteStyle(p: MonthPalette): string {
     return `--bg: ${p.bg}; --glow: ${p.glow}; --accent: ${p.accent}; --fg: ${p.fg}; --ink: ${p.ink}; --night: ${p.night}; ${pageStyle}`;
+}
+
+const WHITE = "#ffffff";
+const LIGHTNESS_STEP = 0.01;
+
+const oklch = (l: number, c: number, hue: number) => `oklch(${+l.toFixed(4)} ${+c.toFixed(4)} ${+hue.toFixed(2)})`;
+
+/** The hex of the most vivid colour up to `chroma` the screen can show at this lightness and hue. */
+function swatch(l: number, chroma: number, hue: number): string {
+    let lo = 0;
+    let hi = chroma;
+    if (inGamut(oklch(l, hi, hue))) lo = hi;
+    else
+        for (let i = 0; i < 20; i++) {
+            const mid = (lo + hi) / 2;
+            if (inGamut(oklch(l, mid, hue))) lo = mid;
+            else hi = mid;
+        }
+    return oklchToHex(oklch(l, Math.floor(lo * 10000) / 10000, hue));
+}
+
+const reads = (a: string, b: string) => contrast(hexToOklch(a), hexToOklch(b)) >= MIN_CONTRAST;
+
+/**
+ * Walks the lightness from `start` in `step` until the swatch reads at 4.5:1 against every one of `against`,
+ * keeping hue and as much chroma as the screen allows.
+ */
+function readable(start: number, step: number, chroma: number, hue: number, against: string[]): string {
+    for (let l = start; l >= 0 && l <= 1; l += step) {
+        const hex = swatch(l, chroma, hue);
+        if (against.every((other) => reads(hex, other))) return hex;
+    }
+    return step < 0 ? "#000000" : WHITE;
+}
+
+/**
+ * A cover palette from the hero's own colour, so the cover and the hero's backdrop art share a hue. Each field
+ * keeps its role: a deep `bg` white type reads on, a bright `glow`, a pale `accent` that reads on `bg` both ways,
+ * a dark `ink` for the white pages and a light `night` for the near-black panels.
+ */
+export function heroPalette(hex: string): MonthPalette {
+    const { hue, chroma, lightness = 0.5 } = hexToAccent(hex.startsWith("#") ? hex : `#${hex}`);
+    // The cover sits a little darker than the hero colour, but a pale hero still gets a mid-tone cover.
+    const bg = readable(Math.min(0.5, Math.max(0.36, lightness - 0.12)), -LIGHTNESS_STEP, Math.min(chroma, 0.16), hue, [
+        WHITE,
+    ]);
+    const accent = readable(0.9, LIGHTNESS_STEP, Math.min(chroma, 0.11), hue, [bg]);
+    return {
+        bg,
+        glow: swatch(0.7, Math.min(chroma * 1.2, 0.2), hue),
+        accent,
+        fg: WHITE,
+        ink: readable(0.42, -LIGHTNESS_STEP, Math.min(chroma, 0.16), hue, [PAGE_TOKENS.paper]),
+        night: readable(0.82, LIGHTNESS_STEP, Math.min(chroma, 0.12), hue, [PAGE_TOKENS.dark]),
+    };
 }

@@ -3,7 +3,7 @@ import { interpolate } from "$lib/core/i18n.svelte";
 import type { DispatchStory, Edition, EditionDay } from "@deadlock-plus/stats/dispatch/types";
 import { editionView, type DispatchViewDeps } from "../../edition-view";
 import { buildMagazine, type MagazineDeps } from "./magazine";
-import { MONTH_PALETTES } from "./palette";
+import { MONTH_PALETTES, heroPalette } from "./palette";
 
 const CATALOG: Record<string, string> = {
     "dispatch.masthead.name": "Deadlock+ Dispatch",
@@ -153,7 +153,19 @@ function edition(extra: Partial<Edition> = {}): Edition {
 const build = (e: Edition) => buildMagazine(e, editionView(e, viewDeps), deps);
 
 describe("buildMagazine cover", () => {
-    it("takes the cover colour from the month and teases the next month in its own", () => {
+    it("takes the cover colour from the cover hero's own colour", () => {
+        const coloured: MagazineDeps = {
+            ...deps,
+            hero: (id) => {
+                const h = deps.hero(id);
+                return h && { ...h, colour: id === 4 ? "#4174BB" : "#C93C26" };
+            },
+        };
+        const e = edition();
+        expect(buildMagazine(e, editionView(e, viewDeps), coloured).palette).toEqual(heroPalette("#4174BB"));
+    });
+
+    it("falls back to the month's colour when the cover hero has none, and teases the next month in its own", () => {
         const m = build(edition());
         expect(m.palette).toBe(MONTH_PALETTES[8]);
         expect(m.nextPalette).toBe(MONTH_PALETTES[9]);

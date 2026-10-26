@@ -19,7 +19,7 @@ export function magazineDeps(heroes: Record<number, Hero>, ranks: RankTier[]): M
         date: (s, tz, options) => new Intl.DateTimeFormat(i18n.locale, { ...options, timeZone: tz }).format(s * 1000),
         hero: (id) => {
             const h = heroes[id];
-            return h ? { name: h.name, icon: h.icon, art: h.portrait } : undefined;
+            return h ? { name: h.name, icon: h.icon, art: h.portrait, colour: h.colour } : undefined;
         },
         rank: (badge) => {
             const tier = badgeParts(badge)?.tier;

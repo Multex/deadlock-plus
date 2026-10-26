@@ -21,6 +21,8 @@ export interface Hero {
     apiPortrait?: string | null;
     /** Remote URL of `artIcon`, for Discord. Absent when the hero was not merged with local art. */
     apiArtIcon?: string | null;
+    /** The hero's own colour as a hex, from the API. Absent in data cached before it was read. */
+    colour?: string | null;
     /** The game's own flag for heroes a player can pick. Absent when only the API knows the hero. */
     selectable?: boolean;
 }
@@ -37,6 +39,7 @@ export function slimHeroes(raw: AssetHero[]): Record<number, Hero> {
             portrait: h.images?.icon_hero_card ?? null,
             artIcon: h.images?.icon_image_small ?? null,
             hideoutLine: h.hideout_rich_presence ?? null,
+            colour: h.colors?.style_hex ?? null,
         };
     }
     return out;
@@ -64,6 +67,7 @@ export function mergeHeroes(game: HeroEntry[], api: Record<number, Hero>, art: H
             apiPortrait,
             apiArtIcon,
             hideoutLine: a?.hideoutLine ?? null,
+            colour: a?.colour ?? null,
             selectable: g.selectable,
         };
     }
@@ -75,7 +79,11 @@ export function parseHeroCache(raw: string | null, now: number, allowStale: bool
     try {
         const { at, heroes } = JSON.parse(raw) as { at: number; heroes: Record<number, Hero> };
         const hasArt = Object.values(heroes).every(
-            (h) => h.portrait !== undefined && h.artIcon !== undefined && h.hideoutLine !== undefined,
+            (h) =>
+                h.portrait !== undefined &&
+                h.artIcon !== undefined &&
+                h.hideoutLine !== undefined &&
+                h.colour !== undefined,
         );
         return allowStale || (hasArt && now - at < MAX_AGE_MS) ? heroes : null;
     } catch {

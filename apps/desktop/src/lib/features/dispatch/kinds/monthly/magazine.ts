@@ -1,6 +1,7 @@
 import type { DispatchStoryKind, Edition } from "@deadlock-plus/stats/dispatch/types";
 import { COLUMN_MAX, HERO_ROWS, type BestGameView, type EditionView } from "../../edition-view";
-import { monthPalette, type MonthPalette } from "./palette";
+import { isHex } from "@deadlock-plus/ui/accent";
+import { heroPalette, monthPalette, type MonthPalette } from "./palette";
 
 type Params = Record<string, string | number>;
 
@@ -14,7 +15,8 @@ export interface MagazineDeps {
     percentParts: (share: number) => { value: string; sign: boolean }[];
     duration: (seconds: number) => string;
     date: (unixS: number, tz: string, options: Intl.DateTimeFormatOptions) => string;
-    hero: (id: number) => { name: string; icon: string | null; art: string | null } | undefined;
+    /** `colour` is the hero's own colour as a hex, which the cover takes so it shares a hue with the hero's art. */
+    hero: (id: number) => { name: string; icon: string | null; art: string | null; colour?: string | null } | undefined;
     rank: (badge: number) => { name: string; image: string | null };
 }
 
@@ -247,6 +249,9 @@ export function buildMagazine(edition: Edition, view: EditionView, deps: Magazin
           }
         : null;
 
+    // The edition freezes the cover hero, not its colour: the colour follows the hero's art, which is not frozen either.
+    const coverColour = top ? deps.hero(top.heroId)?.colour : null;
+
     // The cover star already carries the top-hero story, so it does not repeat as a coverline.
     const [lead, ...rest] = stories.filter((s) => s.kind !== "top_hero");
 
@@ -434,7 +439,7 @@ export function buildMagazine(edition: Edition, view: EditionView, deps: Magazin
 
     return {
         id: edition.id,
-        palette: monthPalette(first.month),
+        palette: coverColour && isHex(coverColour) ? heroPalette(coverColour) : monthPalette(first.month),
         nextPalette: monthPalette(first.month + 1),
         monthName,
         issueLine:
