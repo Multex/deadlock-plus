@@ -6,6 +6,7 @@
     import { formatDate, t } from "$lib/core/i18n.svelte";
     import { FEATURES } from "$lib/features/registry";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
+    import { busyText } from "$lib/features/api-health/busy-copy";
     import { glanceValue, greeting, pct, relativeDay, sessionSeed, signed, statsNote } from "$lib/features/home/home";
     import GlanceTiles from "$lib/features/home/components/glance-tiles.svelte";
     import HomeHeader from "$lib/features/home/components/home-header.svelte";
@@ -104,6 +105,7 @@
     const accountId = $derived(account?.steamId32 ?? null);
     const statsReady = $derived(stats.status === "ready");
     const noAccount = $derived(steamAccount.loaded && accountId === null);
+    const busyNote = $derived(stats.busy.active ? busyText(stats.busy.remainingS) : null);
     const projection = $derived(
         projectRank(stats.matches, stats.rankInfo, Math.max(0, ...stats.ranks.map((r) => r.tier)) || undefined),
     );
@@ -175,7 +177,7 @@
                         {/if}
                     {:else}
                         <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.rank.empty"), noAccount)}
+                            {statsNote(stats.status, t("home.rank.empty"), noAccount, busyNote)}
                         </p>
                     {/if}
                 </OverviewCard>
@@ -196,7 +198,7 @@
                         </p>
                     {:else}
                         <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.form.empty"), noAccount)}
+                            {statsNote(stats.status, t("home.form.empty"), noAccount, busyNote)}
                         </p>
                     {/if}
                 </OverviewCard>
@@ -239,7 +241,7 @@
                         </p>
                     {:else}
                         <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.session.empty"), noAccount)}
+                            {statsNote(stats.status, t("home.session.empty"), noAccount, busyNote)}
                         </p>
                     {/if}
                 </OverviewCard>

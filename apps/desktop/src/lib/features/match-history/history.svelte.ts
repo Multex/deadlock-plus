@@ -1,4 +1,5 @@
 import { errorText } from "$lib/core/errors";
+import { ApiBusy } from "$lib/features/api-health/api-busy.svelte";
 import { stats, type StatsStatus } from "$lib/features/stats/stats.svelte";
 import type { Match } from "@deadlock-plus/stats/stats";
 import { resolveDetail } from "./api";
@@ -38,6 +39,10 @@ export class MatchHistoryStore {
     detailStatus = $state<DetailStatus>("idle");
     detail = $state.raw<MatchDetail | null>(null);
     detailError = $state<string | null>(null);
+    /** Set while the API turns the open match away as busy; it opens again on its own. */
+    readonly detailBusy = new ApiBusy(() =>
+        this.detailMatchId === null ? undefined : this.openDetail(this.detailMatchId),
+    );
 
     private token = 0;
     private rowsFor: Match[] | null = null;
@@ -125,12 +130,14 @@ export class MatchHistoryStore {
             parsed = await this.deps.resolveDetail(matchId);
         } catch (e) {
             if (current()) {
+                this.detailBusy.handle(e);
                 this.detailStatus = "error";
                 this.detailError = errorText(e);
             }
             return null;
         }
         if (!current()) return null;
+        this.detailBusy.clear();
         if (parsed === null) {
             this.detailStatus = "unavailable";
             return null;
@@ -150,6 +157,7 @@ export class MatchHistoryStore {
 
     closeDetail() {
         this.token++;
+        this.detailBusy.clear();
         this.detailMatchId = null;
         this.detailStatus = "idle";
         this.detail = null;

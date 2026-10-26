@@ -10,6 +10,8 @@
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import ApiBusyNotice from "$lib/features/api-health/components/api-busy-notice.svelte";
+    import { stats } from "$lib/features/stats/stats.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
@@ -86,7 +88,13 @@
     );
     const anyIssued = $derived(soFarId !== null || issued.length > 0);
     const mode = $derived(
-        tableMode({ accountLoaded: steamAccount.loaded, accountId, status: dispatch.status, copies: count }),
+        tableMode({
+            accountLoaded: steamAccount.loaded,
+            accountId,
+            status: dispatch.status,
+            copies: count,
+            apiBusy: stats.busy.active,
+        }),
     );
 
     const shown = $derived(
@@ -333,6 +341,8 @@
         <PageHeader title={t("dispatch.page.title")} subtitle={t("dispatch.page.subtitle")} />
         {#if mode === "no_account"}
             <EmptyState size="base" spacing="xl">{t("dispatch.empty.no_account")}</EmptyState>
+        {:else if mode === "busy"}
+            <ApiBusyNotice busy={stats.busy} />
         {:else if mode === "offline"}
             <EmptyState size="base" spacing="xl" tone="destructive" role="alert">
                 {t("dispatch.empty.offline")}

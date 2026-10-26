@@ -6,6 +6,7 @@
         CloudUpload,
         CloudOff,
         Gamepad2,
+        Hourglass,
         MessageCircle,
         Radio,
         Gauge,
@@ -112,6 +113,14 @@
                 tone: "text-warning",
                 text: t("shell.statusbar.api.degraded"),
                 title: t("shell.statusbar.api.degraded_title", { services: r.down.join(", ") }),
+            };
+        if (r.level === "busy")
+            return {
+                icon: Hourglass,
+                ok: false,
+                tone: "text-warning",
+                text: t("shell.statusbar.api.busy"),
+                title: t("shell.statusbar.api.busy_title"),
             };
         return {
             icon: ServerOff,

@@ -2,6 +2,8 @@ import { untrack } from "svelte";
 import { failureText } from "$lib/core/errors";
 import { i18n, t } from "$lib/core/i18n.svelte";
 import { parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
+import { ApiBusy } from "$lib/features/api-health/api-busy.svelte";
+import { apiHealth } from "$lib/features/api-health/health.svelte";
 import { onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 import { live } from "$lib/features/live/live.svelte";
 import { playerNames } from "$lib/features/match-history/names";
@@ -33,6 +35,8 @@ export interface AuthorMatch {
 }
 
 const SEARCH_DELAY_MS = 300;
+/** A list request still unanswered after this shows the error, so the page never spins forever. */
+const LOAD_TIMEOUT_MS = 20_000;
 const AUTHOR_RESULTS = 6;
 
 export class BuildBrowser {
@@ -54,6 +58,8 @@ export class BuildBrowser {
     winRates = $state.raw<ReadonlyMap<number, WinRate>>(new Map());
     /** Builds the file holds in `Favorites`; an unreadable file shows none as favourites. */
     favouriteIds = $state.raw<ReadonlySet<number>>(new Set());
+    /** Set while the API turns the list away as busy; it loads again on its own. */
+    readonly busy = new ApiBusy(() => this.retry());
 
     private details = new Map<number, BuildDetail>();
 
@@ -90,7 +96,7 @@ export class BuildBrowser {
 
     /** Call from `onMount`; returns the cleanup. */
     start(): () => void {
-        void loadPlayableHeroes().then((h) => (this.heroes = h));
+        void this.loadHeroList();
         void buildsLocal().then(
             (local) => {
                 const ids = new Set(
@@ -186,25 +192,50 @@ export class BuildBrowser {
         return detail;
     }
 
-    retry(): void {
-        if (this.request) void this.load(this.request);
+    retry(): Promise<void> | undefined {
+        if (this.heroes.length === 0) return this.loadHeroList();
+        if (this.request) return this.load(this.request);
+    }
+
+    /**
+     * Without heroes there is no list to ask for, so an empty hero list ends the loading state: as busy when
+     * the API is turning requests away, else as an error.
+     */
+    private async loadHeroList() {
+        const heroes = await loadPlayableHeroes().catch(() => []);
+        this.heroes = heroes;
+        if (heroes.length > 0) return;
+        this.token++;
+        this.builds = [];
+        this.error = t("builds.browser.error");
+        this.status = "error";
+        if (apiHealth.result?.level === "busy") this.busy.wait(null);
+        else this.busy.clear();
     }
 
     private async fetch(request: PublicBuildsRequest) {
         const token = ++this.token;
         this.status = "loading";
         this.error = null;
+        let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-            const builds = await publicBuilds.load(request);
+            const timeout = new Promise<never>((_, reject) => {
+                timer = setTimeout(() => reject(new Error("timed out")), LOAD_TIMEOUT_MS);
+            });
+            const builds = await Promise.race([publicBuilds.load(request), timeout]);
             if (token !== this.token) return;
             this.builds = builds;
+            this.busy.clear();
             this.status = "ready";
             void this.loadAuthors(builds.map((b) => b.build.authorAccountId));
         } catch (e) {
             if (token !== this.token) return;
+            this.busy.handle(e);
             this.builds = [];
             this.error = failureText(e, t("builds.browser.error"));
             this.status = "error";
+        } finally {
+            clearTimeout(timer);
         }
     }
 

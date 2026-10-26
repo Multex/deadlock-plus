@@ -5,6 +5,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import ApiBusyNotice from "$lib/features/api-health/components/api-busy-notice.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import ExportControl from "$lib/features/match-history/components/detail/export-control.svelte";
     import FrontPageButton from "$lib/features/front-page/front-page-button.svelte";
@@ -64,6 +65,8 @@
 
     {#if !valid}
         <EmptyState size="base" spacing="xl" role="alert">{t("match_history.detail.invalid")}</EmptyState>
+    {:else if !detail && matchHistory.detailBusy.active}
+        <ApiBusyNotice busy={matchHistory.detailBusy} />
     {:else if matchHistory.detailStatus === "error"}
         <EmptyState size="base" spacing="xl" tone="destructive" role="alert">
             {t("match_history.detail.error", { error: matchHistory.detailError ?? "" })}

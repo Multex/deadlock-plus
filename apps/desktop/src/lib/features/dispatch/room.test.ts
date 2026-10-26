@@ -60,6 +60,15 @@ describe("tableMode", () => {
         expect(tableMode({ ...base, status: "error" })).toBe("offline");
         expect(tableMode({ ...base, copies: 0 })).toBe("first_paper");
     });
+
+    it("says the API is busy, not offline, while it turns the history away", () => {
+        expect(tableMode({ ...base, status: "error", apiBusy: true })).toBe("busy");
+        expect(tableMode({ ...base, status: "loading", apiBusy: true })).toBe("busy");
+    });
+
+    it("keeps a table it already laid while the API is busy", () => {
+        expect(tableMode({ ...base, apiBusy: true })).toBe("table");
+    });
 });
 
 describe("tableFocus", () => {

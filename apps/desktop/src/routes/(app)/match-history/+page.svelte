@@ -5,6 +5,7 @@
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
+    import ApiBusyNotice from "$lib/features/api-health/components/api-busy-notice.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
@@ -62,6 +63,8 @@
 
     {#if steamAccount.loaded && accountId === null}
         <EmptyState size="base" spacing="xl">{t("stats.gate.no_account")}</EmptyState>
+    {:else if stats.status !== "ready" && stats.busy.active}
+        <ApiBusyNotice busy={stats.busy} />
     {:else if stats.status === "error"}
         <EmptyState size="base" spacing="xl" tone="destructive" role="alert">
             {t("stats.gate.error", { error: stats.error ?? "" })}

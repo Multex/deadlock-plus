@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { DeadlockApiError } from "@deadlock-plus/deadlock-api";
 import type { Match } from "@deadlock-plus/stats/stats";
 import { parseApiDetail } from "@deadlock-plus/match/api-detail";
 import { allPlayers } from "@deadlock-plus/match/detail";
@@ -215,6 +216,42 @@ describe("openDetail", () => {
         expect(s.detailStatus).toBe("error");
         expect(s.detailError).toBe("HTTP 503");
         expect(s.detail).toBeNull();
+    });
+
+    it("turns busy on a 429 and opens the match again after the wait", async () => {
+        vi.useFakeTimers();
+        try {
+            const resolveDetail = vi
+                .fn<(id: number) => Promise<typeof detail | null>>()
+                .mockRejectedValueOnce(new DeadlockApiError(429, 12))
+                .mockResolvedValue(detail);
+            const { s } = store({ resolveDetail });
+            await s.openDetail(matchId);
+            expect(s.detailBusy.active).toBe(true);
+            await vi.advanceTimersByTimeAsync(12_000);
+            expect(resolveDetail).toHaveBeenCalledTimes(2);
+            expect(s.detailStatus).toBe("ready");
+            expect(s.detailBusy.active).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("stops retrying once the detail closes", async () => {
+        vi.useFakeTimers();
+        try {
+            const resolveDetail = vi.fn(async () => {
+                throw new DeadlockApiError(429, 5);
+            });
+            const { s } = store({ resolveDetail });
+            await s.openDetail(matchId);
+            s.closeDetail();
+            await vi.advanceTimersByTimeAsync(600_000);
+            expect(resolveDetail).toHaveBeenCalledTimes(1);
+            expect(s.detailBusy.active).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("lets only the newest open write state", async () => {

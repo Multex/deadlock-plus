@@ -1,7 +1,7 @@
 import type { TablePiles } from "./components/table";
 
 export type RoomCopy = { kind: "edition" | "so_far"; id: string };
-export type TableMode = "no_account" | "loading" | "offline" | "table" | "first_paper";
+export type TableMode = "no_account" | "loading" | "offline" | "busy" | "table" | "first_paper";
 
 /** The copy `?edition=<id>` lifts into the reading room; anything else leaves the table in view. */
 export function roomCopy(input: {
@@ -21,9 +21,12 @@ export function tableMode(input: {
     status: "idle" | "loading" | "ready" | "error";
     /** Everything the table would hold: issued copies, proofs, thin windows and this week so far. */
     copies: number;
+    /** The API turns the match history away as busy and a retry is planned. */
+    apiBusy?: boolean;
 }): TableMode {
-    const { accountLoaded, accountId, status, copies } = input;
+    const { accountLoaded, accountId, status, copies, apiBusy = false } = input;
     if (accountId === null) return accountLoaded ? "no_account" : "loading";
+    if (apiBusy && status !== "ready") return "busy";
     if (status === "error") return "offline";
     if (status !== "ready") return "loading";
     return copies > 0 ? "table" : "first_paper";
