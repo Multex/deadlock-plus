@@ -109,7 +109,9 @@ describe("monthly video copy", () => {
         const data = monthlyVideoData(e, deps);
         for (const c of allCopy(data)) {
             expect(c.key).toMatch(/^dispatch\.video\.monthly\.m_\w+\.\w+_[1-5]$/);
-            const slot = MONTHLY_SLOTS.find((s) => c.key.replace(/_[1-5]$/, "") === `dispatch.video.monthly.${s.beat}.${s.slot}`);
+            const slot = MONTHLY_SLOTS.find(
+                (s) => c.key.replace(/_[1-5]$/, "") === `dispatch.video.monthly.${s.beat}.${s.slot}`,
+            );
             expect(slot, c.key).toBeDefined();
             expect(c.count !== undefined, c.key).toBe(slot!.counted);
             const given = new Set([...Object.keys(c.params), ...(c.count === undefined ? [] : ["count"])]);

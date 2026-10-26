@@ -32,7 +32,7 @@ import {
     type MonthlyDraw,
     type Stage,
 } from "./studio";
-import { drawSheet, takesGeometry } from "./takes";
+import { drawSheet, sheetPan, takesGeometry } from "./takes";
 
 /** When each part of the shot lands, in seconds into the beat; the shutter is on the second bar line. */
 export function shotTimes(bar: number, span: number) {
@@ -84,7 +84,14 @@ export function shotLayout(st: Stage): ShotLayout {
 }
 
 /** The circled frame on the sheet, then the flash, then the frame blown up to a full photograph. */
-export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: MonthlyDraw, assets: SceneAssets): void {
+export function draw(
+    ctx: Ctx,
+    local: number,
+    span: number,
+    size: SceneSize,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): void {
     const data = d.video.beats.m_shot;
     if (!data) return;
     const st = stage(size);
@@ -95,7 +102,15 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
     flashOverlay(ctx, st, flashAt(local, times.shutter));
 }
 
-function circle(ctx: Ctx, st: Stage, local: number, times: ReturnType<typeof shotTimes>, data: ShotData, d: MonthlyDraw, assets: SceneAssets): void {
+function circle(
+    ctx: Ctx,
+    st: Stage,
+    local: number,
+    times: ReturnType<typeof shotTimes>,
+    data: ShotData,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): void {
     const takes = d.video.beats.m_takes;
     studioSet(ctx, st, d.palette, { backdrop: image(assets, imageKeys.backdrop), light: 0.55, art: 0.35 });
     ctx.fillStyle = "rgb(0 0 0 / 0.35)";
@@ -104,19 +119,30 @@ function circle(ctx: Ctx, st: Stage, local: number, times: ReturnType<typeof sho
     let target: Rect;
     let paint: () => void;
     if (takes && data.frame !== null) {
-        const { sheet: area, cols } = takesGeometry(ctx, st, d, assets)!.lay;
-        target = sheetLayout(takes.frames.length, area, cols).frames[data.frame]!;
-        paint = () => drawSheet(ctx, st, d, assets, takes.frames, area, cols, { develop: () => 1, rot: -0.012, dy: 0 });
+        const lay = takesGeometry(ctx, st, d, assets)!.lay;
+        const { sheet: area, cols } = lay;
+        const frames = sheetLayout(takes.frames.length, area, cols).frames;
+        // The sheet starts where the takes left it, panned to the busiest day.
+        const pan = sheetPan(lay, frames[takes.loupe] ?? frames[0]!, 1);
+        const at = frames[data.frame]!;
+        target = { ...at, y: at.y + pan };
+        paint = () =>
+            drawSheet(ctx, st, d, assets, takes.frames, area, cols, { develop: () => 1, rot: -0.012, dy: pan });
     } else {
         // No sheet to circle on: one loose print on the table.
         const pw = Math.min(st.w, st.h) * 0.55;
         target = { x: (st.w - pw) / 2, y: (st.h - pw / 1.5) / 2, w: pw, h: pw / 1.5 };
         paint = () =>
-            photoPrint(ctx, target, (r) => heroPhoto(ctx, r, heroArt(assets, data.heroId), d.palette.glow, { fy: 0.12 }), {
-                border: 16 * st.u,
-                rot: -0.03,
-                shadow: 30 * st.u,
-            });
+            photoPrint(
+                ctx,
+                target,
+                (r) => heroPhoto(ctx, r, heroArt(assets, data.heroId), d.palette.glow, { fy: 0.12 }),
+                {
+                    border: 16 * st.u,
+                    rot: -0.03,
+                    shadow: 30 * st.u,
+                },
+            );
     }
     const tx = target.x + target.w / 2;
     const ty = target.y + target.h / 2;
@@ -133,7 +159,15 @@ function heroArt(assets: SceneAssets, heroId: number): Bitmap | undefined {
     return image(assets, imageKeys.gloat(heroId)) ?? image(assets, imageKeys.hero(heroId));
 }
 
-function photo(ctx: Ctx, st: Stage, local: number, times: ReturnType<typeof shotTimes>, data: ShotData, d: MonthlyDraw, assets: SceneAssets): void {
+function photo(
+    ctx: Ctx,
+    st: Stage,
+    local: number,
+    times: ReturnType<typeof shotTimes>,
+    data: ShotData,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): void {
     const u = st.u;
     const fonts = assets.fonts;
     const since = local - times.shutter;
@@ -151,7 +185,8 @@ function photo(ctx: Ctx, st: Stage, local: number, times: ReturnType<typeof shot
             ctx,
             full,
             () => {
-                const backdrop = image(assets, imageKeys.heroBackdrop(data.heroId)) ?? image(assets, imageKeys.backdrop);
+                const backdrop =
+                    image(assets, imageKeys.heroBackdrop(data.heroId)) ?? image(assets, imageKeys.backdrop);
                 studioSet(ctx, st, d.palette, { backdrop, light: 1, drift: since / 4, art: 0.8 });
                 const art = heroArt(assets, data.heroId);
                 const kb = 1.07 - 0.07 * easeOutCubic(since / 3);
@@ -183,7 +218,12 @@ function photo(ctx: Ctx, st: Stage, local: number, times: ReturnType<typeof shot
     const parts = [k.kills, k.deaths, k.assists].map((v) => formatNumber(d, countUp(v, local, t0, t0 + 0.6)));
     const kdaText = parts.join(" / ");
     const finalText = [k.kills, k.deaths, k.assists].map((v) => formatNumber(d, v)).join(" / ");
-    const kda = fitBlock(ctx, finalText, kdaStyle, { px: 170 * u, floor: HEADLINE_PX * u, maxW: lay.text.w, maxLines: 1 });
+    const kda = fitBlock(ctx, finalText, kdaStyle, {
+        px: 170 * u,
+        floor: HEADLINE_PX * u,
+        maxW: lay.text.w,
+        maxLines: 1,
+    });
     const kdaFit = { ...kda, lines: [kdaText] };
 
     const worthStyle = { family: fonts.body, weight: 600, fill: d.palette.accent };
@@ -270,7 +310,16 @@ function stampLabel(ctx: Ctx, st: Stage, label: string, lay: ShotLayout, k: numb
 }
 
 /** The grade as a teacher marks it: the letter, then the red circle drawn round it. */
-function grade(ctx: Ctx, st: Stage, data: ShotData, lay: ShotLayout, k: number, d: MonthlyDraw, family: string, bar: number): void {
+function grade(
+    ctx: Ctx,
+    st: Stage,
+    data: ShotData,
+    lay: ShotLayout,
+    k: number,
+    d: MonthlyDraw,
+    family: string,
+    bar: number,
+): void {
     if (k < 0) return;
     const { x, y, r } = lay.grade;
     const px = 190 * st.u;

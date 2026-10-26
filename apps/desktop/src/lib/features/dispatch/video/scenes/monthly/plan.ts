@@ -18,7 +18,8 @@ export type MonthlyBeatId = (typeof MONTHLY_BEAT_IDS)[number];
 type Placed = Exclude<MonthlyBeatId, "m_flash" | "m_stand" | "m_end">;
 
 /** Stats a beat shows that are not signals; each belongs to one beat per video. */
-export type MonthlyFact = "matches" | "calendar" | "best_game" | "heroes" | "busiest" | "mate" | "hours" | "record" | "days";
+export type MonthlyFact =
+    "matches" | "calendar" | "best_game" | "heroes" | "busiest" | "mate" | "hours" | "record" | "days";
 
 export interface CastBeat {
     id: MonthlyBeatId;
@@ -143,11 +144,15 @@ export function monthlyCast(e: Edition, signals: readonly Signal[]): MonthlyCast
             facts,
         });
         const beats = new Map<Placed, CastBeat>();
-        if (open.has("m_takes")) beats.set("m_takes", cast("m_takes", homes.has("m_takes") ? ["calendar"] : ["calendar", "busiest"]));
+        if (open.has("m_takes"))
+            beats.set("m_takes", cast("m_takes", homes.has("m_takes") ? ["calendar"] : ["calendar", "busiest"]));
         if (open.has("m_shot")) beats.set("m_shot", cast("m_shot", ["best_game"]));
         if (open.has("m_wardrobe")) beats.set("m_wardrobe", cast("m_wardrobe", ["heroes"]));
         if (open.has("m_interview")) {
-            beats.set("m_interview", { ...cast("m_interview", interviewFacts), topics: [...asked, ...(interviewFacts as InterviewTopic[])] });
+            beats.set("m_interview", {
+                ...cast("m_interview", interviewFacts),
+                topics: [...asked, ...(interviewFacts as InterviewTopic[])],
+            });
         }
         if (homes.has("m_feature")) beats.set("m_feature", cast("m_feature"));
 
@@ -169,7 +174,13 @@ export function monthlyCast(e: Edition, signals: readonly Signal[]): MonthlyCast
 
         return {
             lead: lead && ranked.some((b) => b.signals[0] === lead) ? lead : null,
-            beats: [cast("m_flash", ["matches"]), ...ranked, cast("m_cover", coverFacts), cast("m_stand"), cast("m_end")],
+            beats: [
+                cast("m_flash", ["matches"]),
+                ...ranked,
+                cast("m_cover", coverFacts),
+                cast("m_stand"),
+                cast("m_end"),
+            ],
         };
     }
 }
@@ -219,7 +230,7 @@ export function monthlyPlan(cast: MonthlyCast, bars: number): Beat<MonthlyBeatId
     let spare = bars - [...share.values()].reduce((a, b) => a + b, 0);
     const order = [...(leadId ? [leadId] : []), ...GROW.filter((id) => id !== leadId && share.has(id))];
     for (let cap = FIRST_CAP; spare > 0; cap++) {
-        for (let given = true; spare > 0 && given; ) {
+        for (let given = true; spare > 0 && given;) {
             given = false;
             for (const id of order) {
                 if (spare === 0) break;

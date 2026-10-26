@@ -2,6 +2,7 @@ import { flashAt } from "../../../kit/beat";
 import { feathered } from "../../../kit/bitmap";
 import { clamp01, easeInOut, easeOutBack, easeOutCubic } from "../../../kit/ease";
 import { shake } from "../../../kit/motion";
+import { seeded } from "../../../kit/rng";
 import { setFont, type TextStyle } from "../../../kit/text";
 import type { Ctx, Rect } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
@@ -125,7 +126,43 @@ function clapper(ctx: Ctx, st: Stage, r: Rect, text: Block, style: Omit<TextStyl
     drawBlock(ctx, text, r.x + 28 * u, inner, style);
 }
 
-export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: MonthlyDraw, assets: SceneAssets): void {
+/** The photographer firing on every other beat after the clap, until the whip out. */
+export function flashPops(beat: number, until: number): number[] {
+    const out: number[] = [];
+    for (let t = beat * 3; t < until - 0.05; t += beat * 2) out.push(t);
+    return out;
+}
+
+/** The talent's pose after `n` pops: a new stance on each flash, settling as it holds. */
+function posed(n: number, since: number): { dx: number; rot: number; zoom: number } {
+    if (n === 0) return { dx: 0, rot: 0, zoom: 1 };
+    const rng = seeded(4409 + n * 7919);
+    const settle = 1 - 0.25 * Math.exp(-since * 6);
+    return { dx: (rng() - 0.5) * 90 * settle, rot: (rng() - 0.5) * 0.09, zoom: 1 + rng() * 0.07 };
+}
+
+/** A soft beam of key light raking across the set. */
+function lightSweep(ctx: Ctx, st: Stage, local: number, glow: string): void {
+    const x = (((local * 0.32) % 1.5) - 0.25) * st.w;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const g = ctx.createLinearGradient(x - st.w * 0.3, 0, x + st.w * 0.3, st.h * 0.4);
+    g.addColorStop(0, mix(glow, glow, 0, 0));
+    g.addColorStop(0.5, mix(glow, "#ffffff", 0.5, 0.22));
+    g.addColorStop(1, mix(glow, glow, 0, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, st.w, st.h);
+    ctx.restore();
+}
+
+export function draw(
+    ctx: Ctx,
+    local: number,
+    span: number,
+    size: SceneSize,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): void {
     const data = d.video.beats.m_flash;
     const st = stage(size);
     const u = st.u;
@@ -136,12 +173,18 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
     const hookStyle = { family: fonts.display, weight: 700, fill: d.palette.fg };
     const hookText = say(d, data.hook);
     const colW = st.aspect === "wide" ? st.w * 0.5 - st.m : st.w - 2 * st.m;
-    const hook = fitBlock(ctx, hookText, hookStyle, {
-        px: (st.aspect === "tall" ? 140 : 128) * u,
-        floor: HEADLINE_PX * u,
-        maxW: colW,
-        maxLines: 3,
-    }, 1.02);
+    const hook = fitBlock(
+        ctx,
+        hookText,
+        hookStyle,
+        {
+            px: (st.aspect === "tall" ? 140 : 128) * u,
+            floor: HEADLINE_PX * u,
+            maxW: colW,
+            maxLines: 3,
+        },
+        1.02,
+    );
     const lay = flashLayout(st, hook.height);
     const slateStyle = { family: fonts.pulp, weight: 700, fill: "#f1eee6" };
     const slate = fitBlock(ctx, say(d, data.slate), slateStyle, {
@@ -153,22 +196,35 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
     const boardH = Math.max(lay.board.h, 64 * u + 22 * u + slate.height + 40 * u);
     const board = { ...lay.board, h: boardH };
 
-    const cam = { ox: st.w / 2, oy: st.h * 0.45, zoom: 1 + 0.05 * (local / span), dy: -exit * st.h * 1.1 };
-    withCamera(ctx, { ...cam, zoom: 1 + 0.025 * (local / span) }, () =>
+    const beat = assets.timing.barSeconds / 4;
+    const pops = flashPops(beat, span - EXIT);
+    const popped = pops.filter((p) => p <= local);
+    const pop = Math.max(0, ...pops.map((p) => flashAt(local, p)));
+    const pose = posed(popped.length, local - (popped[popped.length - 1] ?? 0));
+
+    const cam = {
+        ox: st.w / 2,
+        oy: st.h * 0.45,
+        zoom: 1 + 0.08 * easeInOut(local / span),
+        dx: Math.sin(local * 0.9) * 14 * u,
+        dy: -exit * st.h * 1.1,
+    };
+    withCamera(ctx, { ...cam, zoom: 1 + 0.035 * (local / span), dx: cam.dx * 0.4 }, () =>
         studioSet(ctx, st, d.palette, {
             backdrop: image(assets, imageKeys.backdrop),
-            light: 0.55 + 0.45 * Math.max(f, 1 - clamp01(local / 0.8)),
+            light: 0.6 + 0.4 * Math.max(f, pop, 1 - clamp01(local / 0.8)) + 0.05 * Math.sin(local * 23) * (1 - pop),
             drift: local / span,
         }),
     );
+    lightSweep(ctx, st, local, d.palette.glow);
 
     const count = formatNumber(d, data.matches.value);
-    withCamera(ctx, { ...cam, dy: cam.dy * 0.7 - (local / span) * 60 * u }, () => {
+    withCamera(ctx, { ...cam, dx: cam.dx * 0.6, dy: cam.dy * 0.7 - (local / span) * 90 * u }, () => {
         ctx.save();
         setFont(ctx, { family: fonts.display, weight: 700, px: lay.ghost.px } as TextStyle, lay.ghost.px);
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.strokeStyle = mix(d.palette.accent, d.palette.accent, 0, 0.32);
+        ctx.strokeStyle = mix(d.palette.accent, d.palette.accent, 0, 0.32 + 0.3 * pop);
         ctx.lineWidth = 5 * u;
         ctx.strokeText(count, lay.ghost.x, lay.ghost.y);
         ctx.fillStyle = mix(d.palette.glow, d.palette.glow, 0, 0.12);
@@ -176,38 +232,73 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
         ctx.restore();
     });
 
-    const star = data.heroId === null ? undefined : (image(assets, imageKeys.gloat(data.heroId)) ?? image(assets, imageKeys.hero(data.heroId)));
+    const star =
+        data.heroId === null
+            ? undefined
+            : (image(assets, imageKeys.gloat(data.heroId)) ?? image(assets, imageKeys.hero(data.heroId)));
     if (star) {
         const r = lay.talent;
         const rise = easeOutCubic(clamp01(local / 0.9));
-        withCamera(ctx, { ...cam, ox: r.x + r.w / 2, oy: r.y + r.h, zoom: 1 + 0.06 * (local / span), dy: cam.dy * 0.85 + (1 - rise) * 60 * u }, () => {
-            ctx.save();
-            ctx.shadowColor = "rgb(0 0 0 / 0.6)";
-            ctx.shadowBlur = 70 * u;
-            ctx.shadowOffsetX = -30 * u;
-            ctx.drawImage(feathered(star), r.x, r.y, r.w, r.h);
-            ctx.restore();
-        });
+        const breathe = 1 + 0.015 * Math.sin(local * 3.1);
+        withCamera(
+            ctx,
+            {
+                ox: r.x + r.w / 2,
+                oy: r.y + r.h,
+                zoom: (1 + 0.06 * (local / span)) * pose.zoom * breathe,
+                dx: cam.dx * 1.4 + pose.dx * u,
+                dy: cam.dy * 0.85 + (1 - rise) * 60 * u,
+                rot: pose.rot,
+            },
+            () => {
+                ctx.save();
+                ctx.shadowColor = "rgb(0 0 0 / 0.6)";
+                ctx.shadowBlur = 70 * u;
+                ctx.shadowOffsetX = -30 * u;
+                ctx.drawImage(feathered(star), r.x, r.y, r.w, r.h);
+                // The flash catches the talent: a rim of light on every pop.
+                if (pop > 0) {
+                    ctx.globalCompositeOperation = "lighter";
+                    ctx.globalAlpha = pop * 0.35;
+                    ctx.shadowColor = "transparent";
+                    ctx.drawImage(feathered(star), r.x, r.y, r.w, r.h);
+                }
+                ctx.restore();
+            },
+        );
     }
 
-    const [sx, sy] = shake(local, 10 * u, 3);
+    // The clapper comes down open and claps shut on the second beat.
+    const clapAt = beat;
+    const open = local < clapAt ? 1 - easeOutCubic(local / clapAt) ** 6 : 0;
+    const [sx, sy] = shake(local - clapAt, 12 * u * clamp01(1 - (local - clapAt) / 0.3), 3);
     const drop = easeOutBack(clamp01(local / 0.35));
-    withCamera(ctx, { ...cam, dx: sx, dy: cam.dy + sy - (1 - drop) * 40 * u }, () =>
-        clapper(ctx, st, board, slate, slateStyle, 0),
+    withCamera(
+        ctx,
+        { ...cam, dx: cam.dx * 0.5 + sx, dy: cam.dy + sy - (1 - drop) * 40 * u, rot: Math.sin(local * 1.3) * 0.006 },
+        () => clapper(ctx, st, board, slate, slateStyle, open),
     );
 
     const hookTop = board.y + board.h + 50 * u;
     const settle = easeOutCubic(clamp01(local / 0.6));
     const paintHook = (fill: string, mark: string) =>
         withCamera(ctx, { ...cam, zoom: cam.zoom * (1.04 - 0.04 * settle), ox: lay.hook.x, oy: hookTop }, () =>
-            drawBlock(ctx, hook, lay.hook.x, hookTop, { ...hookStyle, fill }, {
-                mark: count,
-                markFill: mark,
-                shadow: fill === INK ? undefined : "rgb(0 0 0 / 0.6)",
-            }),
+            drawBlock(
+                ctx,
+                hook,
+                lay.hook.x,
+                hookTop,
+                { ...hookStyle, fill },
+                {
+                    mark: count,
+                    markFill: mark,
+                    shadow: fill === INK ? undefined : "rgb(0 0 0 / 0.6)",
+                },
+            ),
         );
     paintHook(d.palette.fg, d.palette.accent);
     grain(ctx, st, local, 0.08);
+    flashOverlay(ctx, st, pop * 0.32);
 
     // On the hit the frame is burnt white; the hook prints through it in ink so it reads from frame 0.
     flashOverlay(ctx, st, f);
@@ -218,4 +309,3 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
         ctx.restore();
     }
 }
-

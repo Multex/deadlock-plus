@@ -4,7 +4,13 @@ import { monthPalette } from "../../../../kinds/monthly/palette";
 import type { SceneAssets } from "../../../scene";
 import { monthlyVideoData, type MonthlyVideoDeps, type TakeFrame } from "../data";
 import { monthlyPlan } from "../plan";
+import { draw as cover } from "./cover";
+import { draw as end } from "./end";
+import { draw as feature } from "./feature";
 import { draw as flash } from "./flash";
+import { draw as interview } from "./interview";
+import { draw as stand } from "./stand";
+import { draw as wardrobe } from "./wardrobe";
 import { draw as shot, shotTimes } from "./shot";
 import { monthlyLines, type BeatDraw, type MonthlyDraw } from "./studio";
 import { blankRun, draw as takes, takesTimes } from "./takes";
@@ -45,7 +51,17 @@ const SIZES = [
     { w: 1440, h: 1440 },
     { w: 1920, h: 1080 },
 ];
-const BEATS: Record<string, BeatDraw> = { m_flash: flash, m_takes: takes, m_shot: shot };
+const BEATS: Record<string, BeatDraw> = {
+    m_flash: flash,
+    m_takes: takes,
+    m_shot: shot,
+    m_wardrobe: wardrobe,
+    m_interview: interview,
+    m_feature: feature,
+    m_cover: cover,
+    m_stand: stand,
+    m_end: end,
+};
 
 describe("Monthly beats draw", () => {
     for (const persona of PERSONAS) {

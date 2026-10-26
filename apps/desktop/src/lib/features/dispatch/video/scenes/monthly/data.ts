@@ -151,7 +151,10 @@ function civil(unixS: number, tz: string): { y: number; m: number; d: number } {
         f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
         localParts.set(tz, f);
     }
-    const [y, m, d] = f.format(unixS * 1000).split("-").map(Number);
+    const [y, m, d] = f
+        .format(unixS * 1000)
+        .split("-")
+        .map(Number);
     return { y: y!, m: m!, d: d! };
 }
 
@@ -201,11 +204,7 @@ function busiestFrame(e: Edition, frames: TakeFrame[]): number {
 const stat = (value: number, source: string): Stat => ({ value, source });
 
 /** The video's words and numbers for one frozen edition: copy as keys, numbers with their source. */
-export function monthlyVideoData(
-    e: Edition,
-    deps: MonthlyVideoDeps,
-    previous?: Edition | null,
-): MonthlyVideoData {
+export function monthlyVideoData(e: Edition, deps: MonthlyVideoDeps, previous?: Edition | null): MonthlyVideoData {
     const signals = editionSignals(e, previous);
     const cast = monthlyCast(e, signals);
     const { tz } = e.window;
@@ -236,7 +235,11 @@ export function monthlyVideoData(
                 };
             }
             case "streak":
-                return { params: { wins: n(e.longestWin) }, count: e.longestWin, stats: [stat(e.longestWin, "longestWin")] };
+                return {
+                    params: { wins: n(e.longestWin) },
+                    count: e.longestWin,
+                    stats: [stat(e.longestWin, "longestWin")],
+                };
             case "losing_then_winning": {
                 const r = f as SignalFacts["losing_then_winning"];
                 return {
@@ -282,7 +285,11 @@ export function monthlyVideoData(
             }
             case "debut": {
                 const r = f as SignalFacts["debut"];
-                return { params: { hero: deps.hero(r.heroId) }, count: r.games, stats: [stat(r.games, "heroes.games")] };
+                return {
+                    params: { hero: deps.hero(r.heroId) },
+                    count: r.games,
+                    stats: [stat(r.games, "heroes.games")],
+                };
             }
             case "night_owl":
             case "weekender": {
@@ -309,7 +316,11 @@ export function monthlyVideoData(
             case "losing": {
                 const r = f as SignalFacts["winning"];
                 const count = s.id === "winning" ? r.wins : r.losses;
-                return { params: { rate: deps.percent(r.winrate) }, count, stats: [stat(count, `stats.${s.id === "winning" ? "wins" : "losses"}`)] };
+                return {
+                    params: { rate: deps.percent(r.winrate) },
+                    count,
+                    stats: [stat(count, `stats.${s.id === "winning" ? "wins" : "losses"}`)],
+                };
             }
             case "vs_last": {
                 const r = f as SignalFacts["vs_last"];
@@ -379,7 +390,12 @@ export function monthlyVideoData(
         beats.m_shot = {
             label: copy("m_shot", "label"),
             caption: big
-                ? copy("m_shot", "caption_big_game", { hero: deps.hero(g.heroId), kda, grade: g.letter!, date: day(g.startTime) })
+                ? copy("m_shot", "caption_big_game", {
+                      hero: deps.hero(g.heroId),
+                      kda,
+                      grade: g.letter!,
+                      date: day(g.startTime),
+                  })
                 : copy("m_shot", "caption_plain", { hero: deps.hero(g.heroId), kda, date: day(g.startTime) }),
             heroId: g.heroId,
             grade: g.letter ?? null,
@@ -395,7 +411,8 @@ export function monthlyVideoData(
         const s = wardrobeCast.signals[0];
         const lead = s?.id === "debut" ? (s.facts as SignalFacts["debut"]).heroId : top.heroId;
         const swatches = heroes.slice(0, SWATCHES);
-        if (!swatches.some((h) => h.heroId === lead)) swatches[swatches.length - 1] = heroes.find((h) => h.heroId === lead)!;
+        if (!swatches.some((h) => h.heroId === lead))
+            swatches[swatches.length - 1] = heroes.find((h) => h.heroId === lead)!;
         const t = s && told(s);
         beats.m_wardrobe = {
             title: copy("m_wardrobe", "title", { month }),
@@ -445,8 +462,7 @@ export function monthlyVideoData(
         const t = told(fs);
         const params = { ...t.params, month };
         const r = fs.id === "climb" || fs.id === "slide" ? (fs.facts as SignalFacts["climb"]) : null;
-        const heroOf =
-            fs.id === "one_trick" ? (fs.facts as SignalFacts["one_trick"]).heroId : (top?.heroId ?? null);
+        const heroOf = fs.id === "one_trick" ? (fs.facts as SignalFacts["one_trick"]).heroId : (top?.heroId ?? null);
         beats.m_feature = {
             angle,
             kicker: copy("m_feature", "kicker", { month }),
@@ -473,13 +489,23 @@ export function monthlyVideoData(
             }),
             ...coverCast.facts.map((f): { line: CoverLine; params: Params; count?: number } => {
                 const s = e.stats;
-                if (f === "record") return { line: "record" as const, params: { wins: n(s.wins), losses: n(s.losses) }, count: undefined };
-                if (f === "hours") return { line: "hours" as const, params: { hours: deps.duration(s.playtimeS) }, count: undefined };
+                if (f === "record")
+                    return {
+                        line: "record" as const,
+                        params: { wins: n(s.wins), losses: n(s.losses) },
+                        count: undefined,
+                    };
+                if (f === "hours")
+                    return { line: "hours" as const, params: { hours: deps.duration(s.playtimeS) }, count: undefined };
                 return { line: "days" as const, params: {}, count: s.daysPlayed };
             }),
         ].map((l, i) => {
             const page = 2 + 2 * i + pickVariant(seed, `video.monthly.m_cover.page_${i}`, 2) - 1;
-            return { line: l.line, copy: counted("m_cover", `line_${l.line}`, { ...l.params, page: n(page) }, l.count), page };
+            return {
+                line: l.line,
+                copy: counted("m_cover", `line_${l.line}`, { ...l.params, page: n(page) }, l.count),
+                page,
+            };
         }),
     };
 
@@ -508,7 +534,9 @@ export function allCopy(data: MonthlyVideoData): Copy[] {
         b.m_flash.hook,
         ...(b.m_takes ? [b.m_takes.title, b.m_takes.caption] : []),
         ...(b.m_shot ? [b.m_shot.label, b.m_shot.caption] : []),
-        ...(b.m_wardrobe ? [b.m_wardrobe.title, b.m_wardrobe.caption, ...(b.m_wardrobe.debutTag ? [b.m_wardrobe.debutTag] : [])] : []),
+        ...(b.m_wardrobe
+            ? [b.m_wardrobe.title, b.m_wardrobe.caption, ...(b.m_wardrobe.debutTag ? [b.m_wardrobe.debutTag] : [])]
+            : []),
         ...(b.m_interview ? [b.m_interview.title, ...b.m_interview.qa.flatMap((x) => [x.q, x.a])] : []),
         ...(b.m_feature ? [b.m_feature.kicker, b.m_feature.headline, b.m_feature.deck] : []),
         b.m_cover.title,

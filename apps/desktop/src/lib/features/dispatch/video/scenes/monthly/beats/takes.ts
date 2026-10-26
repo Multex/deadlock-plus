@@ -32,37 +32,62 @@ export interface TakesLayout {
     title: Rect;
     sheet: Rect;
     caption: Rect;
-    /** Frames per strip: fewer on 9:16 so each frame reads bigger. */
+    /** Frames per strip. */
     cols: number;
+    /** What of the frame the sheet is seen through; the sheet may be taller and pans inside it. */
+    view: Rect;
+    /** Where the loupe may sit, clear of every word. */
+    lens: Rect;
+}
+
+/** Frames as wide as the width allows: the sheet runs past the frame's foot and the camera pans down it. */
+function sheetArea(x: number, y: number, w: number, frames: number, cols: number): Rect {
+    const probe = sheetLayout(frames, { x, y, w, h: 1e6 }, cols);
+    const last = probe.strips[probe.strips.length - 1]!;
+    return { x, y, w, h: last.y + last.h - probe.strips[0]!.y };
 }
 
 /**
- * Title, then the caption's room, then the sheet; the sheet may run below the safe band (it holds no words).
- * On 16:9 the sheet takes the left and the words the right.
+ * Title, then the caption's room, then the sheet. On 16:9 the sheet takes the left and the words the right. The
+ * sheet holds no words, so it may run below the safe band.
  */
-export function takesLayout(st: Stage, titleH: number, capH: number): TakesLayout {
+export function takesLayout(st: Stage, titleH: number, capH: number, frames = 31): TakesLayout {
     const { u, m, w, h, safe } = st;
     if (st.aspect === "wide") {
         const col = w * 0.6;
         const textW = w - col - m * 1.5;
         const top = (h - titleH - 40 * u - capH) / 2;
+        const view = { x: 0, y: 0, w: col, h };
         return {
-            sheet: { x: m * 0.5, y: m * 0.6, w: col - m * 1.1, h: h - 1.2 * m },
+            sheet: sheetArea(m * 0.5, m * 0.6, col - m * 1.1, frames, 5),
             title: { x: col + m * 0.5, y: top, w: textW, h: titleH },
             caption: { x: col + m * 0.5, y: top + titleH + 40 * u, w: textW, h: capH },
-            cols: 7,
+            cols: 5,
+            view,
+            lens: view,
         };
     }
     const tall = st.aspect === "tall";
-    const top = safe.top + 16 * u;
+    const top = tall ? safe.top + 16 * u : m * 0.6;
     const capY = top + titleH + 18 * u;
     const sheetY = capY + capH + 44 * u;
+    const cols = tall ? 4 : 6;
+    const view = { x: 0, y: sheetY - 30 * u, w, h: h - sheetY + 30 * u };
     return {
         title: { x: m, y: top, w: w - 2 * m, h: titleH },
         caption: { x: m, y: capY, w: w - 2 * m, h: capH },
-        sheet: { x: m * 0.35, y: sheetY, w: w - m * 0.7, h: (tall ? h - 70 * u : h - m * 0.6) - sheetY },
-        cols: tall ? 5 : 7,
+        sheet: sheetArea(m * 0.35, sheetY, w - m * 0.7, frames, cols),
+        cols,
+        view,
+        lens: { x: 0, y: capY + capH + 20 * u, w, h: h - (capY + capH + 20 * u) },
     };
+}
+
+/** How far up the sheet has panned at `k` (0-1) on its way to showing `target` in the middle of the view. */
+export function sheetPan(lay: TakesLayout, target: Rect, k: number): number {
+    const overflow = Math.max(0, lay.sheet.y + lay.sheet.h - (lay.view.y + lay.view.h) + 40);
+    const want = target.y + target.h / 2 - (lay.view.y + lay.view.h * 0.5);
+    return -Math.min(overflow, Math.max(0, want)) * easeInOut(k);
 }
 
 export interface TakesGeometry {
@@ -93,7 +118,13 @@ export function takesGeometry(ctx: Ctx, st: Stage, d: MonthlyDraw, assets: Scene
         maxW: textW,
         maxLines: wide ? 4 : 2,
     });
-    return { lay: takesLayout(st, title.height, caption.height), title, caption, titleStyle, captionStyle };
+    return {
+        lay: takesLayout(st, title.height, caption.height, data.frames.length),
+        title,
+        caption,
+        titleStyle,
+        captionStyle,
+    };
 }
 
 /** How a day's frame is lit: gold for a winning day, a cool shadow for a losing one. */
@@ -111,7 +142,16 @@ export interface SheetOpts {
 }
 
 /** The contact sheet: photo paper, strips of film, one frame per day; played days show the day's hero. */
-export function drawSheet(ctx: Ctx, st: Stage, d: MonthlyDraw, assets: SceneAssets, frames: TakeFrame[], area: Rect, cols: number, o: SheetOpts): SheetLayout {
+export function drawSheet(
+    ctx: Ctx,
+    st: Stage,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+    frames: TakeFrame[],
+    area: Rect,
+    cols: number,
+    o: SheetOpts,
+): SheetLayout {
     const lay = sheetLayout(frames.length, area, cols);
     const s0 = lay.strips[0]!;
     const sN = lay.strips[lay.strips.length - 1]!;
@@ -130,18 +170,36 @@ export function drawSheet(ctx: Ctx, st: Stage, d: MonthlyDraw, assets: SceneAsse
     ctx.fillStyle = PAPER;
     ctx.fillRect(paper.x, paper.y, paper.w, paper.h);
     ctx.restore();
-    lay.strips.forEach((r, i) => filmStrip(ctx, r, lay.band, { u: st.u, edge: `DISPATCH 400   ${i * cols + 1}A`, holes: PAPER }));
+    lay.strips.forEach((r, i) =>
+        filmStrip(ctx, r, lay.band, { u: st.u, edge: `DISPATCH 400   ${i * cols + 1}A`, holes: PAPER }),
+    );
     const fallback = d.video.beats.m_flash.heroId;
     frames.forEach((f, i) => {
         const r = lay.frames[i]!;
-        ctx.fillStyle = "#1b1713";
+        // A day off is the empty set: the paper sweep with nobody on it, under-exposed, the date pencilled in.
+        const empty = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+        empty.addColorStop(0, mix(d.palette.bg, "#000000", 0.78));
+        empty.addColorStop(0.62, mix(d.palette.bg, "#000000", 0.62));
+        empty.addColorStop(1, mix(d.palette.bg, "#000000", 0.85));
+        ctx.fillStyle = empty;
         ctx.fillRect(r.x, r.y, r.w, r.h);
+        if (f.matches === 0) {
+            ctx.save();
+            ctx.font = `700 ${Math.round(r.h * 0.42)}px "${assets.fonts.display}"`;
+            ctx.fillStyle = "rgb(255 255 255 / 0.13)";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(f.day), r.x + r.w / 2, r.y + r.h * 0.54);
+            ctx.restore();
+        }
         const k = f.matches > 0 ? clamp01(o.develop(i)) : 0;
         if (k > 0) {
             ctx.save();
             ctx.globalAlpha = k;
             const id = f.heroId ?? fallback;
-            heroPhoto(ctx, r, id === null ? undefined : image(assets, imageKeys.hero(id)), frameTone(d, f), { fy: 0.12 });
+            heroPhoto(ctx, r, id === null ? undefined : image(assets, imageKeys.hero(id)), frameTone(d, f), {
+                fy: 0.12,
+            });
             // A developing print runs hot before it settles.
             ctx.fillStyle = `rgb(255 245 220 / ${(1 - k) * 0.6})`;
             ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -210,7 +268,14 @@ export function blankRun(frames: readonly TakeFrame[]): [number, number] | null 
     return best;
 }
 
-export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: MonthlyDraw, assets: SceneAssets): void {
+export function draw(
+    ctx: Ctx,
+    local: number,
+    span: number,
+    size: SceneSize,
+    d: MonthlyDraw,
+    assets: SceneAssets,
+): void {
     const data = d.video.beats.m_takes;
     if (!data) return;
     const st = stage(size);
@@ -219,16 +284,23 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
     const geo = takesGeometry(ctx, st, d, assets)!;
     const lay = geo.lay;
 
-    studioSet(ctx, st, d.palette, { backdrop: image(assets, imageKeys.backdrop), light: 0.55, art: 0.35, drift: local / span });
+    studioSet(ctx, st, d.palette, {
+        backdrop: image(assets, imageKeys.backdrop),
+        light: 0.55,
+        art: 0.35,
+        drift: local / span,
+    });
     ctx.fillStyle = "rgb(0 0 0 / 0.35)";
     ctx.fillRect(0, 0, st.w, st.h);
 
     const slideK = easeOutCubic(local / times.slide);
-    const sheet = { rot: lerp(-0.07, -0.012, slideK), dy: (1 - slideK) * st.h * 0.5 };
     const sheetLay = sheetLayout(data.frames.length, lay.sheet, lay.cols);
     const target = sheetLay.frames[data.loupe] ?? sheetLay.frames[0]!;
+    // The eye runs down the sheet to the busiest day while it develops.
+    const pan = sheetPan(lay, target, local / times.land);
+    const sheet = { rot: lerp(-0.07, -0.012, slideK), dy: (1 - slideK) * st.h * 0.5 + pan };
     const tx = target.x + target.w / 2;
-    const ty = target.y + target.h / 2;
+    const ty = target.y + target.h / 2 + pan;
     const develop = (i: number) => (local - times.develop(i)) / times.developFor;
 
     const push = easeInOut(local / span);
@@ -246,7 +318,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
                 ctx.lineWidth = 7 * st.u;
                 ctx.lineCap = "round";
                 ctx.beginPath();
-                const y = a.y + a.h * 0.5;
+                const y = a.y + a.h * 0.5 + pan;
                 ctx.moveTo(a.x, y);
                 ctx.lineTo(lerp(a.x, b.x + b.w, k), y + (b.y - a.y) * k);
                 ctx.stroke();
@@ -254,29 +326,32 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
             }
         }
     };
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(lay.view.x, lay.view.y, lay.view.w, lay.view.h);
+    ctx.clip();
     withCamera(ctx, cam, paintSheet);
+    ctx.restore();
 
-    // The loupe glides in from the lower right and settles on the frame on the bar line.
+    // The loupe glides in from the lower right and settles on the frame on the bar line, clear of the words.
     const lk = easeInOut((local - times.loupeFrom) / (times.land - times.loupeFrom));
     if (local >= times.loupeFrom) {
-        const r = Math.min(170 * st.u, target.w * 1.25);
+        const r = Math.min(190 * st.u, target.w * 1.1);
         const sx = (tx - cam.ox) * cam.zoom + cam.ox;
         const sy = (ty - cam.oy) * cam.zoom + cam.oy;
-        const fromX = st.w + r;
-        const fromY = sy + st.h * 0.25;
         const hover = local > times.land ? Math.sin((local - times.land) * 2.2) * 4 * st.u : 0;
-        const lx = lerp(fromX, sx, lk) + hover;
-        const ly = lerp(fromY, sy, lk) - Math.sin(lk * Math.PI) * 80 * st.u;
-        // Kept whole on screen once it lands; it still looks at the frame under it.
-        const edge = r + st.m * 0.25;
-        const keep = (v: number, lo: number, hi: number) => lerp(v, Math.min(hi, Math.max(lo, v)), lk);
-        loupe(ctx, keep(lx, edge, st.w - edge), keep(ly, edge, st.h - edge), r, 2.3, () => withCamera(ctx, cam, paintSheet), {
+        const lx = lerp(st.w + r, sx, lk) + hover;
+        const ly = lerp(sy + st.h * 0.25, sy, lk) - Math.sin(lk * Math.PI) * 80 * st.u;
+        const kept = keepLens(lx, ly, r + 6 * st.u, lay.lens);
+        loupe(ctx, lerp(lx, kept.x, lk), lerp(ly, kept.y, lk), r, 2.1, () => withCamera(ctx, cam, paintSheet), {
             x: lx,
             y: ly,
         });
     }
 
-    drawBlock(ctx, geo.title, lay.title.x, lay.title.y, geo.titleStyle, { reveal: 0.3 + 0.7 * clamp01(local / (bar * 0.3)) });
+    drawBlock(ctx, geo.title, lay.title.x, lay.title.y, geo.titleStyle, {
+        reveal: 0.3 + 0.7 * clamp01(local / (bar * 0.3)),
+    });
     const capK = clamp01((local - times.land) / (bar * 0.35));
     if (capK > 0) {
         ctx.save();
@@ -286,4 +361,10 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, d: 
         drawBlock(ctx, geo.caption, lay.caption.x, lay.caption.y, geo.captionStyle, { reveal: capK });
     }
     grain(ctx, st, local, 0.08);
+}
+
+/** A lens of radius `r` moved the least it takes to sit wholly inside `area`. */
+export function keepLens(x: number, y: number, r: number, area: Rect): { x: number; y: number } {
+    const clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+    return { x: clamp(x, area.x + r, area.x + area.w - r), y: clamp(y, area.y + r, area.y + area.h - r) };
 }

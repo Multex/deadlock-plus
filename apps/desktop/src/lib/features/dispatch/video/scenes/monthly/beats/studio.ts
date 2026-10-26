@@ -17,10 +17,29 @@ export interface MonthlyDraw {
     lines: Record<string, string>;
     /** For numbers the beats format themselves. */
     locale: string;
+    /** Names and colours of the heroes the beats show; a hero missing here gets a neutral swatch and no tag. */
+    heroes?: Record<number, { name: string; colour: string | null }>;
+    /** The print cover's own furniture, so the video's cover reads as the magazine's. */
+    print?: PrintCover;
+}
+
+export interface PrintCover {
+    brand: string;
+    masthead: string;
+    issueLine: string;
+    barcode: { bars: number[]; digits: string };
+    site: string;
 }
 
 /** `draw(ctx, local, span, size, data, assets)`: `local` seconds into the beat, `span` the beat's length. */
-export type BeatDraw = (ctx: Ctx, local: number, span: number, size: SceneSize, data: MonthlyDraw, assets: SceneAssets) => void;
+export type BeatDraw = (
+    ctx: Ctx,
+    local: number,
+    span: number,
+    size: SceneSize,
+    data: MonthlyDraw,
+    assets: SceneAssets,
+) => void;
 
 /** The shot's net worth line: an existing print key, so the video adds no copy for it. */
 export const NET_WORTH_KEY = "dispatch.best_game.net_worth";
@@ -103,7 +122,11 @@ function wrapWith(measure: (s: string, px: number) => number, str: string, px: n
 }
 
 /** The largest size up to `px` at which `str` wraps onto `maxLines` within `maxW`; at the floor it wraps further. */
-export function fitLines(measure: (s: string, px: number) => number, str: string, spec: FitSpec): { px: number; lines: string[] } {
+export function fitLines(
+    measure: (s: string, px: number) => number,
+    str: string,
+    spec: FitSpec,
+): { px: number; lines: string[] } {
     let px = spec.px;
     for (;;) {
         const lines = wrapWith(measure, str, px, spec.maxW);
@@ -212,7 +235,14 @@ export const PAPER = "#f2ede2";
  * A hand-drawn loop round an ellipse: starts upper left, goes round a bit more than once and wobbles, the same
  * way for the same seed. `progress` 0-1 is how much of the stroke is drawn.
  */
-export function pencilLoop(cx: number, cy: number, rx: number, ry: number, seed: number, progress: number): { x: number; y: number }[] {
+export function pencilLoop(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    seed: number,
+    progress: number,
+): { x: number; y: number }[] {
     const N = 72;
     const rng = seeded(seed);
     const a0 = -2.4 + rng() * 0.7;
@@ -228,7 +258,10 @@ export function pencilLoop(cx: number, cy: number, rx: number, ry: number, seed:
         const r = 0.95 + 0.12 * k + 0.05 * Math.sin(a * f1 + p1);
         const ex = Math.cos(a) * rx * r;
         const ey = Math.sin(a) * ry * r;
-        out.push({ x: cx + ex * Math.cos(tilt) - ey * Math.sin(tilt), y: cy + ex * Math.sin(tilt) + ey * Math.cos(tilt) });
+        out.push({
+            x: cx + ex * Math.cos(tilt) - ey * Math.sin(tilt),
+            y: cy + ex * Math.sin(tilt) + ey * Math.cos(tilt),
+        });
     }
     return out;
 }
@@ -312,7 +345,12 @@ export function sheetLayout(n: number, area: Rect, cols = 7): SheetLayout {
 }
 
 /** A strip of film: base, sprocket holes along both edges, and the edge print between them. */
-export function filmStrip(ctx: Ctx, r: Rect, band: number, opts: { edge?: string; base?: string; holes?: string; u: number }): void {
+export function filmStrip(
+    ctx: Ctx,
+    r: Rect,
+    band: number,
+    opts: { edge?: string; base?: string; holes?: string; u: number },
+): void {
     ctx.save();
     ctx.fillStyle = opts.base ?? FILM;
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -351,9 +389,22 @@ export function drawCover(ctx: Ctx, img: Bitmap, r: Rect, fx = 0.5, fy = 0.5, zo
 }
 
 /** A photograph lit by the frame's own colour: the hero card over a tone, with a light falloff. */
-export function heroPhoto(ctx: Ctx, r: Rect, img: Bitmap | undefined, tone: string, opts: { fy?: number; zoom?: number } = {}): void {
+export function heroPhoto(
+    ctx: Ctx,
+    r: Rect,
+    img: Bitmap | undefined,
+    tone: string,
+    opts: { fy?: number; zoom?: number } = {},
+): void {
     ctx.save();
-    const g = ctx.createRadialGradient(r.x + r.w * 0.5, r.y + r.h * 0.35, 0, r.x + r.w * 0.5, r.y + r.h * 0.5, Math.max(r.w, r.h) * 0.8);
+    const g = ctx.createRadialGradient(
+        r.x + r.w * 0.5,
+        r.y + r.h * 0.35,
+        0,
+        r.x + r.w * 0.5,
+        r.y + r.h * 0.5,
+        Math.max(r.w, r.h) * 0.8,
+    );
     g.addColorStop(0, mix(tone, "#ffffff", 0.35));
     g.addColorStop(1, mix(tone, "#000000", 0.55));
     ctx.fillStyle = g;
@@ -554,7 +605,14 @@ export function softbox(ctx: Ctx, st: Stage, side: -1 | 1, light: number): void 
 
 export function vignette(ctx: Ctx, st: Stage, k: number): void {
     const { w, h } = st;
-    const v = ctx.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.35, w / 2, h * 0.45, Math.hypot(w, h) * 0.62);
+    const v = ctx.createRadialGradient(
+        w / 2,
+        h * 0.45,
+        Math.min(w, h) * 0.35,
+        w / 2,
+        h * 0.45,
+        Math.hypot(w, h) * 0.62,
+    );
     v.addColorStop(0, "rgb(0 0 0 / 0)");
     v.addColorStop(1, `rgb(0 0 0 / ${k})`);
     ctx.fillStyle = v;
@@ -668,4 +726,6 @@ export const imageKeys = {
     heroBackdrop: (id: number) => `backdrop:${id}`,
     hero: (id: number) => `hero:${id}`,
     gloat: (id: number) => `mood:${id}:gloat`,
+    rank: (badge: number) => `rank:${badge}`,
+    brand: "brand",
 };

@@ -125,20 +125,40 @@ const split = <T extends string>(all: readonly T[], counted: ReadonlySet<string>
 /** Every copy slot the Monthly video can ask for. */
 export const MONTHLY_SLOTS: readonly MonthlySlot[] = [
     ...slots("m_flash", ["slate", "slate_anon"], ["hook"]),
-    ...slots("m_takes", ["title", ...split(TAKES_CAPTIONS, COUNTED_TAKES, "caption_")[0]!], split(TAKES_CAPTIONS, COUNTED_TAKES, "caption_")[1]),
+    ...slots(
+        "m_takes",
+        ["title", ...split(TAKES_CAPTIONS, COUNTED_TAKES, "caption_")[0]!],
+        split(TAKES_CAPTIONS, COUNTED_TAKES, "caption_")[1],
+    ),
     ...slots("m_shot", ["label", "caption_big_game", "caption_plain"]),
-    ...slots("m_wardrobe", ["title", "debut_tag"], WARDROBE_CAPTIONS.map((c) => `caption_${c}`)),
+    ...slots(
+        "m_wardrobe",
+        ["title", "debut_tag"],
+        WARDROBE_CAPTIONS.map((c) => `caption_${c}`),
+    ),
     ...slots(
         "m_interview",
-        ["title", ...INTERVIEW_TOPICS.map((t) => `${t}_q`), ...INTERVIEW_TOPICS.filter((t) => !COUNTED_ANSWERS.has(t)).map((t) => `${t}_a`)],
+        [
+            "title",
+            ...INTERVIEW_TOPICS.map((t) => `${t}_q`),
+            ...INTERVIEW_TOPICS.filter((t) => !COUNTED_ANSWERS.has(t)).map((t) => `${t}_a`),
+        ],
         INTERVIEW_TOPICS.filter((t) => COUNTED_ANSWERS.has(t)).map((t) => `${t}_a`),
     ),
     ...slots(
         "m_feature",
-        ["kicker", ...FEATURE_ANGLES.map((a) => `headline_${a}`), ...split(FEATURE_ANGLES, COUNTED_FEATURE, "deck_")[0]!],
+        [
+            "kicker",
+            ...FEATURE_ANGLES.map((a) => `headline_${a}`),
+            ...split(FEATURE_ANGLES, COUNTED_FEATURE, "deck_")[0]!,
+        ],
         split(FEATURE_ANGLES, COUNTED_FEATURE, "deck_")[1],
     ),
-    ...slots("m_cover", ["title_hero", "title_month", ...split(COVER_LINES, COUNTED_COVER, "line_")[0]!], split(COVER_LINES, COUNTED_COVER, "line_")[1]),
+    ...slots(
+        "m_cover",
+        ["title_hero", "title_month", ...split(COVER_LINES, COUNTED_COVER, "line_")[0]!],
+        split(COVER_LINES, COUNTED_COVER, "line_")[1],
+    ),
     ...slots("m_stand", ["tag", "price"]),
     ...slots("m_end", ["cta"]),
 ];
