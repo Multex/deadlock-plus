@@ -22,7 +22,7 @@
     import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
     import { kdaRatio } from "@deadlock-plus/match/list-summary";
     import { rowState } from "@deadlock-plus/match/coverage";
-    import { matchCoverage } from "../../coverage.svelte";
+    import { coverageApplies, matchCoverage } from "../../coverage.svelte";
     import { rowGrades } from "../../row-grades.svelte";
     import RowGrade from "./row-grade.svelte";
     import { rowStateBadge, showGrade } from "./row-state";
@@ -56,7 +56,9 @@
     const duration = $derived(formatClock(row.durationS) ?? "-");
     const time = $derived(formatDate(row.startTime * 1000, { hour: "2-digit", minute: "2-digit" }));
     const grade = $derived(rowGrades.own(row.matchId));
-    const state = $derived(rowState(row.matchId, matchCoverage.coverage, matchCoverage.queued));
+    const state = $derived(
+        coverageApplies(row.mode) ? rowState(row.matchId, matchCoverage.coverage, matchCoverage.queued) : null,
+    );
     const stateBadge = $derived(rowStateBadge(state));
     const outcomeVariant = $derived(
         row.outcome === "win" ? "success" : row.outcome === "loss" ? "destructive" : "outline",
