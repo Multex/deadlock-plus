@@ -223,7 +223,7 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
         const prepare = SCENE_PREP[kind];
         const prep = prepare ? await (await prepare()).prepareScene(view) : null;
         const [audio, fonts, images] = await Promise.all([
-            renderMusic(request.track, timeline, request.sfx),
+            renderMusic(request.track, timeline, request.sfx ?? prep?.sfx?.(timeline)),
             loadFonts(),
             loadImages(view, prep?.images ?? {}),
         ]);

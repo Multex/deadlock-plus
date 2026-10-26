@@ -1,5 +1,6 @@
 import type { EditionKind } from "@deadlock-plus/stats/dispatch/types";
 import type { EditionView } from "../edition-view";
+import type { SfxCue } from "./sfx";
 import { collectorsScene } from "./scenes/collectors";
 import { monthlyScene } from "./scenes/monthly";
 import { yearEndScene } from "./scenes/year_end";
@@ -54,6 +55,8 @@ export interface SceneAssets {
 export interface ScenePrep {
     data: unknown;
     images: Record<string, string | null>;
+    /** The sound effects the scene's beats land, timed on the export's bar grid. */
+    sfx?: (timing: SceneTiming) => SfxCue[];
 }
 
 /**
