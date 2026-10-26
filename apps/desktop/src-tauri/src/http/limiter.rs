@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -67,10 +69,13 @@ impl Bucket {
     }
 }
 
+type Clock = Box<dyn Fn() -> Instant + Send + Sync>;
+
 /// One shared request budget for an API endpoint, used by every caller of that endpoint.
 pub struct Limiter {
     name: &'static str,
     ui_reserve: u32,
+    clock: Clock,
     state: Mutex<State>,
 }
 
@@ -79,13 +84,43 @@ struct State {
     /// Callers waiting for a token, by `Priority::rank`.
     waiting: [usize; 3],
     admitted: u64,
+    /// The API said its quota is spent. Nobody is let through before this, whatever their priority.
+    paused_until: Option<Instant>,
 }
 
 impl Limiter {
     /// Starts full. A view is only served while more than `ui_reserve` tokens are left.
     pub fn new(name: &'static str, per_token: Duration, burst: u32, ui_reserve: u32) -> Self {
-        let bucket = Bucket::full(per_token, burst, Instant::now());
-        Self { name, ui_reserve, state: Mutex::new(State { bucket, waiting: [0; 3], admitted: 0 }) }
+        Self::with_clock(name, per_token, burst, ui_reserve, Box::new(Instant::now))
+    }
+
+    fn with_clock(name: &'static str, per_token: Duration, burst: u32, ui_reserve: u32, clock: Clock) -> Self {
+        let bucket = Bucket::full(per_token, burst, clock());
+        let state = State { bucket, waiting: [0; 3], admitted: 0, paused_until: None };
+        Self { name, ui_reserve, clock, state: Mutex::new(state) }
+    }
+
+    /// Holds back every caller for `wait`, because the API answered that its quota is spent. Other
+    /// installs on the same IP spend the same quota, so retrying on each caller's own schedule
+    /// only earns more refusals. Returns how long the pause still runs, which is longer than
+    /// `wait` when an earlier pause ends later.
+    pub fn pause(&self, wait: Duration, why: &str) -> Duration {
+        let now = (self.clock)();
+        let until = now + wait;
+        let mut state = self.state.lock_or_recover();
+        match state.paused_until.filter(|&at| at > now) {
+            Some(at) if at >= until => at - now,
+            Some(_) => {
+                log::debug!("{}: pause extended to {wait:?} ({why})", self.name);
+                state.paused_until = Some(until);
+                wait
+            }
+            None => {
+                log::info!("{}: every caller paused for {wait:?}: {why}", self.name);
+                state.paused_until = Some(until);
+                wait
+            }
+        }
     }
 
     /// How many requests the limiter has let through. Logged on every admission.
@@ -117,6 +152,10 @@ impl Limiter {
 
     fn try_take(&self, priority: Priority) -> Result<(), Duration> {
         let mut state = self.state.lock_or_recover();
+        let now = (self.clock)();
+        if let Some(until) = state.paused_until.filter(|&at| at > now) {
+            return Err(until - now);
+        }
         let rank = priority.rank();
         let ahead = if priority == Priority::Ui {
             state.waiting.iter().sum::<usize>()
@@ -128,7 +167,6 @@ impl Limiter {
             return Err(state.bucket.per_token);
         }
         let keep = if priority == Priority::Ui { self.ui_reserve } else { 0 };
-        let now = Instant::now();
         state.bucket.take(now, keep)?;
         state.admitted += 1;
         log::debug!(
@@ -153,10 +191,32 @@ impl Drop for Queued<'_> {
     }
 }
 
+/// A clock that only moves when a test moves it.
+#[cfg(test)]
+#[derive(Clone)]
+pub struct MockClock(Arc<Mutex<Instant>>);
+
+#[cfg(test)]
+impl Default for MockClock {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Instant::now())))
+    }
+}
+
+#[cfg(test)]
+impl MockClock {
+    pub fn advance(&self, by: Duration) {
+        *self.0.lock_or_recover() += by;
+    }
+
+    pub fn limiter(&self, per_token: Duration, burst: u32, ui_reserve: u32) -> Limiter {
+        let at = self.0.clone();
+        Limiter::with_clock("test", per_token, burst, ui_reserve, Box::new(move || *at.lock_or_recover()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use super::*;
 
     fn ms(n: u64) -> Duration {
@@ -292,5 +352,58 @@ mod tests {
         });
         assert_eq!(limiter.admitted(), u64::from(CALLERS));
         assert!(start.elapsed() >= per_token * (CALLERS - BURST), "{:?}", start.elapsed());
+    }
+
+    fn secs(n: u64) -> Duration {
+        Duration::from_secs(n)
+    }
+
+    const PRIORITIES: [Priority; 3] = [Priority::Recovery, Priority::Background, Priority::Ui];
+
+    #[test]
+    fn a_pause_holds_back_every_priority_until_it_ends() {
+        let clock = MockClock::default();
+        let limiter = clock.limiter(ms(1), 100, 0);
+        assert_eq!(limiter.pause(secs(12), "429"), secs(12));
+        for priority in PRIORITIES {
+            assert_eq!(limiter.try_take(priority), Err(secs(12)), "{priority:?}");
+        }
+        clock.advance(secs(12));
+        for priority in PRIORITIES {
+            assert_eq!(limiter.try_take(priority), Ok(()), "{priority:?}");
+        }
+    }
+
+    #[test]
+    fn a_view_during_a_pause_is_busy_for_what_is_left() {
+        let clock = MockClock::default();
+        let limiter = clock.limiter(ms(1), 100, 0);
+        limiter.pause(secs(12), "429");
+        clock.advance(secs(4));
+        let busy = tauri::async_runtime::block_on(limiter.acquire(Priority::Ui));
+        assert_eq!(busy, Err(Busy { retry_in: secs(8) }));
+        assert_eq!(limiter.admitted(), 0);
+    }
+
+    #[test]
+    fn a_shorter_pause_does_not_cut_a_longer_one() {
+        let clock = MockClock::default();
+        let limiter = clock.limiter(ms(1), 100, 0);
+        limiter.pause(secs(12), "429");
+        clock.advance(secs(2));
+        assert_eq!(limiter.pause(secs(3), "429"), secs(10));
+        assert_eq!(limiter.try_take(Priority::Recovery), Err(secs(10)));
+        assert_eq!(limiter.pause(secs(30), "429"), secs(30));
+        assert_eq!(limiter.try_take(Priority::Recovery), Err(secs(30)));
+    }
+
+    #[test]
+    fn families_pause_on_their_own() {
+        let clock = MockClock::default();
+        let metadata = clock.limiter(ms(1), 100, 0);
+        let graphql = clock.limiter(ms(1), 100, 0);
+        metadata.pause(secs(12), "429");
+        assert_eq!(graphql.try_take(Priority::Ui), Ok(()));
+        assert_eq!(metadata.try_take(Priority::Ui), Err(secs(12)));
     }
 }
