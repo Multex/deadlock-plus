@@ -4107,6 +4107,12 @@
             "so_far_foot_one": "{count} match · out {day}",
             "so_far_foot_other": "{count} matches · out {day}",
             "aria": "{kind}, {date}, {detail}"
+        },
+        "table": {
+            "weeklies": "Weeklies, {label}",
+            "monthlies": "Monthlies, {label}",
+            "close": "Close",
+            "gather": "Put the pile back"
         }
     }
 }
