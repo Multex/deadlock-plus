@@ -60,23 +60,45 @@ export function seatOrder(n: number, seed: string): number[] {
 export const CARD_RATIO = 380 / 280;
 /** Where the nominee row starts, in the content square's units (1080 a side). */
 export const ROW_TOP = 262;
+/** On a phone the row stands lower and larger, so the tall frame is filled instead of its top half. */
+export const ROW_TOP_TALL = 330;
 
 /**
- * The nominee cards' boxes, in seats left to right: a row across the frame, wider apart in 16:9, lowered by `drop`
- * content units under a long header.
+ * The nominee cards' boxes, in seats left to right: a row across the frame, wider apart in 16:9, edge to edge on a
+ * phone, lowered by `drop` content units under a long header.
  */
 export function nomineeSlots(n: number, size: SceneSize, drop = 0): Rect[] {
     const { u, box } = sceneFrame(size.w, size.h);
     const wide = size.w > size.h * 1.2;
-    const margin = (wide ? 220 : 40) * u;
-    const gap = (wide ? 110 : 36) * u;
+    const tall = size.h > size.w * 1.2;
+    const margin = (wide ? 220 : tall ? 26 : 40) * u;
+    const gap = (wide ? 110 : tall ? 22 : 36) * u;
+    const cap = (tall ? (n >= 3 ? 340 : 370) : 300) * u;
     const avail = size.w - 2 * margin;
-    const w = Math.min(300 * u, (avail - gap * (n - 1)) / n);
+    const w = Math.min(cap, (avail - gap * (n - 1)) / n);
     const h = w * CARD_RATIO;
     const total = n * w + (n - 1) * gap;
     const x0 = (size.w - total) / 2;
-    const y = box.y + (ROW_TOP + drop) * u;
+    const y = box.y + ((tall ? ROW_TOP_TALL : ROW_TOP) + drop) * u;
     return Array.from({ length: n }, (_, i) => ({ x: x0 + i * (w + gap), y, w, h }));
+}
+
+/**
+ * How large the winner's card stands after the reveal, and its top edge, so the card and the `text` block under it
+ * (the name and the acceptance line) fill the room between `top` and `bottom`: at most `cap` times its seat, never
+ * smaller than the seat, the whole group centred in the room.
+ */
+export function winnerStand(
+    card: { w: number; h: number },
+    top: number,
+    bottom: number,
+    text: number,
+    cap: number,
+): { scale: number; top: number } {
+    const room = bottom - top;
+    const scale = Math.max(1, Math.min(cap, (room - text) / card.h));
+    const used = card.h * scale + text;
+    return { scale, top: top + Math.max(0, (room - used) / 2) };
 }
 
 /**

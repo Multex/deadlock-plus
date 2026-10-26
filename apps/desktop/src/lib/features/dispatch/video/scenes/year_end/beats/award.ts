@@ -6,8 +6,8 @@ import type { Ctx, Rect } from "../../../kit/types";
 import type { AwardId } from "../plan";
 import type { Nominee, YearEndAwards } from "../data";
 import { INK, dust, room } from "../draw";
-import { awardTimes, fitLines, nomineeSlots, seatOrder } from "./award-kit";
-import { crowd, envelope, flashbulbs, glow, rgba, since, streamers, type F, type Look } from "./award-paint";
+import { awardTimes, fitLines, nomineeSlots, seatOrder, winnerStand } from "./award-kit";
+import { apron, crowd, envelope, flashbulbs, glow, rgba, since, streamers, type F, type Look } from "./award-paint";
 import { breakthrough } from "./award-breakthrough";
 import { endurance } from "./award-endurance";
 import { hero } from "./award-hero";
@@ -148,6 +148,7 @@ function paint(f: F, look: Look): void {
     // Outside the camera, so the header never drifts out of the safe band.
     title(f, look);
     caption(f, say(f.stage, award.ceremony.nominees), clamp01(since(f, at.title) / 0.2) * (1 - clamp01(since(f, at.envelope) / 0.2)));
+    if (f.tall) apron(f, look.light, toSpot >= 0 ? rv : 0);
     crowd(f, toSpot >= 0 ? easeOutCubic(clamp01(toSpot / 0.4)) * (lead ? 1 : 0.45) : 0, lead);
     flashbulbs(f, at.spot, lead ? 30 : 8);
     if (lead) streamers(f, at.spot);
@@ -172,6 +173,16 @@ function place(f: F, look: Look, rv: number): Placed[] {
     const n = f.award.nominees.length;
     const slots = nomineeSlots(n, f, rowDrop(f));
     const seats = seatOrder(n, `${f.award.id}:${f.seed}`);
+    // On a phone the winner grows to fill the band down to the acceptance line, its words under it.
+    const stand = f.tall
+        ? winnerStand(
+              slots[0]!,
+              headerBottom(f) + 34 * f.u,
+              f.safe.bottom,
+              revealText(f, slots[0]!.w * WINNER_CAP).height,
+              WINNER_CAP,
+          )
+        : null;
     return seats.map((index, seat) => {
         const base = slots[seat]!;
         const landed = since(f, f.at.nominees[seat]!);
@@ -181,12 +192,16 @@ function place(f: F, look: Look, rv: number): Placed[] {
             : { dy: -(1 - easeOutCubic(k)) * 140 * f.u, s: lerp(1.18, 1, easeOutBack(k)) };
         const win = index === 0;
         const cx0 = base.x + base.w / 2;
-        const stand = f.wide ? f.w * WIDE_WINNER_X : f.w / 2;
-        const cx = win ? lerp(cx0, stand, rv) : cx0 + Math.sign(cx0 - f.w / 2 || (index === 1 ? -1 : 1)) * 70 * f.u * rv;
-        const s = enter.s * (win ? lerp(1, f.wide ? 1.3 : 1.14, rv) : lerp(1, 0.84, rv));
+        const standX = f.wide ? f.w * WIDE_WINNER_X : f.w / 2;
+        const aside = (f.tall ? 110 : 70) * f.u * rv;
+        const cx = win ? lerp(cx0, standX, rv) : cx0 + Math.sign(cx0 - f.w / 2 || (index === 1 ? -1 : 1)) * aside;
+        const grow = stand ? stand.scale : f.wide ? 1.3 : 1.14;
+        const s = enter.s * (win ? lerp(1, grow, rv) : lerp(1, 0.84, rv));
         const w = base.w * s;
         const h = base.h * s;
-        const cy = base.y + base.h / 2 + enter.dy + (win ? -14 * f.u * rv : 30 * f.u * rv);
+        const seatCy = base.y + base.h / 2;
+        const winCy = stand ? stand.top + (base.h * stand.scale) / 2 : seatCy - 14 * f.u;
+        const cy = enter.dy + (win ? lerp(seatCy, winCy, rv) : seatCy + 30 * f.u * rv);
         const alpha = clamp01(landed / 0.12) * (win ? 1 : 1 - (f.wide ? 0.94 : 0.68) * rv);
         return { r: { x: cx - w / 2, y: cy - h / 2, w, h }, n: f.award.nominees[index]!, index, landed, alpha };
     });
@@ -279,6 +294,16 @@ function headerLines(f: F): number {
     return fitLines(measurer(f.ctx, f.fonts.display, 700, TRACK), text, HEAD * f.u, 96 * f.u, maxW).lines.length;
 }
 
+/** The header's centre once it has risen: its last line sits on the same baseline however many lines it takes. */
+function headerCentre(f: F): number {
+    const n = headerLines(f);
+    return Math.max(f.safe.top + (n * HEAD * f.u) / 2 + 8 * f.u, f.box.y + (HEADER_BOTTOM - (n * HEAD) / 2) * f.u);
+}
+
+function headerBottom(f: F): number {
+    return headerCentre(f) + (headerLines(f) * HEAD * f.u) / 2;
+}
+
 /** Content units the nominee row moves down so a header of three lines or more still clears the caption. */
 function rowDrop(f: F): number {
     return Math.max(0, headerLines(f) - 2) * HEAD;
@@ -291,12 +316,10 @@ function title(f: F, look: Look): void {
     const k = at.title > 0 ? f.t / at.title : 1;
     const cy0 = box.y + box.h * 0.44;
     const maxW = f.wide ? f.w - 160 * u : Math.min(f.w - 100 * u, 1500 * u);
-    const headLines = headerLines(f);
-    // The header's last line sits on the same baseline however many lines it takes.
-    const cy1 = Math.max(f.safe.top + (headLines * HEAD * u) / 2 + 8 * u, box.y + (HEADER_BOTTOM - (headLines * HEAD) / 2) * u);
+    const cy1 = headerCentre(f);
     const move = easeInOut(clamp01((f.t - at.title * 0.75) / Math.max(0.2, at.title * 0.5)));
     const cy = lerp(cy0, cy1, move);
-    f.headBottom = cy1 + (headLines * HEAD * u) / 2;
+    f.headBottom = headerBottom(f);
     look.title(f, k, f.w / 2, cy0);
     const land = easeOutBack(clamp01(f.t / 0.22), 2.2);
     const px = lerp(BIG, HEAD, move) * u * lerp(1.3, 1, land);
@@ -386,7 +409,7 @@ function ceremony(f: F, placed: Placed[]): void {
         ctx.translate(f.w / 2, cy);
         ctx.rotate(fall * 0.5);
         ctx.globalAlpha = 1 - clamp01(fall * 1.6);
-        envelope(f, 0, 0, 1, since(f, at.reveal), f.award.lead ? "150 24 30" : "120 30 30");
+        envelope(f, 0, 0, f.tall ? 1.3 : 1, since(f, at.reveal), f.award.lead ? "150 24 30" : "120 30 30");
         ctx.restore();
     }
     const capY = r.y + r.h + 110 * u;
@@ -409,21 +432,73 @@ function ceremony(f: F, placed: Placed[]): void {
     }
 }
 
+/** The most a phone's winner card grows over its seat. */
+const WINNER_CAP = 1.45;
+const NAME_PX = 112;
+/** Under the card on a phone: the gap to the name, and from the name to the acceptance line. */
+const NAME_GAP = 34;
+const ACCEPT_GAP = 26;
+
+function winnerName(f: F, n: Nominee): string {
+    return LOOKS[f.award.id].headline === "line" || !n.label ? say(f.stage, n.line) : n.label;
+}
+
+function acceptStyle(f: F, side: boolean) {
+    return {
+        family: f.fonts.body,
+        weight: 600,
+        px: (f.tall ? 54 : 50) * f.u,
+        floor: 44 * f.u,
+        maxW: side ? f.w * 0.4 : Math.min(f.w - 140 * f.u, 980 * f.u),
+        maxLines: 3,
+        fill: INK.cream,
+    };
+}
+
+/** The winner's name and acceptance line as a phone sets them under the card, and the block's height. */
+function revealText(f: F, cardW: number) {
+    const nameMaxW = Math.min(f.w - 100 * f.u, 1400 * f.u, Math.max(cardW * 1.6, 600 * f.u));
+    const name = fitLines(
+        measurer(f.ctx, f.fonts.display, 700, 0.02),
+        winnerName(f, f.award.nominees[0]!),
+        NAME_PX * f.u,
+        96 * f.u,
+        nameMaxW,
+    );
+    const style = acceptStyle(f, false);
+    const accept = fitLines(
+        measurer(f.ctx, style.family, style.weight),
+        say(f.stage, f.award.accept),
+        style.px,
+        style.floor,
+        style.maxW,
+        3,
+    );
+    const nameH = name.lines.length * name.px * 1.08;
+    const acceptH = accept.lines.length * accept.px * 1.12;
+    return { nameMaxW, nameH, height: (NAME_GAP + ACCEPT_GAP) * f.u + nameH + acceptH };
+}
+
 /** The winner's name, slammed in under the spotlight, and the acceptance line word by word. */
 function winnerText(f: F, look: Look, winner: Placed | undefined): void {
     const { ctx, u, box, at } = f;
     const toSpot = since(f, at.spot);
     if (!winner || toSpot < 0) return;
-    const name = look.headline === "line" || !winner.n.label ? say(f.stage, winner.n.line) : winner.n.label;
+    const name = winnerName(f, winner.n);
     const side = f.wide;
+    const layout = f.tall ? revealText(f, winner.r.w) : null;
     const x = side ? f.w * 0.68 : f.w / 2;
-    const y = side ? winner.r.y + winner.r.h * 0.32 : winner.r.y + winner.r.h + 90 * u;
+    const y = layout
+        ? winner.r.y + winner.r.h + NAME_GAP * u + layout.nameH / 2
+        : side
+          ? winner.r.y + winner.r.h * 0.32
+          : winner.r.y + winner.r.h + 90 * u;
     // In 16:9 the name waits for the winner's card to clear the right half.
     const dt = side ? toSpot - 0.25 : toSpot;
     if (dt < 0) return;
     const land = easeOutBack(clamp01(dt / 0.25), 2);
-    const px = 112 * u * lerp(1.35, 1, land);
-    const maxW = side ? f.w * 0.42 : Math.min(f.w - 100 * u, 1400 * u);
+    const px = NAME_PX * u * lerp(1.35, 1, land);
+    const maxW = side ? f.w * 0.42 : layout ? layout.nameMaxW : Math.min(f.w - 100 * u, 1400 * u);
     ctx.save();
     ctx.globalAlpha = clamp01(dt / 0.08);
     ctx.shadowColor = rgba(look.light, 0.7);
@@ -444,12 +519,12 @@ function winnerText(f: F, look: Look, winner: Placed | undefined): void {
     const accept = say(f.stage, f.award.accept);
     const words = accept.split(/\s+/);
     const shown = Math.max(1, Math.ceil(words.length * clamp01(toAccept / 0.6)));
-    const ay = y + h / 2 + 70 * u;
+    const ay = layout ? y + layout.nameH / 2 + ACCEPT_GAP * u : y + h / 2 + 70 * u;
     const bottom = f.tall ? f.safe.bottom : box.y + box.h;
     ctx.save();
     ctx.globalAlpha = clamp01(toAccept / 0.1);
     // Laid out on the whole line so words do not jump as they appear; the hidden ones are drawn clear.
-    const style = { family: f.fonts.body, weight: 600, px: 50 * u, floor: 44 * u, maxW: side ? f.w * 0.4 : Math.min(f.w - 140 * u, 980 * u), maxLines: 3, fill: INK.cream };
+    const style = acceptStyle(f, side);
     const fit = fitLines(measurer(ctx, style.family, style.weight), accept, style.px, style.floor, style.maxW, 3);
     const lh = fit.px * 1.12;
     const top = Math.min(ay, bottom - fit.lines.length * lh);
@@ -457,6 +532,8 @@ function winnerText(f: F, look: Look, winner: Placed | undefined): void {
     ctx.font = `${style.weight} ${fit.px}px "${style.family}"`;
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
+    ctx.shadowColor = "rgb(0 0 0 / 0.9)";
+    ctx.shadowBlur = 18 * u;
     fit.lines.forEach((l, i) => {
         const lw = ctx.measureText(l).width;
         let wx = x - lw / 2;

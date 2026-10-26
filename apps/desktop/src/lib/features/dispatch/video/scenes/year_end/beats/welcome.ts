@@ -6,6 +6,7 @@ import { shake } from "../../../kit/motion";
 import type { Ctx } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
 import { INK, dust } from "../draw";
+import { crowd } from "./award-paint";
 import {
     beam,
     blockHeight,
@@ -64,7 +65,8 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     ctx.fillStyle = INK.room;
     ctx.fillRect(0, 0, w, h);
 
-    const floorY = tall ? h * 0.66 : h * 0.74;
+    // On a phone the stage edge sits just under the caption band and the house fills the frame below it.
+    const floorY = tall ? safe.bottom + 20 * u : h * 0.74;
     ctx.save();
     ctx.translate(w / 2 + sx, h * 0.45 + sy);
     ctx.scale(punch, punch);
@@ -89,7 +91,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     beam(ctx, w + 40 * u, -80 * u, w * (0.45 - 0.18 * sweep), floorY, 190 * u, 0.9);
     spotlight(ctx, w / 2, floorY + 30 * u, (wide ? 520 : 420) * u, 90 * u, 1.3);
     spotlight(ctx, w / 2, h * 0.42, w * 0.6, h * 0.32, 0.55);
-    microphone(ctx, w / 2, floorY + 24 * u, u * (tall ? 1.15 : 1));
+    microphone(ctx, w / 2, floorY + 24 * u, u);
 
     // The curtain flies open from the middle on the drop.
     const halfOpen = lerp(w / 2, w * (wide ? 0.1 : 0.06), open);
@@ -100,6 +102,18 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     ctx.fillStyle = INK.gold;
     ctx.fillRect(-w, (tall ? 130 : 70) * u, w * 3, 5 * u);
     ctx.restore();
+
+    if (tall) {
+        const haze = ctx.createLinearGradient(0, floorY, 0, h);
+        haze.addColorStop(0, "rgb(255 200 120 / 0.16)");
+        haze.addColorStop(1, "rgb(255 200 120 / 0.04)");
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, floorY, w, h - floorY);
+        ctx.restore();
+        crowd({ ctx, w, h, u, t: local, seed, tall }, 0.8 * easeOutCubic(clamp01(local / 0.5)), true);
+    }
 
     const scraps = scrapsFor(seed);
     const stage = { width: w, height: h };
@@ -139,7 +153,8 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     }
     const kickPx = KICKER * u;
     const blockH = blockHeight(lines) + kickPx * 1.9;
-    const centre = tall ? (safe.top + safe.bottom) * 0.42 : h * 0.4;
+    const micTop = floorY + 24 * u - 420 * u;
+    const centre = tall ? (safe.top + micTop) / 2 : h * 0.4;
     const top = centre - blockH / 2;
 
     const pop = easeOutBack(local / 0.42, 2.2);

@@ -1,6 +1,5 @@
-import { bake } from "../../kit/bitmap";
 import { seeded } from "../../kit/rng";
-import type { Bitmap, Ctx } from "../../kit/types";
+import type { Ctx } from "../../kit/types";
 
 /** The Year-End cover and poster inks (their oklch tokens, in sRGB). */
 export const INK = {
@@ -24,14 +23,6 @@ export function goldGradient(ctx: Ctx, x0: number, y0: number, x1: number, y1: n
     g.addColorStop(0.52, "#ad7b2f");
     g.addColorStop(0.68, "#eed592");
     g.addColorStop(1, INK.goldDeep);
-    return g;
-}
-
-/** A gold that reads on paper: the poster's darker foil. */
-export function inkGoldGradient(ctx: Ctx, y0: number, y1: number): CanvasGradient {
-    const g = ctx.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, "#c89e41");
-    g.addColorStop(1, INK.goldInk);
     return g;
 }
 
@@ -85,44 +76,6 @@ export function dust(ctx: Ctx, w: number, h: number, t: number, u: number, alpha
         ctx.fillRect(m.x * w, y * h, s, s);
     }
     ctx.globalAlpha = 1;
-}
-
-/** An image filling a box, cropped to it, anchored at (`ax`, `ay`) as fractions. */
-export function coverImage(
-    ctx: Ctx,
-    img: CanvasImageSource & { width: number; height: number },
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    ax = 0.5,
-    ay = 0.5,
-): void {
-    const k = Math.max(w / img.width, h / img.height);
-    const sw = w / k;
-    const sh = h / k;
-    ctx.drawImage(img, (img.width - sw) * ax, (img.height - sh) * ay, sw, sh, x, y, w, h);
-}
-
-/** An image fitting inside a box, centred on x and sat on the box's bottom. */
-export function containImage(
-    ctx: Ctx,
-    img: CanvasImageSource & { width: number; height: number },
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-): void {
-    const k = Math.min(w / img.width, h / img.height);
-    ctx.drawImage(img, x + (w - img.width * k) / 2, y + h - img.height * k, img.width * k, img.height * k);
-}
-
-/** The cover's sepia-gold wash over the hero's backdrop collage. */
-export function tinted(img: Bitmap): Bitmap {
-    return bake(img, "tint", (c, i) => {
-        c.filter = "grayscale(1) sepia(1) saturate(1.7) hue-rotate(-6deg) brightness(0.8) contrast(1.15)";
-        c.drawImage(i, 0, 0);
-    });
 }
 
 /** Paper's grain and light: a soft vignette and a sheen across it. */

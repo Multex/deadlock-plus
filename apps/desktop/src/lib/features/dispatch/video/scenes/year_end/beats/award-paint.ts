@@ -164,17 +164,22 @@ export function rays(f: F, x: number, y: number, r: number, rgb: string, a: numb
     ctx.restore();
 }
 
+/** What the house needs of a frame; a beat outside the awards passes just these. */
+export type House = Pick<F, "ctx" | "w" | "h" | "u" | "t" | "seed" | "tall">;
+
 /**
- * The house: a row of heads and shoulders along the bottom of the frame, rim-lit by the stage. `up` (0 to 1) stands
- * them for an ovation and `full` fills the seats.
+ * The house: rows of heads and shoulders along the bottom of the frame, rim-lit by the stage. `up` (0 to 1) stands
+ * them for an ovation and `full` fills the seats. On a phone the house is closer and deeper, filling the bottom of
+ * the frame under the caption band.
  */
-export function crowd(f: F, up: number, full: boolean): void {
+export function crowd(f: House, up: number, full: boolean): void {
     const { ctx, w, h, u } = f;
     const r = seeded(f.seed ^ 0x51ed);
-    const rows = full ? 2 : 1;
+    const rows = (full ? 2 : 1) + (f.tall ? 1 : 0);
+    const near = f.tall ? 1.75 : 1;
     if (full && up > 0) {
         // The house lights come up on the ovation.
-        const top = f.tall ? h * 0.82 : h * 0.72;
+        const top = h * 0.72;
         const g = ctx.createLinearGradient(0, top, 0, h);
         g.addColorStop(0, "rgb(120 84 30 / 0)");
         g.addColorStop(1, `rgb(120 84 30 / ${0.45 * up})`);
@@ -183,7 +188,7 @@ export function crowd(f: F, up: number, full: boolean): void {
     }
     const base = f.tall ? h : h + 30 * u;
     for (let row = rows - 1; row >= 0; row--) {
-        const size = (full ? 64 : 54) * u * (1 - row * 0.18);
+        const size = (full ? 64 : 54) * u * near * (1 - row * 0.18);
         const step = size * 1.5;
         const y0 = base - row * size * 1.1;
         for (let x = -step / 2 + (row * step) / 2; x < w + step; x += step) {
@@ -212,6 +217,55 @@ export function crowd(f: F, up: number, full: boolean): void {
                 ctx.fillRect(x + jitter + size * 0.28 + clap, hy - size * 0.9 * up, size * 0.22, size * 0.9 * up + size * 0.4);
             }
         }
+    }
+}
+
+/**
+ * The front of the stage on a phone: a gold-trimmed lip under the caption band with a row of footlights, the boards
+ * above it catching the category's light, brighter once the winner is lit (`lit`, 0 to 1).
+ */
+export function apron(f: F, light: string, lit: number): void {
+    const { ctx, w, h, u } = f;
+    const lip = f.safe.bottom + 40 * u;
+    const boards = ctx.createLinearGradient(0, lip - 300 * u, 0, lip);
+    boards.addColorStop(0, rgba(light, 0));
+    boards.addColorStop(1, rgba(light, 0.08 + 0.1 * lit));
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = boards;
+    ctx.fillRect(0, lip - 300 * u, w, 300 * u);
+    ctx.restore();
+    const face = ctx.createLinearGradient(0, lip, 0, h);
+    face.addColorStop(0, "#1a1007");
+    face.addColorStop(0.25, "#0a0603");
+    face.addColorStop(1, "#030201");
+    ctx.fillStyle = face;
+    ctx.fillRect(0, lip, w, h - lip);
+    // Spill from the stage hazes the house, so the audience reads as silhouettes against it.
+    const haze = ctx.createLinearGradient(0, lip, 0, h);
+    haze.addColorStop(0, rgba(light, 0.2 + 0.12 * lit));
+    haze.addColorStop(0.5, rgba(light, 0.1 + 0.06 * lit));
+    haze.addColorStop(1, rgba(light, 0.04));
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, lip, w, h - lip);
+    ctx.restore();
+    ctx.fillStyle = INK.goldDeep;
+    ctx.fillRect(0, lip, w, 7 * u);
+    ctx.fillStyle = INK.gold;
+    ctx.fillRect(0, lip, w, 2 * u);
+    const step = 96 * u;
+    for (let x = step / 2; x < w; x += step) {
+        ctx.fillStyle = "#2a1c0a";
+        ctx.beginPath();
+        ctx.ellipse(x, lip + 26 * u, 26 * u, 10 * u, 0, 0, Math.PI * 2);
+        ctx.fill();
+        glow(ctx, x, lip + 18 * u, 70 * u, light, 0.35 + 0.35 * lit);
+        ctx.fillStyle = rgba("255 244 214", 0.7 + 0.3 * lit);
+        ctx.beginPath();
+        ctx.ellipse(x, lip + 20 * u, 12 * u, 5 * u, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 

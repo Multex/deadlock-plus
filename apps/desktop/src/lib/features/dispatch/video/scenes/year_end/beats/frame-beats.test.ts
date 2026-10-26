@@ -121,6 +121,13 @@ describe("rollAt", () => {
         expect(credits.arrival(3, 7, beat, 6)).toBeCloseTo(step * 3);
     });
 
+    it("spreads the roll over the whole beat instead of racing to a long hold", () => {
+        const beat = BAR / 4;
+        const span = 16 * beat;
+        expect(credits.arrival(7, span, beat, 8)).toBeGreaterThanOrEqual(span * 0.75);
+        expect(credits.arrival(7, span, beat, 8)).toBeLessThan(span);
+    });
+
     it("never runs past the beat with a long cast", () => {
         const beat = BAR / 4;
         expect(credits.arrival(9, 5, beat, 10)).toBeLessThan(5);

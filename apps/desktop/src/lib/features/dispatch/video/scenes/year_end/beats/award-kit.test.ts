@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sceneFrame } from "../../../kit/frame";
 import { revealBar } from "../plan";
-import { awardTimes, fitLines, nomineeSlots, seatOrder } from "./award-kit";
+import { awardTimes, fitLines, nomineeSlots, seatOrder, winnerStand } from "./award-kit";
 
 const BAR = 60 / 172 * 4;
 
@@ -78,6 +78,39 @@ describe("nomineeSlots", () => {
             });
         }
     }
+});
+
+describe("nomineeSlots on a phone", () => {
+    const size = { w: 1080, h: 1920 };
+    it("fills the width and sits the row in the middle of the safe band, not its top", () => {
+        const { safe } = sceneFrame(size.w, size.h);
+        for (const n of [1, 2, 3]) {
+            const slots = nomineeSlots(n, size);
+            expect(slots[0]!.w).toBeGreaterThanOrEqual(320);
+            const mid = slots[0]!.y + slots[0]!.h / 2;
+            expect(mid).toBeGreaterThan(safe.top + (safe.bottom - safe.top) * 0.45);
+        }
+        // Wider than the same row in the square frame's content, scaled to the same unit.
+        expect(nomineeSlots(3, size)[0]!.w).toBeGreaterThan(nomineeSlots(3, { w: 1440, h: 1440 })[0]!.w * (1080 / 1440));
+    });
+});
+
+describe("winnerStand", () => {
+    const card = { w: 330, h: 330 * (380 / 280) };
+    it("grows the winner as far as the band allows, with the name and speech under it", () => {
+        const s = winnerStand(card, 470, 1360, 300, 1.5);
+        expect(s.scale).toBeGreaterThan(1.15);
+        expect(s.scale).toBeLessThanOrEqual(1.5);
+        expect(s.top).toBeGreaterThanOrEqual(470 - 1e-6);
+        expect(s.top + card.h * s.scale + 300).toBeLessThanOrEqual(1360 + 1e-6);
+    });
+    it("never shrinks the winner below its seat, even when the text runs long", () => {
+        const s = winnerStand(card, 700, 1360, 500, 1.5);
+        expect(s.scale).toBe(1);
+    });
+    it("stops at the cap when there is room to spare", () => {
+        expect(winnerStand(card, 0, 3000, 100, 1.4).scale).toBe(1.4);
+    });
 });
 
 describe("nomineeSlots drop", () => {

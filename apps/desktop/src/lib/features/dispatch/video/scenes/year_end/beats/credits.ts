@@ -5,6 +5,7 @@ import type { Ctx } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
 import type { CreditRow } from "../data";
 import { INK, dust, goldGradient } from "../draw";
+import { crowd } from "./award-paint";
 import {
     beam,
     blockHeight,
@@ -15,6 +16,7 @@ import {
     numberSpan,
     richMeasure,
     say,
+    seedOf,
     spotlight,
     vignette,
     type Look,
@@ -23,8 +25,6 @@ import {
     type Stage,
 } from "./stage";
 
-/** Share of the beat the roll takes; the rest holds the last credit. */
-const ROLL = 0.86;
 const GLIDE = 0.42;
 
 /**
@@ -41,9 +41,9 @@ export function rollAt(t: number, span: number, beat: number, rows: number): num
     return i + (into > 0 ? easeInOut(into / glide) : 0);
 }
 
-/** Seconds each row holds the focus line, glide included: a whole number of beats. */
+/** Seconds each row holds the focus line, glide included: a whole number of beats, the last row held at least one. */
 export function stepSeconds(span: number, beat: number, rows: number): number {
-    return Math.max(1, Math.floor((span * ROLL) / beat / Math.max(1, rows - 1))) * beat;
+    return Math.max(1, Math.floor((span - beat) / beat / Math.max(1, rows - 1) + 1e-9)) * beat;
 }
 
 /** When row `i` lands on the focus line. */
@@ -83,9 +83,9 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
 
     const headPx = (tall ? 104 : 96) * u;
     const labelPx = 46 * u;
-    const namePx = (tall ? 100 : 104) * u;
-    const bodyPx = 56 * u;
-    const numPx = (tall ? 150 : 140) * u;
+    const namePx = (tall ? 112 : 104) * u;
+    const bodyPx = (tall ? 60 : 56) * u;
+    const numPx = (tall ? 170 : 140) * u;
     const maxW = tall ? w - 120 * u : wide ? Math.min(1500 * u, w - 240 * u) : w - 160 * u;
     const colW = wide ? maxW / 2 - 40 * u : maxW;
 
@@ -136,8 +136,9 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     const headTop = tall ? safe.top + 10 * u : 50 * u;
     const headH = blockHeight(headLines);
     const regionTop = headTop + headH + 60 * u;
-    const regionBottom = tall ? safe.bottom : h - 40 * u;
-    const focus = (regionTop + regionBottom) / 2;
+    // On a phone the credits rise from the foot of the frame, past the house, to a focus line in the safe band.
+    const regionBottom = h - 40 * u;
+    const focus = tall ? (regionTop + safe.bottom) / 2 : (regionTop + regionBottom) / 2;
 
     const gap = (tall ? 90 : 70) * u;
     const centres: number[] = [];
@@ -152,7 +153,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     const at = centres.length ? centres[k0] + (centres[k1] - centres[k0]) * (k - k0) : 0;
     const shift = focus - at;
 
-    spotlight(ctx, w / 2, focus, maxW * 0.7, (regionBottom - regionTop) * 0.4, 0.55);
+    spotlight(ctx, w / 2, focus, maxW * 0.7, (focus - regionTop) * 0.8, 0.55);
 
     ctx.save();
     ctx.beginPath();
@@ -163,7 +164,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
         const top = cy - b.height / 2;
         if (top > regionBottom + 20 * u || top + b.height < regionTop - 20 * u) return;
         // Rows dim as they leave the light: full at the focus line, gone by the region's edge.
-        const reach = (regionBottom - regionTop) / 2;
+        const reach = cy < focus ? focus - regionTop : regionBottom - focus;
         const alpha = clamp01(1.15 - (Math.abs(cy - focus) / reach) ** 1.3 * 1.4);
         if (alpha <= 0) return;
         ctx.globalAlpha = alpha;
@@ -196,6 +197,8 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     });
     ctx.restore();
     ctx.globalAlpha = 1;
+
+    if (tall) crowd({ ctx, w, h, u, t: local, seed: seedOf(`${data.awards.player ?? ""}|credits`), tall }, 0, false);
 
     // The header: a gold rule draws out under it on frame 0's beat.
     drawRich(ctx, headLines, w / 2, headTop, look);
