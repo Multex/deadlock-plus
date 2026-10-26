@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import { musicTrack } from "./music";
-import { AUDIO_SAMPLE_RATE, FADE_IN_SECONDS, PEAK_CEILING, SEAM_SECONDS, audioPlan, capPeak, silence } from "./audio";
+import {
+    AUDIO_SAMPLE_RATE,
+    FADE_IN_SECONDS,
+    LIMIT_RELEASE_SECONDS,
+    PEAK_CEILING,
+    SEAM_SECONDS,
+    audioPlan,
+    capPeak,
+    limitPeaks,
+    silence,
+} from "./audio";
+import { LIMIT_LOOKAHEAD_SECONDS } from "./sfx";
 import { videoTimeline } from "./timeline";
 
 const planFor = (id: Parameters<typeof musicTrack>[0]) => {
@@ -94,5 +105,30 @@ describe("Dispatch video audio plan", () => {
         capPeak(planes);
         expect([...planes[0]]).toEqual([0.5, -0.8].map(Math.fround));
         expect([...planes[1]]).toEqual([0.1, 0.2].map(Math.fround));
+    });
+
+    it("limits a cue's peak past full scale to -1 dBFS without turning the rest of the mix down", () => {
+        const rate = 1000;
+        const planes = [new Float32Array(1000).fill(0.3), new Float32Array(1000).fill(-0.3)];
+        planes[0]![500] = 2;
+        planes[1]![501] = -1.5;
+        limitPeaks(planes, rate);
+        const peak = Math.max(...planes.flatMap((p) => [...p].map(Math.abs)));
+        expect(peak).toBeLessThanOrEqual(PEAK_CEILING + 1e-6);
+        expect(planes[0]![500]).toBeCloseTo(PEAK_CEILING, 5);
+        const ahead = LIMIT_LOOKAHEAD_SECONDS * rate;
+        const release = LIMIT_RELEASE_SECONDS * rate;
+        expect(planes[0]![500 - ahead - 1]).toBeCloseTo(0.3, 6);
+        expect(planes[1]![501 + release + 1]).toBeCloseTo(-0.3, 6);
+        // The gain ramps down into the peak, so the dip never steps.
+        expect(planes[0]![498]!).toBeLessThan(0.3);
+        expect(planes[0]![498]!).toBeGreaterThan(planes[0]![499]!);
+    });
+
+    it("leaves a limited mix under the ceiling as it is", () => {
+        const planes = [new Float32Array([0.5, -0.8, 0.89]), new Float32Array([0.1, 0.2, -0.3])];
+        limitPeaks(planes, 1000);
+        expect([...planes[0]!]).toEqual([0.5, -0.8, 0.89].map(Math.fround));
+        expect([...planes[1]!]).toEqual([0.1, 0.2, -0.3].map(Math.fround));
     });
 });

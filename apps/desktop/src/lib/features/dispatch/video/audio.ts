@@ -1,5 +1,5 @@
 import { loadTrack, musicTrack, type MusicTrack, type MusicTrackId } from "./music";
-import { SFX_CUES, decodeCues, loadSfx, mixCues, type SfxCue } from "./sfx";
+import { SFX_CUES, decodeCues, limit, loadSfx, mixCues, type SfxCue } from "./sfx";
 import type { VideoTimeline } from "./timeline";
 
 /** Opus encodes only at 48 kHz; AAC takes it too, so one rate serves both. */
@@ -80,6 +80,17 @@ export function capPeak(planes: Float32Array[]): void {
     for (const plane of planes) for (let i = 0; i < plane.length; i++) plane[i] *= k;
 }
 
+/** How long the mix's limiter takes to come back to full gain after a peak. */
+export const LIMIT_RELEASE_SECONDS = 0.04;
+
+/**
+ * Holds every sample under `PEAK_CEILING`, in place, by dipping the gain just around each peak. A cue's transient
+ * past full scale is shaved for a few milliseconds instead of the whole video being turned down to fit it.
+ */
+export function limitPeaks(planes: Float32Array[], sampleRate: number): void {
+    limit(planes, sampleRate, PEAK_CEILING, LIMIT_RELEASE_SECONDS);
+}
+
 export function silence(plan: AudioPlan): VideoAudio {
     return {
         sampleRate: plan.sampleRate,
@@ -150,8 +161,9 @@ export async function renderMusic(
     try {
         const audio = await mixAudio(audioPlan(musicTrack(id), timeline), layers);
         const clips = sfx.size > 0 ? await decodeCues(sfx, audio.sampleRate, SFX_CUES) : new Map();
-        mixCues(audio.planes, audio.sampleRate, cues, clips, SFX_CUES);
         capPeak(audio.planes);
+        mixCues(audio.planes, audio.sampleRate, cues, clips, SFX_CUES);
+        limitPeaks(audio.planes, audio.sampleRate);
         return audio;
     } catch (e) {
         console.warn(`[dispatch] music track ${id} could not be mixed:`, e);
