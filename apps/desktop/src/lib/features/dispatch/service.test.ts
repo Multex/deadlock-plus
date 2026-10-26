@@ -7,6 +7,7 @@ import { describe, expect, it, vi, type Mock } from "vitest";
 import { alertWhen, createDispatchService, type DispatchDeps } from "./service";
 
 const ME = 1001;
+const PLAYER = "Haze Main";
 const TZ = "UTC";
 /** Wednesday 2026-10-28 12:00 UTC: last week is Mon 19 - Sun 25 October, last month is September. */
 const NOW = Date.UTC(2026, 9, 28, 12) / 1000;
@@ -88,6 +89,7 @@ function fakeDeps(over: Partial<FakeDeps> = {}, history: Match[] = HISTORY) {
         nowS: () => NOW,
         tz: () => TZ,
         accountId: () => ME as number | null,
+        playerName: () => PLAYER as string | null,
         history: vi.fn(async () => ({ matches: history as readonly Match[], live: true })),
         kv,
         enrich: vi.fn(async () => ENRICHED),
@@ -116,6 +118,8 @@ describe("issueDue", () => {
         expect(issued.map((e) => [e.id, e.number, e.issuedAt])).toEqual([["weekly-2026-10-19", 1, NOW]]);
         expect(f.frozen("weekly-2026-10-19")).toEqual(issued[0]);
         expect(issued[0].mates).toEqual(ENRICHED.mates);
+        expect(issued[0].playerName).toBe(PLAYER);
+        expect(issued[0].days?.map((d) => d.matches)).toEqual([1, 1, 1, 1, 0, 0, 0]);
         expect(f.index()?.issued).toEqual([
             {
                 id: "weekly-2026-10-19",
@@ -212,6 +216,25 @@ describe("issueDue", () => {
     });
 });
 
+describe("player name", () => {
+    it("freezes the name read at issue time, not the one shown later", async () => {
+        let name: string | null = "Old Name";
+        const f = fakeDeps({ playerName: () => name });
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+        name = "New Name";
+
+        expect(f.frozen("weekly-2026-10-19")?.playerName).toBe("Old Name");
+        expect((await service.print(week(19)))?.playerName).toBe("Old Name");
+        expect((await service.print(week(12)))?.playerName).toBe("New Name");
+    });
+
+    it("stores null when the name is unknown", async () => {
+        const [issued] = await createDispatchService(fakeDeps({ playerName: () => null }).deps).issueDue();
+        expect(issued.playerName).toBeNull();
+    });
+});
+
 describe("alertWhen", () => {
     it("issues but does not announce while alerts are off", async () => {
         const send = vi.fn(async () => {});
@@ -235,6 +258,7 @@ describe("print", () => {
         const edition = await service.print(week(12));
 
         expect([edition?.id, edition?.number, edition?.issuedAt]).toEqual(["weekly-2026-10-12", 2, NOW]);
+        expect(edition?.playerName).toBe(PLAYER);
         expect(f.frozen("weekly-2026-10-12")).toEqual(edition);
         expect(f.index()?.issued.find((e) => e.id === "weekly-2026-10-12")?.onRequest).toBe(true);
         expect(f.deps.notify).toHaveBeenCalledTimes(1);
@@ -318,6 +342,7 @@ describe("view", () => {
             null,
         ]);
         expect(view?.soFarMatches).toBe(3);
+        expect(view?.soFar?.playerName).toBe(PLAYER);
         expect(f.deps.enrich).not.toHaveBeenCalled();
     });
 

@@ -487,6 +487,125 @@ describe("time zones", () => {
     });
 });
 
+describe("frozen calendar", () => {
+    it("lists every day of a weekly window, empty days included, with matches and wins", () => {
+        const e = build();
+        expect(e.days).toEqual([
+            { dayStartS: at(2026, 10, 12), matches: 3, wins: 2 },
+            { dayStartS: at(2026, 10, 13), matches: 0, wins: 0 },
+            { dayStartS: at(2026, 10, 14), matches: 1, wins: 0 },
+            { dayStartS: at(2026, 10, 15), matches: 0, wins: 0 },
+            { dayStartS: at(2026, 10, 16), matches: 0, wins: 0 },
+            { dayStartS: at(2026, 10, 17), matches: 2, wins: 2 },
+            { dayStartS: at(2026, 10, 18), matches: 1, wins: 0 },
+        ]);
+        expect(e.months).toBeUndefined();
+        expect(e.rankSeries).toBeUndefined();
+    });
+
+    it("lists the 31 days of a month that leaves DST, each from local midnight", () => {
+        // Europe/Berlin leaves CEST at 03:00 on Sunday 2026-10-25.
+        const berlin: EditionWindow = {
+            kind: "monthly",
+            id: "monthly-2026-10",
+            startS: at(2026, 9, 30, 22),
+            endS: at(2026, 10, 31, 23),
+            tz: "Europe/Berlin",
+        };
+        const rows = [
+            m({ startTime: at(2026, 9, 30, 22, 30) }), // Oct 1 00:30 CEST
+            m({ startTime: at(2026, 10, 25, 22, 30), outcome: "loss" }), // Oct 25 23:30 CET
+            m({ startTime: at(2026, 10, 25, 23, 30) }), // Oct 26 00:30 CET
+        ];
+        const days = build(rows, { window: berlin }).days ?? [];
+        expect(days).toHaveLength(31);
+        expect(days.slice(0, 2).map((d) => d.dayStartS)).toEqual([at(2026, 9, 30, 22), at(2026, 10, 1, 22)]);
+        expect(days.slice(23, 27).map((d) => d.dayStartS)).toEqual([
+            at(2026, 10, 23, 22),
+            at(2026, 10, 24, 22),
+            at(2026, 10, 25, 23),
+            at(2026, 10, 26, 23),
+        ]);
+        expect(days[30].dayStartS).toBe(at(2026, 10, 30, 23));
+        expect([days[0], days[24], days[25]]).toEqual([
+            { dayStartS: at(2026, 9, 30, 22), matches: 1, wins: 1 },
+            { dayStartS: at(2026, 10, 24, 22), matches: 1, wins: 0 },
+            { dayStartS: at(2026, 10, 25, 23), matches: 1, wins: 1 },
+        ]);
+        expect(days.reduce((s, d) => s + d.matches, 0)).toBe(3);
+    });
+
+    it("lists the months of a Year-End Special, Jan to Nov, from local midnight on the 1st", () => {
+        const berlinYear: EditionWindow = {
+            kind: "year_end",
+            id: "year_end-2026",
+            startS: at(2025, 12, 31, 23),
+            endS: at(2026, 11, 30, 23),
+            tz: "Europe/Berlin",
+        };
+        const rows = [
+            m({ startTime: at(2025, 12, 31, 23, 30) }), // Jan 1 00:30 CET
+            m({ startTime: at(2026, 6, 4, 18), outcome: "loss" }),
+            m({ startTime: at(2026, 6, 9, 18) }),
+            m({ startTime: at(2026, 10, 31, 23, 30) }), // Nov 1 00:30 CET
+        ];
+        const e = build(rows, { window: berlinYear });
+        const starts = [
+            at(2025, 12, 31, 23),
+            at(2026, 1, 31, 23),
+            at(2026, 2, 28, 23),
+            at(2026, 3, 31, 22),
+            at(2026, 4, 30, 22),
+            at(2026, 5, 31, 22),
+            at(2026, 6, 30, 22),
+            at(2026, 7, 31, 22),
+            at(2026, 8, 31, 22),
+            at(2026, 9, 30, 22),
+            at(2026, 10, 31, 23),
+        ];
+        const counts: Record<number, [number, number]> = { 0: [1, 1], 5: [2, 1], 10: [1, 1] };
+        expect(e.months).toEqual(
+            starts.map((monthStartS, i) => ({
+                monthStartS,
+                matches: counts[i]?.[0] ?? 0,
+                wins: counts[i]?.[1] ?? 0,
+            })),
+        );
+        expect(e.days).toBeUndefined();
+        expect(e.rankSeries).toBeUndefined();
+    });
+
+    it("lists the season's months and ranked climb on a Collector's Copy, oldest first", () => {
+        const history = [
+            m({ matchId: 40, startTime: at(2026, 10, 20, 18), rankBadge: 82, outcome: "unscored" }),
+            m({ matchId: 41, startTime: at(2026, 8, 20, 18), rankBadge: 73, outcome: "loss" }),
+            m({ matchId: 42, startTime: at(2026, 9, 1, 18), rankBadge: 0 }),
+            m({ matchId: 43, startTime: at(2026, 8, 5, 18), rankBadge: 74 }),
+            m({ matchId: 44, startTime: at(2026, 9, 2, 18), rankBadge: 77, matchMode: 1 }),
+            m({ matchId: 45, startTime: at(2026, 7, 1, 18), rankBadge: 71 }),
+        ];
+        const e = build(history, { window: COLLECTORS, season: SEASON });
+        expect(e.rankSeries).toEqual([
+            { startS: at(2026, 8, 5, 18), badge: 74, outcome: "win" },
+            { startS: at(2026, 8, 20, 18), badge: 73, outcome: "loss" },
+            { startS: at(2026, 10, 20, 18), badge: 82, outcome: "unscored" },
+        ]);
+        expect(e.months).toEqual([
+            { monthStartS: at(2026, 7, 1), matches: 0, wins: 0 },
+            { monthStartS: at(2026, 8, 1), matches: 2, wins: 1 },
+            { monthStartS: at(2026, 9, 1), matches: 1, wins: 1 },
+            { monthStartS: at(2026, 10, 1), matches: 1, wins: 0 },
+            { monthStartS: at(2026, 11, 1), matches: 0, wins: 0 },
+        ]);
+        expect(e.days).toBeUndefined();
+    });
+
+    it("carries the player name, null when unknown", () => {
+        expect(build(HISTORY, { playerName: "Haze Main" }).playerName).toBe("Haze Main");
+        expect(build().playerName).toBeNull();
+    });
+});
+
 describe("bestGameCandidates", () => {
     it("takes gradable matches by KDA", () => {
         expect(bestGameCandidates(IN_WEEK, 3).map((r) => r.matchId)).toEqual([11, 14, 13]);

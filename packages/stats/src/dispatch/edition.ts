@@ -11,10 +11,13 @@ import {
     type BuildInput,
     type Companion,
     type Edition,
+    type EditionDay,
+    type EditionMonth,
     type EditionRank,
     type EditionStats,
     type EditionWindow,
     type GradedCandidate,
+    type RankPoint,
 } from "./types";
 
 // ECitadelMatchMode / ECitadelGameMode values from Valve's protobufs.
@@ -92,7 +95,7 @@ const offsetS = (unixS: number, tz: string) => {
 
 // The offset is read twice because local midnight can sit on the other side of a DST change
 // from the naive UTC guess.
-function localMidnight(l: LocalTime, tz: string): number {
+function localMidnight(l: Pick<LocalTime, "year" | "month" | "day">, tz: string): number {
     const naive = Date.UTC(l.year, l.month - 1, l.day) / 1000;
     return naive - offsetS(naive - offsetS(naive, tz), tz);
 }
@@ -244,6 +247,54 @@ function newHeroes(history: readonly Match[], window: EditionWindow, rows: reado
         .map(([heroId]) => heroId);
 }
 
+const dayKey = (l: Pick<LocalTime, "year" | "month" | "day">) => `${l.year}-${l.month}-${l.day}`;
+const monthKey = (l: Pick<LocalTime, "year" | "month">) => `${l.year}-${l.month}`;
+
+function tally<T extends { matches: number; wins: number }>(
+    buckets: Map<string, T>,
+    rows: readonly Match[],
+    tz: string,
+    key: (l: LocalTime) => string,
+): T[] {
+    for (const r of rows) {
+        const bucket = buckets.get(key(localTime(r.startTime, tz)));
+        if (!bucket) continue;
+        bucket.matches++;
+        if (r.outcome === "win") bucket.wins++;
+    }
+    return [...buckets.values()];
+}
+
+// Civil dates are stepped through `Date.UTC`, not by adding 86 400 s, so a 23- or 25-hour day stays one day.
+function editionDays(rows: readonly Match[], { startS, endS, tz }: EditionWindow): EditionDay[] {
+    const days = new Map<string, EditionDay>();
+    const first = localTime(startS, tz);
+    for (let i = 0; ; i++) {
+        const d = new Date(Date.UTC(first.year, first.month - 1, first.day + i));
+        const civil = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+        const dayStartS = localMidnight(civil, tz);
+        if (dayStartS >= endS) break;
+        days.set(dayKey(civil), { dayStartS, matches: 0, wins: 0 });
+    }
+    return tally(days, rows, tz, dayKey);
+}
+
+function editionMonths(rows: readonly Match[], { startS, endS, tz }: EditionWindow): EditionMonth[] {
+    const months = new Map<string, EditionMonth>();
+    const first = localTime(startS, tz);
+    for (let i = 0; ; i++) {
+        const d = new Date(Date.UTC(first.year, first.month - 1 + i, 1));
+        const civil = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: 1 };
+        const monthStartS = localMidnight(civil, tz);
+        if (monthStartS >= endS) break;
+        months.set(monthKey(civil), { monthStartS, matches: 0, wins: 0 });
+    }
+    return tally(months, rows, tz, monthKey);
+}
+
+const rankSeries = (rows: Match[]): RankPoint[] =>
+    rankTrack(rows).map((p) => ({ startS: p.startTime, badge: p.badge, outcome: p.outcome }));
+
 function editionRank(rows: Match[]): EditionRank | null {
     const track = rankTrack(rows);
     if (!track.length) return null;
@@ -302,6 +353,11 @@ export function buildEditionBase(input: BuildInput): EditionBase | null {
         ),
         nemesis: nemesis(enrichment.enemies ?? []),
         combat: enrichment.heroCombat,
+        playerName: input.playerName ?? null,
+        ...(window.kind === "weekly" || window.kind === "monthly"
+            ? { days: editionDays(rows, window) }
+            : { months: editionMonths(rows, window) }),
+        ...(window.kind === "collectors" ? { rankSeries: rankSeries(rows) } : {}),
     };
 }
 

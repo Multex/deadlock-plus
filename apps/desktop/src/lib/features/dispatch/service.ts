@@ -57,6 +57,8 @@ export interface DispatchDeps {
     nowS(): number;
     tz(): string;
     accountId(): number | null;
+    /** The viewer's Steam persona name, read when an edition is built. */
+    playerName(): string | null;
     history(accountId: number): Promise<DispatchHistory>;
     kv: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
     enrich(window: EditionWindow, accountId: number, candidates: readonly Match[]): Promise<Enrichment>;
@@ -141,6 +143,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
             history,
             enrichment,
             season,
+            playerName: deps.playerName(),
             number: nextNumber(index),
             issuedAt: now,
         });
@@ -267,6 +270,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
                 accountId,
                 history: matches,
                 enrichment: NO_ENRICHMENT,
+                playerName: deps.playerName(),
                 number: null,
                 issuedAt: null,
             }),

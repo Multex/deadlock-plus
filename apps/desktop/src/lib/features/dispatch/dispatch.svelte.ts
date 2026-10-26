@@ -40,6 +40,7 @@ const service = createDispatchService({
     nowS: () => Math.floor(Date.now() / 1000),
     tz: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     accountId: currentAccount,
+    playerName: () => steamAccount.account?.personaName ?? null,
     history,
     kv: { get: (key) => kvGet(STORE, key), set: (key, value) => kvSet(STORE, key, value) },
     enrich: (window, accountId, candidates) => enrichEdition(window, accountId, candidates, defaultEnrichDeps()),
