@@ -23,3 +23,13 @@ describe("en counted labels", () => {
         expect(tn("performance.frametimes.summary", 1200, { time: "0:20" })).toMatch(/^1,200 frames over 0:20\. /);
     });
 });
+
+describe("locale files", () => {
+    it("hold no replacement characters from a lossy re-encode", async () => {
+        const files = import.meta.glob("../../../../../locales/*.json", { query: "?raw", import: "default", eager: true });
+        const broken = Object.entries(files)
+            .filter(([, text]) => (text as string).includes("\ufffd"))
+            .map(([path]) => path);
+        expect(broken).toEqual([]);
+    });
+});

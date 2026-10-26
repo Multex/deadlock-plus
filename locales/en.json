@@ -3976,9 +3976,9 @@
         "monthly": {
             "brand": "Deadlock+",
             "masthead": "Dispatch",
-            "cover_line": "The Monthly � {month} � No. {number}",
-            "cover_line_preview": "The Monthly � {month}",
-            "folio": "{name} � {month}",
+            "cover_line": "The Monthly · {month} · No. {number}",
+            "cover_line_preview": "The Monthly · {month}",
+            "folio": "{name} · {month}",
             "page_ref": "p. {page}",
             "cover_star_line_one": "{count} game, {share} of your {month}",
             "cover_star_line_other": "{count} games, {share} of your {month}",
@@ -4020,7 +4020,7 @@
                 "matches_label_one": "match in {month}",
                 "matches_label_other": "matches in {month}",
                 "won": "won",
-                "record": "{wins} W � {losses} L"
+                "record": "{wins} W · {losses} L"
             },
             "fact": {
                 "playtime": "In a match",
@@ -4062,9 +4062,9 @@
                 "tried_one": "{count} hero tried in {month}",
                 "tried_other": "{count} heroes tried in {month}",
                 "col_games": "games",
-                "col_record": "W�L",
+                "col_record": "W–L",
                 "col_played": "played",
-                "record": "{wins}�{losses}"
+                "record": "{wins}–{losses}"
             },
             "best": {
                 "fallback_headline": "{hero}, {kda}",
@@ -4092,7 +4092,7 @@
             "next": "Next pages",
             "spread": {
                 "cover": "Cover",
-                "pages": "Pages {from}�{to}"
+                "pages": "Pages {from}–{to}"
             }
         }
     }
