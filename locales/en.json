@@ -7567,7 +7567,9 @@
             "inside": {
                 "kicker": "Deadlock+ Dispatch presents",
                 "title": "The year in review"
-            }
+            },
+            "unfolded": "Poster unfolded",
+            "folded": "Poster folded up"
         },
         "collectors": {
             "title": "Dispatch",
@@ -7589,7 +7591,6 @@
             "tear": "Tear",
             "tear_label": "Tear open the Collector's Copy",
             "tear_open": "Tear open",
-            "open_issue": "Open the issue",
             "back_to_cover": "Back to the cover",
             "reseal": "Reseal",
             "previous_page": "Previous page",
@@ -7626,7 +7627,8 @@
             "cert_body_anon_one": "This Collector's Copy was printed at the close of {season}, from {count} ranked match.",
             "cert_body_anon_other": "This Collector's Copy was printed at the close of {season}, from {count} ranked matches.",
             "issued_by": "Issued by",
-            "copy_number": "Copy No."
+            "copy_number": "Copy No.",
+            "page": "Page {page}"
         },
         "weekly": {
             "extra": "Extra!"

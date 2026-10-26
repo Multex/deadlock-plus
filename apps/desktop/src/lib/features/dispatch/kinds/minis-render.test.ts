@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import type { EditionWindow } from "@deadlock-plus/stats/dispatch/types";
+import { steamAccount } from "$lib/features/steam-account/account.svelte";
 import CollectorsMini from "./collectors/collectors-mini.svelte";
 import type { MiniCopy, MiniCover, MiniKind, MiniState } from "./minis";
 import MonthlyMini from "./monthly/monthly-mini.svelte";
@@ -80,8 +81,9 @@ describe("edition minis", () => {
 
     it("tightens the weekly date line only when the week spans two years", () => {
         const render1 = (w: EditionWindow) =>
-            render(WeeklyMini, { props: { copy: { ...copy("weekly", "issued"), window: w }, cover: COVER, height: 180 } })
-                .body;
+            render(WeeklyMini, {
+                props: { copy: { ...copy("weekly", "issued"), window: w }, cover: COVER, height: 180 },
+            }).body;
         const across = render1({ ...WINDOWS.weekly, startS: at(2025, 11, 29), endS: at(2026, 0, 5) });
         expect(across).toMatch(/class="when[^"]*tight/);
         expect(html("weekly", "issued")).not.toMatch(/class="when[^"]*tight/);
@@ -108,5 +110,33 @@ describe("edition minis", () => {
         const body = html("so_far", "so_far");
         expect(body).toContain('data-status="so_far"');
         expect(body).toContain('class="stamp');
+    });
+});
+
+describe("year-end mini name", () => {
+    const yearEnd = (player: string | null) =>
+        render(YearEndMini, { props: { copy: copy("year_end", "issued"), cover: { ...COVER, player }, height: 180 } })
+            .body;
+
+    afterEach(() => {
+        steamAccount.account = null;
+    });
+
+    it("prints the frozen name", () => {
+        expect(yearEnd("Lantern")).toMatch(/class="y-name[^"]*"[^>]*>LANTERN</);
+    });
+
+    it("falls back to the account's current name when the edition froze without one", () => {
+        steamAccount.account = { personaName: "Moth" } as typeof steamAccount.account;
+        expect(yearEnd(null)).toMatch(/class="y-name[^"]*"[^>]*>MOTH</);
+    });
+
+    it("drops the empty name line when there is no name at all", () => {
+        expect(yearEnd(null)).not.toContain("y-name");
+        expect(yearEnd(null)).toMatch(/class="y-poty[^"]*alone/);
+    });
+
+    it("lets a long name end in an ellipsis inside the frame", () => {
+        expect(yearEnd("Lantern")).toMatch(/class="y-name[^"]*"[^>]*title="Lantern"|title="Lantern"[^>]*class="y-name/);
     });
 });

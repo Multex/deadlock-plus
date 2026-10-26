@@ -3,8 +3,10 @@ import type { Edition, EditionWindow } from "@deadlock-plus/stats/dispatch/types
 import type { RankTier } from "@deadlock-plus/stats/rank";
 import type { ShelfEntry } from "../service";
 import {
+    fitFontSize,
     miniAria,
     miniCover,
+    miniPlayer,
     miniMonth,
     miniText,
     miniYear,
@@ -323,7 +325,7 @@ describe("miniText", () => {
         );
         expect(text).toMatchObject({
             title: "dispatch.mini.not_printed",
-            name: "",
+            name: null,
             sub: "DISPATCH.MASTHEAD.EDITION_YEAR_END",
         });
     });
@@ -346,5 +348,42 @@ describe("miniAria", () => {
         expect(miniAria(copy({ isNew: true }), format)).toContain(
             '"detail":"dispatch.shelf.entry{\\"date\\":\\"dispatch.shelf.number{\\\\\\"number\\\\\\":3}\\",\\"detail\\":\\"dispatch.shelf.new\\"}"',
         );
+    });
+});
+
+describe("year-end mini player", () => {
+    it("prints no name line when the edition froze without one", () => {
+        const text = miniText(copy({ kind: "year_end", window: YEAR }), { player: null }, format);
+        expect(text).toMatchObject({ name: null });
+        expect(miniText(copy({ kind: "year_end", window: YEAR }), { player: "  " }, format)).toMatchObject({
+            name: null,
+        });
+    });
+
+    it("falls back to the account's current name for an edition frozen without one", () => {
+        expect(miniPlayer(null, "Moth")).toBe("Moth");
+        expect(miniPlayer(" ", " Moth ")).toBe("Moth");
+        expect(miniPlayer("Lantern", "Moth")).toBe("Lantern");
+        expect(miniPlayer(undefined, null)).toBeNull();
+        expect(miniPlayer(null, "  ")).toBeNull();
+    });
+});
+
+describe("fitFontSize", () => {
+    const widthAt = (chars: number) => (size: number) => chars * size * 0.6;
+
+    it("keeps the full size when the line fits", () => {
+        expect(fitFontSize(widthAt(6), 208, 28, 16)).toBe(28);
+    });
+
+    it("shrinks a long line until it fits", () => {
+        const size = fitFontSize(widthAt(14), 208, 28, 16);
+        expect(size).toBeLessThan(28);
+        expect(widthAt(14)(size)).toBeLessThanOrEqual(208);
+        expect(widthAt(14)(size + 1)).toBeGreaterThan(208);
+    });
+
+    it("stops at the floor and leaves the rest to an ellipsis", () => {
+        expect(fitFontSize(widthAt(40), 208, 28, 16)).toBe(16);
     });
 });

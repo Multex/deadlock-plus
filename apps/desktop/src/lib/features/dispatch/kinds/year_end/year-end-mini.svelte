@@ -1,14 +1,50 @@
 <script lang="ts">
+    import type { Attachment } from "svelte/attachments";
+    import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import MiniFrame from "../mini-frame.svelte";
     import MiniMast from "../mini-mast.svelte";
     import MiniPrint from "../mini-print.svelte";
-    import { miniFormat, miniText, type MiniCopy, type MiniCover, type YearEndMiniText } from "../minis";
+    import {
+        fitFontSize,
+        miniFormat,
+        miniPlayer,
+        miniText,
+        type MiniCopy,
+        type MiniCover,
+        type YearEndMiniText,
+    } from "../minis";
 
     let { copy, cover, height }: { copy: MiniCopy; cover?: MiniCover; height: number } = $props();
 
-    const text = $derived(miniText(copy, cover, miniFormat()) as YearEndMiniText);
+    const NAME_MAX = 28;
+    const NAME_MIN = 16;
+
+    // The page only shows the signed-in account's own editions, so its name today is the same player's.
+    const player = $derived(miniPlayer(cover?.player, steamAccount.account?.personaName));
+    const text = $derived(miniText(copy, cover && { ...cover, player }, miniFormat()) as YearEndMiniText);
     const proof = $derived(copy.state === "proof");
     const uid = $props.id();
+
+    /** Steps the name down to fit the frame; past the floor it ends in an ellipsis. Again once the fonts land. */
+    function fitName(name: string): Attachment<HTMLElement> {
+        void name;
+        return (el) => {
+            const fit = () => {
+                const size = fitFontSize(
+                    (px) => {
+                        el.style.fontSize = `${px}px`;
+                        return el.scrollWidth;
+                    },
+                    el.clientWidth,
+                    NAME_MAX,
+                    NAME_MIN,
+                );
+                el.style.fontSize = `${size}px`;
+            };
+            fit();
+            void document.fonts?.ready.then(fit);
+        };
+    }
 </script>
 
 <MiniFrame {copy} {height}>
@@ -24,11 +60,13 @@
             fill={proof ? "none" : `url(#${uid}-ygold)`}
             stroke={proof ? "#c99a3e" : "none"}
         />
-        <span class="y-poty">{text.title}</span>
+        <span class="y-poty" class:alone={!proof && !text.name}>{text.title}</span>
         {#if proof}
             <MiniPrint label={text.print} ink="#e6c56f" />
         {:else}
-            <span class="y-name">{text.name}</span>
+            {#if text.name}
+                <span class="y-name" title={player} {@attach fitName(text.name)}>{text.name}</span>
+            {/if}
             <span class="flapc"><span>{text.flap}</span></span>
         {/if}
         <svg width="0" height="0" aria-hidden="true" style="position: absolute">
@@ -126,9 +164,18 @@
         white-space: nowrap;
     }
 
+    .y-poty.alone {
+        margin-bottom: 40px;
+    }
+
     .y-name {
         position: relative;
+        box-sizing: border-box;
+        max-width: 100%;
         margin-bottom: 18px;
+        padding: 0 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-family: "Valve Pulp", sans-serif;
         font-weight: 700;
         font-size: 28px;

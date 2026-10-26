@@ -1,17 +1,17 @@
 <script lang="ts">
-    import { untrack } from "svelte";
+    import { tick, untrack } from "svelte";
     import { FoldVertical } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
+    import { focusLost } from "../../room";
     import type { EditionObjectProps } from "../types";
-    import { CLOSED, flapAngles, foldFit, frameAt, OPEN, PANEL, REVEAL, scrapFade } from "./reveal";
+    import { FOLD_MS, foldAnnouncement, foldFrame, foldKey, foldRequest, type Fold, type FoldAction } from "./fold";
+    import { CLOSED, flapAngles, foldFit, frameAt, OPEN, PANEL, REVEAL, scrapFade, type FoldFrame } from "./reveal";
     import { drawScraps, makeScraps } from "./scraps";
     import { useYearEnd } from "./year-end-data.svelte";
     import YearEndCover from "./year-end-cover.svelte";
     import YearEndPoster from "./year-end-poster.svelte";
-
-    type Fold = "closed" | "playing" | "open";
 
     const HOVER_PEEK = 14;
     const SCRAP_COUNT = 150;
@@ -25,17 +25,31 @@
 
     let fold = $state<Fold>("closed");
     let clock = $state(0);
+    let foldClock = $state(0);
+    let foldFrom = $state.raw<FoldFrame>(OPEN);
+    /** The user has folded the poster up at least once, so the folded copy is worth announcing. */
+    let folded = $state(false);
     let hover = $state(false);
     let back = $state<HTMLCanvasElement | null>(null);
     let front = $state<HTMLCanvasElement | null>(null);
+    let rootEl = $state<HTMLElement | null>(null);
     let raf = 0;
     let played = false;
     let expanded = false;
 
-    const frame = $derived(fold === "closed" ? CLOSED : fold === "open" ? OPEN : frameAt(clock));
+    const frame = $derived(
+        fold === "closed"
+            ? CLOSED
+            : fold === "open"
+              ? OPEN
+              : fold === "folding"
+                ? foldFrame(foldClock, foldFrom)
+                : frameAt(clock),
+    );
     const fit = $derived(foldFit(frame, stage));
     const angles = $derived(flapAngles(frame, fold === "closed" && hover ? HOVER_PEEK : 0));
     const scraps = $derived(makeScraps(SCRAP_COUNT, edition.volume * 31 + edition.stats.matches));
+    const announcement = $derived(foldAnnouncement(fold, folded));
     const edges = $derived(
         [1, 2, 3, 4]
             .map(
@@ -59,42 +73,92 @@
         onexpand?.(next);
     }
 
-    function finish() {
+    const focusInside = () => rootEl?.contains(document.activeElement) ?? false;
+
+    /** Unfold and Fold up swap places as the poster moves: keep focus on whichever is on show. */
+    async function keepFocus(inside: boolean) {
+        await tick();
+        const active = document.activeElement;
+        if (inside && (focusLost(active, document.body) || !rootEl?.contains(active)))
+            rootEl?.querySelector<HTMLElement>("[data-object-focus]")?.focus({ preventScroll: true });
+    }
+
+    function opened() {
         cancelAnimationFrame(raf);
         fold = "open";
         onrevealed?.();
     }
 
     function play() {
+        const inside = focusInside();
         cancelAnimationFrame(raf);
         hover = false;
         expand(true);
         if (reducedMotion()) {
-            finish();
+            opened();
+            void keepFocus(inside);
             return;
         }
         clock = 0;
-        fold = "playing";
+        fold = "unfolding";
         const start = performance.now();
-        const tick = (now: number) => {
+        const step = (now: number) => {
             clock = now - start;
-            if (clock >= REVEAL.end) finish();
-            else raf = requestAnimationFrame(tick);
+            if (clock >= REVEAL.end) opened();
+            else raf = requestAnimationFrame(step);
         };
-        raf = requestAnimationFrame(tick);
+        raf = requestAnimationFrame(step);
+        void keepFocus(inside);
     }
 
     function foldUp() {
+        const inside = focusInside();
+        foldFrom = frame;
         cancelAnimationFrame(raf);
-        fold = "closed";
+        folded = true;
         expand(false);
+        const shut = () => {
+            fold = "closed";
+            void keepFocus(focusInside() || inside);
+        };
+        if (reducedMotion()) return shut();
+        foldClock = 0;
+        fold = "folding";
+        const start = performance.now();
+        const step = (now: number) => {
+            foldClock = now - start;
+            if (foldClock >= FOLD_MS) shut();
+            else raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+    }
+
+    function act(action: FoldAction) {
+        const next = foldRequest(fold, action);
+        if (next === "unfolding") play();
+        else if (next === "folding") foldUp();
+    }
+
+    function onkeydown(e: KeyboardEvent) {
+        if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
+        // A focused button answers Enter and Space itself.
+        if ((e.key === "Enter" || e.key === " ") && e.target instanceof HTMLButtonElement) return;
+        const action = foldKey(e, fold);
+        if (!action) return;
+        e.preventDefault();
+        // Escape folds the poster only; the room must not also take it as "back to the table".
+        if (e.key === "Escape") e.stopPropagation();
+        if (action !== "swallow") act(action);
     }
 
     $effect(() => {
         void edition.id;
         untrack(() => {
             played = false;
-            foldUp();
+            folded = false;
+            cancelAnimationFrame(raf);
+            fold = "closed";
+            expand(false);
         });
     });
 
@@ -112,7 +176,7 @@
 
     $effect(() => {
         const t = (clock - REVEAL.burstAt) / 1000;
-        const showing = fold === "playing" && t > 0;
+        const showing = fold === "unfolding" && t > 0;
         const { width, height } = stage;
         const ratio = window.devicePixelRatio || 1;
         for (const [canvas, side] of [
@@ -150,7 +214,14 @@
     </div>
 {/snippet}
 
-<div class="room" style="width: {stage.width}px; height: {stage.height}px;" data-year-end={fold}>
+<div
+    class="room"
+    bind:this={rootEl}
+    style="width: {stage.width}px; height: {stage.height}px;"
+    data-year-end={fold}
+    {onkeydown}
+    role="presentation"
+>
     <canvas class="scraps" bind:this={back} aria-hidden="true"></canvas>
 
     {#if fit.scale > 0}
@@ -188,19 +259,23 @@
                 class="unfold"
                 style="width: {PANEL.w * fit.scale}px; height: {PANEL.h * fit.scale}px;"
                 aria-label={t("dispatch.year_end.unfold")}
+                data-object-focus
                 onpointerenter={() => (hover = true)}
                 onpointerleave={() => (hover = false)}
-                onclick={play}
+                onclick={() => act("unfold")}
             />
         {:else}
-            <Button variant="outline" size="sm" class="fold-up" onclick={foldUp}>
-                <FoldVertical aria-hidden="true" />
-                {t("dispatch.year_end.fold_up")}
-            </Button>
+            <div class="pill" class:leaving={fold === "folding"} data-fold-bar>
+                <Button variant="ghost" size="sm" data-object-focus onclick={() => act("fold")}>
+                    <FoldVertical aria-hidden="true" />
+                    {t("dispatch.year_end.fold_up")}
+                </Button>
+            </div>
         {/if}
     {/if}
+    <span class="sr-only" aria-live="polite">{announcement ? t(announcement) : ""}</span>
 
-    {#if fold === "playing"}
+    {#if fold === "unfolding"}
         <div class="dim" style="opacity: {1 - frame.light}"></div>
     {/if}
     <canvas class="scraps" bind:this={front} aria-hidden="true"></canvas>
@@ -357,10 +432,29 @@
         cursor: pointer;
     }
 
-    .room :global(.fold-up) {
+    /* Its own backing, so Fold up reads the same over every theme's backdrop and decor. */
+    .pill {
         position: absolute;
         top: 12px;
         right: 12px;
+        z-index: 2;
+        display: flex;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--popover-foreground);
+        background: var(--popover);
+        box-shadow: 0 6px 18px -6px rgb(0 0 0 / 0.45);
+        transition: opacity 150ms;
+    }
+
+    /*
+     * The room gives back its top strip as the fold starts, which lifts the pill under the room's own corner
+     * buttons: it fades out instead. It stays in the tree so a focused Fold up keeps focus until Unfold returns.
+     */
+    .pill.leaving {
+        opacity: 0;
+        pointer-events: none;
     }
 
     .scraps {

@@ -103,6 +103,24 @@ export const miniYear = (w: EditionWindow) =>
 
 const FALLBACK_TIER_COLOR = "#8a6aa8";
 
+/**
+ * The Year-End mini's name: the one frozen into the edition, else the account's name today. Editions frozen before
+ * the name was stored would otherwise print "Player of the Year" over nothing.
+ */
+export function miniPlayer(frozen: string | null | undefined, current: string | null | undefined): string | null {
+    return frozen?.trim() || current?.trim() || null;
+}
+
+/**
+ * The largest whole font size from `max` down to `min` at which a line `widthAt(size)` px wide fits `room`; at the
+ * floor the line may still overflow and ends in an ellipsis.
+ */
+export function fitFontSize(widthAt: (size: number) => number, room: number, max: number, min: number): number {
+    let size = max;
+    while (size > min && widthAt(size) > room) size -= 1;
+    return size;
+}
+
 export interface MiniCoverDeps {
     hero: (id: number) => { name: string; portrait: string | null; colour?: string | null } | undefined;
     tiers: readonly RankTier[];
@@ -185,7 +203,8 @@ export interface YearEndMiniText {
     sub: string;
     year: string;
     title: string;
-    name: string;
+    /** `null`: no name to print, so the title stands alone. */
+    name: string | null;
     flap: string;
     print: string;
 }
@@ -272,7 +291,7 @@ export function miniText(copy: MiniCopy, cover: Partial<MiniCover> | undefined, 
                 sub: upper(numbered(t("dispatch.masthead.edition_year_end"))),
                 year,
                 title: proof ? t("dispatch.mini.not_printed") : t("dispatch.year_end.player_of_the_year"),
-                name: proof ? "" : upper(cover?.player ?? ""),
+                name: proof || !cover?.player?.trim() ? null : upper(cover.player.trim()),
                 flap: upper(t("dispatch.mini.fold_out")),
                 print,
             };
