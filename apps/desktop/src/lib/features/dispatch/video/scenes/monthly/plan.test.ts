@@ -1,115 +1,109 @@
 import { describe, expect, it } from "vitest";
-
+import { PERSONAS, personaEdition } from "@deadlock-plus/stats/dispatch/personas.fixture";
+import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
+import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { MUSIC_TRACKS } from "../../music";
 import { videoTimeline } from "../../timeline";
-import { COUNT_BEATS, TURN_BEATS, monthlyPlan, pageAt, staggers, type SectionId } from "./plan";
+import { MONTHLY_BEAT_IDS, monthlyCast, monthlyPlan } from "./plan";
 
-const ALL: SectionId[] = ["numbers", "calendar", "heroes", "best", "people", "rank"];
-const title = videoTimeline(MUSIC_TRACKS.find((t) => t.id === "title")!);
+const TRACK_BARS = [...new Set(MUSIC_TRACKS.map((t) => videoTimeline(t).bars))];
+
+const castOf = (e: Edition) => monthlyCast(e, editionSignals(e));
+
+function thin(): Edition {
+    const e = personaEdition("P2", "monthly");
+    return {
+        ...e,
+        heroes: [],
+        newHeroes: [],
+        bestGame: null,
+        nominees: [],
+        tape: undefined,
+        days: undefined,
+        mates: [],
+        nemesis: null,
+        rank: null,
+        stats: { ...e.stats, nightShare: 0, busiestDay: null, playtimeS: 0, daysPlayed: 0 },
+    };
+}
 
 describe("monthlyPlan", () => {
-    it("fills the title track's 26 bars: the cover, six spreads of three or four bars, then the back cover", () => {
-        expect(title.bars).toBe(26);
-        const plan = monthlyPlan(26, ALL);
-        expect(plan.cover).toEqual({ bar: 0, bars: 4 });
-        expect(plan.sections).toEqual([
-            { id: "numbers", bar: 4, bars: 4 },
-            { id: "calendar", bar: 8, bars: 3 },
-            { id: "heroes", bar: 11, bars: 4 },
-            { id: "best", bar: 15, bars: 3 },
-            { id: "people", bar: 18, bars: 3 },
-            { id: "rank", bar: 21, bars: 3 },
-        ]);
-        expect(plan.end).toEqual({ bar: 24, bars: 2 });
-    });
+    const editions: [string, Edition][] = [
+        ...PERSONAS.map((p) => [p, personaEdition(p, "monthly")] as [string, Edition]),
+        ["thin", thin()],
+    ];
 
-    it("holds every spread between 4 and 6.5 s on every track", () => {
-        for (const track of MUSIC_TRACKS) {
-            const { bars, barSeconds } = videoTimeline(track);
-            for (const s of monthlyPlan(bars, ALL).sections) {
-                expect(s.bars * barSeconds, `${track.id} ${s.id}`).toBeGreaterThanOrEqual(4);
-                expect(s.bars * barSeconds, `${track.id} ${s.id}`).toBeLessThanOrEqual(6.5);
+    it.each(editions)("%s fills every track's bars exactly, back to back", (_, e) => {
+        for (const bars of TRACK_BARS) {
+            const plan = monthlyPlan(castOf(e), bars);
+            let at = 0;
+            for (const beat of plan) {
+                expect(beat.bar).toBe(at);
+                expect(beat.bars).toBeGreaterThan(0);
+                expect(beat.kind).toBe("monthly");
+                at += beat.bars;
             }
+            expect(at).toBe(bars);
         }
     });
 
-    it("keeps the magazine's page order whatever is missing", () => {
-        const plan = monthlyPlan(26, ["rank", "numbers", "heroes"]);
-        expect(plan.sections.map((s) => s.id)).toEqual(["numbers", "heroes", "rank"]);
+    it.each(editions)("%s opens on the flash and closes on the cover, the stand and the end card", (_, e) => {
+        const ids = monthlyPlan(castOf(e), 26).map((b) => b.id);
+        expect(ids[0]).toBe("m_flash");
+        expect(ids.slice(-3)).toEqual(["m_cover", "m_stand", "m_end"]);
     });
 
-    it("gives a missing spread's bars to the others, up to six bars each, then to the back cover", () => {
-        const plan = monthlyPlan(26, ["numbers", "calendar", "heroes"]);
-        expect(plan.cover).toEqual({ bar: 0, bars: 4 });
-        expect(plan.sections).toEqual([
-            { id: "numbers", bar: 4, bars: 6 },
-            { id: "calendar", bar: 10, bars: 6 },
-            { id: "heroes", bar: 16, bars: 6 },
-        ]);
-        expect(plan.end).toEqual({ bar: 22, bars: 4 });
+    it("prefixes every beat id with m_", () => {
+        for (const id of MONTHLY_BEAT_IDS) expect(id.startsWith("m_")).toBe(true);
     });
 
-    it("fills every track exactly, with no gap or overlap from bar 0 to the last", () => {
-        for (const track of MUSIC_TRACKS) {
-            const { bars } = videoTimeline(track);
-            for (const present of [ALL, ["numbers", "heroes"] as SectionId[], ["numbers"] as SectionId[]]) {
-                const plan = monthlyPlan(bars, present);
-                let next = 0;
-                for (const span of [plan.cover, ...plan.sections, plan.end]) {
-                    expect(span.bar).toBe(next);
-                    next += span.bars;
-                }
-                expect(next).toBe(bars);
-            }
-        }
-    });
-});
-
-describe("pageAt", () => {
-    const plan = monthlyPlan(26, ALL);
-    const bar = 1.5;
-    const beat = bar / 4;
-
-    it("names the page a moment falls on, with its local time", () => {
-        expect(pageAt(plan, 0, bar)).toEqual({ page: "cover", start: 0, span: 6, turn: null });
-        expect(pageAt(plan, 12 * bar, bar)).toMatchObject({ page: "heroes", start: 11 * bar, span: 4 * bar });
-        expect(pageAt(plan, 25 * bar, bar)).toMatchObject({ page: "end", start: 24 * bar });
-    });
-
-    it("turns the page over the last beats before a bar line and lands the next page on it", () => {
-        const before = pageAt(plan, 4 * bar - TURN_BEATS * beat - 0.01, bar);
-        expect(before.turn).toBeNull();
-        const mid = pageAt(plan, 4 * bar - (TURN_BEATS / 2) * beat, bar);
-        expect(mid.page).toBe("cover");
-        expect(mid.turn).toEqual({ to: "numbers", k: 0.5 });
-        expect(pageAt(plan, 4 * bar, bar)).toEqual({ page: "numbers", start: 4 * bar, span: 4 * bar, turn: null });
-    });
-
-    it("turns into the back cover and never past it", () => {
-        expect(pageAt(plan, 24 * bar - 0.01, bar).turn?.to).toBe("end");
-        expect(pageAt(plan, 26 * bar - 0.01, bar).turn).toBeNull();
-    });
-});
-
-describe("staggers", () => {
-    it("lands the first on the downbeat and the rest evenly, at most two beats apart", () => {
-        expect(staggers(4, 10, 16, 0.25)).toEqual([10, 10.5, 11, 11.5]);
-        expect(staggers(1, 10, 16, 0.25)).toEqual([10]);
-    });
-
-    it("finishes every entrance and its slow count-up by 70% of the page, leaving the rest to read", () => {
-        for (const n of [2, 5, 6, 9]) {
-            const beat = 0.39;
-            for (const bars of [3, 4]) {
-                const span = bars * 4 * beat;
-                const cues = staggers(n, 0, span, beat);
-                expect(cues[cues.length - 1] + COUNT_BEATS * beat).toBeLessThanOrEqual(span * 0.7 + 1e-9);
-                for (let i = 1; i < n; i++) expect(cues[i] - cues[i - 1]).toBeGreaterThan(0);
-            }
+    it("puts the strongest signal on the beat right after the flash, and gives it the most bars there", () => {
+        for (const p of PERSONAS) {
+            const e = personaEdition(p, "monthly");
+            const lead = editionSignals(e)[0]!;
+            const plan = monthlyPlan(castOf(e), 26);
+            expect(plan[1]!.signal).toBe(lead.id);
+            const middle = plan.slice(1, -3);
+            expect(plan[1]!.bars).toBe(Math.max(...middle.map((b) => b.bars)));
         }
     });
 
-    it("counts up over a whole bar, twice as slow as the Year-End's", () => {
-        expect(COUNT_BEATS).toBe(4);
+    it("shows every signal and stat once: a spent one never comes back in a later beat", () => {
+        for (const p of PERSONAS) {
+            const plan = monthlyPlan(castOf(personaEdition(p, "monthly")), 26);
+            const stats = plan.flatMap((b) => b.presents.map((x) => x.split(":")[0]));
+            expect(new Set(stats).size).toBe(stats.length);
+            for (const b of plan) if (b.signal) expect(b.presents.map((x) => x.split(":")[0])).toContain(b.signal);
+        }
+    });
+
+    it("gives each persona its own beat order", () => {
+        const orders = PERSONAS.map((p) =>
+            monthlyPlan(castOf(personaEdition(p, "monthly")), 26)
+                .map((b) => b.id)
+                .join(","),
+        );
+        expect(new Set(orders).size).toBe(PERSONAS.length);
+    });
+
+    it("drops beats with nothing to show and hands their bars to the rest", () => {
+        const ids = monthlyPlan(castOf(thin()), 26).map((b) => b.id);
+        expect(ids).not.toContain("m_shot");
+        expect(ids).not.toContain("m_wardrobe");
+        expect(ids).not.toContain("m_takes");
+        expect(ids).not.toContain("m_feature");
+    });
+
+    it("leaves out a mate or rival the history has no name for", () => {
+        const e = personaEdition("P3", "monthly");
+        const nameless: Edition = {
+            ...e,
+            mates: e.mates.map((m) => ({ ...m, name: null })),
+            nemesis: e.nemesis && { ...e.nemesis, name: null },
+        };
+        const stats = monthlyPlan(castOf(nameless), 26).flatMap((b) => b.presents.map((x) => x.split(":")[0]));
+        expect(stats).not.toContain("duo");
+        expect(stats).not.toContain("nemesis");
+        expect(stats).not.toContain("mate");
     });
 });

@@ -1,7 +1,7 @@
 import type { Scene, SceneAssets } from "../scene";
 import { placeholderScene } from "./placeholder";
-import { presentSections, type MonthlyVideo } from "./monthly/data";
-import { COUNT_BEATS, monthlyPlan, pageAt, staggers, type MonthlyPlan, type PageId } from "./monthly/plan";
+import { presentSections, type MonthlyVideo } from "./monthly/legacy/data";
+import { COUNT_BEATS, monthlyPlan, pageAt, staggers, type MonthlyPlan, type PageId } from "./monthly/legacy/plan";
 import { feathered } from "../kit/bitmap";
 import { countUp } from "../kit/count";
 import { clamp01, easeInOut, easeOutBack, easeOutCubic, lerp } from "../kit/ease";
