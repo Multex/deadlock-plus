@@ -22,11 +22,17 @@ const MAX_FILE_NAME = 100;
 /** Hero portraits handed to the scene, most played first. */
 const SCENE_HEROES = 8;
 
-export const DEFAULT_TRACKS: Record<VideoKind, MusicTrackId> = { collectors: "postgame", year_end: "menu" };
+/** The Monthly opens on the title theme's loud section: the cover hits on the first bar, with no build to wait out. */
+export const DEFAULT_TRACKS: Record<VideoKind, MusicTrackId> = {
+    monthly: "title",
+    collectors: "postgame",
+    year_end: "menu",
+};
 
 type Prepare = (view: EditionView) => Promise<ScenePrep>;
 /** Loaded on export only: a prepare step reaches into the archive, rank tiers and heroes. */
 const SCENE_PREP: Partial<Record<VideoKind, () => Promise<{ prepareScene: Prepare }>>> = {
+    monthly: () => import("./scenes/monthly/prepare"),
     collectors: () => import("./scenes/collectors/prepare"),
     year_end: () => import("./scenes/year_end/prepare"),
 };
@@ -102,7 +108,11 @@ const slug = (text: string) =>
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-const KIND_NAMES: Record<VideoKind, string> = { collectors: "collectors-copy", year_end: "year-end-special" };
+const KIND_NAMES: Record<VideoKind, string> = {
+    monthly: "monthly",
+    collectors: "collectors-copy",
+    year_end: "year-end-special",
+};
 
 export function videoFileName(editionId: string, kind: VideoKind, aspect: CardAspect): string {
     const id = editionId.startsWith(`${kind}-`) ? editionId.slice(kind.length + 1) : editionId;

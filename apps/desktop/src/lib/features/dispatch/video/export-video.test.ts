@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_TRACKS, pickSupport, probeVideoSupport, videoFileName, type EncodeProbe } from "./export-video";
+import { isVideoKind } from "./scene";
 import { VIDEO_SIZES } from "./timeline";
 
 describe("Dispatch video support", () => {
@@ -62,6 +63,7 @@ describe("Dispatch video file name", () => {
             "deadlock-plus-collectors-copy-season-1-9x16.mp4",
         );
         expect(videoFileName("year_end-2026", "year_end", "16:9")).toBe("deadlock-plus-year-end-special-2026-16x9.mp4");
+        expect(videoFileName("monthly-2026-09", "monthly", "9:16")).toBe("deadlock-plus-monthly-2026-09-9x16.mp4");
     });
 
     it("keeps an id that does not start with its kind whole", () => {
@@ -78,7 +80,16 @@ describe("Dispatch video file name", () => {
 });
 
 describe("Dispatch video music default", () => {
-    it("opens on a hit for a Collector's Copy and on the menu build for a Year-End Special", () => {
-        expect(DEFAULT_TRACKS).toEqual({ collectors: "postgame", year_end: "menu" });
+    it("opens on a hit for a Collector's Copy, on the menu build for a Year-End Special, on the title theme for a Monthly", () => {
+        expect(DEFAULT_TRACKS).toEqual({ monthly: "title", collectors: "postgame", year_end: "menu" });
+    });
+});
+
+describe("Dispatch video kinds", () => {
+    it("makes a video for the Monthly, the Collector's Copy and the Year-End Special, never the Weekly", () => {
+        expect(isVideoKind("monthly")).toBe(true);
+        expect(isVideoKind("collectors")).toBe(true);
+        expect(isVideoKind("year_end")).toBe(true);
+        expect(isVideoKind("weekly")).toBe(false);
     });
 });

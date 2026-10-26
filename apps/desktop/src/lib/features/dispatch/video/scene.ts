@@ -1,12 +1,13 @@
 import type { EditionKind } from "@deadlock-plus/stats/dispatch/types";
 import type { EditionView } from "../edition-view";
 import { collectorsScene } from "./scenes/collectors";
+import { monthlyScene } from "./scenes/monthly";
 import { yearEndScene } from "./scenes/year_end";
 
 /** The editions that export a video. */
-export type VideoKind = Extract<EditionKind, "collectors" | "year_end">;
+export type VideoKind = Extract<EditionKind, "monthly" | "collectors" | "year_end">;
 
-export const VIDEO_KINDS: readonly VideoKind[] = ["collectors", "year_end"];
+export const VIDEO_KINDS: readonly VideoKind[] = ["monthly", "collectors", "year_end"];
 
 export function isVideoKind(kind: EditionKind): kind is VideoKind {
     return (VIDEO_KINDS as readonly EditionKind[]).includes(kind);
@@ -62,6 +63,7 @@ export interface ScenePrep {
 export type Scene = (ctx: OffscreenCanvasRenderingContext2D, t: number, size: SceneSize, assets: SceneAssets) => void;
 
 export const SCENES: Record<VideoKind, Scene> = {
+    monthly: monthlyScene,
     collectors: collectorsScene,
     year_end: yearEndScene,
 };
