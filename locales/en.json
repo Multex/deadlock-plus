@@ -3771,12 +3771,6 @@
             "nemesis_line_one": "Beat you once in {matches}",
             "nemesis_line_other": "Beat you {count} times in {matches}"
         },
-        "story_mode": {
-            "position": "{current} of {total}",
-            "previous": "Previous card",
-            "next": "Next card",
-            "close": "Close"
-        },
         "export": {
             "group": "Export images",
             "pick": "Page to export",
@@ -3795,7 +3789,6 @@
         "page": {
             "title": "Dispatch",
             "subtitle": "Your weeks and months in Deadlock, in print.",
-            "read_story": "Read as story",
             "export": "Export",
             "loading": "Loading the paper...",
             "open_failed": "This paper could not be opened.",

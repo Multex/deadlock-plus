@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, tick, untrack } from "svelte";
     import { toast } from "svelte-sonner";
-    import { ArrowLeft, BookOpen, LoaderCircle, RotateCcw, Share2 } from "@lucide/svelte";
+    import { ArrowLeft, LoaderCircle, RotateCcw, Share2 } from "@lucide/svelte";
 
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -20,7 +20,6 @@
     import { editionView } from "$lib/features/dispatch/edition-view";
     import ExportPanel from "$lib/features/dispatch/components/export-panel.svelte";
     import ReadingRoom from "$lib/features/dispatch/components/reading-room.svelte";
-    import StoryMode from "$lib/features/dispatch/components/story-mode.svelte";
     import Table from "$lib/features/dispatch/components/table.svelte";
     import { tableCopies, tablePiles } from "$lib/features/dispatch/components/table";
     import VideoPanel from "$lib/features/dispatch/video/video-panel.svelte";
@@ -40,7 +39,6 @@
     let tiers = $state.raw<RankTier[]>([]);
     let opened = $state.raw<Edition | null>(null);
     let openFailed = $state<string | null>(null);
-    let story = $state(false);
     let exporting = $state(false);
     let printing = $state(false);
     /** The edition whose arrival plays: an issue still unseen when the room opened it. */
@@ -201,7 +199,6 @@
     /** Puts the copy back; focus returns to it, or to the bundle it lies in. */
     async function closeRoom() {
         const id = room?.id ?? null;
-        story = false;
         await navigate(null);
         await tick();
         const target = id
@@ -214,8 +211,7 @@
 
     function onkeydown(e: KeyboardEvent) {
         if (e.key !== "Escape") return;
-        const dialog =
-            story || exporting || (e.target instanceof Element && e.target.closest("[role=dialog]") !== null);
+        const dialog = exporting || (e.target instanceof Element && e.target.closest("[role=dialog]") !== null);
         // An object that closes itself on Escape marks the event handled, maybe after this listener: look once it is done.
         setTimeout(() => {
             if (escapeLeavesRoom(e, { room: room !== null, dialog })) void closeRoom();
@@ -286,10 +282,6 @@
                             <RotateCcw aria-hidden="true" />
                         </IconButton>
                     {/if}
-                    <Button variant="outline" size="sm" disabled={!view} onclick={() => (story = true)}>
-                        <BookOpen aria-hidden="true" />
-                        {t("dispatch.page.read_story")}
-                    </Button>
                     <Button variant="outline" size="sm" disabled={!view} onclick={() => (exporting = true)}>
                         <Share2 aria-hidden="true" />
                         {t("dispatch.page.export")}
@@ -326,10 +318,6 @@
             </EmptyState>
         {/if}
     </Page>
-{/if}
-
-{#if story && view}
-    <StoryMode {view} onclose={() => (story = false)} />
 {/if}
 
 {#if view && shown}
