@@ -3,6 +3,7 @@ import { MUSIC_TRACKS } from "../../music";
 import { videoTimeline } from "../../timeline";
 import {
     awardsPlan,
+    marqueeCues,
     awardsSfx,
     CATEGORY_PICKS,
     pickLineup,
@@ -134,6 +135,19 @@ describe("awardsPlan", () => {
         expect(hero(one)).toBeGreaterThan(hero(four));
     });
 
+    it("gives the credits room to roll slowly on every track, and keeps every award at four bars on the menu track", () => {
+        for (const bars of TRACK_BARS) {
+            for (const lineup of lineups) {
+                const credits = awardsPlan(bars, lineup).find((b) => b.id === "y_credits")!;
+                expect(credits.bars).toBeGreaterThanOrEqual(4);
+            }
+        }
+        const menu = awardsPlan(29, pickLineup(full));
+        expect(menu.find((b) => b.id === "y_credits")!.bars).toBeGreaterThanOrEqual(5);
+        for (const b of menu)
+            if (!["y_preshow", "y_welcome", "y_credits", "y_end"].includes(b.id)) expect(b.bars).toBe(4);
+    });
+
     it("only uses its own y_ beat ids", () => {
         const ids = lineups.flatMap((l) => awardsPlan(29, l).map((b) => b.id));
         for (const id of ids) {
@@ -171,6 +185,15 @@ describe("awardsSfx", () => {
         expect(bulbs.length).toBeGreaterThan(0);
         for (const c of bulbs) expect(c.atSeconds).toBeLessThan((preshow.bar + preshow.bars) * barSeconds);
         expect(cues.find((c) => c.cue === "confetti")?.atSeconds).toBeCloseTo(at("y_welcome").bar * barSeconds);
+    });
+
+    it("lights one marquee cue a bar and leaves the pre-show's last bar for the drop", () => {
+        const preshow = at("y_preshow");
+        const bulbs = cues.filter((c) => c.cue === "marquee_bulb");
+        expect(bulbs).toHaveLength(marqueeCues(preshow.bars));
+        expect(marqueeCues(preshow.bars)).toBeLessThan(preshow.bars);
+        expect(marqueeCues(1)).toBe(1);
+        expect(marqueeCues(9)).toBe(4);
     });
 
     it("lands every cue on a beat inside the video", () => {

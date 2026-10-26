@@ -68,6 +68,8 @@ export interface Look {
     flourish: (f: F, r: Rect, dt: number) => void;
     /** In front of the winner's card once the spotlight finds it. */
     stamp?: (f: F, r: Rect, dt: number) => void;
+    /** How far the card's frame stands outside its box, in content units, so neighbours keep a clean gutter. */
+    bleed?: number;
     /** Cards come up from under the stage instead of dropping in. */
     rise?: boolean;
     /** Where the spotlights hang: the rig above, or footlights below. */
@@ -213,8 +215,18 @@ export function crowd(f: House, up: number, full: boolean): void {
                 // Hands up, clapping.
                 const clap = Math.abs(Math.sin(f.t * 14 + x)) * 6 * u;
                 ctx.fillStyle = row === 0 ? "#050403" : "#0b0906";
-                ctx.fillRect(x + jitter - size * 0.5 - clap, hy - size * 0.9 * up, size * 0.22, size * 0.9 * up + size * 0.4);
-                ctx.fillRect(x + jitter + size * 0.28 + clap, hy - size * 0.9 * up, size * 0.22, size * 0.9 * up + size * 0.4);
+                ctx.fillRect(
+                    x + jitter - size * 0.5 - clap,
+                    hy - size * 0.9 * up,
+                    size * 0.22,
+                    size * 0.9 * up + size * 0.4,
+                );
+                ctx.fillRect(
+                    x + jitter + size * 0.28 + clap,
+                    hy - size * 0.9 * up,
+                    size * 0.22,
+                    size * 0.9 * up + size * 0.4,
+                );
             }
         }
     }
@@ -344,7 +356,7 @@ export function envelope(f: F, cx: number, cy: number, scale: number, tear: numb
     const torn = tear >= 0;
     const strip = 46 * u * scale;
     const teeth = 11;
-    const edge = (yy: number) => (i: number) => yy + ((i % 2 ? 1 : -1) * 7 * u * scale);
+    const edge = (yy: number) => (i: number) => yy + (i % 2 ? 1 : -1) * 7 * u * scale;
 
     ctx.save();
     ctx.shadowColor = "rgb(0 0 0 / 0.6)";

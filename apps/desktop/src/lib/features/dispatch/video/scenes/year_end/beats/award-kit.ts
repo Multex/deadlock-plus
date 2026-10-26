@@ -63,24 +63,69 @@ export const ROW_TOP = 262;
 /** On a phone the row stands lower and larger, so the tall frame is filled instead of its top half. */
 export const ROW_TOP_TALL = 330;
 
+/** How far the award camera pushes in on the nominee row before the reveal: its drift plus its lean to the envelope. */
+export const CAMERA_PUSH = 0.065;
+
+/** The clear space between two nominee cards' outer edges, in content units: wider apart in 16:9, tight on a phone. */
+export function GUTTER(size: SceneSize): number {
+    return size.w > size.h * 1.2 ? 110 : size.h > size.w * 1.2 ? 26 : 40;
+}
+
 /**
- * The nominee cards' boxes, in seats left to right: a row across the frame, wider apart in 16:9, edge to edge on a
- * phone, lowered by `drop` content units under a long header.
+ * The nominee cards' boxes, in seats left to right: a row across the frame, edge to edge on a phone, lowered by
+ * `drop` content units under a long header. `bleed` is how far a card's frame stands outside its box, in content
+ * units; the gutter is kept between the frames, not the boxes.
  */
-export function nomineeSlots(n: number, size: SceneSize, drop = 0): Rect[] {
+export function nomineeSlots(n: number, size: SceneSize, drop = 0, bleed = 0): Rect[] {
     const { u, box } = sceneFrame(size.w, size.h);
     const wide = size.w > size.h * 1.2;
     const tall = size.h > size.w * 1.2;
-    const margin = (wide ? 220 : tall ? 26 : 40) * u;
-    const gap = (wide ? 110 : tall ? 22 : 36) * u;
+    // Room for the camera's push, so the outer frames never reach the edge of the shot.
+    const margin = Math.max((wide ? 220 : tall ? 20 : 40) * u, 18 * u + (size.w / 2) * CAMERA_PUSH);
+    const gap = GUTTER(size) * u + 2 * bleed * u;
     const cap = (tall ? (n >= 3 ? 340 : 370) : 300) * u;
-    const avail = size.w - 2 * margin;
+    const avail = size.w - 2 * margin - 2 * bleed * u;
     const w = Math.min(cap, (avail - gap * (n - 1)) / n);
     const h = w * CARD_RATIO;
     const total = n * w + (n - 1) * gap;
     const x0 = (size.w - total) / 2;
     const y = box.y + ((tall ? ROW_TOP_TALL : ROW_TOP) + drop) * u;
     return Array.from({ length: n }, (_, i) => ({ x: x0 + i * (w + gap), y, w, h }));
+}
+
+/**
+ * Where each seat's card centre goes once the winner is revealed: the winner to `standX`, grown by `grow`; the others
+ * shrunk by `shrink` and stepped aside, each clear of its neighbour towards the winner by `gutter` (frames of `bleed`
+ * px included). Cards pushed past the frame's edge leave it, which beats overlapping the winner.
+ */
+export function revealRow(
+    slots: readonly Rect[],
+    winnerSeat: number,
+    standX: number,
+    grow: number,
+    shrink: number,
+    gutter: number,
+    bleed: number,
+): number[] {
+    const out = slots.map((r) => r.x + r.w / 2);
+    const half = (r: Rect, s: number) => (r.w / 2 + bleed) * s;
+    const win = slots[winnerSeat];
+    if (!win) return out;
+    out[winnerSeat] = standX;
+    const aside = gutter * 2;
+    let edge = standX - half(win, grow) - gutter;
+    for (let i = winnerSeat - 1; i >= 0; i--) {
+        const hw = half(slots[i]!, shrink);
+        out[i] = Math.min(out[i]! - aside, edge - hw);
+        edge = out[i]! - hw - gutter;
+    }
+    edge = standX + half(win, grow) + gutter;
+    for (let i = winnerSeat + 1; i < slots.length; i++) {
+        const hw = half(slots[i]!, shrink);
+        out[i] = Math.max(out[i]! + aside, edge + hw);
+        edge = out[i]! + hw + gutter;
+    }
+    return out;
 }
 
 /**

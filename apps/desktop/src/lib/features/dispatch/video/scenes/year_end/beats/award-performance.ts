@@ -20,7 +20,8 @@ function filmStrip(ctx: Ctx, x: number, w: number, h: number, t: number, u: numb
         ctx.fill();
     }
     ctx.fillStyle = "rgb(232 238 255 / 0.05)";
-    for (let y = -step * 4 + off * 4; y < h; y += step * 4) ctx.fillRect(x + w * 0.32, y + 6 * u, w * 0.36, step * 4 - 12 * u);
+    for (let y = -step * 4 + off * 4; y < h; y += step * 4)
+        ctx.fillRect(x + w * 0.32, y + 6 * u, w * 0.36, step * 4 - 12 * u);
 }
 
 /** A film frame round a card: black edges with sprocket holes top and bottom. */
@@ -61,6 +62,7 @@ function gradeSeal(f: F, x: number, y: number, r: number, letter: string): void 
 
 /** Performance of the Year: the projection booth. Film strips down the sides, a countdown leader, graded frames. */
 export const performance: Look = {
+    bleed: 10,
     light: SILVER,
     titleFill: (f, y0, y1) => {
         const g = f.ctx.createLinearGradient(0, y0, 0, y1);

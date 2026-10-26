@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { sceneFrame } from "../../../kit/frame";
 import { revealBar } from "../plan";
-import { awardTimes, fitLines, nomineeSlots, seatOrder, winnerStand } from "./award-kit";
+import {
+    CAMERA_PUSH,
+    awardTimes,
+    fitLines,
+    nomineeSlots,
+    revealRow,
+    seatOrder,
+    winnerStand,
+    GUTTER,
+} from "./award-kit";
 
-const BAR = 60 / 172 * 4;
+const BAR = (60 / 172) * 4;
 
 describe("awardTimes", () => {
     for (const bars of [3, 4, 5, 6]) {
@@ -72,7 +81,8 @@ describe("nomineeSlots", () => {
                     // The label under each card is key text too.
                     expect(r.y + r.h + 180 * u).toBeLessThanOrEqual(safe.bottom);
                 }
-                for (let i = 1; i < n; i++) expect(slots[i]!.x).toBeGreaterThanOrEqual(slots[i - 1]!.x + slots[i - 1]!.w);
+                for (let i = 1; i < n; i++)
+                    expect(slots[i]!.x).toBeGreaterThanOrEqual(slots[i - 1]!.x + slots[i - 1]!.w);
                 const mid = (slots[0]!.x + slots[n - 1]!.x + slots[n - 1]!.w) / 2;
                 expect(mid).toBeCloseTo(size.w / 2, 6);
             });
@@ -86,12 +96,14 @@ describe("nomineeSlots on a phone", () => {
         const { safe } = sceneFrame(size.w, size.h);
         for (const n of [1, 2, 3]) {
             const slots = nomineeSlots(n, size);
-            expect(slots[0]!.w).toBeGreaterThanOrEqual(320);
+            expect(slots[0]!.w).toBeGreaterThanOrEqual(300);
             const mid = slots[0]!.y + slots[0]!.h / 2;
             expect(mid).toBeGreaterThan(safe.top + (safe.bottom - safe.top) * 0.45);
         }
         // Wider than the same row in the square frame's content, scaled to the same unit.
-        expect(nomineeSlots(3, size)[0]!.w).toBeGreaterThan(nomineeSlots(3, { w: 1440, h: 1440 })[0]!.w * (1080 / 1440));
+        expect(nomineeSlots(3, size)[0]!.w).toBeGreaterThan(
+            nomineeSlots(3, { w: 1440, h: 1440 })[0]!.w * (1080 / 1440),
+        );
     });
 });
 
@@ -111,6 +123,58 @@ describe("winnerStand", () => {
     it("stops at the cap when there is room to spare", () => {
         expect(winnerStand(card, 0, 3000, 100, 1.4).scale).toBe(1.4);
     });
+});
+
+describe("nominee gutters", () => {
+    const sizes = [
+        { w: 1080, h: 1920 },
+        { w: 1440, h: 1440 },
+        { w: 1920, h: 1080 },
+    ];
+    /** A card's outer edges: its frame and corner pieces stand `bleed` content units outside its box. */
+    const outer = (r: { x: number; w: number }, bleed: number, u: number) => [r.x - bleed * u, r.x + r.w + bleed * u];
+
+    for (const size of sizes) {
+        const { u } = sceneFrame(size.w, size.h);
+        const gutter = GUTTER(size) * u;
+        for (const bleed of [0, 10, 18]) {
+            for (const n of [1, 2, 3, 4]) {
+                it(`keeps a clean gutter between ${n} cards with ${bleed} of frame in ${size.w}x${size.h}`, () => {
+                    const slots = nomineeSlots(n, size, 0, bleed);
+                    for (let i = 1; i < n; i++) {
+                        const [, right] = outer(slots[i - 1]!, bleed, u);
+                        const [left] = outer(slots[i]!, bleed, u);
+                        expect(left - right).toBeGreaterThanOrEqual(gutter - 1e-6);
+                    }
+                    // The camera pushes in on the row's middle before the reveal; the frames still clear the edge.
+                    const pushed = (x: number) => size.w / 2 + (x - size.w / 2) * (1 + CAMERA_PUSH);
+                    const [first] = outer(slots[0]!, bleed, u);
+                    const [, last] = outer(slots[n - 1]!, bleed, u);
+                    expect(pushed(first)).toBeGreaterThanOrEqual(16 * u);
+                    expect(pushed(last)).toBeLessThanOrEqual(size.w - 16 * u);
+                });
+
+                it(`never lets ${n} cards with ${bleed} of frame touch through the reveal in ${size.w}x${size.h}`, () => {
+                    const slots = nomineeSlots(n, size, 0, bleed);
+                    for (let win = 0; win < n; win++) {
+                        const grow = 1.45;
+                        const shrink = 0.84;
+                        const standX = size.w > size.h * 1.2 ? size.w * 0.32 : size.w / 2;
+                        const to = revealRow(slots, win, standX, grow, shrink, gutter, bleed * u);
+                        for (const rv of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
+                            const boxes = slots.map((r, i) => {
+                                const s = i === win ? 1 + (grow - 1) * rv : 1 + (shrink - 1) * rv;
+                                const cx = r.x + r.w / 2 + (to[i]! - (r.x + r.w / 2)) * rv;
+                                const half = (r.w / 2 + bleed * u) * s;
+                                return [cx - half, cx + half] as const;
+                            });
+                            for (let i = 1; i < n; i++) expect(boxes[i]![0] - boxes[i - 1]![1]).toBeGreaterThan(0);
+                        }
+                    }
+                });
+            }
+        }
+    }
 });
 
 describe("nomineeSlots drop", () => {

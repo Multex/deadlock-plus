@@ -89,12 +89,15 @@ export function pickLineup(candidates: readonly AwardCandidate[]): Lineup {
 
 type Part = "y_preshow" | "y_welcome" | "award" | "y_credits" | "y_end";
 
-/** Bars at the menu track's 29 with four awards: the pre-show fills its build, each award gets 5.6 s. */
+/**
+ * Bars at the menu track's 29 with four awards: each award gets 5.6 s, and the credits five bars, room to roll at
+ * a reading pace.
+ */
 const BARS: Record<Part, { base: number; min: number; max: number }> = {
-    y_preshow: { base: 5, min: 2, max: 11 },
+    y_preshow: { base: 4, min: 2, max: 11 },
     y_welcome: { base: 2, min: 1, max: 3 },
     award: { base: 4, min: 3, max: 6 },
-    y_credits: { base: 4, min: 3, max: 6 },
+    y_credits: { base: 5, min: 4, max: 8 },
     y_end: { base: 2, min: 1, max: Infinity },
 };
 
@@ -150,6 +153,11 @@ export function revealBar(beat: Pick<Beat<YearEndBeatId>, "id" | "bar" | "bars">
 
 const MARQUEE_BULBS = 4;
 
+/** Bar cues the pre-show's marquee lights on: one a bar, up to four, the last bar kept for the drop. */
+export function marqueeCues(bars: number): number {
+    return Math.max(1, Math.min(MARQUEE_BULBS, bars - 1));
+}
+
 /** Every cue sits on a beat: bulbs per pre-show bar, confetti on the welcome, an envelope, spotlight and crowd per winner. */
 export function awardsSfx(plan: readonly Beat<YearEndBeatId>[], barSeconds: number): SfxCue[] {
     const beat = barSeconds / 4;
@@ -157,7 +165,7 @@ export function awardsSfx(plan: readonly Beat<YearEndBeatId>[], barSeconds: numb
     return plan.flatMap((b): SfxCue[] => {
         const start = b.bar * barSeconds;
         if (b.id === "y_preshow")
-            return Array.from({ length: Math.min(MARQUEE_BULBS, b.bars) }, (_, i) => ({
+            return Array.from({ length: marqueeCues(b.bars) }, (_, i) => ({
                 cue: "marquee_bulb",
                 atSeconds: start + i * barSeconds,
             }));

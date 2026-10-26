@@ -5,7 +5,9 @@ import { seeded } from "../../../kit/rng";
 import type { Ctx } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
 import { INK, dust, goldGradient } from "../draw";
+import { marqueeCues } from "../plan";
 import {
+    beam,
     blockHeight,
     bulb,
     drawRich,
@@ -22,8 +24,6 @@ import {
     type Stage,
 } from "./stage";
 
-/** Bar cues the marquee lights on, one `marquee_bulb` each (the plan's `awardsSfx`). */
-const CUES = 4;
 const MARQUEE_MAX = 168;
 const MARQUEE_MIN = 96;
 
@@ -55,7 +55,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     const bar = assets.timing.barSeconds > 0 ? assets.timing.barSeconds : span / 5;
     const beat = bar / 4;
     const bars = Math.max(1, Math.round(span / bar));
-    const cues = Math.min(CUES, bars);
+    const cues = marqueeCues(bars);
     const p = clamp01(local / span);
     const seed = seedOf(`${data.awards.player ?? ""}|${data.awards.year}`);
     /** The last bars after the cues: every bulb comes up for the drop. */
@@ -112,9 +112,9 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     const hookH = blockHeight(hLines);
     const horizon = Math.min(h * 0.82, Math.max(hookTop + hookH + (tall ? 70 : 30) * u, h * (tall ? 0.6 : 0.62)));
 
-    // The camera dollies down the carpet; the facade, being far, grows a little.
+    // The camera dollies down the carpet the whole beat; the facade, being far, grows less than the carpet runs.
     const dolly = easeInOut(p);
-    const far = 1 + 0.035 * dolly;
+    const far = 1 + 0.09 * dolly;
 
     ctx.fillStyle = INK.room;
     ctx.fillRect(0, 0, w, h);
@@ -125,6 +125,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     ctx.translate(-w / 2, -horizon);
     stepAndRepeat(ctx, w, horizon, u, data, fonts.pulp, local);
     ctx.restore();
+    searchlights(ctx, w, horizon, u, local, riser);
 
     carpet(ctx, w, h, horizon, u, tall, dolly * 0.55, riser);
     dust(ctx, w, h, local, u, 0.55, 0.6 + riser * 2.5);
@@ -148,8 +149,18 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
             if (l.words.some((wd) => wd.tag === "num")) break;
             numTop += l.height * 1.08;
         }
+        // Each bar cue knocks the hook forward a touch; it is laid out once, so the knock never moves a word.
+        let knock = 0;
+        for (let c = 0; c <= cues; c++) if (local >= c * bar) knock = Math.exp(-(local - c * bar) / 0.2);
+        const k = 1 + 0.05 * knock + 0.03 * riser;
+        const mid = hookTop + hookH / 2;
+        ctx.save();
+        ctx.translate(cx, mid);
+        ctx.scale(k, k);
+        ctx.translate(-cx, -mid);
         drawRich(ctx, hLines, cx, hookTop, hookLook);
-        shimmer(ctx, hLines, cx, hookTop, local, bar, cues, u);
+        shimmer(ctx, hLines, cx, hookTop, local, bar, cues, u, hookLook);
+        ctx.restore();
     }
     ctx.restore();
 
@@ -377,8 +388,11 @@ function drawMarquee(
     ctx.shadowColor = "transparent";
 }
 
-/** A glint across the gold number on each bar cue. */
-function shimmer(
+/**
+ * A glint across the gold number on each bar cue and on the drop: a band of light swept through the number's own
+ * letters, drawn as the letters again in an additive gradient so nothing round them lights up.
+ */
+export function shimmer(
     ctx: Ctx,
     lines: ReturnType<typeof layoutRich>,
     cx: number,
@@ -387,30 +401,47 @@ function shimmer(
     bar: number,
     cues: number,
     u: number,
+    look: (tag?: string) => Look,
 ): void {
     const since = t % bar;
     if (t > cues * bar + bar || since > 0.5) return;
+    const k = since / 0.5;
     let y = top;
     for (const line of lines) {
         const left = cx - line.width / 2;
+        const base = y + line.height * 0.8;
         for (const wd of line.words) {
             if (wd.tag !== "num") continue;
-            const k = since / 0.5;
+            const l = look(wd.tag);
             const gx = left + wd.x + (wd.w + 200 * u) * k - 100 * u;
             const g = ctx.createLinearGradient(gx - 60 * u, 0, gx + 60 * u, 0);
             g.addColorStop(0, "rgb(255 255 255 / 0)");
-            g.addColorStop(0.5, `rgb(255 250 230 / ${0.55 * (1 - k)})`);
+            g.addColorStop(0.5, `rgb(255 250 230 / ${0.75 * (1 - k)})`);
             g.addColorStop(1, "rgb(255 255 255 / 0)");
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
-            ctx.beginPath();
-            ctx.rect(left + wd.x, y, wd.w, line.height);
-            ctx.clip();
+            ctx.font = `${l.weight} ${wd.px}px "${l.family}"`;
+            ctx.letterSpacing = `${(l.track ?? 0) * wd.px}px`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
             ctx.fillStyle = g;
-            ctx.fillRect(left + wd.x, y, wd.w, line.height);
+            ctx.fillText(wd.text, left + wd.x, base);
+            ctx.letterSpacing = "0px";
             ctx.restore();
         }
         y += line.height * 1.08;
+    }
+}
+
+/**
+ * Two premiere searchlights from behind the carpet's far end, sweeping the sky over the facade the whole beat and
+ * standing straight up together for the drop.
+ */
+function searchlights(ctx: Ctx, w: number, horizon: number, u: number, t: number, riser: number): void {
+    for (const side of [-1, 1]) {
+        const x0 = w / 2 + side * w * 0.3;
+        const swing = Math.sin(t * 0.85 + (side > 0 ? Math.PI : 0)) * w * 0.42 * (1 - riser) + side * w * 0.06 * riser;
+        beam(ctx, x0, horizon, w / 2 + swing, -160 * u, 170 * u, 1.5 + riser);
     }
 }
 

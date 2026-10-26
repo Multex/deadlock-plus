@@ -1,11 +1,10 @@
 import { countUp } from "../../../kit/count";
-import { clamp01, easeInOut, easeOutCubic } from "../../../kit/ease";
+import { clamp01, easeOutCubic } from "../../../kit/ease";
 import { sceneFrame } from "../../../kit/frame";
 import type { Ctx } from "../../../kit/types";
 import type { SceneAssets, SceneSize } from "../../../scene";
 import type { CreditRow } from "../data";
 import { INK, dust, goldGradient } from "../draw";
-import { crowd } from "./award-paint";
 import {
     beam,
     blockHeight,
@@ -16,7 +15,6 @@ import {
     numberSpan,
     richMeasure,
     say,
-    seedOf,
     spotlight,
     vignette,
     type Look,
@@ -25,46 +23,51 @@ import {
     type Stage,
 } from "./stage";
 
-const GLIDE = 0.42;
+/** Content units a second the credits rise: a film's end-credit pace, the same from the first frame to the last. */
+export const ROLL_SPEED = 84;
+/** The fastest a roll may go and still be read on a phone. */
+export const ROLL_CAP = 120;
+/** Content units between two billings: room enough that only a few share the frame. */
+const GAP = 170;
+
+/** Which billing goes first when the beat cannot roll them all; the rest are dropped, not rushed. */
+const BILLING = ["starring", "matches", "featuring", "hours", "villain", "with", "days", "heroes"];
 
 /**
- * Which row is on the focus line at `t` (fractional mid-glide): row `floor(k)` gliding toward the next. Each row gets a whole number of beats, the
- * first held from frame 0, and every glide starts on a beat.
+ * The rows the roll has time for: the most important first (`priority[i]`, low is first) as long as, stacked `gap`
+ * apart in billing order, the last one's top stays within `budget` of the first's. The first billing always plays.
  */
-export function rollAt(t: number, span: number, beat: number, rows: number): number {
-    if (rows <= 1) return 0;
-    const step = stepSeconds(span, beat, rows);
-    const glide = Math.min(GLIDE, step * 0.7);
-    const i = Math.floor(t / step);
-    if (i >= rows - 1) return rows - 1;
-    const into = t - i * step - (step - glide);
-    return i + (into > 0 ? easeInOut(into / glide) : 0);
-}
-
-/** Seconds each row holds the focus line, glide included: a whole number of beats, the last row held at least one. */
-export function stepSeconds(span: number, beat: number, rows: number): number {
-    return Math.max(1, Math.floor((span - beat) / beat / Math.max(1, rows - 1) + 1e-9)) * beat;
-}
-
-/** When row `i` lands on the focus line. */
-export function arrival(i: number, span: number, beat: number, rows: number): number {
-    if (i <= 0 || rows <= 1) return 0;
-    return i * stepSeconds(span, beat, rows);
+export function pickRows(
+    heights: readonly number[],
+    priority: readonly number[],
+    budget: number,
+    gap: number,
+): number[] {
+    const order = heights.map((_, i) => i).sort((a, b) => priority[a]! - priority[b]! || a - b);
+    const lastTop = (rows: number[]) => rows.slice(0, -1).reduce((n, i) => n + heights[i]! + gap, 0);
+    let kept: number[] = [];
+    for (const i of order) {
+        const next = [...kept, i].sort((a, b) => a - b);
+        if (kept.length && lastTop(next) > budget) continue;
+        kept = next;
+    }
+    return kept;
 }
 
 interface Block {
     row: CreditRow;
-    label: string;
     lines: RichLine[];
-    /** The label's lines when it sits above the names (narrow frames). */
+    /** The label's lines: above the names, or left of them in 16:9. */
     labelLines: RichLine[];
     height: number;
     numberToken: string | null;
 }
 
+const slotOf = (row: CreditRow) => row.text.key.split(".").pop()!.replace(/_\d+$/, "");
+
 /**
- * The year's totals as end credits: the header holds while the cast rolls up a row per beat-step, each total
- * counting up as it reaches the light, names in large type under their billing.
+ * The year's totals as end credits: the header holds while the cast rolls up the frame at one slow, steady speed,
+ * a few billings at a time, each total counting up as it comes into view.
  */
 export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, data: Stage, assets: SceneAssets): void {
     const { w, h } = size;
@@ -72,13 +75,11 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     const tall = h > w * 1.2;
     const wide = w > h * 1.2;
     const fonts = assets.fonts;
-    const bar = assets.timing.barSeconds > 0 ? assets.timing.barSeconds : span / 4;
-    const beat = bar / 4;
 
     ctx.fillStyle = "#050403";
     ctx.fillRect(0, 0, w, h);
-    // A projector's beam through the haze, flickering like film.
-    beam(ctx, w / 2, -80 * u, w / 2, h, w * (tall ? 0.42 : 0.3), 0.32 * (0.85 + 0.15 * Math.sin(local * 37)));
+    // A projector's beam through the haze, flickering like film, lighting the whole height of the roll.
+    beam(ctx, w / 2, -80 * u, w / 2, h + 80 * u, w * (tall ? 0.5 : 0.32), 0.34 * (0.85 + 0.15 * Math.sin(local * 37)));
     dust(ctx, w, h, local + 7, u, 0.45, 0.2);
 
     const headPx = (tall ? 104 : 96) * u;
@@ -98,7 +99,7 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
     };
     const measure = richMeasure(ctx, look);
 
-    const blocks: Block[] = data.awards.credits.rows.map((row) => {
+    const all: Block[] = data.awards.credits.rows.map((row) => {
         const text = say(data, row.text);
         if (row.figure) {
             const at = numberSpan(text, row.figure.value);
@@ -112,68 +113,66 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
             const lines = layoutRich(runs, maxW, measure);
             return {
                 row,
-                label: "",
                 lines,
                 labelLines: [],
                 height: blockHeight(lines),
                 numberToken: at ? text.slice(at.start, at.end) : null,
             };
         }
-        const label = text.toLocaleUpperCase();
-        const names = row.names.flatMap((n, i) =>
-            layoutRich([{ text: n, px: namePx, tag: "name" }], colW, measure).map((l) => ({ l, i })),
-        );
-        const lines = names.map((n) => n.l);
-        const labelLines = layoutRich([{ text: label, px: labelPx, tag: "label" }], colW, measure);
+        const names = row.names.flatMap((n) => layoutRich([{ text: n, px: namePx, tag: "name" }], colW, measure));
+        const labelLines = layoutRich([{ text: text.toLocaleUpperCase(), px: labelPx, tag: "label" }], colW, measure);
         const height = wide
-            ? Math.max(blockHeight(lines, 1.02), blockHeight(labelLines))
-            : blockHeight(labelLines) + 14 * u + blockHeight(lines, 1.02);
-        return { row, label, lines, labelLines, height, numberToken: null };
+            ? Math.max(blockHeight(names, 1.02), blockHeight(labelLines))
+            : blockHeight(labelLines) + 14 * u + blockHeight(names, 1.02);
+        return { row, lines: names, labelLines, height, numberToken: null };
     });
 
     const header = say(data, data.awards.credits.title).toLocaleUpperCase();
     const headLines = layoutRich([{ text: header, px: headPx, tag: "head" }], maxW, measure);
     const headTop = tall ? safe.top + 10 * u : 50 * u;
     const headH = blockHeight(headLines);
-    const regionTop = headTop + headH + 60 * u;
-    // On a phone the credits rise from the foot of the frame, past the house, to a focus line in the safe band.
-    const regionBottom = h - 40 * u;
-    const focus = tall ? (regionTop + safe.bottom) / 2 : (regionTop + regionBottom) / 2;
+    const regionTop = headTop + headH + 40 * u;
+    const bandBottom = tall ? safe.bottom : h - 40 * u;
+    const fadeTop = 150 * u;
 
-    const gap = (tall ? 90 : 70) * u;
-    const centres: number[] = [];
-    let y = 0;
-    for (const b of blocks) {
-        centres.push(y + b.height / 2);
-        y += b.height + gap;
-    }
-    const k = rollAt(local, span, beat, blocks.length);
-    const k0 = Math.floor(k);
-    const k1 = Math.min(blocks.length - 1, k0 + 1);
-    const at = centres.length ? centres[k0] + (centres[k1] - centres[k0]) * (k - k0) : 0;
-    const shift = focus - at;
+    // Frame 0 joins the roll already running: the first billing just under the header's shadow.
+    const start = regionTop + fadeTop + 30 * u;
+    const rise = ROLL_SPEED * u * local;
+    const gap = GAP * u;
+    // Every billing that plays comes up into the frame before the beat ends; the roll is cut there, as a film's is.
+    const budget = h - 160 * u - start + ROLL_SPEED * u * span;
+    const keep = pickRows(
+        all.map((b) => b.height),
+        all.map((b) => {
+            const i = BILLING.indexOf(slotOf(b.row));
+            return i < 0 ? BILLING.length : i;
+        }),
+        budget,
+        gap,
+    );
+    const blocks = keep.map((i) => all[i]!);
 
-    spotlight(ctx, w / 2, focus, maxW * 0.7, (focus - regionTop) * 0.8, 0.55);
+    spotlight(ctx, w / 2, (regionTop + bandBottom) / 2, maxW * 0.7, (bandBottom - regionTop) * 0.5, 0.45);
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, regionTop - 20 * u, w, regionBottom - regionTop + 40 * u);
+    ctx.rect(0, regionTop, w, h - regionTop);
     ctx.clip();
-    blocks.forEach((b, i) => {
-        const cy = centres[i] + shift;
-        const top = cy - b.height / 2;
-        if (top > regionBottom + 20 * u || top + b.height < regionTop - 20 * u) return;
-        // Rows dim as they leave the light: full at the focus line, gone by the region's edge.
-        const reach = cy < focus ? focus - regionTop : regionBottom - focus;
-        const alpha = clamp01(1.15 - (Math.abs(cy - focus) / reach) ** 1.3 * 1.4);
-        if (alpha <= 0) return;
+    let y = start - rise;
+    for (const b of blocks) {
+        const top = y;
+        y += b.height + gap;
+        if (top > h || top + b.height < regionTop) continue;
+        // Billings fade out under the header and in at the frame's foot; everywhere else they are in full light.
+        const cy = top + b.height / 2;
+        const alpha = clamp01((cy - regionTop) / fadeTop) * clamp01((h - top) / (90 * u));
+        if (alpha <= 0) continue;
         ctx.globalAlpha = alpha;
         if (b.row.figure && b.numberToken) {
-            const land = arrival(i, span, beat, blocks.length);
-            // Counts from the moment the row starts its glide in, so no row ever sits on screen at zero.
-            const step = stepSeconds(span, beat, blocks.length);
-            const shown = i === 0 ? b.row.figure.value : countUp(b.row.figure.value, local, land - step, land + 0.1);
-            if (shown === 0) return;
+            // The total counts up from the moment its row comes up into the frame.
+            const enter = (top + rise - h) / (ROLL_SPEED * u);
+            const shown = countUp(b.row.figure.value, local, enter, enter + 1.4);
+            if (shown === 0) continue;
             const token = countedToken(b.numberToken, shown);
             const lines = b.lines.map((l) => ({
                 ...l,
@@ -194,18 +193,17 @@ export function draw(ctx: Ctx, local: number, span: number, size: SceneSize, dat
             const lh = drawRich(ctx, b.labelLines, w / 2, top, look);
             drawRich(ctx, b.lines, w / 2, top + lh + 14 * u, look, { leading: 1.02 });
         }
-    });
+    }
     ctx.restore();
     ctx.globalAlpha = 1;
 
-    if (tall) crowd({ ctx, w, h, u, t: local, seed: seedOf(`${data.awards.player ?? ""}|credits`), tall }, 0, false);
-
-    // The header: a gold rule draws out under it on frame 0's beat.
+    // The header: a gold rule draws out under it over the first half bar.
     drawRich(ctx, headLines, w / 2, headTop, look);
+    const beat = assets.timing.barSeconds > 0 ? assets.timing.barSeconds / 4 : span / 16;
     const rule = Math.min(maxW, 640 * u) * easeOutCubic(local / (beat * 2));
     ctx.fillStyle = goldGradient(ctx, w / 2 - rule / 2, 0, w / 2 + rule / 2, 0);
     ctx.fillRect(w / 2 - rule / 2, headTop + headH + 12 * u, rule, 4 * u);
 
-    vignette(ctx, w, h, 0.6);
+    vignette(ctx, w, h, 0.45);
     grain(ctx, w, h, local, u, 0.05);
 }

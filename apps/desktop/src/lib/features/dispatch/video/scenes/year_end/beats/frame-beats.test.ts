@@ -7,7 +7,7 @@ import { awardsPlan } from "../plan";
 import * as credits from "./credits";
 import * as end from "./end";
 import * as preshow from "./preshow";
-import { lineId, type Stage } from "./stage";
+import { layoutRich, lineId, type Stage } from "./stage";
 import * as welcome from "./welcome";
 
 const deps: AwardsDeps = {
@@ -108,29 +108,31 @@ describe("Awards Night frame beats", () => {
     });
 });
 
-describe("rollAt", () => {
-    it("holds the first row from frame 0, glides on beats, and ends on the last row", () => {
-        const beat = BAR / 4;
-        expect(credits.rollAt(0, 7, beat, 6)).toBe(0);
-        const step = credits.stepSeconds(7, beat, 6);
-        expect(step / beat).toBe(Math.round(step / beat));
-        expect(credits.rollAt(step, 7, beat, 6)).toBeCloseTo(1);
-        expect(credits.rollAt(step - 0.01, 7, beat, 6)).toBeGreaterThan(0.9);
-        expect(credits.rollAt(step * 0.3, 7, beat, 6)).toBe(0);
-        expect(credits.rollAt(6.99, 7, beat, 6)).toBe(5);
-        expect(credits.arrival(3, 7, beat, 6)).toBeCloseTo(step * 3);
-    });
-
-    it("spreads the roll over the whole beat instead of racing to a long hold", () => {
-        const beat = BAR / 4;
-        const span = 16 * beat;
-        expect(credits.arrival(7, span, beat, 8)).toBeGreaterThanOrEqual(span * 0.75);
-        expect(credits.arrival(7, span, beat, 8)).toBeLessThan(span);
-    });
-
-    it("never runs past the beat with a long cast", () => {
-        const beat = BAR / 4;
-        expect(credits.arrival(9, 5, beat, 10)).toBeLessThan(5);
+describe("shimmer", () => {
+    it("lights the number's own letters on a cue, never the box round them", () => {
+        const calls: string[] = [];
+        let op = "source-over";
+        const gradient = { addColorStop() {} };
+        const ctx = new Proxy({} as Record<string, unknown>, {
+            get: (t, k: string) => {
+                if (k in t) return t[k];
+                if (k === "createLinearGradient" || k === "createRadialGradient") return () => gradient;
+                if (k === "measureText") return (s: string) => ({ width: s.length * 50 });
+                if (k === "globalCompositeOperation") return op;
+                return (...args: unknown[]) => calls.push(`${op}:${k}:${typeof args[0] === "string" ? args[0] : ""}`);
+            },
+            set: (t, k: string, v) => {
+                if (k === "globalCompositeOperation") op = v;
+                else t[k] = v;
+                return true;
+            },
+        }) as unknown as Ctx;
+        const lines = layoutRich([{ text: "158", px: 236, tag: "num" }], 1000, (s, px) => s.length * px * 0.5);
+        const look = () => ({ family: "Retail Demo", weight: 700, fill: "#fff" });
+        preshow.shimmer(ctx, lines, 540, 600, BAR + 0.1, BAR, 3, 1, look);
+        const lit = calls.filter((c) => c.startsWith("lighter:"));
+        expect(lit).toContain("lighter:fillText:158");
+        expect(lit.some((c) => /fillRect|fill:|clip/.test(c))).toBe(false);
     });
 });
 

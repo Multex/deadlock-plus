@@ -58,6 +58,7 @@ export function giltFrame(ctx: Ctx, r: Rect, u: number): void {
 
 /** Hero of the Year: a gold proscenium, the statuette rising behind the title, gilt-framed portraits. */
 export const hero: Look = {
+    bleed: 18,
     light: "255 214 140",
     titleFill: (f, y0, y1) => goldGradient(f.ctx, 0, y0, 0, y1),
     room(f) {

@@ -6,7 +6,16 @@ import type { Ctx, Rect } from "../../../kit/types";
 import type { AwardId } from "../plan";
 import type { Nominee, YearEndAwards } from "../data";
 import { INK, dust, room } from "../draw";
-import { awardTimes, fitLines, nomineeSlots, seatOrder, winnerStand } from "./award-kit";
+import {
+    CAMERA_PUSH,
+    GUTTER,
+    awardTimes,
+    fitLines,
+    nomineeSlots,
+    revealRow,
+    seatOrder,
+    winnerStand,
+} from "./award-kit";
 import { apron, crowd, envelope, flashbulbs, glow, rgba, since, streamers, type F, type Look } from "./award-paint";
 import { breakthrough } from "./award-breakthrough";
 import { endurance } from "./award-endurance";
@@ -18,7 +27,14 @@ import { supporting } from "./award-supporting";
 import { villain } from "./award-villain";
 import { grain, say, seedOf, vignette, type Stage } from "./stage";
 
-export type AwardDraw = (ctx: Ctx, local: number, span: number, size: SceneSize, data: Stage, assets: SceneAssets) => void;
+export type AwardDraw = (
+    ctx: Ctx,
+    local: number,
+    span: number,
+    size: SceneSize,
+    data: Stage,
+    assets: SceneAssets,
+) => void;
 
 const LOOKS: Record<AwardId, Look> = {
     y_hero: hero,
@@ -38,7 +54,9 @@ const ART_AWARDS: readonly AwardId[] = ["y_hero", "y_performance", "y_breakthrou
  * the beaten face of the nominees who lose, and the player's own hero, battered by the villain or smug beside a
  * supporting player.
  */
-export function awardImages(night: YearEndAwards): { key: string; heroId: number; mood: "gloat" | "critical" | null }[] {
+export function awardImages(
+    night: YearEndAwards,
+): { key: string; heroId: number; mood: "gloat" | "critical" | null }[] {
     const out = new Map<string, { key: string; heroId: number; mood: "gloat" | "critical" | null }>();
     const add = (heroId: number | null | undefined, mood: "gloat" | "critical" | null) => {
         if (heroId === null || heroId === undefined) return;
@@ -102,6 +120,8 @@ export const AWARD_BEATS: Readonly<Record<AwardId, AwardDraw>> = Object.fromEntr
 
 interface Placed {
     r: Rect;
+    /** The card's seat before it moves or grows: its contents and label are laid out at this size, once. */
+    base: Rect;
     n: Nominee;
     index: number;
     landed: number;
@@ -116,13 +136,13 @@ function paint(f: F, look: Look): void {
     const env = clamp01(since(f, at.envelope) / 0.3) * (1 - rv);
 
     look.room(f);
-    dust(ctx, f.w, f.h, f.t + f.seed % 7, u, 0.45, toSpot > 0 ? 0.6 : 0);
+    dust(ctx, f.w, f.h, f.t + (f.seed % 7), u, 0.45, toSpot > 0 ? 0.6 : 0);
 
     // The camera drifts in through the nominees, leans into the envelope and kicks on the winner.
     const placed = place(f, look, rv);
     const row = placed[0] ? placed[0].r.y + placed[0].r.h / 2 : f.h / 2;
     const kick = toSpot >= 0 ? (lead ? 0.05 : 0.025) * Math.exp(-toSpot / 0.22) : 0;
-    const zoom = 1 + 0.025 * (f.t / f.span) + 0.04 * easeInOut(env) + kick;
+    const zoom = 1 + (CAMERA_PUSH - 0.04) * (f.t / f.span) + 0.04 * easeInOut(env) + kick;
     const [sx, sy] = shake(since(f, at.reveal), 7 * u, f.seed % 11);
     ctx.save();
     ctx.translate(f.w / 2 + sx, row + sy);
@@ -137,7 +157,12 @@ function paint(f: F, look: Look): void {
         if (p.alpha <= 0) continue;
         ctx.save();
         ctx.globalAlpha = p.alpha;
-        look.card(f, p.r, p.n, { winner: p.index === 0, landed: p.landed, revealed: rv, index: p.index });
+        // Drawn at its seat's size and scaled, so the card's own text never re-wraps as it lands or grows.
+        const k = p.r.w / p.base.w;
+        ctx.translate(p.r.x + p.r.w / 2, p.r.y + p.r.h / 2);
+        ctx.scale(k, k);
+        const r = { x: -p.base.w / 2, y: -p.base.h / 2, w: p.base.w, h: p.base.h };
+        look.card(f, r, p.n, { winner: p.index === 0, landed: p.landed, revealed: rv, index: p.index });
         ctx.restore();
     }
     if (winner && toSpot >= 0) look.stamp?.(f, winner.r, toSpot);
@@ -147,7 +172,11 @@ function paint(f: F, look: Look): void {
 
     // Outside the camera, so the header never drifts out of the safe band.
     title(f, look);
-    caption(f, say(f.stage, award.ceremony.nominees), clamp01(since(f, at.title) / 0.2) * (1 - clamp01(since(f, at.envelope) / 0.2)));
+    caption(
+        f,
+        say(f.stage, award.ceremony.nominees),
+        clamp01(since(f, at.title) / 0.2) * (1 - clamp01(since(f, at.envelope) / 0.2)),
+    );
     if (f.tall) apron(f, look.light, toSpot >= 0 ? rv : 0);
     crowd(f, toSpot >= 0 ? easeOutCubic(clamp01(toSpot / 0.4)) * (lead ? 1 : 0.45) : 0, lead);
     flashbulbs(f, at.spot, lead ? 30 : 8);
@@ -171,7 +200,8 @@ const WIDE_WINNER_X = 0.32;
 /** Where each card stands: dropped in on its cue, then the winner to the middle and the rest back into the dark. */
 function place(f: F, look: Look, rv: number): Placed[] {
     const n = f.award.nominees.length;
-    const slots = nomineeSlots(n, f, rowDrop(f));
+    const bleed = look.bleed ?? 0;
+    const slots = nomineeSlots(n, f, rowDrop(f), bleed);
     const seats = seatOrder(n, `${f.award.id}:${f.seed}`);
     // On a phone the winner grows to fill the band down to the acceptance line, its words under it.
     const stand = f.tall
@@ -183,29 +213,31 @@ function place(f: F, look: Look, rv: number): Placed[] {
               WINNER_CAP,
           )
         : null;
+    const grow = stand ? stand.scale : f.wide ? 1.3 : 1.14;
+    const standX = f.wide ? f.w * WIDE_WINNER_X : f.w / 2;
+    const to = revealRow(slots, seats.indexOf(0), standX, grow, LOSER_SCALE, GUTTER(f) * f.u, bleed * f.u);
     return seats.map((index, seat) => {
         const base = slots[seat]!;
         const landed = since(f, f.at.nominees[seat]!);
         const k = clamp01(landed / 0.32);
         const enter = look.rise
             ? { dy: (1 - easeOutCubic(k)) * 260 * f.u, s: 1 }
-            : { dy: -(1 - easeOutCubic(k)) * 140 * f.u, s: lerp(1.18, 1, easeOutBack(k)) };
+            : { dy: -(1 - easeOutCubic(k)) * 140 * f.u, s: lerp(1.06, 1, easeOutBack(k)) };
         const win = index === 0;
-        const cx0 = base.x + base.w / 2;
-        const standX = f.wide ? f.w * WIDE_WINNER_X : f.w / 2;
-        const aside = (f.tall ? 110 : 70) * f.u * rv;
-        const cx = win ? lerp(cx0, standX, rv) : cx0 + Math.sign(cx0 - f.w / 2 || (index === 1 ? -1 : 1)) * aside;
-        const grow = stand ? stand.scale : f.wide ? 1.3 : 1.14;
-        const s = enter.s * (win ? lerp(1, grow, rv) : lerp(1, 0.84, rv));
+        const cx = lerp(base.x + base.w / 2, to[seat]!, rv);
+        const s = enter.s * (win ? lerp(1, grow, rv) : lerp(1, LOSER_SCALE, rv));
         const w = base.w * s;
         const h = base.h * s;
         const seatCy = base.y + base.h / 2;
         const winCy = stand ? stand.top + (base.h * stand.scale) / 2 : seatCy - 14 * f.u;
         const cy = enter.dy + (win ? lerp(seatCy, winCy, rv) : seatCy + 30 * f.u * rv);
         const alpha = clamp01(landed / 0.12) * (win ? 1 : 1 - (f.wide ? 0.94 : 0.68) * rv);
-        return { r: { x: cx - w / 2, y: cy - h / 2, w, h }, n: f.award.nominees[index]!, index, landed, alpha };
+        return { r: { x: cx - w / 2, y: cy - h / 2, w, h }, base, n: f.award.nominees[index]!, index, landed, alpha };
     });
 }
+
+/** How far the losing cards shrink as they step back. */
+const LOSER_SCALE = 0.84;
 
 /** Two beams roam the nominees, close in on the envelope, then one finds the winner and stays. */
 function lights(f: F, look: Look, placed: Placed[], env: number, rv: number): void {
@@ -223,7 +255,8 @@ function lights(f: F, look: Look, placed: Placed[], env: number, rv: number): vo
         const a = (0.55 + 0.45 * env) * (i === 1 ? 1 - rv : 1) * clamp01(f.t / 0.25);
         cone(ctx, lerp(src, center, rv * 0.6), top, x, floor, (130 + 40 * rv) * u, look.light, a * (1 + 0.6 * rv));
     }
-    if (since(f, at.spot) >= 0) glow(ctx, winner.x + winner.w / 2, winner.y + winner.h * 0.45, winner.w * 1.2, look.light, 0.28 * rv);
+    if (since(f, at.spot) >= 0)
+        glow(ctx, winner.x + winner.w / 2, winner.y + winner.h * 0.45, winner.w * 1.2, look.light, 0.28 * rv);
 }
 
 function cone(ctx: Ctx, x0: number, y0: number, x1: number, y1: number, r: number, rgb: string, a: number): void {
@@ -261,25 +294,47 @@ function measurer(ctx: Ctx, family: string, weight: number, track = 0) {
     };
 }
 
+type Fill = string | CanvasGradient | ((top: number, bottom: number) => string | CanvasGradient);
+
+/**
+ * `str` fitted at `o.px` and drawn centred on (`x`, `y`), grown by `scale` about that point. The breaks come from
+ * `o.px` alone, so an animated `scale` never moves a word to another line. Returns the block's height at `o.px`.
+ */
 function lines(
     f: F,
     str: string,
     x: number,
     y: number,
-    o: { family: string; weight: number; px: number; floor: number; maxW: number; maxLines?: number; track?: number; fill: string | CanvasGradient; leading?: number; italic?: boolean },
+    o: {
+        family: string;
+        weight: number;
+        px: number;
+        floor: number;
+        maxW: number;
+        maxLines?: number;
+        track?: number;
+        fill: Fill;
+        leading?: number;
+        italic?: boolean;
+    },
+    scale = 1,
 ): number {
     const { ctx } = f;
     const fit = fitLines(measurer(ctx, o.family, o.weight, o.track), str, o.px, o.floor, o.maxW, o.maxLines ?? 2);
+    const lh = fit.px * (o.leading ?? 1.08);
+    const top = -((fit.lines.length - 1) * lh) / 2;
+    const trail = ((o.track ?? 0) * fit.px) / 2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
     ctx.font = `${o.italic ? "italic " : ""}${o.weight} ${fit.px}px "${o.family}"`;
     ctx.letterSpacing = `${(o.track ?? 0) * fit.px}px`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = o.fill;
-    const lh = fit.px * (o.leading ?? 1.08);
-    const top = y - ((fit.lines.length - 1) * lh) / 2;
-    const trail = ((o.track ?? 0) * fit.px) / 2;
-    fit.lines.forEach((l, i) => ctx.fillText(l, x + trail, top + i * lh));
+    ctx.fillStyle = typeof o.fill === "function" ? o.fill(top - fit.px / 2, -top + fit.px / 2) : o.fill;
+    fit.lines.forEach((l, i) => ctx.fillText(l, trail, top + i * lh));
     ctx.letterSpacing = "0px";
+    ctx.restore();
     return fit.lines.length * lh;
 }
 
@@ -288,10 +343,20 @@ const TRACK = 0.02;
 const BIG = 148;
 const HEAD = 100;
 
-function headerLines(f: F): number {
-    const maxW = f.wide ? f.w - 160 * f.u : Math.min(f.w - 100 * f.u, 1500 * f.u);
+function headerMaxW(f: F): number {
+    return f.wide ? f.w - 160 * f.u : Math.min(f.w - 100 * f.u, 1500 * f.u);
+}
+
+/** The header set at its resting size: the breaks every frame of the beat keeps. */
+function headerFit(f: F) {
+    const measure = measurer(f.ctx, f.fonts.display, 700, TRACK);
     const text = say(f.stage, f.award.title).toLocaleUpperCase();
-    return fitLines(measurer(f.ctx, f.fonts.display, 700, TRACK), text, HEAD * f.u, 96 * f.u, maxW).lines.length;
+    const fit = fitLines(measure, text, HEAD * f.u, 96 * f.u, headerMaxW(f));
+    return { text, fit, widest: Math.max(1, ...fit.lines.map((l) => measure(l, fit.px))) };
+}
+
+function headerLines(f: F): number {
+    return headerFit(f).fit.lines.length;
 }
 
 /** The header's centre once it has risen: its last line sits on the same baseline however many lines it takes. */
@@ -309,34 +374,45 @@ function rowDrop(f: F): number {
     return Math.max(0, headerLines(f) - 2) * HEAD;
 }
 
-/** The category title: it holds the frame over its set piece, then rises to head the nominees. */
+/**
+ * The category title: it holds the frame over its set piece, then rises to head the nominees. Its breaks are the
+ * resting header's; the title card is that same block, scaled up as far as the frame's width allows.
+ */
 function title(f: F, look: Look): void {
     const { ctx, u, box, at } = f;
-    const text = say(f.stage, f.award.title).toLocaleUpperCase();
+    const { text, fit, widest } = headerFit(f);
     const k = at.title > 0 ? f.t / at.title : 1;
     const cy0 = box.y + box.h * 0.44;
-    const maxW = f.wide ? f.w - 160 * u : Math.min(f.w - 100 * u, 1500 * u);
     const cy1 = headerCentre(f);
     const move = easeInOut(clamp01((f.t - at.title * 0.75) / Math.max(0.2, at.title * 0.5)));
     const cy = lerp(cy0, cy1, move);
     f.headBottom = headerBottom(f);
     look.title(f, k, f.w / 2, cy0);
     const land = easeOutBack(clamp01(f.t / 0.22), 2.2);
-    const px = lerp(BIG, HEAD, move) * u * lerp(1.3, 1, land);
+    const big = Math.max(1, Math.min(BIG / HEAD, (f.w - 80 * u) / widest));
+    const scale = Math.min(lerp(big, 1, move) * lerp(1.3, 1, land), Math.max(1, (f.w - 24 * u) / widest));
     ctx.save();
     ctx.globalAlpha = clamp01(f.t / 0.1) * (look.flicker ? look.flicker(f) : 1);
     ctx.shadowColor = rgba(look.light, 0.55);
     ctx.shadowBlur = 30 * u * (1 - move * 0.6);
-    lines(f, text, f.w / 2, cy, {
-        family: f.fonts.display,
-        weight: 700,
-        px,
-        floor: 96 * u,
-        maxW,
-        track: TRACK,
-        leading: 1,
-        fill: look.titleFill(f, cy - px / 2, cy + px / 2),
-    });
+    lines(
+        f,
+        text,
+        f.w / 2,
+        cy,
+        {
+            family: f.fonts.display,
+            weight: 700,
+            px: fit.px,
+            floor: fit.px,
+            maxW: headerMaxW(f),
+            maxLines: fit.lines.length,
+            track: TRACK,
+            leading: 1,
+            fill: (y0, y1) => look.titleFill(f, y0, y1),
+        },
+        scale,
+    );
     ctx.restore();
 }
 
@@ -361,11 +437,12 @@ function caption(f: F, text: string, a: number): void {
 function labels(f: F, look: Look, placed: Placed[]): void {
     const { u } = f;
     const out = clamp01(since(f, f.at.envelope) / 0.2);
-    const gap = placed.length > 1 ? placed[1]!.r.x - (placed[0]!.r.x + placed[0]!.r.w) : 0;
+    const seats = [...placed].sort((a, b) => a.base.x - b.base.x);
+    const gap = seats.length > 1 ? seats[1]!.base.x - (seats[0]!.base.x + seats[0]!.base.w) : 0;
     for (const p of placed) {
         const a = clamp01((p.landed - 0.08) / 0.2) * (1 - out);
         if (a <= 0) continue;
-        const maxW = p.r.w + gap * 0.8;
+        const maxW = p.base.w + gap * 0.8;
         const cx = p.r.x + p.r.w / 2;
         let y = p.r.y + p.r.h + 22 * u;
         f.ctx.save();
@@ -416,7 +493,16 @@ function ceremony(f: F, placed: Placed[]): void {
     const tear = since(f, at.reveal);
     const a1 = clamp01(out / 0.15) * (1 - clamp01(tear / 0.08));
     const a2 = tear >= 0 ? clamp01(tear / 0.08) * (1 - clamp01(toSpot / 0.1)) : 0;
-    const style = { family: f.fonts.body, weight: 600, px: 54 * u, floor: 44 * u, maxW: Math.min(f.w - 120 * u, 1200 * u), maxLines: 1, fill: INK.cream, italic: true };
+    const style = {
+        family: f.fonts.body,
+        weight: 600,
+        px: 54 * u,
+        floor: 44 * u,
+        maxW: Math.min(f.w - 120 * u, 1200 * u),
+        maxLines: 1,
+        fill: INK.cream,
+        italic: true,
+    };
     if (a1 > 0) {
         ctx.save();
         ctx.globalAlpha = a1;
@@ -427,7 +513,7 @@ function ceremony(f: F, placed: Placed[]): void {
         ctx.save();
         ctx.globalAlpha = a2;
         const punch = 1 + 0.12 * Math.exp(-Math.max(0, tear) / 0.12);
-        lines(f, say(f.stage, f.award.ceremony.goesTo), f.w / 2, capY, { ...style, px: 60 * u * punch, fill: INK.gold });
+        lines(f, say(f.stage, f.award.ceremony.goesTo), f.w / 2, capY, { ...style, px: 60 * u, fill: INK.gold }, punch);
         ctx.restore();
     }
 }
@@ -447,7 +533,7 @@ function acceptStyle(f: F, side: boolean) {
     return {
         family: f.fonts.body,
         weight: 600,
-        px: (f.tall ? 54 : 50) * f.u,
+        px: (f.tall ? 54 : f.wide ? 66 : 58) * f.u,
         floor: 44 * f.u,
         maxW: side ? f.w * 0.4 : Math.min(f.w - 140 * f.u, 980 * f.u),
         maxLines: 3,
@@ -497,21 +583,28 @@ function winnerText(f: F, look: Look, winner: Placed | undefined): void {
     const dt = side ? toSpot - 0.25 : toSpot;
     if (dt < 0) return;
     const land = easeOutBack(clamp01(dt / 0.25), 2);
-    const px = NAME_PX * u * lerp(1.35, 1, land);
+    const px = NAME_PX * u;
     const maxW = side ? f.w * 0.42 : layout ? layout.nameMaxW : Math.min(f.w - 100 * u, 1400 * u);
     ctx.save();
     ctx.globalAlpha = clamp01(dt / 0.08);
     ctx.shadowColor = rgba(look.light, 0.7);
     ctx.shadowBlur = 36 * u;
-    const h = lines(f, name, x, y, {
-        family: f.fonts.display,
-        weight: 700,
-        px,
-        floor: 96 * u,
-        maxW,
-        track: 0.02,
-        fill: look.titleFill(f, y - px / 2, y + px / 2),
-    });
+    const h = lines(
+        f,
+        name,
+        x,
+        y,
+        {
+            family: f.fonts.display,
+            weight: 700,
+            px,
+            floor: 96 * u,
+            maxW,
+            track: 0.02,
+            fill: (y0, y1) => look.titleFill(f, y0, y1),
+        },
+        lerp(1.35, 1, land),
+    );
     ctx.restore();
 
     const toAccept = since(f, at.accept);
