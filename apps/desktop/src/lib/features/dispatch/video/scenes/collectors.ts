@@ -16,7 +16,7 @@ import {
     recordText,
     renderCover,
 } from "./collectors/cover";
-import { fill, type CollectorsSceneData } from "./collectors/data";
+import { fill, type CollectorsSceneData } from "./collectors/legacy-data";
 import { INK, drawContained, fit, foilText, font, roundRect, type Fonts } from "./collectors/paint";
 import {
     climbTiming,
@@ -32,7 +32,7 @@ import {
     slideIn,
     stamp,
     type SegmentId,
-} from "./collectors/plan";
+} from "./collectors/legacy-plan";
 
 /** The tear's own clock runs six beats at 155 BPM; the video plays it beat for beat at any tempo. */
 const TEAR_BEATS = 6;

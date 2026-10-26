@@ -1,15 +1,5 @@
-import type { CollectorsSceneData } from "./data";
-import {
-    INK,
-    badgeFallback,
-    drawContained,
-    fit,
-    foilText,
-    font,
-    rainbowAcross,
-    roundRect,
-    type Fonts,
-} from "./paint";
+import type { CollectorsSceneData } from "./legacy-data";
+import { INK, badgeFallback, drawContained, fit, foilText, font, rainbowAcross, roundRect, type Fonts } from "./paint";
 import type { Ctx } from "../../kit/types";
 
 /** The printed cover's own frame, as `cover.svelte` lays it out. */

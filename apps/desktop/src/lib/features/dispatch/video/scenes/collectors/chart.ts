@@ -1,7 +1,7 @@
-import { climbAt, type CollectorsSceneData, type SceneChart } from "./data";
+import { climbAt, type CollectorsSceneData, type SceneChart } from "./legacy-data";
 import { INK, drawContained, fit, font, roundRect, starPath, type Fonts } from "./paint";
 import type { Ctx } from "../../kit/types";
-import { punch } from "./plan";
+import { punch } from "./legacy-plan";
 
 export interface Region {
     x: number;

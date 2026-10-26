@@ -1,211 +1,268 @@
-import { easeOutBack, easeOutCubic } from "../../kit/ease";
+import { badgeParts } from "@deadlock-plus/stats/rank";
+import type { Signal, SignalId } from "@deadlock-plus/stats/dispatch/signals";
+import type { Edition } from "@deadlock-plus/stats/dispatch/types";
+import { climbSteps, topHeroes } from "../../../kinds/collectors/model";
+import type { Beat } from "../../beats";
 
-export type SegmentId = "sealed" | "tear" | "cover" | "climb" | "record" | "heroes" | "certificate" | "end";
+export type CardBeatId = "c_grind" | "c_main" | "c_pull" | "c_insert" | "c_climb";
+export type CollectorsBeatId = "c_pack" | "c_tear" | CardBeatId | "c_chase" | "c_slab" | "c_fan";
 
-export interface Segment {
-    id: SegmentId;
-    /** In bars from the start of the video. */
-    start: number;
-    bars: number;
-}
-
-/**
- * Story order with each segment's bars at the postgame track's 26 bars, and the fewest it can play in. The season
- * peak has no shot of its own: the cover's star and the climb's peak callout both name it.
- */
-const STORY: { id: SegmentId; bars: number; min: number }[] = [
-    { id: "sealed", bars: 2, min: 1 },
-    { id: "tear", bars: 1, min: 1 },
-    { id: "cover", bars: 3, min: 2 },
-    { id: "climb", bars: 7, min: 5 },
-    { id: "record", bars: 4, min: 3 },
-    { id: "heroes", bars: 4, min: 3 },
-    { id: "certificate", bars: 3, min: 2 },
-    { id: "end", bars: 2, min: 1 },
+/** Every beat the Pack Opening can play, in story order (the cards between `c_tear` and `c_chase` reorder). */
+export const COLLECTORS_BEAT_IDS: readonly CollectorsBeatId[] = [
+    "c_pack",
+    "c_tear",
+    "c_grind",
+    "c_main",
+    "c_pull",
+    "c_insert",
+    "c_climb",
+    "c_chase",
+    "c_slab",
+    "c_fan",
 ];
 
-export const BASE_BARS = STORY.reduce((n, s) => n + s.bars, 0);
+/**
+ * Signals a pull card (and the insert) can carry. Left out: mates and enemies (mate-stats and enemy-stats have
+ * no mode filter, so a ranked-only Copy cannot claim them), the single best game and month swings (other kinds
+ * own those), climb and slide (the climb card's), one_trick (the Main card's), vs_last and dry_spell (too thin).
+ */
+export const PULL_FACES = [
+    "streak",
+    "losing_then_winning",
+    "bounce_back",
+    "marathon",
+    "mvp",
+    "explorer",
+    "debut",
+    "night_owl",
+    "grinder",
+    "weekender",
+    "winning",
+    "losing",
+] as const satisfies readonly SignalId[];
+export type PullFace = (typeof PULL_FACES)[number];
 
-/** A longer track's spare bars go round this list; a short one takes bars back in the other. */
-const GROW: SegmentId[] = ["climb", "record", "heroes", "cover", "certificate", "end", "sealed"];
-const SHRINK: SegmentId[] = ["sealed", "cover", "record", "heroes", "certificate", "end", "climb"];
+/** What the chase card can be. `peak` and `main` also stand in when no signal is chase-worthy. */
+export const CHASE_FACES = [
+    "peak",
+    "bounce_back",
+    "streak",
+    "losing_then_winning",
+    "main",
+    "explorer",
+    "mvp",
+    "winning",
+] as const;
+export type ChaseFace = (typeof CHASE_FACES)[number];
 
-export function collectorsPlan(bars: number, has: { chart: boolean; heroes: boolean }): Segment[] {
-    const kept = STORY.filter((s) => (s.id !== "climb" || has.chart) && (s.id !== "heroes" || has.heroes));
-    const size = new Map(kept.map((s) => [s.id, s.bars]));
-    let total = kept.reduce((n, s) => n + s.bars, 0);
-    const grow = GROW.filter((id) => size.has(id));
-    for (let i = 0; total < bars; i++, total++) {
-        const id = grow[i % grow.length];
-        size.set(id, size.get(id)! + 1);
+/** Chase-worthy signals and the face each one gets. A slide or a losing season is never the chase. */
+const CHASE_OF: Partial<Record<SignalId, ChaseFace>> = {
+    climb: "peak",
+    bounce_back: "bounce_back",
+    streak: "streak",
+    losing_then_winning: "losing_then_winning",
+    one_trick: "main",
+    explorer: "explorer",
+    mvp: "mvp",
+    winning: "winning",
+};
+
+/** A second card-worthy signal this strong earns an insert card. */
+export const INSERT_MIN = 0.6;
+
+export interface CardSlot {
+    beat: CardBeatId;
+    /** Orders the deal, weakest first: a signal's strength, or a small number from the card's own stat. */
+    strength: number;
+    signal?: SignalId;
+    /** Pull and insert cards: which signal face they show. */
+    face?: PullFace;
+}
+
+export interface Casting {
+    /** Dealt in this order, before the chase. */
+    cards: CardSlot[];
+    chase: { face: ChaseFace; signal?: SignalId } | null;
+}
+
+/** False when a face would put a 0 on screen; that pull is skipped for the next signal. */
+function usable(s: Signal): boolean {
+    if (s.id === "losing") return s.facts.wins > 0;
+    if (s.id === "winning") return s.facts.wins > 0;
+    if (s.id === "night_owl") return s.facts.share > 0;
+    return true;
+}
+
+const PULLABLE = new Set<SignalId>(PULL_FACES);
+
+/**
+ * Which cards the pack holds and which signal each one spends. The chase takes the strongest chase-worthy
+ * signal (the lead); the climb card then takes climb or slide, the Main card one_trick, the pull the strongest
+ * signal left, and an insert the next one when it is strong. A card with no data is not dealt.
+ */
+export function castCards(edition: Edition, signals: readonly Signal[]): Casting {
+    const spent = new Set<SignalId>();
+    const take = (s: Signal | undefined) => {
+        if (s) spent.add(s.id);
+        return s;
+    };
+    const free = (pred: (s: Signal) => boolean) => signals.find((s) => !spent.has(s.id) && pred(s));
+
+    const top = topHeroes(edition.heroes, 1)[0];
+    const hasHero = !!top && top.games > 0;
+    const steps = climbSteps(edition.rank);
+    const peakOk = edition.rank !== null && badgeParts(edition.rank.peakBadge) !== null && (steps ?? 0) >= 0;
+
+    const lead = take(free((s) => CHASE_OF[s.id] !== undefined && usable(s) && (s.id !== "one_trick" || hasHero)));
+    let chase: Casting["chase"] = null;
+    if (lead) chase = { face: CHASE_OF[lead.id]!, signal: lead.id };
+    else if (peakOk) chase = { face: "peak" };
+    else if (hasHero) chase = { face: "main" };
+
+    const cards: CardSlot[] = [{ beat: "c_grind", strength: 0.1 + Math.min(0.3, edition.stats.matches / 400) }];
+    if (hasHero && chase?.face !== "main") {
+        const trick = take(free((s) => s.id === "one_trick"));
+        cards.push(
+            trick
+                ? { beat: "c_main", strength: trick.strength, signal: trick.id }
+                : { beat: "c_main", strength: 0.5 * (top.games / Math.max(1, edition.stats.matches)) },
+        );
     }
-    for (let pass = true; total > bars && pass;) {
-        pass = false;
-        for (const id of SHRINK) {
-            const s = kept.find((x) => x.id === id);
-            if (!s || total <= bars || size.get(id)! <= s.min) continue;
-            size.set(id, size.get(id)! - 1);
-            total--;
-            pass = true;
+    if (edition.rank !== null) {
+        const move = take(free((s) => s.id === "climb" || s.id === "slide"));
+        cards.push(
+            move
+                ? { beat: "c_climb", strength: move.strength, signal: move.id }
+                : { beat: "c_climb", strength: Math.min(0.45, 0.2 + 0.05 * Math.abs(steps ?? 0)) },
+        );
+    }
+    const pull = take(free((s) => PULLABLE.has(s.id) && usable(s)));
+    if (pull) {
+        cards.push({ beat: "c_pull", strength: pull.strength, signal: pull.id, face: pull.id as PullFace });
+        const insert = take(free((s) => PULLABLE.has(s.id) && usable(s) && s.strength >= INSERT_MIN));
+        if (insert) {
+            cards.push({ beat: "c_insert", strength: insert.strength, signal: insert.id, face: insert.id as PullFace });
         }
     }
-    let start = 0;
-    return kept.map((s) => {
-        const segment = { id: s.id, start, bars: size.get(s.id)! };
-        start += segment.bars;
-        return segment;
-    });
+    cards.sort(
+        (a, b) => a.strength - b.strength || COLLECTORS_BEAT_IDS.indexOf(a.beat) - COLLECTORS_BEAT_IDS.indexOf(b.beat),
+    );
+    return { cards, chase };
 }
 
-/** The segment playing at `bar`, and how many bars into it; past either end it holds the first or last. */
-export function segmentAt(plan: Segment[], bar: number): { segment: Segment; local: number } {
-    const segment = plan.find((s) => bar < s.start + s.bars) ?? plan[plan.length - 1];
-    return { segment, local: Math.max(0, bar - segment.start) };
+interface Size {
+    base: number;
+    min: number;
+    max: number;
 }
 
-/** Bars into the climb segment: the line draws from `from` to `to` and reaches the peak on the bar line `peak`. */
-export interface ClimbTiming {
-    from: number;
-    peak: number;
-    to: number;
-}
+const CARD: Size = { base: 3, min: 2, max: 4 };
+const SIZES: Record<Exclude<CollectorsBeatId, CardBeatId>, Size> = {
+    c_pack: { base: 2, min: 1, max: 3 },
+    c_tear: { base: 1, min: 1, max: 2 },
+    c_chase: { base: 5, min: 3, max: 7 },
+    c_slab: { base: 3, min: 2, max: 4 },
+    c_fan: { base: 3, min: 2, max: 4 },
+};
+const sizeOf = (id: CollectorsBeatId): Size => (id in SIZES ? SIZES[id as keyof typeof SIZES] : CARD);
 
-/** The headline gets the first half bar; the finished chart and its summary line hold the last bar and a half. */
-export function climbTiming(bars: number, peakIndex: number, total: number): ClimbTiming {
-    const from = 0.5;
-    const to = bars - 1.5;
-    const share = total > 0 ? (peakIndex + 1) / total : 1;
-    const peak = Math.min(Math.floor(to), Math.max(Math.ceil(from), Math.round(from + (to - from) * share)));
-    return { from, peak, to };
-}
-
-/** Matches drawn so far, as a fraction: whole at the peak's bar line, so the star lands on it. */
-export function drawnMatches(bar: number, c: ClimbTiming, peakIndex: number, total: number): number {
-    const atPeak = peakIndex + 1;
-    if (bar <= c.from) return 0;
-    if (bar < c.peak) return (atPeak * (bar - c.from)) / (c.peak - c.from);
-    if (bar >= c.to || c.to <= c.peak) return total;
-    return atPeak + ((total - atPeak) * (bar - c.peak)) / (c.to - c.peak);
-}
-
-/** A snappier overshoot than the default, for stamps and pops on the beat. */
-export const outBack = (p: number) => easeOutBack(p, 1.9);
-
-/** A count-up's shown value at progress `p`: fast at first, easing onto the exact value. */
-export function countUp(value: number, p: number): number {
-    return Math.round(value * easeOutCubic(p));
+function presents(slot: CardSlot | null, id: CollectorsBeatId, casting: Casting): string[] {
+    switch (id) {
+        case "c_pack":
+            return ["matches:pack_hook", "season:pack"];
+        case "c_tear":
+            return ["serial:card_back"];
+        case "c_grind":
+            return ["matches:grind_card", "record:grind_card", "months:card_bars"];
+        case "c_main":
+            return ["heroes:main_card"];
+        case "c_climb":
+            return ["rank:climb_card"];
+        case "c_pull":
+            return [`${slot!.face}:pull_card`];
+        case "c_insert":
+            return [`${slot!.face}:insert_card`];
+        case "c_chase":
+            return [`${casting.chase!.face}:chase_card`];
+        case "c_slab":
+            return ["season:slab", "serial:slab"];
+        case "c_fan":
+            return ["cards:fan"];
+    }
 }
 
 /**
- * Beats into the record shot where the record has counted up, the win rate has counted up after it, and the
- * best streak and match count land. Fixed for a shot of four bars or more, so the rest of it holds the finished
- * numbers to read; a shorter shot squeezes them in proportion.
+ * The Pack Opening on the bar grid: pack, tear, the cards weakest first, the chase, the slab and the fan.
+ * A dropped card frees its bars; spare bars grow the chase first, then the strongest cards; a short track
+ * takes them back from the pack and the outro first. Always fills `bars` exactly.
  */
-export function recordCues(length: number): { record: number; rate: number; row: number } {
-    const k = Math.min(1, length / 16);
-    return { record: 4 * k, rate: 6 * k, row: 7 * k };
-}
+export function collectorsPlan(casting: Casting, bars: number): Beat<CollectorsBeatId>[] {
+    const slots: { id: CollectorsBeatId; slot: CardSlot | null }[] = [
+        { id: "c_pack", slot: null },
+        { id: "c_tear", slot: null },
+        ...casting.cards.map((c) => ({ id: c.beat, slot: c })),
+        ...(casting.chase ? [{ id: "c_chase" as const, slot: null }] : []),
+        { id: "c_slab", slot: null },
+        { id: "c_fan", slot: null },
+    ];
+    const size = new Map(slots.map((s) => [s.id, sizeOf(s.id).base]));
+    let total = [...size.values()].reduce((a, b) => a + b, 0);
 
-/** Beats a hero card takes to slide in. */
-export const HERO_SLIDE_BEATS = 1;
-
-/** The beat hero `i` lands on: two apart when the shot has room to read each one, closer in a short shot. */
-export function heroCue(i: number, length: number): number {
-    return 1 + i * (length >= 12 ? 2 : length >= 8 ? 1 : 0.5);
-}
-
-/** How long, in beats, a stamp falls before it hits. */
-const STAMP_LEAD = 0.25;
-const STAMP_FROM = 2.4;
-const STAMP_SQUASH = 0.06;
-
-/** A stamp `beats` from its hit: it falls from big to its own size and lands on the hit, then squashes once. */
-export function stamp(beats: number): { scale: number; alpha: number } {
-    if (beats < -STAMP_LEAD) return { scale: 0, alpha: 0 };
-    if (beats < 0) {
-        const p = (beats + STAMP_LEAD) / STAMP_LEAD;
-        return { scale: STAMP_FROM - (STAMP_FROM - 1) * p * p, alpha: Math.min(1, p * 1.6) };
+    const strongest = [...casting.cards].reverse().map((c) => c.beat);
+    const grow: CollectorsBeatId[] = [
+        ...(casting.chase ? (["c_chase"] as const) : []),
+        ...strongest,
+        "c_slab",
+        "c_fan",
+        "c_pack",
+        "c_tear",
+    ];
+    const shrink: CollectorsBeatId[] = [
+        "c_pack",
+        "c_fan",
+        "c_slab",
+        ...casting.cards.map((c) => c.beat),
+        ...(casting.chase ? (["c_chase"] as const) : []),
+    ];
+    for (let capped = true; total < bars;) {
+        let moved = false;
+        for (const id of grow) {
+            if (total >= bars) break;
+            if (capped && size.get(id)! >= sizeOf(id).max) continue;
+            size.set(id, size.get(id)! + 1);
+            total++;
+            moved = true;
+        }
+        if (!moved) capped = false;
     }
-    if (beats < 0.5) return { scale: 1 - STAMP_SQUASH * Math.sin((Math.PI * beats) / 0.5), alpha: 1 };
-    return { scale: 1, alpha: 1 };
-}
+    for (let moved = true; total > bars && moved;) {
+        moved = false;
+        for (const id of shrink) {
+            if (total <= bars) break;
+            if (size.get(id)! <= sizeOf(id).min) continue;
+            size.set(id, size.get(id)! - 1);
+            total--;
+            moved = true;
+        }
+    }
 
-const PUNCH_FROM = 1.3;
-const PUNCH_BEATS = 0.4;
-
-/** A punch `beats` after its hit: already there and big on the hit frame, settling within the beat. */
-export function punch(beats: number): { scale: number; alpha: number } {
-    if (beats < 0) return { scale: 0, alpha: 0 };
-    return { scale: 1 + (PUNCH_FROM - 1) * (1 - easeOutCubic(beats / PUNCH_BEATS)), alpha: 1 };
-}
-
-const SLIDE_BEATS = 0.5;
-
-/** How far off its place a slide is, 1 to 0, `beats` from the beat it lands on. */
-export function slideIn(beats: number, over = SLIDE_BEATS): number {
-    return 1 - easeOutCubic((beats + over) / over);
-}
-
-/** How long a fleck flies, at most. */
-export const BURST_LIFE_MS = 1100;
-/** The rip crosses the bag in this long (`tear.ts`: 64% of its 900 ms track). */
-const RIP_MS = 576;
-const BAG_W = 780;
-const TEAR_Y = 72;
-const GRAVITY = 700;
-const FLECKS = 72;
-
-export interface BurstFleck {
-    x0: number;
-    x: number;
-    y: number;
-    rotate: number;
-    w: number;
-    h: number;
-    alpha: number;
-    /** 0 is clear film; above 0.6 the fleck catches the foil's rainbow at that hue. */
-    tint: number;
-}
-
-const BURST = (() => {
-    let a = 0x9e3779b9;
-    const rnd = () => {
-        a = (a + 0x6d2b79f5) >>> 0;
-        let t = Math.imul(a ^ (a >>> 15), a | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-    return Array.from({ length: FLECKS }, () => {
-        const x0 = rnd() * BAG_W;
-        return {
-            x0,
-            delay: (x0 / BAG_W) * RIP_MS,
-            life: BURST_LIFE_MS * (0.65 + 0.35 * rnd()),
-            vx: -40 + rnd() * 220,
-            vy: -(150 + rnd() * 380),
-            spin: (rnd() - 0.5) * 900,
-            w: 4 + rnd() * 8,
-            h: 2 + rnd() * 3,
-            tint: rnd(),
+    let bar = 0;
+    return slots.map(({ id, slot }) => {
+        const signal = id === "c_chase" ? casting.chase!.signal : (slot?.signal ?? undefined);
+        const beat: Beat<CollectorsBeatId> = {
+            id,
+            kind: "collectors",
+            bar,
+            bars: size.get(id)!,
+            presents: presents(slot, id, casting),
+            ...(signal ? { signal } : {}),
         };
+        bar += beat.bars;
+        return beat;
     });
-})();
+}
 
-/** Plastic chips thrown off the tear line, `ms` after the rip starts at the bag's left edge. */
-export function burstAt(ms: number): BurstFleck[] {
-    return BURST.map((f) => {
-        const s = (ms - f.delay) / 1000;
-        const alive = s >= 0 && s * 1000 < f.life;
-        const life = alive ? (s * 1000) / f.life : 1;
-        return {
-            x0: f.x0,
-            x: f.x0 + f.vx * Math.max(0, s),
-            y: TEAR_Y + f.vy * Math.max(0, s) + 0.5 * GRAVITY * Math.max(0, s) ** 2,
-            rotate: f.spin * Math.max(0, s),
-            w: f.w,
-            h: f.h,
-            alpha: alive ? 1 - life * life : 0,
-            tint: f.tint,
-        };
-    });
+/** Bars into the chase card where it flips: after the dim and the tremble, with at least two bars of holo left. */
+export function chaseFlipBar(bars: number): number {
+    return Math.max(1, Math.min(3, bars - 3));
 }

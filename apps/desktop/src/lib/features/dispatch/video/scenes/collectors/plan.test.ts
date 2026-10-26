@@ -1,234 +1,162 @@
 import { describe, expect, it } from "vitest";
-import {
-    BASE_BARS,
-    burstAt,
-    BURST_LIFE_MS,
-    climbTiming,
-    collectorsPlan,
-    countUp,
-    drawnMatches,
-    outBack,
-    punch,
-    slideIn,
-    segmentAt,
-    stamp,
-    heroCue,
-    HERO_SLIDE_BEATS,
-    recordCues,
-    type SegmentId,
-} from "./plan";
-import { MUSIC_TRACKS } from "../../music";
-import { videoTimeline } from "../../timeline";
+import { PERSONAS, personaEdition } from "@deadlock-plus/stats/dispatch/personas.fixture";
+import { editionSignals, type Signal } from "@deadlock-plus/stats/dispatch/signals";
+import type { Edition } from "@deadlock-plus/stats/dispatch/types";
+import { CHASE_FACES, COLLECTORS_BEAT_IDS, castCards, chaseFlipBar, collectorsPlan, type Casting } from "./plan";
 
-const ids = (plan: { id: SegmentId }[]) => plan.map((s) => s.id);
-const ALL = { chart: true, heroes: true };
-const DATA: SegmentId[] = ["cover", "climb", "record", "heroes", "certificate"];
+const TRACK_BARS = [26, 27, 29];
 
-describe("Collector's Copy video plan", () => {
-    it("tells the story in order and fills the 26 bars of the postgame track exactly", () => {
-        const plan = collectorsPlan(26, ALL);
-        expect(plan.map((s) => [s.id, s.bars])).toEqual([
-            ["sealed", 2],
-            ["tear", 1],
-            ["cover", 3],
-            ["climb", 7],
-            ["record", 4],
-            ["heroes", 4],
-            ["certificate", 3],
-            ["end", 2],
-        ]);
-        expect(BASE_BARS).toBe(26);
-    });
+const persona = (p: (typeof PERSONAS)[number]) => personaEdition(p, "collectors");
+const cast = (e: Edition): Casting => castCards(e, editionSignals(e));
+const order = (e: Edition, bars = 26) => collectorsPlan(cast(e), bars).map((b) => b.id);
 
-    it("holds every data shot for at least 4 s on every track", () => {
-        for (const track of MUSIC_TRACKS) {
-            const { bars, barSeconds } = videoTimeline(track);
-            for (const s of collectorsPlan(bars, ALL)) {
-                if (DATA.includes(s.id)) expect(s.bars * barSeconds, `${track.id} ${s.id}`).toBeGreaterThanOrEqual(4);
+describe("collectorsPlan", () => {
+    it("fills every track's bars exactly, back to back from bar 0", () => {
+        for (const p of PERSONAS) {
+            for (const bars of TRACK_BARS) {
+                const plan = collectorsPlan(cast(persona(p)), bars);
+                expect(plan.reduce((n, b) => n + b.bars, 0)).toBe(bars);
+                let at = 0;
+                for (const beat of plan) {
+                    expect(beat.bar).toBe(at);
+                    expect(beat.bars).toBeGreaterThanOrEqual(1);
+                    at += beat.bars;
+                }
             }
         }
     });
 
-    it("starts every segment on a whole bar, right after the one before", () => {
-        for (const bars of [22, 26, 27, 29]) {
-            const plan = collectorsPlan(bars, ALL);
-            let at = 0;
-            for (const s of plan) {
-                expect(Number.isInteger(s.start)).toBe(true);
-                expect(s.start).toBe(at);
-                expect(s.bars).toBeGreaterThanOrEqual(1);
-                at += s.bars;
+    it("still fills the track when most beats drop", () => {
+        const bare: Edition = { ...persona("P2"), heroes: [], rank: null, rankSeries: undefined, tape: undefined };
+        for (const bars of TRACK_BARS) {
+            const plan = collectorsPlan(castCards(bare, []), bars);
+            expect(plan.reduce((n, b) => n + b.bars, 0)).toBe(bars);
+            expect(plan.map((b) => b.id)).toEqual(["c_pack", "c_tear", "c_grind", "c_slab", "c_fan"]);
+        }
+    });
+
+    it("opens the pack, deals the cards weakest first, then the chase, the slab and the fan", () => {
+        for (const p of PERSONAS) {
+            const ids = order(persona(p));
+            expect(ids.slice(0, 2)).toEqual(["c_pack", "c_tear"]);
+            expect(ids.slice(-3)).toEqual(["c_chase", "c_slab", "c_fan"]);
+            const casting = cast(persona(p));
+            const strengths = casting.cards.map((c) => c.strength);
+            expect(strengths).toEqual([...strengths].sort((a, b) => a - b));
+        }
+    });
+
+    it("gives the three personas three different beat orders", () => {
+        const orders = PERSONAS.map((p) => order(persona(p)).join(" "));
+        expect(new Set(orders).size).toBe(3);
+    });
+
+    it("prefixes every beat id with c_ and names it in the beat list", () => {
+        for (const p of PERSONAS) {
+            for (const beat of collectorsPlan(cast(persona(p)), 26)) {
+                expect(beat.id.startsWith("c_")).toBe(true);
+                expect(COLLECTORS_BEAT_IDS).toContain(beat.id);
+                expect(beat.kind).toBe("collectors");
+                expect(beat.presents.length).toBeGreaterThan(0);
             }
-            expect(at).toBe(bars);
-        }
-    });
-
-    it("gives a longer track's extra bars to the climb first, then the record, then the heroes", () => {
-        const base = Object.fromEntries(collectorsPlan(26, ALL).map((s) => [s.id, s.bars]));
-        const long = Object.fromEntries(collectorsPlan(29, ALL).map((s) => [s.id, s.bars]));
-        expect(long.climb).toBe(base.climb + 1);
-        expect(long.record).toBe(base.record + 1);
-        expect(long.heroes).toBe(base.heroes + 1);
-        expect(long.sealed).toBe(base.sealed);
-        expect(long.end).toBe(base.end);
-    });
-
-    it("drops the climb without a chart and the heroes without any, giving their bars away", () => {
-        const plan = collectorsPlan(26, { chart: false, heroes: false });
-        expect(ids(plan)).not.toContain("climb");
-        expect(ids(plan)).not.toContain("heroes");
-        expect(plan.reduce((n, s) => n + s.bars, 0)).toBe(26);
-    });
-
-    it("shrinks the quiet segments first when a track is short", () => {
-        const plan = Object.fromEntries(collectorsPlan(22, ALL).map((s) => [s.id, s.bars]));
-        expect(plan.sealed).toBe(1);
-        expect(plan.climb).toBeGreaterThanOrEqual(6);
-    });
-
-    it("finds the segment and the time into it for a bar position", () => {
-        const plan = collectorsPlan(26, ALL);
-        expect(segmentAt(plan, 0)).toMatchObject({ segment: { id: "sealed" }, local: 0 });
-        expect(segmentAt(plan, 2.5)).toMatchObject({ segment: { id: "tear" }, local: 0.5 });
-        expect(segmentAt(plan, 25.99).segment.id).toBe("end");
-        expect(segmentAt(plan, 99).segment.id).toBe("end");
-        expect(segmentAt(plan, -1).segment.id).toBe("sealed");
-    });
-});
-
-describe("Collector's Copy climb timing", () => {
-    it("lands the star on a bar line inside the draw", () => {
-        for (const [index, total] of [
-            [104, 114],
-            [0, 114],
-            [113, 114],
-            [5, 6],
-            [40, 80],
-        ]) {
-            const c = climbTiming(7, index, total);
-            expect(Number.isInteger(c.peak)).toBe(true);
-            expect(c.peak).toBeGreaterThan(c.from);
-            expect(c.peak).toBeLessThanOrEqual(c.to);
-        }
-    });
-
-    it("draws over all but the last bar and a half, which holds the finished chart to read", () => {
-        expect(climbTiming(7, 104, 114)).toMatchObject({ from: 0.5, to: 5.5 });
-        expect(climbTiming(8, 104, 114).to).toBe(6.5);
-    });
-
-    it("places the bar line where the peak falls in the season, as near as whole bars allow", () => {
-        expect(climbTiming(7, 104, 114).peak).toBe(5);
-        expect(climbTiming(7, 20, 114).peak).toBe(1);
-        expect(climbTiming(8, 50, 114).peak).toBe(3);
-    });
-
-    it("has drawn exactly the matches up to the peak on that bar line, and all of them at the end", () => {
-        const c = climbTiming(7, 60, 114);
-        const at = (bar: number) => drawnMatches(bar, c, 60, 114);
-        expect(at(c.from - 0.1)).toBe(0);
-        expect(at(c.from)).toBe(0);
-        expect(at(c.peak)).toBe(61);
-        expect(at(c.to)).toBe(114);
-        expect(at(c.to + 1)).toBe(114);
-        expect(at((c.from + c.peak) / 2)).toBeGreaterThan(0);
-        expect(at((c.from + c.peak) / 2)).toBeLessThan(61);
-    });
-
-    it("never draws backwards", () => {
-        const c = climbTiming(7, 30, 114);
-        let last = -1;
-        for (let bar = 0; bar <= 7; bar += 0.01) {
-            const n = drawnMatches(bar, c, 30, 114);
-            expect(n).toBeGreaterThanOrEqual(last);
-            last = n;
         }
     });
 });
 
-describe("Collector's Copy record and heroes pacing", () => {
-    it("counts the record over four beats, then the win rate over two, then the small row, in a four-bar shot", () => {
-        expect(recordCues(16)).toEqual({ record: 4, rate: 6, row: 7 });
+describe("castCards", () => {
+    it("makes the strongest chase-worthy signal the chase card", () => {
+        expect(cast(persona("P1")).chase).toEqual({ face: "peak", signal: "climb" });
+        expect(cast(persona("P2")).chase).toEqual({ face: "explorer", signal: "explorer" });
+        expect(cast(persona("P3")).chase).toEqual({ face: "losing_then_winning", signal: "losing_then_winning" });
     });
 
-    it("leaves at least half of a long record shot to read the finished numbers", () => {
-        for (const length of [12, 16, 20]) expect(recordCues(length).row).toBeLessThanOrEqual(length / 2);
+    it("follows the lead when a different signal is strongest", () => {
+        const hot = { ...persona("P1"), longestWin: 12 };
+        const signals = editionSignals(hot);
+        expect(signals[0].id).toBe("streak");
+        expect(castCards(hot, signals).chase).toEqual({ face: "streak", signal: "streak" });
     });
 
-    it("squeezes the record's cues into a short shot", () => {
-        expect(recordCues(8)).toEqual({ record: 2, rate: 3, row: 3.5 });
+    it("never spends a signal twice", () => {
+        for (const p of PERSONAS) {
+            const plan = collectorsPlan(cast(persona(p)), 26);
+            const spent = plan.flatMap((b) => (b.signal ? [b.signal] : []));
+            expect(new Set(spent).size).toBe(spent.length);
+        }
     });
 
-    it("brings the heroes in two beats apart when the shot has room, and slides each in over a beat", () => {
-        expect([0, 1, 2].map((i) => heroCue(i, 16))).toEqual([1, 3, 5]);
-        expect([0, 1, 2].map((i) => heroCue(i, 8))).toEqual([1, 2, 3]);
-        expect(HERO_SLIDE_BEATS).toBe(1);
+    it("never claims mates, enemies, a single game or another kind's months", () => {
+        // P3 has a duo and a nemesis; a Collector's Copy is ranked only and mate-stats has no mode filter.
+        for (const p of PERSONAS) {
+            const plan = collectorsPlan(cast(persona(p)), 26);
+            for (const beat of plan) expect(["duo", "nemesis", "big_game", "swing_month"]).not.toContain(beat.signal);
+        }
+    });
+
+    it("drops the Main card when the chase is the one-trick", () => {
+        const trick: Edition = {
+            ...persona("P1"),
+            heroes: [{ heroId: 12, games: 21, wins: 15, playtimeS: 40000 }],
+            longestWin: 3,
+            rank: null,
+        };
+        const casting = castCards(trick, editionSignals(trick));
+        expect(casting.chase).toEqual({ face: "main", signal: "one_trick" });
+        expect(casting.cards.map((c) => c.beat)).not.toContain("c_main");
+    });
+
+    it("never deals a peak chase on a slide", () => {
+        const slid: Edition = {
+            ...persona("P2"),
+            heroes: persona("P2").heroes.slice(0, 3),
+            newHeroes: [],
+            rank: { startBadge: 46, endBadge: 32, peakBadge: 46, delta: -14 },
+        };
+        const signals = editionSignals(slid).filter((s) => s.id !== "night_owl");
+        expect(signals.map((s) => s.id)).toContain("slide");
+        const casting = castCards(slid, signals);
+        expect(casting.chase?.face).not.toBe("peak");
+        const climb = casting.cards.find((c) => c.beat === "c_climb");
+        expect(climb?.signal).toBe("slide");
+    });
+
+    it("drops the climb card without a rank and the main card without heroes", () => {
+        const e: Edition = { ...persona("P3"), rank: null, heroes: [] };
+        const beats = cast(e).cards.map((c) => c.beat);
+        expect(beats).not.toContain("c_climb");
+        expect(beats).not.toContain("c_main");
+    });
+
+    it("adds an insert only for a second strong card-worthy signal", () => {
+        expect(cast(persona("P1")).cards.map((c) => c.beat)).toContain("c_insert");
+        expect(cast(persona("P2")).cards.map((c) => c.beat)).not.toContain("c_insert");
+        expect(cast(persona("P3")).cards.map((c) => c.beat)).not.toContain("c_insert");
+    });
+
+    it("skips a pull whose number would read 0", () => {
+        const signal: Signal = {
+            id: "losing",
+            strength: 1,
+            facts: { wins: 0, losses: 12, winrate: 0 },
+        };
+        const casting = castCards(persona("P2"), [signal]);
+        expect(casting.cards.map((c) => c.beat)).not.toContain("c_pull");
+    });
+
+    it("only deals chase faces it has copy for", () => {
+        for (const p of PERSONAS) {
+            const face = cast(persona(p)).chase?.face;
+            if (face) expect(CHASE_FACES).toContain(face);
+        }
     });
 });
 
-describe("Collector's Copy count-ups and stamps", () => {
-    it("counts from zero to the value, whole numbers, landing on it exactly", () => {
-        expect(countUp(66, 0)).toBe(0);
-        expect(countUp(66, 1)).toBe(66);
-        expect(countUp(66, 2)).toBe(66);
-        expect(countUp(66, -1)).toBe(0);
-        const mid = countUp(66, 0.5);
-        expect(Number.isInteger(mid)).toBe(true);
-        expect(mid).toBeGreaterThan(33);
-        expect(mid).toBeLessThan(66);
-    });
-
-    it("overshoots on the way in and rests at one", () => {
-        expect(outBack(0)).toBe(0);
-        expect(outBack(1)).toBeCloseTo(1, 10);
-        expect(Math.max(...Array.from({ length: 99 }, (_, i) => outBack((i + 1) / 100)))).toBeGreaterThan(1);
-    });
-
-    it("stamps down from big to its own size, landing on the hit", () => {
-        expect(stamp(-0.5)).toEqual({ scale: 0, alpha: 0 });
-        const hit = stamp(0);
-        expect(hit.alpha).toBe(1);
-        expect(hit.scale).toBe(1);
-        expect(stamp(-0.1).scale).toBeGreaterThan(1.5);
-        expect(stamp(-0.1).alpha).toBeGreaterThan(0);
-        expect(stamp(2).scale).toBe(1);
-    });
-
-    it("punches in big on the hit itself and settles to its own size within the beat", () => {
-        expect(punch(-0.01)).toEqual({ scale: 0, alpha: 0 });
-        expect(punch(0).alpha).toBe(1);
-        expect(punch(0).scale).toBeGreaterThan(1.2);
-        expect(punch(0.2).scale).toBeLessThan(punch(0).scale);
-        expect(punch(1)).toEqual({ scale: 1, alpha: 1 });
-    });
-
-    it("lands a slide on its beat: off to the side before, home on the beat", () => {
-        expect(slideIn(-1)).toBe(1);
-        expect(slideIn(-0.5)).toBe(1);
-        expect(slideIn(-0.25)).toBeGreaterThan(0);
-        expect(slideIn(-0.25)).toBeLessThan(1);
-        expect(slideIn(0)).toBe(0);
-        expect(slideIn(3)).toBe(0);
-    });
-});
-
-describe("Collector's Copy tear burst", () => {
-    it("throws the same flecks every time", () => {
-        expect(burstAt(400)).toEqual(burstAt(400));
-    });
-
-    it("throws each fleck as the rip passes it, and none before the rip starts", () => {
-        expect(burstAt(-1).filter((f) => f.alpha > 0)).toHaveLength(0);
-        const early = burstAt(60).filter((f) => f.alpha > 0);
-        expect(early.length).toBeGreaterThan(0);
-        expect(Math.max(...early.map((f) => f.x0))).toBeLessThan(260);
-        expect(burstAt(700).filter((f) => f.alpha > 0).length).toBeGreaterThan(early.length);
-    });
-
-    it("flies up off the tear line and is gone once its life is over", () => {
-        const mid = burstAt(300).filter((f) => f.alpha > 0);
-        expect(mid.length).toBeGreaterThan(0);
-        expect(mid.every((f) => f.y < 72)).toBe(true);
-        expect(burstAt(700 + BURST_LIFE_MS).filter((f) => f.alpha > 0)).toHaveLength(0);
+describe("chaseFlipBar", () => {
+    it("flips after the build and holds the holo at least two bars", () => {
+        for (let bars = 3; bars <= 8; bars++) {
+            const flip = chaseFlipBar(bars);
+            expect(flip).toBeGreaterThanOrEqual(1);
+            expect(bars - flip).toBeGreaterThanOrEqual(2);
+        }
     });
 });
