@@ -450,7 +450,11 @@ const HEROES = [
         id: 1,
         class_name: "hero_inferno",
         name: "Infernus",
-        images: { background_image_webp: `${RES}/images/heroes/backgrounds/infernus_bg.webp` },
+        images: {
+            background_image_webp: `${RES}/images/heroes/backgrounds/infernus_bg.webp`,
+            hero_card_gloat_webp: `${RES}/images/heroes/inferno_card_gloat.webp`,
+            hero_card_critical_webp: `${RES}/images/heroes/inferno_card_critical.webp`,
+        },
         items: { weapon_primary: "citadel_weapon_inferno_set", weapon_melee: "ability_melee_inferno" },
         starting_stats: {
             max_move_speed: { value: 6.7, display_stat_name: "EMaxMoveSpeed" },
@@ -807,6 +811,18 @@ describe("build editor game data from the default scenario", () => {
         expect(await handle.invoke("game_hero_backdrop", { heroId: 999 })).toBeNull();
     });
 
+    it("gives a hero's mood card as the API's copy, null for a hero without one or an unknown hero", async () => {
+        const handle = start();
+        expect(await handle.invoke("game_hero_mood", { heroId: 1, mood: "gloat" })).toBe(
+            `${RES}/images/heroes/inferno_card_gloat.webp`,
+        );
+        expect(await handle.invoke("game_hero_mood", { heroId: 1, mood: "critical" })).toBe(
+            `${RES}/images/heroes/inferno_card_critical.webp`,
+        );
+        expect(await handle.invoke("game_hero_mood", { heroId: 2, mood: "gloat" })).toBeNull();
+        expect(await handle.invoke("game_hero_mood", { heroId: 999, mood: "critical" })).toBeNull();
+    });
+
     it("gives the game's English UI strings for English, and none for another language", async () => {
         const handle = start();
         const english = (await handle.invoke("game_ui_strings", { locale: "en" })) as Record<string, string>;
@@ -830,5 +846,6 @@ describe("build editor game data from the default scenario", () => {
         expect(await handle.invoke("game_property_icon_art", {})).toEqual([]);
         expect(await handle.invoke("game_hero_stats", { heroId: 1 })).toBeNull();
         expect(await handle.invoke("game_hero_backdrop", { heroId: 1 })).toBeNull();
+        expect(await handle.invoke("game_hero_mood", { heroId: 1, mood: "gloat" })).toBeNull();
     });
 });

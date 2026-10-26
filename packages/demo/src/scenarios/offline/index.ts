@@ -45,6 +45,7 @@ function withoutGameData(module: Module): Module {
         game_accolades: none,
         game_hero_art: none,
         game_hero_backdrop: () => null,
+        game_hero_mood: () => null,
         game_minimap_icons: none,
         game_minimap_art: () => NO_MINIMAP,
     };

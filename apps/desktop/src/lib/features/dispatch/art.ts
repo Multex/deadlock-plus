@@ -29,34 +29,65 @@ export async function heroBackdrop(heroId: number): Promise<string | null> {
     }
 }
 
-/** The asset rows carry more images than the shared `AssetHero` type lists; only the backdrop is read here. */
-interface BackdropRow {
+/** The asset rows carry more images than the shared `AssetHero` type lists; only these are read here. */
+interface ArtRow {
     id: number;
-    images?: { background_image_webp?: string | null; background_image?: string | null };
+    images?: {
+        background_image_webp?: string | null;
+        background_image?: string | null;
+        hero_card_gloat_webp?: string | null;
+        hero_card_gloat?: string | null;
+        hero_card_critical_webp?: string | null;
+        hero_card_critical?: string | null;
+    };
 }
 
-let apiBackdrops: Promise<Map<number, string>> | null = null;
+let apiRows: Promise<Map<number, ArtRow["images"]>> | null = null;
+
+function apiImages(heroId: number): Promise<ArtRow["images"] | undefined> {
+    apiRows ??= deadlockApi
+        .heroes()
+        .then((rows) => new Map((rows as ArtRow[]).map((row) => [row.id, row.images])))
+        .catch(() => {
+            apiRows = null;
+            return new Map<number, ArtRow["images"]>();
+        });
+    return apiRows.then((map) => map.get(heroId));
+}
 
 /** The API's copy of the backdrop collage (4096x2312), for when the game's files cannot be read. */
-function apiBackdrop(heroId: number): Promise<string | null> {
-    apiBackdrops ??= deadlockApi
-        .heroes()
-        .then((rows) => {
-            const map = new Map<number, string>();
-            for (const row of rows as BackdropRow[]) {
-                const url = row.images?.background_image_webp ?? row.images?.background_image;
-                if (url) map.set(row.id, url);
-            }
-            return map;
-        })
-        .catch(() => {
-            apiBackdrops = null;
-            return new Map<number, string>();
-        });
-    return apiBackdrops.then((map) => map.get(heroId) ?? null);
+async function apiBackdrop(heroId: number): Promise<string | null> {
+    const images = await apiImages(heroId);
+    return images?.background_image_webp ?? images?.background_image ?? null;
 }
 
 /** The backdrop for a cover: the game's own when its files can be read, else the API's. */
 export async function coverBackdrop(heroId: number): Promise<string | null> {
     return (await heroBackdrop(heroId)) ?? apiBackdrop(heroId);
+}
+
+/** `gloat` is the hero smug, for wins and awards; `critical` is the hero battered, for slumps. */
+export type HeroMood = "gloat" | "critical";
+
+async function gameMood(heroId: number, mood: HeroMood): Promise<string | null> {
+    try {
+        const path = await command<string | null>("game_hero_mood", { heroId, mood });
+        return path ? fileSrc(path) : null;
+    } catch {
+        return null;
+    }
+}
+
+async function apiMood(heroId: number, mood: HeroMood): Promise<string | null> {
+    const images = await apiImages(heroId);
+    if (mood === "gloat") return images?.hero_card_gloat_webp ?? images?.hero_card_gloat ?? null;
+    return images?.hero_card_critical_webp ?? images?.hero_card_critical ?? null;
+}
+
+/**
+ * The hero's card in a mood: the same 280x380 transparent cutout as the portrait, with the face changed. The
+ * game's own when its files can be read, else the API's, else the plain portrait. Null only when there is no art.
+ */
+export async function heroMood(heroId: number, mood: HeroMood): Promise<string | null> {
+    return (await gameMood(heroId, mood)) ?? (await apiMood(heroId, mood)) ?? heroPortrait(heroId);
 }

@@ -20,9 +20,14 @@ pub enum HeroImage {
     Sm,
     Card,
     Mm,
+    /// The card with the hero smug, as the game shows it after a win.
+    CardGloat,
+    /// The card with the hero battered, as the game shows it at low health.
+    CardCritical,
 }
 
 impl HeroImage {
+    /// The images `hero_art` serves, in its field order. The mood cards are fetched one by one instead.
     const ALL: [HeroImage; 3] = [HeroImage::Sm, HeroImage::Card, HeroImage::Mm];
 
     fn suffix(self) -> &'static str {
@@ -30,6 +35,8 @@ impl HeroImage {
             HeroImage::Sm => "sm",
             HeroImage::Card => "card",
             HeroImage::Mm => "mm",
+            HeroImage::CardGloat => "card_gloat",
+            HeroImage::CardCritical => "card_critical",
         }
     }
 }
@@ -722,6 +729,8 @@ impl ArtSource for ArchiveSource {
             HeroImage::Sm => HeroArtKind::Sm,
             HeroImage::Card => HeroArtKind::Card,
             HeroImage::Mm => HeroArtKind::Mm,
+            HeroImage::CardGloat => HeroArtKind::CardGloat,
+            HeroImage::CardCritical => HeroArtKind::CardCritical,
         };
         self.write(&Art::hero(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
     }
@@ -996,23 +1005,22 @@ impl<I: Install> ArtCache<I> {
                 if !file_safe(&hero.class_name) {
                     continue;
                 }
-                let mut entry = HeroArt { id: hero.id, sm: None, card: None, mm: None };
-                for image in HeroImage::ALL {
-                    let name = format!("{}_{}.png", hero.class_name, image.suffix());
-                    let found = self.ensure(build, build_dir, name, |s, p| s.write_hero(&hero.class_name, image, p));
-                    match image {
-                        HeroImage::Sm => entry.sm = found,
-                        HeroImage::Card => entry.card = found,
-                        HeroImage::Mm => entry.mm = found,
-                    }
-                }
-                if entry.sm.is_some() || entry.card.is_some() || entry.mm.is_some() {
-                    out.push(entry);
+                let [sm, card, mm] = HeroImage::ALL.map(|image| self.ensure_hero(build, build_dir, hero, image));
+                if sm.is_some() || card.is_some() || mm.is_some() {
+                    out.push(HeroArt { id: hero.id, sm, card, mm });
                 }
             }
             out
         })
         .unwrap_or_default()
+    }
+
+    /// One hero image, decoded on the first ask. `None` when the hero has none or the game cannot be read.
+    pub fn hero_image(&self, hero: &HeroEntry, image: HeroImage) -> Option<String> {
+        if !file_safe(&hero.class_name) {
+            return None;
+        }
+        self.with_build(|build, build_dir| self.ensure_hero(build, build_dir, hero, image)).flatten()
     }
 
     /// The hero's backdrop: a half-size PNG of the game's 4096x2312 hero-coloured silhouette, decoded on the
@@ -1297,6 +1305,11 @@ impl<I: Install> ArtCache<I> {
             }
         }
         out
+    }
+
+    fn ensure_hero(&self, build: &mut Build, build_dir: &Path, hero: &HeroEntry, image: HeroImage) -> Option<String> {
+        let name = format!("{}_{}.png", hero.class_name, image.suffix());
+        self.ensure(build, build_dir, name, |s, p| s.write_hero(&hero.class_name, image, p))
     }
 
     fn ensure(
@@ -1611,6 +1624,39 @@ mod tests {
         let rig = Rig::new("backdrop-unsafe", &[]);
         assert_eq!(rig.cache().hero_backdrop(&hero(1, "../hero_inferno")), None);
         assert_eq!(rig.opens.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn a_mood_card_is_decoded_once_into_its_own_file() {
+        let rig = Rig::new("mood", &[]);
+        let cache = rig.cache();
+        let inferno = hero(1, "hero_inferno");
+        let gloat = PathBuf::from(cache.hero_image(&inferno, HeroImage::CardGloat).unwrap());
+        let critical = PathBuf::from(cache.hero_image(&inferno, HeroImage::CardCritical).unwrap());
+        assert_eq!(gloat.file_name().unwrap(), "hero_inferno_card_gloat.png");
+        assert_eq!(critical.file_name().unwrap(), "hero_inferno_card_critical.png");
+        assert!(gloat.is_file() && gloat.starts_with(&rig.root));
+        assert!(critical.is_file() && critical.starts_with(&rig.root));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+        assert_eq!(cache.hero_image(&inferno, HeroImage::CardGloat), Some(gloat.to_string_lossy().into_owned()));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn hero_art_never_decodes_the_mood_cards() {
+        let rig = Rig::new("mood-lazy", &[]);
+        let art = rig.cache().hero_art(&[hero(1, "hero_inferno")]);
+        let card = PathBuf::from(art[0].card.as_ref().unwrap());
+        assert!(!card.with_file_name("hero_inferno_card_gloat.png").exists());
+        assert!(!card.with_file_name("hero_inferno_card_critical.png").exists());
+    }
+
+    #[test]
+    fn a_hero_without_a_mood_card_has_none() {
+        let rig = Rig::new("mood-missing", &["hero_vindicta"]);
+        let cache = rig.cache();
+        assert_eq!(cache.hero_image(&hero(2, "hero_vindicta"), HeroImage::CardCritical), None);
+        assert_eq!(cache.hero_image(&hero(1, "../hero_inferno"), HeroImage::CardGloat), None);
     }
 
     #[test]
@@ -2901,6 +2947,50 @@ mod tests {
         if std::env::var_os("KEEP_UI_ART").is_none() {
             fs::remove_dir_all(root).ok();
         }
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_has_both_mood_cards_for_every_playable_hero() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-mood-real-{}", std::process::id()));
+        let heroes = crate::catalog::GameData::new(FakeInstall(Mutex::new(Some(dir.clone())))).heroes("en");
+        // The practice-range target dummy is listed as selectable but is not a hero and has no cards.
+        let playable: Vec<_> = heroes
+            .iter()
+            .filter(|h| h.selectable && !h.disabled && !h.in_development && h.class_name != "hero_targetdummy")
+            .collect();
+        assert!(playable.len() >= 40, "{} playable heroes", playable.len());
+        let archive = ArtArchive::open(&dir).unwrap();
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        let mut missing = Vec::new();
+        for hero in playable {
+            for (image, kind) in
+                [(HeroImage::CardGloat, HeroArtKind::CardGloat), (HeroImage::CardCritical, HeroArtKind::CardCritical)]
+            {
+                match cache.hero_image(hero, image) {
+                    Some(path) => {
+                        let bytes = fs::read(&path).unwrap();
+                        let (w, h) = (
+                            u32::from_be_bytes(bytes[16..20].try_into().unwrap()),
+                            u32::from_be_bytes(bytes[20..24].try_into().unwrap()),
+                        );
+                        println!(
+                            "{} {}: {} {w}x{h}",
+                            hero.id,
+                            hero.name,
+                            archive.path(&Art::hero(&hero.class_name, kind))
+                        );
+                    }
+                    None => missing.push(format!("{} {} {}", hero.id, hero.class_name, image.suffix())),
+                }
+            }
+        }
+        println!("cached under {}", root.display());
+        if std::env::var_os("KEEP_UI_ART").is_none() {
+            fs::remove_dir_all(root).ok();
+        }
+        assert!(missing.is_empty(), "heroes without a mood card: {missing:?}");
     }
 
     #[test]

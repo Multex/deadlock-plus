@@ -73,6 +73,7 @@ describe("offline scenarios", () => {
         }
         expect(await handle.invoke("game_minimap_art", {})).toEqual({ status: "unavailable", local: "noInstall" });
         expect(await handle.invoke("game_hero_backdrop", { heroId: 1 })).toBeNull();
+        expect(await handle.invoke("game_hero_mood", { heroId: 1, mood: "gloat" })).toBeNull();
         expect(network).not.toHaveBeenCalled();
         expect(handle.unhandled()).toEqual([]);
     });

@@ -36,7 +36,7 @@ pub mod commands {
 
     use dp_gamedata::{
         AbilityTooltip, AccoladeEntry, ArtCache, BuildTag, ClassArt, GameData, GameMapItems, GameUiStrings,
-        HeroAbilities, HeroArt, HeroEntry, HeroProgression, HeroStatsData, ItemEntry, ItemImage, ItemStats,
+        HeroAbilities, HeroArt, HeroEntry, HeroImage, HeroProgression, HeroStatsData, ItemEntry, ItemImage, ItemStats,
         MapItemsPayload, MinimapIcon, MinimapIconArt, PopularItems, PropertyIconArt, RankArt, ShopItem, ShopUiArt,
     };
     use tauri::State;
@@ -115,6 +115,36 @@ pub mod commands {
         tauri::async_runtime::spawn_blocking(move || {
             let heroes = data.heroes("en");
             heroes.iter().find(|h| h.id == hero_id).and_then(|hero| art.hero_backdrop(hero))
+        })
+        .await
+        .map_err(AppError::internal)
+    }
+
+    #[derive(Debug, Clone, Copy, serde::Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum HeroMood {
+        Gloat,
+        Critical,
+    }
+
+    /// The hero's smug or battered card PNG, decoded on the first ask. Null when the game cannot be read or has
+    /// none for the hero.
+    #[tauri::command]
+    pub async fn game_hero_mood(
+        data: State<'_, GameData>,
+        art: State<'_, ArtCache>,
+        hero_id: u32,
+        mood: HeroMood,
+    ) -> Result<Option<String>, AppError> {
+        let image = match mood {
+            HeroMood::Gloat => HeroImage::CardGloat,
+            HeroMood::Critical => HeroImage::CardCritical,
+        };
+        let data = data.inner().clone();
+        let art = art.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let heroes = data.heroes("en");
+            heroes.iter().find(|h| h.id == hero_id).and_then(|hero| art.hero_image(hero, image))
         })
         .await
         .map_err(AppError::internal)
