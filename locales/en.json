@@ -3849,7 +3849,13 @@
             "saved": "Dispatch video saved.",
             "saved_silent": "Dispatch video saved without music: the game's music could not be read.",
             "save_failed": "Couldn't make the Dispatch video. Try again.",
-            "unsupported": "Video export is not available on this system."
+            "unsupported": "Video export is not available on this system.",
+            "collectors": {
+                "end_cta": "Get your own copy"
+            },
+            "year_end": {
+                "cta": "Get your own Year-End Special"
+            }
         },
         "year_end": {
             "player_of_the_year": "Player of the Year",

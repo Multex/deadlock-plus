@@ -35,6 +35,7 @@ export interface EncodeJob {
     fonts: WorkerFont[];
     images: Record<string, ImageBitmap>;
     view: EditionView;
+    data?: unknown;
 }
 
 export type EncodeRequest = { type: "start"; job: EncodeJob } | { type: "cancel" };
@@ -105,7 +106,13 @@ async function encode(job: EncodeJob, acceleration: Acceleration, signal: AbortS
 
         const scene = SCENES[job.kind];
         const size = { w: job.width, h: job.height };
-        const assets: SceneAssets = { view: job.view, images: job.images, fonts: SCENE_FONTS, timing: job.timing };
+        const assets: SceneAssets = {
+            view: job.view,
+            images: job.images,
+            fonts: SCENE_FONTS,
+            timing: job.timing,
+            data: job.data,
+        };
         const { fps } = job.timing;
         for (let i = 0; i < job.frames; i++) {
             if (signal.aborted) {

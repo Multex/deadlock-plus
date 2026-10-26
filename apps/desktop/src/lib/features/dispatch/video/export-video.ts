@@ -4,7 +4,7 @@ import type { CardAspect, EditionView } from "../edition-view";
 import { AUDIO_SAMPLE_RATE, audioPlan, renderMusic, type VideoAudio } from "./audio";
 import type { EncodeJob, EncodeReply, EncodeRequest, WorkerFont } from "./encode.worker";
 import { musicTrack, type MusicTrackId } from "./music";
-import { SCENE_FONTS, type VideoKind } from "./scene";
+import { SCENE_FONTS, type ScenePrep, type VideoKind } from "./scene";
 import { VIDEO_FPS, VIDEO_SIZES, videoTimeline } from "./timeline";
 
 import brandMark from "../../../../../../../packages/ui/src/brand-mark.png";
@@ -23,6 +23,13 @@ const MAX_FILE_NAME = 100;
 const SCENE_HEROES = 8;
 
 export const DEFAULT_TRACKS: Record<VideoKind, MusicTrackId> = { collectors: "postgame", year_end: "menu" };
+
+type Prepare = (view: EditionView) => Promise<ScenePrep>;
+/** Loaded on export only: a prepare step reaches into the archive, rank tiers and heroes. */
+const SCENE_PREP: Partial<Record<VideoKind, () => Promise<{ prepareScene: Prepare }>>> = {
+    collectors: () => import("./scenes/collectors/prepare"),
+    year_end: () => import("./scenes/year_end/prepare"),
+};
 
 const FONT_FILES: { family: string; url: string; weight: string }[] = [
     { family: SCENE_FONTS.display, url: retailDemoRegular, weight: "400" },
@@ -134,12 +141,13 @@ async function bitmap(src: string | null): Promise<ImageBitmap | null> {
     }
 }
 
-async function loadImages(view: EditionView): Promise<Record<string, ImageBitmap>> {
+async function loadImages(view: EditionView, extra: ScenePrep["images"]): Promise<Record<string, ImageBitmap>> {
     const heroes = view.heroes.slice(0, SCENE_HEROES);
     const sources: [string, Promise<string | null>][] = [
         ["brand", Promise.resolve(brandMark)],
         ["photo", Promise.resolve(view.photo?.src ?? null)],
         ...heroes.map((h): [string, Promise<string | null>] => [`hero:${h.id}`, heroPortrait(h.id)]),
+        ...Object.entries(extra).map(([key, src]): [string, Promise<string | null>] => [key, Promise.resolve(src)]),
     ];
     const loaded = await Promise.all(sources.map(async ([key, src]) => [key, await bitmap(await src)] as const));
     return Object.fromEntries(loaded.filter((entry): entry is [string, ImageBitmap] => entry[1] !== null));
@@ -199,10 +207,12 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
         const plan = audioPlan(track, timeline);
         // The worker cannot clone Svelte's state proxies.
         const view: EditionView = JSON.parse(JSON.stringify(request.view));
+        const prepare = SCENE_PREP[kind];
+        const prep = prepare ? await (await prepare()).prepareScene(view) : null;
         const [audio, fonts, images] = await Promise.all([
             renderMusic(request.track, timeline),
             loadFonts(),
-            loadImages(view),
+            loadImages(view, prep?.images ?? {}),
         ]);
         if (signal.aborted) {
             Object.values(images).forEach((image) => image.close());
@@ -229,6 +239,7 @@ export async function exportVideo(request: VideoExportRequest): Promise<VideoExp
             fonts,
             images,
             view,
+            data: prep?.data,
         };
         const bytes = await encodeInWorker(job, signal, request.onProgress);
         if (!bytes) return { status: "cancelled" };

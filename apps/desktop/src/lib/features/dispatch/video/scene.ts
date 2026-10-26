@@ -1,6 +1,7 @@
 import type { EditionKind } from "@deadlock-plus/stats/dispatch/types";
 import type { EditionView } from "../edition-view";
-import { placeholderScene } from "./scenes/placeholder";
+import { collectorsScene } from "./scenes/collectors";
+import { yearEndScene } from "./scenes/year_end";
 
 /** The editions that export a video. */
 export type VideoKind = Extract<EditionKind, "collectors" | "year_end">;
@@ -41,6 +42,17 @@ export interface SceneAssets {
     images: Partial<Record<string, ImageBitmap>>;
     fonts: typeof SCENE_FONTS;
     timing: SceneTiming;
+    /** The kind's own `ScenePrep.data`, when it has one. */
+    data?: unknown;
+}
+
+/**
+ * What a kind's scene needs beyond the view, built on the main thread before the worker starts: `data` reaches
+ * the scene as `assets.data`, and each `images` source is decoded under its key (a null is skipped).
+ */
+export interface ScenePrep {
+    data: unknown;
+    images: Record<string, string | null>;
 }
 
 /**
@@ -50,6 +62,6 @@ export interface SceneAssets {
 export type Scene = (ctx: OffscreenCanvasRenderingContext2D, t: number, size: SceneSize, assets: SceneAssets) => void;
 
 export const SCENES: Record<VideoKind, Scene> = {
-    collectors: placeholderScene({ ground: "#0e2a2c", accent: "#c9a227" }),
-    year_end: placeholderScene({ ground: "#2a0e14", accent: "#e8d9b5" }),
+    collectors: collectorsScene,
+    year_end: yearEndScene,
 };
