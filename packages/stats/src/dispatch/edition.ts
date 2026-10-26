@@ -321,16 +321,23 @@ function rivals(enemies: readonly Companion[]): Companion[] {
         .slice(0, EDITION_RIVALS);
 }
 
-const toTape = (m: Match): TapeMatch => [
-    m.startTime,
-    m.heroId,
-    m.outcome,
-    m.kills,
-    m.deaths,
-    m.assists,
-    m.netWorth,
-    m.durationS,
-];
+function tape(rows: Match[]): TapeMatch[] {
+    const ranked = new Set(rankTrack(rows).map((p) => p.matchId));
+    return rows.map((m) => {
+        const row: TapeMatch = [
+            m.startTime,
+            m.heroId,
+            m.outcome,
+            m.kills,
+            m.deaths,
+            m.assists,
+            m.netWorth,
+            m.durationS,
+        ];
+        if (ranked.has(m.matchId)) row.push(m.rankBadge);
+        return row;
+    });
+}
 
 export type EditionBase = Omit<Edition, "stories"> & { stats: EditionStats & EditionCalendar };
 
@@ -375,7 +382,7 @@ export function buildEditionBase(input: BuildInput): EditionBase | null {
             ? { days: editionDays(rows, window) }
             : { months: editionMonths(rows, window) }),
         ...(window.kind === "collectors" ? { rankSeries: rankSeries(rows) } : {}),
-        tape: rows.map(toTape),
+        tape: tape(rows),
         nominees,
         rivals: enemyRivals,
     };

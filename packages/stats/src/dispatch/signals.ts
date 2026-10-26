@@ -1,7 +1,7 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
 import { badgeParts } from "../rank";
 import type { Outcome } from "../stats";
-import type { BestGame, Companion, Edition, EditionMonth } from "./types";
+import type { BestGame, Companion, Edition, EditionMonth, TapeMatch } from "./types";
 
 export type SignalId =
     | "streak"
@@ -239,10 +239,17 @@ const rankMove: Detector = ({ rank }) => {
     return [];
 };
 
-const bounceBack: Detector = ({ rankSeries }) => {
-    if (!rankSeries || rankSeries.length <= BOUNCE_AFTER) return [];
-    const end = rankSeries[rankSeries.length - 1];
-    const low = rankSeries.slice(BOUNCE_AFTER).reduce((lo, p) => (rankStep(p.badge) < rankStep(lo.badge) ? p : lo));
+type BadgePoint = { startS: number; badge: number };
+
+const tapeBadges = (tape: readonly TapeMatch[]): BadgePoint[] =>
+    tape.flatMap((t) => (t[8] === undefined ? [] : [{ startS: t[0], badge: t[8] }]));
+
+/** A Collector's Copy has `rankSeries`; every other kind reads the badges on its tape. */
+const bounceBack: Detector = ({ rankSeries, tape }) => {
+    const series: BadgePoint[] = rankSeries ?? (tape ? tapeBadges(tape) : []);
+    if (series.length <= BOUNCE_AFTER) return [];
+    const end = series[series.length - 1];
+    const low = series.slice(BOUNCE_AFTER).reduce((lo, p) => (rankStep(p.badge) < rankStep(lo.badge) ? p : lo));
     const steps = rankStep(end.badge) - rankStep(low.badge);
     if (steps < BOUNCE_STEPS) return [];
     return [

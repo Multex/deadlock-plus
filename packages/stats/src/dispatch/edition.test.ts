@@ -695,10 +695,21 @@ describe("frozen tape, nominees and rivals", () => {
     it("tapes every window match oldest first, as compact tuples from the match rows", () => {
         const e = build();
         expect(e.tape).toHaveLength(IN_WEEK.length);
-        expect(e.tape?.[0]).toEqual([at(2026, 10, 12, 0, 0), 7, "win", 5, 2, 3, 20000, 1800]);
-        expect(e.tape?.[2]).toEqual([at(2026, 10, 12, 1, 30), 15, "loss", 2, 8, 4, 15000, 2400]);
+        expect(e.tape?.[0]).toEqual([at(2026, 10, 12, 0, 0), 7, "win", 5, 2, 3, 20000, 1800, 81]);
+        expect(e.tape?.[2]).toEqual([at(2026, 10, 12, 1, 30), 15, "loss", 2, 8, 4, 15000, 2400, 85]);
         expect(e.tape?.[3]?.[2]).toBe("unscored");
         expect(e.tape?.map((t) => t[0])).toEqual([...IN_WEEK].map((r) => r.startTime).sort((a, b) => a - b));
+    });
+
+    it("tapes the player's rank badge on ranked matches only", () => {
+        const rows = [
+            m({ startTime: at(2026, 10, 13, 18), rankBadge: 81 }),
+            m({ startTime: at(2026, 10, 13, 19), matchMode: 1, rankBadge: 77 }),
+            m({ startTime: at(2026, 10, 13, 20), rankBadge: 0 }),
+        ];
+        const tape = build(rows).tape ?? [];
+        expect(tape.map((t) => t[8])).toEqual([81, undefined, undefined]);
+        expect(tape.map((t) => t.length)).toEqual([9, 8, 8]);
     });
 
     it("tapes only the ranked matches of a Collector's Copy", () => {
@@ -723,6 +734,7 @@ describe("frozen tape, nominees and rivals", () => {
                 assists: 27,
                 netWorth: 48_512,
                 durationS: 2_345,
+                rankBadge: 116,
             }),
         );
         const e = build(rows, { window: YEAR_END });

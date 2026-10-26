@@ -199,6 +199,30 @@ describe("editionSignals", () => {
         expect(ids(base({ rankSeries: series(9, 31) }))).not.toContain("bounce_back");
     });
 
+    it("bounce_back: reads the tape's badges when an edition has no rank series", () => {
+        const tape = (lowAt: number, low: number): TapeMatch[] =>
+            Array.from({ length: 16 }, (_, i): TapeMatch => {
+                const row: TapeMatch = [october(1) + i * 3600, 1, "win", 5, 3, 7, 20000, 1800];
+                // Unranked matches carry no badge and do not count toward the first 10 ranked games.
+                if (i !== 7) row.push(i === lowAt ? low : i === 15 ? 41 : 36);
+                return row;
+            });
+        expect(find(base({ tape: tape(12, 34) }), "bounce_back")?.facts).toEqual({
+            lowBadge: 34,
+            lowS: october(1) + 12 * 3600,
+            endBadge: 41,
+            steps: 3,
+        });
+        expect(ids(base({ tape: tape(12, 35) }))).not.toContain("bounce_back");
+        expect(ids(base({ tape: tape(10, 31) }))).not.toContain("bounce_back");
+        const yearEnd = base({
+            window: { ...base().window, kind: "year_end", id: "year_end-2026" },
+            tape: tape(12, 34),
+        });
+        expect(ids(yearEnd)).toContain("bounce_back");
+        expect(ids(base({ tape: tapeOf(alternating(22)) }))).not.toContain("bounce_back");
+    });
+
     it("losing_then_winning: 4 losses, then 5 of the next 6 won", () => {
         const L: Outcome = "loss";
         const W: Outcome = "win";

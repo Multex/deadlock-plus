@@ -215,6 +215,8 @@ export type TapeMatch = [
     assists: number,
     netWorth: number,
     durationS: number,
+    /** The player's `ranked_display_badge` after the match; only on matches the rank track counts. */
+    badge?: number,
 ];
 
 export interface EditionDay {
