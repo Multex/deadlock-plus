@@ -17,7 +17,7 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import { withParam } from "$lib/features/builds/build-list";
     import { dispatch } from "$lib/features/dispatch/dispatch.svelte";
-    import { copyContext } from "$lib/features/dispatch/copy-chain";
+    import { copyContext, previousToLoad } from "$lib/features/dispatch/copy-chain";
     import { editionView } from "$lib/features/dispatch/edition-view";
     import ExportPanel from "$lib/features/dispatch/components/export-panel.svelte";
     import ReadingRoom from "$lib/features/dispatch/components/reading-room.svelte";
@@ -53,6 +53,9 @@
     /** Older issues read from kv for their covers; the newest of each kind comes with the shelf. */
     let read = $state.raw<Record<string, Edition>>({});
     const reading = new Set<string>();
+    /** Previous editions read (without marking them seen) so each paper renders its words once, with its comparison. */
+    let peeked = $state.raw<Record<string, Edition | null>>({});
+    const peeking = new Set<string>();
     let tableEl = $state<HTMLElement | null>(null);
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
@@ -102,16 +105,39 @@
         if (opened) out[opened.id] = opened;
         return out;
     });
-    const view = $derived(shown ? editionView(shown, deps, copyContext(shown, dispatch.shelf, known)) : null);
+    const pool = $derived.by(() => {
+        const out: Record<string, Edition> = {};
+        for (const [id, e] of Object.entries(peeked)) if (e) out[id] = e;
+        return { ...out, ...known };
+    });
+    const tried = $derived(new Set(Object.keys(peeked)));
+    const ready = (e: Edition) => previousToLoad(e, dispatch.shelf, pool, tried) === null;
+    const view = $derived(
+        shown && ready(shown) ? editionView(shown, deps, copyContext(shown, dispatch.shelf, pool)) : null,
+    );
     const covers = $derived.by(() => {
         if (Object.keys(heroes).length === 0) return {};
         const coverDeps = { hero: (id: number) => heroes[id], tiers, t };
         return Object.fromEntries(
-            Object.values(known).map((e) => [
-                e.id,
-                miniCover(e, editionView(e, deps, copyContext(e, dispatch.shelf, known)), coverDeps),
-            ]),
+            Object.values(known)
+                .filter(ready)
+                .map((e) => [
+                    e.id,
+                    miniCover(e, editionView(e, deps, copyContext(e, dispatch.shelf, pool)), coverDeps),
+                ]),
         );
+    });
+
+    $effect(() => {
+        for (const e of Object.values(known)) {
+            const id = previousToLoad(e, dispatch.shelf, pool, tried);
+            if (!id || peeking.has(id)) continue;
+            peeking.add(id);
+            void dispatch
+                .peek(id)
+                .catch(() => null)
+                .then((found) => (peeked = { ...peeked, [id]: found }));
+        }
     });
     /** Issued copies whose cover is in view: the tops of the piles, the specials and a dealt-out bundle. */
     const inView = $derived.by(() => {

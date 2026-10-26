@@ -72,6 +72,8 @@ export interface DispatchService {
     issueDue(): Promise<Edition[]>;
     print(window: EditionWindow): Promise<Edition | null>;
     open(editionId: string): Promise<Edition | null>;
+    /** A frozen edition from kv, leaving its unseen badge alone. */
+    peek(editionId: string): Promise<Edition | null>;
     /** `null` while the account is unknown. */
     view(): Promise<DispatchView | null>;
 }
@@ -228,6 +230,11 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         });
     }
 
+    async function peek(editionId: string): Promise<Edition | null> {
+        const accountId = deps.accountId();
+        return accountId === null ? null : readEdition(accountId, editionId);
+    }
+
     async function view(): Promise<DispatchView | null> {
         const accountId = deps.accountId();
         if (accountId === null) return null;
@@ -286,5 +293,5 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         };
     }
 
-    return { issueDue, print, open, view };
+    return { issueDue, print, open, peek, view };
 }

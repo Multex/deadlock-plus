@@ -106,6 +106,11 @@ class DispatchStore {
         return edition;
     }
 
+    /** A frozen edition from kv, for reading alongside another one; leaves it unseen. */
+    peek(editionId: string): Promise<Edition | null> {
+        return service.peek(editionId);
+    }
+
     /** Builds, enriches and freezes a past window on request. Returns null under MIN_EDITION_MATCHES. */
     async print(window: EditionWindow): Promise<Edition | null> {
         const edition = await service.print(window);

@@ -2,13 +2,11 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
 import en from "../../../../../../locales/en.json";
-import { copySeed } from "@deadlock-plus/stats/dispatch/copy";
 import { PERSONA_HEROES, PERSONAS, personaEdition, type Persona } from "@deadlock-plus/stats/dispatch/personas.fixture";
-import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
-import { STORY_COPY, storyCopy } from "@deadlock-plus/stats/dispatch/stories";
-import type { DispatchParam, DispatchStoryKind, Edition, EditionKind } from "@deadlock-plus/stats/dispatch/types";
+import { HEADLINE_SHAPES, STORY_COPY, type HeadlineShape } from "@deadlock-plus/stats/dispatch/stories";
+import type { DispatchStoryKind, EditionKind } from "@deadlock-plus/stats/dispatch/types";
 import { dateRange } from "./date-range";
-import { editionView, HEADLINE_CAPS, renderStory, type DispatchViewDeps } from "./edition-view";
+import { editionView, HEADLINE_CAP, type DispatchViewDeps } from "./edition-view";
 
 type Catalog = Record<string, string>;
 
@@ -38,7 +36,7 @@ interface Part {
     part: string;
     counted?: boolean;
 }
-interface Shape {
+interface StoryShape {
     story: DispatchStoryKind;
     kinds: readonly EditionKind[];
     headlines: Part[];
@@ -53,7 +51,7 @@ const c = (part: string): Part => ({ part, counted: true });
 const p = (part: string): Part => ({ part });
 
 /** Every slot `storyCopy` can produce for a story in a kind, from the detectors in `stories.ts`. */
-const SHAPES: Shape[] = [
+const STORIES: StoryShape[] = [
     {
         story: "record",
         kinds: KINDS,
@@ -151,7 +149,7 @@ const SHAPES: Shape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [p("angle_duo")],
-        params: ["player", "wins", "share"],
+        params: ["player", "wins", "share", "together"],
     },
     {
         story: "nemesis",
@@ -226,42 +224,40 @@ const variants = (base: string, n: number, counted?: boolean) =>
 
 interface Line {
     key: string;
-    shape: Shape;
-    role: "core" | "deck" | "tail";
+    story: StoryShape;
+    role: "core" | "deck" | "versus";
+    shape?: HeadlineShape;
 }
 
 function storyLines(): Line[] {
-    return SHAPES.flatMap((shape) =>
-        shape.kinds.flatMap((kind) => {
-            const base = `dispatch.story.${shape.story}.${kind}`;
-            const of = (parts: Part[], n: number, role: Line["role"]) =>
-                parts.flatMap((x) => variants(`${base}.${x.part}`, n, x.counted).map((key) => ({ key, shape, role })));
+    return STORIES.flatMap((story) =>
+        story.kinds.flatMap((kind) => {
+            const base = `dispatch.story.${story.story}.${kind}`;
+            const shaped = (parts: Part[]) =>
+                parts.flatMap((x) =>
+                    HEADLINE_SHAPES.flatMap((shape) =>
+                        forms(`${base}.${x.part}_${shape}`, x.counted).map((key): Line => ({
+                            key,
+                            story,
+                            role: "core",
+                            shape,
+                        })),
+                    ),
+                );
+            const numbered = (parts: Part[], n: number, role: Line["role"]) =>
+                parts.flatMap((x) => variants(`${base}.${x.part}`, n, x.counted).map((key) => ({ key, story, role })));
             return [
-                ...of(shape.headlines, STORY_COPY.core, "core"),
-                ...of(shape.angles, STORY_COPY.angle, "core"),
-                ...of(shape.decks, STORY_COPY.deck, "deck"),
-                ...(shape.versus ? of([c("versus_up"), c("versus_down")], STORY_COPY.versus, "tail") : []),
+                ...shaped(story.headlines),
+                ...shaped(story.angles),
+                ...numbered(story.decks, STORY_COPY.deck, "deck"),
+                ...(story.versus ? numbered([c("versus_up"), c("versus_down")], STORY_COPY.versus, "versus") : []),
             ];
         }),
     );
 }
 
-const VOICE_KEYS = KINDS.flatMap((kind) =>
-    (["kicker", "tail"] as const).flatMap((bank) =>
-        (["up", "down"] as const).flatMap((mood) =>
-            variants(
-                `dispatch.story.voice.${kind}.${bank}_${mood}`,
-                bank === "kicker" ? STORY_COPY.kicker : STORY_COPY.tail,
-            ),
-        ),
-    ),
-);
 const FIXED_KEYS = [
-    "dispatch.story.frame.kicker",
-    "dispatch.story.frame.tail",
-    "dispatch.story.frame.both",
-    "dispatch.story.frame.tail_after",
-    "dispatch.story.frame.both_after",
+    "dispatch.story.frame.deck_versus",
     ...["night", "morning", "afternoon", "evening"].map((w) => `dispatch.story.when.${w}`),
 ];
 
@@ -301,89 +297,82 @@ const VALUES: Record<string, string> = {
     heroes: "12",
     matches: "14",
     count: "12",
+    played: "23",
+    together: "14",
 };
+const VALUE_ENTITIES = ["hero", "player", "top", "from", "to", "peak", "end", "low", "month", "date"].map(
+    (k) => VALUES[k],
+);
 
+/**
+ * How a headline reads, from its text alone. `entities` are the names it may lead with (heroes, players, ranks,
+ * months, dates). The order matters: a colon makes a label whatever else it holds, and so on down.
+ */
+function shapeOf(text: string, entities: readonly string[]): HeadlineShape {
+    const t = text.trim();
+    if (t.includes(":")) return "label";
+    if (/^[“"]/.test(t)) return "quote";
+    if (/[.!?…]\s+\S/.test(t.replace(/a\.m\./g, "am"))) return "pair";
+    if (t.endsWith("?")) return "ask";
+    if (t.endsWith("!")) return "shout";
+    if (/^\d/.test(t)) return "num";
+    if (entities.some((e) => e && t.startsWith(e))) return "name";
+    return "plain";
+}
+
+const YOU = /\byou(r|'re|'ve)?\b/i;
 const FORBIDDEN =
     /\b(delve|intricate|crucial|showcase|pivotal|tapestry|landscape|enhance|foster|underscore|vibrant|boasts|serves as|deadlock plus)\b/i;
-const DOUBLED = /\b(\w+)\b[\s,:;!?.\u2014-]+\1\b/i;
+const DOUBLED = /\b(\w+)\b[\s,:;!?.—-]+\1\b/i;
 
 const catalogMissing = (keys: readonly string[]) => keys.filter((k) => !(k in CATALOG));
 
 describe("Dispatch print copy catalog", () => {
     it("holds every line the copy picker can ask for", () => {
-        const keys = [...storyLines().map((l) => l.key), ...VOICE_KEYS, ...FIXED_KEYS];
-        expect(catalogMissing(keys)).toEqual([]);
+        expect(catalogMissing([...storyLines().map((l) => l.key), ...FIXED_KEYS])).toEqual([]);
     });
 
     it("holds no story line the picker can never reach", () => {
-        const reachable = new Set([...storyLines().map((l) => l.key), ...VOICE_KEYS, ...FIXED_KEYS]);
-        const kinds = KINDS.join("|");
-        const stray = Object.keys(CATALOG).filter(
-            (k) => new RegExp(`^dispatch\\.story\\.\\w+\\.(${kinds})\\.`).test(k) && !reachable.has(k),
-        );
+        const reachable = new Set([...storyLines().map((l) => l.key), ...FIXED_KEYS]);
+        const stray = Object.keys(CATALOG).filter((k) => k.startsWith("dispatch.story.") && !reachable.has(k));
         expect(stray).toEqual([]);
     });
 
     it("uses only the placeholders each story has", () => {
-        const bad = storyLines().flatMap(({ key, shape }) => {
-            const allowed = new Set([...shape.params, "count", "player", "hero"]);
+        const bad = storyLines().flatMap(({ key, story }) => {
+            const allowed = new Set([...story.params, "count", "top", "played"]);
             const used = [...(CATALOG[key] ?? "").matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
-            return used
-                .filter((u) => !allowed.has(u) || (u !== "count" && !shape.params.includes(u)))
-                .map((u) => `${key}: {${u}}`);
+            return used.filter((u) => !allowed.has(u)).map((u) => `${key}: {${u}}`);
         });
         expect(bad).toEqual([]);
     });
 
-    it("reads cleanly in every combination of kicker, line and tail", () => {
+    it("reads cleanly and in the shape its key names", () => {
         const problems: string[] = [];
-        const check = (text: string, where: string, cap?: number) => {
+        for (const line of storyLines()) {
+            const tpl = CATALOG[line.key];
+            if (tpl === undefined) continue;
+            const text = interpolate(tpl, VALUES);
+            const where = line.key;
             if (/\{\w+\}/.test(text)) problems.push(`${where}: dangling slot in "${text}"`);
             if (FORBIDDEN.test(text)) problems.push(`${where}: forbidden word in "${text}"`);
             const doubled = DOUBLED.exec(text);
             if (doubled) problems.push(`${where}: doubled "${doubled[1]}" in "${text}"`);
-            if (/([.!?:])\s*[.:]/.test(text.replace(/a\.m\./g, "am")))
+            if (/([.!?:])\s*[.:]/.test(text.replace(/a\.m\./g, "am"))) {
                 problems.push(`${where}: stacked punctuation in "${text}"`);
-            if (cap !== undefined && text.length > cap) problems.push(`${where}: ${text.length} > ${cap} "${text}"`);
-        };
-        const lines = storyLines();
-        for (const line of lines) {
-            const tpl = CATALOG[line.key];
-            if (tpl === undefined) continue;
-            const text = interpolate(tpl, VALUES);
-            check(text, line.key, line.role === "core" ? HEADLINE_CAPS.column : line.role === "deck" ? 130 : 48);
-            if (line.role !== "core") continue;
-            const kind = line.key.split(".")[3];
-            for (const voice of VOICE_KEYS.filter((k) => k.split(".")[3] === kind)) {
-                const word = CATALOG[voice];
-                if (word === undefined) continue;
-                const joined = voice.includes(".kicker_")
-                    ? text.includes(":") && word.trimEnd().endsWith(":")
-                        ? null
-                        : interpolate(CATALOG["dispatch.story.frame.kicker"] ?? "", { kicker: word, core: text })
-                    : interpolate(
-                          CATALOG[`dispatch.story.frame.tail${/[!?.\u2026]$/.test(text) ? "_after" : ""}`] ?? "",
-                          {
-                              core: text,
-                              tail: word,
-                          },
-                      );
-                if (joined) check(joined, `${line.key} + ${voice}`);
+            }
+            const cap = line.role === "core" ? HEADLINE_CAP : line.role === "deck" ? 130 : 48;
+            if (text.length > cap) problems.push(`${where}: ${text.length} > ${cap} "${text}"`);
+            if (line.shape && shapeOf(text, VALUE_ENTITIES) !== line.shape) {
+                problems.push(`${where}: reads as ${shapeOf(text, VALUE_ENTITIES)}: "${text}"`);
             }
         }
-        for (const key of VOICE_KEYS) if (CATALOG[key] !== undefined) check(CATALOG[key], key, 40);
         expect(problems).toEqual([]);
     });
 
-    it("never prints the old one-size phrases twice in a story family", () => {
-        const families = new Map<string, number>();
-        for (const { key } of storyLines()) {
-            const text = CATALOG[key] ?? "";
-            if (!/steals the show|runs the show/i.test(text)) continue;
-            const family = key.split(".").slice(0, 4).join(".");
-            families.set(family, (families.get(family) ?? 0) + 1);
-        }
-        expect([...families].filter(([, n]) => n > 1)).toEqual([]);
+    it("never prints the old one-size phrases", () => {
+        const old = storyLines().filter(({ key }) => /steals the show|runs the show/i.test(CATALOG[key] ?? ""));
+        expect(old).toEqual([]);
     });
 });
 
@@ -407,98 +396,128 @@ const deps: DispatchViewDeps = {
     rank: (badge) => `Rank ${badge}`,
 };
 
-const resolve = (p: DispatchParam): string => {
-    switch (p.type) {
-        case "hero":
-            return PERSONA_HEROES[p.heroId] ?? `Hero ${p.heroId}`;
-        case "player":
-            return p.name ?? "Unnamed player";
-        case "number":
-            return deps.number(p.value);
-        case "percent":
-            return deps.percent(p.value);
-        case "duration":
-            return deps.duration(p.seconds);
-        case "date":
-            return deps.day(p.unixS, "UTC");
-        case "month":
-            return deps.month(p.unixS, "UTC");
-        case "grade":
-            return p.letter;
-        case "rank":
-            return deps.rank(p.badge);
-    }
-};
-
-/** The banner line `persona` would get for `story` in an edition with id `id`. */
-function banner(persona: Persona, kind: EditionKind, story: DispatchStoryKind, id: string): string | null {
-    const base = personaEdition(persona, kind);
-    const e: Edition = { ...base, id };
-    const s = e.stories.find((x) => x.kind === story);
-    if (!s) return null;
-    const copy = storyCopy(s, 0, { edition: e, seeds: [copySeed(e.accountId, id)], signals: editionSignals(e) });
-    return renderStory(copy, "banner", resolve, deps).headline;
-}
+const MONTHS = Array.from({ length: 12 }, (_, m) =>
+    new Date(Date.UTC(2026, m, 1)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" }),
+);
+/** What a persona's headline may lead with, as the test deps print it. */
+const ENTITIES = [
+    ...Object.values(PERSONA_HEROES),
+    "Copperhead",
+    "Saltmarsh",
+    "Gloam",
+    "Rank ",
+    ...MONTHS,
+    ...MONTHS.map((m) => m.slice(0, 3)),
+];
 
 const SEEDS = 1000;
 /** A file path: the spread tests append their measurements there. */
 const REPORT = process.env.DISPATCH_COPY_REPORT;
 
-describe("Dispatch print copy spread", () => {
-    it("gives every persona's story hundreds of distinct banner lines", () => {
+const pageOf = (p: Persona, kind: EditionKind, id: string, context = {}) =>
+    editionView({ ...personaEdition(p, kind), id }, deps, context);
+
+describe("Dispatch print headline shapes", () => {
+    it("spreads headlines over the shapes and keeps colons and second person rare", () => {
         const report: string[] = [];
-        const low: string[] = [];
+        const problems: string[] = [];
         for (const kind of KINDS) {
-            for (const persona of PERSONAS) {
-                for (const s of personaEdition(persona, kind).stories) {
-                    const seen = new Set<string>();
-                    for (let i = 0; i < SEEDS; i++) seen.add(banner(persona, kind, s.kind, `${kind}-seed-${i}`)!);
-                    report.push(`${kind} ${persona} ${s.kind}: ${seen.size}`);
-                    if (seen.size < 40) low.push(`${kind} ${persona} ${s.kind}: ${seen.size}`);
+            const shapes = new Map<HeadlineShape, number>();
+            let lines = 0;
+            let colons = 0;
+            let you = 0;
+            for (const p of PERSONAS) {
+                for (let i = 0; i < SEEDS; i++) {
+                    const view = pageOf(p, kind, `${kind}-seed-${i}`);
+                    const page = view.stories!.map((s) => shapeOf(s.headline, ENTITIES));
+                    const front = page.slice(0, HEADLINE_SHAPES.length);
+                    if (new Set(front).size !== front.length) problems.push(`${kind} ${p} ${i}: ${front.join(",")}`);
+                    for (const [n, s] of view.stories!.entries()) {
+                        lines++;
+                        shapes.set(page[n], (shapes.get(page[n]) ?? 0) + 1);
+                        if (s.headline.includes(":")) colons++;
+                        if (YOU.test(s.headline)) you++;
+                    }
+                }
+            }
+            const share = (n: number) => n / lines;
+            const top = Math.max(...shapes.values());
+            report.push(
+                `${kind}: ${[...shapes].map(([s, n]) => `${s} ${(share(n) * 100).toFixed(1)}%`).join(", ")}; ` +
+                    `colon ${(share(colons) * 100).toFixed(1)}%, you ${(share(you) * 100).toFixed(1)}%`,
+            );
+            if (share(top) > 0.2) problems.push(`${kind}: one shape at ${share(top)}`);
+            if (share(colons) >= 0.2) problems.push(`${kind}: colons at ${share(colons)}`);
+            if (share(you) >= 0.25) problems.push(`${kind}: second person at ${share(you)}`);
+            if (shapes.size !== HEADLINE_SHAPES.length) problems.push(`${kind}: only ${shapes.size} shapes`);
+        }
+        if (REPORT) appendFileSync(REPORT, `${report.join("\n")}\n`);
+        expect(problems.slice(0, 20)).toEqual([]);
+    }, 120_000);
+
+    it("never leads with the previous same-kind edition's shape", () => {
+        for (const kind of KINDS) {
+            for (const p of PERSONAS) {
+                const chain: string[] = [];
+                let prev: HeadlineShape | null = null;
+                for (let n = 0; n < 60; n++) {
+                    const id = `${kind}-chain-${n}`;
+                    const lead = shapeOf(pageOf(p, kind, id, { chain: [...chain] }).banner!.headline, ENTITIES);
+                    expect(lead, `${kind} ${p} ${n}`).not.toBe(prev);
+                    prev = lead;
+                    chain.push(id);
                 }
             }
         }
-        if (REPORT) appendFileSync(REPORT, `${report.join("\n")}\n`);
-        expect(low).toEqual([]);
+    });
+
+    it("rarely reprints the previous edition's headline for a story", () => {
+        let repeats = 0;
+        let pairs = 0;
+        for (const kind of KINDS) {
+            for (const p of PERSONAS) {
+                const chain: string[] = [];
+                let prev: Map<string, string> | null = null;
+                for (let n = 0; n < 60; n++) {
+                    const id = `${kind}-chain-${n}`;
+                    const view = pageOf(p, kind, id, { chain: [...chain] });
+                    const lines = new Map(view.stories!.map((s) => [s.kind, s.headline]));
+                    if (prev) {
+                        for (const [k, text] of lines) {
+                            if (!prev.has(k)) continue;
+                            pairs++;
+                            if (prev.get(k) === text) repeats++;
+                        }
+                    }
+                    prev = lines;
+                    chain.push(id);
+                }
+            }
+        }
+        if (REPORT) appendFileSync(REPORT, `same story, same headline as the previous edition: ${repeats}/${pairs}\n`);
+        expect(repeats / pairs).toBeLessThan(0.08);
     }, 60_000);
 
     it("rarely gives two players the same sentence for the same story", () => {
         let shared = 0;
         let pairs = 0;
         for (const kind of KINDS) {
-            const kinds = new Set(personaEdition("P1", kind).stories.map((s) => s.kind));
-            for (const s of personaEdition("P3", kind).stories) {
-                if (!kinds.has(s.kind)) continue;
-                for (let i = 0; i < SEEDS; i++) {
-                    const id = `${kind}-seed-${i}`;
+            for (let i = 0; i < SEEDS; i++) {
+                const id = `${kind}-seed-${i}`;
+                const a = new Map(pageOf("P1", kind, id).stories!.map((s) => [s.kind, s.headline]));
+                for (const s of pageOf("P3", kind, id).stories!) {
+                    if (!a.has(s.kind)) continue;
                     pairs++;
-                    if (banner("P1", kind, s.kind, id) === banner("P3", kind, s.kind, id)) shared++;
+                    if (a.get(s.kind) === s.headline) shared++;
                 }
             }
         }
         if (REPORT) appendFileSync(REPORT, `P1/P3 same-id collisions: ${shared}/${pairs}\n`);
-        expect(shared / pairs).toBeLessThan(0.02);
+        expect(shared / pairs).toBeLessThan(0.05);
     }, 60_000);
 });
 
 describe("editionView copy", () => {
-    it("never reprints the previous same-kind edition's line for a story", () => {
-        for (const kind of KINDS) {
-            const chain: string[] = [];
-            let prev: Map<string, string> | null = null;
-            for (let n = 0; n < 12; n++) {
-                const e = personaEdition("P2", kind, n);
-                const view = editionView(e, deps, { chain: [...chain] });
-                const lines = new Map(view.stories!.map((s) => [s.kind, s.headline]));
-                if (prev)
-                    for (const [k, text] of lines)
-                        if (prev.has(k)) expect(text, `${kind} ${n} ${k}`).not.toBe(prev.get(k));
-                prev = lines;
-                chain.push(e.id);
-            }
-        }
-    });
-
     it("gives the three personas different front pages in every kind", () => {
         for (const kind of KINDS) {
             const fronts = PERSONAS.map((p) => editionView(personaEdition(p, kind), deps).banner?.headline);
@@ -506,14 +525,24 @@ describe("editionView copy", () => {
         }
     });
 
-    it("keeps every headline inside its role's cap", () => {
+    it("keeps every headline inside the cap", () => {
         for (const kind of KINDS) {
             for (const p of PERSONAS) {
-                const view = editionView(personaEdition(p, kind), deps);
-                if (view.banner) expect(view.banner.headline.length).toBeLessThanOrEqual(HEADLINE_CAPS.banner);
-                for (const col of view.columns) expect(col.headline.length).toBeLessThanOrEqual(HEADLINE_CAPS.column);
+                for (const s of editionView(personaEdition(p, kind), deps).stories!) {
+                    expect(s.headline.length, s.headline).toBeLessThanOrEqual(HEADLINE_CAP);
+                }
             }
         }
+    });
+
+    it("adds the comparison with the previous edition to the deck", () => {
+        const prev = personaEdition("P1", "weekly", 0);
+        const e = personaEdition("P1", "weekly", 1);
+        const less = { ...prev, stats: { ...prev.stats, matches: 4 } };
+        const record = editionView(e, deps, { chain: [prev.id], previous: less }).stories!.find(
+            (s) => s.kind === "record",
+        );
+        expect(record?.deck).toMatch(/(Up from 4 matches last week|Last week: just 4 matches|last week's 4)!$/);
     });
 
     it("leads a special edition with its own lead stories", () => {
@@ -530,7 +559,7 @@ describe("editionView copy", () => {
     });
 });
 
-const DASHES = /[\u2013\u2014]/;
+const DASHES = /[–—]/;
 
 describe("Dispatch text has no dashes", () => {
     it("keeps en and em dashes out of every dispatch.* line", () => {

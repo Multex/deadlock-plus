@@ -1,6 +1,6 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
 import { badgeParts } from "../rank";
-import { pickAlong, variantHash } from "./copy";
+import { pickAlong, pickVariant, variantHash } from "./copy";
 import type { EditionCalendar } from "./edition";
 import type { Signal, SignalId } from "./signals";
 import type {
@@ -454,12 +454,18 @@ export function detectDispatchStories(edition: DispatchEditionInput): DispatchSt
     );
 }
 
-/** Variants per slot; every slot of one type holds exactly this many lines in the catalog. */
-export const STORY_COPY = { core: 5, angle: 4, deck: 3, kicker: 10, tail: 10, versus: 3 } as const;
-/** Kicker and tail positions that print nothing, so not every line shouts. */
-const QUIET = 2;
+/**
+ * The build of a headline, as a reader sees it. Every headline slot holds exactly one line of each shape, so the
+ * page can hand out shapes first and words second:
+ * `name` leads with a hero, player, rank or month; `num` leads with a number; `ask` is one question; `shout` is a
+ * short exclamation; `quote` opens on a quoted phrase; `label` is the one shape with a colon; `pair` is two short
+ * sentences; `plain` is a single statement led by none of those.
+ */
+export const HEADLINE_SHAPES = ["name", "num", "ask", "shout", "quote", "label", "pair", "plain"] as const;
+export type HeadlineShape = (typeof HEADLINE_SHAPES)[number];
 
-export type CopyMood = "up" | "down";
+/** Variants per deck and versus slot; every slot of one type holds exactly this many lines in the catalog. */
+export const STORY_COPY = { deck: 3, versus: 3 } as const;
 
 export interface CopyContext {
     edition: Edition;
@@ -472,17 +478,16 @@ export interface CopyContext {
 
 /**
  * One story's printable parts as locale keys. `phrases` maps a placeholder to a locale key whose text fills it;
- * `kicker` and `tail` go around `core` through the `dispatch.story.frame.*` keys when the layout has room.
+ * `versus` is a sentence comparing with the previous edition, printed after the deck.
  */
 export interface StoryCopy {
     core: DispatchText;
+    shape: HeadlineShape;
     angle: SignalId | null;
     params: Record<string, DispatchParam>;
     phrases: Record<string, string>;
-    mood: CopyMood;
-    kicker: string | null;
-    tail: DispatchText | null;
     deck: DispatchText;
+    versus: DispatchText | null;
 }
 
 /** The signals that give a story its own angle, first match wins. */
@@ -567,17 +572,6 @@ const VERSUS: Partial<Record<DispatchStoryKind, (e: Pick<Edition, "stats" | "lon
     best_streak: (e) => e.longestWin,
 };
 
-/** Stories without a hero of their own name the most played one as `{top}`. */
-const TOP_HERO_IN: ReadonlySet<DispatchStoryKind> = new Set([
-    "record",
-    "hours",
-    "longest_session",
-    "busiest_day",
-    "night_owl",
-    "days_played",
-    "busiest_month",
-]);
-
 const hourFormat = new Map<string, Intl.DateTimeFormat>();
 function partOfDay(unixS: number, tz: string): "night" | "morning" | "afternoon" | "evening" {
     let f = hourFormat.get(tz);
@@ -594,20 +588,46 @@ const partOf = (t: DispatchText) => {
     return part === "headline_year" ? "headline" : part;
 };
 
-function moodOf(story: DispatchStory, part: string): CopyMood {
-    return story.kind === "nemesis" || part.endsWith("_losing") || part.endsWith("_down") ? "down" : "up";
-}
-
 function line(key: string, count: number | undefined): DispatchText {
     return count === undefined ? { key } : { key, count };
 }
 
+function shapeOrder(seed: string, prev: readonly HeadlineShape[] | null): HeadlineShape[] {
+    const n = HEADLINE_SHAPES.length;
+    const avoid = prev ? HEADLINE_SHAPES.indexOf(prev[0]) + 1 : undefined;
+    const lead = HEADLINE_SHAPES[pickVariant(seed, "page.lead_shape", n, avoid) - 1];
+    const order = [lead, ...HEADLINE_SHAPES.filter((s) => s !== lead)];
+    for (let i = n - 1; i > 1; i--) {
+        const j = 1 + (variantHash(seed, `page.shape.${i}`) % i);
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+    if (!prev) return order;
+    // Stories keep roughly their place from one edition to the next, so a position never repeats its last shape.
+    for (let i = 1; i < n; i++) {
+        if (order[i] !== prev[i]) continue;
+        const j = order.findIndex((s, k) => k > 0 && k !== i && s !== prev[i] && order[i] !== prev[k]);
+        if (j > 0) [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+}
+
 /**
- * The words for `story` at `position` on the page (0 = banner). Every pick walks `ctx.seeds`, so it is stable for a
- * frozen edition and differs from the previous same-kind edition's pick in each slot; positions on one page get
- * distinct kickers and tails.
+ * The headline shape for each page position, `length` long. Every edition of the chain (oldest first) is laid out in
+ * turn, so the lead never takes the previous edition's lead shape and no position repeats the shape it had there;
+ * the first `HEADLINE_SHAPES.length` positions all differ. Longer pages start the order again.
  */
-export function storyCopy(story: DispatchStory, position: number, ctx: CopyContext): StoryCopy {
+export function pageShapes(seeds: readonly string[], length: number): HeadlineShape[] {
+    let order: HeadlineShape[] | null = null;
+    for (const seed of seeds) order = shapeOrder(seed, order);
+    const page = order ?? [...HEADLINE_SHAPES];
+    return Array.from({ length }, (_, i) => page[i % page.length]);
+}
+
+/**
+ * The words for `story` printed in `shape` (from `pageShapes`). Picks walk `ctx.seeds`, so they are stable for a
+ * frozen edition, and a deck never repeats the previous same-kind edition's deck for that story.
+ */
+export function storyCopy(story: DispatchStory, shape: HeadlineShape, ctx: CopyContext): StoryCopy {
     const { edition, seeds } = ctx;
     const kind = edition.window.kind;
     const base = `${story.kind}.${kind}`;
@@ -631,10 +651,12 @@ export function storyCopy(story: DispatchStory, position: number, ctx: CopyConte
         const l = story.params.losses;
         if (w?.type === "number" && l?.type === "number") params.margin = number(Math.abs(w.value - l.value));
     }
+    if (story.kind === "played_with" && story.deck.count !== undefined) params.together = number(story.deck.count);
+    params.played = number(edition.stats.matches);
     const top = [...edition.heroes].sort(
         (a, b) => b.games - a.games || b.playtimeS - a.playtimeS || a.heroId - b.heroId,
     )[0];
-    if (top && TOP_HERO_IN.has(story.kind)) params.top = hero(top.heroId);
+    if (top && !params.top) params.top = hero(top.heroId);
     const phrases: Record<string, string> = {};
     const when = story.params.date;
     if (when?.type === "date" && (story.kind === "best_game" || story.kind === "longest_session")) {
@@ -642,34 +664,24 @@ export function storyCopy(story: DispatchStory, position: number, ctx: CopyConte
     }
 
     const core = angle
-        ? line(`${STORY_NS}.${base}.angle_${angle}_${pick(`${base}.angle_${angle}`, STORY_COPY.angle)}`, found?.count)
-        : line(`${STORY_NS}.${base}.${part}_${pick(`${base}.${part}`, STORY_COPY.core)}`, story.headline.count);
+        ? line(`${STORY_NS}.${base}.angle_${angle}_${shape}`, found?.count)
+        : line(`${STORY_NS}.${base}.${part}_${shape}`, story.headline.count);
     const deckPart = partOf(story.deck);
     const deck = line(
         `${STORY_NS}.${base}.${deckPart}_${pick(`${base}.${deckPart}`, STORY_COPY.deck)}`,
         story.deck.count,
     );
 
-    const mood = moodOf(story, part);
-    const voice = (bank: "kicker" | "tail", size: number) => {
-        const options = size + QUIET;
-        const at = ((pick(`voice.${bank}.${mood}`, options) - 1 + position) % options) + 1;
-        return at <= size ? `${STORY_NS}.voice.${kind}.${bank}_${mood}_${at}` : null;
-    };
-
-    let tail: DispatchText | null = null;
+    let versus: DispatchText | null = null;
     const measure = VERSUS[story.kind];
     const before = ctx.previous && measure ? measure(ctx.previous) : 0;
     const now = measure ? measure(edition) : 0;
     if (measure && before > 0 && now !== before) {
         const dir = now > before ? "up" : "down";
-        tail = line(`${STORY_NS}.${base}.versus_${dir}_${pick(`${base}.versus_${dir}`, STORY_COPY.versus)}`, before);
-    } else {
-        const key = voice("tail", STORY_COPY.tail);
-        if (key) tail = { key };
+        versus = line(`${STORY_NS}.${base}.versus_${dir}_${pick(`${base}.versus_${dir}`, STORY_COPY.versus)}`, before);
     }
 
-    return { core, angle, params, phrases, mood, kicker: voice("kicker", STORY_COPY.kicker), tail, deck };
+    return { core, shape, angle, params, phrases, deck, versus };
 }
 
 const PULL = 20;

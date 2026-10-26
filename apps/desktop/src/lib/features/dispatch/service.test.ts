@@ -302,6 +302,21 @@ describe("open", () => {
     });
 });
 
+describe("peek", () => {
+    it("reads a frozen edition without clearing its badge", async () => {
+        const f = fakeDeps();
+        const service = createDispatchService(f.deps);
+        const [issued] = await service.issueDue();
+        expect(await service.peek("weekly-2026-10-19")).toEqual(issued);
+        expect(f.index()?.seen).toEqual([]);
+        expect((await service.view())?.unseenIds).toEqual(["weekly-2026-10-19"]);
+    });
+
+    it("is null for an edition that was never frozen", async () => {
+        expect(await createDispatchService(fakeDeps().deps).peek("weekly-2026-10-12")).toBeNull();
+    });
+});
+
 describe("view", () => {
     it("lists closed windows newest first with their status", async () => {
         const f = fakeDeps();

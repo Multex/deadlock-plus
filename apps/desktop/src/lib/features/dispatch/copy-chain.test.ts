@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Edition, EditionKind, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
-import { copyContext } from "./copy-chain";
+import { copyContext, previousToLoad } from "./copy-chain";
 import type { ShelfEntry } from "./service";
 
 const win = (kind: EditionKind, id: string, startS: number): EditionWindow => ({
@@ -50,5 +50,22 @@ describe("copyContext", () => {
 
     it("has nothing before the first edition", () => {
         expect(copyContext(edition(w1), shelf([entry(w1)]), {})).toEqual({ chain: [], previous: null });
+    });
+});
+
+describe("previousToLoad", () => {
+    const s = shelf([entry(w1), entry(w2), entry(w3)]);
+
+    it("names the previous edition while it is not loaded", () => {
+        expect(previousToLoad(edition(w3), s, {}, new Set())).toBe("weekly-2");
+    });
+
+    it("is null once the previous edition is loaded, or was tried and is gone", () => {
+        expect(previousToLoad(edition(w3), s, { "weekly-2": edition(w2) }, new Set())).toBeNull();
+        expect(previousToLoad(edition(w3), s, {}, new Set(["weekly-2"]))).toBeNull();
+    });
+
+    it("is null for the first edition of a kind", () => {
+        expect(previousToLoad(edition(w1), s, {}, new Set())).toBeNull();
     });
 });

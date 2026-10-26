@@ -62,7 +62,8 @@ const CATALOG: Record<string, string> = {
  * Story lines resolve to the kind-free fixture lines above (`dispatch.story.record.weekly.deck_2` reads
  * `dispatch.story.record.deck`), and kickers and tails to nothing, so these tests pin the params, not the words.
  */
-const STORY_LINE = /^(dispatch\.story\.\w+)\.\w+\.(\w+?)_\d+(_one|_other)?$/;
+const STORY_LINE =
+    /^(dispatch\.story\.\w+)\.\w+\.(\w+?)_(?:\d+|name|num|ask|shout|quote|label|pair|plain)(_one|_other)?$/;
 const lookup = (key: string) => {
     if (key.startsWith("dispatch.story.voice.")) return "";
     const m = STORY_LINE.exec(key);
