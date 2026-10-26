@@ -35,6 +35,7 @@ use super::salts::record::SaltRecordService;
 use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
+use crate::http::limiter::Priority;
 use crate::http::Http;
 use error::GcError;
 pub use own::{DetailCoverage, LastRun, OwnRecovery};
@@ -562,7 +563,7 @@ async fn friend_matches(
     if ids.is_empty() {
         return ids;
     }
-    let known = api::known_match_ids_with(http, &ids, api::Patience::Wait).await;
+    let known = api::known_match_ids_with(http, &ids, Priority::Background).await;
     let ids = unknown_friend_matches(ids, known, ledger_attempts);
     log::debug!("gc: found {} new friend match(es)", ids.len());
     ids

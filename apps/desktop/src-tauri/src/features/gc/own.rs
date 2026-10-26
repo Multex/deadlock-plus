@@ -21,6 +21,7 @@ use super::{
 };
 use crate::features::error::AppError;
 use crate::features::stop::StopSignal;
+use crate::http::limiter::Priority;
 
 pub(super) const RUN_KEY: &str = "recovery_run";
 pub(super) const LAST_RUN_KEY: &str = "last_run";
@@ -846,7 +847,7 @@ impl<H: Fn() -> bool, S: Sink> RunEnv for AppEnv<'_, H, S> {
         }
         let ids: Vec<u64> = matches.iter().map(|m| m.match_id).collect();
         let (known, replays) = futures::join!(
-            api::known_match_ids_with(self.http, &ids, api::Patience::Wait),
+            api::known_match_ids_with(self.http, &ids, Priority::Recovery),
             api::replay_match_ids(self.http, &ids)
         );
         let mut with_details = known.map_err(|e| SteamGcError::Api(e.to_string()))?;

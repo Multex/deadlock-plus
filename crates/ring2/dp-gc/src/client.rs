@@ -24,7 +24,7 @@ use valveprotos::deadlock::c_msg_client_to_gc_get_match_history_response::EResul
 use valveprotos::deadlock::c_msg_client_to_gc_get_match_meta_data_response::EResult;
 use valveprotos::deadlock::{
     CMsgClientToGcGetMatchHistory, CMsgClientToGcGetMatchHistoryResponse, CMsgClientToGcGetMatchMetaData,
-    CMsgClientToGcGetMatchMetaDataResponse, EgcCitadelClientMessages,
+    CMsgClientToGcGetMatchMetaDataResponse, ECitadelMatchMode, EgcCitadelClientMessages,
 };
 
 use crate::auth::{account_id_of, AuthContext};
@@ -97,9 +97,19 @@ pub struct HistoryMatch {
     pub start_time: Option<u32>,
 }
 
+/// Only matchmade games (ranked and unranked, Street Brawl included) count. deadlock-api never lists
+/// private lobby, bot, Hero Labs, tutorial or server test matches as known, so they would be asked
+/// about and sent again on every run. A row without a mode is kept.
+fn matchmade(match_mode: Option<i32>) -> bool {
+    const RANKED: i32 = ECitadelMatchMode::KECitadelMatchModeRanked as i32;
+    const UNRANKED: i32 = ECitadelMatchMode::KECitadelMatchModeUnranked as i32;
+    matches!(match_mode, None | Some(RANKED | UNRANKED))
+}
+
 pub fn history_matches(resp: &CMsgClientToGcGetMatchHistoryResponse) -> Vec<HistoryMatch> {
     resp.matches
         .iter()
+        .filter(|m| matchmade(m.match_mode))
         .filter_map(|m| Some(HistoryMatch { match_id: m.match_id?, start_time: m.start_time.filter(|&t| t != 0) }))
         .collect()
 }
@@ -509,6 +519,7 @@ impl GcSession {
 mod tests {
     use steam_vent::proto::steammessages_clientserver_friends::cmsg_client_friends_list::Friend;
     use valveprotos::deadlock::c_msg_client_to_gc_get_match_history_response::Match as HistoryRowProto;
+    use valveprotos::deadlock::ECitadelGameMode;
 
     use super::*;
 
@@ -616,6 +627,50 @@ mod tests {
                 HistoryMatch { match_id: 10, start_time: None },
             ]
         );
+    }
+
+    #[test]
+    fn only_matchmade_history_rows_are_kept() {
+        let row = |match_id: u64, match_mode: Option<ECitadelMatchMode>, game_mode: ECitadelGameMode| HistoryRowProto {
+            match_id: Some(match_id),
+            match_mode: match_mode.map(|m| m as i32),
+            game_mode: Some(game_mode as i32),
+            ..Default::default()
+        };
+        let resp = CMsgClientToGcGetMatchHistoryResponse {
+            matches: vec![
+                row(1, Some(ECitadelMatchMode::KECitadelMatchModeRanked), ECitadelGameMode::KECitadelGameModeNormal),
+                row(2, Some(ECitadelMatchMode::KECitadelMatchModeUnranked), ECitadelGameMode::KECitadelGameModeNormal),
+                row(
+                    3,
+                    Some(ECitadelMatchMode::KECitadelMatchModeUnranked),
+                    ECitadelGameMode::KECitadelGameModeStreetBrawl,
+                ),
+                row(4, None, ECitadelGameMode::KECitadelGameModeNormal),
+                row(
+                    5,
+                    Some(ECitadelMatchMode::KECitadelMatchModePrivateLobby),
+                    ECitadelGameMode::KECitadelGameModeNormal,
+                ),
+                row(6, Some(ECitadelMatchMode::KECitadelMatchModeCoopBot), ECitadelGameMode::KECitadelGameModeNormal),
+                row(
+                    7,
+                    Some(ECitadelMatchMode::KECitadelMatchModeServerTest),
+                    ECitadelGameMode::KECitadelGameModeNormal,
+                ),
+                row(8, Some(ECitadelMatchMode::KECitadelMatchModeTutorial), ECitadelGameMode::KECitadelGameModeNormal),
+                row(9, Some(ECitadelMatchMode::KECitadelMatchModeHeroLabs), ECitadelGameMode::KECitadelGameModeNormal),
+                row(
+                    10,
+                    Some(ECitadelMatchMode::KECitadelMatchModeNewPlayerPlacement),
+                    ECitadelGameMode::KECitadelGameModeNormal,
+                ),
+                row(11, Some(ECitadelMatchMode::KECitadelMatchModeInvalid), ECitadelGameMode::KECitadelGameModeNormal),
+            ],
+            ..history(HistoryResult::KEResultSuccess)
+        };
+        let ids: Vec<u64> = history_matches(&resp).into_iter().map(|m| m.match_id).collect();
+        assert_eq!(ids, [1, 2, 3, 4]);
     }
 
     #[test]

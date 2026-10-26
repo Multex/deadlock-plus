@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::future::Future;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, COOKIE, RETRY_AFTER, SET_COOKIE};
@@ -13,6 +13,7 @@ use dp_gc::friends::{ActiveFriend, HistoryRow};
 use dp_sync::LockExt;
 
 use crate::features::error::AppError;
+use crate::http::limiter::{Busy, Limiter, Priority};
 use crate::http::retry::{rate_limit_quota, Backoff, Reply};
 
 const API: &str = "https://api.deadlock-api.com/v1";
@@ -22,6 +23,11 @@ const REPLAY_CHUNK: usize = 10_000;
 const METADATA_CHUNK: usize = 500;
 const PLAYERS_CHUNK: usize = 1000;
 const CLAIM_COOKIE: &str = "to_fetch_claim";
+
+/// deadlock-api allows 30 metadata requests a minute per IP. One token every 3 s plus a burst of 6
+/// lets through at most 26 in any minute, across every caller in the app.
+static METADATA_LIMIT: LazyLock<Limiter> =
+    LazyLock::new(|| Limiter::new("gc: deadlock-api metadata", Duration::from_secs(3), 6, 2));
 
 const WAIT_ATTEMPTS: u32 = 4;
 /// deadlock-api's quotas are per minute or shorter, so a longer `Retry-After` is not worth holding a run for.
@@ -34,10 +40,21 @@ const WAIT_BACKOFF: Backoff = Backoff {
 
 /// deadlock-api answers 404 for a query that matches nothing, which reads as an empty `T`.
 async fn get_json<T: DeserializeOwned + Default>(req: reqwest::RequestBuilder) -> Result<T, AppError> {
-    get_json_with(req, Patience::FailFast, tokio::time::sleep).await
+    get_json_with(req, Patience::FailFast, tokio::time::sleep, None).await
 }
 
-async fn get_json_with<T, S, F>(mut req: reqwest::RequestBuilder, patience: Patience, sleep: S) -> Result<T, AppError>
+fn busy(busy: Busy) -> AppError {
+    let secs = busy.retry_in.as_secs() + u64::from(busy.retry_in.subsec_nanos() > 0);
+    AppError::network(format!("deadlock-api request budget is low, try again in {secs} s")).param("retry_in_s", secs)
+}
+
+/// `limit` gates every attempt, retries included, since each one counts against the API's quota.
+async fn get_json_with<T, S, F>(
+    mut req: reqwest::RequestBuilder,
+    patience: Patience,
+    sleep: S,
+    limit: Option<(&Limiter, Priority)>,
+) -> Result<T, AppError>
 where
     T: DeserializeOwned + Default,
     S: Fn(Duration) -> F,
@@ -49,6 +66,9 @@ where
     };
     let mut attempt = 0;
     loop {
+        if let Some((limiter, priority)) = limit {
+            limiter.acquire(priority).await.map_err(busy)?;
+        }
         let again = req.try_clone();
         let resp = req.timeout(super::HTTP_TIMEOUT).send().await.map_err(AppError::network)?;
         let status = resp.status();
@@ -159,17 +179,19 @@ pub enum Patience {
     Wait,
 }
 
-/// The subset of `match_ids` deadlock-api already has metadata, and so salts, for. Fails fast.
+/// The subset of `match_ids` deadlock-api already has metadata, and so salts, for. For a view: it
+/// fails fast, also when the shared request budget is low.
 pub async fn known_match_ids(http: &reqwest::Client, match_ids: &[u64]) -> Result<HashSet<u64>, AppError> {
-    known_match_ids_with(http, match_ids, Patience::FailFast).await
+    known_match_ids_with(http, match_ids, Priority::Ui).await
 }
 
+/// Every caller shares one request budget; `Priority::Ui` fails fast, the others wait their turn.
 pub async fn known_match_ids_with(
     http: &reqwest::Client,
     match_ids: &[u64],
-    patience: Patience,
+    priority: Priority,
 ) -> Result<HashSet<u64>, AppError> {
-    known_match_ids_at(API, http, match_ids, patience, tokio::time::sleep).await
+    known_match_ids_at(API, http, match_ids, &METADATA_LIMIT, priority, tokio::time::sleep).await
 }
 
 /// `base` includes `/v1`.
@@ -177,13 +199,15 @@ async fn known_match_ids_at<S, F>(
     base: &str,
     http: &reqwest::Client,
     match_ids: &[u64],
-    patience: Patience,
+    limiter: &Limiter,
+    priority: Priority,
     sleep: S,
 ) -> Result<HashSet<u64>, AppError>
 where
     S: Fn(Duration) -> F,
     F: Future<Output = ()>,
 {
+    let patience = if priority == Priority::Ui { Patience::FailFast } else { Patience::Wait };
     let mut known = HashSet::new();
     for chunk in match_ids.chunks(METADATA_CHUNK) {
         let req = http.get(format!("{base}/matches/metadata")).query(&[
@@ -191,7 +215,7 @@ where
             ("include_info", "true".into()),
             ("limit", METADATA_CHUNK.to_string()),
         ]);
-        let rows: Vec<MatchIdRow> = get_json_with(req, patience, &sleep).await?;
+        let rows: Vec<MatchIdRow> = get_json_with(req, patience, &sleep, Some((limiter, priority))).await?;
         known.extend(rows.into_iter().map(|r| r.match_id));
     }
     Ok(known)
@@ -263,7 +287,7 @@ async fn recent_players(http: &reqwest::Client, account_ids: &[u32]) -> Result<V
     for chunk in account_ids.chunks(PLAYERS_CHUNK) {
         let req = http.get(format!("{API}/players/steam")).query(&[("account_ids", join_ids(chunk))]);
         // Only the background friend pass asks, and a failure here drops the whole pass.
-        players.extend(recent_player_ids(get_json_with(req, Patience::Wait, tokio::time::sleep).await?));
+        players.extend(recent_player_ids(get_json_with(req, Patience::Wait, tokio::time::sleep, None).await?));
     }
     Ok(players)
 }
@@ -462,14 +486,47 @@ mod tests {
         Reply::status("429 Too Many Requests").body(RATE_LIMITED)
     }
 
-    /// The lookup's result and the waits it asked for, which never sleep.
-    fn known(api: &FakeApi, ids: &[u64], patience: Patience) -> (Result<HashSet<u64>, AppError>, Vec<Duration>) {
+    fn plenty() -> Limiter {
+        Limiter::new("test", Duration::from_millis(1), 1000, 0)
+    }
+
+    fn known_under(
+        api: &FakeApi,
+        ids: &[u64],
+        limiter: &Limiter,
+        priority: Priority,
+    ) -> (Result<HashSet<u64>, AppError>, Vec<Duration>) {
         let waits = Mutex::new(Vec::new());
-        let result = block_on(known_match_ids_at(&api.url, &reqwest::Client::new(), ids, patience, |wait| {
+        let result = block_on(known_match_ids_at(&api.url, &reqwest::Client::new(), ids, limiter, priority, |wait| {
             waits.lock().unwrap().push(wait);
             std::future::ready(())
         }));
         (result, waits.into_inner().unwrap())
+    }
+
+    /// The lookup's result and the waits it asked for, which never sleep.
+    fn known(api: &FakeApi, ids: &[u64], priority: Priority) -> (Result<HashSet<u64>, AppError>, Vec<Duration>) {
+        known_under(api, ids, &plenty(), priority)
+    }
+
+    #[test]
+    fn a_view_sends_nothing_while_the_budget_is_low() {
+        let api = FakeApi::serve(vec![Reply::json(KNOWN_5)]);
+        let limiter = Limiter::new("test", Duration::from_secs(3), 2, 2);
+        let (result, _) = known_under(&api, &[5], &limiter, Priority::Ui);
+        let error = result.unwrap_err();
+        assert_eq!(error.code(), "common.network");
+        assert_eq!(serde_json::to_value(&error).unwrap()["params"]["retry_in_s"], "3");
+        assert!(api.requests().is_empty());
+    }
+
+    #[test]
+    fn every_attempt_takes_a_token() {
+        let api = FakeApi::serve(vec![limited().retry_after("1"), Reply::json(KNOWN_5)]);
+        let limiter = plenty();
+        let (result, _) = known_under(&api, &[5], &limiter, Priority::Recovery);
+        assert_eq!(result.unwrap(), HashSet::from([5]));
+        assert_eq!(limiter.admitted(), 2);
     }
 
     fn secs(s: u64) -> Duration {
@@ -479,7 +536,7 @@ mod tests {
     #[test]
     fn a_429_with_retry_after_waits_then_succeeds() {
         let api = FakeApi::serve(vec![limited().retry_after("2"), Reply::json(KNOWN_5)]);
-        let (result, waits) = known(&api, &[5, 6], Patience::Wait);
+        let (result, waits) = known(&api, &[5, 6], Priority::Recovery);
         assert_eq!(result.unwrap(), HashSet::from([5]));
         assert_eq!(waits, vec![secs(2)]);
         assert_eq!(api.requests().len(), 2);
@@ -488,7 +545,7 @@ mod tests {
     #[test]
     fn a_429_without_retry_after_backs_off() {
         let api = FakeApi::serve(vec![limited(), limited(), Reply::json(KNOWN_5)]);
-        let (result, waits) = known(&api, &[5], Patience::Wait);
+        let (result, waits) = known(&api, &[5], Priority::Recovery);
         assert_eq!(result.unwrap(), HashSet::from([5]));
         assert_eq!(waits, vec![secs(5), secs(10)]);
     }
@@ -496,7 +553,7 @@ mod tests {
     #[test]
     fn a_busy_database_waits_like_a_rate_limit() {
         let api = FakeApi::serve(vec![Reply::status("503 Service Unavailable").retry_after("5"), Reply::json(KNOWN_5)]);
-        let (result, waits) = known(&api, &[5], Patience::Wait);
+        let (result, waits) = known(&api, &[5], Priority::Recovery);
         assert_eq!(result.unwrap(), HashSet::from([5]));
         assert_eq!(waits, vec![secs(5)]);
     }
@@ -504,21 +561,21 @@ mod tests {
     #[test]
     fn a_zero_retry_after_still_waits_a_second() {
         let api = FakeApi::serve(vec![limited().retry_after("0"), Reply::json(KNOWN_5)]);
-        let (_, waits) = known(&api, &[5], Patience::Wait);
+        let (_, waits) = known(&api, &[5], Priority::Recovery);
         assert_eq!(waits, vec![secs(1)]);
     }
 
     #[test]
     fn a_long_retry_after_is_clamped_to_a_minute() {
         let api = FakeApi::serve(vec![limited().retry_after("3600"), Reply::json(KNOWN_5)]);
-        let (_, waits) = known(&api, &[5], Patience::Wait);
+        let (_, waits) = known(&api, &[5], Priority::Recovery);
         assert_eq!(waits, vec![secs(60)]);
     }
 
     #[test]
     fn attempts_are_capped() {
         let api = FakeApi::serve((0..6).map(|_| limited().retry_after("1")).collect());
-        let (result, waits) = known(&api, &[5], Patience::Wait);
+        let (result, waits) = known(&api, &[5], Priority::Recovery);
         assert!(result.is_err());
         assert_eq!(api.requests().len(), 4);
         assert_eq!(waits.len(), 3);
@@ -527,7 +584,7 @@ mod tests {
     #[test]
     fn failing_fast_makes_one_attempt() {
         let api = FakeApi::serve(vec![limited().retry_after("2"), Reply::json(KNOWN_5)]);
-        let (result, waits) = known(&api, &[5], Patience::FailFast);
+        let (result, waits) = known(&api, &[5], Priority::Ui);
         assert!(result.is_err());
         assert_eq!(api.requests().len(), 1);
         assert!(waits.is_empty());
@@ -536,7 +593,7 @@ mod tests {
     #[test]
     fn a_rate_limit_error_names_the_quota() {
         let api = FakeApi::serve(vec![limited().retry_after("2")]);
-        let (result, _) = known(&api, &[5], Patience::FailFast);
+        let (result, _) = known(&api, &[5], Priority::Ui);
         let error = result.unwrap_err().to_string();
         assert!(error.contains("ip quota"), "{error}");
     }
@@ -544,7 +601,7 @@ mod tests {
     #[test]
     fn a_client_error_is_not_retried() {
         let api = FakeApi::serve(vec![Reply::status("400 Bad Request"), Reply::json(KNOWN_5)]);
-        let (result, waits) = known(&api, &[5], Patience::Wait);
+        let (result, waits) = known(&api, &[5], Priority::Recovery);
         assert!(result.is_err());
         assert_eq!(api.requests().len(), 1);
         assert!(waits.is_empty());
@@ -553,7 +610,7 @@ mod tests {
     fn metadata_requests(ids: u64) -> usize {
         let api = FakeApi::serve((0..ids).map(|_| Reply::json("[]")).collect());
         let ids: Vec<u64> = (1..=ids).collect();
-        known(&api, &ids, Patience::FailFast).0.unwrap();
+        known(&api, &ids, Priority::Ui).0.unwrap();
         api.requests().len()
     }
 
