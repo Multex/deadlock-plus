@@ -4,7 +4,7 @@ import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/h
 import { heroPortrait } from "../../art";
 import { dispatchViewDeps } from "../../components/view-deps";
 import type { EditionView } from "../../edition-view";
-import { yearEndBackdrop } from "./backdrop";
+import { coverBackdrop } from "../../art";
 import { yearEndView, type YearEndDeps } from "./year-end-view";
 
 function yearEndDeps(heroes: Record<number, Hero>): YearEndDeps {
@@ -34,7 +34,7 @@ export function useYearEnd(edition: () => Edition, view: () => EditionView) {
         const id = starId;
         if (id === null) return;
         let live = true;
-        void Promise.all([yearEndBackdrop(id), heroPortrait(id)]).then(([backdrop, portrait]) => {
+        void Promise.all([coverBackdrop(id), heroPortrait(id)]).then(([backdrop, portrait]) => {
             if (live) art = { heroId: id, backdrop, portrait };
         });
         return () => (live = false);

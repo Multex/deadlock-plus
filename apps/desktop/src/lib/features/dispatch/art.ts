@@ -1,4 +1,5 @@
 import { command, fileSrc } from "$lib/core/tauri";
+import { deadlockApi } from "$lib/core/deadlock-api";
 import { loadHeroes } from "$lib/features/heroes/heroes";
 
 /**
@@ -26,4 +27,36 @@ export async function heroBackdrop(heroId: number): Promise<string | null> {
     } catch {
         return null;
     }
+}
+
+/** The asset rows carry more images than the shared `AssetHero` type lists; only the backdrop is read here. */
+interface BackdropRow {
+    id: number;
+    images?: { background_image_webp?: string | null; background_image?: string | null };
+}
+
+let apiBackdrops: Promise<Map<number, string>> | null = null;
+
+/** The API's copy of the backdrop collage (4096x2312), for when the game's files cannot be read. */
+function apiBackdrop(heroId: number): Promise<string | null> {
+    apiBackdrops ??= deadlockApi
+        .heroes()
+        .then((rows) => {
+            const map = new Map<number, string>();
+            for (const row of rows as BackdropRow[]) {
+                const url = row.images?.background_image_webp ?? row.images?.background_image;
+                if (url) map.set(row.id, url);
+            }
+            return map;
+        })
+        .catch(() => {
+            apiBackdrops = null;
+            return new Map<number, string>();
+        });
+    return apiBackdrops.then((map) => map.get(heroId) ?? null);
+}
+
+/** The backdrop for a cover: the game's own when its files can be read, else the API's. */
+export async function coverBackdrop(heroId: number): Promise<string | null> {
+    return (await heroBackdrop(heroId)) ?? apiBackdrop(heroId);
 }

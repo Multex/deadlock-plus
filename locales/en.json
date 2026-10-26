@@ -3966,6 +3966,128 @@
         },
         "weekly": {
             "extra": "Extra!"
+        },
+        "monthly": {
+            "brand": "Deadlock+",
+            "masthead": "Dispatch",
+            "cover_line": "The Monthly � {month} � No. {number}",
+            "cover_line_preview": "The Monthly � {month}",
+            "folio": "{name} � {month}",
+            "page_ref": "p. {page}",
+            "cover_star_line_one": "{count} game, {share} of your {month}",
+            "cover_star_line_other": "{count} games, {share} of your {month}",
+            "kicker": {
+                "record": "The record",
+                "hours": "Time served",
+                "top_hero": "Cover star",
+                "new_hero": "New face",
+                "best_game": "Game of the month",
+                "best_streak": "On a roll",
+                "longest_session": "Marathon",
+                "busiest_day": "Big day",
+                "longest_match": "The long one",
+                "rank_move": "Rank report",
+                "played_with": "Duo of the month",
+                "nemesis": "Nemesis",
+                "damage": "Damage desk",
+                "mvp_count": "MVP watch",
+                "night_owl": "After dark",
+                "peak_rank": "Peak",
+                "season_climb": "The climb",
+                "days_played": "Regular",
+                "heroes_tried": "Hero sampler",
+                "busiest_month": "Busiest month"
+            },
+            "sticker": {
+                "top": "Inside",
+                "grade": "Best game grade",
+                "kda": "Best game"
+            },
+            "section": {
+                "numbers": "By the numbers",
+                "cover_story": "Cover story",
+                "best_game": "Game of the month",
+                "people": "People"
+            },
+            "numbers": {
+                "title": "The month in numbers",
+                "matches_label_one": "match in {month}",
+                "matches_label_other": "matches in {month}",
+                "won": "won",
+                "record": "{wins} W � {losses} L"
+            },
+            "fact": {
+                "playtime": "In a match",
+                "playtime_note_one": "{days} day, all told",
+                "playtime_note_other": "{days} days, all told",
+                "kda": "Average K/D/A",
+                "kda_note_one": "{kills} kill this month",
+                "kda_note_other": "{kills} kills this month",
+                "longest_match": "Longest match",
+                "longest_match_value_one": "{minutes} min",
+                "longest_match_value_other": "{minutes} min",
+                "longest_match_note": "Start to finish",
+                "longest_session": "Longest session",
+                "longest_session_value_one": "{matches} game",
+                "longest_session_value_other": "{matches} games",
+                "longest_session_note": "{duration}, {date}",
+                "busiest_day": "Busiest day",
+                "busiest_day_note_one": "{matches} match",
+                "busiest_day_note_other": "{matches} matches",
+                "days_played": "Days played",
+                "days_played_note_one": "of {days} in the month",
+                "days_played_note_other": "of {days} in the month",
+                "night": "After midnight",
+                "night_note": "of matches, 00:00-06:00"
+            },
+            "calendar": {
+                "title": "Every day of {month}",
+                "legend_won": "more wins",
+                "legend_lost": "more losses or even",
+                "day_one": "{date}: {count} match, {wins} won",
+                "day_other": "{date}: {count} matches, {wins} won",
+                "day_empty": "{date}: no matches"
+            },
+            "heroes": {
+                "fallback_deck_one": "{count} game, {wins} won. Your most-played hero of {month}.",
+                "fallback_deck_other": "{count} games, {wins} won. Your most-played hero of {month}.",
+                "share_label": "of your games were {hero}",
+                "rotation": "The rotation",
+                "tried_one": "{count} hero tried in {month}",
+                "tried_other": "{count} heroes tried in {month}",
+                "col_games": "games",
+                "col_record": "W�L",
+                "col_played": "played",
+                "record": "{wins}�{losses}"
+            },
+            "best": {
+                "fallback_headline": "{hero}, {kda}",
+                "kills": "kills",
+                "deaths": "deaths",
+                "assists": "assists",
+                "net_worth": "net worth",
+                "grade": "grade",
+                "also": "Also this month"
+            },
+            "people": {
+                "title": "The company you keep",
+                "most_wanted": "Most wanted"
+            },
+            "rank": {
+                "start": "Start of {month}",
+                "end": "End of {month}",
+                "peak": "Peak"
+            },
+            "next_label": "Next issue",
+            "next_line": "{month}, out {date}",
+            "open": "Open",
+            "close": "Close",
+            "prev": "Previous pages",
+            "next": "Next pages",
+            "spread": {
+                "cover": "Cover",
+                "pages": "Pages {from}�{to}"
+            }
         }
     }
 }
