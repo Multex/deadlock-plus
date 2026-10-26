@@ -1,7 +1,7 @@
 import { drawScraps, makeScraps, type Scrap } from "../../kinds/year_end/scraps";
 import type { Scene, SceneAssets } from "../scene";
 import { placeholderScene } from "./placeholder";
-import { fillCount, presentSections, type YearEndVideo } from "./year_end/data";
+import { fillCount, presentSections, type YearEndVideo } from "./year_end/legacy-data";
 import { flashAt } from "../kit/beat";
 import { feathered } from "../kit/bitmap";
 import { countUp } from "../kit/count";
@@ -19,7 +19,7 @@ import {
     yearEndPlan,
     type SectionId,
     type YearEndPlan,
-} from "./year_end/plan";
+} from "./year_end/legacy-plan";
 
 /** The cover is laid out in the live cover's own 600x900 px, then scaled. */
 const COVER = { w: 600, h: 900 };

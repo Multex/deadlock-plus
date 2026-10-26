@@ -5,7 +5,7 @@ import { dispatchViewDeps } from "../../../components/view-deps";
 import { dispatch } from "../../../dispatch.svelte";
 import type { EditionView } from "../../../edition-view";
 import type { ScenePrep } from "../../scene";
-import { yearEndVideo } from "./data";
+import { yearEndVideo } from "./legacy-data";
 
 /** The frozen edition behind the view, read again for its months and name, set in the same words as the poster. */
 export async function prepareScene(view: EditionView): Promise<ScenePrep> {

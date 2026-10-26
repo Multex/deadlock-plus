@@ -1,109 +1,185 @@
-import { entranceCues } from "../../kit/beat";
+import type { SignalId } from "@deadlock-plus/stats/dispatch/signals";
+import type { Beat } from "../../beats";
+import type { SfxCue } from "../../sfx";
 
-export type SectionId = "numbers" | "heroes" | "highlights" | "people";
+export type CategoryId =
+    "y_performance" | "y_supporting" | "y_breakthrough" | "y_longest_run" | "y_endurance" | "y_villain";
+/** Hero and Month of the Year play whenever their data exists; the categories compete for the other slots. */
+export type AwardId = "y_hero" | "y_month" | CategoryId;
+export type YearEndBeatId = "y_preshow" | "y_welcome" | AwardId | "y_credits" | "y_end";
 
-export interface Span {
-    bar: number;
-    bars: number;
+export const CATEGORIES: readonly CategoryId[] = [
+    "y_performance",
+    "y_supporting",
+    "y_breakthrough",
+    "y_longest_run",
+    "y_endurance",
+    "y_villain",
+];
+export const AWARDS: readonly AwardId[] = ["y_hero", "y_month", ...CATEGORIES];
+export const YEAR_END_BEATS: readonly YearEndBeatId[] = ["y_preshow", "y_welcome", ...AWARDS, "y_credits", "y_end"];
+/** Categories a night hands out besides Hero and Month of the Year. */
+export const CATEGORY_PICKS = 2;
+
+/** How each beat shows its stat; no other kind presents a stat as nominees, a marquee or a credit roll. */
+export const PRESENTS: Readonly<Record<YearEndBeatId, readonly string[]>> = {
+    y_preshow: ["stats.matches:marquee_hook"],
+    y_welcome: [],
+    y_hero: ["heroes:nominees"],
+    y_month: ["months:nominees"],
+    y_performance: ["nominees:nominees"],
+    y_supporting: ["mates:nominees"],
+    y_breakthrough: ["newHeroes:nominees"],
+    y_longest_run: ["longestWin:nominees"],
+    y_endurance: ["longestSession:nominees"],
+    y_villain: ["rivals:nominees"],
+    y_credits: ["stats:credits"],
+    y_end: [],
+};
+
+/** An award the year can fill. `strength` is its signal's, or a small fixed pick when no signal backs it. */
+export interface AwardCandidate {
+    id: AwardId;
+    strength: number;
+    signal?: SignalId;
 }
 
-export interface YearEndPlan {
-    intro: { mast: Span; digits: Span; title: Span; name: Span; riser: Span };
-    /** The bar the flash, the burst and the unfold land on. */
-    drop: number;
-    sections: (Span & { id: SectionId })[];
-    end: Span;
+/** The awards in show order: weakest first, the lead (strongest) last, so the night builds to it. */
+export interface Lineup {
+    awards: AwardCandidate[];
+    lead: AwardId | null;
 }
+
+/** Breaks equal strengths: earlier ranks higher, so a plain Hero of the Year sinks to open the night. */
+const TIE: readonly AwardId[] = [
+    "y_performance",
+    "y_longest_run",
+    "y_supporting",
+    "y_endurance",
+    "y_breakthrough",
+    "y_villain",
+    "y_month",
+    "y_hero",
+];
+
+const isCategory = (id: AwardId): id is CategoryId => (CATEGORIES as readonly AwardId[]).includes(id);
+
+export function pickLineup(candidates: readonly AwardCandidate[]): Lineup {
+    const ranked = [...candidates].sort((a, b) => b.strength - a.strength || TIE.indexOf(a.id) - TIE.indexOf(b.id));
+    const spent = new Set<SignalId>();
+    let categories = 0;
+    const picked: AwardCandidate[] = [];
+    for (const c of ranked) {
+        if (picked.some((p) => p.id === c.id)) continue;
+        if (isCategory(c.id) && categories >= CATEGORY_PICKS) continue;
+        let award = c;
+        if (c.signal && spent.has(c.signal)) {
+            // A plain Hero or Month of the Year still plays; a category without its own signal does not.
+            if (isCategory(c.id)) continue;
+            award = { id: c.id, strength: 0 };
+        }
+        if (award.signal) spent.add(award.signal);
+        if (isCategory(award.id)) categories++;
+        picked.push(award);
+    }
+    picked.sort((a, b) => b.strength - a.strength || TIE.indexOf(a.id) - TIE.indexOf(b.id));
+    const lead = picked[0]?.id ?? null;
+    return { awards: picked.reverse(), lead };
+}
+
+type Part = "y_preshow" | "y_welcome" | "award" | "y_credits" | "y_end";
+
+/** Bars at the menu track's 29 with four awards: the pre-show fills its build, each award gets 5.6 s. */
+const BARS: Record<Part, { base: number; min: number; max: number }> = {
+    y_preshow: { base: 5, min: 2, max: 11 },
+    y_welcome: { base: 2, min: 1, max: 3 },
+    award: { base: 4, min: 3, max: 6 },
+    y_credits: { base: 4, min: 3, max: 6 },
+    y_end: { base: 2, min: 1, max: Infinity },
+};
+
+const partOf = (id: YearEndBeatId): Part =>
+    id === "y_preshow" || id === "y_welcome" || id === "y_credits" || id === "y_end" ? id : "award";
 
 /**
- * Bars each section holds, about 4-6 s on every track. The month strip has no section of its own: it splits the
- * match count the numbers already give.
+ * Lays the night on the bar grid. Spare bars (a longer track, a missing award) go round the lead award, the
+ * other awards strongest first, the credits, the pre-show and the welcome; a shorter track takes them back from
+ * the pre-show, welcome, credits and end card before any award.
  */
-const SECTION_BARS: Record<SectionId, number> = { numbers: 4, heroes: 4, highlights: 4, people: 3 };
-const SECTION_ORDER: SectionId[] = ["numbers", "heroes", "highlights", "people"];
-/** Who gets a missing section's bars first: the sections that hold the most to read. */
-const EXTRA_ORDER: SectionId[] = ["heroes", "numbers", "highlights", "people"];
-/** A section never takes more than this from a missing one; the rest goes to the end card. */
-const MOST_BARS = 6;
-const END_BARS = 2;
-/** The unfold bar, every section at its full share, and the end card. */
-const AFTER_DROP = 1 + Object.values(SECTION_BARS).reduce((a, b) => a + b, 0) + END_BARS;
+export function awardsPlan(bars: number, lineup: Lineup): Beat<YearEndBeatId>[] {
+    const awards = lineup.awards.map((a) => a.id);
+    const order: YearEndBeatId[] = ["y_preshow", "y_welcome", ...awards, "y_credits", "y_end"];
+    const size = new Map(order.map((id) => [id, BARS[partOf(id)].base]));
+    let total = order.reduce((n, id) => n + size.get(id)!, 0);
 
-/**
- * Bars before the drop. The menu track builds for 11 bars, which this fills exactly; shorter intros (tracks that
- * open on a hit) give the year two digits a bar and fold the title into the name's bar first.
- */
-export function introBars(n: number): Record<keyof YearEndPlan["intro"], number> {
-    const riser = n >= 6 ? 1 : 0;
-    const digits = n >= 10 ? 4 : n >= 6 ? 2 : 1;
-    const name = n >= 7 ? 2 : 1;
-    const title = n >= 8 ? 2 : n >= 5 ? 1 : 0;
-    return { mast: Math.max(0, n - riser - digits - name - title), digits, title, name, riser };
-}
-
-/** Lays the edition out on the bar grid: the build, the drop on its own bar, the sections, then the end card. */
-export function yearEndPlan(bars: number, present: readonly SectionId[]): YearEndPlan {
-    const drop = Math.max(0, bars - AFTER_DROP);
-    const counts = introBars(drop);
-    let bar = 0;
-    const span = (n: number): Span => {
-        const s = { bar, bars: n };
-        bar += n;
-        return s;
-    };
-    const intro = {
-        mast: span(counts.mast),
-        digits: span(counts.digits),
-        title: span(counts.title),
-        name: span(counts.name),
-        riser: span(counts.riser),
-    };
-
-    const shown = SECTION_ORDER.filter((id) => present.includes(id));
-    const share = new Map(shown.map((id) => [id, SECTION_BARS[id]]));
-    let spare = AFTER_DROP - 1 - END_BARS - shown.reduce((sum, id) => sum + SECTION_BARS[id], 0);
-    for (let given = true; spare > 0 && given;) {
-        given = false;
-        for (const id of EXTRA_ORDER) {
-            if (spare === 0) break;
-            if (!share.has(id) || share.get(id)! >= MOST_BARS) continue;
-            share.set(id, share.get(id)! + 1);
-            spare--;
-            given = true;
+    const grow: YearEndBeatId[] = [...[...awards].reverse(), "y_credits", "y_preshow", "y_welcome"];
+    const shrink: YearEndBeatId[] = ["y_preshow", "y_welcome", "y_credits", "y_end", ...awards];
+    while (total < bars) {
+        const room = grow.filter((id) => size.get(id)! < BARS[partOf(id)].max);
+        for (const id of room.length ? room : ["y_end" as const]) {
+            if (total === bars) break;
+            size.set(id, size.get(id)! + 1);
+            total++;
+        }
+    }
+    while (total > bars) {
+        const room = shrink.filter((id) => size.get(id)! > BARS[partOf(id)].min);
+        if (!room.length) break;
+        for (const id of room) {
+            if (total === bars) break;
+            size.set(id, size.get(id)! - 1);
+            total--;
         }
     }
 
-    bar = drop + 1;
-    const sections = shown.map((id) => ({ id, ...span(share.get(id)!) }));
-    return { intro, drop, sections, end: span(bars - bar) };
+    const signals = new Map(lineup.awards.map((a) => [a.id, a.signal]));
+    let bar = 0;
+    return order.map((id) => {
+        const beat: Beat<YearEndBeatId> = { id, kind: "year_end", bar, bars: size.get(id)!, presents: PRESENTS[id] };
+        const signal = signals.get(id as AwardId);
+        if (signal) beat.signal = signal;
+        bar += beat.bars;
+        return beat;
+    });
 }
 
-export function sectionAt(plan: YearEndPlan, t: number, barSeconds: number): { id: SectionId; local: number } | null {
-    const bar = t / barSeconds;
-    const s = plan.sections.find((s) => bar >= s.bar && bar < s.bar + s.bars);
-    return s ? { id: s.id, local: bar - s.bar } : null;
+/** The bar the envelope tears on: halfway through an award, after the nominees. Null for any other beat. */
+export function revealBar(beat: Pick<Beat<YearEndBeatId>, "id" | "bar" | "bars">): number | null {
+    return partOf(beat.id) === "award" ? beat.bar + Math.floor(beat.bars / 2) : null;
 }
 
-/** When each digit of the year locks, in seconds: spread evenly over the digits' bars, the first on its downbeat. */
-export function digitLocks(plan: YearEndPlan, digits: number, barSeconds: number): number[] {
-    const { bar, bars } = plan.intro.digits;
-    return Array.from({ length: digits }, (_, i) => (bar + (bars * i) / digits) * barSeconds);
-}
+const MARQUEE_BULBS = 4;
 
-/** A slot-machine digit: `rate` digits a second from `seed`, and how far the next one has rolled in. */
-export function rollingDigit(seed: number, t: number, rate: number): { digit: number; next: number; frac: number } {
-    const p = seed + t * rate;
-    const whole = Math.floor(p + 1e-9);
-    const digit = ((whole % 10) + 10) % 10;
-    return { digit, next: (digit + 1) % 10, frac: Math.max(0, p - whole) };
-}
-
-/** A count-up runs two beats: long enough to watch the digits climb. */
-export const COUNT_BEATS = 2;
-/** Entrances and their count-ups finish within 75% of a section, at most two beats apart; the rest holds the page. */
-const PACE = { share: 0.75, countBeats: COUNT_BEATS, apartBeats: 2 };
-
-/** When each of `n` entrances lands, in seconds: the first on the section's downbeat at `start`. */
-export function entrances(n: number, start: number, span: number, beat: number): number[] {
-    return entranceCues(n, start, span, beat, PACE);
+/** Every cue sits on a beat: bulbs per pre-show bar, confetti on the welcome, an envelope, spotlight and crowd per winner. */
+export function awardsSfx(plan: readonly Beat<YearEndBeatId>[], barSeconds: number): SfxCue[] {
+    const beat = barSeconds / 4;
+    const lead = plan.filter((b) => partOf(b.id) === "award").at(-1)?.id;
+    return plan.flatMap((b): SfxCue[] => {
+        const start = b.bar * barSeconds;
+        if (b.id === "y_preshow")
+            return Array.from({ length: Math.min(MARQUEE_BULBS, b.bars) }, (_, i) => ({
+                cue: "marquee_bulb",
+                atSeconds: start + i * barSeconds,
+            }));
+        if (b.id === "y_welcome")
+            return [
+                { cue: "confetti", atSeconds: start },
+                { cue: "crowd", atSeconds: start, gain: 0.7 },
+            ];
+        const reveal = revealBar(b);
+        if (reveal === null) return [];
+        const at = reveal * barSeconds;
+        if (b.id === lead)
+            return [
+                { cue: "envelope_tear", atSeconds: at },
+                { cue: "spotlight", atSeconds: at + beat },
+                { cue: "winner_sting", atSeconds: at + beat },
+                { cue: "crowd", atSeconds: at + 2 * beat },
+            ];
+        return [
+            { cue: "envelope_tear", atSeconds: at },
+            { cue: "spotlight", atSeconds: at + beat },
+            { cue: "crowd", atSeconds: at + beat, gain: 0.6 },
+        ];
+    });
 }

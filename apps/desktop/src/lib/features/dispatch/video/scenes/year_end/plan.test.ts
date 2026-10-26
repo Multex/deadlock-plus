@@ -1,152 +1,185 @@
 import { describe, expect, it } from "vitest";
-
 import { MUSIC_TRACKS } from "../../music";
 import { videoTimeline } from "../../timeline";
 import {
-    COUNT_BEATS,
-    digitLocks,
-    entrances,
-    introBars,
-    rollingDigit,
-    sectionAt,
-    yearEndPlan,
-    type SectionId,
+    awardsPlan,
+    awardsSfx,
+    CATEGORY_PICKS,
+    pickLineup,
+    revealBar,
+    YEAR_END_BEATS,
+    type AwardCandidate,
+    type Lineup,
 } from "./plan";
 
-const ALL: SectionId[] = ["numbers", "heroes", "highlights", "people"];
+const TRACK_BARS = [...new Set(MUSIC_TRACKS.map((track) => videoTimeline(track).bars))];
 
-describe("yearEndPlan", () => {
-    it("drops on the menu track's own drop: bar 11 of 29, 15.3 s in", () => {
-        const menu = videoTimeline(MUSIC_TRACKS.find((t) => t.id === "menu")!);
-        expect(menu.bars).toBe(29);
-        const plan = yearEndPlan(menu.bars, ALL);
-        expect(plan.drop).toBe(11);
-        expect(plan.drop * menu.barSeconds).toBeCloseTo(15.35, 2);
+const full: AwardCandidate[] = [
+    { id: "y_hero", strength: 0.53, signal: "one_trick" },
+    { id: "y_month", strength: 0 },
+    { id: "y_performance", strength: 0.5, signal: "big_game" },
+    { id: "y_longest_run", strength: 0.71, signal: "streak" },
+    { id: "y_supporting", strength: 0.2 },
+    { id: "y_villain", strength: 0.05 },
+];
+
+function covers(plan: { bar: number; bars: number }[], bars: number) {
+    let at = 0;
+    for (const beat of plan) {
+        expect(beat.bar).toBe(at);
+        expect(beat.bars).toBeGreaterThan(0);
+        at += beat.bars;
+    }
+    expect(at).toBe(bars);
+}
+
+describe("pickLineup", () => {
+    it("always keeps the hero and the month, plus the two strongest categories", () => {
+        const lineup = pickLineup(full);
+        expect(lineup.awards.map((a) => a.id).sort()).toEqual(
+            ["y_hero", "y_longest_run", "y_month", "y_performance"].sort(),
+        );
+        expect(lineup.awards.filter((a) => a.id !== "y_hero" && a.id !== "y_month")).toHaveLength(CATEGORY_PICKS);
     });
 
-    it("builds through the menu track's 11 quiet bars: masthead, year, title, name, riser", () => {
-        const plan = yearEndPlan(29, ALL);
-        expect(plan.intro).toEqual({
-            mast: { bar: 0, bars: 2 },
-            digits: { bar: 2, bars: 4 },
-            title: { bar: 6, bars: 2 },
-            name: { bar: 8, bars: 2 },
-            riser: { bar: 10, bars: 1 },
-        });
+    it("saves the strongest award for last and opens on the weakest", () => {
+        const lineup = pickLineup(full);
+        expect(lineup.lead).toBe("y_longest_run");
+        expect(lineup.awards.map((a) => a.id)).toEqual(["y_month", "y_performance", "y_hero", "y_longest_run"]);
     });
 
-    it("gives every section three or four bars after the drop and the last two to the end card", () => {
-        const plan = yearEndPlan(29, ALL);
-        expect(plan.sections).toEqual([
-            { id: "numbers", bar: 12, bars: 4 },
-            { id: "heroes", bar: 16, bars: 4 },
-            { id: "highlights", bar: 20, bars: 4 },
-            { id: "people", bar: 24, bars: 3 },
+    it("opens on a plain Hero of the Year when nothing ties it to a signal", () => {
+        const lineup = pickLineup([
+            { id: "y_hero", strength: 0 },
+            { id: "y_month", strength: 0 },
+            { id: "y_supporting", strength: 0.76, signal: "duo" },
+            { id: "y_endurance", strength: 0.58, signal: "marathon" },
+            { id: "y_villain", strength: 0.5, signal: "nemesis" },
         ]);
-        expect(plan.end).toEqual({ bar: 27, bars: 2 });
+        expect(lineup.awards.map((a) => a.id)).toEqual(["y_hero", "y_month", "y_endurance", "y_supporting"]);
+        expect(lineup.lead).toBe("y_supporting");
     });
 
-    it("holds every section for at least 4 s on every track", () => {
-        for (const track of MUSIC_TRACKS) {
-            const { bars, barSeconds } = videoTimeline(track);
-            for (const s of yearEndPlan(bars, ALL).sections) {
-                expect(s.bars * barSeconds, `${track.id} ${s.id}`).toBeGreaterThanOrEqual(4);
+    it("lets a hero signal make Hero of the Year the closer", () => {
+        const lineup = pickLineup([
+            { id: "y_hero", strength: 0.75, signal: "explorer" },
+            { id: "y_performance", strength: 0.3 },
+            { id: "y_supporting", strength: 0.2 },
+            { id: "y_endurance", strength: 0.15 },
+        ]);
+        expect(lineup.lead).toBe("y_hero");
+        expect(lineup.awards.map((a) => a.id)).toEqual(["y_supporting", "y_performance", "y_hero"]);
+    });
+
+    it("never spends one signal on two awards", () => {
+        const lineup = pickLineup([
+            { id: "y_hero", strength: 0.6, signal: "one_trick" },
+            { id: "y_performance", strength: 0.6, signal: "one_trick" },
+            { id: "y_supporting", strength: 0.2 },
+        ]);
+        const signals = lineup.awards.flatMap((a) => (a.signal ? [a.signal] : []));
+        expect(new Set(signals).size).toBe(signals.length);
+    });
+
+    it("plays what it has when the year is thin", () => {
+        expect(pickLineup([{ id: "y_hero", strength: 0 }]).awards.map((a) => a.id)).toEqual(["y_hero"]);
+        expect(pickLineup([])).toEqual({ awards: [], lead: null });
+    });
+});
+
+describe("awardsPlan", () => {
+    const lineups: Lineup[] = [
+        pickLineup(full),
+        pickLineup(full.slice(0, 3)),
+        pickLineup([{ id: "y_hero", strength: 0 }]),
+        pickLineup([]),
+    ];
+
+    it("fills every track's bars exactly, whatever awards play", () => {
+        expect(TRACK_BARS.length).toBeGreaterThan(1);
+        for (const bars of [...TRACK_BARS, 22, 34]) {
+            for (const lineup of lineups) covers(awardsPlan(bars, lineup), bars);
+        }
+    });
+
+    it("runs the night in order: pre-show, welcome, the awards, credits, end card", () => {
+        const plan = awardsPlan(29, pickLineup(full));
+        expect(plan.map((b) => b.id)).toEqual([
+            "y_preshow",
+            "y_welcome",
+            "y_month",
+            "y_performance",
+            "y_hero",
+            "y_longest_run",
+            "y_credits",
+            "y_end",
+        ]);
+        expect(plan.find((b) => b.id === "y_longest_run")?.signal).toBe("streak");
+        expect(plan.find((b) => b.id === "y_month")?.signal).toBeUndefined();
+    });
+
+    it("holds each award long enough for nominees, the envelope and the winner", () => {
+        for (const bars of TRACK_BARS) {
+            for (const beat of awardsPlan(bars, pickLineup(full))) {
+                if (beat.id.startsWith("y_") && !["y_preshow", "y_welcome", "y_credits", "y_end"].includes(beat.id))
+                    expect(beat.bars).toBeGreaterThanOrEqual(3);
             }
         }
     });
 
-    it("hands a missing section's bars to the others, up to six bars each, then to the end card", () => {
-        const plan = yearEndPlan(29, ["numbers", "heroes"]);
-        expect(plan.sections).toEqual([
-            { id: "numbers", bar: 12, bars: 6 },
-            { id: "heroes", bar: 18, bars: 6 },
-        ]);
-        expect(plan.end).toEqual({ bar: 24, bars: 5 });
+    it("gives a missing award's bars to the awards that stay, the lead first", () => {
+        const four = awardsPlan(29, pickLineup(full));
+        const one = awardsPlan(29, pickLineup([{ id: "y_hero", strength: 0.6, signal: "one_trick" }]));
+        const hero = (plan: typeof one) => plan.find((b) => b.id === "y_hero")!.bars;
+        expect(hero(one)).toBeGreaterThan(hero(four));
     });
 
-    it("fills every track exactly, with no gap or overlap from bar 0 to the last", () => {
-        for (const track of MUSIC_TRACKS) {
-            const { bars } = videoTimeline(track);
-            for (const present of [ALL, ["numbers", "heroes"] as SectionId[]]) {
-                const plan = yearEndPlan(bars, present);
-                const spans = [
-                    ...Object.values(plan.intro),
-                    { bar: plan.drop, bars: 1 },
-                    ...plan.sections,
-                    plan.end,
-                ].filter((s) => s.bars > 0);
-                let next = 0;
-                for (const span of spans) {
-                    expect(span.bar).toBe(next);
-                    next += span.bars;
-                }
-                expect(next).toBe(bars);
-            }
+    it("only uses its own y_ beat ids", () => {
+        const ids = lineups.flatMap((l) => awardsPlan(29, l).map((b) => b.id));
+        for (const id of ids) {
+            expect(id.startsWith("y_")).toBe(true);
+            expect(YEAR_END_BEATS).toContain(id);
         }
     });
 });
 
-describe("entrances", () => {
-    it("lands the first on the section's downbeat and the rest evenly, at most two beats apart", () => {
-        expect(entrances(5, 10, 16, 0.25)).toEqual([10, 10.5, 11, 11.5, 12]);
-        expect(entrances(1, 10, 16, 0.25)).toEqual([10]);
+describe("awardsSfx", () => {
+    const barSeconds = 240 / 172;
+    const plan = awardsPlan(29, pickLineup(full));
+    const cues = awardsSfx(plan, barSeconds);
+    const at = (id: string) => plan.find((b) => b.id === id)!;
+
+    it("tears every envelope on its award's reveal bar", () => {
+        const tears = cues.filter((c) => c.cue === "envelope_tear").map((c) => c.atSeconds);
+        const reveals = plan.filter((b) => revealBar(b) !== null).map((b) => revealBar(b)! * barSeconds);
+        expect(tears).toEqual(reveals);
+        expect(reveals).toHaveLength(4);
     });
 
-    it("lands every entrance and its count-up inside the first part of the section, leaving the rest to read", () => {
-        for (const n of [2, 5, 8, 9]) {
-            const beat = 0.35;
-            const span = 16 * beat;
-            const cues = entrances(n, 0, span, beat);
-            expect(cues[cues.length - 1] + COUNT_BEATS * beat).toBeLessThanOrEqual(span * 0.75 + 1e-9);
-            for (let i = 1; i < n; i++) expect(cues[i] - cues[i - 1]).toBeGreaterThan(0);
+    it("gives the winner sting to the lead award only, and the crowd to every winner", () => {
+        const stings = cues.filter((c) => c.cue === "winner_sting");
+        expect(stings).toHaveLength(1);
+        const lead = at("y_longest_run");
+        expect(stings[0].atSeconds).toBeGreaterThan(lead.bar * barSeconds);
+        expect(stings[0].atSeconds).toBeLessThan((lead.bar + lead.bars) * barSeconds);
+        expect(cues.filter((c) => c.cue === "crowd").length).toBeGreaterThanOrEqual(5);
+    });
+
+    it("lights the marquee in the pre-show and drops confetti on the welcome", () => {
+        const preshow = at("y_preshow");
+        const bulbs = cues.filter((c) => c.cue === "marquee_bulb");
+        expect(bulbs.length).toBeGreaterThan(0);
+        for (const c of bulbs) expect(c.atSeconds).toBeLessThan((preshow.bar + preshow.bars) * barSeconds);
+        expect(cues.find((c) => c.cue === "confetti")?.atSeconds).toBeCloseTo(at("y_welcome").bar * barSeconds);
+    });
+
+    it("lands every cue on a beat inside the video", () => {
+        const end = 29 * barSeconds;
+        for (const c of cues) {
+            expect(c.atSeconds).toBeGreaterThanOrEqual(0);
+            expect(c.atSeconds).toBeLessThan(end);
+            const beats = c.atSeconds / (barSeconds / 4);
+            expect(Math.abs(beats - Math.round(beats))).toBeLessThan(1e-6);
         }
-    });
-
-    it("counts up over two beats", () => {
-        expect(COUNT_BEATS).toBe(2);
-    });
-});
-
-describe("introBars", () => {
-    it("shortens the intro for tracks without a build, keeping at least a bar for the name", () => {
-        expect(introBars(8)).toEqual({ mast: 1, digits: 2, title: 2, name: 2, riser: 1 });
-        expect(introBars(4)).toEqual({ mast: 2, digits: 1, title: 0, name: 1, riser: 0 });
-        for (let n = 4; n <= 14; n++) {
-            const b = introBars(n);
-            expect(b.mast + b.digits + b.title + b.name + b.riser).toBe(n);
-            expect(b.name).toBeGreaterThanOrEqual(1);
-        }
-    });
-});
-
-describe("sectionAt", () => {
-    it("names the section a moment falls in, with its local bar", () => {
-        const plan = yearEndPlan(29, ALL);
-        const bar = 1.5;
-        expect(sectionAt(plan, 16.5 * bar, bar)).toEqual({ id: "heroes", local: 0.5 });
-        expect(sectionAt(plan, 20 * bar, bar)).toEqual({ id: "highlights", local: 0 });
-        expect(sectionAt(plan, 11.5 * bar, bar)).toBeNull();
-    });
-});
-
-describe("digitLocks", () => {
-    it("locks one digit per bar over the four-bar year", () => {
-        const plan = yearEndPlan(29, ALL);
-        expect(digitLocks(plan, 4, 2)).toEqual([4, 6, 8, 10]);
-    });
-
-    it("locks two a bar when the year has two bars", () => {
-        const plan = yearEndPlan(26, ALL);
-        expect(plan.intro.digits.bars).toBe(2);
-        expect(digitLocks(plan, 4, 1)).toEqual([1, 1.5, 2, 2.5]);
-    });
-});
-
-describe("rollingDigit", () => {
-    it("rolls through the digits in order and wraps from 9 to 0", () => {
-        const a = rollingDigit(0, 0.25, 4);
-        expect(a).toEqual({ digit: 1, next: 2, frac: 0 });
-        expect(rollingDigit(0, 2.25, 4)).toEqual({ digit: 9, next: 0, frac: 0 });
-        expect(rollingDigit(3, 0, 4).digit).toBe(3);
     });
 });
