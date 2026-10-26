@@ -185,6 +185,35 @@ export interface Edition {
     combat: HeroCombat[] | null;
     /** Ranked, `[0]` is the banner. A stat with no data has no story, never a 0. */
     stories: DispatchStory[];
+    /**
+     * Frozen at issue so a keepsake never changes when the history does. Optional: editions issued before these
+     * fields existed lack them, and the view leaves those sections out.
+     */
+    playerName?: string | null;
+    /** Local days of the window, oldest first, including days without a match (monthly calendar). */
+    days?: EditionDay[];
+    /** Local months of the window, oldest first, including empty ones (Year-End timeline). */
+    months?: EditionMonth[];
+    /** One point per ranked match with a badge, oldest first (Collector's Copy climb chart). */
+    rankSeries?: RankPoint[];
+}
+
+export interface EditionDay {
+    dayStartS: number;
+    matches: number;
+    wins: number;
+}
+
+export interface EditionMonth {
+    monthStartS: number;
+    matches: number;
+    wins: number;
+}
+
+export interface RankPoint {
+    startS: number;
+    badge: number;
+    outcome: "win" | "loss" | "unscored";
 }
 
 export interface IssuedEntry {
@@ -217,6 +246,8 @@ export interface BuildInput {
     enrichment: Enrichment;
     /** Required for `collectors` windows. */
     season?: RankedSeason;
+    /** The viewer's Steam name at issue time. */
+    playerName?: string | null;
     number: number | null;
     issuedAt: number | null;
 }

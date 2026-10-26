@@ -18,7 +18,7 @@
     import { dispatch } from "$lib/features/dispatch/dispatch.svelte";
     import { DISPATCH_PAPER, editionView } from "$lib/features/dispatch/edition-view";
     import { fitScale, rotatedBox } from "$lib/features/dispatch/fit";
-    import EditionPaper from "$lib/features/dispatch/components/edition-paper.svelte";
+    import EditionObject from "$lib/features/dispatch/components/edition-object.svelte";
     import ExportPanel from "$lib/features/dispatch/components/export-panel.svelte";
     import Shelf from "$lib/features/dispatch/components/shelf.svelte";
     import StoryMode from "$lib/features/dispatch/components/story-mode.svelte";
@@ -88,7 +88,6 @@
     );
     const newsstand = $derived(mode === "paper" || (mode === "first_paper" && stand.length > 0));
     const box = rotatedBox(DISPATCH_PAPER.width, DISPATCH_PAPER.height, PAPER_ANGLE);
-    const scale = $derived(fitScale(stageW, stageH, DISPATCH_PAPER, PAPER_ANGLE, PAPER_PAD));
     const standW = $derived.by(() => {
         const paper = fitScale(rowW - STAND_MIN, stageH, DISPATCH_PAPER, PAPER_ANGLE, PAPER_PAD);
         const room = rowW - box.w * paper - PAPER_PAD * 2;
@@ -174,15 +173,8 @@
         <div class="stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
             {#if mode === "first_paper"}
                 <EmptyState size="base">{@render firstPaperNote()}</EmptyState>
-            {:else if view && scale > 0}
-                <div class="spot" style="width: {box.w * scale}px; height: {box.h * scale}px;">
-                    <div
-                        class="sheet"
-                        style="width: {DISPATCH_PAPER.width}px; height: {DISPATCH_PAPER.height}px; transform: translate(-50%, -50%) scale({scale});"
-                    >
-                        <EditionPaper {view} angle={PAPER_ANGLE} />
-                    </div>
-                </div>
+            {:else if view && shown && stageW > 0}
+                <EditionObject edition={shown} {view} stage={{ width: stageW, height: stageH }} reveal={false} />
             {:else if openFailed !== null}
                 <p class="text-sm text-muted-foreground" role="alert">{t("dispatch.page.open_failed")}</p>
             {:else}
@@ -269,16 +261,5 @@
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-    }
-
-    .spot {
-        position: relative;
-        flex: none;
-    }
-
-    .sheet {
-        position: absolute;
-        top: 50%;
-        left: 50%;
     }
 </style>
