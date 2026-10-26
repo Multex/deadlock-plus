@@ -2,6 +2,7 @@ import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
 import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
 import type { EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import type { Match } from "@deadlock-plus/stats/stats";
+import { DeadlockApiError } from "@deadlock-plus/deadlock-api";
 import { describe, expect, it, vi } from "vitest";
 import { enrichEdition, type EnrichDeps } from "./enrich";
 
@@ -90,8 +91,9 @@ function makeDeps(over: Partial<{ [K in keyof EnrichDeps]: EnrichDeps[K] }> = {}
     };
     const gradeMatch = vi.fn(async (_id: number): Promise<MvpMatchGrade | null> => null);
     const names = vi.fn(async (ids: number[]) => new Map(ids.map((id) => [id, `P${id}`])));
-    const deps = { api, gradeMatch, names, ...over } as unknown as EnrichDeps;
-    return { deps, api, gradeMatch, names };
+    const sleep = vi.fn(async (_ms: number) => {});
+    const deps = { api, gradeMatch, names, sleep, ...over } as unknown as EnrichDeps;
+    return { deps, api, gradeMatch, names, sleep };
 }
 
 describe("enrichEdition requests", () => {
@@ -396,5 +398,51 @@ describe("enrichEdition grades", () => {
         await Promise.resolve();
         expect(started.sort()).toEqual(["enemy", "grade", "hero", "mate"]);
         await pending;
+    });
+});
+
+describe("enrichEdition when the API turns a call away", () => {
+    const limited = (retryAfterS: number | null = null) => new DeadlockApiError(429, retryAfterS);
+
+    it("waits as long as a 429 asks, tries once more, and keeps the answer", async () => {
+        const { deps, api, sleep } = makeDeps();
+        api.mateStats.mockRejectedValueOnce(limited(3)).mockResolvedValueOnce([mate(2001, 3, 2)]);
+        const out = await enrichEdition(WINDOW, ME, [], deps);
+        expect(sleep.mock.calls).toEqual([[3000]]);
+        expect(api.mateStats).toHaveBeenCalledTimes(2);
+        expect(out.mates).toHaveLength(1);
+        expect(out.pending).toEqual([]);
+    });
+
+    it("marks a field pending when the second try is turned away too", async () => {
+        const { deps, api } = makeDeps();
+        api.mateStats.mockRejectedValue(limited(1));
+        api.playerHeroStats.mockRejectedValue(new DeadlockApiError(503));
+        const out = await enrichEdition(WINDOW, ME, [], deps);
+        expect(api.mateStats).toHaveBeenCalledTimes(2);
+        expect(out.mates).toBeNull();
+        expect(out.heroCombat).toBeNull();
+        expect(out.enemies).toEqual([]);
+        expect(out.pending).toEqual(["mates", "heroCombat"]);
+    });
+
+    it("never waits longer than a minute, and a few seconds when no wait is named", async () => {
+        const { deps, api, sleep } = makeDeps();
+        api.mateStats.mockRejectedValueOnce(limited(3600)).mockResolvedValueOnce([]);
+        api.enemyStats.mockRejectedValueOnce(new DeadlockApiError(502)).mockResolvedValueOnce([]);
+        await enrichEdition(WINDOW, ME, [], deps);
+        expect(sleep.mock.calls.map(([ms]) => ms).sort((a, b) => a - b)).toEqual([5000, 60_000]);
+    });
+
+    it("does not retry or wait on an answer that will not change", async () => {
+        const { deps, api, sleep } = makeDeps();
+        api.mateStats.mockRejectedValue(new DeadlockApiError(404));
+        api.enemyStats.mockResolvedValue({ not: "a list" });
+        const out = await enrichEdition(WINDOW, ME, [], deps);
+        expect(api.mateStats).toHaveBeenCalledTimes(1);
+        expect(sleep).not.toHaveBeenCalled();
+        expect(out.mates).toBeNull();
+        expect(out.enemies).toBeNull();
+        expect(out.pending).toEqual([]);
     });
 });

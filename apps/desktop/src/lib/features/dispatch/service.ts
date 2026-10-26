@@ -9,8 +9,9 @@ import {
     unseenCount,
     unseenIds,
 } from "@deadlock-plus/stats/dispatch/archive";
-import { bestGameCandidates, buildEdition, windowRows } from "@deadlock-plus/stats/dispatch/edition";
+import { bestGameCandidates, buildEdition, buildEditionBase, windowRows } from "@deadlock-plus/stats/dispatch/edition";
 import { KNOWN_SEASONS, mergeSeasons, parseRankedSeasons } from "@deadlock-plus/stats/dispatch/seasons";
+import { detectDispatchStories } from "@deadlock-plus/stats/dispatch/stories";
 import {
     BEST_GAME_CANDIDATES,
     EDITION_SCHEMA,
@@ -20,6 +21,7 @@ import {
     type EditionKind,
     type EditionWindow,
     type Enrichment,
+    type PendingField,
     type RankedSeason,
 } from "@deadlock-plus/stats/dispatch/types";
 import { collectorsWindow, dueWindow, pastWindows, soFarWindow } from "@deadlock-plus/stats/dispatch/window";
@@ -61,7 +63,12 @@ export interface DispatchDeps {
     playerName(): string | null;
     history(accountId: number): Promise<DispatchHistory>;
     kv: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
-    enrich(window: EditionWindow, accountId: number, candidates: readonly Match[]): Promise<Enrichment>;
+    /** `pending` lists the fields the API turned away (rate limit or outage). */
+    enrich(
+        window: EditionWindow,
+        accountId: number,
+        candidates: readonly Match[],
+    ): Promise<Enrichment & { pending?: PendingField[] }>;
     notify(kind: EditionKind): Promise<void>;
     /** The body of `/v1/assets/ranked-seasons`. */
     rankedSeasons(): Promise<unknown>;
@@ -71,6 +78,7 @@ export interface DispatchService {
     /** Issues the newest closed window of each kind when due; resolves with what it issued. */
     issueDue(): Promise<Edition[]>;
     print(window: EditionWindow): Promise<Edition | null>;
+    /** Marks the edition seen, after enriching again the fields it froze as pending. */
     open(editionId: string): Promise<Edition | null>;
     /** A frozen edition from kv, leaving its unseen badge alone. */
     peek(editionId: string): Promise<Edition | null>;
@@ -79,7 +87,12 @@ export interface DispatchService {
 }
 
 const KINDS: readonly EditionKind[] = ["weekly", "monthly", "collectors", "year_end"];
-const NO_ENRICHMENT: Enrichment = { mates: null, enemies: null, heroCombat: null, grades: null };
+const NO_ENRICHMENT: Enrichment & { pending?: PendingField[] } = {
+    mates: null,
+    enemies: null,
+    heroCombat: null,
+    grades: null,
+};
 
 /** The settings gate for new-edition notifications; the issue itself never depends on it. */
 export const alertWhen =
@@ -150,6 +163,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
             issuedAt: now,
         });
         if (!edition || edition.number === null) return null;
+        if (enrichment.pending?.length) edition.pending = enrichment.pending;
 
         await deps.kv.set(editionKey(accountId, window.id), edition);
         await saveIndex(
@@ -165,6 +179,48 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
                 onRequest,
             }),
         );
+        return edition;
+    }
+
+    /**
+     * Asks again for the fields frozen as pending and takes only those: everything frozen good stays as it was, and
+     * the number and dates never change. A field the API answers, or fails for any other reason, stops being pending.
+     */
+    async function refill(accountId: number, frozen: Edition): Promise<Edition> {
+        const pending = frozen.pending;
+        if (!pending?.length) return frozen;
+        const [history, fresh] = await Promise.all([
+            deps.history(accountId).catch(() => null),
+            deps.enrich(frozen.window, accountId, []).catch(() => null),
+        ]);
+        if (!history || !fresh) return frozen;
+        const left = pending.filter((f) => fresh.pending?.includes(f));
+        if (left.length === pending.length) return frozen;
+
+        // Rebuilt only to borrow the builder's sorting and rival picks for the fields that came back.
+        const rebuilt = buildEditionBase({
+            window: frozen.window,
+            accountId,
+            history: history.matches,
+            enrichment: fresh,
+            number: frozen.number,
+            issuedAt: frozen.issuedAt,
+        });
+        if (!rebuilt) return frozen;
+        const filled = (f: PendingField) => pending.includes(f) && !left.includes(f) && fresh[f] !== null;
+        const { stories: _stories, pending: _pending, ...kept } = frozen;
+        const base = {
+            ...kept,
+            ...(filled("mates") ? { mates: rebuilt.mates } : {}),
+            ...(filled("enemies") ? { nemesis: rebuilt.nemesis, rivals: rebuilt.rivals } : {}),
+            ...(filled("heroCombat") ? { combat: rebuilt.combat } : {}),
+        };
+        const edition: Edition = {
+            ...base,
+            stories: detectDispatchStories(base),
+            ...(left.length > 0 ? { pending: left } : {}),
+        };
+        await deps.kv.set(editionKey(accountId, frozen.id), edition);
         return edition;
     }
 
@@ -221,8 +277,9 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         return exclusive(async () => {
             const accountId = deps.accountId();
             if (accountId === null) return null;
-            const edition = await readEdition(accountId, editionId);
-            if (!edition) return null;
+            const frozen = await readEdition(accountId, editionId);
+            if (!frozen) return null;
+            const edition = await refill(accountId, frozen);
             const index = await readIndex(accountId);
             const seen = markSeen(index, editionId);
             if (seen !== index) await saveIndex(accountId, seen);

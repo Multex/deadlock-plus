@@ -99,7 +99,7 @@ class DispatchStore {
         };
     }
 
-    /** A frozen edition from kv; marks it seen. */
+    /** A frozen edition from kv; marks it seen, after filling any fields the API turned away at issue. */
     async open(editionId: string): Promise<Edition | null> {
         const edition = await service.open(editionId);
         if (edition) await this.refresh(this.generation).catch(() => {});

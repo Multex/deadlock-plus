@@ -1,5 +1,12 @@
 import { editionKey, indexKey } from "@deadlock-plus/stats/dispatch/archive";
-import type { DispatchIndex, Edition, EditionWindow, Enrichment } from "@deadlock-plus/stats/dispatch/types";
+import type {
+    DispatchIndex,
+    Edition,
+    EditionWindow,
+    Enrichment,
+    HeroCombat,
+    PendingField,
+} from "@deadlock-plus/stats/dispatch/types";
 import { KNOWN_SEASONS } from "@deadlock-plus/stats/dispatch/seasons";
 import { collectorsWindow, windowFor } from "@deadlock-plus/stats/dispatch/window";
 import type { Match } from "@deadlock-plus/stats/stats";
@@ -501,5 +508,102 @@ describe("specials", () => {
         expect([printed?.id, printed?.stats.matches, printed?.issuedAt]).toEqual(["year_end-2025", 3, now]);
         expect(f.index()?.issued.find((e) => e.id === "year_end-2025")?.onRequest).toBe(true);
         expect(kindCalls(f, "year_end")).toEqual([["year_end"]]);
+    });
+});
+
+describe("pending enrichment", () => {
+    const ID = "weekly-2026-10-19";
+    const combat = (heroId: number): HeroCombat => ({
+        heroId,
+        matches: 2,
+        damage: 50_000,
+        objDamagePerMin: 100,
+        accuracy: 0.5,
+        critRate: 0.2,
+        mvpRankCounts: [],
+        mvpRated: 0,
+    });
+    const RIVAL = { accountId: 9, name: "Rival", matches: 5, wins: 1 };
+    const turnedAway: Enrichment & { pending: PendingField[] } = {
+        mates: null,
+        enemies: null,
+        heroCombat: [combat(1)],
+        grades: [],
+        pending: ["mates", "enemies"],
+    };
+    const answered = { ...ENRICHED, enemies: [RIVAL], heroCombat: [combat(2)], pending: [] };
+
+    it("freezes the fields the API turned away as pending", async () => {
+        const f = fakeDeps({ enrich: vi.fn(async () => turnedAway) });
+        await createDispatchService(f.deps).issueDue();
+        expect(f.frozen(ID)?.pending).toEqual(["mates", "enemies"]);
+    });
+
+    it("freezes no pending list when nothing was turned away", async () => {
+        const f = fakeDeps({ enrich: vi.fn(async () => ({ ...ENRICHED, pending: [] })) });
+        await createDispatchService(f.deps).issueDue();
+        expect(f.frozen(ID)).not.toHaveProperty("pending");
+    });
+
+    it("fills a pending edition on open, clears the flag, and keeps its number and date", async () => {
+        const f = fakeDeps({ enrich: vi.fn().mockResolvedValueOnce(turnedAway).mockResolvedValueOnce(answered) });
+        const service = createDispatchService(f.deps);
+        const [issued] = await service.issueDue();
+        expect(issued.mates).toEqual([]);
+        expect(issued.nemesis).toBeNull();
+
+        const opened = await service.open(ID);
+        expect(opened?.mates).toEqual(ENRICHED.mates);
+        expect(opened?.nemesis).toEqual(RIVAL);
+        expect(opened?.rivals).toEqual([RIVAL]);
+        expect(opened).not.toHaveProperty("pending");
+        expect([opened?.number, opened?.issuedAt, opened?.playerName]).toEqual([1, NOW, PLAYER]);
+        expect(f.frozen(ID)).toEqual(opened);
+        expect(f.index()?.seen).toEqual([ID]);
+    });
+
+    it("never overwrites a field that was frozen good", async () => {
+        const f = fakeDeps({ enrich: vi.fn().mockResolvedValueOnce(turnedAway).mockResolvedValueOnce(answered) });
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+        expect((await service.open(ID))?.combat).toEqual([combat(1)]);
+    });
+
+    it("keeps what is still turned away pending and fills the rest", async () => {
+        const stillAway = { ...answered, enemies: null, pending: ["enemies"] as PendingField[] };
+        const f = fakeDeps({ enrich: vi.fn().mockResolvedValueOnce(turnedAway).mockResolvedValueOnce(stillAway) });
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+        const opened = await service.open(ID);
+        expect(opened?.mates).toEqual(ENRICHED.mates);
+        expect(opened?.nemesis).toBeNull();
+        expect(opened?.pending).toEqual(["enemies"]);
+        expect(f.frozen(ID)?.pending).toEqual(["enemies"]);
+    });
+
+    it("leaves the edition as frozen when the API turns it away again", async () => {
+        const f = fakeDeps({ enrich: vi.fn(async () => turnedAway) });
+        const service = createDispatchService(f.deps);
+        const [issued] = await service.issueDue();
+        expect(await service.open(ID)).toEqual(issued);
+        expect(f.index()?.seen).toEqual([ID]);
+    });
+
+    it("does not enrich again an edition frozen before pending existed", async () => {
+        const f = fakeDeps();
+        const service = createDispatchService(f.deps);
+        const [issued] = await service.issueDue();
+        expect(issued).not.toHaveProperty("pending");
+        expect(await service.open(ID)).toEqual(issued);
+        expect(f.deps.enrich).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not fill or mark seen on a peek", async () => {
+        const f = fakeDeps({ enrich: vi.fn().mockResolvedValueOnce(turnedAway).mockResolvedValueOnce(answered) });
+        const service = createDispatchService(f.deps);
+        await service.issueDue();
+        expect((await service.peek(ID))?.pending).toEqual(["mates", "enemies"]);
+        expect(f.deps.enrich).toHaveBeenCalledTimes(1);
+        expect(f.index()?.seen).toEqual([]);
     });
 });

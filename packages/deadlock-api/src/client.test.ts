@@ -110,6 +110,19 @@ describe("createDeadlockApi", () => {
         }
     });
 
+    it("carries the wait a rate-limited answer asks for", async () => {
+        const status = (headers: Record<string, string>) =>
+            setup(() => new Response("{}", { status: 429, headers }))
+                .api.heroes()
+                .catch((e: unknown) => (e as DeadlockApiError).retryAfterS);
+        expect(await status({ "Retry-After": "7" })).toBe(7);
+        expect(await status({ "RateLimit-Reset": "12" })).toBe(12);
+        expect(await status({ "Retry-After": "3", "RateLimit-Reset": "40" })).toBe(3);
+        expect(await status({})).toBeNull();
+        expect(await status({ "Retry-After": "soon" })).toBeNull();
+        expect(new DeadlockApiError(500).retryAfterS).toBeNull();
+    });
+
     it("lets a network failure through unchanged", async () => {
         const offline = new Error("offline");
         const api = createDeadlockApi({

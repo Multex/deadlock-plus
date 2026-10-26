@@ -10,12 +10,23 @@ export interface DeadlockApiOptions {
 /** The API answered with a status outside 200-299. A network failure is not one of these: it rejects as it came. */
 export class DeadlockApiError extends Error {
     readonly status: number;
+    /** Seconds the API asked to wait (`Retry-After`, else `RateLimit-Reset`); null when it named none. */
+    readonly retryAfterS: number | null;
 
-    constructor(status: number) {
+    constructor(status: number, retryAfterS: number | null = null) {
         super(`HTTP ${status}`);
         this.name = "DeadlockApiError";
         this.status = status;
+        this.retryAfterS = retryAfterS;
     }
+}
+
+function waitSeconds(headers: Headers): number | null {
+    for (const name of ["retry-after", "ratelimit-reset"]) {
+        const raw = headers.get(name)?.trim();
+        if (raw && /^\d+$/.test(raw)) return Number(raw);
+    }
+    return null;
 }
 
 /** One level of a hero's `level_info`. Levels that grant an ability unlock list `EAbilityUnlocks`, the others `EAbilityPoints`. */
@@ -324,7 +335,7 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
 
     async function ok(path: string, init?: RequestInit): Promise<Response> {
         const res = await send(path, init);
-        if (!res.ok) throw new DeadlockApiError(res.status);
+        if (!res.ok) throw new DeadlockApiError(res.status, waitSeconds(res.headers));
         return res;
     }
 

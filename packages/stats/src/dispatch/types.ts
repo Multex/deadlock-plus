@@ -203,7 +203,15 @@ export interface Edition {
     nominees?: BestGame[];
     /** Up to `EDITION_RIVALS` enemies by losses, most first; `[0]` is `nemesis`. */
     rivals?: Companion[];
+    /**
+     * Enrichment fields the API turned away (rate limit or outage) at issue; their sections stay hidden and the
+     * edition is enriched again when opened. Absent once nothing is missing.
+     */
+    pending?: PendingField[];
 }
+
+/** The `Enrichment` fields an edition can wait on. */
+export type PendingField = "mates" | "enemies" | "heroCombat";
 
 /** A tuple, not an object, so a 500-match year stays near 30 kB in kv. */
 export type TapeMatch = [

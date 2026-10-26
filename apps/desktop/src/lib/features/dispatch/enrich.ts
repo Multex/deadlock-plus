@@ -1,7 +1,7 @@
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { gradeMatch } from "$lib/features/match-history/mvp";
 import { playerNames } from "$lib/features/match-history/names";
-import type { DeadlockApi } from "@deadlock-plus/deadlock-api";
+import { DeadlockApiError, type DeadlockApi } from "@deadlock-plus/deadlock-api";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
 import {
     EDITION_RIVALS,
@@ -9,6 +9,7 @@ import {
     type EditionWindow,
     type Enrichment,
     type GradedCandidate,
+    type PendingField,
 } from "@deadlock-plus/stats/dispatch/types";
 import type { Match } from "@deadlock-plus/stats/stats";
 
@@ -16,7 +17,11 @@ export interface EnrichDeps {
     api: Pick<DeadlockApi, "playerHeroStats" | "mateStats" | "enemyStats">;
     gradeMatch(matchId: number): Promise<MvpMatchGrade | null>;
     names(ids: number[]): Promise<Map<number, string>>;
+    /** Defaults to a timer. */
+    sleep?(ms: number): Promise<void>;
 }
+
+export type EnrichResult = Enrichment & { pending: PendingField[] };
 
 export function defaultEnrichDeps(): EnrichDeps {
     return {
@@ -27,6 +32,9 @@ export function defaultEnrichDeps(): EnrichDeps {
 }
 
 const NAMED_PER_LIST = 5;
+const DEFAULT_WAIT_S = 5;
+// An issue holds the Dispatch queue while it waits, so a long Retry-After is cut short.
+const MAX_WAIT_S = 60;
 
 const attempt = async <T>(call: () => Promise<T>): Promise<T | null> => {
     try {
@@ -35,6 +43,28 @@ const attempt = async <T>(call: () => Promise<T>): Promise<T | null> => {
         return null;
     }
 };
+
+const timer = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const transient = (e: unknown): e is DeadlockApiError =>
+    e instanceof DeadlockApiError && (e.status === 429 || e.status >= 500);
+
+type Fetched<T> = { value: T | null; turnedAway: boolean };
+
+/** One retry after the wait the API asks for; `turnedAway` when a rate limit or outage still lost the answer. */
+async function fetchTwice<T>(call: () => Promise<T>, deps: EnrichDeps): Promise<Fetched<T>> {
+    try {
+        return { value: await call(), turnedAway: false };
+    } catch (first) {
+        if (!transient(first)) return { value: null, turnedAway: false };
+        await (deps.sleep ?? timer)(Math.min(first.retryAfterS ?? DEFAULT_WAIT_S, MAX_WAIT_S) * 1000);
+        try {
+            return { value: await call(), turnedAway: false };
+        } catch (second) {
+            return { value: null, turnedAway: transient(second) };
+        }
+    }
+}
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 const finite = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -95,10 +125,12 @@ async function gradeCandidate(match: Match, accountId: number, deps: EnrichDeps)
 }
 
 async function companions(window: { minS: number; maxS: number }, accountId: number, deps: EnrichDeps) {
-    const [mates, enemies] = await Promise.all([
-        attempt(async () => parseCompanions(await deps.api.mateStats(accountId, window), "mate_id")),
-        attempt(async () => parseCompanions(await deps.api.enemyStats(accountId, window), "enemy_id")),
+    const [mateRows, enemyRows] = await Promise.all([
+        fetchTwice(() => deps.api.mateStats(accountId, window), deps),
+        fetchTwice(() => deps.api.enemyStats(accountId, window), deps),
     ]);
+    const mates = mateRows.value === null ? null : parseCompanions(mateRows.value, "mate_id");
+    const enemies = enemyRows.value === null ? null : parseCompanions(enemyRows.value, "enemy_id");
 
     const wanted = [
         ...(mates ?? []).slice(0, NAMED_PER_LIST),
@@ -109,11 +141,17 @@ async function companions(window: { minS: number; maxS: number }, accountId: num
 
     const named = (list: Companion[] | null) =>
         list?.map((c) => ({ ...c, name: names?.get(c.accountId) ?? null })) ?? null;
-    return { mates: named(mates), enemies: named(enemies) };
+    return {
+        mates: named(mates),
+        enemies: named(enemies),
+        matesAway: mateRows.turnedAway,
+        enemiesAway: enemyRows.turnedAway,
+    };
 }
 
 /**
- * One independent call per field: a failure leaves that field `null` and never throws. Only a handful of players
+ * One independent call per field: a failure leaves that field `null` and never throws. A field lost to a rate
+ * limit or an outage is listed in `pending`, so the edition can be enriched again later. Only a handful of players
  * get names, so a big friend list costs no more than a small one.
  */
 export async function enrichEdition(
@@ -121,14 +159,25 @@ export async function enrichEdition(
     accountId: number,
     candidates: readonly Match[],
     deps: EnrichDeps,
-): Promise<Enrichment> {
+): Promise<EnrichResult> {
     const range = { minS: window.startS, maxS: window.endS - 1 };
     // A Collector's Copy covers ranked games only; mate-stats and enemy-stats take no mode filter.
     const heroRange = window.kind === "collectors" ? { ...range, matchMode: ["ranked"] } : range;
-    const [heroCombat, grades, people] = await Promise.all([
-        attempt(async () => parseHeroCombat(await deps.api.playerHeroStats(accountId, heroRange), accountId)),
+    const [hero, grades, people] = await Promise.all([
+        fetchTwice(() => deps.api.playerHeroStats(accountId, heroRange), deps),
         Promise.all(candidates.map((m) => gradeCandidate(m, accountId, deps))),
         companions(range, accountId, deps),
     ]);
-    return { ...people, heroCombat, grades };
+    const lost: [PendingField, boolean][] = [
+        ["mates", people.matesAway],
+        ["enemies", people.enemiesAway],
+        ["heroCombat", hero.turnedAway],
+    ];
+    return {
+        mates: people.mates,
+        enemies: people.enemies,
+        heroCombat: hero.value === null ? null : parseHeroCombat(hero.value, accountId),
+        grades,
+        pending: lost.filter(([, away]) => away).map(([field]) => field),
+    };
 }
