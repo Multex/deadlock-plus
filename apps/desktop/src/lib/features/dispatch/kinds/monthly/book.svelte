@@ -7,6 +7,7 @@
     import PageHeroes from "./page-heroes.svelte";
     import PageNumbers from "./page-numbers.svelte";
     import PagePeople from "./page-people.svelte";
+    import { leftStack } from "./reader";
 
     let {
         mag,
@@ -30,7 +31,6 @@
 
     const shade = (a: number) => Math.sin((Math.min(180, Math.max(0, -a)) * Math.PI) / 180);
     const z = (a: number, i: number) => (a < -90 ? 20 + i : 10 - i);
-    const open = $derived(Math.min(1, Math.max(0, -a1 / 180)));
     // A face turned away is hidden outright as well as by backface-visibility, so its text leaves the
     // accessibility tree and stops catching the pointer.
     const shows = (a: number, front: boolean) => (front ? a > -90 : a <= -90);
@@ -47,7 +47,7 @@
 </script>
 
 <div class="book" style="width: {PAGE.width * 2}px; height: {PAGE.height}px;">
-    <div class="edge-l" style="opacity: {open > 0.5 ? 1 : 0};" aria-hidden="true"></div>
+    <div class="edge-l" style="opacity: {leftStack(a1)};" aria-hidden="true"></div>
     <div class="edge-r" aria-hidden="true"></div>
 
     <div class="curl next" class:on={curl === "next"} data-curl="next" aria-hidden="true"></div>

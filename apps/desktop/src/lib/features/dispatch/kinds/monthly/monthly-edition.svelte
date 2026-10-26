@@ -20,6 +20,7 @@
         hoverEdge,
         keyAction,
         leafTargets,
+        leftStack,
         pointerAction,
         request,
         settle,
@@ -264,7 +265,7 @@
             <div class="shadow" style="left: {PAGE.width + 7}px;"></div>
             <div
                 class="shadow"
-                style="left: 7px; right: {PAGE.width + 7}px; opacity: {Math.min(1, Math.max(0, (p1 - 0.9) / 0.1))};"
+                style="left: 7px; right: {PAGE.width + 7}px; opacity: {leftStack(angles.a1)};"
             ></div>
             <div class="book">
                 {#key mag}

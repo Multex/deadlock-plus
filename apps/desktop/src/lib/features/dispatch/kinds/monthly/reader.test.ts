@@ -4,6 +4,7 @@ import {
     LAST_SPREAD,
     keyAction,
     leafTargets,
+    leftStack,
     pointerAction,
     request,
     settle,
@@ -138,5 +139,20 @@ describe("monthly reader input", () => {
     it("a mostly vertical or tiny drag is neither a swipe nor a click", () => {
         expect(pointerAction(tap(700, 20, 90), box, 1)).toBeNull();
         expect(pointerAction(tap(700, 20, 2), box, 1)).toBeNull();
+    });
+});
+
+describe("monthly reader left page block", () => {
+    it("stays away while the bottom leaf is anywhere off the table", () => {
+        for (const a of [0, -10, -90, -120, -150, -165]) expect(leftStack(a)).toBe(0);
+    });
+
+    it("shows in full once that leaf lies flat on the left", () => {
+        expect(leftStack(-180)).toBe(1);
+    });
+
+    it("fades in over the last degrees of the landing", () => {
+        const fade = [-168, -172, -176, -179].map(leftStack);
+        expect(fade.every((v, i) => v > 0 && v < 1 && (i === 0 || v > fade[i - 1]!))).toBe(true);
     });
 });

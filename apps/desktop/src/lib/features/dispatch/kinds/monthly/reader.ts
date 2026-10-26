@@ -1,4 +1,4 @@
-/** Spreads in reading order: 0 the closed cover, 1 pages 2–3, 2 pages 4–5. */
+/** Spreads in reading order: 0 the closed cover, 1 pages 2 and 3, 2 pages 4 and 5. */
 export const LAST_SPREAD = 2;
 
 export type ReaderAction = "next" | "prev" | "first" | "last" | "close";
@@ -48,7 +48,16 @@ export const shown = (s: ReaderState): number => s.turn ?? s.at;
 /** Each leaf's turn (0 lying right, 1 turned over) once the magazine rests on `spread`. */
 export const leafTargets = (spread: number) => ({ p1: spread >= 1 ? 1 : 0, p2: spread >= 2 ? 1 : 0 });
 
-export const spreadPages = (spread: number): { from: number; to: number } | null =>
+/** Degrees before flat over which the left page block fades in. */
+const LAND = 14;
+
+/**
+ * The left page block's opacity from the bottom leaf's angle. The block is the edge of the pages lying on the left,
+ * so it exists only while that leaf lies there: shown early, it floats as a bare line beside the turning page.
+ */
+export const leftStack = (a1: number): number => Math.min(1, Math.max(0, (-a1 - (180 - LAND)) / LAND));
+
+export const spreadPages =(spread: number): { from: number; to: number } | null =>
     spread <= 0 ? null : { from: spread * 2, to: spread * 2 + 1 };
 
 /** `open`: the magazine is past its cover (or on its way). */
