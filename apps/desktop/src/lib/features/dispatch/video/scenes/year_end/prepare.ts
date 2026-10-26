@@ -1,10 +1,12 @@
 import { i18n } from "$lib/core/i18n.svelte";
 import { loadHeroes } from "$lib/features/heroes/heroes";
-import { heroBackdrop, heroPortrait } from "../../../art";
+import { heroBackdrop, heroMood, heroPortrait } from "../../../art";
 import { dispatchViewDeps } from "../../../components/view-deps";
 import { dispatch } from "../../../dispatch.svelte";
 import type { EditionView } from "../../../edition-view";
 import type { ScenePrep } from "../../scene";
+import { awardImages } from "./beats/award";
+import { yearEndAwards } from "./data";
 import { yearEndVideo } from "./legacy-data";
 
 /** The frozen edition behind the view, read again for its months and name, set in the same words as the poster. */
@@ -25,5 +27,18 @@ export async function prepareScene(view: EditionView): Promise<ScenePrep> {
     ]);
     const images: ScenePrep["images"] = { backdrop };
     if (goty !== undefined && gotyPortrait) images[`hero:${goty}`] = gotyPortrait;
+    // The award beats' hero cards: `hero:<id>` and the mood faces `mood:<id>:gloat|critical`.
+    const viewDeps = dispatchViewDeps(heroes, []);
+    const night = yearEndAwards(edition, {
+        hero: (id) => viewDeps.hero(id)?.name,
+        number: viewDeps.number,
+        percent: viewDeps.percent,
+        day: viewDeps.day,
+        monthName: (s, tz) => new Intl.DateTimeFormat(i18n.locale, { month: "long", timeZone: tz }).format(s * 1000),
+    });
+    const faces = await Promise.all(
+        awardImages(night).map(async (i) => [i.key, i.mood ? await heroMood(i.heroId, i.mood) : await heroPortrait(i.heroId)] as const),
+    );
+    for (const [key, src] of faces) if (src && !(key in images)) images[key] = src;
     return { data, images };
 }
