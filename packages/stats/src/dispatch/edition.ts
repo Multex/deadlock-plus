@@ -5,6 +5,7 @@ import { heroBreakdown, record, streaks, totalPlaytime, type Match } from "../st
 import { detectDispatchStories } from "./stories";
 import {
     BEST_GAME_CANDIDATES,
+    EDITION_RIVALS,
     EDITION_SCHEMA,
     MIN_EDITION_MATCHES,
     type BestGame,
@@ -18,6 +19,7 @@ import {
     type EditionWindow,
     type GradedCandidate,
     type RankPoint,
+    type TapeMatch,
 } from "./types";
 
 // ECitadelMatchMode / ECitadelGameMode values from Valve's protobufs.
@@ -146,14 +148,19 @@ export function bestGameCandidates(rows: readonly Match[], n: number): Match[] {
     return rows.filter(gradable).sort(byKda).slice(0, n);
 }
 
-/** The candidate with the best grade; KDA order when no candidate has one. */
-export function pickBestGame(candidates: readonly Match[], grades: readonly GradedCandidate[] | null): BestGame | null {
+/** The candidates by grade, best first; KDA order among the ungraded. */
+export function rankCandidates(candidates: readonly Match[], grades: readonly GradedCandidate[] | null): BestGame[] {
     const byId = new Map((grades ?? []).map((g) => [g.matchId, g]));
-    const best = [...candidates]
+    return [...candidates]
         .sort(byKda)
         .map((m) => ({ m, g: byId.get(m.matchId) }))
-        .sort((x, y) => byGrade(x.g, y.g))[0];
-    return best ? toBestGame(best.m, best.g) : null;
+        .sort((x, y) => byGrade(x.g, y.g))
+        .map(({ m, g }) => toBestGame(m, g));
+}
+
+/** The candidate with the best grade; KDA order when no candidate has one. */
+export function pickBestGame(candidates: readonly Match[], grades: readonly GradedCandidate[] | null): BestGame | null {
+    return rankCandidates(candidates, grades)[0] ?? null;
 }
 
 function editionStats(rows: Match[], tz: string): EditionStats & EditionCalendar {
@@ -306,14 +313,24 @@ function editionRank(rows: Match[]): EditionRank | null {
     };
 }
 
-function nemesis(enemies: readonly Companion[]): Companion | null {
+function rivals(enemies: readonly Companion[]): Companion[] {
     const losses = (c: Companion) => c.matches - c.wins;
-    return (
-        enemies
-            .filter((c) => losses(c) >= MIN_NEMESIS_LOSSES)
-            .sort((a, b) => losses(b) - losses(a) || b.matches - a.matches || a.accountId - b.accountId)[0] ?? null
-    );
+    return enemies
+        .filter((c) => losses(c) >= MIN_NEMESIS_LOSSES)
+        .sort((a, b) => losses(b) - losses(a) || b.matches - a.matches || a.accountId - b.accountId)
+        .slice(0, EDITION_RIVALS);
 }
+
+const toTape = (m: Match): TapeMatch => [
+    m.startTime,
+    m.heroId,
+    m.outcome,
+    m.kills,
+    m.deaths,
+    m.assists,
+    m.netWorth,
+    m.durationS,
+];
 
 export type EditionBase = Omit<Edition, "stories"> & { stats: EditionStats & EditionCalendar };
 
@@ -323,10 +340,9 @@ export function buildEditionBase(input: BuildInput): EditionBase | null {
     const rows = windowRows(input.history, window);
     if (rows.length < MIN_EDITION_MATCHES) return null;
 
-    const candidates = bestGameCandidates(rows, BEST_GAME_CANDIDATES);
-    const bestGame = candidates.length
-        ? pickBestGame(candidates, enrichment.grades)
-        : toBestGame([...rows].sort(byKda)[0], undefined);
+    const nominees = rankCandidates(bestGameCandidates(rows, BEST_GAME_CANDIDATES), enrichment.grades);
+    const bestGame = nominees[0] ?? toBestGame([...rows].sort(byKda)[0], undefined);
+    const enemyRivals = rivals(enrichment.enemies ?? []);
 
     return {
         schema: EDITION_SCHEMA,
@@ -352,13 +368,16 @@ export function buildEditionBase(input: BuildInput): EditionBase | null {
         mates: [...(enrichment.mates ?? [])].sort(
             (a, b) => b.matches - a.matches || b.wins - a.wins || a.accountId - b.accountId,
         ),
-        nemesis: nemesis(enrichment.enemies ?? []),
+        nemesis: enemyRivals[0] ?? null,
         combat: enrichment.heroCombat,
         playerName: input.playerName ?? null,
         ...(window.kind === "weekly" || window.kind === "monthly"
             ? { days: editionDays(rows, window) }
             : { months: editionMonths(rows, window) }),
         ...(window.kind === "collectors" ? { rankSeries: rankSeries(rows) } : {}),
+        tape: rows.map(toTape),
+        nominees,
+        rivals: enemyRivals,
     };
 }
 

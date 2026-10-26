@@ -1,5 +1,5 @@
 import type { MvpLetter } from "@deadlock-plus/ipc-types/MvpLetter";
-import type { Match } from "../stats";
+import type { Match, Outcome } from "../stats";
 
 /** `collectors` = Collector's Copy at a ranked season's end; `year_end` = Year-End Special, Jan 1 to Dec 1. */
 export type EditionKind = "weekly" | "monthly" | "collectors" | "year_end";
@@ -7,6 +7,7 @@ export type EditionKind = "weekly" | "monthly" | "collectors" | "year_end";
 export const MIN_EDITION_MATCHES = 3;
 export const EDITION_SCHEMA = 1;
 export const BEST_GAME_CANDIDATES = 3;
+export const EDITION_RIVALS = 3;
 
 /**
  * A local calendar window: start inclusive, end exclusive, unix seconds, computed in `tz` (IANA).
@@ -196,7 +197,25 @@ export interface Edition {
     months?: EditionMonth[];
     /** One point per ranked match with a badge, oldest first (Collector's Copy climb chart). */
     rankSeries?: RankPoint[];
+    /** Every match of the window, oldest first; a Collector's Copy holds only its ranked matches. */
+    tape?: TapeMatch[];
+    /** The graded best-game candidates, best first; `[0]` is `bestGame`. Empty when nothing was gradable. */
+    nominees?: BestGame[];
+    /** Up to `EDITION_RIVALS` enemies by losses, most first; `[0]` is `nemesis`. */
+    rivals?: Companion[];
 }
+
+/** A tuple, not an object, so a 500-match year stays near 30 kB in kv. */
+export type TapeMatch = [
+    startS: number,
+    heroId: number,
+    outcome: Outcome,
+    kills: number,
+    deaths: number,
+    assists: number,
+    netWorth: number,
+    durationS: number,
+];
 
 export interface EditionDay {
     dayStartS: number;

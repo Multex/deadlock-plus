@@ -3,7 +3,13 @@ import { gradeMatch } from "$lib/features/match-history/mvp";
 import { playerNames } from "$lib/features/match-history/names";
 import type { DeadlockApi } from "@deadlock-plus/deadlock-api";
 import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
-import type { Companion, EditionWindow, Enrichment, GradedCandidate } from "@deadlock-plus/stats/dispatch/types";
+import {
+    EDITION_RIVALS,
+    type Companion,
+    type EditionWindow,
+    type Enrichment,
+    type GradedCandidate,
+} from "@deadlock-plus/stats/dispatch/types";
 import type { Match } from "@deadlock-plus/stats/stats";
 
 export interface EnrichDeps {
@@ -74,12 +80,12 @@ function parseHeroCombat(body: unknown, accountId: number) {
     return out;
 }
 
-/** The enemy who beat the viewer most often, which is not always among the most-played. */
-const mostLosses = (enemies: readonly Companion[]): Companion | undefined =>
-    enemies.reduce<Companion | undefined>(
-        (best, e) => (e.matches - e.wins > (best ? best.matches - best.wins : 0) ? e : best),
-        undefined,
-    );
+/** The enemies who beat the viewer most often, who are not always among the most-played. */
+const mostLosses = (enemies: readonly Companion[]): Companion[] =>
+    enemies
+        .filter((e) => e.matches > e.wins)
+        .sort((a, b) => b.matches - b.wins - (a.matches - a.wins))
+        .slice(0, EDITION_RIVALS);
 
 async function gradeCandidate(match: Match, accountId: number, deps: EnrichDeps): Promise<GradedCandidate> {
     const none = { matchId: match.matchId, letter: null, s10: null, place: null };
@@ -94,11 +100,10 @@ async function companions(window: { minS: number; maxS: number }, accountId: num
         attempt(async () => parseCompanions(await deps.api.enemyStats(accountId, window), "enemy_id")),
     ]);
 
-    const nemesis = mostLosses(enemies ?? []);
     const wanted = [
         ...(mates ?? []).slice(0, NAMED_PER_LIST),
         ...(enemies ?? []).slice(0, NAMED_PER_LIST),
-        ...(nemesis ? [nemesis] : []),
+        ...mostLosses(enemies ?? []),
     ].map((c) => c.accountId);
     const names = wanted.length === 0 ? null : await attempt(() => deps.names([...new Set(wanted)]));
 

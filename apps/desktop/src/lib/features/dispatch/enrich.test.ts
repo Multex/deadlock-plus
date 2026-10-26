@@ -209,6 +209,19 @@ describe("enrichEdition names", () => {
         expect(out.enemies!.find((e) => e.accountId === 3007)!.name).toBeNull();
     });
 
+    it("also names the three enemies with the most losses when they are outside the top 5", async () => {
+        const { deps, api, names } = makeDeps();
+        api.enemyStats.mockResolvedValue([
+            ...manyEnemies.slice(0, 5),
+            enemy(3997, 6, 2),
+            enemy(3998, 6, 1),
+            enemy(3999, 6, 0),
+        ]);
+        const out = await enrichEdition(WINDOW, ME, [], deps);
+        expect(names.mock.calls[0]![0]).toEqual(expect.arrayContaining([3997, 3998, 3999]));
+        expect(out.enemies!.filter((e) => e.accountId > 3990).map((e) => e.name)).toEqual(["P3997", "P3998", "P3999"]);
+    });
+
     it("leaves unnamed players past the top 5 with a null name", async () => {
         const { deps, api } = makeDeps();
         api.mateStats.mockResolvedValue(manyMates);

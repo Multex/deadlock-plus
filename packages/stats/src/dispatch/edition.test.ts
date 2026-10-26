@@ -9,14 +9,16 @@ import {
     windowRows,
 } from "./edition";
 import { detectDispatchStories } from "./stories";
-import type {
-    BuildInput,
-    Companion,
-    EditionWindow,
-    Enrichment,
-    GradedCandidate,
-    HeroCombat,
-    RankedSeason,
+import {
+    EDITION_SCHEMA,
+    type BuildInput,
+    type Companion,
+    type Edition,
+    type EditionWindow,
+    type Enrichment,
+    type GradedCandidate,
+    type HeroCombat,
+    type RankedSeason,
 } from "./types";
 
 const at = (y: number, mo: number, d: number, h = 0, mi = 0) => Date.UTC(y, mo - 1, d, h, mi) / 1000;
@@ -686,5 +688,102 @@ describe("pickBestGame", () => {
 
     it("has no best game without candidates", () => {
         expect(pickBestGame([], null)).toBeNull();
+    });
+});
+
+describe("frozen tape, nominees and rivals", () => {
+    it("tapes every window match oldest first, as compact tuples from the match rows", () => {
+        const e = build();
+        expect(e.tape).toHaveLength(IN_WEEK.length);
+        expect(e.tape?.[0]).toEqual([at(2026, 10, 12, 0, 0), 7, "win", 5, 2, 3, 20000, 1800]);
+        expect(e.tape?.[2]).toEqual([at(2026, 10, 12, 1, 30), 15, "loss", 2, 8, 4, 15000, 2400]);
+        expect(e.tape?.[3]?.[2]).toBe("unscored");
+        expect(e.tape?.map((t) => t[0])).toEqual([...IN_WEEK].map((r) => r.startTime).sort((a, b) => a - b));
+    });
+
+    it("tapes only the ranked matches of a Collector's Copy", () => {
+        const rows = [
+            m({ startTime: at(2026, 8, 2, 18) }),
+            m({ startTime: at(2026, 8, 3, 18), matchMode: 1 }),
+            m({ startTime: at(2026, 8, 4, 18) }),
+            m({ startTime: at(2026, 8, 5, 18) }),
+        ];
+        const e = build(rows, { window: COLLECTORS, season: SEASON });
+        expect(e.tape?.map((t) => t[0])).toEqual([at(2026, 8, 2, 18), at(2026, 8, 4, 18), at(2026, 8, 5, 18)]);
+    });
+
+    it("keeps a 500-match year near 30 kB as JSON", () => {
+        const rows = Array.from({ length: 500 }, (_, i) =>
+            m({
+                startTime: at(2026, 1, 1) + i * 50_000,
+                heroId: 1 + (i % 60),
+                outcome: i % 3 ? "win" : "loss",
+                kills: 14,
+                deaths: 11,
+                assists: 27,
+                netWorth: 48_512,
+                durationS: 2_345,
+            }),
+        );
+        const e = build(rows, { window: YEAR_END });
+        const bytes = new TextEncoder().encode(JSON.stringify(e.tape)).length;
+        expect(e.tape).toHaveLength(500);
+        expect(bytes).toBeLessThan(32_000);
+    });
+
+    it("freezes the graded candidates as nominees, the best game first", () => {
+        const grades: GradedCandidate[] = [
+            { matchId: 11, letter: "A", s10: 70, place: 3 },
+            { matchId: 14, letter: "S-", s10: 60, place: 5 },
+            { matchId: 13, letter: "S-", s10: 75, place: 2 },
+        ];
+        const e = build(HISTORY, { enrichment: { ...NO_ENRICHMENT, grades } });
+        expect(e.nominees?.map((n) => [n.matchId, n.letter])).toEqual([
+            [13, "S-"],
+            [14, "S-"],
+            [11, "A"],
+        ]);
+        expect(e.nominees?.[0]).toEqual(e.bestGame);
+        expect(e.nominees?.[2]).toMatchObject({ heroId: 7, kills: 10, deaths: 1, assists: 5, netWorth: 30000 });
+    });
+
+    it("has no nominees when nothing was gradable", () => {
+        const rows = [1, 2, 3].map((i) => m({ startTime: at(2026, 10, 13, 10 + i), gameMode: 4 }));
+        expect(build(rows).nominees).toEqual([]);
+    });
+
+    it("freezes the top three enemies by losses as rivals, the nemesis first", () => {
+        const c = (accountId: number, matches: number, wins: number): Companion => ({
+            accountId,
+            name: `P${accountId}`,
+            matches,
+            wins,
+        });
+        const e = build(HISTORY, {
+            enrichment: {
+                ...NO_ENRICHMENT,
+                enemies: [c(4, 5, 4), c(5, 3, 0), c(6, 6, 3), c(7, 9, 7), c(8, 4, 2), c(9, 2, 1)],
+            },
+        });
+        expect(e.rivals?.map((r) => r.accountId)).toEqual([6, 5, 7]);
+        expect(e.rivals?.[0]).toEqual(e.nemesis);
+        expect(e.rivals?.[1]).toEqual(c(5, 3, 0));
+    });
+
+    it("has no rivals without enemies who beat the viewer twice", () => {
+        const enemies = [{ accountId: 4, name: null, matches: 3, wins: 2 }];
+        expect(build(HISTORY, { enrichment: { ...NO_ENRICHMENT, enemies } }).rivals).toEqual([]);
+        expect(build().rivals).toEqual([]);
+    });
+
+    it("still reads an edition frozen before these fields existed", () => {
+        const { tape, nominees, rivals, ...rest } = buildEdition(input(HISTORY))!;
+        expect([tape, nominees, rivals].every((f) => f !== undefined)).toBe(true);
+        const old = JSON.parse(JSON.stringify(rest)) as Edition;
+        expect(old.schema).toBe(EDITION_SCHEMA);
+        expect(old.tape).toBeUndefined();
+        expect(old.nominees).toBeUndefined();
+        expect(old.rivals).toBeUndefined();
+        expect(detectDispatchStories(old)).toEqual(rest.stories);
     });
 });
