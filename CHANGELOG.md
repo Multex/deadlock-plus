@@ -10,7 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - A Statlocker theme: graphite panels with a mint-green accent.
 - A Flint Snow theme: coral and midnight navy with pink trim.
-- Both new themes are also on the website's theme picker.
+- The Statlocker and Flint Snow themes are also on the website's theme picker.
 - A Void theme: OLED black with electric violet trim, also on the website.
 - A DeadChaps theme: near-black panels with DeadChaps purple, also on the website.
 - A Pretty in Pink theme: candy pink and cream with lilac and sky-blue touches, also on the website.
@@ -24,18 +24,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Each theme's card in Settings > Appearance now holds that theme's own options.
 - Turn single effects off, like Nightshift's rain or Flint Snow's tail.
-- Pick an accent colour of your own for any theme but High contrast.
+- Pick an accent colour of your own for any theme but High contrast and Catppuccin.
 - A custom accent keeps text readable by shifting its lightness only as far as contrast needs.
 - Themes based on something link to it, like Deadlock API or Deadlock Night Shift on Twitch.
 
 #### Theme effects
 
-- Every theme but High contrast now draws its own art and animation behind the page.
+- Most themes now draw their own art and animation behind the page.
 - In the Deadlock theme, dust drifts through the air and swirls when your mouse moves through it.
 - In the Nightshift theme, rain runs down a fogged window that your mouse wipes clear.
 - Nightshift's string lights sway over a teal night street whose windows follow your local time.
 - Nightshift's gold art deco frames and eye medallion catch the light now and then.
-- On Wednesday nights while Deadlock Night Shift is live, Nightshift lights up "Clock In" and a clock on your local time.
+- On Wednesday nights at Night Shift's usual show time, Nightshift lights up "Clock In" and a clock on your local time.
 - In the Flint Snow theme, snow swirls around your mouse and stars join into constellations.
 - In Flint Snow, your mouse leaves a trail of sparkles.
 - Flint's tail lies in the snowbank and flicks now and then.
@@ -44,7 +44,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - In the DeadChaps theme, a sigil turns slowly in the corner while dust drifts past.
 - In the Pretty in Pink theme, fluffy clouds drift past and little hearts float up the sides.
 - Pretty in Pink ties a polka-dot bow on the corner that wiggles now and then.
-- Turn them off with the Theme effects switch in Settings > Appearance.
+- Turn theme effects off with the Theme effects switch in Settings > Appearance.
 - Reduced motion keeps the still art and stops everything that moves.
 - Effects pause while the Deadlock+ window is hidden or not focused.
 
@@ -56,10 +56,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Turn it off with "Front page after each match" in Settings > Notifications.
 - Pick which match modes get an after-match front page; bot matches and custom lobbies are left out by default.
 - When a front page is waiting while you're in game, the game overlay tells you.
-- Turn that alert off with "Front page waiting" in Settings > Notifications.
+- Turn the front page waiting alert off with "Front page waiting" in Settings > Notifications.
 - A "Front page" button in a match's details prints that match as a newspaper front page.
-- Its headlines come from the match: comebacks, first blood, Mid Boss claims, falls and top performers.
-- It carries a box score, lane report, objectives timeline and short briefs.
+- A front page's headlines come from the match: comebacks, first blood, Mid Boss claims, falls and top performers.
+- A front page carries a box score, lane report, objectives timeline and short briefs.
+- "Open full match" on an after-match front page takes you to that match's details.
 - The critics' column shows the Deadlock+ grades when the match has them.
 - A weather box shows your ping when Deadlock+ recorded it for that match.
 - The paper lands on the table a different way each time, and simply fades in with reduced motion.
