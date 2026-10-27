@@ -1,5 +1,6 @@
 <script lang="ts">
     import "../app.css";
+    import { onMount } from "svelte";
     import { afterNavigate } from "$app/navigation";
     import { Toaster } from "svelte-sonner";
     import { setOverlayHost } from "@deadlock-plus/ui/overlay-host";
@@ -9,6 +10,7 @@
     import { useAppShell } from "$lib/shell/startup.svelte";
     import CommandPalette from "$lib/features/keyboard/components/command-palette.svelte";
     import AfterMatchFrontPage from "$lib/features/front-page/after-match-front-page.svelte";
+    import { captureFeed, startCaptureFeed } from "$lib/features/front-page/capture-feed.svelte";
     import { OVERLAY_WINDOW } from "$lib/features/overlay/api";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { DEFAULT_THEME, isLightTheme } from "$lib/features/settings/themes";
@@ -31,6 +33,7 @@
     } else {
         useAppShell();
         setOverlayHost(overlayHost);
+        onMount(startCaptureFeed);
 
         afterNavigate(({ to }) => {
             if (to) trackRoute(to.url.pathname, trackFeature);
@@ -52,7 +55,8 @@
     <AppRegion name="command-palette" quiet>
         <CommandPalette />
     </AppRegion>
-    <AppRegion name="front-page" quiet>
+    <!-- Starts over on the next captured match, so one paper that fails to render does not end the rest. -->
+    <AppRegion name="front-page" quiet resetKey={captureFeed.latest?.matchId}>
         <AfterMatchFrontPage />
     </AppRegion>
 

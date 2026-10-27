@@ -6,12 +6,11 @@
     import { windowVisibility } from "$lib/core/window-visibility";
     import { live } from "$lib/features/live/live.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { onPostgameMatch } from "$lib/features/stats/postgame-api";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import type { MatchDetail } from "@deadlock-plus/match/detail";
-    import { rowMode } from "@deadlock-plus/match/list";
     import { notifyFrontPageWaiting } from "./api";
     import { createAfterMatch } from "./after-match";
+    import { captureFeed } from "./capture-feed.svelte";
     import FrontPageTakeover from "./front-page-takeover.svelte";
     import { readCapturedDetail } from "./load";
     import { createTakeover } from "./takeover";
@@ -64,21 +63,12 @@
     });
 
     onMount(() => {
-        let stopped = false;
-        let unlisten: (() => void) | null = null;
-        onPostgameMatch((match) => afterMatch.captured(match.matchId, rowMode(match))).then(
-            (stop) => {
-                if (stopped) stop();
-                else unlisten = stop;
-            },
-            () => {},
-        );
+        const stopCaptures = captureFeed.follow((c) => afterMatch.captured(c.matchId, c.mode));
         const attention = () => afterMatch.attention();
         window.addEventListener("focus", attention);
         const stopVisibility = windowVisibility.onVisibilityChange(attention);
         return () => {
-            stopped = true;
-            unlisten?.();
+            stopCaptures();
             window.removeEventListener("focus", attention);
             stopVisibility();
         };
