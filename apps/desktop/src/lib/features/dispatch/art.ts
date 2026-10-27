@@ -15,6 +15,9 @@ export async function heroPortrait(heroId: number): Promise<string | null> {
     }
 }
 
+/** Anything but a non-empty path counts as no art, so the caller falls back to the API's copy. */
+const gamePath = (path: unknown): string | null => (typeof path === "string" && path ? fileSrc(path) : null);
+
 /**
  * The game's hero-select backdrop: a hero-coloured silhouette collage, 2048x1156, transparent where the hero
  * stands. It is the sharp art for a cover; the portrait goes over it at its own size. Decoded on first ask and
@@ -22,8 +25,7 @@ export async function heroPortrait(heroId: number): Promise<string | null> {
  */
 export async function heroBackdrop(heroId: number): Promise<string | null> {
     try {
-        const path = await command<string | null>("game_hero_backdrop", { heroId });
-        return path ? fileSrc(path) : null;
+        return gamePath(await command<unknown>("game_hero_backdrop", { heroId }));
     } catch {
         return null;
     }
@@ -71,8 +73,7 @@ export type HeroMood = "gloat" | "critical";
 
 async function gameMood(heroId: number, mood: HeroMood): Promise<string | null> {
     try {
-        const path = await command<string | null>("game_hero_mood", { heroId, mood });
-        return path ? fileSrc(path) : null;
+        return gamePath(await command<unknown>("game_hero_mood", { heroId, mood }));
     } catch {
         return null;
     }

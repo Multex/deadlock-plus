@@ -73,6 +73,13 @@ describe("heroBackdrop", () => {
         invoke.mockRejectedValue(new Error("no game"));
         expect(await heroBackdrop(15)).toBeNull();
     });
+
+    it("is null when the command answers something that is not a path", async () => {
+        invoke.mockResolvedValue({ garbage: true });
+        expect(await heroBackdrop(15)).toBeNull();
+        invoke.mockResolvedValue("");
+        expect(await heroBackdrop(15)).toBeNull();
+    });
 });
 
 describe("heroMood", () => {
@@ -113,6 +120,13 @@ describe("heroMood", () => {
     it("falls back to the API's copy when the game command fails", async () => {
         const heroMood = await load();
         invoke.mockRejectedValue(new Error("no game"));
+        api.mockResolvedValue(API_ROWS as never);
+        expect(await heroMood(15, "critical")).toBe("https://cdn/haze_card_critical.png");
+    });
+
+    it("falls back to the API's copy when the game command answers something that is not a path", async () => {
+        const heroMood = await load();
+        invoke.mockResolvedValue({ garbage: true });
         api.mockResolvedValue(API_ROWS as never);
         expect(await heroMood(15, "critical")).toBe("https://cdn/haze_card_critical.png");
     });
