@@ -88,7 +88,7 @@
     <Tooltip.Root delayDuration={100}>
         <Tooltip.Trigger>
             {#snippet child({ props })}
-                <span {...props} class="hp {cls}" aria-label={label}>
+                <span {...props} class="hp {cls}" role="img" aria-label={label}>
                     <Icon size={16} />
                 </span>
             {/snippet}
