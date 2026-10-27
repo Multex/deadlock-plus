@@ -41,7 +41,11 @@
     let stageEl = $state<HTMLElement | null>(null);
     let leadEl = $state<HTMLElement | null>(null);
 
-    const top = $derived(expanded ? BAR : 0);
+    let leadHeight = $state(0);
+    let leadTop = $state(12);
+    // A theme's corner frame can push the buttons down, and the free strip grows with them.
+    const bar = $derived(Math.max(BAR, leadTop + leadHeight + 8));
+    const top = $derived(expanded ? bar : 0);
     const stage = $derived({ width: w, height: h - top });
 
     const reduced = () =>
@@ -121,6 +125,11 @@
     }
 
     const sized = $derived(w > 0);
+
+    $effect(() => {
+        void leadHeight;
+        if (leadEl) leadTop = parseFloat(getComputedStyle(leadEl).top) || 12;
+    });
     const id = $derived(edition?.id ?? null);
 
     $effect(() => {
@@ -160,7 +169,7 @@
             {@render status()}
         {/if}
     </div>
-    <div class="corner left" bind:this={leadEl} data-room-controls>{@render lead()}</div>
+    <div class="corner left" bind:this={leadEl} bind:clientHeight={leadHeight} data-room-controls>{@render lead()}</div>
     {#if actions}<div class="corner right" data-room-controls>{@render actions()}</div>{/if}
 </div>
 
@@ -183,7 +192,7 @@
 
     .corner {
         position: absolute;
-        top: 12px;
+        top: var(--decor-frame-y, 12px);
         z-index: 20;
         display: flex;
         align-items: center;
@@ -191,10 +200,10 @@
     }
 
     .corner.left {
-        left: 16px;
+        left: var(--decor-frame-x, 16px);
     }
 
     .corner.right {
-        right: 16px;
+        right: var(--decor-frame-x, 16px);
     }
 </style>

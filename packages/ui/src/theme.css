@@ -149,6 +149,13 @@ body::after {
     display: none;
 }
 
+/* A decor frame drawn in the panel's corners (`data-decor-frame`) leaves its inner edge this far in; controls
+   pinned to those corners stand off by it so the gold never runs behind them. */
+:root:has(.theme-decor [data-decor-frame]) {
+    --decor-frame-x: 64px;
+    --decor-frame-y: 26px;
+}
+
 /* Main panel: soft spotlight from the top, like a lamp over a desk. Themes without `spotlight` in themes.json are flattened in theme-tokens.css. */
 .noir-panel {
     background:

@@ -204,10 +204,11 @@
         inset: 0;
     }
 
+    /* Low in the corner: page headers put their titles and buttons along the top. */
     .hole,
     .haze {
         position: absolute;
-        top: calc(var(--size) / -2 + 76px);
+        bottom: calc(var(--size) / -2 + 96px);
         right: calc(var(--size) / -2 + 120px);
         width: var(--size);
         height: var(--size);
