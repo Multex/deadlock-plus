@@ -20,7 +20,7 @@
 
     const on = $derived(settings.presence.level !== "off");
     const line = $derived(on ? runningLine(on, presenceStatus.status) : "");
-    const state = $derived(discordBarState(on, presenceStatus.status));
+    const barState = $derived(discordBarState(on, presenceStatus.status));
     // Each save restarts Discord's presence and, at Detailed, reloads hero art, so a drag saves once on release.
     let delayDraft = $state<number | null>(null);
     const delayShown = $derived(delayDraft ?? delaySecsOf(settings.presence));
@@ -69,9 +69,9 @@
         {#if line}
             <p class="flex items-center gap-2 text-xs text-muted-foreground">
                 <span
-                    class="size-2 shrink-0 rounded-full {state === 'connected'
+                    class="size-2 shrink-0 rounded-full {barState === 'connected'
                         ? 'bg-success'
-                        : state === 'waiting'
+                        : barState === 'waiting'
                           ? 'bg-muted-foreground/50'
                           : 'bg-warning'}"
                     aria-hidden="true"
