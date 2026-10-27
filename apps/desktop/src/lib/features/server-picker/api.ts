@@ -38,8 +38,11 @@ export function syncServerBlocks() {
     return command<SyncOutcome>("sync_server_blocks");
 }
 
-export function firewallCapability() {
-    return command<FirewallCapability>("firewall_capability");
+export async function firewallCapability() {
+    const capability = await command<FirewallCapability>("firewall_capability");
+    if (!isRecord(capability) || typeof capability.supported !== "boolean")
+        throw new Error("firewall_capability returned an unexpected shape");
+    return capability;
 }
 
 export async function detectExternalBlocks(gameId: string) {

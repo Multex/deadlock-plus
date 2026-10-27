@@ -5,7 +5,7 @@ vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(async (name: string) => answers.get(name)?.()),
 }));
 
-import { detectExternalBlocks, fetchServerGroups, getGameDefinitions, pingServerGroups } from "./api";
+import { detectExternalBlocks, fetchServerGroups, firewallCapability, getGameDefinitions, pingServerGroups } from "./api";
 
 describe("server picker api shape checks", () => {
     beforeEach(() => answers.clear());
@@ -46,5 +46,18 @@ describe("server picker api shape checks", () => {
         const scan = { ruleNames: ["r"], sources: ["s"], coveredGroupIds: ["ams"] };
         answers.set("detect_external_blocks", () => scan);
         await expect(detectExternalBlocks("g")).resolves.toEqual(scan);
+    });
+
+    it.each([
+        ["null", null],
+        ["garbage", { garbage: true }],
+    ])("firewallCapability rejects %s", async (_, answer) => {
+        answers.set("firewall_capability", () => answer);
+        await expect(firewallCapability()).rejects.toBeDefined();
+    });
+
+    it("firewallCapability passes a good answer through", async () => {
+        answers.set("firewall_capability", () => ({ supported: true }));
+        await expect(firewallCapability()).resolves.toEqual({ supported: true });
     });
 });
