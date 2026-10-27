@@ -103,6 +103,7 @@ const PRESENCE: PresenceSettings = {
 const PRESENCE_STATUS: PresenceStatus = {
     running: true,
     clients: [{ kind: "stable", pipeIndex: 0, connected: true }],
+    link: "connected",
 };
 const PRESENCE_UNEDITED: PresenceConfig = { states: {}, variants: {}, heroes: {} };
 

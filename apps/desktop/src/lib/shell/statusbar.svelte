@@ -17,6 +17,7 @@
     } from "@lucide/svelte";
     import {
         apiHealth,
+        discordBarCopy,
         discordBarState,
         gcStatus,
         ingestStatus,
@@ -142,6 +143,7 @@
     const recovery = $derived(recoveryBarItem(gcStatus.status?.ownRecovery ?? null));
 
     const discord = $derived(discordBarState(settings.presence.level !== "off", presenceStatus.status));
+    const discordCopy = $derived(discordBarCopy(discord));
 
     const liveItem = $derived(
         live.state ? liveBarItem(live.state.phase, live.match?.clockSecs ?? null, live.match?.paused ?? false) : null,
@@ -189,17 +191,11 @@
             : discord === 'off'
               ? 'text-muted-foreground/50'
               : 'text-muted-foreground/70'}"
-        title={discord === "connected"
-            ? t("shell.statusbar.discord.connected_title")
-            : discord === "off"
-              ? t("shell.statusbar.discord.off_title")
-              : t("shell.statusbar.discord.searching_title")}
+        title={discordCopy.title}
     >
         <MessageCircle class="size-3.5 shrink-0" />
-        {#if discord === "off"}
-            <span class="truncate">{t("shell.statusbar.discord.off")}</span>
-        {:else if discord === "searching"}
-            <span class="truncate">{t("shell.statusbar.discord.searching")}</span>
+        {#if discordCopy.label}
+            <span class="truncate">{discordCopy.label}</span>
         {/if}
     </a>
     <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>

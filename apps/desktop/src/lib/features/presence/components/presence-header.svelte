@@ -66,7 +66,11 @@
         {#if line}
             <p class="flex items-center gap-2 text-xs text-muted-foreground">
                 <span
-                    class="size-2 shrink-0 rounded-full {state === 'connected' ? 'bg-success' : 'bg-warning'}"
+                    class="size-2 shrink-0 rounded-full {state === 'connected'
+                        ? 'bg-success'
+                        : state === 'waiting'
+                          ? 'bg-muted-foreground/50'
+                          : 'bg-warning'}"
                     aria-hidden="true"
                 ></span>
                 {line}

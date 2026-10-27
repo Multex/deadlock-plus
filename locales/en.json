@@ -440,6 +440,8 @@
             "client_other_name": "Discord app {pipe}",
             "status_off": "Off",
             "status_none": "No running Discord found.",
+            "status_waiting": "Discord is running. Waiting for Deadlock to start.",
+            "status_connecting": "Connecting to Discord.",
             "status_showing": "Showing on: {clients}."
         },
         "discord_editor": {
@@ -858,6 +860,11 @@
             "discord": {
                 "searching": "Discord not found",
                 "searching_title": "Discord presence is on, but no running Discord was found",
+                "checking": "Looking for Discord",
+                "waiting": "Waiting for Deadlock",
+                "waiting_title": "Discord is running. Your activity shows once Deadlock starts.",
+                "connecting": "Connecting to Discord",
+                "connecting_title": "Deadlock is running. Connecting to Discord.",
                 "connected_title": "Showing your Deadlock activity on Discord",
                 "off": "Discord off",
                 "off_title": "Discord presence is off. Click to set it up."

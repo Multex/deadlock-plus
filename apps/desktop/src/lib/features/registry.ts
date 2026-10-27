@@ -244,7 +244,7 @@ export { isActivePath } from "./home/home";
 export { apiHealth, gcStatus, ingestStatus, jobs, live, performanceScan, presenceStatus, settings };
 export { jobPercent, jobStatusText } from "./jobs/jobs";
 export { recoveryBarItem } from "./gc/recovery-bar";
-export { discordBarState } from "./presence/presence";
+export { discordBarCopy, discordBarState } from "./presence/presence";
 export { liveBarItem } from "./live/live";
 export { isLightTheme, resolveReducedMotion } from "./settings/themes";
 export { accentOf, accentStyle, layersOf, namedAccentStyle, variantOf } from "./settings/theme-options";
