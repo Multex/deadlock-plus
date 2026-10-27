@@ -21,6 +21,9 @@
     const on = $derived(settings.presence.level !== "off");
     const line = $derived(on ? runningLine(on, presenceStatus.status) : "");
     const state = $derived(discordBarState(on, presenceStatus.status));
+    // Each save restarts Discord's presence and, at Detailed, reloads hero art, so a drag saves once on release.
+    let delayDraft = $state<number | null>(null);
+    const delayShown = $derived(delayDraft ?? delaySecsOf(settings.presence));
 
     function onLevelKeydown(e: KeyboardEvent) {
         const next = radioTarget(e.key, PRESENCE_LEVELS.indexOf(settings.presence.level), PRESENCE_LEVELS.length);
@@ -109,13 +112,17 @@
                         formatValue={delayLabel}
                         bubble={false}
                         aria-label={t("settings.discord.delay_label")}
-                        onValueChange={(v) => settings.setPresence({ delaySecs: v })}
+                        onValueChange={(v) => (delayDraft = v)}
+                        onValueCommit={(v) => {
+                            delayDraft = null;
+                            settings.setPresence({ delaySecs: v });
+                        }}
                     />
                     <span
                         class="min-w-12 whitespace-nowrap text-right text-sm tabular-nums text-muted-foreground"
                         aria-hidden="true"
                     >
-                        {delayLabel(delaySecsOf(settings.presence))}
+                        {delayLabel(delayShown)}
                     </span>
                 </div>
             </SettingRow>
