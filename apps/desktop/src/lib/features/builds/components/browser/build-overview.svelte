@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { Star, Trophy } from "@lucide/svelte";
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { formatDate, formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
@@ -48,8 +49,6 @@
         notes?: Snippet;
     } = $props();
 
-    let portraitFailed = $state(false);
-    const art = $derived(portraitFailed ? (hero?.icon ?? null) : (hero?.portrait ?? hero?.icon ?? null));
     const updated = $derived(
         build.lastUpdatedTimestamp
             ? t("builds.browser.updated", {
@@ -66,17 +65,24 @@
         winRate && formatNumber(winRate.wins / winRate.matches, { style: "percent", maximumFractionDigits: 0 }),
     );
     const description = $derived(build.description.trim());
+    const heroArt = "size-full object-cover object-top";
 </script>
 
 <article class="flex flex-col gap-4 p-5" data-testid="build-overview" data-build={build.heroBuildId}>
     <header class="flex gap-4">
         <div class="h-[88px] w-[72px] shrink-0 overflow-hidden rounded-md border border-border bg-muted">
-            {#if art}
-                <img
-                    src={art}
+            {#if hero?.portrait && hero.icon}
+                <ArtImage src={hero.portrait} alt={hero.name} label={hero.name} class={heroArt}>
+                    {#snippet fallback()}
+                        <ArtImage src={hero.icon} alt="" label={hero.name} class={heroArt} />
+                    {/snippet}
+                </ArtImage>
+            {:else}
+                <ArtImage
+                    src={hero?.portrait ?? hero?.icon}
                     alt={hero?.name ?? ""}
-                    class="size-full object-cover object-top"
-                    onerror={() => (portraitFailed = true)}
+                    label={hero?.name}
+                    class={heroArt}
                 />
             {/if}
         </div>
