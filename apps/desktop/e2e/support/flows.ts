@@ -90,6 +90,21 @@ export async function keepKvAcrossReloads(page: Page): Promise<void> {
     }, KV_JOURNAL);
 }
 
+/** Starts the page on `theme`, saved before the settings read it. */
+export async function seedTheme(page: Page, theme: string): Promise<void> {
+    await page.addInitScript((id) => {
+        let hook = (window as unknown as DemoWindow).__DEADLOCK_PLUS_DEMO__;
+        Object.defineProperty(window, "__DEADLOCK_PLUS_DEMO__", {
+            configurable: true,
+            get: () => hook,
+            set(next: DemoWindow["__DEADLOCK_PLUS_DEMO__"]) {
+                hook = next;
+                next?.handle?.invoke("kv_set", { store: "app-settings", key: "theme", value: id });
+            },
+        });
+    }, theme);
+}
+
 /** Every key-value write the app has made in this tab, oldest first. Needs `keepKvAcrossReloads`. */
 export function kvWrites(page: Page): Promise<KvWrite[]> {
     return page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) ?? "[]") as KvWrite[], KV_JOURNAL);
