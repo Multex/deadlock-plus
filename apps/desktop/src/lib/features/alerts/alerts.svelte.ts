@@ -1,15 +1,18 @@
 import { listAlerts, markAlertsRead, onAlertsChanged, refreshAlerts } from "./api";
 import { unreadCount, type Alert } from "./alerts";
 
-class AlertsStore {
+export class AlertsStore {
     items = $state<Alert[]>([]);
+    status = $state<"loading" | "ready" | "error">("loading");
     unread = $derived(unreadCount(this.items));
 
     async refresh() {
         try {
             this.items = await listAlerts();
+            this.status = "ready";
         } catch {
-            // Not running inside Tauri.
+            // Outside Tauri, a failed command or a malformed body: keep the last good list.
+            this.status = "error";
         }
     }
 
