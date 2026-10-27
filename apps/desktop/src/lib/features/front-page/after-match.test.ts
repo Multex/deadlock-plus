@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { RowMode } from "@deadlock-plus/match/list";
 import { createAfterMatch, type AfterMatchDeps } from "./after-match";
 
-function setup(options: Partial<{ mainWindow: boolean; enabled: boolean; attended: boolean }> = {}) {
+function setup(options: Partial<{ mainWindow: boolean; enabled: boolean; attended: boolean; covered: boolean }> = {}) {
     const state = {
         enabled: options.enabled ?? true,
         attended: options.attended ?? true,
+        covered: options.covered ?? false,
         skipped: new Set<RowMode>(),
     };
     const log: string[] = [];
@@ -13,6 +14,7 @@ function setup(options: Partial<{ mainWindow: boolean; enabled: boolean; attende
         mainWindow: options.mainWindow ?? true,
         enabled: (mode) => state.enabled && !state.skipped.has(mode),
         attended: () => state.attended,
+        covered: () => state.covered,
         show: (id) => log.push(`show ${id}`),
         update: (id) => log.push(`update ${id}`),
         waiting: (id) => log.push(`waiting ${id}`),
@@ -127,6 +129,32 @@ describe("createAfterMatch", () => {
         afterMatch.attention();
         expect(log).toEqual(["waiting 7"]);
         expect(afterMatch.pending).toBeNull();
+    });
+
+    it("waits for an open dialog to close before tossing the paper", () => {
+        const { afterMatch, captured, log, state } = setup({ covered: true });
+        captured(7);
+        expect(log).toEqual([]);
+        expect(afterMatch.pending).toBe(7);
+
+        afterMatch.attention();
+        expect(log).toEqual([]);
+
+        state.covered = false;
+        afterMatch.attention();
+        expect(log).toEqual(["show 7"]);
+        expect(afterMatch.pending).toBeNull();
+    });
+
+    it("tells the overlay once and still waits for a dialog the user comes back to", () => {
+        const { afterMatch, captured, log, state } = setup({ attended: false, covered: true });
+        captured(7);
+        state.attended = true;
+        afterMatch.attention();
+        expect(log).toEqual(["waiting 7"]);
+        state.covered = false;
+        afterMatch.attention();
+        expect(log).toEqual(["waiting 7", "show 7"]);
     });
 
     it("does nothing outside the main window", () => {

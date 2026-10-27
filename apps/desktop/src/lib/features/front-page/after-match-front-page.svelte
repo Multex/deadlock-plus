@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onMount, tick, untrack } from "svelte";
 
     import { getOverlayHost } from "@deadlock-plus/ui/overlay-host";
     import { MAIN_WINDOW, windowLabel } from "$lib/core/window-label";
     import { windowVisibility } from "$lib/core/window-visibility";
+    import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { live } from "$lib/features/live/live.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
@@ -39,6 +40,7 @@
         mainWindow: windowLabel() === MAIN_WINDOW,
         enabled: (mode) => settings.frontPageAfterMatch && settings.frontPageModes[mode],
         attended: () => document.hasFocus() && !windowVisibility.isHidden(),
+        covered: () => overlayHost.count > 0,
         show: (matchId) => {
             void readCapturedDetail(matchId).then((found) => {
                 if (!found) return;
@@ -55,6 +57,10 @@
                 if (found && open && detail?.matchId === matchId) detail = found;
             });
         },
+    });
+
+    $effect(() => {
+        if (overlayHost.count === 0) untrack(() => afterMatch.attention());
     });
 
     $effect(() => {

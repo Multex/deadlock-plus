@@ -7,6 +7,8 @@ export interface AfterMatchDeps {
     enabled(mode: RowMode): boolean;
     /** The main window is shown and has the focus. */
     attended(): boolean;
+    /** Another dialog is open. Two modals would share one Escape and fight over Tab, so the paper waits. */
+    covered(): boolean;
     /** Tosses the paper for `matchId`. */
     show(matchId: number): void;
     /** A later capture of a match already handled: refresh its paper in place. */
@@ -19,7 +21,7 @@ export interface AfterMatch {
     readonly pending: number | null;
     /** A `postgame-match` event. */
     captured(matchId: number, mode: RowMode): void;
-    /** The window gained the focus or was shown. */
+    /** The window gained the focus or was shown, or the last open dialog closed. */
     attention(): void;
     /** The next match started. */
     matchStarted(): void;
@@ -40,13 +42,13 @@ export function createAfterMatch(deps: AfterMatchDeps): AfterMatch {
                 return;
             }
             handled.add(matchId);
-            if (deps.attended()) {
+            if (deps.attended() && !deps.covered()) {
                 pending = null;
                 deps.show(matchId);
-            } else {
-                pending = { matchId, mode };
-                deps.waiting(matchId);
+                return;
             }
+            pending = { matchId, mode };
+            if (!deps.attended()) deps.waiting(matchId);
         },
         attention() {
             if (pending === null) return;
@@ -54,7 +56,7 @@ export function createAfterMatch(deps: AfterMatchDeps): AfterMatch {
                 pending = null;
                 return;
             }
-            if (!deps.attended()) return;
+            if (!deps.attended() || deps.covered()) return;
             const { matchId } = pending;
             pending = null;
             deps.show(matchId);
