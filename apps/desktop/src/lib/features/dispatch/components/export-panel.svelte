@@ -471,8 +471,10 @@
     .share {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         height: 100%;
         min-height: 0;
+        container-type: inline-size;
     }
 
     .head {
@@ -826,5 +828,28 @@
         font-size: 12px;
         color: var(--muted-foreground);
         overflow-wrap: anywhere;
+    }
+
+    /* A small window or a zoomed page has no room for the rail beside the preview: stack them and scroll. */
+    @container (max-width: 760px) {
+        .body {
+            grid-template-columns: minmax(0, 1fr);
+            grid-auto-rows: max-content;
+            overflow-y: auto;
+        }
+
+        .rail {
+            overflow: visible;
+            border-right: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .main {
+            grid-template-rows: 18rem auto;
+        }
+
+        .actions {
+            flex-wrap: wrap;
+        }
     }
 </style>
