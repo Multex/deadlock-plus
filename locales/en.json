@@ -2942,7 +2942,10 @@
         "privacy": "The report stays on this computer until you share it. Anonymous error reports are sent only while that is on in Settings.",
         "dismiss": "Dismiss",
         "open_folder": "Open report folder",
-        "report_github": "Report on GitHub"
+        "report_github": "Report on GitHub",
+        "reveal_failed": "Couldn't open the report folder.",
+        "issue_failed": "Couldn't open the GitHub issue page.",
+        "dismiss_failed": "Couldn't dismiss that. Try again."
     },
     "notification_list": {
         "title": "Notifications",
