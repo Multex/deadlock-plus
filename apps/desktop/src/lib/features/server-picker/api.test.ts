@@ -5,7 +5,13 @@ vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(async (name: string) => answers.get(name)?.()),
 }));
 
-import { detectExternalBlocks, fetchServerGroups, firewallCapability, getGameDefinitions, pingServerGroups } from "./api";
+import {
+    detectExternalBlocks,
+    fetchServerGroups,
+    firewallCapability,
+    getGameDefinitions,
+    pingServerGroups,
+} from "./api";
 
 describe("server picker api shape checks", () => {
     beforeEach(() => answers.clear());

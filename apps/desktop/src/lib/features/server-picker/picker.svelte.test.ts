@@ -97,12 +97,15 @@ describe("server picker load state", () => {
     it.each([
         ["null", null],
         ["garbage", { garbage: true }],
-    ])("keeps the list and treats the firewall as unavailable when firewall_capability answers %s", async (_, answer) => {
-        answers.set("firewall_capability", () => answer);
-        const picker = new ServerPicker();
-        await expect(picker.loadAll()).resolves.toBeUndefined();
-        expect(picker.error).toBeNull();
-        expect(picker.serverData?.unclustered).toHaveLength(1);
-        expect(picker.capability).toEqual({ supported: false });
-    });
+    ])(
+        "keeps the list and treats the firewall as unavailable when firewall_capability answers %s",
+        async (_, answer) => {
+            answers.set("firewall_capability", () => answer);
+            const picker = new ServerPicker();
+            await expect(picker.loadAll()).resolves.toBeUndefined();
+            expect(picker.error).toBeNull();
+            expect(picker.serverData?.unclustered).toHaveLength(1);
+            expect(picker.capability).toEqual({ supported: false });
+        },
+    );
 });
