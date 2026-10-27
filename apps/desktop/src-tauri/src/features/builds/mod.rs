@@ -305,7 +305,7 @@ pub mod commands {
     async fn blocking<T: Send + 'static>(
         work: impl FnOnce() -> Result<T, AppError> + Send + 'static,
     ) -> Result<T, AppError> {
-        tauri::async_runtime::spawn_blocking(work).await.map_err(AppError::internal)?
+        crate::command_panics::spawn_blocking_guarded(work).await?
     }
 
     fn save_inputs(data: &GameData, vdata: &HeroVdata, locale: &str) -> SaveInputs {

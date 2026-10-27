@@ -23,10 +23,12 @@ pub async fn reconcile_postgame_matches(
 pub async fn get_postgame_detail(match_id: u64, app: AppHandle) -> Result<Option<serde_json::Value>, AppError> {
     guarded_infallible(async move {
         let account_id = dp_steam::current_steam_id32()?;
-        tauri::async_runtime::spawn_blocking(move || app.state::<PostgameService>().detail(&app, account_id, match_id))
-            .await
-            .ok()
-            .flatten()
+        crate::command_panics::spawn_blocking_guarded(move || {
+            app.state::<PostgameService>().detail(&app, account_id, match_id)
+        })
+        .await
+        .ok()
+        .flatten()
     })
     .await
 }

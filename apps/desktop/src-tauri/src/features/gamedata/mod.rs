@@ -56,8 +56,7 @@ pub mod commands {
     pub async fn game_heroes(data: State<'_, GameData>, locale: String) -> Result<Vec<HeroEntry>, AppError> {
         guarded(async move {
             let data = data.inner().clone();
-            let list =
-                tauri::async_runtime::spawn_blocking(move || data.heroes(&locale)).await.map_err(AppError::internal)?;
+            let list = crate::command_panics::spawn_blocking_guarded(move || data.heroes(&locale)).await?;
             Ok(list.to_vec())
         })
         .await
@@ -67,8 +66,7 @@ pub mod commands {
     pub async fn game_items(data: State<'_, GameData>, locale: String) -> Result<Vec<ItemEntry>, AppError> {
         guarded(async move {
             let data = data.inner().clone();
-            let list =
-                tauri::async_runtime::spawn_blocking(move || data.items(&locale)).await.map_err(AppError::internal)?;
+            let list = crate::command_panics::spawn_blocking_guarded(move || data.items(&locale)).await?;
             Ok(list.to_vec())
         })
         .await
@@ -78,9 +76,7 @@ pub mod commands {
     pub async fn game_accolades(data: State<'_, GameData>, locale: String) -> Result<Vec<AccoladeEntry>, AppError> {
         guarded(async move {
             let data = data.inner().clone();
-            let list = tauri::async_runtime::spawn_blocking(move || data.accolades(&locale))
-                .await
-                .map_err(AppError::internal)?;
+            let list = crate::command_panics::spawn_blocking_guarded(move || data.accolades(&locale)).await?;
             Ok(list.to_vec())
         })
         .await
@@ -96,9 +92,7 @@ pub mod commands {
         guarded(async move {
             let data = data.inner().clone();
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.build_tag_icons(&data.build_tags(&locale)))
-                .await
-                .map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.build_tag_icons(&data.build_tags(&locale))).await
         })
         .await
     }
@@ -108,9 +102,7 @@ pub mod commands {
     pub async fn game_ui_strings(data: State<'_, GameData>, locale: String) -> Result<GameUiStrings, AppError> {
         guarded(async move {
             let data = data.inner().clone();
-            let strings = tauri::async_runtime::spawn_blocking(move || data.ui_strings(&locale))
-                .await
-                .map_err(AppError::internal)?;
+            let strings = crate::command_panics::spawn_blocking_guarded(move || data.ui_strings(&locale)).await?;
             Ok(strings.as_ref().clone())
         })
         .await
@@ -121,9 +113,7 @@ pub mod commands {
         guarded(async move {
             let data = data.inner().clone();
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.hero_art(&data.heroes("en")))
-                .await
-                .map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.hero_art(&data.heroes("en"))).await
         })
         .await
     }
@@ -138,12 +128,11 @@ pub mod commands {
         guarded(async move {
             let data = data.inner().clone();
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let heroes = data.heroes("en");
                 heroes.iter().find(|h| h.id == hero_id).and_then(|hero| art.hero_backdrop(hero))
             })
             .await
-            .map_err(AppError::internal)
         })
         .await
     }
@@ -171,12 +160,11 @@ pub mod commands {
             };
             let data = data.inner().clone();
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let heroes = data.heroes("en");
                 heroes.iter().find(|h| h.id == hero_id).and_then(|hero| art.hero_image(hero, image))
             })
             .await
-            .map_err(AppError::internal)
         })
         .await
     }
@@ -185,7 +173,7 @@ pub mod commands {
     pub async fn game_rank_art(art: State<'_, ArtCache>) -> Result<Vec<RankArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.rank_art(&RANK_TIERS)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.rank_art(&RANK_TIERS)).await
         })
         .await
     }
@@ -194,7 +182,7 @@ pub mod commands {
     pub async fn game_ability_art(art: State<'_, ArtCache>, names: Vec<String>) -> Result<Vec<ClassArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.ability_art(&names)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.ability_art(&names)).await
         })
         .await
     }
@@ -214,7 +202,7 @@ pub mod commands {
     ) -> Result<Vec<MinimapIconArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.minimap_icons(&icons)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.minimap_icons(&icons)).await
         })
         .await
     }
@@ -224,7 +212,7 @@ pub mod commands {
     pub async fn game_shop_ui_art(art: State<'_, ArtCache>) -> Result<Vec<ShopUiArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.shop_ui_art()).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.shop_ui_art()).await
         })
         .await
     }
@@ -235,7 +223,7 @@ pub mod commands {
     pub async fn game_property_icon_art(art: State<'_, ArtCache>) -> Result<Vec<PropertyIconArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.property_icon_art()).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.property_icon_art()).await
         })
         .await
     }
@@ -248,8 +236,7 @@ pub mod commands {
     ) -> Result<MapItemsPayload, AppError> {
         guarded(async move {
             let items = Arc::clone(items.inner());
-            let resolved =
-                tauri::async_runtime::spawn_blocking(move || items.resolve()).await.map_err(AppError::internal)?;
+            let resolved = crate::command_panics::spawn_blocking_guarded(move || items.resolve()).await?;
             Ok(super::map_items::map_items(&resolved, api.inner(), &http.0).await)
         })
         .await
@@ -259,7 +246,7 @@ pub mod commands {
     pub async fn release_old_game_art(art: State<'_, ArtCache>) -> Result<(), AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.release_old_builds()).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.release_old_builds()).await
         })
         .await
     }
@@ -272,7 +259,7 @@ pub mod commands {
     ) -> Result<Vec<ClassArt>, AppError> {
         guarded(async move {
             let art = art.inner().clone();
-            tauri::async_runtime::spawn_blocking(move || art.item_art(&names, kind)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || art.item_art(&names, kind)).await
         })
         .await
     }
@@ -282,7 +269,7 @@ pub mod commands {
     pub async fn game_shop_items(vdata: State<'_, GameVdata>) -> Result<Vec<ShopItem>, AppError> {
         guarded(async move {
             let shop = Arc::clone(&vdata.shop);
-            let items = tauri::async_runtime::spawn_blocking(move || shop.items()).await.map_err(AppError::internal)?;
+            let items = crate::command_panics::spawn_blocking_guarded(move || shop.items()).await?;
             Ok(items.map(|i| i.to_vec()).unwrap_or_default())
         })
         .await
@@ -293,9 +280,7 @@ pub mod commands {
     pub async fn game_item_stats(vdata: State<'_, GameVdata>, locale: String) -> Result<Vec<ItemStats>, AppError> {
         guarded(async move {
             let shop = Arc::clone(&vdata.shop);
-            let stats = tauri::async_runtime::spawn_blocking(move || shop.item_stats(&locale))
-                .await
-                .map_err(AppError::internal)?;
+            let stats = crate::command_panics::spawn_blocking_guarded(move || shop.item_stats(&locale)).await?;
             Ok(stats.map(|s| s.to_vec()).unwrap_or_default())
         })
         .await
@@ -309,9 +294,7 @@ pub mod commands {
     ) -> Result<Vec<AbilityTooltip>, AppError> {
         guarded(async move {
             let shop = Arc::clone(&vdata.shop);
-            let list = tauri::async_runtime::spawn_blocking(move || shop.ability_tooltips(&locale))
-                .await
-                .map_err(AppError::internal)?;
+            let list = crate::command_panics::spawn_blocking_guarded(move || shop.ability_tooltips(&locale)).await?;
             Ok(list.map(|l| l.to_vec()).unwrap_or_default())
         })
         .await
@@ -322,8 +305,7 @@ pub mod commands {
     pub async fn game_hero_progression(vdata: State<'_, GameVdata>) -> Result<HeroProgression, AppError> {
         guarded(async move {
             let heroes = Arc::clone(&vdata.heroes);
-            let table =
-                tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+            let table = crate::command_panics::spawn_blocking_guarded(move || heroes.table()).await?;
             Ok(table.map(|t| t.progression.clone()).unwrap_or(HeroProgression { levels: Vec::new() }))
         })
         .await
@@ -333,8 +315,7 @@ pub mod commands {
     pub async fn game_hero_abilities(vdata: State<'_, GameVdata>) -> Result<Vec<HeroAbilities>, AppError> {
         guarded(async move {
             let heroes = Arc::clone(&vdata.heroes);
-            let table =
-                tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+            let table = crate::command_panics::spawn_blocking_guarded(move || heroes.table()).await?;
             Ok(table.map(|t| t.ability_list()).unwrap_or_default())
         })
         .await
@@ -347,8 +328,7 @@ pub mod commands {
     ) -> Result<Option<PopularItems>, AppError> {
         guarded(async move {
             let heroes = Arc::clone(&vdata.heroes);
-            let table =
-                tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+            let table = crate::command_panics::spawn_blocking_guarded(move || heroes.table()).await?;
             Ok(table.and_then(|t| t.popular_items.get(&hero_id).cloned()))
         })
         .await
@@ -359,8 +339,7 @@ pub mod commands {
     pub async fn game_hero_stats(vdata: State<'_, GameVdata>, hero_id: u32) -> Result<Option<HeroStatsData>, AppError> {
         guarded(async move {
             let heroes = Arc::clone(&vdata.heroes);
-            let table =
-                tauri::async_runtime::spawn_blocking(move || heroes.table()).await.map_err(AppError::internal)?;
+            let table = crate::command_panics::spawn_blocking_guarded(move || heroes.table()).await?;
             Ok(table.and_then(|t| t.stats.get(&hero_id).cloned()))
         })
         .await
@@ -372,7 +351,7 @@ pub mod commands {
     pub async fn dispatch_music_track(id: String, layer: usize) -> Result<tauri::ipc::Response, String> {
         guarded(async move {
             use dp_gamedata::{Install, SteamInstall};
-            let bytes = tauri::async_runtime::spawn_blocking(move || {
+            let bytes = crate::command_panics::spawn_blocking_guarded(move || {
                 dp_gamedata::read_music_layer(SteamInstall.citadel_dir().as_deref(), &id, layer)
             })
             .await
@@ -389,7 +368,7 @@ pub mod commands {
     pub async fn dispatch_sfx(cues: Vec<String>) -> Result<tauri::ipc::Response, String> {
         guarded(async move {
             use dp_gamedata::{Install, SteamInstall};
-            let read = tauri::async_runtime::spawn_blocking(move || {
+            let read = crate::command_panics::spawn_blocking_guarded(move || {
                 dp_gamedata::read_sfx(SteamInstall.citadel_dir().as_deref(), &cues)
             })
             .await

@@ -49,15 +49,14 @@ pub mod commands {
     ) -> Result<bool, AppError> {
         guarded(async move {
             dp_export::validate_request(&default_name, &extension)?;
-            let picked = tauri::async_runtime::spawn_blocking(move || {
+            let picked = crate::command_panics::spawn_blocking_guarded(move || {
                 app.dialog()
                     .file()
                     .set_file_name(default_name)
                     .add_filter(filter_name, &[extension.as_str()])
                     .blocking_save_file()
             })
-            .await
-            .map_err(AppError::internal)?;
+            .await?;
             let Some(picked) = picked else { return Ok(false) };
             let path = picked.into_path().map_err(AppError::io)?;
             dp_export::write_export(&path, &contents)?;
@@ -79,15 +78,14 @@ pub mod commands {
             let extension = header("x-extension");
             check_binary_request(default_name.as_deref(), extension.as_deref(), bytes.len())?;
             let (default_name, extension) = (default_name.unwrap_or_default(), extension.unwrap_or_default());
-            let picked = tauri::async_runtime::spawn_blocking(move || {
+            let picked = crate::command_panics::spawn_blocking_guarded(move || {
                 app.dialog()
                     .file()
                     .set_file_name(default_name)
                     .add_filter(extension.to_uppercase(), &[extension.as_str()])
                     .blocking_save_file()
             })
-            .await
-            .map_err(AppError::internal)?;
+            .await?;
             let Some(picked) = picked else { return Ok(false) };
             let path = picked.into_path().map_err(AppError::io)?;
             dp_export::write_export(&path, bytes)?;

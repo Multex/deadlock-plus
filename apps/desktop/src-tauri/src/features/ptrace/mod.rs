@@ -192,8 +192,7 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn ptrace_status() -> Result<PtraceStatus, AppError> {
-        guarded(async move { tauri::async_runtime::spawn_blocking(platform::status).await.map_err(AppError::internal) })
-            .await
+        guarded(async move { crate::command_panics::spawn_blocking_guarded(platform::status).await }).await
     }
 
     /// Runs the fix the backend picks, never one the page names. Returns whether it was applied; after `setcap` the
@@ -201,14 +200,11 @@ pub mod commands {
     #[tauri::command]
     pub async fn fix_ptrace(app: AppHandle) -> Result<bool, AppError> {
         guarded(async move {
-            let fix = tauri::async_runtime::spawn_blocking(platform::status)
-                .await
-                .map_err(AppError::internal)?
+            let fix = crate::command_panics::spawn_blocking_guarded(platform::status)
+                .await?
                 .fix
                 .ok_or_else(|| AppError::new(PtraceError::Unavailable))?;
-            let applied = tauri::async_runtime::spawn_blocking(move || platform::apply(fix))
-                .await
-                .map_err(AppError::internal)??;
+            let applied = crate::command_panics::spawn_blocking_guarded(move || platform::apply(fix)).await??;
             log::info!("ptrace fix {fix:?} {}", if applied { "applied" } else { "cancelled" });
             if applied && fix == PtraceFix::Setcap {
                 app.request_restart();

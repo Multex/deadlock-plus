@@ -83,7 +83,7 @@ pub async fn block_server_groups(groups: Vec<BlockGroupRequest>) -> Result<(), A
             .into_iter()
             .map(|g| firewall::FirewallRuleSpec { group_id: g.id, description: g.description, relay_ips: g.relay_ips })
             .collect();
-        tauri::async_runtime::spawn_blocking(move || block(&specs)).await.map_err(AppError::internal)?
+        crate::command_panics::spawn_blocking_guarded(move || block(&specs)).await?
     })
     .await
 }
@@ -103,7 +103,7 @@ pub async fn unblock_server_groups(ids: Vec<String>) -> Result<(), AppError> {
     guarded(async move {
         ids.iter().try_for_each(|id| validate::validate_group_id(id)).map_err(invalid_request)?;
         log::info!("unblocking {} server group(s): {}", ids.len(), ids.join(", "));
-        tauri::async_runtime::spawn_blocking(move || unblock(&ids)).await.map_err(AppError::internal)?
+        crate::command_panics::spawn_blocking_guarded(move || unblock(&ids)).await?
     })
     .await
 }
@@ -141,12 +141,11 @@ pub async fn sync_server_blocks(
 pub async fn list_blocked_group_ids(candidate_ids: Vec<String>) -> Result<Vec<String>, AppError> {
     guarded(async move {
         candidate_ids.iter().try_for_each(|id| validate::validate_group_id(id)).map_err(invalid_request)?;
-        tauri::async_runtime::spawn_blocking(move || {
+        crate::command_panics::spawn_blocking_guarded(move || {
             firewall::list_blocked(&candidate_ids)
                 .map_err(|e| AppError::new(ServerPickerError::ListBlockedFailed).detail(e))
         })
-        .await
-        .map_err(AppError::internal)?
+        .await?
     })
     .await
 }
@@ -212,14 +211,13 @@ pub async fn import_external_blocks(http: State<'_, Http>, game_id: String) -> R
 #[cfg(windows)]
 async fn import(data: ServerData, scan: external::ScanResult) -> Result<Vec<String>, AppError> {
     let plan = external::import_plan(&data, &scan);
-    tauri::async_runtime::spawn_blocking(move || {
+    crate::command_panics::spawn_blocking_guarded(move || {
         let failed = |e| routed_error(e, ServerPickerError::ExternalImportFailed);
         routed::block_groups(&plan.specs).map_err(failed)?;
         routed::remove_rules_by_name(&plan.removable).map_err(failed)?;
         Ok(plan.group_ids)
     })
-    .await
-    .map_err(AppError::internal)?
+    .await?
 }
 
 #[cfg(not(windows))]

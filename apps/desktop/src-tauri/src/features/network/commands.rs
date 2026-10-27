@@ -112,7 +112,7 @@ pub fn network_poll(monitor: State<'_, NetworkMonitor>, since_t: Option<u64>) ->
 pub async fn network_history_range(app: AppHandle, start_ms: u64, end_ms: u64) -> Result<Option<PingSummary>, String> {
     guarded(async move {
         let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
-        tauri::async_runtime::spawn_blocking(move || summarize_file(&path, start_ms, end_ms))
+        crate::command_panics::spawn_blocking_guarded(move || summarize_file(&path, start_ms, end_ms))
             .await
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())
@@ -130,7 +130,7 @@ pub async fn network_history_points(
 ) -> Result<Vec<HistoryPoint>, String> {
     guarded(async move {
         let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
-        tauri::async_runtime::spawn_blocking(move || points_in_range_file(&path, start_ms, end_ms, max_points))
+        crate::command_panics::spawn_blocking_guarded(move || points_in_range_file(&path, start_ms, end_ms, max_points))
             .await
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())
@@ -153,7 +153,7 @@ pub async fn match_ping_points(
 ) -> Result<Option<MatchPingSeries>, String> {
     guarded(async move {
         let dir = super::recording::store_dir(&app).ok_or_else(|| "no app data dir".to_owned())?;
-        tauri::async_runtime::spawn_blocking(move || MatchStore::new(dir).read(match_id))
+        crate::command_panics::spawn_blocking_guarded(move || MatchStore::new(dir).read(match_id))
             .await
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())

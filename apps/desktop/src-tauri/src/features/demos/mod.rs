@@ -37,7 +37,7 @@ pub mod commands {
     #[tauri::command]
     pub async fn list_demos() -> Result<DemoListing, AppError> {
         guarded(async move {
-            tauri::async_runtime::spawn_blocking(|| {
+            crate::command_panics::spawn_blocking_guarded(|| {
                 let Some(dir) = replays_dir() else {
                     return DemoListing { dir: None, reference_build: None, demos: Vec::new() };
                 };
@@ -47,7 +47,6 @@ pub mod commands {
                 DemoListing { dir: Some(dir.to_string_lossy().into_owned()), reference_build, demos }
             })
             .await
-            .map_err(AppError::internal)
         })
         .await
     }
@@ -102,7 +101,7 @@ pub mod commands {
     ) -> Result<DeletePreview, AppError> {
         guarded(async move {
             let pins = pins_for(&app, &store)?;
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
                 let (file_names, _) = split_pinned(&file_names, &pins);
                 let (targets, _) = resolve_targets(&dir, &file_names);
@@ -114,8 +113,7 @@ pub mod commands {
                     bin_free_bytes: bin_info(&dir).map(|b| b.limit.saturating_sub(b.used)),
                 })
             })
-            .await
-            .map_err(AppError::internal)?
+            .await?
         })
         .await
     }
@@ -131,7 +129,7 @@ pub mod commands {
     ) -> Result<DeleteReport, AppError> {
         guarded(async move {
             let pins = pins_for(&app, &store)?;
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
                 let (file_names, mut pinned_refusals) = split_pinned(&file_names, &pins);
                 let (targets, mut failed) = resolve_targets(&dir, &file_names);
@@ -159,8 +157,7 @@ pub mod commands {
                 );
                 Ok(DeleteReport::from(report))
             })
-            .await
-            .map_err(AppError::internal)?
+            .await?
         })
         .await
     }

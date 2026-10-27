@@ -788,7 +788,7 @@ pub mod commands {
         guarded(async move {
             let http = http.0.clone();
             let ids = match_ids.clone();
-            let local = tauri::async_runtime::spawn_blocking(move || local_coverage(&app, &ids));
+            let local = crate::command_panics::spawn_blocking_guarded(move || local_coverage(&app, &ids));
             let (known, replays) =
                 futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
             let local = local.await.unwrap_or_else(|e| {

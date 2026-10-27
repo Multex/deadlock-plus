@@ -8,18 +8,12 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn is_game_running() -> Result<bool, AppError> {
-        guarded(
-            async move { tauri::async_runtime::spawn_blocking(game_running_recent).await.map_err(AppError::internal) },
-        )
-        .await
+        guarded(async move { crate::command_panics::spawn_blocking_guarded(game_running_recent).await }).await
     }
 
     #[tauri::command]
     pub async fn read_voice_ban() -> Result<VoiceBanFile, AppError> {
-        guarded(async move {
-            tauri::async_runtime::spawn_blocking(read_voice_ban_blocking).await.map_err(AppError::internal)?
-        })
-        .await
+        guarded(async move { crate::command_panics::spawn_blocking_guarded(read_voice_ban_blocking).await? }).await
     }
 
     fn read_voice_ban_blocking() -> Result<VoiceBanFile, AppError> {
@@ -39,11 +33,9 @@ pub mod commands {
     /// The target is always the current account's own file; the frontend never supplies a path.
     #[tauri::command]
     pub async fn write_voice_ban(text: String) -> Result<String, AppError> {
-        guarded(async move {
-            tauri::async_runtime::spawn_blocking(move || write_voice_ban_blocking(text))
-                .await
-                .map_err(AppError::internal)?
-        })
+        guarded(
+            async move { crate::command_panics::spawn_blocking_guarded(move || write_voice_ban_blocking(text)).await? },
+        )
         .await
     }
 

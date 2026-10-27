@@ -252,7 +252,7 @@ pub mod commands {
     pub async fn mvp_grades(app: AppHandle, match_ids: Vec<u64>) -> Result<Vec<MvpMatchGrade>, AppError> {
         guarded_infallible(async move {
             let Some(store) = open_store(&app) else { return Vec::new() };
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let version = current_grade_version(&app);
                 match_ids
                     .into_iter()
@@ -273,7 +273,7 @@ pub mod commands {
     pub async fn mvp_grade_match(app: AppHandle, match_id: u64) -> Result<Option<MvpMatchGrade>, AppError> {
         guarded_infallible(async move {
             let store = open_store(&app)?;
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let version = current_grade_version(&app);
                 let record = store.record(match_id);
                 if freshness(record.as_ref(), &version) != Freshness::Fresh {

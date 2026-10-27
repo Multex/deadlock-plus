@@ -68,9 +68,7 @@ pub mod commands {
     pub async fn match_detail_cache_read(app: tauri::AppHandle, match_id: u64) -> Result<Option<String>, AppError> {
         guarded(async move {
             let dir = cache_dir(&app)?;
-            tauri::async_runtime::spawn_blocking(move || read_entry(&dir, match_id, SystemTime::now()))
-                .await
-                .map_err(AppError::internal)?
+            crate::command_panics::spawn_blocking_guarded(move || read_entry(&dir, match_id, SystemTime::now())).await?
         })
         .await
     }
@@ -79,9 +77,8 @@ pub mod commands {
     pub async fn match_detail_cache_write(app: tauri::AppHandle, match_id: u64, json: String) -> Result<(), AppError> {
         guarded(async move {
             let dir = cache_dir(&app)?;
-            tauri::async_runtime::spawn_blocking(move || write_entry(&dir, match_id, &json, SystemTime::now()))
-                .await
-                .map_err(AppError::internal)?
+            crate::command_panics::spawn_blocking_guarded(move || write_entry(&dir, match_id, &json, SystemTime::now()))
+                .await?
         })
         .await
     }

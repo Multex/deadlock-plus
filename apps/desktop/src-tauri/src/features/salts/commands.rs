@@ -36,8 +36,9 @@ fn shown(record: &SaltRecord) -> Vec<SharedMatch> {
 pub async fn shared_matches(app: tauri::AppHandle) -> Result<Vec<SharedMatch>, AppError> {
     guarded_infallible(async move {
         let Ok(app_data) = app.path().app_data_dir() else { return Vec::new() };
-        let read =
-            tauri::async_runtime::spawn_blocking(move || app.state::<SaltRecordService>().read(&app_data, shown));
+        let read = crate::command_panics::spawn_blocking_guarded(move || {
+            app.state::<SaltRecordService>().read(&app_data, shown)
+        });
         read.await.unwrap_or_else(|e| {
             log::warn!("could not read the shared matches: {e}");
             Vec::new()
@@ -65,7 +66,7 @@ pub async fn fetch_match_details(match_id: u64, app: tauri::AppHandle) -> Result
     guarded_infallible(async move {
         let app_data = app.path().app_data_dir().ok()?;
         let handle = app.clone();
-        let salts = tauri::async_runtime::spawn_blocking(move || {
+        let salts = crate::command_panics::spawn_blocking_guarded(move || {
             handle.state::<SaltRecordService>().read(&app_data, |record| details_salts(record, match_id))
         })
         .await

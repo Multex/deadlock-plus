@@ -395,9 +395,11 @@ pub mod commands {
                 return Ok(Vec::new());
             }
             let index = state.snapshot(&app);
-            tauri::async_runtime::spawn_blocking(move || search::search(&index, &query, embed::embedder, RESULT_LIMIT))
-                .await
-                .map_err(|e| AppError::new(PatchNotesError::SearchFailed).detail(e))
+            crate::command_panics::spawn_blocking_guarded(move || {
+                search::search(&index, &query, embed::embedder, RESULT_LIMIT)
+            })
+            .await
+            .map_err(|e| AppError::new(PatchNotesError::SearchFailed).detail(e))
         })
         .await
     }

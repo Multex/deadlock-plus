@@ -92,7 +92,7 @@ pub mod commands {
     #[tauri::command]
     pub async fn storage_entries(app: tauri::AppHandle) -> Result<Vec<EntryInfo>, AppError> {
         guarded(async move {
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let roots = current_roots(&app);
                 ALL_ENTRIES
                     .into_iter()
@@ -104,7 +104,6 @@ pub mod commands {
                     .collect()
             })
             .await
-            .map_err(AppError::internal)
         })
         .await
     }
@@ -113,7 +112,7 @@ pub mod commands {
     pub async fn storage_entry_stats(app: tauri::AppHandle, id: EntryId) -> Result<EntryStats, AppError> {
         guarded(async move {
             let roots = current_roots(&app);
-            tauri::async_runtime::spawn_blocking(move || entry_stats(id, &roots)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || entry_stats(id, &roots)).await
         })
         .await
     }
@@ -139,15 +138,14 @@ pub mod commands {
                 .recording_key()
                 .into_iter()
                 .collect();
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let clear = || clear_except(id, &roots, &keep);
                 match app.try_state::<crate::features::salts::record::SaltRecordService>() {
                     Some(record) if id == EntryId::SharedMatches => record.clear_with(clear),
                     _ => clear(),
                 }
             })
-            .await
-            .map_err(AppError::internal)?
+            .await?
             .map(ClearReport::from)
             .map_err(AppError::internal)
         })

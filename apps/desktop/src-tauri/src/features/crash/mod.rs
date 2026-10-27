@@ -121,7 +121,7 @@ pub mod commands {
     async fn blocking<T: Send + 'static>(
         work: impl FnOnce() -> Result<T, AppError> + Send + 'static,
     ) -> Result<T, AppError> {
-        tauri::async_runtime::spawn_blocking(work).await.map_err(AppError::internal)?
+        crate::command_panics::spawn_blocking_guarded(work).await?
     }
 
     /// The newest unhandled crash marker, if the last run left one. The dialog shows this at launch.

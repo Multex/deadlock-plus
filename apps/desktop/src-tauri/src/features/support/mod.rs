@@ -320,7 +320,7 @@ pub mod commands {
     #[tauri::command]
     pub async fn build_support_report(app: tauri::AppHandle) -> Result<String, AppError> {
         guarded(async move {
-            tauri::async_runtime::spawn_blocking(move || build(&app))
+            crate::command_panics::spawn_blocking_guarded(move || build(&app))
                 .await
                 .map_err(|e| AppError::new(SupportError::BuildFailed).detail(e))
         })

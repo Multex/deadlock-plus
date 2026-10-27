@@ -16,7 +16,7 @@ pub mod commands {
     pub async fn list_cleanup_rules(app: tauri::AppHandle) -> Result<Vec<Rule>, AppError> {
         guarded(async move {
             let path = app_dir(&app)?.join("demo-cleanup-rules.json");
-            tauri::async_runtime::spawn_blocking(move || load_rules(&path)).await.map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || load_rules(&path)).await
         })
         .await
     }
@@ -26,7 +26,7 @@ pub mod commands {
         guarded(async move {
             validate(&rules)?;
             let dir = app_dir(&app)?;
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 std::fs::create_dir_all(&dir).map_err(AppError::io)?;
                 save_rules(&dir.join("demo-cleanup-rules.json"), &rules).map_err(|e| {
                     log::error!("could not save the cleanup rules: {e}");
@@ -35,8 +35,7 @@ pub mod commands {
                 log::info!("cleanup rules saved ({} rules)", rules.len());
                 Ok(())
             })
-            .await
-            .map_err(AppError::internal)?
+            .await?
         })
         .await
     }
@@ -51,7 +50,7 @@ pub mod commands {
         guarded(async move {
             let dir = app_dir(&app)?;
             let pins = pins.snapshot(&dir);
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let Some(replays) = replays_dir() else {
                     return Vec::new();
                 };
@@ -64,7 +63,6 @@ pub mod commands {
                 matches
             })
             .await
-            .map_err(AppError::internal)
         })
         .await
     }

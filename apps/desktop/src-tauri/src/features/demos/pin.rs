@@ -13,9 +13,7 @@ pub mod commands {
     pub async fn list_pinned(app: tauri::AppHandle) -> Result<Vec<u64>, AppError> {
         guarded(async move {
             let dir = dir(&app)?;
-            tauri::async_runtime::spawn_blocking(move || app.state::<PinStore>().snapshot(&dir).ids())
-                .await
-                .map_err(AppError::internal)
+            crate::command_panics::spawn_blocking_guarded(move || app.state::<PinStore>().snapshot(&dir).ids()).await
         })
         .await
     }
@@ -24,7 +22,7 @@ pub mod commands {
     pub async fn set_pinned(app: tauri::AppHandle, match_id: u64, pinned: bool) -> Result<Vec<u64>, AppError> {
         guarded(async move {
             let dir = dir(&app)?;
-            tauri::async_runtime::spawn_blocking(move || {
+            crate::command_panics::spawn_blocking_guarded(move || {
                 let pins = app
                     .state::<PinStore>()
                     .update(&dir, |p| {
@@ -38,8 +36,7 @@ pub mod commands {
                 log::debug!("replay {match_id} {}", if pinned { "pinned" } else { "unpinned" });
                 Ok(pins.ids())
             })
-            .await
-            .map_err(AppError::internal)?
+            .await?
         })
         .await
     }
