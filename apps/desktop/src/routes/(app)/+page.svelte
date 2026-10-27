@@ -13,6 +13,7 @@
     import MaintenanceBanner from "$lib/features/home/components/maintenance-banner.svelte";
     import OverviewCard from "$lib/features/home/components/overview-card.svelte";
     import ToolList from "$lib/features/home/components/tool-list.svelte";
+    import AppRegion from "$lib/shell/app-region.svelte";
     import { alerts } from "$lib/features/alerts/alerts.svelte";
     import { formatPublished } from "$lib/features/alerts/alerts";
     import { stats } from "$lib/features/stats/stats.svelte";
@@ -21,23 +22,13 @@
     import { standing, subrankAt, windowStats } from "@deadlock-plus/stats/rank";
     import { projectRank } from "@deadlock-plus/stats/rank-live";
     import { groupSessions, sessionVerdict, summarizeSession, type Verdict } from "@deadlock-plus/stats/sessions";
-    import { firewallCapability, getGameDefinitions, listBlockedGroupIds } from "$lib/features/server-picker/api";
-    import { savedOrFetchedServerData } from "$lib/features/server-picker/cache";
-    import { readVoiceBan } from "$lib/features/voice-bans/api";
-    import { parseVoiceBan } from "$lib/features/voice-bans/voice-ban";
-    import { listDemos } from "$lib/features/demos/api";
+    import { loadGlance, type GlanceSummary } from "$lib/features/home/glance";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { launchGame } from "$lib/core/deeplink";
     import { countdown, nextMaintenance, weekdays } from "$lib/features/settings/maintenance";
 
-    interface Summary {
-        blocked: number | null;
-        mutes: number | null;
-        replays: number | null;
-    }
-
-    let summary = $state<Summary>({ blocked: null, mutes: null, replays: null });
+    let summary = $state<GlanceSummary>({ blocked: null, mutes: null, replays: null });
     let nextMaintenanceAt = $state<number | null>(null);
 
     const maintenanceLine = $derived.by(() => {
@@ -55,37 +46,12 @@
     const account = $derived(steamAccount.account);
     const name = $derived(account?.personaName || null);
 
-    async function loadBlocked(): Promise<number | null> {
-        const capability = await firewallCapability();
-        if (!capability.supported) return null;
-        const game = (await getGameDefinitions())[0];
-        if (!game) return null;
-        const data = await savedOrFetchedServerData(game.id);
-        const ids = [...new Set([...data.clustered, ...data.unclustered].map((g) => g.id))];
-        return (await listBlockedGroupIds(ids)).length;
-    }
-
     onMount(() => {
-        void loadBlocked().then(
-            (n) => (summary.blocked = n),
-            () => {},
-        );
-        void readVoiceBan().then(
-            (file) => {
-                summary.mutes = parseVoiceBan(file.text).users.length;
-            },
-            () => {},
-        );
+        void loadGlance(summary);
         void settings.ready
             .then(() => nextMaintenance())
-            .then(
-                (at) => (nextMaintenanceAt = at),
-                () => {},
-            );
-        void listDemos().then(
-            (l) => (summary.replays = l.demos.length),
-            () => {},
-        );
+            .then((at) => (nextMaintenanceAt = at))
+            .catch(() => {});
     });
 
     const FORM_WINDOW = 20;
@@ -141,113 +107,139 @@
 
 <div class="flex min-h-full items-center justify-center px-8 py-10">
     <div class="flex w-full max-w-6xl flex-col gap-10">
-        <HomeHeader
-            avatar={account?.avatarDataUrl ?? null}
-            greeting={greeting(new Date().getHours(), name, sessionSeed)}
-        />
-
-        <GlanceTiles {tiles} gameRunning={jobs.gameRunning} onLaunch={() => void launchGame().catch(() => {})} />
-
-        {#if maintenanceLine}
-            <MaintenanceBanner
-                line={maintenanceLine}
-                reminderOn={settings.maintenance.enabled}
-                onopen={() => goto("/settings/notifications")}
+        <AppRegion name="home-header" size="sm">
+            <HomeHeader
+                avatar={account?.avatarDataUrl ?? null}
+                greeting={greeting(new Date().getHours(), name, sessionSeed)}
             />
-        {/if}
+        </AppRegion>
+
+        <AppRegion name="home-glance" size="sm">
+            <GlanceTiles {tiles} gameRunning={jobs.gameRunning} onLaunch={() => void launchGame().catch(() => {})} />
+        </AppRegion>
+
+        <AppRegion name="home-maintenance" quiet>
+            {#if maintenanceLine}
+                <MaintenanceBanner
+                    line={maintenanceLine}
+                    reminderOn={settings.maintenance.enabled}
+                    onopen={() => goto("/settings/notifications")}
+                />
+            {/if}
+        </AppRegion>
 
         <section class="flex flex-col gap-3" aria-label={t("home.your_deadlock")}>
             <h2 class="font-heading text-sm font-semibold tracking-wide text-muted-foreground">
                 {t("home.your_deadlock")}
             </h2>
             <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <OverviewCard href="/stats" icon={Trophy} title={t("home.rank.title")}>
-                    {#if rankLabel}
-                        <p class="flex items-center gap-2 font-heading text-2xl font-semibold text-brass">
-                            {rankLabel}
-                            {#if modelled > 0}<SyncingBadge count={modelled} />{/if}
-                        </p>
-                        {#if rankPercent !== null}
-                            <div class="h-2 overflow-hidden rounded-full bg-muted" role="presentation">
-                                <div class="h-full rounded-full bg-primary" style="width: {rankPercent}%"></div>
-                            </div>
-                            <p class="text-xs text-muted-foreground">
-                                {t("home.rank.progress", { percent: rankPercent, rank: nextRankLabel ?? "" })}
-                            </p>
-                        {/if}
-                    {:else}
-                        <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.rank.empty"), noAccount, busyNote)}
-                        </p>
-                    {/if}
-                </OverviewCard>
+                <li>
+                    <AppRegion name="home-rank" size="sm">
+                        <OverviewCard href="/stats" icon={Trophy} title={t("home.rank.title")}>
+                            {#if rankLabel}
+                                <p class="flex items-center gap-2 font-heading text-2xl font-semibold text-brass">
+                                    {rankLabel}
+                                    {#if modelled > 0}<SyncingBadge count={modelled} />{/if}
+                                </p>
+                                {#if rankPercent !== null}
+                                    <div class="h-2 overflow-hidden rounded-full bg-muted" role="presentation">
+                                        <div class="h-full rounded-full bg-primary" style="width: {rankPercent}%"></div>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground">
+                                        {t("home.rank.progress", { percent: rankPercent, rank: nextRankLabel ?? "" })}
+                                    </p>
+                                {/if}
+                            {:else}
+                                <p class="text-sm text-muted-foreground">
+                                    {statsNote(stats.status, t("home.rank.empty"), noAccount, busyNote)}
+                                </p>
+                            {/if}
+                        </OverviewCard>
+                    </AppRegion>
+                </li>
 
-                <OverviewCard href="/stats" icon={ChartLine} title={t("home.form.title")}>
-                    {#if form.games > 0}
-                        <p class="flex items-center gap-2 font-heading text-2xl font-semibold tabular-nums">
-                            {pct(form.winrate)}
-                            {#if modelled > 0}<SyncingBadge count={modelled} />{/if}
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            {t("home.form.summary", {
-                                wins: form.wins,
-                                losses: form.losses,
-                                net: signed(form.net),
-                                games: form.games,
-                            })}
-                        </p>
-                    {:else}
-                        <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.form.empty"), noAccount, busyNote)}
-                        </p>
-                    {/if}
-                </OverviewCard>
+                <li>
+                    <AppRegion name="home-form" size="sm">
+                        <OverviewCard href="/stats" icon={ChartLine} title={t("home.form.title")}>
+                            {#if form.games > 0}
+                                <p class="flex items-center gap-2 font-heading text-2xl font-semibold tabular-nums">
+                                    {pct(form.winrate)}
+                                    {#if modelled > 0}<SyncingBadge count={modelled} />{/if}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    {t("home.form.summary", {
+                                        wins: form.wins,
+                                        losses: form.losses,
+                                        net: signed(form.net),
+                                        games: form.games,
+                                    })}
+                                </p>
+                            {:else}
+                                <p class="text-sm text-muted-foreground">
+                                    {statsNote(stats.status, t("home.form.empty"), noAccount, busyNote)}
+                                </p>
+                            {/if}
+                        </OverviewCard>
+                    </AppRegion>
+                </li>
 
-                <OverviewCard
-                    href="/alerts"
-                    icon={Newspaper}
-                    title={t("home.update.title")}
-                    badge={alerts.unread > 0 ? t("home.update.unread", { count: alerts.unread }) : undefined}
-                >
-                    {#if latestAlert}
-                        <p class="line-clamp-2 text-sm font-medium">{latestAlert.title}</p>
-                        <p class="text-xs text-muted-foreground">{formatPublished(latestAlert.published)}</p>
-                    {:else}
-                        <p class="text-sm text-muted-foreground">{t("home.update.empty")}</p>
-                    {/if}
-                </OverviewCard>
+                <li>
+                    <AppRegion name="home-update" size="sm">
+                        <OverviewCard
+                            href="/alerts"
+                            icon={Newspaper}
+                            title={t("home.update.title")}
+                            badge={alerts.unread > 0 ? t("home.update.unread", { count: alerts.unread }) : undefined}
+                        >
+                            {#if latestAlert}
+                                <p class="line-clamp-2 text-sm font-medium">{latestAlert.title}</p>
+                                <p class="text-xs text-muted-foreground">{formatPublished(latestAlert.published)}</p>
+                            {:else}
+                                <p class="text-sm text-muted-foreground">
+                                    {statsNote(alerts.status, t("home.update.empty"))}
+                                </p>
+                            {/if}
+                        </OverviewCard>
+                    </AppRegion>
+                </li>
 
-                <OverviewCard href="/match-history" icon={Timer} title={t("home.session.title")}>
-                    {#if lastSummary}
-                        <p class="flex items-center gap-2 font-heading text-2xl font-semibold">
-                            {relativeDay(lastSummary.startTime, Date.now() / 1000)}
-                            {#if lastSyncing > 0}<SyncingBadge count={lastSyncing} />{/if}
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            {lastSummary.netDelta === null
-                                ? t("home.session.summary", {
-                                      verdict: verdictLabel(sessionVerdict(lastSummary)),
-                                      wins: lastSummary.wins,
-                                      losses: lastSummary.losses,
-                                      duration: formatPlaytime(lastSummary.durationS),
-                                  })
-                                : t("home.session.summary_delta", {
-                                      verdict: verdictLabel(sessionVerdict(lastSummary)),
-                                      wins: lastSummary.wins,
-                                      losses: lastSummary.losses,
-                                      duration: formatPlaytime(lastSummary.durationS),
-                                      net: signed(lastSummary.netDelta),
-                                  })}
-                        </p>
-                    {:else}
-                        <p class="text-sm text-muted-foreground">
-                            {statsNote(stats.status, t("home.session.empty"), noAccount, busyNote)}
-                        </p>
-                    {/if}
-                </OverviewCard>
+                <li>
+                    <AppRegion name="home-session" size="sm">
+                        <OverviewCard href="/match-history" icon={Timer} title={t("home.session.title")}>
+                            {#if lastSummary}
+                                <p class="flex items-center gap-2 font-heading text-2xl font-semibold">
+                                    {relativeDay(lastSummary.startTime, Date.now() / 1000)}
+                                    {#if lastSyncing > 0}<SyncingBadge count={lastSyncing} />{/if}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    {lastSummary.netDelta === null
+                                        ? t("home.session.summary", {
+                                              verdict: verdictLabel(sessionVerdict(lastSummary)),
+                                              wins: lastSummary.wins,
+                                              losses: lastSummary.losses,
+                                              duration: formatPlaytime(lastSummary.durationS),
+                                          })
+                                        : t("home.session.summary_delta", {
+                                              verdict: verdictLabel(sessionVerdict(lastSummary)),
+                                              wins: lastSummary.wins,
+                                              losses: lastSummary.losses,
+                                              duration: formatPlaytime(lastSummary.durationS),
+                                              net: signed(lastSummary.netDelta),
+                                          })}
+                                </p>
+                            {:else}
+                                <p class="text-sm text-muted-foreground">
+                                    {statsNote(stats.status, t("home.session.empty"), noAccount, busyNote)}
+                                </p>
+                            {/if}
+                        </OverviewCard>
+                    </AppRegion>
+                </li>
             </ul>
         </section>
 
-        <ToolList tools={FEATURES} />
+        <AppRegion name="home-tools">
+            <ToolList tools={FEATURES} />
+        </AppRegion>
     </div>
 </div>
