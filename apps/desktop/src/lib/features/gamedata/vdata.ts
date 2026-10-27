@@ -44,8 +44,19 @@ export function loadPopularItems(heroId: number): Promise<PopularItems | null> {
 }
 
 /** A hero's starting stats, per-level gains and slot investment tiers; null for an unknown hero or game. */
-export function loadHeroStats(heroId: number): Promise<HeroStatsData | null> {
-    return command<HeroStatsData | null>("game_hero_stats", { heroId }).catch(() => null);
+export async function loadHeroStats(heroId: number): Promise<HeroStatsData | null> {
+    const stats = await command<HeroStatsData | null>("game_hero_stats", { heroId }).catch(() => null);
+    return isHeroStats(stats) ? stats : null;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+function isHeroStats(value: unknown): value is HeroStatsData {
+    if (!isRecord(value) || !isRecord(value.base) || !isRecord(value.perLevel)) return false;
+    const { investment, bulletDamage } = value;
+    if (!isRecord(investment) || ![investment.weapon, investment.spirit, investment.vitality].every(Array.isArray))
+        return false;
+    return bulletDamage == null || typeof bulletDamage === "number";
 }
 
 /**

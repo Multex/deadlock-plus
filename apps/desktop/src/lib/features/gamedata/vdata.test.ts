@@ -105,6 +105,25 @@ describe("loadHeroStats", () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadHeroStats(7)).toBeNull();
     });
+
+    it.each([
+        ["garbage", { garbage: true }],
+        ["a string", "x"],
+        ["stats without investment tiers", { heroId: 7, base: {}, perLevel: {}, investment: {}, bulletDamage: null }],
+        [
+            "a text bullet damage",
+            {
+                heroId: 7,
+                base: {},
+                perLevel: {},
+                investment: { weapon: [], spirit: [], vitality: [] },
+                bulletDamage: "9",
+            },
+        ],
+    ])("is null when the command answers %s", async (_, answer) => {
+        invoke.mockResolvedValue(answer);
+        expect(await loadHeroStats(7)).toBeNull();
+    });
 });
 
 describe("loadItemStats", () => {
