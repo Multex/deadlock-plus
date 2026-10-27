@@ -209,15 +209,16 @@
             {/if}
             {#if theme.source}
                 {@const source = theme.source}
-                <button
+                <Button
+                    variant="link"
                     type="button"
-                    class="flex items-center gap-1.5 self-start text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-brass hover:underline"
+                    class="h-auto gap-1.5 self-start p-0 text-xs font-normal text-muted-foreground hover:text-brass [&_svg]:size-3.5"
                     title={source.url}
                     onclick={() => void openLink(source.url)}
                 >
-                    <ExternalLink class="size-3.5" aria-hidden="true" />
+                    <ExternalLink aria-hidden="true" />
                     {source.label}
-                </button>
+                </Button>
             {/if}
         </div>
     {/if}
