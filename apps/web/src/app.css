@@ -1,8 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource/limelight/400.css";
-@import "@deadlock-plus/ui/fonts.css";
 @import "@deadlock-plus/ui/theme.css";
+@import "./fonts.css";
 
 @source "../../../packages/ui/src";
 
