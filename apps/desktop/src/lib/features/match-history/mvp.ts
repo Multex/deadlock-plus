@@ -8,10 +8,22 @@ import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
 
 export const GRADED_EVENT = "mvp://graded";
 
+const isGrade = (value: unknown): value is MvpMatchGrade =>
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as MvpMatchGrade).matchId === "number" &&
+    Array.isArray((value as MvpMatchGrade).players);
+
 /** Stored grades only; matches without one are left out. */
-export const readGrades = (matchIds: number[]) => command<MvpMatchGrade[]>("mvp_grades", { matchIds });
+export const readGrades = async (matchIds: number[]): Promise<MvpMatchGrade[]> => {
+    const value = await command<unknown>("mvp_grades", { matchIds });
+    return Array.isArray(value) ? value.filter(isGrade) : [];
+};
 /** Grades the match first when it has no grade yet; null when it cannot be graded. */
-export const gradeMatch = (matchId: number) => command<MvpMatchGrade | null>("mvp_grade_match", { matchId });
+export const gradeMatch = async (matchId: number): Promise<MvpMatchGrade | null> => {
+    const value = await command<unknown>("mvp_grade_match", { matchId });
+    return isGrade(value) ? value : null;
+};
 export const onGraded = (handler: (matchIds: number[]) => void) => listen<number[]>(GRADED_EVENT, handler);
 
 export const METRIC_LABEL: Record<MvpMetric, string> = {

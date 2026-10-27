@@ -2,12 +2,15 @@ import type { MvpMatchGrade } from "@deadlock-plus/ipc-types/MvpMatchGrade";
 import type { MvpMetric } from "@deadlock-plus/ipc-types/MvpMetric";
 import type { MvpPlayerGrade } from "@deadlock-plus/ipc-types/MvpPlayerGrade";
 import { describe, expect, it, vi } from "vitest";
+import { command } from "$lib/core/tauri";
 import {
     gradeBySlot,
+    gradeMatch,
     gradeTone,
     METRIC_LABEL,
     ordinalCategory,
     pointsText,
+    readGrades,
     scoreText,
     statLineText,
     statValueText,
@@ -15,6 +18,8 @@ import {
     watchMatchGrade,
     type GradeDeps,
 } from "./mvp";
+
+vi.mock("$lib/core/tauri", () => ({ command: vi.fn(), listen: vi.fn() }));
 
 const player = (over: Partial<MvpPlayerGrade> = {}): MvpPlayerGrade => ({
     accountId: 1,
@@ -275,4 +280,28 @@ describe("watchMatchGrade", () => {
         await flush();
         expect(unlisten).toHaveBeenCalledTimes(1);
     });
+});
+
+describe("readGrades with bad mvp_grades answers", () => {
+    for (const bad of [null, "nope", {}, [null], [{ matchId: "1", players: [] }], [{ matchId: 1, players: null }]]) {
+        it(`reads no grades when mvp_grades answers ${JSON.stringify(bad)}`, async () => {
+            vi.mocked(command).mockResolvedValue(bad);
+            expect(await readGrades([1])).toEqual([]);
+        });
+    }
+
+    it("keeps the well-formed grades next to a malformed one", async () => {
+        const good = { matchId: 1, leaver: false, pathsChecked: true, provisional: false, players: [player()] };
+        vi.mocked(command).mockResolvedValue([null, good]);
+        expect(await readGrades([1])).toEqual([good]);
+    });
+});
+
+describe("gradeMatch with bad mvp_grade_match answers", () => {
+    for (const bad of ["nope", {}, { matchId: 1, players: "x" }]) {
+        it(`answers no grade when mvp_grade_match answers ${JSON.stringify(bad)}`, async () => {
+            vi.mocked(command).mockResolvedValue(bad);
+            expect(await gradeMatch(1)).toBeNull();
+        });
+    }
 });
