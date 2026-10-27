@@ -59,6 +59,7 @@
     "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@deadlock-plus/demo": "workspace:*",
     "@playwright/test": "1.64.0",
     "@sveltejs/adapter-static": "^3.0.10",
