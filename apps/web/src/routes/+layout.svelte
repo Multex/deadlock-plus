@@ -61,7 +61,7 @@
             <a
                 href={withRef("/", ref)}
                 aria-label="Deadlock+ home"
-                class="mr-auto flex h-10 items-center rounded-md sm:h-auto"
+                class="mr-auto flex h-10 min-h-[24px] min-w-[24px] items-center rounded-md sm:h-auto"
             >
                 <BrandMark wordmark={false} class="sm:hidden" />
                 <BrandMark class="hidden sm:inline-flex" />
@@ -113,7 +113,11 @@
         <div class="mx-auto max-w-5xl px-4 py-10 text-base sm:px-8">
             <div class="flex flex-col gap-10 md:flex-row md:justify-between">
                 <div class="space-y-3">
-                    <a href={withRef("/", ref)} aria-label="Deadlock+ home" class="inline-flex items-center rounded-md">
+                    <a
+                        href={withRef("/", ref)}
+                        aria-label="Deadlock+ home"
+                        class="inline-flex min-h-[24px] items-center rounded-md"
+                    >
                         <BrandMark />
                     </a>
                     <p class="leading-relaxed text-foreground">A free companion app for Deadlock. No account needed.</p>
