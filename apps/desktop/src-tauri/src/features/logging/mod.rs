@@ -385,13 +385,22 @@ pub fn plugin<R: tauri::Runtime>(dir: &Path) -> io::Result<tauri::plugin::TauriP
 pub fn install_panic_hook() {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        let message = info.to_string();
         let backtrace = std::backtrace::Backtrace::force_capture().to_string();
-        crate::features::crash::record_panic(&message, &backtrace);
-        log::error!("{message}\n{backtrace}");
-        log::logger().flush();
+        report_panic(&info.to_string(), &backtrace, crate::features::crash::record_panic);
         previous(info);
     }));
+}
+
+/// A panic inside a command body is answered with `common.internal` and the app keeps running, so it is logged
+/// but leaves no crash marker for the next launch's crash dialog.
+pub(crate) fn report_panic(message: &str, backtrace: &str, record_crash: impl FnOnce(&str, &str)) {
+    if crate::command_panics::panic_is_handled() {
+        log::error!("a command panicked and answered common.internal: {message}\n{backtrace}");
+    } else {
+        record_crash(message, backtrace);
+        log::error!("{message}\n{backtrace}");
+    }
+    log::logger().flush();
 }
 
 pub fn log_startup(app: &tauri::AppHandle) {

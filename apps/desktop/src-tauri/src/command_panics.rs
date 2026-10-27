@@ -1,10 +1,47 @@
 use crate::features::error::{AppError, CommonError};
 use futures::FutureExt;
 use std::any::Any;
+use std::cell::Cell;
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
 use tauri::ipc::Invoke;
 use tauri::Runtime;
+
+thread_local! {
+    static GUARDED_DEPTH: Cell<usize> = const { Cell::new(0) };
+}
+
+/// True while this thread runs a command body under [`guarded`] or [`reject_panics`]. The panic hook reads it:
+/// such a panic becomes `common.internal` for that one call, so the app survives it and it is not a crash.
+pub fn panic_is_handled() -> bool {
+    GUARDED_DEPTH.with(|depth| depth.get() > 0)
+}
+
+struct InsideCommand;
+
+impl InsideCommand {
+    fn enter() -> Self {
+        GUARDED_DEPTH.with(|depth| depth.set(depth.get() + 1));
+        InsideCommand
+    }
+}
+
+impl Drop for InsideCommand {
+    fn drop(&mut self) {
+        GUARDED_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
+/// The flag is set per poll, not per future: a command future can resume on another runtime thread after any
+/// `.await`, and the thread it left must not keep the flag.
+async fn inside_command<F: Future>(fut: F) -> F::Output {
+    let mut fut = std::pin::pin!(fut);
+    std::future::poll_fn(move |cx| {
+        let _inside = InsideCommand::enter();
+        fut.as_mut().poll(cx)
+    })
+    .await
+}
 
 /// What a command answers with when its body panicked.
 pub trait PanicError {
@@ -26,7 +63,7 @@ impl PanicError for String {
 /// Every async `#[tauri::command]` body runs through this (a test enforces it). Tauri spawns an async command's
 /// future without catching, so a panic would leave the frontend `invoke` promise pending forever.
 pub async fn guarded<T, E: PanicError>(fut: impl Future<Output = Result<T, E>>) -> Result<T, E> {
-    AssertUnwindSafe(fut).catch_unwind().await.unwrap_or_else(|panic| {
+    inside_command(AssertUnwindSafe(fut).catch_unwind()).await.unwrap_or_else(|panic| {
         log_panic(panic.as_ref());
         Err(E::from_panic())
     })
@@ -60,6 +97,10 @@ pub fn reject_panics<R: Runtime>(
 }
 
 fn run_or_on_panic(run: impl FnOnce() -> bool, on_panic: impl FnOnce()) -> bool {
+    let run = || {
+        let _inside = InsideCommand::enter();
+        run()
+    };
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)) {
         Ok(handled) => handled,
         Err(_) => {
@@ -139,6 +180,95 @@ mod tests {
         let err: Result<u8, String> = tauri::async_runtime::block_on(guarded(async { Err("nope".to_owned()) }));
         assert_eq!(err, Err("nope".to_owned()));
         assert_eq!(tauri::async_runtime::block_on(guarded_infallible(async { 7 })).unwrap(), 7);
+    }
+
+    thread_local! {
+        static REPORTING: Cell<bool> = const { Cell::new(false) };
+        static RECORDED: Cell<bool> = const { Cell::new(false) };
+    }
+
+    /// Runs `body` with the app's panic reporting wired to a per-thread "crash recorded" flag. Other tests'
+    /// threads fall through to the default hook.
+    fn crash_recorded(body: impl FnOnce()) -> bool {
+        static INSTALL: std::sync::Once = std::sync::Once::new();
+        INSTALL.call_once(|| {
+            let previous = std::panic::take_hook();
+            std::panic::set_hook(Box::new(move |info| {
+                if REPORTING.with(Cell::get) {
+                    crate::features::logging::report_panic(&info.to_string(), "", |_, _| RECORDED.set(true));
+                } else {
+                    previous(info);
+                }
+            }));
+        });
+        RECORDED.set(false);
+        REPORTING.set(true);
+        body();
+        REPORTING.set(false);
+        RECORDED.get()
+    }
+
+    #[test]
+    fn a_panic_inside_an_async_command_records_no_crash() {
+        let recorded = crash_recorded(|| {
+            let _: Result<(), AppError> = tauri::async_runtime::block_on(guarded(async { panic!("command blew up") }));
+        });
+        assert!(!recorded);
+    }
+
+    #[test]
+    fn a_panic_inside_a_sync_command_records_no_crash() {
+        let recorded = crash_recorded(|| {
+            run_or_on_panic(|| panic!("command blew up"), || {});
+        });
+        assert!(!recorded);
+    }
+
+    #[test]
+    fn a_panic_outside_a_command_records_a_crash() {
+        let recorded = crash_recorded(|| {
+            let _ = std::panic::catch_unwind(|| panic!("thread blew up"));
+        });
+        assert!(recorded);
+    }
+
+    #[test]
+    fn a_panic_after_a_command_finished_records_a_crash() {
+        let recorded = crash_recorded(|| {
+            let _: Result<(), AppError> = tauri::async_runtime::block_on(guarded(async { Ok(()) }));
+            run_or_on_panic(|| false, || {});
+            let _ = std::panic::catch_unwind(|| panic!("thread blew up"));
+        });
+        assert!(recorded);
+    }
+
+    /// A command future can resume on another worker thread after an `.await`; the flag must follow it there
+    /// and must not stay set on the thread it left.
+    #[test]
+    fn the_handled_flag_follows_a_command_future_across_threads() {
+        let (seen_tx, seen) = mpsc::channel();
+        let (resume_tx, resume) = mpsc::channel::<()>();
+        let mut fut = Box::pin(guarded_infallible(async move {
+            seen_tx.send(panic_is_handled()).unwrap();
+            futures::future::poll_fn(move |_| match resume.try_recv() {
+                Ok(()) => std::task::Poll::Ready(()),
+                Err(_) => std::task::Poll::Pending,
+            })
+            .await;
+            seen_tx.send(panic_is_handled()).unwrap();
+        }));
+        let waker = futures::task::noop_waker();
+        assert!(fut.as_mut().poll(&mut std::task::Context::from_waker(&waker)).is_pending());
+        assert!(!panic_is_handled());
+        resume_tx.send(()).unwrap();
+        std::thread::spawn(move || {
+            let waker = futures::task::noop_waker();
+            assert!(fut.as_mut().poll(&mut std::task::Context::from_waker(&waker)).is_ready());
+            assert!(!panic_is_handled());
+        })
+        .join()
+        .unwrap();
+        assert_eq!(seen.try_iter().collect::<Vec<_>>(), [true, true]);
     }
 
     /// Byte offset just past the `)` closing the parameter list that starts at or after `from`.

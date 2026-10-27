@@ -40,7 +40,14 @@ impl TelemetryService {
             locale: "en".into(),
         };
         let telemetry = Arc::new(Telemetry::new(config.clone(), context, install_id.clone()));
-        let sentry = dp_telemetry::errors::init(&config, &version, &os, telemetry.gate(), &install_id);
+        let sentry = dp_telemetry::errors::init(
+            &config,
+            &version,
+            &os,
+            telemetry.gate(),
+            &install_id,
+            crate::command_panics::panic_is_handled,
+        );
         Self { telemetry, sentry: Mutex::new(sentry), worker: Mutex::new(None), started_sent: AtomicBool::new(false) }
     }
 
