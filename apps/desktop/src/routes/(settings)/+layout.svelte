@@ -1,5 +1,8 @@
 <script lang="ts">
     import { afterNavigate, goto } from "$app/navigation";
+    import { page } from "$app/state";
+    import { t } from "$lib/core/i18n.svelte";
+    import AppRegion from "$lib/shell/app-region.svelte";
     import Frame from "$lib/shell/frame.svelte";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { sidebarState } from "$lib/shell/sidebar-state.svelte";
@@ -34,5 +37,7 @@
     {#snippet sidebar()}
         <SettingsNav collapsed={sidebarState.collapsed} onback={back} />
     {/snippet}
-    {@render children?.()}
+    <AppRegion name="page" title={t("region.page_title")} resetKey={page.url.pathname}>
+        {@render children?.()}
+    </AppRegion>
 </Frame>

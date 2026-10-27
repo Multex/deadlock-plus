@@ -15,6 +15,7 @@
     import { variantOf } from "$lib/features/settings/theme-options";
     import { trackFeature } from "$lib/features/telemetry/api";
     import { trackRoute } from "$lib/features/telemetry/track";
+    import AppRegion from "$lib/shell/app-region.svelte";
 
     let { children } = $props();
 
@@ -41,12 +42,19 @@
     {@render children?.()}
 {:else}
     <div class="flex h-screen w-screen flex-col overflow-hidden bg-chrome text-foreground">
-        <Titlebar />
+        <AppRegion name="titlebar" size="sm">
+            <Titlebar />
+        </AppRegion>
         {@render children?.()}
     </div>
 
-    <CommandPalette />
-    <AfterMatchFrontPage />
+    <!-- Overlays have no place on the page for a message; a broken one stays closed. -->
+    <AppRegion name="command-palette" quiet>
+        <CommandPalette />
+    </AppRegion>
+    <AppRegion name="front-page" quiet>
+        <AfterMatchFrontPage />
+    </AppRegion>
 
     <Toaster
         richColors

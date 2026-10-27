@@ -11615,6 +11615,7 @@
     "region": {
         "error_title": "Couldn't load this part.",
         "error_body": "The rest of Deadlock+ still works.",
-        "retry": "Retry"
+        "retry": "Retry",
+        "page_title": "Couldn't show this page."
     }
 }

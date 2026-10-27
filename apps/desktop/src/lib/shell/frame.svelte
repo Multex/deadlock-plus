@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import AppRegion from "$lib/shell/app-region.svelte";
     import ContentRegion from "./content-region.svelte";
     import Statusbar from "./statusbar.svelte";
 
@@ -14,10 +15,12 @@
 
 <div class="flex min-h-0 flex-1 flex-col">
     <div class="flex min-h-0 flex-1">
-        {@render sidebar?.()}
+        {#if sidebar}
+            <AppRegion name="sidebar" size="sm">{@render sidebar()}</AppRegion>
+        {/if}
         <ContentRegion flush={!sidebar}>{@render children?.()}</ContentRegion>
     </div>
     {#if statusbar}
-        <Statusbar withSidebar={!!sidebar} />
+        <AppRegion name="statusbar" size="sm"><Statusbar withSidebar={!!sidebar} /></AppRegion>
     {/if}
 </div>
