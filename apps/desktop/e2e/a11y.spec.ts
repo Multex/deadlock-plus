@@ -185,6 +185,9 @@ const OPEN_STATES: OpenState[] = [
     },
 ];
 
+// axe takes seconds on the build pages and three workers share the machine, so the default 30s ran out.
+test.describe.configure({ timeout: 90_000 });
+
 for (const theme of THEMES) {
     test.describe(theme, () => {
         for (const r of ROUTE_CALLS) {
