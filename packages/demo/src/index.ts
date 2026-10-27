@@ -22,3 +22,13 @@ export {
     type ScenarioFactory,
     type ScenarioOptions,
 } from "./scenarios";
+export {
+    createFaultSet,
+    isMissingArtUrl,
+    missingArtUrl,
+    parseFaults,
+    selectFaults,
+    type Fault,
+    type FaultChoice,
+    type FaultSet,
+} from "./faults";

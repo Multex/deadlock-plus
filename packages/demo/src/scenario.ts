@@ -1,6 +1,7 @@
 import { createBackend, type Args, type Handler, type Handlers, type KvSeed } from "./backend";
 import { shiftClock } from "./clock";
 import { createFetch, type ApiRoute } from "./fetch";
+import { createFaultSet, type Fault } from "./faults";
 import { seeded } from "./random";
 
 /** The invented player a scenario is seen through, and the names of the other invented players. */
@@ -62,6 +63,12 @@ export interface DemoHandle {
     unhandled(): string[];
     /** Answers `command` with `handler` from now on. */
     set(command: string, handler: Handler): void;
+    /** Adds a fault from now on; it wins over every earlier one it overlaps. */
+    fault(fault: Fault): void;
+    /** Drops every fault, the ones the install started with included. */
+    clearFaults(): void;
+    /** The faults in effect, oldest first. */
+    faults(): Fault[];
     /** Sends a backend event to the frontend, as the Rust side would. */
     emit(event: string, payload: unknown): void;
     /** Subscribes the host that delivers emitted events to the frontend's listeners. */
@@ -139,24 +146,29 @@ export function defineScenario(spec: ScenarioSpec): Scenario {
 
 /**
  * Starts a scenario with fresh state: moves the clock to its `now`, replaces `Math.random` with its seeded
- * numbers and answers its API routes through the global `fetch`.
+ * numbers and answers its API routes through the global `fetch`. `faults` break commands, API paths or art
+ * from the start.
  */
-export function install(scenario: Scenario): DemoHandle {
+export function install(scenario: Scenario, options: { faults?: readonly Fault[] } = {}): DemoHandle {
     const { handlers, kv, routes } = assemble(scenario, scenario.layers);
-    const backend = createBackend(handlers, kv);
+    const faults = createFaultSet(options.faults);
+    const backend = createBackend(handlers, kv, faults);
     const listeners = new Set<EventListener>();
 
     const restoreClock = shiftClock(scenario.now);
     const realRandom = Math.random;
     Math.random = seeded(scenario.seed);
     const realFetch = globalThis.fetch;
-    globalThis.fetch = createFetch(routes, (input, init) => realFetch.call(globalThis, input, init));
+    globalThis.fetch = createFetch(routes, (input, init) => realFetch.call(globalThis, input, init), faults);
 
     return {
         scenario: scenario.id,
         invoke: backend.handle,
         unhandled: backend.unhandled,
         set: backend.set,
+        fault: faults.add,
+        clearFaults: faults.clear,
+        faults: faults.list,
         emit: (event, payload) => listeners.forEach((listener) => listener(event, payload)),
         onEvent: (listener) => void listeners.add(listener),
         uninstall() {
