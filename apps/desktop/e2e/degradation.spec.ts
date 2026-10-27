@@ -10,7 +10,8 @@ import { ALLOWED_HOSTS } from "./support/test";
 
 // One fault per case, applied while a route loads. A case passes when the fault stays in its own region:
 // no uncaught error, no crash report, the sidebar still navigates and no spinner is left behind.
-// `E2E_DEGRADATION_EXTRA=1` adds the `@shapes` (command answers null) and `@art` (all art missing) cases.
+// `E2E_DEGRADATION_EXTRA=1` adds the `@shapes` (command answers null or garbage) and `@art` (all art missing)
+// cases.
 
 // The demo's fault shape (`packages/demo/src/faults.ts`), restated: importing it pulls the demo's sources into
 // this folder's type check, which targets an older library.
@@ -37,24 +38,12 @@ const ART_ROUTES = [
 // Pages that are no route of the main window.
 const NOT_SWEPT = ["/overlay"];
 const SETTLE_MS = 3000;
+// The boundary the `(app)` and `(settings)` layouts put around each page. A smaller region in its error
+// state is the scoped outcome a fault should have; this one in its error state means the page was lost.
+const PAGE_REGION = "page";
 
 // Known offenders: the exact failure seen. The fix that cures one removes its entry.
-const ABILITY_BAR_SPINS =
-    "1 spinner left: the ability bar skeleton (bar-frame.svelte) keeps aria-busy when item data fails (audit: Builds > Ability order, spinner forever)";
-const KNOWN: Record<string, string> = {
-    "builds api:/v1/assets/items:503": ABILITY_BAR_SPINS,
-    "builds-mine api:/v1/assets/items:503": ABILITY_BAR_SPINS,
-    "builds-mine api::503": ABILITY_BAR_SPINS,
-    "builds-mine api::429": ABILITY_BAR_SPINS,
-    "builds-mine api::drop": ABILITY_BAR_SPINS,
-    "build-view-local api:/v1/assets/items:503": ABILITY_BAR_SPINS,
-    "build-view-local api::503": ABILITY_BAR_SPINS,
-    "build-view-local api::429": ABILITY_BAR_SPINS,
-    "build-view-local api::drop": ABILITY_BAR_SPINS,
-    "build-view-public api:/v1/assets/items:503": ABILITY_BAR_SPINS,
-    "live command:start_network_monitor:throw":
-        "uncaught error: Object, unhandled rejection common.internal (audit: Live > Monitor, rejection, nothing visible)",
-};
+const KNOWN: Record<string, string> = {};
 
 const gameData = createGameDataCache({
     dir: cacheDir(
@@ -107,7 +96,7 @@ function watch({ scenario, faults }: { scenario: string; faults: Fault[] }) {
     });
 }
 
-async function openContext(browser: Browser, baseURL: string, route: RouteCalls, faults: Fault[]) {
+async function openContext(browser: Browser, baseURL: string, route: RouteCalls, faults: Fault[], init?: () => void) {
     const context = await browser.newContext({
         baseURL,
         viewport: { width: 1480, height: 900 },
@@ -118,6 +107,7 @@ async function openContext(browser: Browser, baseURL: string, route: RouteCalls,
         userAgent: WINDOWS_UA,
     });
     await context.addInitScript(watch, { scenario: route.scenario, faults });
+    if (init) await context.addInitScript(init);
     const own = new URL(baseURL).host;
     await context.route("**/*", async (request) => {
         const url = new URL(request.request().url());
@@ -191,9 +181,15 @@ function describeFault(fault: Fault): string {
 }
 
 /** What went wrong while `route` loaded under `faults`; empty when the fault stayed in its region. */
-async function problems(browser: Browser, baseURL: string, route: RouteCalls, faults: Fault[]): Promise<string[]> {
+async function problems(
+    browser: Browser,
+    baseURL: string,
+    route: RouteCalls,
+    faults: Fault[],
+    init?: () => void,
+): Promise<string[]> {
     const before = faults.length ? await baseline(browser, baseURL, route) : undefined;
-    const context = await openContext(browser, baseURL, route, faults);
+    const context = await openContext(browser, baseURL, route, faults, init);
     const pageErrors: string[] = [];
     try {
         const [page, seen] = await load(context, route, pageErrors);
@@ -204,6 +200,10 @@ async function problems(browser: Browser, baseURL: string, route: RouteCalls, fa
         if (seen.calls.includes("report_webview_crash")) found.push("reported a crash");
         if (!seen.mainChildren) found.push("main is empty");
         if (seen.spinners) found.push(`${seen.spinners} spinner(s) left after the page settled`);
+        // The page boundary still renders a region, so a whole-page crash would otherwise pass as "present".
+        if (seen.regions.some((region) => region.name === PAGE_REGION && region.state === "error")) {
+            found.push("the page region shows its error");
+        }
         // A region may show its error, busy or empty state, but it may not vanish.
         const present = new Set(seen.regions.map((region) => region.name));
         for (const region of before?.regions ?? []) {
@@ -246,8 +246,9 @@ async function problems(browser: Browser, baseURL: string, route: RouteCalls, fa
     }
 }
 
-const test = base.extend<{ sweep: (route: RouteCalls, faults: Fault[]) => Promise<string[]> }>({
-    sweep: async ({ browser, baseURL }, use) => use((route, faults) => problems(browser, baseURL!, route, faults)),
+const test = base.extend<{ sweep: (route: RouteCalls, faults: Fault[], init?: () => void) => Promise<string[]> }>({
+    sweep: async ({ browser, baseURL }, use) =>
+        use((route, faults, init) => problems(browser, baseURL!, route, faults, init)),
 });
 
 function declare(route: RouteCalls, fault: Fault, tag?: string) {
@@ -268,6 +269,23 @@ test("route-calls.ts covers every page of the main window", () => {
     expect(pages.filter(isDynamic).every((pattern) => swept.some((path) => matches(pattern, path)))).toBe(true);
 });
 
+// What's new builds an IntersectionObserver with no options while mounting; breaking that one call crashes the
+// page through its boundary without touching product code.
+function breakWhatsNew() {
+    const Real = window.IntersectionObserver;
+    window.IntersectionObserver = class extends Real {
+        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+            if (options === undefined) throw new Error("IntersectionObserver broken by the test");
+            super(callback, options);
+        }
+    };
+}
+
+test("the sweep reports a page that crashed into its boundary", async ({ sweep }) => {
+    const route = ROUTE_CALLS.find((candidate) => candidate.name === "whats-new")!;
+    expect(await sweep(route, [], breakWhatsNew)).toContain("the page region shows its error");
+});
+
 for (const route of ROUTE_CALLS) {
     test(`${route.name} loads clean and calls only what route-calls.ts lists`, async ({ sweep }) => {
         const key = `${route.name} clean`;
@@ -283,6 +301,8 @@ for (const route of ROUTE_CALLS) {
     for (const mode of ["503", "429", "drop"] as const) declare(route, { api: "", mode });
 
     if (!EXTRA) continue;
-    for (const command of commands) declare(route, { command, mode: "null" }, "@shapes");
+    for (const command of commands) {
+        for (const mode of ["null", "garbage"] as const) declare(route, { command, mode }, "@shapes");
+    }
     if (ART_ROUTES.includes(route.name)) declare(route, { art: "missing" }, "@art");
 }
