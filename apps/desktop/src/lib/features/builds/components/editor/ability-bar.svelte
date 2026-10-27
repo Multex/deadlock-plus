@@ -169,7 +169,7 @@
         <span class="min-w-0 truncate text-warning" role="status" aria-live="polite">
             {#if refusal}{t(`builds.editor.abilities.reason_${refusal}`)}{/if}
         </span>
-        <span class="ml-auto truncate text-muted-foreground/70">
+        <span class="ml-auto truncate text-muted-foreground">
             {steps.length === 0 ? t("builds.editor.abilities.empty_bar") : t("builds.editor.abilities.sequence_hint")}
         </span>
     {/snippet}

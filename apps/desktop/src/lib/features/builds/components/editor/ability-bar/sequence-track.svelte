@@ -417,7 +417,7 @@
                         shown ? "border-brass/70 bg-brass/5 [&>*]:opacity-70" : "border-border/60",
                     )}
                 >
-                    <span class="absolute top-0.5 left-1 text-[9px] leading-none text-muted-foreground/50 tabular-nums">
+                    <span class="absolute top-0.5 left-1 text-[9px] leading-none text-muted-foreground tabular-nums">
                         {n + 1}
                     </span>
                     {#if shown}{@render face(shown)}{/if}

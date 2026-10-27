@@ -70,7 +70,7 @@
             >
                 {tn("builds.view.cost", cost.items, { souls: formatNumber(cost.total) })}
                 {#if hasOptional}
-                    <span class="text-muted-foreground/70">{t("builds.view.cost_optional")}</span>
+                    <span class="text-muted-foreground">{t("builds.view.cost_optional")}</span>
                 {/if}
             </p>
         {/if}

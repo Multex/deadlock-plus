@@ -101,7 +101,7 @@
 
 {#snippet option(slot: number, tag: TagInfo, current: TagInfo | null)}
     <DropdownMenu.Item onSelect={() => place(slot, tag.id)} disabled={current?.id === tag.id}>
-        <span class="contents text-foreground/85">{@render glyph(tag, "size-5")}</span>
+        <span class="contents text-foreground">{@render glyph(tag, "size-5")}</span>
         <span class="truncate">{label(tag)}</span>
         {#if taken.has(tag.id)}
             <Check class={cn("ml-auto", current?.id !== tag.id && "opacity-50")} aria-hidden="true" />
@@ -123,8 +123,8 @@
                                     class={cn(
                                         "grid size-11 place-items-center overflow-hidden rounded-md border transition-[color,background-color,border-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none aria-expanded:border-ring/70 aria-expanded:text-foreground",
                                         current
-                                            ? "border-border bg-muted/60 text-foreground/80 hover:border-ring/60 hover:bg-muted hover:text-foreground"
-                                            : "border-dashed border-border bg-black/20 text-muted-foreground/60 hover:border-ring/60 hover:bg-muted/40 hover:text-muted-foreground",
+                                            ? "border-border bg-muted/60 text-foreground hover:border-ring/60 hover:bg-muted"
+                                            : "border-dashed border-border bg-black/20 text-muted-foreground hover:border-ring/60 hover:bg-muted/40 hover:text-foreground",
                                         art && "p-[3px]",
                                     )}
                                     aria-label={current

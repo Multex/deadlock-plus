@@ -135,7 +135,7 @@
                 <ul class="mt-0.5 flex flex-wrap gap-1.5" aria-label={t("builds.browser.tag")}>
                     {#each tags as tag (tag.id)}
                         <li
-                            class="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-muted/40 pr-2.5 pl-1.5 text-xs text-foreground/85"
+                            class="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-muted/40 pr-2.5 pl-1.5 text-xs text-foreground"
                         >
                             <TagGlyph {tag} class="size-[18px]" />
                             {tagLabel(tag)}
@@ -150,7 +150,7 @@
     {@render notes?.()}
 
     {#if description}
-        <p class="text-sm leading-relaxed whitespace-pre-line text-foreground/85" data-testid="overview-description">
+        <p class="text-sm leading-relaxed whitespace-pre-line text-foreground" data-testid="overview-description">
             {description}
         </p>
     {/if}

@@ -61,7 +61,7 @@
             {formatNumber(tick, { notation: "compact" })}
         </span>
         {#if time !== null}
-            <span class="text-[11px] leading-[13px] text-muted-foreground/60">{time}</span>
+            <span class="text-[11px] leading-[13px] text-muted-foreground">{time}</span>
         {/if}
     </span>
 {/each}
