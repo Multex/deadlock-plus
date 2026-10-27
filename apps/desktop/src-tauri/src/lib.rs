@@ -1,3 +1,4 @@
+mod command_panics;
 mod features;
 mod http;
 
@@ -117,7 +118,7 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(features::tray::on_window_event)
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler(command_panics::reject_panics(tauri::generate_handler![
             server_picker::commands::get_game_definitions,
             server_picker::commands::fetch_server_groups,
             server_picker::commands::ping_server_groups,
@@ -303,7 +304,7 @@ pub fn run() {
             features::diagnostics::frames::commands::frame_layer_status,
             features::diagnostics::frames::commands::install_frame_layer,
             features::diagnostics::frames::commands::uninstall_frame_layer,
-        ])
+        ]))
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
