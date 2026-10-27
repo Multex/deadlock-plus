@@ -86,6 +86,8 @@ struct State {
     admitted: u64,
     /// The API said its quota is spent. Nobody is let through before this, whatever their priority.
     paused_until: Option<Instant>,
+    /// Views have been refused since the last one was served.
+    busy_streak: bool,
 }
 
 impl Limiter {
@@ -96,7 +98,7 @@ impl Limiter {
 
     fn with_clock(name: &'static str, per_token: Duration, burst: u32, ui_reserve: u32, clock: Clock) -> Self {
         let bucket = Bucket::full(per_token, burst, clock());
-        let state = State { bucket, waiting: [0; 3], admitted: 0, paused_until: None };
+        let state = State { bucket, waiting: [0; 3], admitted: 0, paused_until: None, busy_streak: false };
         Self { name, ui_reserve, clock, state: Mutex::new(state) }
     }
 
@@ -137,7 +139,11 @@ impl Limiter {
             let wait = match wait {
                 Ok(()) => return Ok(()),
                 Err(wait) if priority == Priority::Ui => {
-                    log::debug!("{}: busy, a view has to wait {wait:?}", self.name);
+                    if self.note_busy() {
+                        log::info!("{}: low on requests, views wait their turn (first wait {wait:?})", self.name);
+                    } else {
+                        log::debug!("{}: busy, a view has to wait {wait:?}", self.name);
+                    }
                     return Err(Busy { retry_in: wait });
                 }
                 Err(wait) => wait,
@@ -148,6 +154,12 @@ impl Limiter {
             }
             tokio::time::sleep(wait).await;
         }
+    }
+
+    /// Marks a view refused. True only for the first refusal since a view was last served, so a
+    /// view that keeps asking logs one line per streak instead of one per try.
+    fn note_busy(&self) -> bool {
+        !std::mem::replace(&mut self.state.lock_or_recover().busy_streak, true)
     }
 
     fn try_take(&self, priority: Priority) -> Result<(), Duration> {
@@ -169,6 +181,9 @@ impl Limiter {
         let keep = if priority == Priority::Ui { self.ui_reserve } else { 0 };
         state.bucket.take(now, keep)?;
         state.admitted += 1;
+        if priority == Priority::Ui && std::mem::take(&mut state.busy_streak) {
+            log::info!("{}: views are served again", self.name);
+        }
         log::debug!(
             "{}: request {} admitted ({priority:?}, {} token(s) left)",
             self.name,
@@ -395,6 +410,31 @@ mod tests {
         assert_eq!(limiter.try_take(Priority::Recovery), Err(secs(10)));
         assert_eq!(limiter.pause(secs(30), "429"), secs(30));
         assert_eq!(limiter.try_take(Priority::Recovery), Err(secs(30)));
+    }
+
+    #[test]
+    fn only_the_first_refused_view_of_a_streak_is_logged_loudly() {
+        let clock = MockClock::default();
+        let limiter = clock.limiter(secs(3), 1, 0);
+        assert_eq!(limiter.try_take(Priority::Ui), Ok(()));
+        assert!(limiter.note_busy());
+        assert!(!limiter.note_busy());
+        assert!(!limiter.note_busy());
+    }
+
+    #[test]
+    fn a_served_view_ends_the_busy_streak() {
+        let clock = MockClock::default();
+        let limiter = clock.limiter(secs(3), 1, 0);
+        assert_eq!(limiter.try_take(Priority::Ui), Ok(()));
+        assert!(tauri::async_runtime::block_on(limiter.acquire(Priority::Ui)).is_err());
+        assert!(!limiter.note_busy(), "the refused acquire started the streak");
+        clock.advance(secs(3));
+        assert_eq!(limiter.try_take(Priority::Background), Ok(()));
+        assert!(!limiter.note_busy(), "only a served view ends it");
+        clock.advance(secs(3));
+        assert_eq!(limiter.try_take(Priority::Ui), Ok(()));
+        assert!(limiter.note_busy());
     }
 
     #[test]

@@ -12,7 +12,7 @@ use dp_gc::friends::{ActiveFriend, HistoryRow};
 
 use dp_sync::LockExt;
 
-use crate::features::error::AppError;
+use crate::features::error::{AppError, CommonError};
 use crate::http::limiter::{Busy, Limiter, Priority};
 use crate::http::retry::{rate_limit_quota, Backoff, Reply};
 
@@ -46,9 +46,12 @@ const WAIT_BACKOFF: Backoff = Backoff {
     min_retry_after: Duration::from_secs(1),
 };
 
+/// The limiter logs the refusal once per streak, so the error itself stays quiet.
 fn busy(busy: Busy) -> AppError {
     let secs = busy.retry_in.as_secs() + u64::from(busy.retry_in.subsec_nanos() > 0);
-    AppError::network(format!("deadlock-api request budget is low, try again in {secs} s")).param("retry_in_s", secs)
+    AppError::new(CommonError::Network)
+        .quiet_detail(format!("deadlock-api request budget is low, try again in {secs} s"))
+        .param("retry_in_s", secs)
 }
 
 #[derive(Deserialize)]
