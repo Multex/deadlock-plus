@@ -79,14 +79,15 @@
         <SupportLink {collapsed} />
         <button
             type="button"
-            aria-label={t("settings.nav.back")}
+            aria-label={collapsed ? t("settings.nav.back") : undefined}
+            aria-keyshortcuts="Escape"
             onclick={onback}
             class="flex h-10 w-full items-center gap-3 rounded-md px-3.5 text-left font-heading text-sm font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
             <ArrowLeft class="size-5 shrink-0" />
             {#if !collapsed}
                 <span class="flex-1">{t("settings.nav.back")}</span>
-                <kbd class="text-xs font-normal text-muted-foreground">Esc</kbd>
+                <kbd class="text-xs font-normal text-muted-foreground" aria-hidden="true">Esc</kbd>
             {/if}
         </button>
     </div>
