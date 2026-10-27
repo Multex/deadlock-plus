@@ -168,6 +168,12 @@ node scripts/og.mjs http://localhost:5218
 
 Run the second command in another terminal. It uses the Playwright that `apps/desktop` installs. `pnpm test` fails if the file is not 1200 x 630 or is over 300 kB.
 
+## Screenshots and fonts
+
+- `src/lib/assets/screenshots` holds the app screenshots, written by `pnpm screenshots` in `apps/desktop`. They are imported, so the build gives them hashed names that browsers cache for a year. Delete any file no page shows: `pnpm test` fails on it.
+- A phone draws each `-mobile` close-up from a copy at most 960 px wide in `small/`. The zoom viewer opens the full one. After new screenshots, run `node scripts/small-shots.mjs` (needs `cwebp`).
+- `src/lib/assets/fonts` holds the site's own fonts: the faces it uses, cut to Latin, as WOFF2. After a change to `packages/ui/src/fonts`, run `python scripts/fonts.py` (needs `pip install fonttools brotli`). `src/hooks.server.ts` preloads the three faces the top of the page draws.
+
 ## Two wrangler files
 
 - `wrangler.toml` is the deployed config. Its `main` is `src/worker.ts`, which wraps the SvelteKit Worker and adds the hourly job.
