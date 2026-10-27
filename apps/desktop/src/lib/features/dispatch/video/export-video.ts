@@ -179,33 +179,77 @@ export async function sceneInputs(source: EditionView, kind: VideoKind): Promise
     return { view, prep, images: await loadImages(view, prep?.images ?? {}) };
 }
 
+/**
+ * A worker killed without an error event (out of memory, ended by the system) never answers again. It reports
+ * progress every ten frames, and loading fonts and encoding the audio first takes a few seconds, so this long
+ * without any message means it is gone.
+ */
+export const WORKER_SILENCE_MS = 30_000;
+
+export interface EncodeWorker {
+    postMessage(message: EncodeRequest, transfer: Transferable[]): void;
+    terminate(): void;
+    onmessage: ((e: MessageEvent<EncodeReply>) => void) | null;
+    onerror: ((e: ErrorEvent) => void) | null;
+    onmessageerror: ((e: MessageEvent) => void) | null;
+}
+
+/** Null when cancelled. Ends the worker however it settles. */
+export function runEncodeWorker(
+    worker: EncodeWorker,
+    job: EncodeJob,
+    signal: AbortSignal,
+    onProgress: (done: number) => void,
+): Promise<ArrayBuffer | null> {
+    const send = (request: EncodeRequest, transfer: Transferable[] = []) => worker.postMessage(request, transfer);
+    return new Promise<ArrayBuffer | null>((resolve, reject) => {
+        let watchdog: ReturnType<typeof setTimeout> | undefined;
+        const settle = () => {
+            clearTimeout(watchdog);
+            signal.removeEventListener("abort", cancel);
+            worker.terminate();
+        };
+        const fail = (message: string) => {
+            settle();
+            reject(new Error(message));
+        };
+        const watch = () => {
+            clearTimeout(watchdog);
+            watchdog = setTimeout(() => {
+                if (signal.aborted) {
+                    settle();
+                    resolve(null);
+                } else fail("the video worker stopped responding");
+            }, WORKER_SILENCE_MS);
+        };
+        function cancel() {
+            send({ type: "cancel" });
+        }
+        signal.addEventListener("abort", cancel, { once: true });
+        worker.onmessage = ({ data }) => {
+            if (data.type === "progress") {
+                watch();
+                return onProgress(data.done);
+            }
+            settle();
+            if (data.type === "done") resolve(data.bytes);
+            else if (data.type === "cancelled") resolve(null);
+            else reject(new Error(data.message));
+        };
+        worker.onerror = (e) => fail(e.message || "the video worker did not start");
+        worker.onmessageerror = () => fail("the video worker sent a reply that could not be read");
+        watch();
+        send({ type: "start", job }, [...job.fonts.map((f) => f.data), ...Object.values(job.images)]);
+    });
+}
+
 function encodeInWorker(
     job: EncodeJob,
     signal: AbortSignal,
     onProgress: (done: number) => void,
 ): Promise<ArrayBuffer | null> {
     const worker = new Worker(new URL("./encode.worker.ts", import.meta.url), { type: "module" });
-    const send = (request: EncodeRequest, transfer: Transferable[] = []) => worker.postMessage(request, transfer);
-    const cancel = () => send({ type: "cancel" });
-    return new Promise<ArrayBuffer | null>((resolve, reject) => {
-        signal.addEventListener("abort", cancel, { once: true });
-        const settle = () => {
-            signal.removeEventListener("abort", cancel);
-            worker.terminate();
-        };
-        worker.onmessage = ({ data }: MessageEvent<EncodeReply>) => {
-            if (data.type === "progress") return onProgress(data.done);
-            settle();
-            if (data.type === "done") resolve(data.bytes);
-            else if (data.type === "cancelled") resolve(null);
-            else reject(new Error(data.message));
-        };
-        worker.onerror = (e) => {
-            settle();
-            reject(new Error(e.message || "the video worker did not start"));
-        };
-        send({ type: "start", job }, [...job.fonts.map((f) => f.data), ...Object.values(job.images)]);
-    });
+    return runEncodeWorker(worker, job, signal, onProgress);
 }
 
 export type VideoExportResult =
