@@ -108,6 +108,8 @@ class StatsStore {
                 this.schedule.arrived();
                 return;
             }
+            // Matches captured on this PC still show while the API is down.
+            await this.syncProvisional(null);
             this.error =
                 e instanceof DeadlockApiError
                     ? t("stats.api_error", { status: e.status })

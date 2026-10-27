@@ -5,7 +5,6 @@
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
-    import ApiBusyNotice from "$lib/features/api-health/components/api-busy-notice.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import SupportButton from "$lib/components/support-button.svelte";
@@ -26,6 +25,7 @@
     import SessionsBar from "$lib/features/stats/components/sessions/sessions-bar.svelte";
     import { highlightTitle } from "$lib/features/stats/sessions";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
+    import HistoryState from "$lib/features/stats/components/shared/history-state.svelte";
     import RefreshButton from "$lib/features/stats/components/shared/refresh-button.svelte";
     import { stats } from "$lib/features/stats/stats.svelte";
     import { formStrip, summarizeRows } from "@deadlock-plus/match/list-summary";
@@ -33,6 +33,8 @@
     let heroes = $state<Record<number, Hero>>({});
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
+    // Captured matches can stand in for the history while the API is down.
+    const hasRows = $derived(stats.status === "ready" || matchHistory.rows.length > 0);
     const view = $derived(matchHistory.sessionView);
     const filtered = $derived(matchHistory.filtered);
     const summary = $derived(summarizeRows(filtered));
@@ -63,14 +65,12 @@
 
     {#if steamAccount.loaded && accountId === null}
         <EmptyState size="base" spacing="xl">{t("stats.gate.no_account")}</EmptyState>
-    {:else if stats.status !== "ready" && stats.busy.active}
-        <ApiBusyNotice busy={stats.busy} />
-    {:else if stats.status === "error"}
-        <EmptyState size="base" spacing="xl" tone="destructive" role="alert">
-            {t("stats.gate.error", { error: stats.error ?? "" })}
-        </EmptyState>
-    {:else if stats.status !== "ready"}
-        <ListSkeleton />
+    {:else if !hasRows}
+        <HistoryState name="match-list" title={t("match_history.list.error")}>
+            {#snippet loading()}
+                <ListSkeleton />
+            {/snippet}
+        </HistoryState>
     {:else}
         <CachedNote />
         <CoverageStrip />

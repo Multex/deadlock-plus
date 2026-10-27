@@ -972,7 +972,9 @@
             "not_eligible": "Not yet eligible",
             "note": "Approximate. Counts your ranked and unranked games known to the Deadlock API. Valve does not publish which queues count.",
             "recent_games": "Games in the last {days} days",
-            "total_games": "Total games on your account"
+            "total_games": "Total games on your account",
+            "rank_error": "Couldn't load your rank.",
+            "games_error": "Couldn't load your match history."
         },
         "page": {
             "matches_known": "{count} matches known for this account. Anything not seen yet is not counted.",
@@ -980,7 +982,8 @@
         },
         "section": {
             "games": "Your games"
-        }
+        },
+        "captured_only": "Couldn't reach the Deadlock API. Showing only matches captured on this PC."
     },
     "rank": {
         "title": "Rank",
@@ -3121,7 +3124,8 @@
                 "duration": "Duration",
                 "kda_split": "Kills / deaths / assists",
                 "kda_ratio": "{ratio} KDA"
-            }
+            },
+            "error": "Couldn't load your matches."
         },
         "deep_dive": {
             "not_available": "Not available for this match.",
@@ -3411,7 +3415,8 @@
                 "recover": "Recover replay",
                 "recover_note": "Counts toward the 40 matches a day.",
                 "consent_note": "Just this replay. Background recovery stays off."
-            }
+            },
+            "load_error": "Couldn't load this match."
         },
         "ping": {
             "heading": "Ping",

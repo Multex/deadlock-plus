@@ -16,7 +16,7 @@
     import { stats } from "$lib/features/stats/stats.svelte";
     import { buildRankChart } from "$lib/features/stats/rank-view";
     import CachedNote from "$lib/features/stats/components/shared/cached-note.svelte";
-    import HistoryGate from "$lib/features/stats/components/shared/history-gate.svelte";
+    import HistoryState from "$lib/features/stats/components/shared/history-state.svelte";
     import RefreshButton from "$lib/features/stats/components/shared/refresh-button.svelte";
     import RankSection from "$lib/features/stats/components/rank/rank-section.svelte";
     import FilterBar from "$lib/features/stats/components/stats/filter-bar.svelte";
@@ -31,6 +31,8 @@
     let heroes = $state<Record<number, Hero>>({});
 
     const accountId = $derived(steamAccount.account?.steamId32 ?? null);
+    // Captured matches can stand in for the history while the API is down; the rank cannot.
+    const hasGames = $derived(stats.status === "ready" || stats.matches.length > 0);
 
     const topTier = $derived(Math.max(0, ...stats.ranks.map((r) => r.tier)));
     const projection = $derived(projectRank(stats.matches, stats.rankInfo, topTier || undefined));
@@ -65,35 +67,48 @@
         {/snippet}
     </PageHeader>
 
-    <HistoryGate>
+    {#if steamAccount.loaded && accountId === null}
+        <EmptyState size="base" spacing="xl">{t("stats.gate.no_account")}</EmptyState>
+    {:else}
         <CachedNote />
-        <RankSection {info} {track} ranks={stats.ranks} modelled={projection?.modelled ?? 0} {chart} bind:shown />
+        {#if stats.status === "ready"}
+            <RankSection {info} {track} ranks={stats.ranks} modelled={projection?.modelled ?? 0} {chart} bind:shown />
+        {:else}
+            <section class="flex flex-col gap-5" aria-labelledby="rank-heading">
+                <h2 id="rank-heading" class="text-xl">{t("rank.title")}</h2>
+                <HistoryState name="stats-rank" title={t("stats.region.rank_error")} />
+            </section>
+        {/if}
 
         <section class="mt-6 flex flex-col gap-5 border-t border-border pt-10" aria-labelledby="games-heading">
             <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                 <h2 id="games-heading" class="text-xl">{t("stats.section.games")}</h2>
-                <FilterBar bind:scope bind:days />
+                {#if hasGames}<FilterBar bind:scope bind:days />{/if}
             </div>
-            <p class="text-sm text-muted-foreground">
-                {t("stats.page.matches_known", { count: stats.matches.length })}
-            </p>
-
-            {#if windowed.length === 0}
-                <EmptyState size="base" spacing="md">
-                    {t("stats.page.empty")}
-                    {#snippet action()}
-                        <SupportButton />
-                    {/snippet}
-                </EmptyState>
+            {#if !hasGames}
+                <HistoryState name="stats-games" title={t("stats.region.games_error")} />
             {:else}
-                <FormRow {windowed} {summary} {run} {form} />
-            {/if}
+                <p class="text-sm text-muted-foreground">
+                    {t("stats.page.matches_known", { count: stats.matches.length })}
+                </p>
 
-            {#if perHero[0]}
-                <HeroHighlights mostPlayed={perHero[0]} best={bestHero(perHero)} {heroes} />
+                {#if windowed.length === 0}
+                    <EmptyState size="base" spacing="md">
+                        {t("stats.page.empty")}
+                        {#snippet action()}
+                            <SupportButton />
+                        {/snippet}
+                    </EmptyState>
+                {:else}
+                    <FormRow {windowed} {summary} {run} {form} />
+                {/if}
+
+                {#if perHero[0]}
+                    <HeroHighlights mostPlayed={perHero[0]} best={bestHero(perHero)} {heroes} />
+                {/if}
+                <RegionCard {board} />
+                <HeroList {rows} {heroes} />
             {/if}
-            <RegionCard {board} />
-            <HeroList {rows} {heroes} />
         </section>
-    </HistoryGate>
+    {/if}
 </Page>
