@@ -159,6 +159,7 @@
         }
     },
     "settings": {
+        "save_failed": "Couldn't save that setting. It was changed back.",
         "language": {
             "label": "Language",
             "description": "Pick the language the app uses. \"Follow system\" uses your OS language.",

@@ -10,6 +10,7 @@ import {
     setUiScale,
 } from "./api";
 import { kvGet, kvSet } from "$lib/core/kv";
+import { settingSaveFailed } from "./save-failed";
 import { setPresenceArt, setPresenceSettings } from "$lib/features/presence/api";
 import { loadHeroes, onHeroesRefreshed } from "$lib/features/heroes/heroes";
 import { DEFAULT_PRESENCE, heroArtMap, patchPresence, resolvePresence } from "$lib/features/presence/presence";
@@ -84,6 +85,22 @@ async function stored<T>(key: string): Promise<T | undefined> {
     }
 }
 
+// Before Tauri is ready, or with a backend that lacks the command, startup keeps the loaded value.
+async function quietly(apply: () => Promise<unknown>) {
+    try {
+        await apply();
+    } catch {
+        // Applied again on the next change.
+    }
+}
+
+type SaveOptions = {
+    /** Hands the new value to the backend before it is stored. */
+    apply?: () => Promise<unknown>;
+    /** What goes into the store, when it is not the field's value itself. */
+    stored?: () => unknown;
+};
+
 class Settings {
     accessibleFont = $state(false);
     themeEffects = $state(true);
@@ -113,11 +130,15 @@ class Settings {
     /** What the running webview was built with; a change only takes effect after a restart. */
     hardwareAccelerationAtLaunch = $state(true);
 
+    /** The value each field last saved, so a failed write puts the control back on what is really stored. */
+    #saved = new Map<PropertyKey, unknown>();
+
     private resolveReady: () => void = () => {};
     ready = new Promise<void>((resolve) => (this.resolveReady = resolve));
 
     async init() {
-        onHeroesRefreshed(() => void this.applyPresence());
+        this.#saved.clear();
+        onHeroesRefreshed(() => void quietly(() => this.applyPresence()));
         this.accessibleFont = (await stored<boolean>(ACCESSIBLE_FONT_KEY)) ?? false;
         this.themeEffects = (await stored<boolean>(THEME_EFFECTS_KEY)) ?? true;
         this.themeOptions = resolveThemeOptions(await stored<unknown>(THEME_OPTIONS_KEY));
@@ -156,259 +177,157 @@ class Settings {
         this.uiScale = resolveUiScale(await stored<unknown>(UI_SCALE_KEY));
         this.hardwareAcceleration = resolveHardwareAcceleration(await stored<unknown>(HARDWARE_ACCELERATION_KEY));
         this.hardwareAccelerationAtLaunch = this.hardwareAcceleration;
-        await this.applyIngest();
-        await this.applyTelemetry();
-        await this.applyGcRecovery();
-        await this.applyCloseToTray();
-        await this.applyOpenOnGameStart();
-        await this.applyMaintenance();
-        await this.applyUpdateAlerts();
-        await this.applyOverlay();
-        await this.applyNotifications();
-        await this.applyPresence();
+        await quietly(() => this.applyIngest());
+        await quietly(() => this.applyTelemetry());
+        await quietly(() => this.applyGcRecovery());
+        await quietly(() => this.applyCloseToTray());
+        await quietly(() => this.applyOpenOnGameStart());
+        await quietly(() => this.applyMaintenance());
+        await quietly(() => this.applyUpdateAlerts());
+        await quietly(() => this.applyOverlay());
+        await quietly(() => this.applyNotifications());
+        await quietly(() => this.applyPresence());
         this.resolveReady();
     }
 
-    private async applyPresence() {
+    /**
+     * Shows `next` at once, then applies and stores it. When either step fails the field goes back to
+     * the value last saved, the backend is handed that value again, and the player is told.
+     */
+    private async save<F extends keyof this>(field: F, next: this[F], key: string, options: SaveOptions = {}) {
+        if (!this.#saved.has(field)) this.#saved.set(field, $state.snapshot(this[field]));
+        this[field] = next;
         try {
-            await setPresenceSettings($state.snapshot(this.presence));
-            if (this.presence.level === "detailed") {
+            await options.apply?.();
+            await kvSet(STORE, key, options.stored ? options.stored() : $state.snapshot(next));
+            this.#saved.set(field, $state.snapshot(next));
+        } catch (e) {
+            this[field] = this.#saved.get(field) as this[F];
+            if (options.apply) await quietly(options.apply);
+            settingSaveFailed(e);
+        }
+    }
+
+    private async applyPresence() {
+        await setPresenceSettings($state.snapshot(this.presence));
+        if (this.presence.level === "detailed") {
+            // Art is extra: a lookup that fails leaves the activity without pictures, not unsaved.
+            await quietly(async () => {
                 const [heroes, ranks] = await Promise.all([loadHeroes(), loadRankNames()]);
                 await setPresenceArt(heroArtMap(heroes), ranks);
-            }
-        } catch {
-            // Not running inside Tauri.
+            });
         }
     }
 
-    async setPresence(patch: Partial<PresenceSettings>) {
-        this.presence = patchPresence(this.presence, patch);
-        await this.applyPresence();
-        try {
-            await kvSet(STORE, PRESENCE_KEY, $state.snapshot(this.presence));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setPresence(patch: Partial<PresenceSettings>) {
+        return this.save("presence", patchPresence(this.presence, patch), PRESENCE_KEY, {
+            apply: () => this.applyPresence(),
+        });
     }
 
-    private async applyUpdateAlerts() {
-        try {
-            await setAlertsEnabled(this.updateAlerts);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyUpdateAlerts() {
+        return setAlertsEnabled(this.updateAlerts);
     }
 
-    async setUpdateAlerts(value: boolean) {
-        this.updateAlerts = value;
-        await this.applyUpdateAlerts();
-        try {
-            await kvSet(STORE, ALERTS_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setUpdateAlerts(value: boolean) {
+        return this.save("updateAlerts", value, ALERTS_KEY, { apply: () => this.applyUpdateAlerts() });
     }
 
-    private async applyOverlay() {
-        try {
-            await setOverlaySettings($state.snapshot(this.overlay));
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyOverlay() {
+        return setOverlaySettings($state.snapshot(this.overlay));
     }
 
-    async setOverlay(patch: Partial<OverlaySettings>) {
-        this.overlay = { ...this.overlay, ...patch };
-        await this.applyOverlay();
-        try {
-            await kvSet(STORE, OVERLAY_KEY, $state.snapshot(this.overlay));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setOverlay(patch: Partial<OverlaySettings>) {
+        return this.save("overlay", { ...this.overlay, ...patch }, OVERLAY_KEY, { apply: () => this.applyOverlay() });
     }
 
-    private async applyNotifications() {
-        try {
-            await setNotificationSettings($state.snapshot(this.notifications));
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyNotifications() {
+        return setNotificationSettings($state.snapshot(this.notifications));
     }
 
-    async setNotifications(patch: Partial<Omit<NotificationSettings, "deliveries">>) {
-        this.notifications = { ...this.notifications, ...patch };
-        await this.applyNotifications();
-        try {
-            await kvSet(STORE, NOTIFICATIONS_KEY, $state.snapshot(this.notifications));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setNotifications(patch: Partial<Omit<NotificationSettings, "deliveries">>) {
+        return this.save("notifications", { ...this.notifications, ...patch }, NOTIFICATIONS_KEY, {
+            apply: () => this.applyNotifications(),
+        });
     }
 
-    async setDelivery(topic: NotificationTopic, delivery: Delivery) {
-        this.notifications = {
-            ...this.notifications,
-            deliveries: { ...this.notifications.deliveries, [topic]: delivery },
-        };
-        await this.applyNotifications();
-        try {
-            await kvSet(STORE, NOTIFICATIONS_KEY, $state.snapshot(this.notifications));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setDelivery(topic: NotificationTopic, delivery: Delivery) {
+        const next = { ...this.notifications, deliveries: { ...this.notifications.deliveries, [topic]: delivery } };
+        return this.save("notifications", next, NOTIFICATIONS_KEY, { apply: () => this.applyNotifications() });
     }
 
-    async setTheme(value: ThemeId) {
-        this.theme = value;
-        try {
-            await kvSet(STORE, THEME_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setTheme(value: ThemeId) {
+        return this.save("theme", value, THEME_KEY);
     }
 
-    async setMotion(value: MotionPreference) {
-        this.motion = value;
-        try {
-            await kvSet(STORE, MOTION_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setMotion(value: MotionPreference) {
+        return this.save("motion", value, MOTION_KEY);
     }
 
-    async setAutoUpdateCheck(value: boolean) {
-        this.autoUpdateCheck = value;
-        try {
-            await kvSet(STORE, AUTO_UPDATE_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setAutoUpdateCheck(value: boolean) {
+        return this.save("autoUpdateCheck", value, AUTO_UPDATE_KEY);
     }
 
-    async setBreakHint(value: boolean) {
-        this.breakHint = value;
-        try {
-            await kvSet(STORE, BREAK_HINT_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setBreakHint(value: boolean) {
+        return this.save("breakHint", value, BREAK_HINT_KEY);
     }
 
-    async setFrontPageAfterMatch(value: boolean) {
-        this.frontPageAfterMatch = value;
-        try {
-            await kvSet(STORE, FRONT_PAGE_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setFrontPageAfterMatch(value: boolean) {
+        return this.save("frontPageAfterMatch", value, FRONT_PAGE_KEY);
     }
 
-    async setFrontPageMode(mode: RowMode, on: boolean) {
-        this.frontPageModes = { ...this.frontPageModes, [mode]: on };
-        try {
-            await kvSet(STORE, FRONT_PAGE_MODES_KEY, frontPageModeChanges(this.frontPageModes));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setFrontPageMode(mode: RowMode, on: boolean) {
+        const next = { ...this.frontPageModes, [mode]: on };
+        return this.save("frontPageModes", next, FRONT_PAGE_MODES_KEY, { stored: () => frontPageModeChanges(next) });
     }
 
-    async setFrontPageOverlayAlert(value: boolean) {
-        this.frontPageOverlayAlert = value;
-        try {
-            await kvSet(STORE, FRONT_PAGE_ALERT_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setFrontPageOverlayAlert(value: boolean) {
+        return this.save("frontPageOverlayAlert", value, FRONT_PAGE_ALERT_KEY);
     }
 
-    async setDispatchAlerts(value: boolean) {
-        this.dispatchAlerts = value;
-        try {
-            await kvSet(STORE, DISPATCH_ALERTS_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setDispatchAlerts(value: boolean) {
+        return this.save("dispatchAlerts", value, DISPATCH_ALERTS_KEY);
     }
 
-    private async applyMaintenance() {
-        try {
-            await setMaintenanceSchedule($state.snapshot(this.maintenance));
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyMaintenance() {
+        return setMaintenanceSchedule($state.snapshot(this.maintenance));
     }
 
-    async setMaintenance(patch: Partial<MaintenanceSchedule>) {
-        this.maintenance = { ...this.maintenance, ...patch };
-        await this.applyMaintenance();
-        try {
-            await kvSet(STORE, MAINTENANCE_KEY, $state.snapshot(this.maintenance));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setMaintenance(patch: Partial<MaintenanceSchedule>) {
+        return this.save("maintenance", { ...this.maintenance, ...patch }, MAINTENANCE_KEY, {
+            apply: () => this.applyMaintenance(),
+        });
     }
 
-    private async applyCloseToTray() {
-        try {
-            await setCloseToTray(this.closeToTray);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyCloseToTray() {
+        return setCloseToTray(this.closeToTray);
     }
 
-    async setCloseToTray(value: boolean) {
-        this.closeToTray = value;
-        await this.applyCloseToTray();
-        try {
-            await kvSet(STORE, CLOSE_TO_TRAY_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setCloseToTray(value: boolean) {
+        return this.save("closeToTray", value, CLOSE_TO_TRAY_KEY, { apply: () => this.applyCloseToTray() });
     }
 
-    private async applyOpenOnGameStart() {
-        try {
-            await setOpenOnGameStart(this.openOnGameStart);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyOpenOnGameStart() {
+        return setOpenOnGameStart(this.openOnGameStart);
     }
 
-    async setOpenOnGameStart(value: boolean) {
-        this.openOnGameStart = value;
-        await this.applyOpenOnGameStart();
-        try {
-            await kvSet(STORE, OPEN_ON_GAME_START_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setOpenOnGameStart(value: boolean) {
+        return this.save("openOnGameStart", value, OPEN_ON_GAME_START_KEY, {
+            apply: () => this.applyOpenOnGameStart(),
+        });
     }
 
-    private async applyIngest() {
-        try {
-            await setIngestEnabled(this.matchIngest);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyIngest() {
+        return setIngestEnabled(this.matchIngest);
     }
 
-    private async applyTelemetry() {
-        try {
-            const send = shouldSend({ enabled: this.telemetry, noticeShown: this.telemetryNoticeShown });
-            await setTelemetrySettings(send, i18n.locale);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyTelemetry() {
+        const send = shouldSend({ enabled: this.telemetry, noticeShown: this.telemetryNoticeShown });
+        return setTelemetrySettings(send, i18n.locale);
     }
 
-    async setTelemetry(value: boolean) {
-        this.telemetry = value;
-        await this.applyTelemetry();
-        try {
-            await kvSet(STORE, TELEMETRY_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setTelemetry(value: boolean) {
+        return this.save("telemetry", value, TELEMETRY_KEY, { apply: () => this.applyTelemetry() });
     }
 
     /** Called once the user has been told about telemetry; nothing is sent before this. */
@@ -420,106 +339,60 @@ class Settings {
         } catch {
             // The notice may show again next launch.
         }
-        await this.applyTelemetry();
+        await quietly(() => this.applyTelemetry());
     }
 
     async resetTelemetryId() {
         await resetTelemetryId();
     }
 
-    private async applyGcRecovery() {
-        try {
-            await setGcRecoveryEnabled(this.gcRecovery);
-        } catch {
-            // Not running inside Tauri.
-        }
+    private applyGcRecovery() {
+        return setGcRecoveryEnabled(this.gcRecovery);
     }
 
-    async setGcRecovery(value: boolean) {
-        this.gcRecovery = value;
-        await this.applyGcRecovery();
-        try {
-            await kvSet(STORE, GC_RECOVERY_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setGcRecovery(value: boolean) {
+        return this.save("gcRecovery", value, GC_RECOVERY_KEY, { apply: () => this.applyGcRecovery() });
     }
 
-    async setMatchIngest(value: boolean) {
-        this.matchIngest = value;
+    setMatchIngest(value: boolean) {
         this.ingestPromptPending = false;
-        await this.applyIngest();
-        try {
-            await kvSet(STORE, INGEST_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+        return this.save("matchIngest", value, INGEST_KEY, { apply: () => this.applyIngest() });
     }
 
-    async setUiScale(value: number) {
-        this.uiScale = resolveUiScale(value);
-        try {
-            await setUiScale(this.uiScale);
-        } catch {
-            // Not running inside Tauri.
-        }
-        try {
-            await kvSet(STORE, UI_SCALE_KEY, this.uiScale);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setUiScale(value: number) {
+        return this.save("uiScale", resolveUiScale(value), UI_SCALE_KEY, { apply: () => setUiScale(this.uiScale) });
     }
 
-    async setHardwareAcceleration(value: boolean) {
-        this.hardwareAcceleration = value;
-        try {
-            await kvSet(STORE, HARDWARE_ACCELERATION_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setHardwareAcceleration(value: boolean) {
+        return this.save("hardwareAcceleration", value, HARDWARE_ACCELERATION_KEY);
     }
 
-    async setThemeEffects(value: boolean) {
-        this.themeEffects = value;
-        try {
-            await kvSet(STORE, THEME_EFFECTS_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setThemeEffects(value: boolean) {
+        return this.save("themeEffects", value, THEME_EFFECTS_KEY);
     }
 
-    async setThemeLayer(theme: ThemeId, layer: string, on: boolean) {
-        await this.saveThemeOptions(withLayer(this.themeOptions, theme, layer, on));
+    setThemeLayer(theme: ThemeId, layer: string, on: boolean) {
+        return this.saveThemeOptions(withLayer(this.themeOptions, theme, layer, on));
     }
 
-    async setThemeAccent(theme: ThemeId, accent: Accent | null) {
-        await this.saveThemeOptions(withAccent(this.themeOptions, theme, accent));
+    setThemeAccent(theme: ThemeId, accent: Accent | null) {
+        return this.saveThemeOptions(withAccent(this.themeOptions, theme, accent));
     }
 
-    async setThemeVariant(theme: ThemeId, variant: string) {
-        await this.saveThemeOptions(withVariant(this.themeOptions, theme, variant));
+    setThemeVariant(theme: ThemeId, variant: string) {
+        return this.saveThemeOptions(withVariant(this.themeOptions, theme, variant));
     }
 
-    async setThemeNamedAccent(theme: ThemeId, accent: string) {
-        await this.saveThemeOptions(withNamedAccent(this.themeOptions, theme, accent));
+    setThemeNamedAccent(theme: ThemeId, accent: string) {
+        return this.saveThemeOptions(withNamedAccent(this.themeOptions, theme, accent));
     }
 
-    private async saveThemeOptions(options: ThemeOptions) {
-        this.themeOptions = options;
-        try {
-            await kvSet(STORE, THEME_OPTIONS_KEY, $state.snapshot(options));
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    private saveThemeOptions(options: ThemeOptions) {
+        return this.save("themeOptions", options, THEME_OPTIONS_KEY);
     }
 
-    async setAccessibleFont(value: boolean) {
-        this.accessibleFont = value;
-        try {
-            await kvSet(STORE, ACCESSIBLE_FONT_KEY, value);
-        } catch {
-            // The choice just won't persist across restarts.
-        }
+    setAccessibleFont(value: boolean) {
+        return this.save("accessibleFont", value, ACCESSIBLE_FONT_KEY);
     }
 }
 
