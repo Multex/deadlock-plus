@@ -214,7 +214,7 @@ describe("openDetail", () => {
         });
         expect(await s.openDetail(matchId)).toBeNull();
         expect(s.detailStatus).toBe("error");
-        expect(s.detailError).toBe("HTTP 503");
+        expect(s.detailError).toBe("Something went wrong. Check the log for details.");
         expect(s.detail).toBeNull();
     });
 

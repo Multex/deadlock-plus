@@ -47,7 +47,7 @@ describe("openDiscord", () => {
         openUrl.mockRejectedValue(new Error("no browser"));
         openDiscord();
         await vi.waitFor(() => expect(toastError).toHaveBeenCalledTimes(1));
-        expect(toastError).toHaveBeenCalledWith(t("common.open_link_failed", { error: "no browser" }));
+        expect(toastError).toHaveBeenCalledWith(t("common.link_open_failed"));
         expect(trackDiscordInvite).not.toHaveBeenCalled();
     });
 });
@@ -66,12 +66,12 @@ describe("openSupport", () => {
         expect(toastError).not.toHaveBeenCalled();
     });
 
-    it("reports a failed open as an error toast carrying the error text", async () => {
+    it("reports a failed open as a plain error toast without the developer text", async () => {
         openUrl.mockRejectedValue(new Error("no browser"));
         openSupport();
         await vi.waitFor(() => expect(toastError).toHaveBeenCalledTimes(1));
-        expect(toastError).toHaveBeenCalledWith(t("common.open_link_failed", { error: "no browser" }));
-        expect(toastError.mock.calls[0][0]).toContain("no browser");
+        expect(toastError).toHaveBeenCalledWith(t("common.link_open_failed"));
+        expect(toastError.mock.calls[0][0]).not.toContain("no browser");
     });
 
     it("ignores an event passed by a click handler", async () => {
