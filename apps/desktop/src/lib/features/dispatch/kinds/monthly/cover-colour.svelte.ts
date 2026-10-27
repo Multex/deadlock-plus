@@ -2,9 +2,13 @@ import { SvelteMap } from "svelte/reactivity";
 import { coverBackdrop } from "../../art";
 import { dominantColour } from "./backdrop-colour";
 
-/** The size the backdrop is drawn down to before sampling: enough for its colour areas, cheap to read. */
-const SAMPLE_W = 96;
-const SAMPLE_H = 54;
+/**
+ * The size the backdrop is drawn down to before sampling. The colour vote only needs the big colour areas, and the
+ * pixel readback stalls the main thread in proportion to the canvas size.
+ */
+export const SAMPLE_W = 32;
+export const SAMPLE_H = 18;
+const READ_CACHE_LIMIT = 64;
 
 interface Sources {
     backdrop: (heroId: number) => Promise<string | null>;
@@ -46,20 +50,61 @@ export function artColours({ backdrop, read }: Sources) {
     };
 }
 
+interface SampleCanvas {
+    width: number;
+    height: number;
+    getContext(id: "2d", options?: CanvasRenderingContext2DSettings): SampleContext | null;
+}
+
+interface SampleContext {
+    drawImage(img: CanvasImageSource, x: number, y: number, w: number, h: number): void;
+    getImageData(x: number, y: number, w: number, h: number): { data: ArrayLike<number> };
+}
+
+interface ReaderDeps {
+    load: (src: string) => Promise<CanvasImageSource>;
+    makeCanvas: () => SampleCanvas;
+    limit?: number;
+}
+
+/** Reads a downscaled copy of each image's pixels once per url; the cache drops its oldest url past `limit`. */
+export function pixelReader({ load, makeCanvas, limit = READ_CACHE_LIMIT }: ReaderDeps) {
+    const cache = new Map<string, Promise<ArrayLike<number> | null>>();
+    let canvas: ReturnType<typeof makeCanvas> | null = null;
+
+    async function read(src: string): Promise<ArrayLike<number> | null> {
+        const img = await load(src);
+        canvas ??= makeCanvas();
+        canvas.width = SAMPLE_W;
+        canvas.height = SAMPLE_H;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) return null;
+        context.drawImage(img, 0, 0, SAMPLE_W, SAMPLE_H);
+        return context.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data;
+    }
+
+    return (src: string) => {
+        let job = cache.get(src);
+        if (!job) {
+            job = read(src);
+            cache.set(src, job);
+            job.catch(() => cache.delete(src));
+            if (cache.size > limit) cache.delete(cache.keys().next().value!);
+        }
+        return job;
+    };
+}
+
 /** `crossOrigin` keeps the canvas readable: both `asset:` art and the API's images send CORS headers. */
-async function readPixels(src: string): Promise<Uint8ClampedArray | null> {
+async function loadImage(src: string): Promise<CanvasImageSource> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
     await img.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = SAMPLE_W;
-    canvas.height = SAMPLE_H;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) return null;
-    context.drawImage(img, 0, 0, SAMPLE_W, SAMPLE_H);
-    return context.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data;
+    return img;
 }
+
+const readPixels = pixelReader({ load: loadImage, makeCanvas: () => document.createElement("canvas") });
 
 const shared = artColours({ backdrop: coverBackdrop, read: readPixels });
 
