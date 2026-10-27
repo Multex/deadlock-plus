@@ -634,7 +634,8 @@
                 "replay": "Replay",
                 "sent": "Sent",
                 "not_sent": "Not sent",
-                "empty": "Nothing shared yet."
+                "empty": "Nothing shared yet.",
+                "load_error": "Couldn't read the shared matches."
             }
         },
         "about_page": {
@@ -645,7 +646,8 @@
             "check_now": "Check now",
             "auto_check_label": "Check automatically",
             "auto_check_description": "Asks GitHub for a newer release on launch and every hour after. Nothing installs without your click.",
-            "whats_new_in": "What's new in {version}"
+            "whats_new_in": "What's new in {version}",
+            "version_error": "Couldn't read the version."
         },
         "diagnostics": {
             "description": "This session's log. Names in file paths are hidden when you copy or save it. Only needed when reporting a bug.",
@@ -1437,7 +1439,8 @@
             "preset": "Couldn't apply \"{name}\".",
             "import": "Couldn't import the existing firewall blocks.",
             "description": "Deadlock+ needs administrator access to change firewall rules. Allow asks Windows once for this session. Always allow asks once, then never again on this Windows account."
-        }
+        },
+        "load_failed": "Couldn't load the server list."
     },
     "demos": {
         "title": "Replays",

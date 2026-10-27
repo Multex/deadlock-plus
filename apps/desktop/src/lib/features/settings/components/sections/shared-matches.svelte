@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { Check, ChevronRight, Minus } from "@lucide/svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
+    import RegionError from "@deadlock-plus/ui/region-error.svelte";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import { replayCount, sharedRows, sourceCounts, SOURCE_LABEL_KEY } from "$lib/features/ingest/shared";
     import { sharedMatches } from "$lib/features/ingest/shared.svelte";
@@ -40,7 +41,17 @@
             </span>
         {/if}
     </summary>
-    {#if matches && rows.length === 0}
+    {#if sharedMatches.failed}
+        <RegionError
+            name="shared-matches"
+            size="sm"
+            class="mt-2"
+            title={t("settings.privacy.shared.load_error")}
+            body={t("region.error_body")}
+            retryLabel={t("region.retry")}
+            onretry={() => void sharedMatches.refresh()}
+        />
+    {:else if matches && rows.length === 0}
         <p class="mt-2 ml-6 text-xs text-muted-foreground">{t("settings.privacy.shared.empty")}</p>
     {:else if rows.length}
         <div class="mt-3 max-h-80 overflow-y-auto rounded-md border border-border/60">

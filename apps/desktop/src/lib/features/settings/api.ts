@@ -7,8 +7,12 @@ import type { OverlaySettings } from "@deadlock-plus/ipc-types/OverlaySettings";
 import type { OverlayStatus } from "@deadlock-plus/ipc-types/OverlayStatus";
 import type { MaintenanceSchedule } from "./maintenance";
 
-export function getAppInfo() {
-    return command<AppInfo>("app_info");
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+export async function getAppInfo() {
+    const info = await command<AppInfo>("app_info");
+    if (!isRecord(info)) throw new Error("app_info returned an unexpected shape");
+    return info;
 }
 
 export function getAutostart() {
@@ -51,8 +55,11 @@ export function showOverlayTest() {
     return command("show_overlay_test");
 }
 
-export function overlayStatus() {
-    return command<OverlayStatus>("overlay_status");
+export async function overlayStatus() {
+    const status = await command<OverlayStatus>("overlay_status");
+    if (!isRecord(status) || typeof status.gameOpen !== "boolean" || typeof status.exclusiveFullscreen !== "boolean")
+        throw new Error("overlay_status returned an unexpected shape");
+    return status;
 }
 
 export const onOverlayStatus = (handler: (status: OverlayStatus) => void): Promise<Unlisten> =>

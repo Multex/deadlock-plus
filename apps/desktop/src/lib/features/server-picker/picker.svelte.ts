@@ -1,6 +1,6 @@
 import { toast } from "svelte-sonner";
 
-import { errorText, failureText } from "$lib/core/errors";
+import { failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
 import { isGameRunning } from "$lib/features/voice-bans/api";
@@ -151,7 +151,7 @@ export class ServerPicker {
         const gameDef = defs[0] ?? null;
         this.gameDef = gameDef;
         if (!gameDef) {
-            this.error = t("server_picker.no_games");
+            this.error = t("server_picker.load_failed");
             this.loading = false;
             return;
         }
@@ -168,7 +168,7 @@ export class ServerPicker {
             void writeCachedServerData(gameDef.id, fresh);
         } catch (e) {
             if (!cached) {
-                this.error = errorText(e);
+                this.error = t("server_picker.load_failed");
             } else {
                 toast.error(t("server_picker.toast.refresh_failed"));
             }

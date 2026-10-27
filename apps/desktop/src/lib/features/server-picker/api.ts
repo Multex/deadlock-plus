@@ -1,16 +1,25 @@
 import { command } from "$lib/core/tauri";
 import type { ExternalScan, FirewallCapability, GameDefinition, PingResults, ServerData, SyncOutcome } from "./types";
 
-export function getGameDefinitions() {
-    return command<GameDefinition[]>("get_game_definitions");
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+export async function getGameDefinitions() {
+    const defs = await command<GameDefinition[]>("get_game_definitions");
+    if (!Array.isArray(defs)) throw new Error("get_game_definitions returned an unexpected shape");
+    return defs;
 }
 
-export function fetchServerGroups(gameId: string) {
-    return command<ServerData>("fetch_server_groups", { gameId });
+export async function fetchServerGroups(gameId: string) {
+    const data = await command<ServerData>("fetch_server_groups", { gameId });
+    if (!isRecord(data) || !Array.isArray(data.clustered) || !Array.isArray(data.unclustered))
+        throw new Error("fetch_server_groups returned an unexpected shape");
+    return data;
 }
 
-export function pingServerGroups(groups: { id: string; relayIps: string[] }[]) {
-    return command<PingResults>("ping_server_groups", { groups });
+export async function pingServerGroups(groups: { id: string; relayIps: string[] }[]) {
+    const results = await command<PingResults>("ping_server_groups", { groups });
+    if (!isRecord(results)) throw new Error("ping_server_groups returned an unexpected shape");
+    return results;
 }
 
 export function blockServerGroups(groups: { id: string; description: string; relayIps: string[] }[]) {
