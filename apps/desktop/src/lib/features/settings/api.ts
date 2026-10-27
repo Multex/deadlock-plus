@@ -23,8 +23,11 @@ export function setAutostart(enabled: boolean) {
     return command<AutostartStatus>("set_autostart", { enabled });
 }
 
-export function nextMaintenance() {
-    return command<number>("next_maintenance");
+export async function nextMaintenance() {
+    const at = await command<number>("next_maintenance");
+    if (typeof at !== "number" || !Number.isFinite(at))
+        throw new Error("next_maintenance returned an unexpected shape");
+    return at;
 }
 
 export function setAlertsEnabled(enabled: boolean) {

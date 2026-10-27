@@ -7,7 +7,7 @@ vi.mock("$lib/core/tauri", () => ({
     listen: vi.fn(async () => () => {}),
 }));
 
-import { getAppInfo, overlayStatus } from "./api";
+import { getAppInfo, nextMaintenance, overlayStatus } from "./api";
 
 describe("settings api shape checks", () => {
     beforeEach(() => answers.clear());
@@ -31,5 +31,19 @@ describe("settings api shape checks", () => {
     it("getAppInfo rejects a null answer", async () => {
         answers.set("app_info", () => null);
         await expect(getAppInfo()).rejects.toBeDefined();
+    });
+
+    it.each([
+        ["null", null],
+        ["an object", { garbage: true }],
+        ["NaN", Number.NaN],
+    ])("nextMaintenance rejects %s", async (_, answer) => {
+        answers.set("next_maintenance", () => answer);
+        await expect(nextMaintenance()).rejects.toBeDefined();
+    });
+
+    it("nextMaintenance passes a time through", async () => {
+        answers.set("next_maintenance", () => 1_700_000_000);
+        await expect(nextMaintenance()).resolves.toBe(1_700_000_000);
     });
 });

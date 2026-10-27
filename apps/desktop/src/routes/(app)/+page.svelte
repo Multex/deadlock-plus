@@ -26,7 +26,8 @@
     import { settings } from "$lib/features/settings/settings.svelte";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { launchGame } from "$lib/core/deeplink";
-    import { countdown, nextMaintenance, weekdays } from "$lib/features/settings/maintenance";
+    import { countdown, weekdays } from "$lib/features/settings/maintenance";
+    import { loadNextMaintenance } from "$lib/features/home/maintenance";
 
     let summary = $state<GlanceSummary>({ blocked: null, mutes: null, replays: null });
     let nextMaintenanceAt = $state<number | null>(null);
@@ -48,10 +49,7 @@
 
     onMount(() => {
         void loadGlance(summary);
-        void settings.ready
-            .then(() => nextMaintenance())
-            .then((at) => (nextMaintenanceAt = at))
-            .catch(() => {});
+        void loadNextMaintenance().then((at) => (nextMaintenanceAt = at));
     });
 
     const FORM_WINDOW = 20;
