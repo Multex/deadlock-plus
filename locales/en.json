@@ -608,6 +608,7 @@
             "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
             "telemetry_reset": "Reset usage data ID",
             "telemetry_reset_done": "Usage data ID reset.",
+            "telemetry_reset_failed": "Couldn't reset the usage data ID. Try again.",
             "ingest_waiting": "Waiting for your answer.",
             "ingest_off": "Off",
             "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",

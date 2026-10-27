@@ -1,7 +1,6 @@
 <script lang="ts">
     import { ChevronRight } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
-    import { toast } from "svelte-sonner";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
@@ -31,11 +30,7 @@
                 <Button
                     variant="outline"
                     size="sm"
-                    onclick={() =>
-                        settings
-                            .resetTelemetryId()
-                            .then(() => toast.success(t("settings.privacy.telemetry_reset_done")))
-                            .catch(() => {})}
+                    onclick={() => settings.resetTelemetryId()}
                 >
                     {t("settings.privacy.telemetry_reset")}
                 </Button>

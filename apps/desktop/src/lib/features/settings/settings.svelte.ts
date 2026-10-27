@@ -16,7 +16,9 @@ import { loadHeroes, onHeroesRefreshed } from "$lib/features/heroes/heroes";
 import { DEFAULT_PRESENCE, heroArtMap, patchPresence, resolvePresence } from "$lib/features/presence/presence";
 import { loadRankNames } from "$lib/features/ranks/ranks";
 import type { PresenceSettings } from "@deadlock-plus/ipc-types/PresenceSettings";
-import { i18n } from "$lib/core/i18n.svelte";
+import { toast } from "svelte-sonner";
+import { failureText } from "$lib/core/errors";
+import { i18n, t } from "$lib/core/i18n.svelte";
 import { resolveTelemetry, shouldSend } from "$lib/features/telemetry/consent";
 import { resetTelemetryId, setTelemetrySettings } from "$lib/features/telemetry/api";
 import { resolveIngestConsent } from "./ingest-consent";
@@ -343,7 +345,12 @@ class Settings {
     }
 
     async resetTelemetryId() {
-        await resetTelemetryId();
+        try {
+            await resetTelemetryId();
+            toast.success(t("settings.privacy.telemetry_reset_done"));
+        } catch (e) {
+            toast.error(failureText(e, t("settings.privacy.telemetry_reset_failed")));
+        }
     }
 
     private applyGcRecovery() {
