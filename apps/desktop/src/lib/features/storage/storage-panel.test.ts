@@ -3,7 +3,7 @@ import { render } from "svelte/server";
 
 const { answers, current } = vi.hoisted(() => ({
     answers: new Map<string, () => unknown>(),
-    current: { list: null as unknown },
+    current: { list: null as unknown, sizes: null as unknown },
 }));
 vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(async (name: string) => answers.get(name)?.()),
@@ -25,10 +25,23 @@ vi.mock("$lib/features/storage/entries.svelte", async (original) => {
     };
 });
 
-import { storageEntries } from "./storage";
+vi.mock("$lib/features/storage/sizes.svelte", async (original) => {
+    const real = (await original()) as typeof import("./sizes.svelte");
+    return {
+        ...real,
+        StorageSizes: class {
+            constructor(read: never) {
+                return (current.sizes ?? new real.StorageSizes(read)) as never;
+            }
+        },
+    };
+});
+
+import { storageEntries, storageEntryStats } from "./storage";
 import StoragePanel from "./components/storage-panel.svelte";
 
 const { StorageList } = await vi.importActual<typeof import("./entries.svelte")>("./entries.svelte");
+const { StorageSizes } = await vi.importActual<typeof import("./sizes.svelte")>("./sizes.svelte");
 
 async function renderAfterLoad() {
     const list = new StorageList(storageEntries);
@@ -40,6 +53,7 @@ async function renderAfterLoad() {
 describe("storage list load failure", () => {
     beforeEach(() => {
         answers.clear();
+        current.sizes = null;
         answers.set("storage_entries", () => [{ id: "replays", path: null, clearable: false }]);
     });
 
@@ -76,5 +90,41 @@ describe("storage list load failure", () => {
         const body = render(StoragePanel).body;
         expect(body).not.toContain('data-region-state="error"');
         expect(body).toContain("Total found");
+    });
+});
+
+describe("storage entry sizes", () => {
+    beforeEach(() => {
+        answers.clear();
+        current.sizes = null;
+        answers.set("storage_entries", () => [{ id: "replays", path: "C:/x/replays", clearable: true }]);
+    });
+
+    it("rejects a storage_entry_stats answer that is not a size", async () => {
+        for (const answer of [null, { garbage: true }, { bytes: "12", count: null, oldestSecs: null }]) {
+            answers.set("storage_entry_stats", () => answer);
+            await expect(storageEntryStats("replays")).rejects.toThrow();
+        }
+    });
+
+    it("passes a good storage_entry_stats answer through", async () => {
+        const stats = { bytes: 2048, count: 3, oldestSecs: null };
+        answers.set("storage_entry_stats", () => stats);
+        await expect(storageEntryStats("replays")).resolves.toEqual(stats);
+    });
+
+    it("shows Couldn't measure on the row when storage_entry_stats answers null", async () => {
+        answers.set("storage_entry_stats", () => null);
+        const list = new StorageList(storageEntries);
+        const sizes = new StorageSizes(storageEntryStats);
+        current.list = list;
+        current.sizes = sizes;
+        await list.load();
+        await sizes.measure("replays");
+
+        expect(sizes.row("replays")).toBe("failed");
+        const body = render(StoragePanel).body;
+        expect(body).toContain("Couldn't measure");
+        expect(body).toContain("At least");
     });
 });

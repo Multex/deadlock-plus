@@ -13,8 +13,18 @@ export async function storageEntries() {
     return value;
 }
 
-export function storageEntryStats(id: EntryId) {
-    return command<EntryStats>("storage_entry_stats", { id });
+const nullableNumber = (value: unknown) => value === null || typeof value === "number";
+
+const isStats = (value: unknown): value is EntryStats => {
+    if (typeof value !== "object" || value === null) return false;
+    const { bytes, count, oldestSecs } = value as Record<string, unknown>;
+    return typeof bytes === "number" && nullableNumber(count) && nullableNumber(oldestSecs);
+};
+
+export async function storageEntryStats(id: EntryId) {
+    const value = await command<unknown>("storage_entry_stats", { id });
+    if (!isStats(value)) throw new Error("storage_entry_stats answered an unexpected shape");
+    return value;
 }
 
 export function storageReveal(id: EntryId) {
