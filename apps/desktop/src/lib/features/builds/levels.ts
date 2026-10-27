@@ -70,9 +70,23 @@ export function createProgressionTable(info: readonly LevelInfo[]): LevelTable {
     };
 }
 
+const isLevelRow = (row: unknown): row is LevelInfo =>
+    typeof row === "object" &&
+    row !== null &&
+    (["level", "souls", "ap", "unlocks"] as const).every((key) =>
+        Number.isFinite((row as Record<string, unknown>)[key]),
+    );
+
+/** The game's level rows; none when the answer is missing or any row has drifted from the expected shape. */
+async function gameLevels(): Promise<LevelInfo[]> {
+    const progression: unknown = await loadHeroProgression().catch(() => null);
+    const levels = (progression as { levels?: unknown } | null)?.levels;
+    return Array.isArray(levels) && levels.every(isLevelRow) ? levels : [];
+}
+
 /** The installed game's level table, else a hero asset's `level_info`; null when neither has levels. */
 export async function loadLevelTable(fallback?: Record<string, AssetLevelInfo>): Promise<LevelTable | null> {
-    const { levels } = await loadHeroProgression();
+    const levels = await gameLevels();
     if (levels.length > 0) return createProgressionTable(levels);
     return fallback && Object.keys(fallback).length > 0 ? createLevelTable(fallback) : null;
 }

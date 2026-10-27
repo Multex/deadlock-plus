@@ -124,6 +124,26 @@ describe("BuildBrowser loading never hangs", () => {
         expect(browser.busy.remainingS).toBe(7);
     });
 
+    it("turns busy at once, with no wait for the timeout, when the build list answers 503", async () => {
+        vi.useFakeTimers();
+        vi.spyOn(publicBuilds, "load").mockRejectedValue(new DeadlockApiError(503));
+        const browser = new BuildBrowser();
+        void browser.load(REQUEST);
+        await settle();
+        expect(browser.status).toBe("error");
+        expect(browser.busy.active).toBe(true);
+    });
+
+    it("ends in an error at once, with no wait for the timeout, when the build list cannot connect", async () => {
+        vi.useFakeTimers();
+        vi.spyOn(publicBuilds, "load").mockRejectedValue(new TypeError("Failed to fetch"));
+        const browser = new BuildBrowser();
+        void browser.load(REQUEST);
+        await settle();
+        expect(browser.status).toBe("error");
+        expect(browser.busy.active).toBe(false);
+    });
+
     it("gives up on a build list that never answers", async () => {
         vi.useFakeTimers();
         vi.spyOn(publicBuilds, "load").mockReturnValue(new Promise(() => {}));

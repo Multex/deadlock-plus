@@ -4,7 +4,7 @@ import { loadBuildTags } from "$lib/features/gamedata/vdata";
 import type { GameItem } from "@deadlock-plus/game-ui/item";
 import type { BuildTag } from "@deadlock-plus/ipc-types/BuildTag";
 import type { BuildView } from "@deadlock-plus/ipc-types/BuildView";
-import { chipFor, loadKit, type HeroKit } from "./build-detail.svelte";
+import { chipFor, failedKit, loadKit, type HeroKit } from "./build-detail.svelte";
 import { coreItems } from "./build-list";
 import { isInShop, loadShopCatalog, type ShopCatalog } from "./catalog";
 import { describeTag, selectedTags, standardTags, type StandardTag, type TagInfo } from "./editor/details";
@@ -48,10 +48,17 @@ export class BuildLookups {
                 if (id === null || this.kits.has(id)) continue;
                 void kitFor(id).then(
                     (kit) => (this.kits = new Map([...this.kits, [id, kit]])),
-                    () => {},
+                    () => (this.kits = new Map([...this.kits, [id, failedKit(() => this.retryKit(id))]])),
                 );
             }
         });
+    }
+
+    private retryKit(heroId: number): void {
+        const kits = new Map(this.kits);
+        kits.delete(heroId);
+        this.kits = kits;
+        this.loadKits([heroId]);
     }
 
     chip = (abilityId: number): GameItem | undefined =>

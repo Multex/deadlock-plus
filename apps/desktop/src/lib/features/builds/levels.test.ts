@@ -149,6 +149,18 @@ describe("loadLevelTable", () => {
         expect((await loadLevelTable(assetInfo))?.levels.map((l) => l.souls)).toEqual([0, 300]);
     });
 
+    it("falls back to the hero asset when the game answers null", async () => {
+        command.mockResolvedValue(null);
+        expect((await loadLevelTable(assetInfo))?.levels.map((l) => l.souls)).toEqual([0, 300]);
+    });
+
+    it("falls back to the hero asset when the game's rows have drifted", async () => {
+        command.mockResolvedValue({ levels: [{ level: 1, required_gold: 0 }] });
+        expect((await loadLevelTable(assetInfo))?.levels.map((l) => l.souls)).toEqual([0, 300]);
+        command.mockResolvedValue({ levels: "1,2,3" });
+        expect((await loadLevelTable(assetInfo))?.levels.map((l) => l.souls)).toEqual([0, 300]);
+    });
+
     it("is null when neither source has levels", async () => {
         command.mockResolvedValue({ levels: [] });
         expect(await loadLevelTable()).toBeNull();

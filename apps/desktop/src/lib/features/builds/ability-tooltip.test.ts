@@ -397,6 +397,21 @@ describe("heroAbilityTooltips", () => {
         expect(tooltips.get(8)).toBeUndefined();
     });
 
+    it("answers no tooltips when the game answers null or drifted rows", async () => {
+        const { heroAbilityTooltips } = await adapter();
+        load.mockResolvedValueOnce(null as never);
+        expect((await heroAbilityTooltips("english")).size).toBe(0);
+        load.mockResolvedValueOnce([null, { name: "no id" }, ability(7, "Lightning Ball")] as never);
+        expect([...(await heroAbilityTooltips("english")).keys()]).toEqual([7]);
+    });
+
+    it("answers no tooltips and asks again when the read rejects", async () => {
+        const { heroAbilityTooltips } = await adapter();
+        load.mockRejectedValueOnce(new Error("gone")).mockResolvedValueOnce([ability(7, "Lightning Ball")]);
+        expect((await heroAbilityTooltips("english")).size).toBe(0);
+        expect((await heroAbilityTooltips("english")).size).toBe(1);
+    });
+
     it("reads each locale once", async () => {
         const { heroAbilityTooltips } = await adapter();
         load.mockResolvedValue([ability(7, "Lightning Ball")]);

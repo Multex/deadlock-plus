@@ -375,6 +375,25 @@ describe("BuildDetail", () => {
         expect(detail.kit!.levels.map((l) => l.souls)).toEqual([0, 321]);
     });
 
+    it("still reads the hero's kit when the game's level table answers null", async () => {
+        answers.game_hero_progression = null;
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await vi.waitFor(() => expect(detail.kit).not.toBeNull());
+        expect(detail.kit!.failed).toBeUndefined();
+        expect(detail.kit!.levels.map((l) => l.souls)).toEqual([0]);
+    });
+
+    it("marks the kit failed, not loading, when the hero's abilities cannot be read, and reads it again on retry", async () => {
+        mocks.items.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+        const detail = await loaded({ source: "draft", id: "d1" });
+        await vi.waitFor(() => expect(detail.kit?.failed).toBeDefined());
+        expect(detail.kit!.abilities.size).toBe(0);
+        detail.kit!.failed!.retry();
+        expect(detail.kit).toBeNull();
+        await vi.waitFor(() => expect(detail.kit).not.toBeNull());
+        expect(detail.kit!.failed).toBeUndefined();
+    });
+
     it("favourites a public build by its view, then unfavourites it by id", async () => {
         const detail = await loaded({ source: "public", id: PUBLISHED });
         expect(detail.badge).toBeNull();
