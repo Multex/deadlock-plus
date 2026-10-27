@@ -152,7 +152,17 @@ pub struct Presence {
     pub party: Option<(u32, u32)>,
 }
 
-const DOWNLOAD_URL: &str = "https://deadlockplus.app/?ref=discord-rpc";
+// A macro, not a const, so `concat!` can build the other links from it. Matches `SITE_URL` in
+// `packages/links/src/urls.ts`; a test fails when the two drift.
+macro_rules! site_url {
+    () => {
+        "https://deadlockplus.app"
+    };
+}
+
+#[cfg(test)]
+const SITE_URL: &str = site_url!();
+const DOWNLOAD_URL: &str = concat!(site_url!(), "/?ref=discord-rpc");
 
 pub fn with_support_button(mut presence: Presence, on: bool) -> Presence {
     if on {
@@ -161,7 +171,7 @@ pub fn with_support_button(mut presence: Presence, on: bool) -> Presence {
     presence
 }
 
-const LOGO_URL: &str = "https://deadlockplus.app/icon-512.png";
+const LOGO_URL: &str = concat!(site_url!(), "/icon-512.png");
 
 /// Discord falls back to the application's own icon, the Deadlock logo, whenever no large image is sent.
 pub fn with_deadlock_plus_logo(mut presence: Presence, on: bool) -> Presence {
@@ -490,6 +500,14 @@ mod tests {
                 url: "https://deadlockplus.app/?ref=discord-rpc".into()
             }]
         );
+    }
+
+    #[test]
+    fn links_point_at_the_site_the_frontend_names() {
+        let frontend = include_str!("../../../../packages/links/src/urls.ts");
+        assert!(frontend.contains(&format!("export const SITE_URL = \"{SITE_URL}\";")), "SITE_URL drifted from links");
+        assert!(LOGO_URL.starts_with(&format!("{SITE_URL}/")));
+        assert!(DOWNLOAD_URL.starts_with(&format!("{SITE_URL}/")));
     }
 
     #[test]
