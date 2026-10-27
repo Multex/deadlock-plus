@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
 const KEY_CALL = /(?<![\w$])(tn?)\(\s*(["'])([\w.]+)\2/g;
 const TEMPLATE_KEY_CALL = /(?<![\w$])tn?\(\s*`([^`$]+)\$\{/g;
-const STRING_LITERAL = /(["'])([\w.]+)\1/g;
+const DOTTED_TEMPLATE = /`(\w+(?:\.\w+)+\.[^`]*\$\{[^`]*)`/g;
+const INTERPOLATION = /\$\{[^}]*\}/;
+const STRING_LITERAL =/(["'])([\w.]+)\1/g;
 const PLACEHOLDER = /\{(\w+)\}/g;
 const NAMESPACE_CONST = /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(["'])(\w+(?:\.\w+)+)\2/g;
 const NAMESPACE_TEMPLATE = /`\$\{([A-Za-z_$][\w$]*)\}\.\$\{/g;
@@ -38,13 +40,25 @@ export function extractNamespacePrefixes(source) {
     return [...new Set(prefixes)];
 }
 
+// A template like `a.b.${x}.${y}_${n}` outside a t call builds whole keys. Each interpolation stands for one word
+// segment, so keys no value can produce stay flagged.
+export function extractTemplatePatterns(source) {
+    return [...source.matchAll(DOTTED_TEMPLATE)].map((m) => {
+        const body = m[1]
+            .split(INTERPOLATION)
+            .map((part) => part.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&"))
+            .join("\\w+");
+        return new RegExp(`^${body}$`);
+    });
+}
+
 export function extractKeyLiterals(source, known) {
     return [...source.matchAll(STRING_LITERAL)].map((m) => m[2]).filter((text) => known.has(text));
 }
 
 const placeholders = (text) => [...new Set([...text.matchAll(PLACEHOLDER)].map((m) => m[1]))].sort().join(",");
 
-export function checkCatalogs(catalogs, used, referenced = { literals: new Set(), prefixes: [] }) {
+export function checkCatalogs(catalogs, used, referenced = { literals: new Set(), prefixes: [], patterns: [] }) {
     const errors = [];
     const warnings = [];
     const en = flatten(catalogs.en);
@@ -93,7 +107,8 @@ export function checkCatalogs(catalogs, used, referenced = { literals: new Set()
             usedKeys.has(base) ||
             referenced.literals.has(key) ||
             referenced.literals.has(base) ||
-            referenced.prefixes.some((p) => key.startsWith(p));
+            referenced.prefixes.some((p) => key.startsWith(p)) ||
+            referenced.patterns.some((p) => p.test(key));
         if (!isUsed) warnings.push(`unused en key ${key}`);
     }
     return { errors, warnings };
@@ -137,6 +152,7 @@ function main() {
     const referenced = {
         literals: new Set(sources.flatMap(({ text }) => extractKeyLiterals(text, known))),
         prefixes: sources.flatMap(({ text }) => [...extractTemplatePrefixes(text), ...extractNamespacePrefixes(text)]),
+        patterns: sources.flatMap(({ text }) => extractTemplatePatterns(text)),
     };
     const { errors, warnings } = checkCatalogs(catalogs, used, referenced);
     for (const line of warnings) console.warn(`warning: ${line}`);
