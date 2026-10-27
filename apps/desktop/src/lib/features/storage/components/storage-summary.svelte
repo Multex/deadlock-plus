@@ -8,19 +8,22 @@
 
     type Props = {
         total: number;
+        incomplete: boolean;
         canClear: number;
         disabled: boolean;
         onclear: () => void;
     };
 
-    let { total, canClear, disabled, onclear }: Props = $props();
+    let { total, incomplete, canClear, disabled, onclear }: Props = $props();
 </script>
 
 <Card as="section" radius="md" padding="none" class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
     <div class="flex gap-8">
         <div>
             <p class="text-xs text-muted-foreground">{t("storage.summary.total")}</p>
-            <p class="text-2xl tabular-nums">{formatBytes(total)}</p>
+            <p class="text-2xl tabular-nums">
+                {incomplete ? t("storage.summary.total_at_least", { size: formatBytes(total) }) : formatBytes(total)}
+            </p>
         </div>
         <div>
             <p class="text-xs text-muted-foreground">{t("storage.summary.can_clear")}</p>

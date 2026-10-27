@@ -1554,7 +1554,8 @@
         "summary": {
             "total": "Total found",
             "can_clear": "Can be cleared here",
-            "clear_regenerable": "Clear rebuildable files"
+            "clear_regenerable": "Clear rebuildable files",
+            "total_at_least": "At least {size}"
         },
         "entry": {
             "path_missing": "Not found on this PC",
@@ -1567,7 +1568,8 @@
             "reveal_aria": "Show {label} in folder",
             "reveal_title": "Show in folder",
             "clear_aria": "Clear {label}",
-            "clear_title": "Clear"
+            "clear_title": "Clear",
+            "unmeasured": "Couldn't measure"
         },
         "dialog": {
             "cancel": "Cancel",
@@ -1807,7 +1809,8 @@
                 "description": "Matches Deadlock+ shared with the Deadlock API.",
                 "consequence": "Deadlock+ may share those matches again. Nothing else is lost."
             }
-        }
+        },
+        "list_error": "Couldn't list what's stored on this PC."
     },
     "voice_bans": {
         "title": "Mutes",

@@ -66,18 +66,19 @@
         {/if}
     </div>
 
-    <div class="w-20 shrink-0 text-right text-sm tabular-nums">
+    <div class="flex w-28 shrink-0 flex-col items-end text-right text-sm tabular-nums">
         {#if !entry.path}
             <span class="text-xs text-muted-foreground">{t("storage.entry.not_found")}</span>
         {:else if failed}
-            <button
-                type="button"
-                class="text-xs text-destructive underline"
+            <span class="text-xs text-muted-foreground">{t("storage.entry.unmeasured")}</span>
+            <Button
+                variant="ghost"
+                size="sm"
                 aria-label={t("storage.entry.retry_aria", { label: text.label })}
                 onclick={onretry}
             >
                 {t("storage.entry.retry")}
-            </button>
+            </Button>
         {:else if stats === undefined}
             <LoaderCircle
                 class="ml-auto size-4 animate-spin text-muted-foreground"
