@@ -1615,7 +1615,6 @@
         "toast": {
             "freed": "Freed {size}",
             "nothing": "Nothing to clear.",
-            "remove_failed": "Couldn't remove {count}: {first}",
             "clear_failed_one": "Couldn't clear {count} item. Try again.",
             "clear_failed_other": "Couldn't clear {count} items. Try again.",
             "reveal_failed": "Couldn't open that folder."

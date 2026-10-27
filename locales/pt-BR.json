@@ -1520,8 +1520,7 @@
         },
         "toast": {
             "freed": "{size} liberados",
-            "nothing": "Não há nada para limpar.",
-            "remove_failed": "Não foi possível remover {count}: {first}"
+            "nothing": "Não há nada para limpar."
         },
         "age": {
             "today": "hoje",
