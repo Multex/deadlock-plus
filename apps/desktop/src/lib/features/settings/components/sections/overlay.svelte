@@ -1,7 +1,5 @@
 <script lang="ts">
-    import { errorText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
-    import { toast } from "svelte-sonner";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
@@ -12,7 +10,8 @@
     import Slider from "@deadlock-plus/ui/slider.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { onOverlayStatus, overlayStatus, showOverlayTest } from "$lib/features/settings/api";
+    import { onOverlayStatus, overlayStatus } from "$lib/features/settings/api";
+    import { runOverlayTest } from "$lib/features/settings/overlay-test";
     import {
         DURATION_RANGE,
         NO_GAME,
@@ -64,9 +63,7 @@
         countdown = TEST_DELAY_SECS;
         const timer = setInterval(() => (countdown = Math.max(1, countdown - 1)), 1000);
         try {
-            await showOverlayTest();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runOverlayTest();
         } finally {
             clearInterval(timer);
             testing = false;

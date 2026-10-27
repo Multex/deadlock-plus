@@ -364,6 +364,7 @@
             "overlay_notifications_button": "Open Notifications",
             "overlay_test_button": "Show test",
             "overlay_test_countdown": "Showing in {seconds}",
+            "overlay_test_failed": "Couldn't show the test notification. Try again.",
             "overlay_seconds": "{seconds} s",
             "position": {
                 "top_left": "Top left",
