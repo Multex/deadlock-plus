@@ -2,25 +2,38 @@ import type { Page } from "@playwright/test";
 import { sidebarTo } from "./support/flows";
 import { expect, settle, test } from "./support/test";
 
-// A garbage maintenance time throws while Home formats it, which only the page's boundary can catch. If the
-// page learns to survive it, pick another fault that throws in a render or an effect; a rejected promise
-// never reaches a boundary.
-const CRASHING_PAGE = "/";
-const CRASH = "command:next_maintenance:garbage";
-const pageContent = (page: Page) => page.getByRole("heading", { name: "Your Deadlock" });
+// What's new builds an IntersectionObserver while mounting, so a constructor that throws crashes that page.
+// A rejected promise never reaches a boundary, so the crash has to come from a render or an effect; breaking
+// a browser API keeps the trigger out of the product code. SvelteKit's link preloader builds one too, outside
+// every boundary, but it always passes options and What's new passes none: only the bare call throws.
+const CRASHING_PAGE = "/whats-new";
+const pageContent = (page: Page) => page.getByRole("heading", { name: "What's new", exact: true });
 
 const pageRegion = (page: Page) => page.locator('[data-region="page"][data-region-state="error"]');
 
-async function clearFaults(page: Page) {
-    await page.evaluate(() => {
-        const demo = (window as unknown as { __DEADLOCK_PLUS_DEMO__: { handle: { clearFaults(): void } } })
-            .__DEADLOCK_PLUS_DEMO__;
-        demo.handle.clearFaults();
+type Breakable = { __E2E_BREAK_OBSERVER__?: boolean };
+
+test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+        const flags = window as unknown as Breakable;
+        flags.__E2E_BREAK_OBSERVER__ = true;
+        const Real = window.IntersectionObserver;
+        window.IntersectionObserver = class extends Real {
+            constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+                if (flags.__E2E_BREAK_OBSERVER__ && options === undefined)
+                    throw new Error("IntersectionObserver broken by the test");
+                super(callback, options);
+            }
+        };
     });
+});
+
+async function clearFault(page: Page) {
+    await page.evaluate(() => ((window as unknown as Breakable).__E2E_BREAK_OBSERVER__ = false));
 }
 
 test("a page that throws while rendering shows a calm error and keeps the sidebar working", async ({ page }) => {
-    await page.goto(`${CRASHING_PAGE}?fault=${CRASH}`);
+    await page.goto(CRASHING_PAGE);
     await settle(page);
 
     const error = pageRegion(page);
@@ -35,11 +48,11 @@ test("a page that throws while rendering shows a calm error and keeps the sideba
 });
 
 test("Retry renders the page again once the fault is gone", async ({ page }) => {
-    await page.goto(`${CRASHING_PAGE}?fault=${CRASH}`);
+    await page.goto(CRASHING_PAGE);
     await settle(page);
     await expect(pageRegion(page)).toBeVisible();
 
-    await clearFaults(page);
+    await clearFault(page);
     await pageRegion(page).getByRole("button", { name: "Retry" }).click();
     await settle(page);
 
@@ -48,13 +61,15 @@ test("Retry renders the page again once the fault is gone", async ({ page }) => 
 });
 
 test("going back to a broken page tries it again", async ({ page }) => {
-    await page.goto(`${CRASHING_PAGE}?fault=${CRASH}`);
+    await page.goto(CRASHING_PAGE);
     await settle(page);
     await expect(pageRegion(page)).toBeVisible();
 
     await sidebarTo(page, "Stats", /\/stats$/);
-    await clearFaults(page);
-    await sidebarTo(page, "Home", /\/$/);
+    await clearFault(page);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/whats-new$/);
+    await settle(page);
 
     await expect(pageRegion(page)).toHaveCount(0);
     await expect(pageContent(page)).toBeVisible();
