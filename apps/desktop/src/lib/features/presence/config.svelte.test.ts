@@ -146,7 +146,7 @@ describe("PresenceConfigStore", () => {
         );
         store.edit(withDetails("a"));
         await store.flush();
-        expect(store.error).toBe("disk full");
+        expect(store.error).toBe("Couldn't save your Discord activity changes. Try again.");
     });
 
     it("imports text, replaces the config and drops a pending save", async () => {
@@ -160,7 +160,7 @@ describe("PresenceConfigStore", () => {
         expect(api.setPresenceConfig).not.toHaveBeenCalled();
     });
 
-    it("rethrows a bad import and keeps the config", async () => {
+    it("answers false for a bad import and keeps the config", async () => {
         const store = new PresenceConfigStore(
             fakeApi({
                 importPresenceConfig: vi.fn(async () => {
@@ -169,7 +169,7 @@ describe("PresenceConfigStore", () => {
             }),
         );
         store.edit(withDetails("a"));
-        await expect(store.importText("nope")).rejects.toBe("bad json");
+        await expect(store.importText("nope")).resolves.toBe(false);
         expect(store.config.states.inMatch?.details).toBe("a");
     });
 

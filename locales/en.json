@@ -492,6 +492,8 @@
             "exported": "Copied preset",
             "export_failed": "Couldn't copy to the clipboard",
             "imported": "Imported preset",
+            "import_failed": "Couldn't read that preset.",
+            "save_failed": "Couldn't save your Discord activity changes. Try again.",
             "state": {
                 "playing": "Playing",
                 "mainMenu": "Main menu",

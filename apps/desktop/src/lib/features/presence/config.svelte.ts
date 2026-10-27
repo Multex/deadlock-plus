@@ -1,4 +1,5 @@
-import { errorText } from "$lib/core/errors";
+import { failureText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
 import { onBeforeExit } from "$lib/core/exit";
 import * as api from "./api";
 
@@ -30,6 +31,7 @@ export class PresenceConfigStore {
     placeholders = $state<PresencePlaceholder[]>([]);
     status = $state<PresenceLoadStatus>("loading");
     error = $state<string | null>(null);
+    importError = $state("");
 
     private timer: ReturnType<typeof setTimeout> | undefined;
     private dirty = false;
@@ -75,12 +77,21 @@ export class PresenceConfigStore {
         await this.saving;
     }
 
-    async importText(text: string) {
-        const imported = await this.backend.importPresenceConfig(text);
+    /** False when the text was not a preset; the editor keeps what it had. */
+    async importText(text: string): Promise<boolean> {
+        this.importError = "";
+        let imported: PresenceConfig;
+        try {
+            imported = await this.backend.importPresenceConfig(text);
+        } catch (e) {
+            this.importError = failureText(e, t("settings.discord_editor.import_failed"));
+            return false;
+        }
         clearTimeout(this.timer);
         this.dirty = false;
         this.config = imported;
         this.error = null;
+        return true;
     }
 
     async exportText() {
@@ -98,7 +109,7 @@ export class PresenceConfigStore {
             await this.backend.setPresenceConfig(config);
             this.error = null;
         } catch (e) {
-            this.error = errorText(e);
+            this.error = failureText(e, t("settings.discord_editor.save_failed"));
         }
     }
 }

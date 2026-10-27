@@ -8,7 +8,6 @@
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { errorText } from "$lib/core/errors";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { presencePreview } from "$lib/features/presence/api";
     import { showsDeadlockPlusLogo } from "$lib/features/presence/presence";
@@ -35,7 +34,6 @@
     let variant = $state<PresenceVariantId | undefined>();
     let heroId = $state<number | undefined>();
     let importText = $state("");
-    let importError = $state("");
     let confirmReset = $state(false);
     let card = $state<PresenceCard | null>(null);
     let previewFailed = $state(false);
@@ -110,14 +108,9 @@
     }
 
     async function runImport(text: string) {
-        importError = "";
-        try {
-            await store.importText(text);
-            importText = "";
-            toast.success(t("settings.discord_editor.imported"));
-        } catch (e) {
-            importError = errorText(e);
-        }
+        if (!(await store.importText(text))) return;
+        importText = "";
+        toast.success(t("settings.discord_editor.imported"));
     }
 
     async function onFile(e: Event & { currentTarget: HTMLInputElement }) {
@@ -240,8 +233,8 @@
             spellcheck="false"
             class="w-full rounded-md border border-input bg-transparent p-2 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         ></textarea>
-        {#if importError}
-            <p role="alert" class="text-sm text-destructive">{importError}</p>
+        {#if store.importError}
+            <p role="alert" class="text-sm text-destructive">{store.importError}</p>
         {/if}
         <div class="flex flex-wrap gap-2">
             <Button size="sm" disabled={importText.trim() === ""} onclick={() => runImport(importText)}>
