@@ -99,3 +99,15 @@ describe("loadRankTiers", () => {
         expect(command).toHaveBeenCalledWith("game_rank_art");
     });
 });
+
+describe("loadRankTiers with bad game_rank_art answers", () => {
+    for (const bad of [null, "nope", [null], [{ tier: "5" }]]) {
+        it(`keeps the API badges when game_rank_art answers ${JSON.stringify(bad)}`, async () => {
+            apiRanks.mockResolvedValue([{ tier: 5, name: "Ritualist", images: {} }]);
+            vi.mocked(command).mockResolvedValue(bad);
+            const tiers = await loadRankTiers();
+            expect(tiers.map((t) => t.tier)).toEqual([5]);
+            expect(tiers[0].image).toBe(tiers[0].apiImage);
+        });
+    }
+});

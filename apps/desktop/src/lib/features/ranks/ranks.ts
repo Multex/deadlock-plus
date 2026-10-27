@@ -45,9 +45,13 @@ export function loadApiRanks(): Promise<RankTier[]> {
     return p;
 }
 
+const isRankArt = (value: unknown): value is RankArt =>
+    typeof value === "object" && value !== null && typeof (value as RankArt).tier === "number";
+
 async function loadArt(): Promise<RankArt[]> {
     try {
-        return await command<RankArt[]>("game_rank_art");
+        const value = await command<unknown>("game_rank_art");
+        return Array.isArray(value) ? value.filter(isRankArt) : [];
     } catch {
         return [];
     }
