@@ -1542,7 +1542,8 @@
             "deleted_other": "Deleted {count} replays",
             "delete_failed_one": "Couldn't delete {count} replay. Check the log for details.",
             "delete_failed_other": "Couldn't delete {count} replays. Check the log for details."
-        }
+        },
+        "list_error": "Couldn't read your replays."
     },
     "storage": {
         "subtitle": "What Deadlock and Deadlock+ keep on this PC.",
@@ -1887,7 +1888,8 @@
             "exported": "Exported {count} mutes",
             "export_failed": "Couldn't export your mutes. Check the log for details.",
             "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
-        }
+        },
+        "list_error": "Couldn't read your mute list."
     },
     "builds": {
         "shop": {

@@ -32,7 +32,7 @@ import {
     type DemoFilter,
 } from "./list";
 import { errorText, failureText } from "$lib/core/errors";
-import { tn } from "$lib/core/i18n.svelte";
+import { t, tn } from "$lib/core/i18n.svelte";
 import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 
 export class DemoList {
@@ -106,8 +106,8 @@ export class DemoList {
         this.error = null;
         try {
             this.listing = await listDemos();
-        } catch (e) {
-            this.error = errorText(e);
+        } catch {
+            this.error = t("demos.list_error");
         } finally {
             this.loading = false;
         }

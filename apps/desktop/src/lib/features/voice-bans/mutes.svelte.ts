@@ -74,7 +74,7 @@ export class Mutes {
                 this.file = null;
                 this.error = null;
             } else {
-                this.error = errorText(e);
+                this.error = t("voice_bans.list_error");
             }
         } finally {
             this.loading = false;
