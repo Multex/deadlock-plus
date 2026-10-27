@@ -2,13 +2,12 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { toast } from "svelte-sonner";
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { Eye, EyeOff, RefreshCw } from "@lucide/svelte";
 
     import Button from "@deadlock-plus/ui/button.svelte";
     import RegionError from "@deadlock-plus/ui/region-error.svelte";
-    import { formatBytes } from "$lib/features/demos/demos";
     import {
         clearAllCopy,
         clearCopy,
@@ -23,6 +22,7 @@
     } from "$lib/features/storage/storage";
     import { StorageSizes } from "$lib/features/storage/sizes.svelte";
     import { StorageList } from "$lib/features/storage/entries.svelte";
+    import { clearEntries, clearMessages } from "$lib/features/storage/clear";
     import ClearDialog from "./clear-dialog.svelte";
     import StorageGroup from "./storage-group.svelte";
     import StorageSummary from "./storage-summary.svelte";
@@ -60,7 +60,7 @@
         try {
             await storageReveal(id);
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("storage.toast.reveal_failed")));
         }
     }
 
@@ -68,24 +68,8 @@
         const ids = pendingAll ? [...regenerable] : pendingClear ? [pendingClear] : [];
         if (ids.length === 0) return;
         clearing = true;
-        let freed = 0;
-        let removed = 0;
-        const problems: string[] = [];
-        for (const id of ids) {
-            try {
-                const report = await storageClear(id);
-                freed += report.freedBytes;
-                removed += report.removed;
-                problems.push(...report.failed.map((f) => errorText(f)));
-            } catch (e) {
-                problems.push(errorText(e));
-                break;
-            }
-        }
-        if (removed > 0) toast.success(t("storage.toast.freed", { size: formatBytes(freed) }));
-        else if (problems.length === 0) toast.info(t("storage.toast.nothing"));
-        if (problems.length > 0)
-            toast.error(t("storage.toast.remove_failed", { count: problems.length, first: problems[0] }));
+        const outcome = await clearEntries(ids, storageClear);
+        for (const message of clearMessages(outcome)) toast[message.kind](message.text);
         clearing = false;
         pendingClear = null;
         pendingAll = false;
