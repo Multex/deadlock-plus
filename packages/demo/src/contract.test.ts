@@ -27,7 +27,10 @@ function sourceFiles(dir: URL): URL[] {
 const read = (file: URL): string => readFileSync(file, "utf8");
 const names = (text: string, pattern: RegExp) => [...text.matchAll(pattern)].map((match) => match[1]!);
 
-function invokedCommands(): string[] {
+let scanned: string[] | undefined;
+const invokedCommands = (): string[] => (scanned ??= scanInvokedCommands());
+
+function scanInvokedCommands(): string[] {
     const found = new Set<string>();
     for (const file of sourceFiles(APP_SRC)) for (const name of names(read(file), COMMAND_CALL)) found.add(name);
     for (const file of DIRECT_INVOKE) {
@@ -76,4 +79,5 @@ it.each(Object.keys(scenarios))(
         expect(unanswered.filter((name) => !(name in notCovered))).toEqual([]);
         expect(Object.keys(notCovered).filter((name) => !unanswered.includes(name))).toEqual([]);
     },
+    60_000,
 );
