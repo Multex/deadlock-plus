@@ -25,7 +25,8 @@ function shownSteps(page: Page): Promise<string[]> {
             items.map((li) => {
                 const label = li.querySelector("[data-step-chip]")!.getAttribute("aria-label")!;
                 const level = li.querySelector(":scope > span:last-child")!.textContent!.trim();
-                return `${label.replace(/^Step \d+: /, "")}: ${level}`;
+                const [, kind, name] = label.match(/^Step \d+: ([^,]+), (.+)$/)!;
+                return `${name}, ${kind}: ${level}`;
             }),
         );
 }
