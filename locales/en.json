@@ -2685,7 +2685,9 @@
         "history": {
             "title": "Last {minutes} min",
             "empty": "Ping history appears once you're in a match.",
-            "chart_label": "Ping history"
+            "chart_label": "Ping history",
+            "error_title": "Couldn't read your connection history.",
+            "error_body": "The rest of the page still works."
         },
         "notices": {
             "permission": "Live monitoring needs to watch your network traffic while Deadlock runs. Your system will ask for your password.",

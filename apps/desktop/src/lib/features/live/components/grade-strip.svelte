@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Hero } from "$lib/features/heroes/heroes";
     import type { RankTier } from "@deadlock-plus/stats/rank";
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { i18n, t } from "$lib/core/i18n.svelte";
     import { tierName } from "$lib/features/stats/rank-view";
@@ -48,7 +49,7 @@
 
 {#snippet tierArt()}
     {#each groupArt as art (art.tier)}
-        <img src={art.image} alt="" class="tier" />
+        <ArtImage src={art.image} alt="" class="size-4 flex-none object-contain" width={16} height={16} />
     {/each}
 {/snippet}
 
@@ -208,11 +209,5 @@
         font-size: 10px;
         font-style: italic;
         color: var(--muted-foreground);
-    }
-    .tier {
-        width: 16px;
-        height: 16px;
-        flex: none;
-        object-fit: contain;
     }
 </style>

@@ -31,9 +31,18 @@ export function matchPingPoints(matchId: number, maxPoints: number) {
 }
 
 /** Current snapshot plus the history points newer than `sinceT`, in one call. */
-export function networkPoll(sinceT: number | null) {
-    return command<NetworkPoll>("network_poll", { sinceT });
+export async function networkPoll(sinceT: number | null): Promise<NetworkPoll> {
+    const poll = await command<unknown>("network_poll", { sinceT });
+    if (!isPoll(poll)) throw new Error("network_poll answered an unexpected shape");
+    return poll;
 }
+
+const isPoll = (value: unknown): value is NetworkPoll =>
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as NetworkPoll).snapshot === "object" &&
+    (value as NetworkPoll).snapshot !== null &&
+    Array.isArray((value as NetworkPoll).tail);
 
 /** The game's own ping, loss and jitter to the match server; `null` outside a match or when unreadable. */
 export function enginePingLatest() {
