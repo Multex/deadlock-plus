@@ -37,9 +37,9 @@ describe("PresenceConfigStore", () => {
 
     it("loads config, defaults and layout", async () => {
         const store = new PresenceConfigStore(fakeApi());
-        expect(store.loaded).toBe(false);
+        expect(store.status).toBe("loading");
         await store.load();
-        expect(store.loaded).toBe(true);
+        expect(store.status).toBe("ready");
         expect(store.config.states.inMatch?.details).toBe("saved");
         expect(store.defaults.states.inMatch?.details).toBe("default");
         expect(store.layout).toHaveLength(1);
@@ -48,7 +48,7 @@ describe("PresenceConfigStore", () => {
         expect(store.error).toBeNull();
     });
 
-    it("keeps the error and stays unloaded when loading fails", async () => {
+    it("ends in the error status when loading fails", async () => {
         const store = new PresenceConfigStore(
             fakeApi({
                 presenceConfig: vi.fn(async () => {
@@ -57,8 +57,26 @@ describe("PresenceConfigStore", () => {
             }),
         );
         await store.load();
-        expect(store.loaded).toBe(false);
-        expect(store.error).toBe("boom");
+        expect(store.status).toBe("error");
+    });
+
+    it("shows loading again while a retry runs, then ready", async () => {
+        let fail = true;
+        const store = new PresenceConfigStore(
+            fakeApi({
+                presenceLayout: vi.fn(async () => {
+                    if (fail) throw "boom";
+                    return [{ id: "inMatch" as const, variants: [], heroScope: true }];
+                }),
+            }),
+        );
+        await store.load();
+        expect(store.status).toBe("error");
+        fail = false;
+        const retry = store.load();
+        expect(store.status).toBe("loading");
+        await retry;
+        expect(store.status).toBe("ready");
     });
 
     it("updates state at once and saves after 400 ms", async () => {

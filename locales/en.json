@@ -596,7 +596,8 @@
             "party_size_aria": "Show party size",
             "party_size_hint": "Adds the party count, like (2 of 6), when you are in a party of two or more.",
             "preview_party": "({size} of {max})",
-            "detailed_only": "Only Detailed uses these states. Basic always shows Playing."
+            "detailed_only": "Only Detailed uses these states. Basic always shows Playing.",
+            "load_error": "Couldn't load the presence editor."
         },
         "privacy": {
             "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",

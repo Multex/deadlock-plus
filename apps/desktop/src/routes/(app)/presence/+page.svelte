@@ -20,7 +20,11 @@
         <PresenceEditor />
     </Card>
     <Card as="section" id="pe-syntax" class="scroll-mt-4">
-        <SyntaxCard placeholders={presenceConfigStore.placeholders} />
+        <SyntaxCard
+            placeholders={presenceConfigStore.placeholders}
+            status={presenceConfigStore.status}
+            onretry={() => void presenceConfigStore.load()}
+        />
     </Card>
 
     <DiscordApps />
