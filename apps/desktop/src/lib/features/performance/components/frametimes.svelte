@@ -208,7 +208,6 @@
                         >{saved ? t("performance.frametimes.saved") : t("performance.frametimes.save")}</Button
                     >
                 </div>
-                {#if savedRuns.error}<p class="text-sm text-destructive">{savedRuns.error}</p>{/if}
             </Card>
             {#if result.spikes.length > 0}
                 <ul class="flex flex-col divide-y divide-border rounded-md border border-border bg-card text-sm">

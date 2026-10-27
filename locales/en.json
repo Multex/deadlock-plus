@@ -1182,7 +1182,9 @@
             "note_macos": "Frame capture is not available on macOS, or under Wine."
         },
         "runs": {
-            "default_label": "Run {date}"
+            "default_label": "Run {date}",
+            "save_failed": "Couldn't save that run. Try again.",
+            "delete_failed": "Couldn't delete that run. Try again."
         },
         "metrics": {
             "avg_fps": "Average FPS",
@@ -1440,8 +1442,8 @@
             "preset_applied": "Applied \"{name}\": {blocked} of {total} regions blocked",
             "preset_apply_failed": "Couldn't apply \"{name}\". Check the log for details.",
             "preset_saved": "Saved \"{name}\"",
-            "preset_save_failed": "Couldn't save the preset. Check the log for details.",
-            "preset_delete_failed": "Couldn't delete the preset. Check the log for details.",
+            "preset_save_failed": "Couldn't save the preset. Try again.",
+            "preset_delete_failed": "Couldn't delete the preset. Try again.",
             "imported_one": "Imported {count} block from {source}",
             "imported_other": "Imported {count} blocks from {source}",
             "import_failed": "Couldn't import the existing firewall blocks. Check the log for details."

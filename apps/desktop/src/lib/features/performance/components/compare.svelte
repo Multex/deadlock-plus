@@ -201,6 +201,5 @@
                 </li>
             {/each}
         </ul>
-        {#if savedRuns.error}<p class="text-sm text-destructive">{savedRuns.error}</p>{/if}
     {/if}
 </div>
