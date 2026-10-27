@@ -12,7 +12,7 @@
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import type { MatchDetail } from "@deadlock-plus/match/detail";
     import { notifyFrontPageWaiting } from "./api";
-    import { createAfterMatch } from "./after-match";
+    import { afterMatchDeps, createAfterMatch } from "./after-match";
     import { captureFeed } from "./capture-feed.svelte";
     import FrontPageTakeover from "./front-page-takeover.svelte";
     import { readCapturedDetail } from "./load";
@@ -38,28 +38,33 @@
     });
 
     // Never raises or focuses the window: a paper that arrives while the game has the focus waits for the user.
-    const afterMatch = createAfterMatch({
-        mainWindow: windowLabel() === MAIN_WINDOW,
-        enabled: (mode) => settings.frontPageAfterMatch && settings.frontPageModes[mode],
-        attended: () => document.hasFocus() && !windowVisibility.isHidden(),
-        covered: () => overlayHost.count > 0,
-        show: (matchId) => {
-            void readCapturedDetail(matchId).then((found) => {
-                if (!found) return;
-                detail = found;
-                takeover.show();
-            });
-        },
-        waiting: () => {
-            if (settings.frontPageOverlayAlert) notifyFrontPageWaiting().catch(() => {});
-        },
-        update: (matchId) => {
-            if (!open || detail?.matchId !== matchId) return;
-            void readCapturedDetail(matchId).then((found) => {
-                if (found && open && detail?.matchId === matchId) detail = found;
-            });
-        },
-    });
+    const afterMatch = createAfterMatch(
+        afterMatchDeps(
+            {
+                mainWindow: windowLabel() === MAIN_WINDOW,
+                settings,
+                hasFocus: () => document.hasFocus(),
+                isHidden: () => windowVisibility.isHidden(),
+                dialogOpen: () => overlayHost.count > 0,
+                notifyWaiting: notifyFrontPageWaiting,
+            },
+            {
+                show: (matchId) => {
+                    void readCapturedDetail(matchId).then((found) => {
+                        if (!found) return;
+                        detail = found;
+                        takeover.show();
+                    });
+                },
+                update: (matchId) => {
+                    if (!open || detail?.matchId !== matchId) return;
+                    void readCapturedDetail(matchId).then((found) => {
+                        if (found && open && detail?.matchId === matchId) detail = found;
+                    });
+                },
+            },
+        ),
+    );
 
     $effect(() => {
         if (overlayHost.count === 0) untrack(() => afterMatch.attention());

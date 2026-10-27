@@ -66,3 +66,30 @@ export function createAfterMatch(deps: AfterMatchDeps): AfterMatch {
         },
     };
 }
+
+export interface AfterMatchEnv {
+    mainWindow: boolean;
+    /** Read on each call, so a switch flipped while a paper waits takes effect. */
+    settings: {
+        frontPageAfterMatch: boolean;
+        frontPageModes: Record<RowMode, boolean>;
+        frontPageOverlayAlert: boolean;
+    };
+    hasFocus(): boolean;
+    isHidden(): boolean;
+    dialogOpen(): boolean;
+    notifyWaiting(): Promise<unknown>;
+}
+
+export function afterMatchDeps(env: AfterMatchEnv, paper: Pick<AfterMatchDeps, "show" | "update">): AfterMatchDeps {
+    return {
+        mainWindow: env.mainWindow,
+        enabled: (mode) => env.settings.frontPageAfterMatch && env.settings.frontPageModes[mode],
+        attended: () => env.hasFocus() && !env.isHidden(),
+        covered: () => env.dialogOpen(),
+        waiting: () => {
+            if (env.settings.frontPageOverlayAlert) env.notifyWaiting().catch(() => {});
+        },
+        ...paper,
+    };
+}
