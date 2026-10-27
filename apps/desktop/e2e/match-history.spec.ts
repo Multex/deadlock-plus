@@ -257,7 +257,7 @@ test.describe("a match", () => {
     test("every graded player shows a grade with a score and a place, and a tie shares the place", async ({ page }) => {
         const scoreboard = page.getByRole("table", { name: "Scoreboard" });
         const grades = scoreboard.getByRole("button", {
-            name: /^Grade [SABCDEF][+-]?, score \d+\.\d, \d+(st|nd|rd|th)$/,
+            name: /^Grade [SABCDEF][+-]?, \d+\.\d, \d+(st|nd|rd|th)$/,
         });
 
         await expect(scoreboard.getByRole("rowheader", { name: "Grade", exact: true })).toBeVisible();

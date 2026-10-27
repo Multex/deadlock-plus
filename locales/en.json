@@ -3393,6 +3393,7 @@
                 "place_ordinal_few": "{place}rd",
                 "place_ordinal_other": "{place}th",
                 "aria": "Grade {letter}, score {score}, {place}",
+                "chip_aria": "Grade {letter}, {score}, {place}",
                 "leaver": "Someone left this match early, so every grade in it is skewed.",
                 "unchecked": "Early leavers not checked: this grade comes from the game's own match data.",
                 "farm_bonus": "Team farm bonus",

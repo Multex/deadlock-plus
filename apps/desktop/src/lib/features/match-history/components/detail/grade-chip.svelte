@@ -35,7 +35,7 @@
                 {...props}
                 type="button"
                 class="chip"
-                aria-label={t("match_history.detail.grade.aria", { letter: grade.letter, score, place })}
+                aria-label={t("match_history.detail.grade.chip_aria", { letter: grade.letter, score, place })}
             >
                 <span class="letter" style:color>{grade.letter}</span>
                 <span class="meta">
