@@ -378,7 +378,7 @@
                 "center": "Match found"
             },
             "overlay_match_found_description": "Tells you when your queue pops, even if another window is in front.",
-            "overlay_queue_stopped_description": "Tells you when your queue stops without a match, even if another window is in front.",
+            "overlay_queue_stopped_description": "Tells you when your queue stops without a match while another window is in front of Deadlock.",
             "server_blocks_updated_description": "Tells you when Valve changes server addresses and Deadlock+ updates your Server Picker blocks to match.",
             "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
             "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
@@ -550,7 +550,7 @@
                 "round": "Street Brawl round",
                 "scoreAmber": "Amber score in Street Brawl",
                 "scoreSapphire": "Sapphire score in Street Brawl",
-                "elapsed": "Time in this state",
+                "elapsed": "The match clock",
                 "queueTime": "How long you have queued",
                 "result": "Won or lost",
                 "matchId": "The match's ID",
