@@ -150,17 +150,21 @@ pub fn start(app: &AppHandle) {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
 
     #[tauri::command]
     pub async fn jobs_snapshot(state: tauri::State<'_, JobsState>) -> Result<JobsSnapshot, AppError> {
-        Ok(state.registry.snapshot())
+        guarded(async move { Ok(state.registry.snapshot()) }).await
     }
 
     #[tauri::command]
     pub async fn cancel_job(state: tauri::State<'_, JobsState>, id: String) -> Result<(), AppError> {
-        state.registry.cancel(&id);
-        Ok(())
+        guarded(async move {
+            state.registry.cancel(&id);
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]
@@ -170,10 +174,13 @@ pub mod commands {
         id: String,
         policy: Policy,
     ) -> Result<(), AppError> {
-        state.registry.set_policy(&id, policy);
-        state.persist(&app);
-        state.notify();
-        Ok(())
+        guarded(async move {
+            state.registry.set_policy(&id, policy);
+            state.persist(&app);
+            state.notify();
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]
@@ -183,10 +190,13 @@ pub mod commands {
         id: String,
         enabled: bool,
     ) -> Result<(), AppError> {
-        state.registry.set_enabled(&id, enabled);
-        state.persist(&app);
-        state.notify();
-        Ok(())
+        guarded(async move {
+            state.registry.set_enabled(&id, enabled);
+            state.persist(&app);
+            state.notify();
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]
@@ -195,16 +205,22 @@ pub mod commands {
         state: tauri::State<'_, JobsState>,
         enabled: bool,
     ) -> Result<(), AppError> {
-        state.registry.set_all_enabled(enabled);
-        state.persist(&app);
-        state.notify();
-        Ok(())
+        guarded(async move {
+            state.registry.set_all_enabled(enabled);
+            state.persist(&app);
+            state.notify();
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]
     pub async fn force_run_job(state: tauri::State<'_, JobsState>, id: String) -> Result<(), AppError> {
-        state.registry.force_run(&id);
-        Ok(())
+        guarded(async move {
+            state.registry.force_run(&id);
+            Ok(())
+        })
+        .await
     }
 }
 

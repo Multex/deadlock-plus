@@ -1,3 +1,4 @@
+use crate::command_panics::guarded;
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use std::sync::Arc;
@@ -109,11 +110,14 @@ pub fn network_poll(monitor: State<'_, NetworkMonitor>, since_t: Option<u64>) ->
 /// Reads the on-disk log, which holds far more than the in-memory window, so a long match is covered whole.
 #[tauri::command]
 pub async fn network_history_range(app: AppHandle, start_ms: u64, end_ms: u64) -> Result<Option<PingSummary>, String> {
-    let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
-    tauri::async_runtime::spawn_blocking(move || summarize_file(&path, start_ms, end_ms))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
+    guarded(async move {
+        let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
+        tauri::async_runtime::spawn_blocking(move || summarize_file(&path, start_ms, end_ms))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// Raw pings over `[start_ms, end_ms]`, thinned to at most `max_points` so a long match stays cheap to draw.
@@ -124,11 +128,14 @@ pub async fn network_history_points(
     end_ms: u64,
     max_points: usize,
 ) -> Result<Vec<HistoryPoint>, String> {
-    let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
-    tauri::async_runtime::spawn_blocking(move || points_in_range_file(&path, start_ms, end_ms, max_points))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
+    guarded(async move {
+        let path = app.path().app_data_dir().map_err(|e| e.to_string())?.join(HISTORY_FILE);
+        tauri::async_runtime::spawn_blocking(move || points_in_range_file(&path, start_ms, end_ms, max_points))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())
+    })
+    .await
 }
 
 /// The game's own ping, loss and jitter to the match server; `None` outside a match or when unreadable.
@@ -144,12 +151,15 @@ pub async fn match_ping_points(
     match_id: u64,
     max_points: u32,
 ) -> Result<Option<MatchPingSeries>, String> {
-    let dir = super::recording::store_dir(&app).ok_or_else(|| "no app data dir".to_owned())?;
-    tauri::async_runtime::spawn_blocking(move || MatchStore::new(dir).read(match_id))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
-        .map(|ping| ping.map(|ping| MatchPingSeries::from_ping(&ping, max_points as usize)))
+    guarded(async move {
+        let dir = super::recording::store_dir(&app).ok_or_else(|| "no app data dir".to_owned())?;
+        tauri::async_runtime::spawn_blocking(move || MatchStore::new(dir).read(match_id))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())
+            .map(|ping| ping.map(|ping| MatchPingSeries::from_ping(&ping, max_points as usize)))
+    })
+    .await
 }
 
 #[cfg(test)]

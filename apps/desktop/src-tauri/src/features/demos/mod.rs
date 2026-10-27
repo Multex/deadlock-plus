@@ -15,6 +15,7 @@ pub fn replay_path(dir: &Path, id: u64, partial: bool) -> PathBuf {
 }
 
 pub mod commands {
+    use crate::command_panics::guarded;
     use serde::{Deserialize, Serialize};
 
     use super::error::DemosError;
@@ -35,17 +36,20 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn list_demos() -> Result<DemoListing, AppError> {
-        tauri::async_runtime::spawn_blocking(|| {
-            let Some(dir) = replays_dir() else {
-                return DemoListing { dir: None, reference_build: None, demos: Vec::new() };
-            };
-            let demos = list_demos_in(&dir);
-            log::debug!("listed {} replays", demos.len());
-            let reference_build = demos.iter().filter_map(|d| d.build_num).max();
-            DemoListing { dir: Some(dir.to_string_lossy().into_owned()), reference_build, demos }
+        guarded(async move {
+            tauri::async_runtime::spawn_blocking(|| {
+                let Some(dir) = replays_dir() else {
+                    return DemoListing { dir: None, reference_build: None, demos: Vec::new() };
+                };
+                let demos = list_demos_in(&dir);
+                log::debug!("listed {} replays", demos.len());
+                let reference_build = demos.iter().filter_map(|d| d.build_num).max();
+                DemoListing { dir: Some(dir.to_string_lossy().into_owned()), reference_build, demos }
+            })
+            .await
+            .map_err(AppError::internal)
         })
         .await
-        .map_err(AppError::internal)
     }
 
     #[derive(Serialize, TS)]
@@ -96,21 +100,24 @@ pub mod commands {
         store: State<'_, PinStore>,
         file_names: Vec<String>,
     ) -> Result<DeletePreview, AppError> {
-        let pins = pins_for(&app, &store)?;
-        tauri::async_runtime::spawn_blocking(move || {
-            let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
-            let (file_names, _) = split_pinned(&file_names, &pins);
-            let (targets, _) = resolve_targets(&dir, &file_names);
-            let total_bytes = targets.iter().map(|t| t.size).sum();
-            Ok(DeletePreview {
-                count: targets.len(),
-                total_bytes,
-                recycle: availability_for(&dir, total_bytes),
-                bin_free_bytes: bin_info(&dir).map(|b| b.limit.saturating_sub(b.used)),
+        guarded(async move {
+            let pins = pins_for(&app, &store)?;
+            tauri::async_runtime::spawn_blocking(move || {
+                let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
+                let (file_names, _) = split_pinned(&file_names, &pins);
+                let (targets, _) = resolve_targets(&dir, &file_names);
+                let total_bytes = targets.iter().map(|t| t.size).sum();
+                Ok(DeletePreview {
+                    count: targets.len(),
+                    total_bytes,
+                    recycle: availability_for(&dir, total_bytes),
+                    bin_free_bytes: bin_info(&dir).map(|b| b.limit.saturating_sub(b.used)),
+                })
             })
+            .await
+            .map_err(AppError::internal)?
         })
         .await
-        .map_err(AppError::internal)?
     }
 
     /// Recycling is re-checked here; a request the bin cannot hold is refused, never turned into
@@ -122,37 +129,40 @@ pub mod commands {
         file_names: Vec<String>,
         mode: DeleteMode,
     ) -> Result<DeleteReport, AppError> {
-        let pins = pins_for(&app, &store)?;
-        tauri::async_runtime::spawn_blocking(move || {
-            let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
-            let (file_names, mut pinned_refusals) = split_pinned(&file_names, &pins);
-            let (targets, mut failed) = resolve_targets(&dir, &file_names);
-            failed.append(&mut pinned_refusals);
-            let mut report = match mode {
-                DeleteMode::Permanent => delete_permanently(targets),
-                DeleteMode::Recycle => {
-                    let total = targets.iter().map(|t| t.size).sum();
-                    if availability_for(&dir, total) != RecycleAvailability::Available {
-                        log::error!("replay delete refused: the Recycle Bin cannot hold {total} bytes");
-                        return Err(DemosError::RecycleBinFull.into());
+        guarded(async move {
+            let pins = pins_for(&app, &store)?;
+            tauri::async_runtime::spawn_blocking(move || {
+                let dir = replays_dir().ok_or(DemosError::ReplaysFolderNotFound)?;
+                let (file_names, mut pinned_refusals) = split_pinned(&file_names, &pins);
+                let (targets, mut failed) = resolve_targets(&dir, &file_names);
+                failed.append(&mut pinned_refusals);
+                let mut report = match mode {
+                    DeleteMode::Permanent => delete_permanently(targets),
+                    DeleteMode::Recycle => {
+                        let total = targets.iter().map(|t| t.size).sum();
+                        if availability_for(&dir, total) != RecycleAvailability::Available {
+                            log::error!("replay delete refused: the Recycle Bin cannot hold {total} bytes");
+                            return Err(DemosError::RecycleBinFull.into());
+                        }
+                        delete_to_bin(targets)
                     }
-                    delete_to_bin(targets)
-                }
-            };
-            report.failed.append(&mut failed);
-            log::info!(
-                "replays deleted: {} {}, {} failed or skipped",
-                report.deleted.len(),
-                match mode {
-                    DeleteMode::Permanent => "permanently",
-                    DeleteMode::Recycle => "to the Recycle Bin",
-                },
-                report.failed.len()
-            );
-            Ok(DeleteReport::from(report))
+                };
+                report.failed.append(&mut failed);
+                log::info!(
+                    "replays deleted: {} {}, {} failed or skipped",
+                    report.deleted.len(),
+                    match mode {
+                        DeleteMode::Permanent => "permanently",
+                        DeleteMode::Recycle => "to the Recycle Bin",
+                    },
+                    report.failed.len()
+                );
+                Ok(DeleteReport::from(report))
+            })
+            .await
+            .map_err(AppError::internal)?
         })
         .await
-        .map_err(AppError::internal)?
     }
 
     #[tauri::command]

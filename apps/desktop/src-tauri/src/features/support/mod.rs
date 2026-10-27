@@ -313,14 +313,18 @@ fn build(app: &tauri::AppHandle) -> String {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
 
     /// Builds the plain-text support report. Nothing leaves the machine; the web view shows it and the
     /// user copies or saves it.
     #[tauri::command]
     pub async fn build_support_report(app: tauri::AppHandle) -> Result<String, AppError> {
-        tauri::async_runtime::spawn_blocking(move || build(&app))
-            .await
-            .map_err(|e| AppError::new(SupportError::BuildFailed).detail(e))
+        guarded(async move {
+            tauri::async_runtime::spawn_blocking(move || build(&app))
+                .await
+                .map_err(|e| AppError::new(SupportError::BuildFailed).detail(e))
+        })
+        .await
     }
 }
 

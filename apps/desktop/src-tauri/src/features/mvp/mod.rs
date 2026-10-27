@@ -240,6 +240,8 @@ impl Deps for AppDeps<'_> {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded_infallible;
+    use crate::features::error::AppError;
 
     fn current_grade_version(app: &AppHandle) -> String {
         adapter::grade_version(&app.state::<GameData>().cc_abilities())
@@ -247,36 +249,42 @@ pub mod commands {
 
     /// Current grades for the given matches; matches without a fresh grade are left out. Never fetches.
     #[tauri::command]
-    pub async fn mvp_grades(app: AppHandle, match_ids: Vec<u64>) -> Vec<MvpMatchGrade> {
-        let Some(store) = open_store(&app) else { return Vec::new() };
-        tauri::async_runtime::spawn_blocking(move || {
-            let version = current_grade_version(&app);
-            match_ids
-                .into_iter()
-                .take(MAX_READ_IDS)
-                .filter_map(|id| store.record(id))
-                .filter_map(|r| dto::from_record(&r, &version))
-                .collect()
+    pub async fn mvp_grades(app: AppHandle, match_ids: Vec<u64>) -> Result<Vec<MvpMatchGrade>, AppError> {
+        guarded_infallible(async move {
+            let Some(store) = open_store(&app) else { return Vec::new() };
+            tauri::async_runtime::spawn_blocking(move || {
+                let version = current_grade_version(&app);
+                match_ids
+                    .into_iter()
+                    .take(MAX_READ_IDS)
+                    .filter_map(|id| store.record(id))
+                    .filter_map(|r| dto::from_record(&r, &version))
+                    .collect()
+            })
+            .await
+            .unwrap_or_default()
         })
         .await
-        .unwrap_or_default()
     }
 
     /// The match's current grade. `None` when it is not gradable or has no current grade yet; then the background
     /// run is asked to grade this match first, and `mvp://graded` names it once done.
     #[tauri::command]
-    pub async fn mvp_grade_match(app: AppHandle, match_id: u64) -> Option<MvpMatchGrade> {
-        let store = open_store(&app)?;
-        tauri::async_runtime::spawn_blocking(move || {
-            let version = current_grade_version(&app);
-            let record = store.record(match_id);
-            if freshness(record.as_ref(), &version) != Freshness::Fresh {
-                app.state::<MvpService>().open(match_id);
-            }
-            record.and_then(|r| dto::from_record(&r, &version))
+    pub async fn mvp_grade_match(app: AppHandle, match_id: u64) -> Result<Option<MvpMatchGrade>, AppError> {
+        guarded_infallible(async move {
+            let store = open_store(&app)?;
+            tauri::async_runtime::spawn_blocking(move || {
+                let version = current_grade_version(&app);
+                let record = store.record(match_id);
+                if freshness(record.as_ref(), &version) != Freshness::Fresh {
+                    app.state::<MvpService>().open(match_id);
+                }
+                record.and_then(|r| dto::from_record(&r, &version))
+            })
+            .await
+            .ok()
+            .flatten()
         })
         .await
-        .ok()
-        .flatten()
     }
 }

@@ -143,6 +143,7 @@ pub fn start(app: &AppHandle) {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
 
     #[tauri::command]
@@ -154,8 +155,11 @@ pub mod commands {
     /// Fetches once on demand, even with alerts off, so the page is never empty just because nothing was polled yet.
     #[tauri::command]
     pub async fn refresh_alerts(app: AppHandle, state: tauri::State<'_, AlertsState>) -> Result<(), AppError> {
-        state.poll(&app, false).await;
-        Ok(())
+        guarded(async move {
+            state.poll(&app, false).await;
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]

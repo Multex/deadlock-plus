@@ -762,6 +762,7 @@ fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Clie
 }
 
 pub mod commands {
+    use crate::command_panics::guarded;
     use tauri::{AppHandle, State};
 
     use super::{api, coverage, local_coverage, DetailCoverage, GcService, GcStatus, LocalCoverage};
@@ -784,16 +785,19 @@ pub mod commands {
         app: AppHandle,
         http: State<'_, Http>,
     ) -> Result<DetailCoverage, AppError> {
-        let http = http.0.clone();
-        let ids = match_ids.clone();
-        let local = tauri::async_runtime::spawn_blocking(move || local_coverage(&app, &ids));
-        let (known, replays) =
-            futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
-        let local = local.await.unwrap_or_else(|e| {
-            log::warn!("gc: could not read what Deadlock+ holds of these matches: {e}");
-            LocalCoverage::default()
-        });
-        Ok(coverage(&match_ids, &known?, &replays?, &local))
+        guarded(async move {
+            let http = http.0.clone();
+            let ids = match_ids.clone();
+            let local = tauri::async_runtime::spawn_blocking(move || local_coverage(&app, &ids));
+            let (known, replays) =
+                futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
+            let local = local.await.unwrap_or_else(|e| {
+                log::warn!("gc: could not read what Deadlock+ holds of these matches: {e}");
+                LocalCoverage::default()
+            });
+            Ok(coverage(&match_ids, &known?, &replays?, &local))
+        })
+        .await
     }
 
     #[tauri::command]

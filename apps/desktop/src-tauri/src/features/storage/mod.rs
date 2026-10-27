@@ -72,6 +72,7 @@ mod tests {
 pub mod commands {
     use super::error::{check_clear, StorageError};
     use super::ClearReport;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
     use dp_storage::{
         clear_except, entry_stats, is_clearable, location, EntryId, EntryInfo, EntryStats, Roots, ALL_ENTRIES,
@@ -90,25 +91,31 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn storage_entries(app: tauri::AppHandle) -> Result<Vec<EntryInfo>, AppError> {
-        tauri::async_runtime::spawn_blocking(move || {
-            let roots = current_roots(&app);
-            ALL_ENTRIES
-                .into_iter()
-                .map(|id| EntryInfo {
-                    id,
-                    path: location(id, &roots).filter(|p| p.exists()).map(|p| p.to_string_lossy().into_owned()),
-                    clearable: is_clearable(id),
-                })
-                .collect()
+        guarded(async move {
+            tauri::async_runtime::spawn_blocking(move || {
+                let roots = current_roots(&app);
+                ALL_ENTRIES
+                    .into_iter()
+                    .map(|id| EntryInfo {
+                        id,
+                        path: location(id, &roots).filter(|p| p.exists()).map(|p| p.to_string_lossy().into_owned()),
+                        clearable: is_clearable(id),
+                    })
+                    .collect()
+            })
+            .await
+            .map_err(AppError::internal)
         })
         .await
-        .map_err(AppError::internal)
     }
 
     #[tauri::command]
     pub async fn storage_entry_stats(app: tauri::AppHandle, id: EntryId) -> Result<EntryStats, AppError> {
-        let roots = current_roots(&app);
-        tauri::async_runtime::spawn_blocking(move || entry_stats(id, &roots)).await.map_err(AppError::internal)
+        guarded(async move {
+            let roots = current_roots(&app);
+            tauri::async_runtime::spawn_blocking(move || entry_stats(id, &roots)).await.map_err(AppError::internal)
+        })
+        .await
     }
 
     /// The frontend sends an entry id, never a path.
@@ -123,20 +130,27 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn storage_clear(app: tauri::AppHandle, id: EntryId) -> Result<ClearReport, AppError> {
-        check_clear(id, dp_game::is_running()).inspect_err(|e| log::warn!("storage clear refused ({id:?}): {e}"))?;
-        let roots = current_roots(&app);
-        let keep: Vec<String> =
-            app.state::<crate::features::network::recording::MatchPingService>().recording_key().into_iter().collect();
-        tauri::async_runtime::spawn_blocking(move || {
-            let clear = || clear_except(id, &roots, &keep);
-            match app.try_state::<crate::features::salts::record::SaltRecordService>() {
-                Some(record) if id == EntryId::SharedMatches => record.clear_with(clear),
-                _ => clear(),
-            }
+        guarded(async move {
+            check_clear(id, dp_game::is_running())
+                .inspect_err(|e| log::warn!("storage clear refused ({id:?}): {e}"))?;
+            let roots = current_roots(&app);
+            let keep: Vec<String> = app
+                .state::<crate::features::network::recording::MatchPingService>()
+                .recording_key()
+                .into_iter()
+                .collect();
+            tauri::async_runtime::spawn_blocking(move || {
+                let clear = || clear_except(id, &roots, &keep);
+                match app.try_state::<crate::features::salts::record::SaltRecordService>() {
+                    Some(record) if id == EntryId::SharedMatches => record.clear_with(clear),
+                    _ => clear(),
+                }
+            })
+            .await
+            .map_err(AppError::internal)?
+            .map(ClearReport::from)
+            .map_err(AppError::internal)
         })
         .await
-        .map_err(AppError::internal)?
-        .map(ClearReport::from)
-        .map_err(AppError::internal)
     }
 }

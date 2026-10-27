@@ -296,6 +296,7 @@ fn import_code(text: &str) -> Result<BuildView, AppError> {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use crate::features::i18n::I18nState;
     use dp_builds::drafts::DraftView;
     use tauri::State;
@@ -324,20 +325,23 @@ pub mod commands {
         data: State<'_, GameData>,
         vdata: State<'_, GameVdata>,
     ) -> Result<LocalBuilds, AppError> {
-        let dirs = app_dirs(&app)?;
-        let data = data.inner().clone();
-        let vdata = Arc::clone(&vdata.heroes);
-        blocking(move || {
-            let target = paths::current_target()?;
-            let bytes = read_file(&target.path)?;
-            let queued = queue::pending(&dirs.queue, target.account_id32)?;
-            plan::local_builds(
-                bytes.as_deref(),
-                &installed_heroes(&data, &vdata),
-                &queued,
-                target.account_id32,
-                paths::game_running_recent(),
-            )
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            let data = data.inner().clone();
+            let vdata = Arc::clone(&vdata.heroes);
+            blocking(move || {
+                let target = paths::current_target()?;
+                let bytes = read_file(&target.path)?;
+                let queued = queue::pending(&dirs.queue, target.account_id32)?;
+                plan::local_builds(
+                    bytes.as_deref(),
+                    &installed_heroes(&data, &vdata),
+                    &queued,
+                    target.account_id32,
+                    paths::game_running_recent(),
+                )
+            })
+            .await
         })
         .await
     }
@@ -351,15 +355,18 @@ pub mod commands {
         request: SaveRequest,
         draft_id: Option<String>,
     ) -> Result<SaveResult, AppError> {
-        let dirs = app_dirs(&app)?;
-        let data = data.inner().clone();
-        let vdata = Arc::clone(&vdata.heroes);
-        let locale = i18n.locale();
-        blocking(move || {
-            let inputs = save_inputs(&data, &vdata, &locale);
-            let (account, result) = save_planned_for(&dirs, inputs, |ctx| plan::plan_save(request, ctx))?;
-            drafts_after_save(&dirs, account, &result, draft_id.as_deref());
-            Ok(result)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            let data = data.inner().clone();
+            let vdata = Arc::clone(&vdata.heroes);
+            let locale = i18n.locale();
+            blocking(move || {
+                let inputs = save_inputs(&data, &vdata, &locale);
+                let (account, result) = save_planned_for(&dirs, inputs, |ctx| plan::plan_save(request, ctx))?;
+                drafts_after_save(&dirs, account, &result, draft_id.as_deref());
+                Ok(result)
+            })
+            .await
         })
         .await
     }
@@ -367,10 +374,13 @@ pub mod commands {
     /// Newest first.
     #[tauri::command]
     pub async fn builds_drafts(app: AppHandle) -> Result<Vec<DraftView>, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            Ok(drafts::list(&dirs.drafts, target.account_id32)?)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                Ok(drafts::list(&dirs.drafts, target.account_id32)?)
+            })
+            .await
         })
         .await
     }
@@ -378,22 +388,28 @@ pub mod commands {
     /// Autosave: stores the draft under its id, or under a new one when `id` is empty.
     #[tauri::command]
     pub async fn builds_draft_save(app: AppHandle, draft: DraftView) -> Result<DraftView, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            let _guard = DRAFT_LOCK.lock_or_recover();
-            Ok(drafts::upsert(&dirs.drafts, target.account_id32, draft, now_secs())?)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                let _guard = DRAFT_LOCK.lock_or_recover();
+                Ok(drafts::upsert(&dirs.drafts, target.account_id32, draft, now_secs())?)
+            })
+            .await
         })
         .await
     }
 
     #[tauri::command]
     pub async fn builds_draft_delete(app: AppHandle, id: String) -> Result<bool, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            let _guard = DRAFT_LOCK.lock_or_recover();
-            Ok(drafts::remove(&dirs.drafts, target.account_id32, &id)?)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                let _guard = DRAFT_LOCK.lock_or_recover();
+                Ok(drafts::remove(&dirs.drafts, target.account_id32, &id)?)
+            })
+            .await
         })
         .await
     }
@@ -405,8 +421,11 @@ pub mod commands {
         id: u32,
         base: String,
     ) -> Result<SaveResult, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || save_planned(&dirs, no_heroes(), |_| plan::plan_delete(section.into(), id, &base))).await
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || save_planned(&dirs, no_heroes(), |_| plan::plan_delete(section.into(), id, &base))).await
+        })
+        .await
     }
 
     #[tauri::command]
@@ -416,26 +435,37 @@ pub mod commands {
         id: Option<u32>,
         view: Option<BuildView>,
     ) -> Result<SaveResult, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            save_planned(&dirs, no_heroes(), |ctx| plan::plan_favourite(ctx.file, base.as_deref(), id, view.as_ref()))
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                save_planned(&dirs, no_heroes(), |ctx| {
+                    plan::plan_favourite(ctx.file, base.as_deref(), id, view.as_ref())
+                })
+            })
+            .await
         })
         .await
     }
 
     #[tauri::command]
     pub async fn builds_unfavourite(app: AppHandle, id: u32) -> Result<SaveResult, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || save_planned(&dirs, no_heroes(), |ctx| Ok(plan::plan_unfavourite(ctx.file, id)))).await
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || save_planned(&dirs, no_heroes(), |ctx| Ok(plan::plan_unfavourite(ctx.file, id)))).await
+        })
+        .await
     }
 
     #[tauri::command]
     pub async fn builds_queue_cancel(app: AppHandle, id: String) -> Result<bool, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let _guard = SAVE_LOCK.lock_or_recover();
-            let target = paths::current_target()?;
-            Ok(queue::cancel(&dirs.queue, target.account_id32, &id)?)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let _guard = SAVE_LOCK.lock_or_recover();
+                let target = paths::current_target()?;
+                Ok(queue::cancel(&dirs.queue, target.account_id32, &id)?)
+            })
+            .await
         })
         .await
     }
@@ -447,26 +477,32 @@ pub mod commands {
         id: String,
         choice: ResolveChoice,
     ) -> Result<FlushView, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            {
-                let _guard = SAVE_LOCK.lock_or_recover();
-                let target = paths::current_target()?;
-                let choice = match choice {
-                    ResolveChoice::Ours => queue::Choice::KeepOurs,
-                    ResolveChoice::Game => queue::Choice::KeepGame,
-                };
-                queue::resolve_conflict(&dirs.queue, target.account_id32, &target.path, &id, choice)?;
-            }
-            flush_now(&dirs)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                {
+                    let _guard = SAVE_LOCK.lock_or_recover();
+                    let target = paths::current_target()?;
+                    let choice = match choice {
+                        ResolveChoice::Ours => queue::Choice::KeepOurs,
+                        ResolveChoice::Game => queue::Choice::KeepGame,
+                    };
+                    queue::resolve_conflict(&dirs.queue, target.account_id32, &target.path, &id, choice)?;
+                }
+                flush_now(&dirs)
+            })
+            .await
         })
         .await
     }
 
     #[tauri::command]
     pub async fn builds_flush(app: AppHandle) -> Result<FlushView, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || flush_now(&dirs)).await
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || flush_now(&dirs)).await
+        })
+        .await
     }
 
     #[tauri::command]
@@ -474,24 +510,30 @@ pub mod commands {
         app: AppHandle,
         build_id: u32,
     ) -> Result<Vec<dp_builds::history::BuildVersionMeta>, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            Ok(history::list(&dirs.history, target.account_id32, build_id)?)
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                Ok(history::list(&dirs.history, target.account_id32, build_id)?)
+            })
+            .await
         })
         .await
     }
 
     #[tauri::command]
     pub async fn builds_history_get(app: AppHandle, build_id: u32, version_id: String) -> Result<BuildView, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            let version = history::get(&dirs.history, target.account_id32, build_id, &version_id)?
-                .ok_or(BuildsError::VersionNotFound)?;
-            let decoded = dp_builds::wire::HeroBuildResult::decode(&version.blob)
-                .map_err(|e| AppError::new(BuildsError::HistoryFailed).detail(e))?;
-            Ok(dp_builds::model::view(&decoded))
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                let version = history::get(&dirs.history, target.account_id32, build_id, &version_id)?
+                    .ok_or(BuildsError::VersionNotFound)?;
+                let decoded = dp_builds::wire::HeroBuildResult::decode(&version.blob)
+                    .map_err(|e| AppError::new(BuildsError::HistoryFailed).detail(e))?;
+                Ok(dp_builds::model::view(&decoded))
+            })
+            .await
         })
         .await
     }
@@ -500,9 +542,12 @@ pub mod commands {
     /// written, so it works while the game runs.
     #[tauri::command]
     pub async fn build_code_export(request: SaveRequest) -> Result<String, AppError> {
-        blocking(move || {
-            let account = paths::current_target().ok().map(|t| t.account_id32);
-            export_code(request, account, u32::try_from(now_secs()).unwrap_or(u32::MAX))
+        guarded(async move {
+            blocking(move || {
+                let account = paths::current_target().ok().map(|t| t.account_id32);
+                export_code(request, account, u32::try_from(now_secs()).unwrap_or(u32::MAX))
+            })
+            .await
         })
         .await
     }
@@ -510,18 +555,21 @@ pub mod commands {
     /// A code from the game's "Copy build to clipboard", as a build to open. Save it as a `copyView`.
     #[tauri::command]
     pub async fn build_code_import(code: String) -> Result<BuildView, AppError> {
-        import_code(&code)
+        guarded(async move { import_code(&code) }).await
     }
 
     #[tauri::command]
     pub async fn builds_backups(app: AppHandle) -> Result<Vec<BuildBackup>, AppError> {
-        let dirs = app_dirs(&app)?;
-        blocking(move || {
-            let target = paths::current_target()?;
-            Ok(dp_builds::backup::list_backups(&dirs.backups, target.account_id32)
-                .into_iter()
-                .map(|b| BuildBackup { path: b.path.to_string_lossy().into_owned(), timestamp: b.timestamp })
-                .collect())
+        guarded(async move {
+            let dirs = app_dirs(&app)?;
+            blocking(move || {
+                let target = paths::current_target()?;
+                Ok(dp_builds::backup::list_backups(&dirs.backups, target.account_id32)
+                    .into_iter()
+                    .map(|b| BuildBackup { path: b.path.to_string_lossy().into_owned(), timestamp: b.timestamp })
+                    .collect())
+            })
+            .await
         })
         .await
     }

@@ -1,3 +1,4 @@
+use crate::command_panics::guarded;
 use tauri::{AppHandle, Manager};
 
 use super::restart::RestartAsAdminOutcome;
@@ -77,31 +78,41 @@ fn phase(app: &AppHandle) -> LivePhase {
 
 #[tauri::command]
 pub async fn admin_access_status(app: AppHandle) -> Result<AdminAccessStatus, AppError> {
-    let phase = phase(&app);
-    tauri::async_runtime::spawn_blocking(move || platform::status_now(phase)).await.map_err(AppError::internal)
+    guarded(async move {
+        let phase = phase(&app);
+        tauri::async_runtime::spawn_blocking(move || platform::status_now(phase)).await.map_err(AppError::internal)
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn allow_admin_access(app: AppHandle, always: bool) -> Result<AdminAccessOutcome, AppError> {
-    if let Some(error) = platform::refusal(phase(&app)) {
-        return Err(error);
-    }
-    tauri::async_runtime::spawn_blocking(move || platform::allow(always)).await.map_err(AppError::internal)?
+    guarded(async move {
+        if let Some(error) = platform::refusal(phase(&app)) {
+            return Err(error);
+        }
+        tauri::async_runtime::spawn_blocking(move || platform::allow(always)).await.map_err(AppError::internal)?
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn remove_admin_access() -> Result<(), AppError> {
-    tauri::async_runtime::spawn_blocking(platform::remove).await.map_err(AppError::internal)?
+    guarded(async move { tauri::async_runtime::spawn_blocking(platform::remove).await.map_err(AppError::internal)? })
+        .await
 }
 
 /// On `launched` this instance quits through the page, so its pending saves land before the elevated one starts.
 #[tauri::command]
 pub async fn restart_as_admin(app: AppHandle) -> Result<RestartAsAdminOutcome, AppError> {
-    let outcome =
-        tauri::async_runtime::spawn_blocking(platform::restart_as_admin).await.map_err(AppError::internal)??;
-    if outcome == RestartAsAdminOutcome::Launched {
-        log::info!("restarting as administrator");
-        crate::features::tray::request_quit(&app);
-    }
-    Ok(outcome)
+    guarded(async move {
+        let outcome =
+            tauri::async_runtime::spawn_blocking(platform::restart_as_admin).await.map_err(AppError::internal)??;
+        if outcome == RestartAsAdminOutcome::Launched {
+            log::info!("restarting as administrator");
+            crate::features::tray::request_quit(&app);
+        }
+        Ok(outcome)
+    })
+    .await
 }

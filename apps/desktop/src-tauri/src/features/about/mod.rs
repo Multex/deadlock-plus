@@ -58,6 +58,7 @@ pub struct AppInfo {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use tauri::Manager;
 
     /// Embedded at build time so the release notes always match the running binary.
@@ -68,27 +69,30 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn app_info(app: tauri::AppHandle) -> Result<AppInfo, AppError> {
-        tauri::async_runtime::spawn_blocking(move || {
-            let game_dir = dp_steam::game_install_dir();
-            let game_build = game_dir.as_ref().and_then(|d| {
-                let text = std::fs::read_to_string(d.join("game").join("citadel").join("steam.inf")).ok()?;
-                Some(parse_steam_inf(&text))
-            });
-            AppInfo {
-                app_version: app.package_info().version.to_string(),
-                tauri_version: tauri::VERSION.to_string(),
-                webview_version: tauri::webview_version().ok(),
-                os: sysinfo::System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
-                arch: std::env::consts::ARCH.to_string(),
-                debug_build: cfg!(debug_assertions),
-                elevated: dp_elevation::is_elevated(),
-                data_dir: app.path().app_data_dir().ok().map(|p| p.to_string_lossy().into_owned()),
-                game_dir: game_dir.map(|p| p.to_string_lossy().into_owned()),
-                game_build,
-            }
+        guarded(async move {
+            tauri::async_runtime::spawn_blocking(move || {
+                let game_dir = dp_steam::game_install_dir();
+                let game_build = game_dir.as_ref().and_then(|d| {
+                    let text = std::fs::read_to_string(d.join("game").join("citadel").join("steam.inf")).ok()?;
+                    Some(parse_steam_inf(&text))
+                });
+                AppInfo {
+                    app_version: app.package_info().version.to_string(),
+                    tauri_version: tauri::VERSION.to_string(),
+                    webview_version: tauri::webview_version().ok(),
+                    os: sysinfo::System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
+                    arch: std::env::consts::ARCH.to_string(),
+                    debug_build: cfg!(debug_assertions),
+                    elevated: dp_elevation::is_elevated(),
+                    data_dir: app.path().app_data_dir().ok().map(|p| p.to_string_lossy().into_owned()),
+                    game_dir: game_dir.map(|p| p.to_string_lossy().into_owned()),
+                    game_build,
+                }
+            })
+            .await
+            .map_err(|e| AppError::new(AboutError::InfoUnavailable).detail(e))
         })
         .await
-        .map_err(|e| AppError::new(AboutError::InfoUnavailable).detail(e))
     }
 }
 

@@ -60,23 +60,30 @@ pub fn start(app: &tauri::AppHandle) {
 
 pub mod commands {
     use super::{cache_dir, read_entry, write_entry};
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
     use std::time::SystemTime;
 
     #[tauri::command]
     pub async fn match_detail_cache_read(app: tauri::AppHandle, match_id: u64) -> Result<Option<String>, AppError> {
-        let dir = cache_dir(&app)?;
-        tauri::async_runtime::spawn_blocking(move || read_entry(&dir, match_id, SystemTime::now()))
-            .await
-            .map_err(AppError::internal)?
+        guarded(async move {
+            let dir = cache_dir(&app)?;
+            tauri::async_runtime::spawn_blocking(move || read_entry(&dir, match_id, SystemTime::now()))
+                .await
+                .map_err(AppError::internal)?
+        })
+        .await
     }
 
     #[tauri::command]
     pub async fn match_detail_cache_write(app: tauri::AppHandle, match_id: u64, json: String) -> Result<(), AppError> {
-        let dir = cache_dir(&app)?;
-        tauri::async_runtime::spawn_blocking(move || write_entry(&dir, match_id, &json, SystemTime::now()))
-            .await
-            .map_err(AppError::internal)?
+        guarded(async move {
+            let dir = cache_dir(&app)?;
+            tauri::async_runtime::spawn_blocking(move || write_entry(&dir, match_id, &json, SystemTime::now()))
+                .await
+                .map_err(AppError::internal)?
+        })
+        .await
     }
 }
 
