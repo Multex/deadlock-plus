@@ -16,7 +16,7 @@ pub enum ReadError {
 }
 
 /// One read of the running game: the facts presence code uses plus the scoreboard.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LiveRead {
     pub facts: LiveFacts,
     pub board: Board,
@@ -63,11 +63,13 @@ impl<T> Slot<T> {
     pub fn latest(&self) -> Latest<T> {
         lock(&self.inner).clone()
     }
+}
 
-    /// Every `Some` is new data and bumps the generation; `None` only bumps it when it clears a value.
+impl<T: PartialEq> Slot<T> {
+    /// Bumps the generation only when the value changes, including when `None` clears one.
     pub(crate) fn publish(&self, value: Option<T>) {
         let mut inner = lock(&self.inner);
-        if value.is_none() && inner.value.is_none() {
+        if inner.value.as_deref() == value.as_ref() {
             return;
         }
         inner.value = value.map(Arc::new);
@@ -320,8 +322,19 @@ mod tests {
         slot.publish(Some(7));
         let a = slot.latest();
         assert_eq!((a.value.as_deref().copied(), a.generation), (Some(7), 1));
-        slot.publish(Some(7));
+        slot.publish(Some(8));
         assert_eq!(slot.latest().generation, 2);
+    }
+
+    #[test]
+    fn publishing_the_same_value_keeps_the_generation() {
+        let slot = Slot::<u32>::default();
+        slot.publish(Some(7));
+        let held = slot.latest();
+        slot.publish(Some(7));
+        let after = slot.latest();
+        assert_eq!(after.generation, 1);
+        assert!(Arc::ptr_eq(held.value.as_ref().unwrap(), after.value.as_ref().unwrap()));
     }
 
     #[test]
@@ -426,7 +439,7 @@ mod tests {
                 c.snapshot.latest().generation
             })
             .collect();
-        assert_eq!(gens, [1, 1, 2, 3, 3]);
+        assert_eq!(gens, [1, 1, 1, 2, 2]);
     }
 
     #[test]
