@@ -22,30 +22,30 @@ async fn on_worker<R: Send + 'static>(
     run: impl FnOnce(&dp_kv::KvStore, &std::path::Path) -> Result<R, String> + Send + 'static,
 ) -> Result<R, AppError> {
     let dir = dir(&app)?;
-    tauri::async_runtime::spawn_blocking(move || run(&app.state::<dp_kv::KvStore>(), &dir))
-        .await
-        .map_err(AppError::internal)?
+    crate::command_panics::spawn_blocking_guarded(move || run(&app.state::<dp_kv::KvStore>(), &dir))
+        .await?
         .map_err(store_failed)
 }
 
 pub mod commands {
     use super::on_worker;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
     use serde_json::Value;
 
     #[tauri::command]
     pub async fn kv_get(app: tauri::AppHandle, store: String, key: String) -> Result<Option<Value>, AppError> {
-        on_worker(app, move |kv, dir| kv.get(dir, &store, &key)).await
+        guarded(async move { on_worker(app, move |kv, dir| kv.get(dir, &store, &key)).await }).await
     }
 
     #[tauri::command]
     pub async fn kv_set(app: tauri::AppHandle, store: String, key: String, value: Value) -> Result<(), AppError> {
-        on_worker(app, move |kv, dir| kv.set(dir, &store, &key, value)).await
+        guarded(async move { on_worker(app, move |kv, dir| kv.set(dir, &store, &key, value)).await }).await
     }
 
     #[tauri::command]
     pub async fn kv_delete(app: tauri::AppHandle, store: String, key: String) -> Result<(), AppError> {
-        on_worker(app, move |kv, dir| kv.delete(dir, &store, &key)).await
+        guarded(async move { on_worker(app, move |kv, dir| kv.delete(dir, &store, &key)).await }).await
     }
 }
 
