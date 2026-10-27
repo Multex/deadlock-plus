@@ -1555,8 +1555,11 @@
         "toast": {
             "deleted_one": "Deleted {count} replay",
             "deleted_other": "Deleted {count} replays",
-            "delete_failed_one": "Couldn't delete {count} replay. Check the log for details.",
-            "delete_failed_other": "Couldn't delete {count} replays. Check the log for details."
+            "delete_failed_one": "Couldn't delete {count} replay. Try again.",
+            "delete_failed_other": "Couldn't delete {count} replays. Try again.",
+            "delete_none": "Couldn't delete those replays. Try again.",
+            "pin_failed": "Couldn't pin that replay. Try again.",
+            "open_failed": "Couldn't open the replays folder."
         },
         "list_error": "Couldn't read your replays."
     },
