@@ -31,7 +31,8 @@
     }
 </script>
 
-<Page class="h-full min-h-0 max-w-[1232px] gap-4 px-4 pb-6">
+<!-- On a short window the list below the filters would shrink to nothing; the page scrolls instead. -->
+<Page class="h-full min-h-[36rem] max-w-[1232px] gap-4 px-4 pb-6">
     <PageHeader title={t("builds.browser.title")} subtitle={t("builds.browser.subtitle")}>
         {#snippet actions()}
             <PasteCodeDialog />
