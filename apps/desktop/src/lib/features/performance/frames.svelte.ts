@@ -1,4 +1,5 @@
-import { errorText } from "$lib/core/errors";
+import { failureText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
 import { createPoller } from "$lib/core/poller";
 import { frameCaptureStatus, startFrameCapture, stopFrameCapture, type CaptureStatus, type FrameStats } from "./api";
 
@@ -22,7 +23,7 @@ class FrameCaptureStore {
             await this.poll();
             this.poller.start();
         } catch (e) {
-            this.error = errorText(e);
+            this.error = failureText(e, t("performance.frametimes.start_failed"));
         }
     }
 
@@ -33,7 +34,7 @@ class FrameCaptureStore {
         try {
             this.result = await stopFrameCapture();
         } catch (e) {
-            this.error = errorText(e);
+            this.error = failureText(e, t("performance.frametimes.stop_failed"));
         }
         this.status = null;
     }
@@ -42,7 +43,7 @@ class FrameCaptureStore {
         try {
             this.status = await frameCaptureStatus();
         } catch (e) {
-            this.error = errorText(e);
+            this.error = failureText(e, t("performance.frametimes.read_failed"));
         }
     }
 }

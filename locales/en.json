@@ -1286,7 +1286,10 @@
             "save": "Save run",
             "saved": "Saved",
             "spike_at": "at {time}",
-            "needs_admin": "Frame times need administrator access."
+            "needs_admin": "Frame times need administrator access.",
+            "start_failed": "Couldn't start recording. Try again.",
+            "stop_failed": "Couldn't finish the recording. Try again.",
+            "read_failed": "Couldn't read frames just now."
         },
         "scripts": {
             "intro": "Scans the scripts inside your installed Deadlock mods for patterns that can hurt frametimes, like timers that pile up. Nothing is changed or run.",
