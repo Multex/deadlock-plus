@@ -222,6 +222,15 @@ describe("issueDue", () => {
         expect(f.kv.set).not.toHaveBeenCalled();
     });
 
+    it("issues nothing, and does not throw, when kv refuses the write", async () => {
+        const f = fakeDeps();
+        f.kv.set.mockRejectedValue({ code: "common.internal", params: {} });
+        const service = createDispatchService(f.deps);
+        expect(await service.issueDue()).toEqual([]);
+        expect(f.deps.notify).not.toHaveBeenCalled();
+        expect((await service.view())?.shelf.weekly[0]).toMatchObject({ status: "printable", matches: 4 });
+    });
+
     it("issues nothing from a saved offline copy of the history", async () => {
         const f = fakeDeps({ history: vi.fn(async () => ({ matches: HISTORY, live: false })) });
         expect(await createDispatchService(f.deps).issueDue()).toEqual([]);
@@ -391,6 +400,20 @@ describe("view", () => {
         ]);
         expect(view?.shelf.weekly[0].window).toEqual(week(19));
         expect([view?.soFar, view?.soFarMatches]).toEqual([null, 0]);
+    });
+
+    it("keeps the shelf when one frozen edition cannot be read", async () => {
+        const f = fakeDeps();
+        await createDispatchService(f.deps).issueDue();
+        const read = f.kv.get.getMockImplementation()!;
+        f.kv.get.mockImplementation(async (key: string) => {
+            if (key === editionKey(ME, "weekly-2026-10-19")) throw { code: "common.internal", params: {} };
+            return read(key);
+        });
+        const view = await createDispatchService(f.deps).view();
+
+        expect(view?.latest.weekly).toBeNull();
+        expect(view?.shelf.weekly[0]).toMatchObject({ status: "issued", number: 1 });
     });
 
     it("says the history loaded when it did", async () => {

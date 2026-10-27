@@ -244,17 +244,19 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         if (!history?.live) return [];
         const known = await loadSeasons();
         const issued: Edition[] = [];
-        for (const kind of KINDS) {
+        const issueKind = async (kind: EditionKind) => {
             const index = await readIndex(accountId);
             const window = dueWindow(kind, deps.nowS(), deps.tz(), index, known);
-            if (!window) continue;
+            if (!window) return;
             if (windowRows(history.matches, window).length < MIN_EDITION_MATCHES) {
                 await saveIndex(accountId, recordSkipped(index, window.id));
-                continue;
+                return;
             }
             const edition = await issue(accountId, window, history.matches, false, seasonOf(window, known));
             if (edition) issued.push(edition);
-        }
+        };
+        // A kind kv could not store stays due, so the next run tries it again.
+        for (const kind of KINDS) await issueKind(kind).catch(() => {});
         return issued;
     }
 
@@ -348,7 +350,8 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         };
         const latestOf = (kind: EditionKind) => {
             const entry = index.issued.find((e) => e.kind === kind);
-            return entry ? readEdition(accountId, entry.id) : Promise.resolve(null);
+            // One unreadable copy costs its cover only; the room says so when it is picked up.
+            return entry ? readEdition(accountId, entry.id).catch(() => null) : Promise.resolve(null);
         };
 
         const live = soFarWindow(now, tz);
