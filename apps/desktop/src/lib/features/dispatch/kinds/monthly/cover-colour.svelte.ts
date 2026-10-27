@@ -2,12 +2,9 @@ import { SvelteMap } from "svelte/reactivity";
 import { coverBackdrop } from "../../art";
 import { dominantColour } from "./backdrop-colour";
 
-/**
- * The size the backdrop is drawn down to before sampling. The colour vote only needs the big colour areas, and the
- * pixel readback stalls the main thread in proportion to the canvas size.
- */
-export const SAMPLE_W = 32;
-export const SAMPLE_H = 18;
+/** The size the backdrop is drawn down to before sampling: enough for its colour areas, cheap to read. */
+export const SAMPLE_W = 96;
+export const SAMPLE_H = 54;
 const READ_CACHE_LIMIT = 64;
 
 interface Sources {
@@ -80,7 +77,9 @@ export function pixelReader({ load, makeCanvas, limit = READ_CACHE_LIMIT }: Read
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) return null;
         context.drawImage(img, 0, 0, SAMPLE_W, SAMPLE_H);
-        return context.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data;
+        const data = context.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data;
+        if ("close" in img) img.close();
+        return data;
     }
 
     return (src: string) => {
@@ -95,13 +94,17 @@ export function pixelReader({ load, makeCanvas, limit = READ_CACHE_LIMIT }: Read
     };
 }
 
-/** `crossOrigin` keeps the canvas readable: both `asset:` art and the API's images send CORS headers. */
+/**
+ * `crossOrigin` keeps the canvas readable: both `asset:` art and the API's images send CORS headers. The resize is
+ * done by `createImageBitmap` off the main thread: drawing the 2048x1156 art into a canvas and reading it back
+ * instead blocks the main thread for about 75 ms per hero, whatever the canvas size.
+ */
 async function loadImage(src: string): Promise<CanvasImageSource> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
     await img.decode();
-    return img;
+    return createImageBitmap(img, { resizeWidth: SAMPLE_W, resizeHeight: SAMPLE_H, resizeQuality: "medium" });
 }
 
 const readPixels = pixelReader({ load: loadImage, makeCanvas: () => document.createElement("canvas") });

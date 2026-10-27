@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { artColours, pixelReader, SAMPLE_H, SAMPLE_W } from "./cover-colour.svelte";
-import { dominantColour } from "./backdrop-colour";
 
 const ORANGE = new Uint8ClampedArray([232, 100, 42, 255]);
 
@@ -56,13 +55,18 @@ function fakeCanvas() {
 }
 
 describe("pixelReader", () => {
-    it("draws into a small canvas", async () => {
+    it("draws into a small canvas and frees the bitmap", async () => {
         const fake = fakeCanvas();
-        const read = pixelReader({ load: async () => ({}) as CanvasImageSource, makeCanvas: () => fake.canvas });
+        const close = vi.fn();
+        const read = pixelReader({
+            load: async () => ({ close }) as unknown as CanvasImageSource,
+            makeCanvas: () => fake.canvas,
+        });
         await read("a.png");
-        expect(fake.canvas.width).toBeLessThanOrEqual(32);
-        expect(fake.canvas.height).toBeLessThanOrEqual(18);
+        expect(fake.canvas.width).toBeLessThanOrEqual(96);
+        expect(fake.canvas.height).toBeLessThanOrEqual(54);
         expect(fake.getImageData).toHaveBeenCalledWith(0, 0, fake.canvas.width, fake.canvas.height);
+        expect(close).toHaveBeenCalledTimes(1);
     });
 
     it("does not touch the canvas again for a url it has read", async () => {
@@ -88,20 +92,5 @@ describe("pixelReader", () => {
         await read("c.png");
         await read("a.png");
         expect(load).toHaveBeenCalledTimes(4);
-    });
-
-    it("picks the same colour from the small size as from a larger one", () => {
-        const big = (w: number, h: number) => {
-            const px = new Uint8ClampedArray(w * h * 4);
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const i = (y * w + x) * 4;
-                    const burst = x > w * 0.55 && y < h * 0.6;
-                    px.set(burst ? [232, 100, 42, 255] : [30, 34, 44, 255], i);
-                }
-            }
-            return px;
-        };
-        expect(dominantColour(big(SAMPLE_W, SAMPLE_H))).toBe(dominantColour(big(96, 54)));
     });
 });
