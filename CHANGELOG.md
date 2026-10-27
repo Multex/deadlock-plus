@@ -104,6 +104,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Discord shows the match clock in the Hideout by default.
 - The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
 - Exported scoreboard images have a new footer with the Deadlock+ logo on the left and deadlockplus.app on the right.
+- Saving settings and match data no longer freezes the app for a moment.
+- Dispatch editions are kept in their own file, listed on its own row in Settings > Storage.
+- The website loads about half as much on a phone and keeps its pictures and fonts cached between visits.
 
 ### Fixed
 
