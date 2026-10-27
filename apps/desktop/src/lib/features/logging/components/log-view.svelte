@@ -9,15 +9,8 @@
     import Input from "@deadlock-plus/ui/input.svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
-    import {
-        exportLogs,
-        filterEntries,
-        LEVELS,
-        openLogDir,
-        readLogs,
-        type LogEntry,
-        type LogLevel,
-    } from "$lib/features/logging/logs";
+    import { exportLogs, filterEntries, LEVELS, openLogDir, readLogs, type LogLevel } from "$lib/features/logging/logs";
+    import { LogReader } from "$lib/features/logging/log-reader.svelte";
     import { loadLogViewPrefs, saveLogAutoScroll, saveLogMinLevel } from "$lib/features/logging/view-prefs";
 
     let { full = false }: { full?: boolean } = $props();
@@ -32,8 +25,9 @@
     };
     const LEVEL_ITEMS = LEVELS.map((l) => ({ value: l, label: l, level: l }));
 
-    let entries = $state<LogEntry[] | null>(null);
-    let failed = $state<string | null>(null);
+    const reader = new LogReader(readLogs);
+    const entries = $derived(reader.entries);
+    const failed = $derived(reader.failed);
     const saved = loadLogViewPrefs();
     let level = $state<LogLevel>(saved.level);
     let query = $state("");
@@ -49,14 +43,7 @@
         if (autoScroll && scroller) scroller.scrollTop = scroller.scrollHeight;
     });
 
-    async function load() {
-        try {
-            entries = await readLogs();
-            failed = null;
-        } catch (e) {
-            failed = failureText(e, t("logging.read_failed"));
-        }
-    }
+    const load = () => reader.load();
 
     onMount(load);
 
