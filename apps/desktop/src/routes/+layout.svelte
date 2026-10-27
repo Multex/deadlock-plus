@@ -56,12 +56,14 @@
         <AfterMatchFrontPage />
     </AppRegion>
 
-    <Toaster
-        richColors
-        pauseWhenPageIsHidden
-        position="bottom-right"
-        theme={isLightTheme(settings.theme, variantOf(settings.themeOptions, settings.theme)) ? "light" : "dark"}
-    />
+    <AppRegion name="toaster" quiet>
+        <Toaster
+            richColors
+            pauseWhenPageIsHidden
+            position="bottom-right"
+            theme={isLightTheme(settings.theme, variantOf(settings.themeOptions, settings.theme)) ? "light" : "dark"}
+        />
+    </AppRegion>
 {/if}
 
 <style>
