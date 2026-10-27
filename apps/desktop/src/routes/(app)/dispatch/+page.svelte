@@ -94,6 +94,7 @@
             status: dispatch.status,
             copies: count,
             apiBusy: stats.busy.active,
+            historyMissing: dispatch.historyMissing,
         }),
     );
 
@@ -279,7 +280,9 @@
                         {#if anyIssued}{t("dispatch.page.subtitle")}{:else}{@render firstPaperNote()}{/if}
                     </p>
                 </div>
-                {#if printing}
+                {#if dispatch.historyMissing}
+                    <p class="text-sm text-muted-foreground" role="status">{t("dispatch.page.history_missing")}</p>
+                {:else if printing}
                     <p class="flex items-center gap-2 text-sm text-muted-foreground" role="status">
                         <LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
                         {t("dispatch.shelf.printing")}

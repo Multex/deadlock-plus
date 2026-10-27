@@ -23,13 +23,16 @@ export function tableMode(input: {
     copies: number;
     /** The API turns the match history away as busy and a retry is planned. */
     apiBusy?: boolean;
+    /** The shelf was read without the match history, so an empty one says nothing about the player. */
+    historyMissing?: boolean;
 }): TableMode {
-    const { accountLoaded, accountId, status, copies, apiBusy = false } = input;
+    const { accountLoaded, accountId, status, copies, apiBusy = false, historyMissing = false } = input;
     if (accountId === null) return accountLoaded ? "no_account" : "loading";
-    if (apiBusy && status !== "ready") return "busy";
+    if (apiBusy && (status !== "ready" || (historyMissing && copies === 0))) return "busy";
     if (status === "error") return "offline";
     if (status !== "ready") return "loading";
-    return copies > 0 ? "table" : "first_paper";
+    if (copies > 0) return "table";
+    return historyMissing ? "offline" : "first_paper";
 }
 
 /**

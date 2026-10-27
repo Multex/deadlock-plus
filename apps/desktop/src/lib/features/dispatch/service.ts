@@ -47,6 +47,8 @@ export interface DispatchView {
     unseen: number;
     /** Unseen automatic issues, newest first. */
     unseenIds: string[];
+    /** The match history did not load: the shelf holds the frozen issues only, with no proofs and nothing so far. */
+    historyMissing: boolean;
 }
 
 export interface DispatchHistory {
@@ -100,6 +102,16 @@ export const alertWhen =
     async (kind: EditionKind): Promise<void> => {
         if (enabled()) await send(kind);
     };
+
+/**
+ * Equal for an equal history: the stats store hands back a fresh list on every load, even a failed one, and a
+ * shelf that re-read on identity would load again for ever while the API is down.
+ */
+export function historyStamp(matches: readonly Match[]): string {
+    let ids = 0;
+    for (const m of matches) ids += m.matchId;
+    return `${matches.length}:${ids}`;
+}
 
 const isEdition = (v: unknown, id: string): v is Edition =>
     typeof v === "object" && v !== null && (v as Edition).schema === EDITION_SCHEMA && (v as Edition).id === id;
@@ -227,9 +239,9 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
     async function issueDueNow(): Promise<Edition[]> {
         const accountId = deps.accountId();
         if (accountId === null) return [];
-        const history = await deps.history(accountId);
+        const history = await deps.history(accountId).catch(() => null);
         // A saved copy can miss last week's games, and a window wrongly skipped is never offered automatically again.
-        if (!history.live) return [];
+        if (!history?.live) return [];
         const known = await loadSeasons();
         const issued: Edition[] = [];
         for (const kind of KINDS) {
@@ -297,15 +309,29 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
         if (accountId === null) return null;
         const [index, history, known] = await Promise.all([
             readIndex(accountId),
-            deps.history(accountId),
+            deps.history(accountId).catch(() => null),
             loadSeasons(),
         ]);
-        const matches = history.matches;
+        const matches = history?.matches ?? [];
         const now = deps.nowS();
         const tz = deps.tz();
         const firstS = matches.reduce((min, m) => Math.min(min, m.startTime), Infinity);
 
+        // Frozen issues live in kv, so they stay readable while the API is down.
+        const frozenOf = (kind: EditionKind): ShelfEntry[] =>
+            index.issued
+                .filter((e) => e.kind === kind)
+                .sort((a, b) => b.startS - a.startS)
+                .map((e) => ({
+                    window: { kind, id: e.id, startS: e.startS, endS: e.endS, tz },
+                    status: "issued",
+                    matches: e.matches,
+                    number: e.number,
+                    onRequest: e.onRequest,
+                }));
+
         const shelfOf = (kind: EditionKind): ShelfEntry[] => {
+            if (!history) return frozenOf(kind);
             if (!Number.isFinite(firstS)) return [];
             return pastWindows(kind, now, tz, firstS, known).map((window) => {
                 const entry = index.issued.find((e) => e.id === window.id);
@@ -338,7 +364,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
                 number: null,
                 issuedAt: null,
             }),
-            soFarMatches: windowRows(matches, live).length,
+            soFarMatches: history ? windowRows(matches, live).length : 0,
             shelf: {
                 weekly: shelfOf("weekly"),
                 monthly: shelfOf("monthly"),
@@ -347,6 +373,7 @@ export function createDispatchService(deps: DispatchDeps): DispatchService {
             },
             unseen: unseenCount(index),
             unseenIds: unseenIds(index),
+            historyMissing: !history,
         };
     }
 

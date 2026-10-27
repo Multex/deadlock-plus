@@ -7,7 +7,14 @@ import { steamAccount } from "$lib/features/steam-account/account.svelte";
 import type { Edition, EditionKind, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import { notifyDispatchEdition } from "./api";
 import { defaultEnrichDeps, enrichEdition } from "./enrich";
-import { alertWhen, createDispatchService, type DispatchHistory, type DispatchView, type ShelfEntry } from "./service";
+import {
+    alertWhen,
+    createDispatchService,
+    historyStamp,
+    type DispatchHistory,
+    type DispatchView,
+    type ShelfEntry,
+} from "./service";
 
 export type { ShelfEntry, ShelfStatus } from "./service";
 
@@ -74,6 +81,9 @@ class DispatchStore {
     unseen = $state(0);
     /** Which ones, newest first. */
     unseenIds = $state.raw<string[]>([]);
+    /** The shelf holds frozen issues only: the match history did not load. */
+    historyMissing = $state(false);
+    private historyStamp = $derived(historyStamp(stats.matches));
     private shownFor: number | null = null;
     private generation = 0;
 
@@ -84,7 +94,7 @@ class DispatchStore {
             $effect(() => {
                 const accountId = currentAccount();
                 // New games keep "this week so far" current.
-                void stats.matches;
+                void this.historyStamp;
                 untrack(() => {
                     if (accountId !== null) sync();
                 });
@@ -150,6 +160,7 @@ class DispatchStore {
         this.shelf = view?.shelf ?? noShelf();
         this.unseen = view?.unseen ?? 0;
         this.unseenIds = view?.unseenIds ?? [];
+        this.historyMissing = view?.historyMissing ?? false;
     }
 }
 

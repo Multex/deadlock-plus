@@ -11,7 +11,7 @@ import { KNOWN_SEASONS } from "@deadlock-plus/stats/dispatch/seasons";
 import { collectorsWindow, windowFor } from "@deadlock-plus/stats/dispatch/window";
 import type { Match } from "@deadlock-plus/stats/stats";
 import { describe, expect, it, vi, type Mock } from "vitest";
-import { alertWhen, createDispatchService, type DispatchDeps } from "./service";
+import { alertWhen, createDispatchService, historyStamp, type DispatchDeps } from "./service";
 
 const ME = 1001;
 const PLAYER = "Haze Main";
@@ -216,6 +216,12 @@ describe("issueDue", () => {
         expect(f.kv.set).not.toHaveBeenCalled();
     });
 
+    it("issues nothing, and does not throw, when the match history cannot load", async () => {
+        const f = fakeDeps({ history: vi.fn(async () => Promise.reject(new Error("503"))) });
+        expect(await createDispatchService(f.deps).issueDue()).toEqual([]);
+        expect(f.kv.set).not.toHaveBeenCalled();
+    });
+
     it("issues nothing from a saved offline copy of the history", async () => {
         const f = fakeDeps({ history: vi.fn(async () => ({ matches: HISTORY, live: false })) });
         expect(await createDispatchService(f.deps).issueDue()).toEqual([]);
@@ -370,6 +376,25 @@ describe("view", () => {
 
     it("is null while the account is unknown", async () => {
         expect(await createDispatchService(fakeDeps({ accountId: () => null }).deps).view()).toBeNull();
+    });
+
+    it("keeps the frozen editions on the shelf when the match history cannot load", async () => {
+        const f = fakeDeps();
+        await createDispatchService(f.deps).issueDue();
+        f.deps.history.mockRejectedValue(new Error("503"));
+        const view = await createDispatchService(f.deps).view();
+
+        expect(view?.historyMissing).toBe(true);
+        expect(view?.latest.weekly?.id).toBe("weekly-2026-10-19");
+        expect(view?.shelf.weekly.map((e) => [e.window.id, e.status, e.matches, e.number])).toEqual([
+            ["weekly-2026-10-19", "issued", 4, 1],
+        ]);
+        expect(view?.shelf.weekly[0].window).toEqual(week(19));
+        expect([view?.soFar, view?.soFarMatches]).toEqual([null, 0]);
+    });
+
+    it("says the history loaded when it did", async () => {
+        expect((await createDispatchService(fakeDeps().deps).view())?.historyMissing).toBe(false);
     });
 });
 
@@ -605,5 +630,18 @@ describe("pending enrichment", () => {
         expect((await service.peek(ID))?.pending).toEqual(["mates", "enemies"]);
         expect(f.deps.enrich).toHaveBeenCalledTimes(1);
         expect(f.index()?.seen).toEqual([]);
+    });
+});
+
+describe("historyStamp", () => {
+    it("is the same for an equal history handed back as a fresh list", () => {
+        expect(historyStamp([...HISTORY])).toBe(historyStamp(HISTORY));
+        expect(historyStamp([])).toBe(historyStamp([]));
+    });
+
+    it("changes when a game arrives or one is dropped", () => {
+        expect(historyStamp([...HISTORY, match(9, oct(26))])).not.toBe(historyStamp(HISTORY));
+        expect(historyStamp(HISTORY.slice(1))).not.toBe(historyStamp(HISTORY));
+        expect(historyStamp([match(2, oct(5))])).not.toBe(historyStamp([match(1, oct(5))]));
     });
 });

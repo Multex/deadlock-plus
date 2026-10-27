@@ -69,6 +69,15 @@ describe("tableMode", () => {
     it("keeps a table it already laid while the API is busy", () => {
         expect(tableMode({ ...base, apiBusy: true })).toBe("table");
     });
+
+    it("lays the frozen copies out while the history is missing", () => {
+        expect(tableMode({ ...base, historyMissing: true })).toBe("table");
+    });
+
+    it("says offline or busy, never first paper, when the history is missing and nothing is frozen", () => {
+        expect(tableMode({ ...base, copies: 0, historyMissing: true })).toBe("offline");
+        expect(tableMode({ ...base, copies: 0, historyMissing: true, apiBusy: true })).toBe("busy");
+    });
 });
 
 describe("tableFocus", () => {

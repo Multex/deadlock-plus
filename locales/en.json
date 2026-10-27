@@ -9713,6 +9713,7 @@
             "title": "Dispatch",
             "subtitle": "Your weeks and months in Deadlock, in print.",
             "export": "Export",
+            "history_missing": "Your saved papers. New ones print once your match history loads.",
             "loading": "Loading the paper...",
             "open_failed": "This paper could not be opened.",
             "replay": "Replay the reveal",
