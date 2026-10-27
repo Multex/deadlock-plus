@@ -11611,5 +11611,10 @@
         "waiting": "Deadlock API is busy. Trying again in {seconds} s.",
         "retrying": "Deadlock API is busy. Trying again now.",
         "try_now": "Try now"
+    },
+    "region": {
+        "error_title": "Couldn't load this part.",
+        "error_body": "The rest of Deadlock+ still works.",
+        "retry": "Retry"
     }
 }
