@@ -178,6 +178,28 @@ export function burst(now: number, period: number, length: number, offset = 0) {
     };
 }
 
+/**
+ * `addColorStop` throws on a colour the canvas cannot parse. A theme colour read from a custom property is
+ * empty until the theme's CSS has applied, so an unresolved stop is left out and the gradient stays valid.
+ */
+export function addStop(gradient: CanvasGradient, offset: number, colour: string) {
+    if (!colour) return;
+    try {
+        gradient.addColorStop(offset, colour);
+    } catch {
+        // An unparseable colour leaves the gradient one stop short, which still draws.
+    }
+}
+
+/**
+ * Builds a value once its inputs exist. `build` returns null while they do not (a theme colour read before the
+ * theme's CSS has applied), and is tried again on the next call until it succeeds; the result is then cached.
+ */
+export function lazy<T>(build: () => T | null): () => T | null {
+    let value: T | null = null;
+    return () => (value ??= build());
+}
+
 /** A soft round glow: a bright core inside a fading halo, drawn once and stamped with `drawImage`. */
 export function glowSprite(core: string, glow: string, size = 48, haloAlpha = 0.45): HTMLCanvasElement {
     const sprite = document.createElement("canvas");
@@ -186,8 +208,8 @@ export function glowSprite(core: string, glow: string, size = 48, haloAlpha = 0.
     if (!ctx) return sprite;
     const r = size / 2;
     const halo = ctx.createRadialGradient(r, r, 0, r, r, r);
-    halo.addColorStop(0, glow);
-    halo.addColorStop(1, "transparent");
+    addStop(halo, 0, glow);
+    addStop(halo, 1, "transparent");
     ctx.globalAlpha = haloAlpha;
     ctx.fillStyle = halo;
     ctx.fillRect(0, 0, size, size);

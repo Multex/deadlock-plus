@@ -7,7 +7,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import { BUSY_MS, DRIFT_MS, glowSprite, runCanvas } from "../../theme-decor-loop";
+    import { BUSY_MS, DRIFT_MS, glowSprite, lazy, runCanvas } from "../../theme-decor-loop";
     import { seeded } from "../../theme-decor-random";
     import { beam, createMotes, moteCount, stepMotes } from "./dust";
 
@@ -31,15 +31,18 @@
     }
 
     onMount(() => {
-        const style = getComputedStyle(canvas);
-        const glint = glowSprite(
-            style.getPropertyValue("--foreground").trim(),
-            style.getPropertyValue("--brass").trim(),
-        );
+        const glint = lazy(() => {
+            const style = getComputedStyle(canvas);
+            const core = style.getPropertyValue("--foreground").trim();
+            const glow = style.getPropertyValue("--brass").trim();
+            return core && glow ? glowSprite(core, glow) : null;
+        });
 
         return runCanvas(canvas, {
             fit,
             frame(ctx, dt, _now, pointer, width, height) {
+                const sprite = glint();
+                if (!sprite) return DRIFT_MS;
                 const { motes } = field;
                 field.time += Math.min(dt, 0.05);
                 const stirred = stepMotes(motes, dt, field.time, width, height, pointer);
@@ -53,7 +56,7 @@
                     if (alpha < 0.02) continue;
                     ctx.globalAlpha = Math.min(1, alpha);
                     const size = (1.4 + m.depth ** 2 * 4) * 4.5;
-                    ctx.drawImage(glint, m.x - size / 2, m.y - size / 2, size, size);
+                    ctx.drawImage(sprite, m.x - size / 2, m.y - size / 2, size, size);
                 }
                 return stirred ? BUSY_MS : DRIFT_MS;
             },

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { CALM_MS, burst, runCanvas } from "../../theme-decor-loop";
+    import { CALM_MS, addStop, burst, lazy, runCanvas } from "../../theme-decor-loop";
     import { between, seeded } from "../../theme-decor-random";
 
     const random = seeded(0x57a7);
@@ -24,10 +24,10 @@
     let canvas: HTMLCanvasElement;
 
     onMount(() => {
-        const tint = getComputedStyle(canvas).getPropertyValue("--brass").trim();
+        const brass = lazy(() => getComputedStyle(canvas).getPropertyValue("--brass").trim() || null);
         let held = false;
 
-        const draw = (ctx: CanvasRenderingContext2D, width: number, height: number, reveal: number) => {
+        const draw = (ctx: CanvasRenderingContext2D, width: number, height: number, reveal: number, tint: string) => {
             const chart = Math.min(height * 0.16, CHART_MAX_PX);
             const top = height - chart;
             const trace = () => {
@@ -40,8 +40,8 @@
             ctx.clip();
 
             const fill = ctx.createLinearGradient(0, top, 0, height);
-            fill.addColorStop(0, tint);
-            fill.addColorStop(1, "transparent");
+            addStop(fill, 0, tint);
+            addStop(fill, 1, "transparent");
             ctx.globalAlpha = 0.1;
             ctx.fillStyle = fill;
             ctx.beginPath();
@@ -67,14 +67,16 @@
                     held = false;
                 },
                 frame(ctx, _dt, now, _pointer, width, height) {
+                    const tint = brass();
+                    if (!tint) return CALM_MS;
                     const round = burst(now, PERIOD, DRAW);
                     if (!round.active) {
-                        if (!held) draw(ctx, width, height, 1);
+                        if (!held) draw(ctx, width, height, 1, tint);
                         held = true;
                         return round.untilChange;
                     }
                     held = false;
-                    draw(ctx, width, height, 1 - (1 - round.progress) ** 3);
+                    draw(ctx, width, height, 1 - (1 - round.progress) ** 3, tint);
                     return CALM_MS;
                 },
             },

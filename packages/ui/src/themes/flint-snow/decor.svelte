@@ -7,7 +7,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import { BUSY_MS, CALM_MS, burst, glowSprite, runCanvas, runTicker } from "../../theme-decor-loop";
+    import { BUSY_MS, CALM_MS, addStop, burst, glowSprite, lazy, runCanvas, runTicker } from "../../theme-decor-loop";
     import { seeded } from "../../theme-decor-random";
     import { constellationAlpha, createSky, stepSky } from "./sky";
     import { TAIL_HEIGHT, TAIL_WIDTH, furStrokes } from "./tail";
@@ -110,10 +110,12 @@
         const drawSnow = snowOn;
         const drawStars = starsOn;
         if (!target) return;
-        const style = getComputedStyle(target);
-        const snow = style.getPropertyValue("--foreground").trim();
-        const pink = style.getPropertyValue("--brass").trim();
-        const flake = glowSprite(snow, snow, 16, 0.35);
+        const palette = lazy(() => {
+            const style = getComputedStyle(target);
+            const snow = style.getPropertyValue("--foreground").trim();
+            const pink = style.getPropertyValue("--brass").trim();
+            return snow && pink ? { snow, pink, flake: glowSprite(snow, snow, 16, 0.35) } : null;
+        });
         const random = seeded(0x5a0f);
 
         const shape = (
@@ -139,7 +141,9 @@
                 fit,
                 frame(ctx, dt, now, pointer, width, height) {
                     const sky = field.sky;
-                    if (!sky) return CALM_MS;
+                    const colours = palette();
+                    if (!sky || !colours) return CALM_MS;
+                    const { snow, pink, flake } = colours;
                     const busy = stepSky(sky, dt, width, height, pointer, random);
                     ctx.clearRect(0, 0, width, height);
 
@@ -217,8 +221,8 @@
                         const y = height * 0.08 + (x - width * 0.1) * slope;
                         const tail = 120;
                         const trail = ctx.createLinearGradient(x - tail, y - tail * slope, x, y);
-                        trail.addColorStop(0, "transparent");
-                        trail.addColorStop(1, snow);
+                        addStop(trail, 0, "transparent");
+                        addStop(trail, 1, snow);
                         ctx.globalAlpha = 0.85 * Math.min(1, (1 - t) * 4, t * 8);
                         ctx.strokeStyle = trail;
                         ctx.lineWidth = 1.2;
