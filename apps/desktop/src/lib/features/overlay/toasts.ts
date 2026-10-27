@@ -16,6 +16,28 @@ export const NO_TOASTS: OverlayToasts = { corner: [], center: null };
 export const CORNER_LIMIT = 3;
 const DEFAULT_POSITION: OverlayPosition = "topRight";
 
+const KINDS = ["alert", "maintenance", "servers", "session", "match"];
+const POSITIONS = ["topLeft", "topCenter", "topRight", "left", "right", "bottomLeft", "bottomCenter", "bottomRight"];
+
+/** The payload crosses a process boundary; anything off-shape is dropped rather than rendered. */
+export function parseToast(value: unknown): OverlayToast | null {
+    if (typeof value !== "object" || value === null) return null;
+    const t = value as Record<string, unknown>;
+    const ok =
+        typeof t.id === "string" &&
+        t.id !== "" &&
+        typeof t.title === "string" &&
+        typeof t.body === "string" &&
+        typeof t.kind === "string" &&
+        KINDS.includes(t.kind) &&
+        (t.placement === "corner" || t.placement === "center") &&
+        typeof t.position === "string" &&
+        POSITIONS.includes(t.position) &&
+        typeof t.durationMs === "number" &&
+        Number.isFinite(t.durationMs);
+    return ok ? (value as OverlayToast) : null;
+}
+
 export function show(state: OverlayToasts, toast: OverlayToast, now: number): OverlayToasts {
     const shown = { toast, expiresAt: now + toast.durationMs };
     if (toast.placement === "center") return { ...state, center: shown };
@@ -34,6 +56,13 @@ export function expire(state: OverlayToasts, now: number): OverlayToasts {
 export function nextExpiry(state: OverlayToasts): number | null {
     const times = [...state.corner, ...(state.center ? [state.center] : [])].map((s) => s.expiresAt);
     return times.length ? Math.min(...times) : null;
+}
+
+export function remove(state: OverlayToasts, id: string): OverlayToasts {
+    const corner = state.corner.filter((s) => s.toast.id !== id);
+    const center = state.center?.toast.id === id ? null : state.center;
+    if (corner.length === state.corner.length && center === state.center) return state;
+    return { corner, center };
 }
 
 export function reposition(state: OverlayToasts, position: OverlayPosition): OverlayToasts {
@@ -84,6 +113,10 @@ export function createToastQueue(clock: Clock, onChange: (state: OverlayToasts) 
     return {
         push(toast: OverlayToast) {
             publish(show(state, toast, clock.now()));
+            schedule();
+        },
+        remove(id: string) {
+            publish(remove(state, id));
             schedule();
         },
         reposition(position: OverlayPosition) {
