@@ -4,7 +4,7 @@ use std::sync::mpsc::{self, Sender};
 use std::thread;
 
 use ferrisetw::parser::Parser;
-use ferrisetw::provider::Provider;
+use ferrisetw::provider::{EventFilter, Provider, ProviderBuilder};
 use ferrisetw::schema_locator::SchemaLocator;
 use ferrisetw::trace::{TraceTrait, UserTrace};
 use ferrisetw::EventRecord;
@@ -16,6 +16,15 @@ const SESSION: &str = "DeadlockPlusNetwork";
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const EVENT_SEND: u16 = 42;
 const EVENT_RECEIVE: u16 = 43;
+/// `KERNEL_NETWORK_KEYWORD_IPV4`. TCP over IPv4 carries it too, so the event id filter does most of the cutting.
+const KEYWORD_IPV4: u64 = 0x10;
+
+/// Filtered inside ETW, so other traffic on the machine never reaches the callback.
+fn network_provider() -> ProviderBuilder {
+    Provider::by_guid(KERNEL_NETWORK)
+        .any(KEYWORD_IPV4)
+        .add_filter(EventFilter::ByEventIds(vec![EVENT_SEND, EVENT_RECEIVE]))
+}
 
 fn is_local(ip: Ipv4Addr) -> bool {
     ip.is_private() || ip.is_loopback() || ip.is_unspecified() || ip.is_link_local()
@@ -84,7 +93,7 @@ pub fn start(config: Config) -> Sender<()> {
                 });
             };
 
-            let provider = Provider::by_guid(KERNEL_NETWORK).add_callback(callback).build();
+            let provider = network_provider().add_callback(callback).build();
             match UserTrace::new().named(SESSION.to_string()).enable(provider).start() {
                 Ok((trace, handle)) => {
                     log::info!("network trace started");
@@ -113,6 +122,25 @@ pub fn start(config: Config) -> Sender<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Keyword masks of the manifest events, from `Get-WinEvent -ListProvider Microsoft-Windows-Kernel-Network`.
+    const UDP_V4_EVENT_KEYWORDS: u64 = 0x8000_0000_0000_0010;
+    const UDP_V6_EVENT_KEYWORDS: u64 = 0x8000_0000_0000_0020;
+
+    fn admits(provider: &Provider, event_keywords: u64) -> bool {
+        event_keywords & provider.any() != 0 && event_keywords & provider.all() == provider.all()
+    }
+
+    #[test]
+    fn the_provider_admits_only_udp_v4_send_and_receive() {
+        let provider = network_provider().build();
+        match provider.filters() {
+            [EventFilter::ByEventIds(ids)] => assert_eq!(ids, &[EVENT_SEND, EVENT_RECEIVE]),
+            other => panic!("expected one event id filter, got {other:?}"),
+        }
+        assert!(admits(&provider, UDP_V4_EVENT_KEYWORDS));
+        assert!(!admits(&provider, UDP_V6_EVENT_KEYWORDS));
+    }
 
     fn raw(ip: Ipv4Addr) -> u32 {
         u32::from_le_bytes(ip.octets())
