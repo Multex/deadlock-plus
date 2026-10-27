@@ -8,6 +8,7 @@ use tauri::{AppHandle, Emitter};
 use ts_rs::TS;
 
 use super::board::LiveMatch;
+use crate::features::app_window::MAIN_WINDOW;
 
 const EVENT: &str = "live-snapshot";
 const MATCH_EVENT: &str = "live-match";
@@ -114,7 +115,8 @@ impl LiveService {
     pub fn report_match(&self, app: &AppHandle, live_match: LiveMatch) {
         let changed = report_match(&mut self.inner.lock_or_recover().board, live_match, Instant::now());
         if let Some(live_match) = changed {
-            if let Err(e) = app.emit(MATCH_EVENT, live_match) {
+            // Only the main window shows the scoreboard; the overlay does not listen.
+            if let Err(e) = app.emit_to(MAIN_WINDOW, MATCH_EVENT, live_match) {
                 log::warn!("could not emit {MATCH_EVENT}: {e}");
             }
         }
