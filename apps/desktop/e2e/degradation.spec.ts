@@ -174,6 +174,13 @@ function baseline(browser: Browser, baseURL: string, route: RouteCalls): Promise
     return pending;
 }
 
+// Every key of every store reading as missing or unreadable is what a fresh install looks like, so the app
+// opens onboarding instead of the route. A throw is not this: an unreadable onboarding flag skips the setup.
+const looksFreshInstall = (faults: Fault[]) =>
+    faults.some(
+        (fault) => "command" in fault && fault.command === "kv_get" && ["null", "garbage"].includes(fault.mode),
+    );
+
 function describeFault(fault: Fault): string {
     if ("command" in fault) return `command:${fault.command}:${fault.mode}`;
     if ("api" in fault) return `api:${fault.api}:${fault.mode}`;
@@ -200,6 +207,12 @@ async function problems(
         if (seen.calls.includes("report_webview_crash")) found.push("reported a crash");
         if (!seen.mainChildren) found.push("main is empty");
         if (seen.spinners) found.push(`${seen.spinners} spinner(s) left after the page settled`);
+        if (looksFreshInstall(faults)) {
+            if (new URL(page.url()).pathname !== "/onboarding") found.push("a fresh install did not open onboarding");
+            else if ((await page.locator('[aria-current="step"]').count()) !== 1)
+                found.push("onboarding shows no step");
+            return [...new Set(found)];
+        }
         // The page boundary still renders a region, so a whole-page crash would otherwise pass as "present".
         if (seen.regions.some((region) => region.name === PAGE_REGION && region.state === "error")) {
             found.push("the page region shows its error");
