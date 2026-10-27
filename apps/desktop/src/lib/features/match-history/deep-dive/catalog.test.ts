@@ -85,6 +85,21 @@ describe("resolveItemListVisuals", () => {
     });
 });
 
+describe("resolveItemListVisuals with bad game_items answers", () => {
+    for (const bad of [null, "nope", {}, [null], [{ id: "1", className: 3 }]]) {
+        it(`resolves nothing when game_items answers ${JSON.stringify(bad)}`, async () => {
+            answer({ game_items: bad, game_ability_art: [], game_item_art: [] });
+            expect((await resolveItemListVisuals([RAT_SWARM], "en")).size).toBe(0);
+        });
+    }
+
+    it("keeps the well-formed entries next to a malformed one", async () => {
+        answer({ game_items: [null, ...entries], game_ability_art: [], game_item_art: [] });
+        const out = await resolveItemListVisuals([CLIP_SIZE], "en");
+        expect(out.get(CLIP_SIZE)?.name).toBe("Basic Magazine");
+    });
+});
+
 describe("visual kind", () => {
     // Ids and kinds as the installed game reports them for real matches.
     const real = [

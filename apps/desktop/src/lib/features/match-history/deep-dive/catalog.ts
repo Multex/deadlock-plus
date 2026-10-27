@@ -4,6 +4,13 @@ import type { ItemEntry } from "@deadlock-plus/ipc-types/ItemEntry";
 import { visualKind, type IdVisual } from "@deadlock-plus/match/deep-dive/catalog";
 import { humaniseClassName } from "@deadlock-plus/match/deep-dive/names";
 
+const isItemEntry = (value: unknown): value is ItemEntry =>
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ItemEntry).id === "number" &&
+    typeof (value as ItemEntry).className === "string" &&
+    typeof (value as ItemEntry).name === "string";
+
 /**
  * Every id in `ids` that the installed game's catalog knows, with its name; art is filled in when found.
  * Entries without a display name get a worded class name, never the raw class name.
@@ -17,7 +24,8 @@ export async function resolveVisuals(
     if (ids.length === 0) return out;
     let entries: ItemEntry[];
     try {
-        entries = await command<ItemEntry[]>("game_items", { locale });
+        const value = await command<unknown>("game_items", { locale });
+        entries = Array.isArray(value) ? value.filter(isItemEntry) : [];
     } catch {
         return out;
     }
