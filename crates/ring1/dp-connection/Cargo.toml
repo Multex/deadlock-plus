@@ -16,4 +16,5 @@ log = "0.4.34"
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-ferrisetw = "1.2.0"
+# `windows.rs` reads the payload through this exact version's `EventRecord` layout.
+ferrisetw = "=1.2.0"
