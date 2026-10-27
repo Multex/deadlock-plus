@@ -17,7 +17,7 @@ describe("builds api", () => {
     it("calls each command with the argument names Tauri expects", async () => {
         const build = {} as never;
         const draft = { id: "" } as never;
-        await api.buildsLocal();
+        await api.buildsLocal().catch(() => {});
         await api.buildsSave({ kind: "new", build });
         await api.buildsSave({ kind: "new", build }, "d-1");
         await api.buildsDelete("Unpublished", 3, "ab");
@@ -58,6 +58,37 @@ describe("builds api", () => {
             ["build_code_export", { request: { kind: "new", build } }],
             ["build_code_import", { code: "KLUv/Q==" }],
         ]);
+    });
+
+    it("passes a well formed local file through", async () => {
+        const local = {
+            accountId: 1,
+            exists: true,
+            gameRunning: false,
+            builds: [{ section: "Favorites", build: {}, base: "ab", warnings: [] }],
+            lastUsed: [],
+            queue: [],
+            nextLocalId: null,
+        };
+        tauri.command.mockResolvedValueOnce(local as never);
+        await expect(api.buildsLocal()).resolves.toEqual(local);
+    });
+
+    it.each([
+        ["null", null],
+        ["garbage", { garbage: true }],
+        [
+            "a builds field that is not a list",
+            { accountId: 1, gameRunning: false, builds: {}, lastUsed: [], queue: [] },
+        ],
+        [
+            "a build entry without its build",
+            { accountId: 1, gameRunning: false, builds: [{ section: "Favorites" }], lastUsed: [], queue: [] },
+        ],
+        ["a missing queue", { accountId: 1, gameRunning: false, builds: [], lastUsed: [] }],
+    ])("rejects a local file of %s as a normal failure", async (_, bad) => {
+        tauri.command.mockResolvedValueOnce(bad as never);
+        await expect(api.buildsLocal()).rejects.toThrow("builds_local answered an unexpected shape");
     });
 
     it("listens for queued saves written after the game closes", async () => {
