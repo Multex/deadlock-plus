@@ -2985,6 +2985,7 @@
     },
     "heroes": {},
     "jobs": {
+        "run_failed": "Couldn't start that task. Try again.",
         "catalog": {
             "addon_scan": {
                 "title": "Scanning mods",
