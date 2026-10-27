@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import type { EditionKind, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
+import { labelInName, labelledElements } from "$lib/core/label-in-name";
 import type { MiniCopy } from "../kinds/minis";
 import type { TableCopies } from "./table";
 import Table from "./table.svelte";
@@ -62,6 +63,17 @@ describe("dispatch table", () => {
             expect(body).toMatch(new RegExp(`<button[^>]*aria-expanded="false"[^>]*data-bundle="${key}"`));
         }
         expect(body).not.toContain("data-spread");
+    });
+
+    it.each([null, "weekly-2025"])("names every button with the words it shows (open %s)", (open) => {
+        const withProof: TableCopies = { ...copies, monthly: [copies.monthly[0], { ...monthly[1], state: "proof", number: null }, ...copies.monthly.slice(2)] };
+        const body = render(Table, {
+            props: { copies: withProof, covers: {}, width: 1250, height: 620, open, onpick: () => {}, onprint: () => {} },
+        }).body;
+        const buttons = labelledElements(body, "button");
+        expect(buttons.length).toBeGreaterThan(10);
+        const mismatched = buttons.filter((b) => !labelInName(b.name, b.inner)).map((b) => b.name);
+        expect(mismatched).toEqual([]);
     });
 
     it("deals an open bundle out with each of its copies, and leaves the table behind inert", () => {

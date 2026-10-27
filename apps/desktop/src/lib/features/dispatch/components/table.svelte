@@ -11,6 +11,7 @@
     import WeeklyMini from "../kinds/weekly/weekly-mini.svelte";
     import YearEndMini from "../kinds/year_end/year-end-mini.svelte";
     import {
+        bandAria,
         bundleAria,
         bundleName,
         columnText,
@@ -76,7 +77,7 @@
 
     function rectOf(e: MouseEvent) {
         const el = e.currentTarget as HTMLElement;
-        return (el.querySelector<HTMLElement>("[data-mini]") ?? el).getBoundingClientRect();
+        return (el.parentElement?.querySelector<HTMLElement>("[data-mini]") ?? el).getBoundingClientRect();
     }
 
     function pick(c: MiniCopy, from: DOMRect) {
@@ -121,17 +122,19 @@
 {/snippet}
 
 {#snippet item(c: MiniCopy, size: number, x: number, y: number, rot: number, z: number)}
-    <button
-        type="button"
-        class="{unstyledButtonClass} obj"
-        style="left: {x}px; top: {y}px; --rot: {rot}deg; z-index: {z};"
-        aria-label={miniAria(c, fmt)}
-        aria-disabled={c.state === "too_few" ? "true" : undefined}
-        data-copy={c.id}
-        onclick={(e) => pick(c, rectOf(e))}
-    >
-        {@render mini(c, size)}
-    </button>
+    <!-- The cover's print is art; the button over it carries the name, so its tiny headlines are not read
+         out or expected in the name. -->
+    <div class="obj" style="left: {x}px; top: {y}px; --rot: {rot}deg; z-index: {z};">
+        <span class="art" aria-hidden="true">{@render mini(c, size)}</span>
+        <button
+            type="button"
+            class="{unstyledButtonClass} hit"
+            aria-label={miniAria(c, fmt)}
+            aria-disabled={c.state === "too_few" ? "true" : undefined}
+            data-copy={c.id}
+            onclick={(e) => pick(c, rectOf(e))}
+        ></button>
+    </div>
 {/snippet}
 
 {#snippet tag(b: TableBundle, top: number, font: number, line: number)}
@@ -161,7 +164,7 @@
                                     class="{unstyledButtonClass} band"
                                     class:left={b.left}
                                     style="top: {b.top}px; height: {b.h}px; --dx: {b.dx}px;"
-                                    aria-label={bundleAria(b.bundle, fmt)}
+                                    aria-label={bandAria(b.bundle, fmt)}
                                     aria-expanded={open === b.bundle.key}
                                     data-bundle={b.bundle.key}
                                     onclick={() => setOpen(b.bundle.key)}
@@ -364,11 +367,20 @@
     }
 
     .obj:hover,
-    .obj:focus-visible {
+    .obj:has(> .hit:focus-visible) {
         transform: rotate(calc(var(--rot) * 0.4)) translateY(-8px) scale(1.025);
     }
 
-    .obj:focus-visible,
+    .art {
+        display: block;
+    }
+
+    .hit {
+        position: absolute;
+        inset: 0;
+    }
+
+    .hit:focus-visible,
     .band:focus-visible,
     .spine:focus-visible,
     .block:focus-visible {
@@ -376,7 +388,7 @@
         outline-offset: 3px;
     }
 
-    .obj[aria-disabled="true"],
+    .hit[aria-disabled="true"],
     .spine[aria-disabled="true"] {
         cursor: default;
     }

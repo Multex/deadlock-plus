@@ -445,6 +445,11 @@ export function bundleAria(b: TableBundle, fmt: MiniFormat): string {
     return fmt.tn("dispatch.shelf.pile", b.copies.length, { label: bundleName(b, fmt) });
 }
 
+/** A weekly band's name leads with its slip, so the words on the slip are the words that name it. */
+export function bandAria(b: TableBundle, fmt: MiniFormat): string {
+    return fmt.t("dispatch.shelf.band", { slip: slipText(b, fmt), label: bundleName(b, fmt) });
+}
+
 /** A column slip in the spread: "Dec 2025 · 5". */
 export function columnText(window: EditionWindow, count: number, fmt: MiniFormat): string {
     return fmt.t("dispatch.mini.pair", { first: fmt.date(window.startS, window.tz, MONTH_YEAR), second: count });

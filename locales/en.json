@@ -9728,7 +9728,7 @@
             "matches_other": "{count} matches",
             "too_few_one": "{count} match, too few for a paper",
             "too_few_other": "{count} matches, too few for a paper",
-            "print": "Print this edition",
+            "print": "Proof, print this edition",
             "printing": "Printing...",
             "print_not_enough": "Too few matches for a paper.",
             "print_failed": "This edition could not be printed.",
@@ -9741,7 +9741,8 @@
             "print_short": "Print",
             "pile_one": "{label}, {count} edition",
             "pile_other": "{label}, {count} editions",
-            "entry": "{date}, {detail}"
+            "entry": "{date}, {detail}",
+            "band": "{slip}, {label}"
         },
         "empty": {
             "no_account": "No Steam account found, so there is no paper to print.",
