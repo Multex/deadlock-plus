@@ -1125,6 +1125,12 @@ impl<I: Install> ArtCache<I> {
     /// art calls wait for one image at most. Card art comes first and the large tooltip backers last.
     /// Returns how many files it wrote.
     pub fn warm_ui_art(&self) -> usize {
+        self.warm_ui_art_gated(&|| {})
+    }
+
+    /// `warm_ui_art`, calling `gate` before each image so the caller can hold the pass, for example while the
+    /// game runs.
+    fn warm_ui_art_gated(&self, gate: &dyn Fn()) -> usize {
         let rules = self.with_build(|build, _| self.source(build).is_some().then(|| self.icon_rules(build)));
         let Some(rules) = rules.flatten() else { return 0 };
         let shop = |image: ShopUiImage| (shop_ui_file_name(image), image.compiled_path().to_string());
@@ -1135,13 +1141,17 @@ impl<I: Install> ArtCache<I> {
             .map(shop)
             .chain(icons)
             .chain(large.into_iter().map(shop))
-            .filter(|(name, compiled)| self.warm_one(name, compiled))
+            .filter(|(name, compiled)| {
+                gate();
+                self.warm_one(name, compiled)
+            })
             .count()
     }
 
     /// Starts the one thread that runs `warm_ui_art`: now, and again whenever an art call finds a new game
-    /// build. `on_ready` runs after each pass that wrote files. A second call does nothing.
-    pub fn warm_in_background(&self, on_ready: impl Fn() + Send + 'static) {
+    /// build. `gate` runs before each image and may block to hold the pass. `on_ready` runs after each pass
+    /// that wrote files. A second call does nothing.
+    pub fn warm_in_background(&self, gate: impl Fn() + Send + 'static, on_ready: impl Fn() + Send + 'static) {
         let (tx, rx) = mpsc::channel();
         if self.shared.warm.set(tx.clone()).is_err() {
             return;
@@ -1152,7 +1162,7 @@ impl<I: Install> ArtCache<I> {
             while rx.recv().is_ok() {
                 while rx.try_recv().is_ok() {}
                 let Some(shared) = Weak::upgrade(&shared) else { return };
-                if (ArtCache { shared }).warm_ui_art() > 0 {
+                if (ArtCache { shared }).warm_ui_art_gated(&gate) > 0 {
                     on_ready();
                 }
             }
@@ -2633,9 +2643,12 @@ mod tests {
 
     fn reports(cache: &ArtCache<FakeInstall>) -> std::sync::mpsc::Receiver<()> {
         let (tx, rx) = std::sync::mpsc::channel();
-        cache.warm_in_background(move || {
-            let _ = tx.send(());
-        });
+        cache.warm_in_background(
+            || {},
+            move || {
+                let _ = tx.send(());
+            },
+        );
         rx
     }
 
@@ -2652,6 +2665,41 @@ mod tests {
         assert_eq!(cache.property_icon_art().len(), 4);
         assert_eq!(cache.warm_ui_art(), 0);
         assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn warming_passes_the_gate_before_every_image() {
+        let rig = warm_rig("warm-gate");
+        let cache = rig.cache();
+        let seen = std::cell::RefCell::new(Vec::new());
+        let written = cache.warm_ui_art_gated(&|| seen.borrow_mut().push(rig.source.writes.load(Ordering::Relaxed)));
+        let seen = seen.into_inner();
+        assert!(written > 0);
+        // Each image is gated before it is written, so writes rise by at most one between gates.
+        assert_eq!(seen.first(), Some(&0));
+        assert!(seen.windows(2).all(|w| w[1] - w[0] <= 1), "{seen:?}");
+        assert!(seen.len() >= written);
+    }
+
+    #[test]
+    fn background_warming_writes_nothing_while_the_gate_holds() {
+        let rig = warm_rig("warm-held");
+        let cache = rig.cache();
+        let hold = Arc::new(Mutex::new(()));
+        let held = hold.lock().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let gate = Arc::clone(&hold);
+        cache.warm_in_background(
+            move || drop(gate.lock()),
+            move || {
+                let _ = tx.send(());
+            },
+        );
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 0);
+        drop(held);
+        rx.recv_timeout(PASS).expect("warming finished once the gate opened");
+        assert!(rig.source.writes.load(Ordering::Relaxed) > 0);
     }
 
     #[test]

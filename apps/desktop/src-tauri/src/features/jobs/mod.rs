@@ -196,6 +196,14 @@ impl GameFlag {
         self.wake_all();
     }
 
+    /// Blocks while the game runs.
+    pub fn wait_while_running(&self) {
+        let mut wake = self.wake.lock_or_recover();
+        while self.get() {
+            wake = self.changed.wait(wake).unwrap_or_else(|e| e.into_inner());
+        }
+    }
+
     /// Taking `wake` before notifying closes the gap between a waiter's re-check and its wait.
     fn wake_all(&self) {
         drop(self.wake.lock_or_recover());

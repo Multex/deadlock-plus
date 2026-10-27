@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use dp_gamedata::{ArtCache, HeroVdata, ShopVdata};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 pub const ART_CHANGED_EVENT: &str = "game-art-changed";
 
@@ -20,7 +20,9 @@ pub fn art_cache(app: &AppHandle, root: PathBuf) -> ArtCache {
         }
     };
     let cache = ArtCache::new(root).on_build_change(emit(app.clone()));
-    cache.warm_in_background(emit(app.clone()));
+    // Warming only saves later decodes, so it gives the game its CPU and disk; art pages still decode on demand.
+    let game = app.state::<crate::features::jobs::JobsState>().registry.game_flag();
+    cache.warm_in_background(move || game.wait_while_running(), emit(app.clone()));
     cache
 }
 

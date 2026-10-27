@@ -636,3 +636,22 @@ fn keep_running_instead_of_pausing_leaves_a_registered_job_running_in_game() {
     assert_eq!(checkpoint_in_thread(h).recv_timeout(WAIT), Ok(Flow::Continue));
     assert_eq!(state(&f, "a"), JobState::Running);
 }
+
+#[test]
+fn waiting_on_the_game_flag_returns_once_the_game_exits() {
+    let game = GameFlag::new(true);
+    let (tx, rx) = mpsc::channel();
+    let waiter = game.clone();
+    thread::spawn(move || {
+        waiter.wait_while_running();
+        let _ = tx.send(());
+    });
+    assert!(rx.recv_timeout(QUIET).is_err(), "returned while the game was running");
+    game.set(false);
+    assert!(rx.recv_timeout(WAIT).is_ok());
+}
+
+#[test]
+fn waiting_on_the_game_flag_returns_at_once_without_the_game() {
+    GameFlag::new(false).wait_while_running();
+}
