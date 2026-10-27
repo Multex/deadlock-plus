@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use dp_discord_ipc::ClientKind;
+use dp_discord_ipc::{ClientKind, Discovery};
 use dp_game::start_time;
 use dp_presence::{
     clamp_delay_secs, map_with, with_deadlock_plus_logo, with_support_button, Config, Delay, GameFacts, Presence,
@@ -271,6 +271,7 @@ struct Slots {
 pub struct PresenceService {
     settings: Arc<Mutex<PresenceSettings>>,
     connected: Arc<Mutex<Vec<u8>>>,
+    discovery: Arc<Mutex<Discovery>>,
     lookups: Arc<Mutex<Lookups>>,
     config: Arc<Mutex<Config>>,
     snapshot: Mutex<dp_live::Slot<dp_live::Snapshot>>,
@@ -315,6 +316,7 @@ impl PresenceService {
                 slots.active = Some(worker);
                 let settings = self.settings.clone();
                 let connected = self.connected.clone();
+                let discovery = self.discovery.clone();
                 let lookups = self.lookups.clone();
                 let config = self.config.clone();
                 let snapshot = self.snapshot.lock_or_recover().clone();
@@ -325,7 +327,7 @@ impl PresenceService {
                         if let Some(previous) = previous {
                             wait_done(&previous, Instant::now() + SHUTDOWN_GRACE);
                         }
-                        run(&stop, &settings, &connected, &lookups, &config, &snapshot);
+                        run(&stop, &settings, &connected, &discovery, &lookups, &config, &snapshot);
                         connected.lock_or_recover().clear();
                     })
                     .expect("spawn thread");
@@ -359,7 +361,7 @@ impl PresenceService {
     pub fn status(&self) -> PresenceStatus {
         let connected = self.connected.lock_or_recover().clone();
         let selected = self.settings.lock_or_recover().selected();
-        let pipes = dp_discord_ipc::discover();
+        let pipes = self.discovery.lock_or_recover().pipes();
         let discord_found = !dp_discord_ipc::select_targets(&selected, &pipes).is_empty();
         let clients: Vec<PresenceClient> = pipes
             .into_iter()
@@ -399,6 +401,7 @@ fn run(
     stop: &StopSignal,
     settings: &Mutex<PresenceSettings>,
     connected: &Mutex<Vec<u8>>,
+    discovery: &Mutex<Discovery>,
     lookups: &Mutex<Lookups>,
     config: &Mutex<Config>,
     snapshot: &dp_live::Slot<dp_live::Snapshot>,
@@ -422,7 +425,7 @@ fn run(
         let desired = held.show(&current, mapped, now_ms);
         // A held-back activity outlives the game by the delay, so its clients stay connected until it clears.
         let targets = if facts.running || desired.is_some() {
-            dp_discord_ipc::select_targets(&current.selected(), &dp_discord_ipc::discover())
+            dp_discord_ipc::select_targets(&current.selected(), &discovery.lock_or_recover().pipes())
         } else {
             Vec::new()
         };

@@ -1,5 +1,6 @@
+use crate::discovery::Probe;
 use crate::kind::{classify_path, Pipe};
-use crate::paths::MAX_PIPES;
+use crate::paths::pipe_index;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::os::windows::io::AsRawHandle;
@@ -17,15 +18,22 @@ fn open(index: u8) -> io::Result<File> {
     OpenOptions::new().read(true).write(true).open(format!(r"\\.\pipe\discord-ipc-{index}"))
 }
 
-pub fn discover() -> Vec<Pipe> {
-    (0..MAX_PIPES)
-        .filter_map(|i| match open(i) {
-            Ok(file) => Some(Pipe::new(i, server_exe(&file).map(|p| classify_path(&p)))),
-            // All instances taken: the pipe exists but cannot be inspected.
-            Err(e) if e.raw_os_error() == Some(ERROR_PIPE_BUSY) => Some(Pipe::new(i, None)),
-            Err(_) => None,
-        })
-        .collect()
+/// Lists the pipe namespace, which names each pipe without opening it.
+pub(crate) fn endpoints() -> Vec<Pipe> {
+    let Ok(entries) = std::fs::read_dir(r"\\.\pipe\") else { return Vec::new() };
+    let mut indexes: Vec<u8> =
+        entries.filter_map(|e| e.ok()).filter_map(|e| e.file_name().to_str().and_then(pipe_index)).collect();
+    indexes.sort_unstable();
+    indexes.dedup();
+    indexes.into_iter().map(|i| Pipe::new(i, None)).collect()
+}
+
+pub(crate) fn probe(pipe: &Pipe) -> Probe {
+    match open(pipe.index) {
+        Ok(file) => Probe::Labelled(server_exe(&file).map(|p| classify_path(&p))),
+        Err(e) if e.raw_os_error() == Some(ERROR_PIPE_BUSY) => Probe::Busy,
+        Err(_) => Probe::Gone,
+    }
 }
 
 pub fn connect(pipe: &Pipe) -> io::Result<Connection> {
