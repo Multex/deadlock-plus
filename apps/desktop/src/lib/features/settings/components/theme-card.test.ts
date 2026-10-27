@@ -97,8 +97,8 @@ describe("ThemeCard", () => {
     it("picks Catppuccin's flavour and accent from menus named after the theme, instead of a free accent", () => {
         const body = html("catppuccin", { variant: "latte", namedAccent: "peach" });
 
-        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Flavour"/);
-        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Accent"/);
+        expect(body).toMatch(/<button\b[^>]*aria-label="Flavour for Catppuccin"/);
+        expect(body).toMatch(/<button\b[^>]*aria-label="Accent for Catppuccin"/);
         expect(body).toContain("Latte");
         expect(body).toContain("Peach");
         expect(body).not.toContain("Accent colour");

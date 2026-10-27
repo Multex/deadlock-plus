@@ -242,7 +242,8 @@
             "accent_hue": "Hue",
             "accent_vividness": "Vividness",
             "accent_hex": "Hex colour",
-            "accent_reset": "Reset"
+            "accent_reset": "Reset",
+            "theme_option_aria": "{option} for {theme}"
         },
         "themes": {
             "deadlock": {
@@ -384,6 +385,7 @@
             "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
             "front_page_after_match_description": "Tosses a newspaper front page of the match onto the window when Deadlock+ captures the match at its end.",
             "front_page_modes": "Match modes",
+            "front_page_mode_aria": "Front page for {mode}",
             "front_page_overlay_alert_description": "Tells you in the game overlay when a front page is waiting in Deadlock+.",
             "delivery_label": "Shows as",
             "delivery": {

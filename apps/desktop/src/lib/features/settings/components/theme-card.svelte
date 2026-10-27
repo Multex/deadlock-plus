@@ -147,7 +147,10 @@
                             align="end"
                             items={variantItems}
                             value={variant}
-                            aria-label="{theme.label} {theme.variantLabel}"
+                            aria-label={t("settings.appearance.theme_option_aria", {
+                                option: theme.variantLabel,
+                                theme: theme.label,
+                            })}
                             onValueChange={onVariant}
                         >
                             {#snippet leading(item)}
@@ -173,7 +176,10 @@
                             align="end"
                             items={accentItems}
                             value={namedAccent}
-                            aria-label="{theme.label} {theme.accentLabel}"
+                            aria-label={t("settings.appearance.theme_option_aria", {
+                                option: theme.accentLabel,
+                                theme: theme.label,
+                            })}
                             onValueChange={onNamedAccent}
                         >
                             {#snippet leading(item)}
