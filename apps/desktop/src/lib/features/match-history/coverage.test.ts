@@ -358,6 +358,107 @@ describe("MatchCoverage when the API budget is low", () => {
         warn.mockRestore();
     });
 
+    const lowFor = (s: number) => ({ code: "common.network", params: { retry_in_s: String(s) } });
+
+    async function refuseRounds(t: ReturnType<typeof setup>, rounds: number): Promise<number[]> {
+        for (let i = 0; i < rounds; i++) {
+            const next = t.timers.shift();
+            next?.run();
+            await t.settle();
+        }
+        return t.timers.map((x) => x.ms);
+    }
+
+    it("backs off 2 s, 4 s, 8 s and so on up to a minute while the budget stays low", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        const t = setup([row(1, 1)]);
+        t.setFail(lowFor(2));
+        t.coverage.sync();
+        await t.settle();
+        const waits = [t.timers[0].ms];
+        for (let i = 0; i < 7; i++) waits.push(...(await refuseRounds(t, 1)));
+
+        expect(waits).toEqual([2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000]);
+        vi.restoreAllMocks();
+    });
+
+    it("waits as long as the budget asks when that is longer than the backoff", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        const t = setup([row(1, 1)]);
+        t.setFail(lowFor(10));
+        t.coverage.sync();
+        await t.settle();
+        const waits = [t.timers[0].ms];
+        for (let i = 0; i < 3; i++) waits.push(...(await refuseRounds(t, 1)));
+
+        expect(waits).toEqual([10000, 10000, 10000, 16000]);
+        vi.restoreAllMocks();
+    });
+
+    it("starts the backoff over after an answer", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        vi.spyOn(console, "info").mockImplementation(() => {});
+        const t = setup([row(1, 1)]);
+        t.setFail(lowFor(2));
+        t.coverage.sync();
+        await t.settle();
+        await refuseRounds(t, 1);
+        t.setFail(false);
+        await refuseRounds(t, 1);
+        expect(t.coverage.summary).toMatchObject({ total: 1, full: 1 });
+
+        t.setFail(lowFor(2));
+        t.setRows([row(2, 0), row(1, 1)]);
+        t.coverage.sync();
+        await t.settle();
+        expect(t.timers.map((x) => x.ms)).toEqual([2000]);
+        vi.restoreAllMocks();
+    });
+
+    it("logs a failure streak once and its end once", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const info = vi.spyOn(console, "info").mockImplementation(() => {});
+        const t = setup([row(1, 1)]);
+        t.setFail(lowFor(2));
+        t.coverage.sync();
+        await t.settle();
+        await refuseRounds(t, 4);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(info).not.toHaveBeenCalled();
+
+        t.setFail(false);
+        await refuseRounds(t, 1);
+        expect(info).toHaveBeenCalledTimes(1);
+
+        t.setFail(lowFor(2));
+        t.setRows([row(2, 0), row(1, 1)]);
+        t.coverage.sync();
+        await t.settle();
+        expect(warn).toHaveBeenCalledTimes(2);
+        vi.restoreAllMocks();
+    });
+
+    it("asks about at most 500 matches per call, so a refusal never costs the calls that landed", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        const rows = Array.from({ length: 1200 }, (_, i) => row(i + 1, 1));
+        const t = setup(rows);
+        vi.mocked(t.deps.fetch).mockImplementation(async (ids: number[]) => {
+            if (ids.includes(501)) throw lowFor(2);
+            return { withDetails: ids, withReplay: [] };
+        });
+        t.coverage.sync();
+        await t.settle();
+        expect(vi.mocked(t.deps.fetch).mock.calls.map(([ids]) => ids.length)).toEqual([500, 500, 200]);
+        expect(t.coverage.summary).toBeNull();
+
+        vi.mocked(t.deps.fetch).mockClear();
+        vi.mocked(t.deps.fetch).mockImplementation(async (ids: number[]) => ({ withDetails: ids, withReplay: [] }));
+        await refuseRounds(t, 1);
+        expect(vi.mocked(t.deps.fetch).mock.calls.map(([ids]) => [ids[0], ids.length])).toEqual([[501, 500]]);
+        expect(t.coverage.summary).toMatchObject({ total: 1200, full: 1200 });
+        vi.restoreAllMocks();
+    });
+
     it("waits for the next match or run after any other failure", async () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const { coverage, settle, setFail, timers } = setup([row(1, 1)]);

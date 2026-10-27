@@ -41,6 +41,13 @@ function retryInS(error: unknown): number | null {
 }
 // The GC stops handing out replay salts 21 days after a match starts, so a run cannot add an older replay.
 const REPLAY_RECOVERY_WINDOW_S = 21 * 86_400;
+/**
+ * The app asks the Deadlock API about 500 matches per request, and refuses a view's call whole once its
+ * budget runs out partway. A bigger call spends a request on its first part and then fails, every retry.
+ */
+const ASK_CHUNK = 500;
+const BACKOFF_FIRST_S = 2;
+const BACKOFF_MAX_S = 60;
 
 /**
  * Which of the player's matches the Deadlock API has full details and replays for. Every install shares
@@ -59,6 +66,8 @@ export class MatchCoverage {
     private latest = new Map<number, number>();
     private token = 0;
     private retryPending = false;
+    private retryRound = 0;
+    private failing = false;
 
     private wasRunning = false;
     private runIds = new Set<number>();
@@ -180,6 +189,10 @@ export class MatchCoverage {
     }
 
     private ask(ids: number[], strip: boolean): void {
+        for (let i = 0; i < ids.length; i += ASK_CHUNK) this.askChunk(ids.slice(i, i + ASK_CHUNK), strip);
+    }
+
+    private askChunk(ids: number[], strip: boolean): void {
         const token = ++this.token;
         for (const id of ids) {
             this.latest.set(id, token);
@@ -199,6 +212,11 @@ export class MatchCoverage {
                 }
                 this.known = known;
                 if (strip) this.stripReady = true;
+                this.retryRound = 0;
+                if (this.failing && this.failed.size === 0) {
+                    this.failing = false;
+                    console.info("match coverage is answering again");
+                }
                 this.publish();
             },
             (e: unknown) => {
@@ -208,7 +226,10 @@ export class MatchCoverage {
                     if (this.asked.has(id)) this.failed.add(id);
                 }
                 if (this.failed.size > 0) this.coverage = null;
-                console.warn("match coverage failed", e);
+                if (!this.failing) {
+                    this.failing = true;
+                    console.warn("match coverage failed", e);
+                }
                 const secs = retryInS(e);
                 if (secs !== null) this.retryLater(secs, failed);
             },
@@ -219,7 +240,8 @@ export class MatchCoverage {
         const detailIds = new Set(ids.filter((id) => !this.asked.has(id)));
         if (this.retryPending && detailIds.size === 0) return;
         this.retryPending = true;
-        this.deps.later(secs * 1000, () => {
+        const backoffS = Math.min(BACKOFF_MAX_S, BACKOFF_FIRST_S * 2 ** this.retryRound++);
+        this.deps.later(Math.max(secs, backoffS) * 1000, () => {
             this.retryPending = false;
             const fresh = [...detailIds].filter((id) => !this.known.has(id));
             const retry = [...new Set([...this.failed, ...fresh])].filter((id) => !this.inflight.has(id));
