@@ -4,6 +4,7 @@
     import Button from "@deadlock-plus/ui/button.svelte";
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import { t } from "$lib/core/i18n.svelte";
+    import { smoothScroll } from "$lib/core/reduced-motion";
     import { PLACEHOLDER_HELP } from "./labels";
     import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
 
@@ -18,7 +19,7 @@
     } = $props();
 
     function showSyntax() {
-        document.getElementById("pe-syntax")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById("pe-syntax")?.scrollIntoView({ behavior: smoothScroll(), block: "start" });
     }
 </script>
 

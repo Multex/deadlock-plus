@@ -72,6 +72,10 @@ describe("video preview frame", () => {
         expect(previewTime({ state: "encoding", progress: 0.25 }, seconds, 0.5)).toEqual({ t: 10, playing: false });
     });
 
+    it("holds on the picked scene while idle under reduced motion", () => {
+        expect(previewTime({ state: "idle" }, seconds, 0.5, true)).toEqual({ t: 20, playing: false });
+    });
+
     it("holds on the frame being encoded", () => {
         expect(previewTime({ state: "encoding", progress: 0.5 }, seconds)).toEqual({ t: 20, playing: false });
         expect(previewTime({ state: "encoding", progress: 1 }, seconds).t).toBeLessThan(seconds);

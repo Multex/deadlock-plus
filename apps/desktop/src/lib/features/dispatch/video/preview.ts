@@ -53,15 +53,19 @@ export async function previewAssets(view: EditionView, kind: VideoKind, track: M
 export type PreviewState =
     { state: "idle" } | { state: "encoding"; progress: number } | { state: "done" } | { state: "error" };
 
-/** Which moment of the video the preview shows, and whether it runs from there. `start` is a share of the length. */
+/**
+ * Which moment of the video the preview shows, and whether it runs from there. `start` is a share of the length;
+ * `still` holds an idle preview on it instead of playing, for reduced motion.
+ */
 export function previewTime(
     status: PreviewState,
     seconds: number,
     start = PREVIEW_START,
+    still = false,
 ): { t: number; playing: boolean } {
     switch (status.state) {
         case "idle":
-            return { t: start * seconds, playing: true };
+            return { t: start * seconds, playing: !still };
         case "encoding":
             // The last frame index is one frame short of the length.
             return { t: Math.min(status.progress, PREVIEW_END) * seconds, playing: false };

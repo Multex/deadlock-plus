@@ -1,5 +1,6 @@
 <script lang="ts">
     import { untrack } from "svelte";
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import type { EditionView } from "../edition-view";
     import type { MusicTrackId } from "../video/music";
     import { paintFrame, previewAssets, previewTime, type PreviewState } from "../video/preview";
@@ -67,7 +68,10 @@
         c.width = Math.round(w * dpr);
         c.height = Math.round(h * dpr);
         const seconds = a.timing.seconds;
-        const moment = at !== undefined ? { t: at * seconds, playing: false } : previewTime(status, seconds, start);
+        const moment =
+            at !== undefined
+                ? { t: at * seconds, playing: false }
+                : previewTime(status, seconds, start, prefersReducedMotion());
         if (!moment.playing) {
             paintFrame(c, kind, moment.t, a);
             time = moment.t;

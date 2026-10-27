@@ -4,6 +4,7 @@
     import * as DropdownMenu from "@deadlock-plus/ui/dropdown-menu";
     import { cn } from "@deadlock-plus/ui/utils";
     import { t, tn } from "$lib/core/i18n.svelte";
+    import { smoothScroll } from "$lib/core/reduced-motion";
     import type { BuildEditor } from "../../editor/editor.svelte";
     import { layoutIssues, repairLayout } from "../../editor/repair";
     import { headerLinesFor } from "../../header-lines.svelte";
@@ -25,7 +26,7 @@
         editor.activeCategory = index;
         document
             .querySelector(`[role="application"] [data-category="${index}"]`)
-            ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            ?.scrollIntoView({ block: "nearest", behavior: smoothScroll() });
     }
 
     function fixAll() {

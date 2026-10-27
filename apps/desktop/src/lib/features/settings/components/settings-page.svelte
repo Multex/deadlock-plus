@@ -3,6 +3,7 @@
     import { Search } from "@lucide/svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import { t } from "$lib/core/i18n.svelte";
+    import { smoothScroll } from "$lib/core/reduced-motion";
     import { CATEGORIES, matchingCategories, matchingItems, type CategoryId } from "../catalog";
     import { hiddenNow } from "../hidden";
     import { tick } from "svelte";
@@ -75,8 +76,7 @@
                 const row = control?.closest<HTMLElement>("section") ?? control;
                 if (!row) return;
                 clearHighlight();
-                const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-                row.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+                row.scrollIntoView({ block: "center", behavior: smoothScroll() });
                 row.setAttribute("data-jump-highlight", "");
                 highlighted = row;
                 highlightTimer = setTimeout(clearHighlight, HIGHLIGHT_MS);
