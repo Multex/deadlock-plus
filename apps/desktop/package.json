@@ -23,6 +23,7 @@
     "demo:build": "node e2e/support/demo.mjs build",
     "demo:preview": "node e2e/support/demo.mjs preview",
     "build:no-demo": "node e2e/support/no-demo-in-build.mjs",
+    "bundle:check": "node perf/bundle-size.mjs --check",
     "licenses": "node ../../scripts/gen-licenses.mjs",
     "version:sync": "node ../../scripts/version.mjs",
     "version:check": "node ../../scripts/version.mjs --check",
