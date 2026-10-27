@@ -22,7 +22,9 @@
     import { stateLine } from "$lib/features/live/live";
     import { ptraceNotice, ptraceStatus, type PtraceStatus } from "$lib/features/live/ptrace";
     import { networkMonitor } from "$lib/features/connection/monitor.svelte";
+    import { settings, variantOf } from "$lib/features/registry";
     import AppRegion from "$lib/shell/app-region.svelte";
+    import { THEMES, themeVariant } from "@deadlock-plus/ui/themes";
 
     const REFRESH_MS = 1000;
 
@@ -37,6 +39,10 @@
             ? { match: live.match, phase: live.state.phase }
             : null,
     );
+    const theme = $derived.by(() => {
+        const data = THEMES.find((t) => t.id === settings.theme) ?? THEMES[0]!;
+        return themeVariant(data, variantOf(settings.themeOptions, settings.theme));
+    });
     const line = $derived(live.state ? stateLine(live.state.phase, live.state.matchPresent) : null);
 
     async function refresh() {
@@ -74,7 +80,7 @@
 
     <AppRegion name="live-match">
         {#if board}
-            <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} />
+            <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} {theme} />
         {:else if adminAccess.status?.gameRunsAsAdmin}
             <GameAdminCard />
         {:else if ptraceShown}
