@@ -63,7 +63,7 @@
 {/snippet}
 
 <aside
-    class="flex shrink-0 flex-col bg-chrome pb-1 select-none transition-[width] duration-200 {collapsed
+    class="flex min-h-0 shrink-0 flex-col overflow-x-hidden overflow-y-auto bg-chrome pb-1 select-none transition-[width] duration-200 {collapsed
         ? 'w-16'
         : 'w-56'}"
 >

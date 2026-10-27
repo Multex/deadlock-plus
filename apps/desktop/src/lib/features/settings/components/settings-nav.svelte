@@ -17,7 +17,7 @@
 </script>
 
 <nav
-    class="flex shrink-0 flex-col gap-3 px-2 pb-1 pt-2 select-none transition-[width] duration-200 {collapsed
+    class="flex min-h-0 shrink-0 flex-col gap-3 overflow-x-hidden overflow-y-auto px-2 pb-1 pt-2 select-none transition-[width] duration-200 {collapsed
         ? 'w-16'
         : 'w-56'}"
     aria-label={t("settings.nav.label")}
