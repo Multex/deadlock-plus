@@ -18,7 +18,7 @@ import {
 
 export type { ShelfEntry, ShelfStatus } from "./service";
 
-const STORE = "stats-cache";
+const STORE = "dispatch-editions";
 const HOUR_MS = 60 * 60 * 1000;
 
 const currentAccount = () => steamAccount.account?.steamId32 ?? null;
