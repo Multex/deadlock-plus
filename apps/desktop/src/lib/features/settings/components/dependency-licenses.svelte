@@ -59,7 +59,7 @@
                                     <span
                                         class="rounded bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground select-text"
                                     >
-                                        {p.name} <span class="text-muted-foreground/60">{p.version}</span>
+                                        {p.name} <span class="text-muted-foreground">{p.version}</span>
                                     </span>
                                 {/each}
                             </div>

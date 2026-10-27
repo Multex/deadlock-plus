@@ -116,7 +116,7 @@
                 {#if hits === null}
                     <h1 class="text-2xl">{label}</h1>
                 {:else}
-                    <h2 class="font-heading text-xs uppercase tracking-widest text-muted-foreground/70">
+                    <h2 class="font-heading text-xs uppercase tracking-widest text-muted-foreground">
                         {label}
                     </h2>
                 {/if}

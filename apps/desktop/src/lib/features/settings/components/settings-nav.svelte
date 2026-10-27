@@ -86,7 +86,7 @@
             <ArrowLeft class="size-5 shrink-0" />
             {#if !collapsed}
                 <span class="flex-1">{t("settings.nav.back")}</span>
-                <kbd class="text-xs font-normal text-muted-foreground/70">Esc</kbd>
+                <kbd class="text-xs font-normal text-muted-foreground">Esc</kbd>
             {/if}
         </button>
     </div>

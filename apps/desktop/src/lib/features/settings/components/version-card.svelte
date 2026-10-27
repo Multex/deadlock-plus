@@ -48,7 +48,7 @@
         <div class="mt-3 flex flex-col gap-4">
             {#each aboutGroups(info) as group (group.title)}
                 <div>
-                    <h3 class="mb-1 text-xs uppercase tracking-widest text-muted-foreground/70">{group.title}</h3>
+                    <h3 class="mb-1 text-xs uppercase tracking-widest text-muted-foreground">{group.title}</h3>
                     <dl class="grid grid-cols-[8.5rem_1fr] gap-x-4 gap-y-1 text-sm">
                         {#each group.rows as [label, value] (label)}
                             <dt class="text-muted-foreground">{label}</dt>

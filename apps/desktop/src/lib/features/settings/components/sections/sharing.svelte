@@ -43,7 +43,7 @@
         >
             {#snippet details()}
                 <HowItWorks points={[t("settings.privacy.ingest_how_find"), t("settings.privacy.ingest_how_send")]} />
-                {#if ingestLine}<p class="mt-1 text-xs text-muted-foreground/80">{ingestLine}</p>{/if}
+                {#if ingestLine}<p class="mt-1 text-xs text-muted-foreground">{ingestLine}</p>{/if}
                 <SharedMatches />
             {/snippet}
             <Switch
@@ -71,7 +71,7 @@
                         t("settings.privacy.gc_how_send"),
                     ]}
                 />
-                {#if gcLine}<p class="mt-1 text-xs text-muted-foreground/80">{gcLine}</p>{/if}
+                {#if gcLine}<p class="mt-1 text-xs text-muted-foreground">{gcLine}</p>{/if}
             {/snippet}
             <Switch id="gc-recovery" checked={settings.gcRecovery} onCheckedChange={(v) => settings.setGcRecovery(v)} />
         </SettingRow>

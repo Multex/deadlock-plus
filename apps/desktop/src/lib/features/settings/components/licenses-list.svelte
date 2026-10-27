@@ -40,7 +40,7 @@
     </section>
 
     <section>
-        <h3 class="mb-2 px-1 text-xs uppercase tracking-widest text-muted-foreground/70">
+        <h3 class="mb-2 px-1 text-xs uppercase tracking-widest text-muted-foreground">
             {t("settings.licenses.fonts_heading")}
         </h3>
         <ul class="grid gap-3 sm:grid-cols-2">
@@ -54,7 +54,7 @@
                         <Badge variant={license.tone === "open" ? "success" : "warning"}>{license.license}</Badge>
                     </div>
                     <p class="mt-3 text-xs text-muted-foreground">{license.owner}</p>
-                    <p class="mt-1 text-xs text-muted-foreground/80">{license.terms}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">{license.terms}</p>
                     {#if license.url}
                         <button
                             type="button"
@@ -69,7 +69,7 @@
                         <summary class="cursor-pointer text-xs text-muted-foreground hover:text-foreground"
                             >{t("settings.licenses.copyright")}</summary
                         >
-                        <p class="mt-2 text-xs text-muted-foreground/80 select-text">{license.notice}</p>
+                        <p class="mt-2 text-xs text-muted-foreground select-text">{license.notice}</p>
                     </details>
                 </Card>
             {/each}

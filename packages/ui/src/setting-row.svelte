@@ -40,7 +40,7 @@
             <h3 class={labelClass}>{label}</h3>
         {/if}
         {#if description}<p class={descriptionClass}>{description}</p>{/if}
-        {#if hint}<p class="text-xs text-muted-foreground/80">{hint}</p>{/if}
+        {#if hint}<p class="text-xs text-muted-foreground">{hint}</p>{/if}
         {@render details?.()}
     </div>
     {@render children()}

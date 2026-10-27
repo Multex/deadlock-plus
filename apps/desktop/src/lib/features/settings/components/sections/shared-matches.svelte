@@ -82,7 +82,7 @@
                                         />
                                     {:else}
                                         <Minus
-                                            class="mx-auto size-3.5 text-muted-foreground/40"
+                                            class="mx-auto size-3.5 text-muted-foreground"
                                             aria-label={t("settings.privacy.shared.not_sent")}
                                         />
                                     {/if}
