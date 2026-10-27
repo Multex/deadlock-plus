@@ -14,6 +14,7 @@ import {
     updater,
     variantOf,
 } from "$lib/features/registry";
+import { appliedAccent } from "./applied-accent.svelte";
 import { useLastRoute } from "./last-route.svelte";
 import { overlays } from "./overlays";
 
@@ -45,6 +46,7 @@ export function useAppShell() {
         };
         for (const [name, value] of Object.entries(vars)) style.setProperty(name, value);
         accentVars = Object.keys(vars);
+        appliedAccent.key = JSON.stringify(vars);
     });
 
     $effect(() => {
