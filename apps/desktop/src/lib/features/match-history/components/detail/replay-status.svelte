@@ -1,8 +1,6 @@
 <script lang="ts">
     import { CircleCheck, Film, LoaderCircle, RotateCw } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
 
-    import { errorText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -12,6 +10,7 @@
     import { settings } from "$lib/features/settings/settings.svelte";
     import { matchCoverage } from "../../coverage.svelte";
     import { replayRecoverStep, replayState } from "../../detail-state";
+    import { runRecovery } from "../../recovery-action";
 
     let { matchId, startTime, own }: { matchId: number; startTime: number; own: boolean } = $props();
 
@@ -59,10 +58,10 @@
     async function recoverReplay() {
         busy = true;
         try {
-            await recoverMatches([], [matchId], false);
-            await gcStatus.refresh();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runRecovery("replay", async () => {
+                await recoverMatches([], [matchId], false);
+                await gcStatus.refresh();
+            });
         } finally {
             busy = false;
         }

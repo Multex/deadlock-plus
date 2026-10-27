@@ -3493,7 +3493,13 @@
             "resume": "Resume",
             "limit_note": "Continues tomorrow on its own",
             "step_details": "Missing details",
-            "step_replays": "Recent replays"
+            "step_replays": "Recent replays",
+            "start_failed": "Couldn't start recovery. Try again.",
+            "pause_failed": "Couldn't pause recovery.",
+            "resume_failed": "Couldn't resume recovery.",
+            "cancel_failed": "Couldn't stop recovery.",
+            "match_failed": "Couldn't recover that match. Try again.",
+            "replay_failed": "Couldn't recover that replay. Try again."
         },
         "row_state": {
             "missing": "No details",

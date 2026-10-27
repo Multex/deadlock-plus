@@ -1,8 +1,6 @@
 <script lang="ts">
     import { CircleCheck, FileText, Film, Gamepad2, LoaderCircle, RotateCw, TriangleAlert } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
 
-    import { errorText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -16,6 +14,7 @@
     import { settings } from "$lib/features/settings/settings.svelte";
     import { matchCoverage } from "../../coverage.svelte";
     import { detailState, etaParts, replayState, type DetailState } from "../../detail-state";
+    import { runRecovery } from "../../recovery-action";
     import { matchHistory } from "../../history.svelte";
     import { kdaText, modeLabelKey, outcomeLabelKey } from "../list/view-model";
 
@@ -134,10 +133,10 @@
     async function recover() {
         busy = true;
         try {
-            await recoverMatches([matchId], [], false);
-            await gcStatus.refresh();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runRecovery("match", async () => {
+                await recoverMatches([matchId], [], false);
+                await gcStatus.refresh();
+            });
         } finally {
             busy = false;
         }
