@@ -1909,7 +1909,8 @@
             "not_recognised": "Not recognised. Use a Steam profile link or Steam ID.",
             "search_failed": "Couldn't search for players. Check your connection and try again.",
             "exported": "Exported {count} mutes",
-            "export_failed": "Couldn't export your mutes. Check the log for details.",
+            "export_failed": "Couldn't export your mutes. Try again.",
+            "save_failed": "Couldn't save your mutes. Try again.",
             "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
         },
         "list_error": "Couldn't read your mute list."
