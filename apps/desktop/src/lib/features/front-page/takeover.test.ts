@@ -106,4 +106,20 @@ describe("createTakeover", () => {
         expect(e.prevented).toBe(false);
         expect(log).toEqual([]);
     });
+
+    it("leaves for another page without handing the focus back to the page it leaves", () => {
+        const { log, takeover, flush, el, setFocused } = setup();
+        setFocused(el("button"));
+        takeover.show();
+        takeover.leave(() => log.push("navigate"));
+        flush();
+        expect(log).toEqual(["open", "closed", "navigate"]);
+        expect(takeover.open).toBe(false);
+    });
+
+    it("ignores a leave while closed", () => {
+        const { log, takeover } = setup();
+        takeover.leave(() => log.push("navigate"));
+        expect(log).toEqual([]);
+    });
 });

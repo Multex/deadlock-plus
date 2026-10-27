@@ -1,11 +1,13 @@
 <script lang="ts">
     import { onMount, tick, untrack } from "svelte";
+    import { goto } from "$app/navigation";
 
     import { getOverlayHost } from "@deadlock-plus/ui/overlay-host";
     import { MAIN_WINDOW, windowLabel } from "$lib/core/window-label";
     import { windowVisibility } from "$lib/core/window-visibility";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { live } from "$lib/features/live/live.svelte";
+    import { matchHref } from "$lib/features/match-history/components/list/view-model";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import type { MatchDetail } from "@deadlock-plus/match/detail";
@@ -82,5 +84,12 @@
 </script>
 
 {#if open && detail}
-    <FrontPageTakeover {detail} {ownAccountId} {takeover} requestGrade />
+    {@const matchId = detail.matchId}
+    <FrontPageTakeover
+        {detail}
+        {ownAccountId}
+        {takeover}
+        requestGrade
+        onopenmatch={() => takeover.leave(() => void goto(matchHref(matchId)))}
+    />
 {/if}
