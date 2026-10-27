@@ -30,6 +30,7 @@
                         <p class="mt-0.5 text-xs text-muted-foreground">{tool.description}</p>
                     </div>
                     <ArrowRight
+                        aria-hidden="true"
                         class="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5"
                     />
                 </a>

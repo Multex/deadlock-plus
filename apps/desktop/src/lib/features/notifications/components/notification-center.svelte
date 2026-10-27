@@ -69,7 +69,7 @@
                                     <span class="truncate text-sm font-medium text-foreground">{text.title}</span>
                                 </div>
                                 <p class="line-clamp-2 text-xs text-muted-foreground">{text.body}</p>
-                                <span class="text-[0.7rem] text-muted-foreground/70"
+                                <span class="text-[0.7rem] text-muted-foreground"
                                     >{formatRelative(item.timestamp)}</span
                                 >
                             </div>

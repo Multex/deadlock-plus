@@ -47,8 +47,8 @@
                                     onerror={() => (brokenImages = new Set(brokenImages).add(item.id))}
                                 />
                             {:else}
-                                <div class="flex size-full items-center justify-center text-muted-foreground/40">
-                                    <Newspaper class="size-10" aria-hidden="true" />
+                                <div class="flex size-full items-center justify-center text-muted-foreground/40" aria-hidden="true">
+                                    <Newspaper class="size-10" />
                                 </div>
                             {/if}
                         </div>

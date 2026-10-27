@@ -13,7 +13,7 @@
             </h3>
             {#each entry.sections as section, i (i)}
                 {#if section.title}
-                    <h4 class="mt-2 text-xs uppercase tracking-widest text-muted-foreground/70">{section.title}</h4>
+                    <h4 class="mt-2 text-xs uppercase tracking-widest text-muted-foreground">{section.title}</h4>
                 {/if}
                 <ul class="mt-1 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                     {#each section.items as item, j (j)}
@@ -21,7 +21,7 @@
                     {/each}
                 </ul>
                 {#each section.groups ?? [] as group, g (g)}
-                    <h5 class="mt-2 text-xs font-semibold text-foreground/80">{group.title}</h5>
+                    <h5 class="mt-2 text-xs font-semibold text-foreground">{group.title}</h5>
                     <ul class="mt-1 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                         {#each group.items as item, j (j)}
                             <li>{item}</li>

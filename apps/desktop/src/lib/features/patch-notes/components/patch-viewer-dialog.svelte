@@ -189,7 +189,7 @@
                                 {#if run.bullet}
                                     <ul class="flex flex-col gap-2.5 border-l-2 border-border pl-4">
                                         {#each groupBySubject(run.lines) as group, i (i)}
-                                            <li class="flex gap-2.5 text-base leading-relaxed text-foreground/90">
+                                            <li class="flex gap-2.5 text-base leading-relaxed text-foreground">
                                                 <span
                                                     class="mt-2.5 size-1 shrink-0 rounded-full bg-brass/70"
                                                     aria-hidden="true"
@@ -241,7 +241,7 @@
                                                     />
                                                 </button>
                                             {:else}
-                                                <p class="text-base leading-relaxed text-foreground/90">
+                                                <p class="text-base leading-relaxed text-foreground">
                                                     {@html renderInline(line.raw)}
                                                 </p>
                                             {/if}
