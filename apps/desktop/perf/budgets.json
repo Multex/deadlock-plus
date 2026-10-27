@@ -1,6 +1,6 @@
 {
     "bundle": {
-        "shellGzipKB": 420,
+        "shellGzipKB": 355,
         "defaultRouteGzipKB": 60,
         "routeGzipKB": {
             "(app)/dispatch": 185,

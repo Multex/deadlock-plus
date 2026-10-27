@@ -1,4 +1,4 @@
-import en from "../../../../../locales/en.json";
+import en from "../../../../../locales/en.json?omit=dispatch";
 import { interpolate, lookup, t, type Catalog } from "./i18n.svelte";
 
 const GENERIC = "errors.common.internal";

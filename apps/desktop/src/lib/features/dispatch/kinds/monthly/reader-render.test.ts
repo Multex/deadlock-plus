@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "$lib/core/i18n.svelte";
 import { render } from "svelte/server";
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { editionView } from "../../edition-view";
 import MonthlyEdition from "./monthly-edition.svelte";
+
+await i18n.namespace("dispatch");
 
 const START = Date.UTC(2026, 8, 1) / 1000;
 const END = Date.UTC(2026, 9, 1) / 1000;

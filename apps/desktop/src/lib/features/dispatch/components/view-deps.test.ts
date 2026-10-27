@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "$lib/core/i18n.svelte";
 import { dispatchViewDeps } from "./view-deps";
+
+await i18n.namespace("dispatch");
 
 // Monday 2026-10-05 00:00 in Berlin, still Sunday afternoon in Los Angeles.
 const BERLIN_MONDAY = 1791151200;

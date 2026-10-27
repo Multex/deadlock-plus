@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "svelte/server";
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";
-import { t, tn } from "$lib/core/i18n.svelte";
+import { i18n, t, tn } from "$lib/core/i18n.svelte";
 import { editionView } from "../../edition-view";
 import type { CollectorsDeps } from "./view";
 import CollectorsEdition from "./collectors-edition.svelte";
+
+await i18n.namespace("dispatch");
 
 const START = Date.UTC(2026, 6, 30) / 1000;
 const END = Date.UTC(2026, 10, 5) / 1000;

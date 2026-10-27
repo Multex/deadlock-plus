@@ -1,4 +1,4 @@
-import en from "../../../../../locales/en.json";
+import en from "../../../../../locales/en.json?omit=dispatch";
 import { command } from "./tauri";
 import { prefs } from "./prefs";
 
@@ -29,8 +29,16 @@ const loaders: Record<string, () => Promise<{ default: Catalog }>> = {
     "zh-TW": () => import("../../../../../locales/zh-TW.json"),
 };
 
+/** English namespaces left out of the startup catalog; whatever reads one awaits `i18n.namespace` first. */
+const namespaces: Record<string, () => Promise<{ default: Catalog }>> = {
+    dispatch: () => import("../../../../../locales/en.json?pick=dispatch"),
+};
+
 if (import.meta.env.DEV) {
-    loaders["en-XA"] = async () => ({ default: (await import("./i18n-pseudo")).pseudoLocalize(en) });
+    loaders["en-XA"] = async () => {
+        const dispatch = (await namespaces.dispatch()).default;
+        return { default: (await import("./i18n-pseudo")).pseudoLocalize({ ...en, ...dispatch }) };
+    };
 }
 
 export const SUPPORTED_LOCALES: readonly string[] = [DEFAULT_LOCALE, ...Object.keys(loaders)];
@@ -78,6 +86,22 @@ class I18n {
     reset(catalogs: Record<string, Catalog>, locale: string): void {
         this.catalogs = catalogs;
         this.locale = locale;
+        this.namespaces.clear();
+    }
+
+    private namespaces = new Map<string, Promise<void>>();
+
+    /** Adds an English namespace to the catalog. Its keys read as raw keys until this settles. */
+    namespace(name: string): Promise<void> {
+        let loading = this.namespaces.get(name);
+        if (!loading) {
+            loading = namespaces[name]().then((module) => {
+                this.catalogs = { ...this.catalogs, en: { ...this.catalogs.en, ...module.default } };
+            });
+            loading.catch(() => this.namespaces.delete(name));
+            this.namespaces.set(name, loading);
+        }
+        return loading;
     }
 
     private localeListeners = new Set<(locale: string) => void>();

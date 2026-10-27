@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "$lib/core/i18n.svelte";
 import { render } from "svelte/server";
 import type { EditionKind, EditionWindow } from "@deadlock-plus/stats/dispatch/types";
 import { labelInName, labelledElements } from "$lib/core/label-in-name";
 import type { MiniCopy } from "../kinds/minis";
 import type { TableCopies } from "./table";
 import Table from "./table.svelte";
+
+await i18n.namespace("dispatch");
 
 const DAY = 86400;
 const at = (y: number, m: number, d: number) => Date.UTC(y, m, d) / 1000;

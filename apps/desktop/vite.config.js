@@ -3,6 +3,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { peers } from "@deadlock-plus/ui/peers";
 import process from "node:process";
+import { localeSplit } from "./locale-split.js";
 const host = process.env.TAURI_DEV_HOST;
 
 // Dev servers sharing one dep cache re-optimize each other's dependencies, which holds `tauri dev` back
@@ -12,7 +13,7 @@ const cacheDir = process.env.VITE_DEMO ? `node_modules/.vite-demo${demoId}` : un
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-    plugins: [tailwindcss(), sveltekit()],
+    plugins: [localeSplit(), tailwindcss(), sveltekit()],
 
     cacheDir,
 

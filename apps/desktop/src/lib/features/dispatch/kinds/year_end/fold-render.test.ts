@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "$lib/core/i18n.svelte";
 import { render } from "svelte/server";
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { editionView } from "../../edition-view";
 import YearEndEdition from "./year-end-edition.svelte";
+
+await i18n.namespace("dispatch");
 
 const monthStart = (m: number) => Date.UTC(2025, 11 + m, 1) / 1000;
 

@@ -108,7 +108,26 @@ if (process.argv.includes("--check")) {
     const fat = chunks.filter(
         (c) => c.gzip / 1024 > budgets.maxChunkGzipKB && !budgets.allowLargeChunks.some((p) => c.file.includes(p)),
     );
+    const probes = dispatchProbes();
+    const leaked = [...shell].filter((file) => {
+        if (!file.endsWith(".js")) return false;
+        const source = readFileSync(path.join(out, file), "utf8");
+        return probes.some((probe) => source.includes(probe));
+    });
     for (const r of over) console.error(`over budget: ${r.route} ${kb(r.js.gzip + r.css.gzip)} KB gzip`);
     for (const c of fat) console.error(`chunk over ${budgets.maxChunkGzipKB} KB gzip: ${c.file} ${kb(c.gzip)} KB`);
-    if (over.length || fat.length) process.exit(1);
+    for (const file of leaked) console.error(`shell carries dispatch.* text: ${file}`);
+    if (over.length || fat.length || leaked.length) process.exit(1);
+}
+
+/**
+ * Long plain sentences from the `dispatch` namespace. It loads with its route, so none of them may reach a shell
+ * chunk.
+ */
+function dispatchProbes() {
+    const en = JSON.parse(readFileSync(new URL("../../../locales/en.json", import.meta.url), "utf8"));
+    const leaves = [];
+    const walk = (node) => (typeof node === "string" ? leaves.push(node) : Object.values(node).forEach(walk));
+    walk(en.dispatch);
+    return leaves.filter((s) => s.length > 30 && /^[A-Za-z ,.]+$/.test(s)).slice(0, 20);
 }
