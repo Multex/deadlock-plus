@@ -78,6 +78,12 @@ describe("entry metadata", () => {
         expect(ENTRY_META["shared-matches"]).toEqual({ owner: "deadlock-plus", kind: "history" });
     });
 
+    it("lists the Dispatch editions as the user's own uncounted data", () => {
+        expect(ENTRY_IDS).toContain("dispatch-editions");
+        expect(ENTRY_META["dispatch-editions"]).toEqual({ owner: "deadlock-plus", kind: "yours" });
+        expect(entryText("dispatch-editions").label).toBe("Dispatch editions");
+    });
+
     it("has no broad app data entry", () => {
         expect(ENTRY_IDS).not.toContain("app-data" as never);
     });

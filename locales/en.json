@@ -1844,6 +1844,12 @@
                 "clear_name": "shared matches",
                 "description": "Matches Deadlock+ shared with the Deadlock API.",
                 "consequence": "Deadlock+ may share those matches again. Nothing else is lost."
+            },
+            "dispatch_editions": {
+                "label": "Dispatch editions",
+                "clear_name": "Dispatch editions",
+                "description": "The Dispatch editions Deadlock+ has issued for you.",
+                "consequence": "Not recoverable. Past editions are not made again."
             }
         },
         "list_error": "Couldn't list what's stored on this PC."
