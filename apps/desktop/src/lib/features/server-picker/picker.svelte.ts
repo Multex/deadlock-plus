@@ -389,7 +389,8 @@ export class ServerPicker {
         try {
             const ids = await importExternalBlocks(this.gameDef.id);
             this.blockedIds = new Set([...this.blockedIds, ...ids]);
-            this.externalBlocks = await detectExternalBlocks(this.gameDef.id);
+            // The import already landed; a failed rescan only hides the notice.
+            this.externalBlocks = await detectExternalBlocks(this.gameDef.id).catch(() => null);
             toast.success(tn("server_picker.toast.imported", ids.length, { source: this.externalLabel }));
         } catch (e) {
             this.admin.failed(e, {

@@ -42,8 +42,11 @@ export function firewallCapability() {
     return command<FirewallCapability>("firewall_capability");
 }
 
-export function detectExternalBlocks(gameId: string) {
-    return command<ExternalScan>("detect_external_blocks", { gameId });
+export async function detectExternalBlocks(gameId: string) {
+    const scan = await command<ExternalScan>("detect_external_blocks", { gameId });
+    if (!isRecord(scan) || ![scan.ruleNames, scan.sources, scan.coveredGroupIds].every(Array.isArray))
+        throw new Error("detect_external_blocks returned an unexpected shape");
+    return scan;
 }
 
 export function importExternalBlocks(gameId: string) {

@@ -82,4 +82,15 @@ describe("server picker load state", () => {
         await vi.waitFor(() => expect(picker.pinging).toBe(false));
         expect(picker.pings).toEqual({ ams: null });
     });
+
+    it("keeps the list and hides the external rules notice when detect_external_blocks answers garbage", async () => {
+        answers.set("firewall_capability", () => ({ supported: true }));
+        answers.set("list_blocked_group_ids", () => []);
+        answers.set("detect_external_blocks", () => ({ garbage: true }));
+        const picker = new ServerPicker();
+        await picker.loadAll();
+        expect(picker.error).toBeNull();
+        expect(picker.serverData?.unclustered).toHaveLength(1);
+        expect(picker.externalBlocks).toBeNull();
+    });
 });

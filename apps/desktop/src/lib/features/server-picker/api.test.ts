@@ -5,7 +5,7 @@ vi.mock("$lib/core/tauri", () => ({
     command: vi.fn(async (name: string) => answers.get(name)?.()),
 }));
 
-import { fetchServerGroups, getGameDefinitions, pingServerGroups } from "./api";
+import { detectExternalBlocks, fetchServerGroups, getGameDefinitions, pingServerGroups } from "./api";
 
 describe("server picker api shape checks", () => {
     beforeEach(() => answers.clear());
@@ -31,5 +31,20 @@ describe("server picker api shape checks", () => {
     it("pingServerGroups rejects null", async () => {
         answers.set("ping_server_groups", () => null);
         await expect(pingServerGroups([])).rejects.toBeDefined();
+    });
+
+    it.each([
+        ["null", null],
+        ["garbage", { garbage: true }],
+        ["a scan without the covered ids", { ruleNames: [], sources: [] }],
+    ])("detectExternalBlocks rejects %s", async (_, answer) => {
+        answers.set("detect_external_blocks", () => answer);
+        await expect(detectExternalBlocks("g")).rejects.toBeDefined();
+    });
+
+    it("detectExternalBlocks passes a good scan through", async () => {
+        const scan = { ruleNames: ["r"], sources: ["s"], coveredGroupIds: ["ams"] };
+        answers.set("detect_external_blocks", () => scan);
+        await expect(detectExternalBlocks("g")).resolves.toEqual(scan);
     });
 });
