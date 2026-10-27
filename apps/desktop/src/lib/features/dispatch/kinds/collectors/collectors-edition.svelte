@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { tick, untrack } from "svelte";
     import { ChevronLeft, ChevronRight, X } from "@lucide/svelte";
     import { t } from "$lib/core/i18n.svelte";
@@ -51,9 +52,7 @@
     let expanded = false;
 
     // Read per tear and per turn as well as on arrival, so a motion setting changed while the page is open applies.
-    const reducedMotion = () =>
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = () => prefersReducedMotion();
 
     const frame = $derived(phase === "tearing" ? tearFrame(tearAt) : null);
     const mode = $derived(insideMode(stage));

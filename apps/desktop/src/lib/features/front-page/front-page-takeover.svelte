@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { untrack } from "svelte";
     import { Portal } from "bits-ui";
     import { toast } from "svelte-sonner";
@@ -60,9 +61,7 @@
     let gradeTimedOut = $state(false);
     let photoReady = $state(false);
 
-    const reducedMotion =
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = prefersReducedMotion();
     const landing = nextLanding(reducedMotion);
 
     const matchId = $derived(detail.matchId);

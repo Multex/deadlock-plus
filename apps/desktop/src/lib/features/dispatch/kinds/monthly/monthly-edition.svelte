@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { onMount, tick, untrack } from "svelte";
     import { ChevronLeft, ChevronRight, X } from "@lucide/svelte";
 
@@ -49,9 +50,7 @@
     const mag = $derived(buildMagazine(edition, view, magazineDeps(heroes, ranks)));
     const coverHeroId = $derived(mag.coverHero?.heroId ?? null);
 
-    const reduced = () =>
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = () => prefersReducedMotion();
 
     function expand(next: boolean) {
         if (next === expanded) return;
@@ -263,10 +262,7 @@
                 (layout.rot - frame.rot) * o}deg) scale({layout.scale}) translateX({layout.tx}px);"
         >
             <div class="shadow" style="left: {PAGE.width + 7}px;"></div>
-            <div
-                class="shadow"
-                style="left: 7px; right: {PAGE.width + 7}px; opacity: {leftStack(angles.a1)};"
-            ></div>
+            <div class="shadow" style="left: 7px; right: {PAGE.width + 7}px; opacity: {leftStack(angles.a1)};"></div>
             <div class="book">
                 {#key mag}
                     <Book

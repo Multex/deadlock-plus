@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { untrack } from "svelte";
     import { restTransform } from "$lib/features/front-page/toss";
     import { DISPATCH_PAPER } from "../../edition-view";
@@ -32,9 +33,7 @@
     const scale = $derived(fitScale(stage.width, stage.height, DISPATCH_PAPER, PAPER_ANGLE, PAPER_PAD));
     const measured = $derived(scale > 0);
 
-    const reducedMotion = () =>
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = () => prefersReducedMotion();
 
     /** Every part of the arrival starts on one timeline origin, so a frame at time t is the same on every run. */
     function arrive(): () => void {

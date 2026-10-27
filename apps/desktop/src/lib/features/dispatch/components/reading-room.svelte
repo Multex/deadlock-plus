@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { tick, untrack, type Snippet } from "svelte";
     import type { Edition } from "@deadlock-plus/stats/dispatch/types";
     import type { EditionView } from "../edition-view";
@@ -48,9 +49,7 @@
     const top = $derived(expanded ? bar : 0);
     const stage = $derived({ width: w, height: h - top });
 
-    const reduced = () =>
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = () => prefersReducedMotion();
 
     const frame = () => new Promise((r) => requestAnimationFrame(r));
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { tick, untrack } from "svelte";
     import { FoldVertical } from "@lucide/svelte";
 
@@ -59,9 +60,7 @@
             .join(", "),
     );
 
-    const reducedMotion = () =>
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = () => prefersReducedMotion();
 
     /**
      * The open poster is three panels wide: the page gives it the whole room. Asked for as the unfold starts, so the
