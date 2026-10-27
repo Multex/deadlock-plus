@@ -4,8 +4,11 @@ use deadlock_walker::QueueRequest;
 
 use crate::{GameMode, MatchMode, PartyFacts};
 
-/// A failed build of the probe is not retried sooner than this; building reads the whole client image.
+/// Building the probe copies the whole client image (tens of MB), so a failed build waits this long before the
+/// next one, doubling after each further failure, and stops after `MAX_BUILDS` until the game is attached again.
+/// A build that fails that often will keep failing on this game build.
 const BUILD_RETRY: Duration = Duration::from_secs(10);
+const MAX_BUILDS: u32 = 6;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProbeError {
@@ -69,25 +72,32 @@ impl QueueClock {
 pub struct QueuePoller<P> {
     probe: Option<P>,
     build_failed_at: Option<Instant>,
+    build_failures: u32,
 }
 
 impl<P> Default for QueuePoller<P> {
     fn default() -> Self {
-        QueuePoller { probe: None, build_failed_at: None }
+        QueuePoller { probe: None, build_failed_at: None, build_failures: 0 }
     }
 }
 
 impl<P: QueueProbe> QueuePoller<P> {
     pub fn poll(&mut self, now: Instant, mem: &P::Mem, build: impl FnOnce(&P::Mem) -> Option<P>) -> Option<QueueState> {
         if self.probe.is_none() {
-            if self.build_failed_at.is_some_and(|at| now.saturating_duration_since(at) < BUILD_RETRY) {
+            if self.build_failures >= MAX_BUILDS {
+                return None;
+            }
+            let wait = BUILD_RETRY * 2u32.saturating_pow(self.build_failures.saturating_sub(1));
+            if self.build_failed_at.is_some_and(|at| now.saturating_duration_since(at) < wait) {
                 return None;
             }
             self.probe = build(mem);
             if self.probe.is_none() {
                 self.build_failed_at = Some(now);
+                self.build_failures += 1;
                 return None;
             }
+            self.build_failures = 0;
         }
         match self.probe.as_mut()?.poll(mem) {
             Ok(state) => state,
@@ -208,7 +218,7 @@ mod tests {
     }
 
     fn poller(answers: Vec<Result<Option<QueueState>, ProbeError>>) -> QueuePoller<Fake> {
-        QueuePoller { probe: Some(Fake { answers }), build_failed_at: None }
+        QueuePoller { probe: Some(Fake { answers }), ..QueuePoller::default() }
     }
 
     fn never_built(_: &()) -> Option<Fake> {
@@ -371,5 +381,33 @@ mod tests {
         p.poll(at(t0, 5), &(), &mut build);
         p.poll(at(t0, 12), &(), &mut build);
         assert_eq!(builds, 2);
+    }
+
+    fn build_times(p: &mut QueuePoller<Fake>, t0: Instant, until_secs: u64) -> Vec<u64> {
+        let mut built = Vec::new();
+        for s in 0..=until_secs {
+            p.poll(at(t0, s), &(), |_| {
+                built.push(s);
+                None
+            });
+        }
+        built
+    }
+
+    #[test]
+    fn failed_builds_back_off_and_then_stop_for_this_game() {
+        let t0 = Instant::now();
+        let mut p = QueuePoller::<Fake>::default();
+        assert_eq!(build_times(&mut p, t0, 2_000), [0, 10, 30, 70, 150, 310]);
+    }
+
+    #[test]
+    fn a_build_that_works_resets_the_backoff() {
+        let t0 = Instant::now();
+        let mut p = QueuePoller::<Fake>::default();
+        build_times(&mut p, t0, 30);
+        p.poll(at(t0, 70), &(), |_| Some(Fake { answers: vec![Err(ProbeError::WrongProcess)] }));
+        assert!(p.probe.is_none());
+        assert_eq!(build_times(&mut p, at(t0, 71), 10), [0, 10]);
     }
 }
