@@ -75,6 +75,19 @@ pub async fn guarded_infallible<T>(fut: impl Future<Output = T>) -> Result<T, Ap
     guarded(async { Ok(fut.await) }).await
 }
 
+/// `spawn_blocking` for work a command hands off. The blocking thread is not the command's own, so it would not
+/// carry the handled flag and a panic there would leave a crash marker although the command answers
+/// `common.internal` and the app keeps running.
+pub fn spawn_blocking_guarded<R: Send + 'static>(
+    work: impl FnOnce() -> R + Send + 'static,
+) -> impl Future<Output = Result<R, AppError>> {
+    let task = tauri::async_runtime::spawn_blocking(move || {
+        let _inside = InsideCommand::enter();
+        work()
+    });
+    async move { task.await.map_err(AppError::internal) }
+}
+
 fn log_panic(panic: &(dyn Any + Send)) {
     let message = panic
         .downcast_ref::<&str>()
@@ -240,6 +253,44 @@ mod tests {
             let _ = std::panic::catch_unwind(|| panic!("thread blew up"));
         });
         assert!(recorded);
+    }
+
+    fn panic_and_catch() {
+        let _ = std::panic::catch_unwind(|| panic!("blocking work blew up"));
+    }
+
+    #[test]
+    fn a_panic_inside_guarded_blocking_work_records_no_crash() {
+        let recorded = tauri::async_runtime::block_on(spawn_blocking_guarded(|| crash_recorded(panic_and_catch)));
+        assert!(!recorded.unwrap());
+    }
+
+    #[test]
+    fn a_panic_inside_plain_blocking_work_records_a_crash() {
+        let recorded =
+            tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(|| crash_recorded(panic_and_catch)));
+        assert!(recorded.unwrap());
+    }
+
+    #[test]
+    fn panicking_guarded_blocking_work_answers_common_internal() {
+        let result: Result<(), AppError> =
+            tauri::async_runtime::block_on(spawn_blocking_guarded(|| panic!("blocking work blew up")));
+        assert_eq!(serde_json::to_value(result.unwrap_err()).unwrap()["code"], "common.internal");
+    }
+
+    #[test]
+    fn guarded_blocking_work_passes_its_value_through() {
+        assert_eq!(tauri::async_runtime::block_on(spawn_blocking_guarded(|| 7)).unwrap(), 7);
+    }
+
+    /// Callers start the work and await other things before awaiting it, so it must not wait for the first poll.
+    #[test]
+    fn guarded_blocking_work_starts_before_it_is_awaited() {
+        let (started_tx, started) = mpsc::channel();
+        let pending = spawn_blocking_guarded(move || started_tx.send(()).unwrap());
+        assert!(started.recv_timeout(std::time::Duration::from_secs(5)).is_ok());
+        tauri::async_runtime::block_on(pending).unwrap();
     }
 
     /// A command future can resume on another worker thread after an `.await`; the flag must follow it there
