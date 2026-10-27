@@ -1,6 +1,7 @@
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_THEME, THEMES } from "@deadlock-plus/ui/themes";
 import TeamTable from "./team-table.svelte";
 
 describe("team table", () => {
@@ -14,6 +15,7 @@ describe("team table", () => {
                 heroes: {},
                 tiers: [],
                 swapped: new Map(),
+                theme: THEMES.find((t) => t.id === DEFAULT_THEME)!,
             },
         });
         const labelled = [...body.matchAll(/<(span|div)\b([^>]*\baria-label=[^>]*)>/g)];
