@@ -68,14 +68,16 @@
     $effect(() => rowGrades.watch(row.matchId));
 </script>
 
-<li>
+<li class="@container">
     <a
         href={matchHref(row.matchId)}
-        class="group grid h-[4.5rem] grid-cols-[3rem_minmax(0,1fr)_6.5rem_5.5rem_5.5rem_5rem_7rem_1rem] items-center gap-x-4 rounded-lg border border-l-4 border-border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {SURFACE[
+        class="group grid h-[4.5rem] grid-cols-[3rem_minmax(0,1fr)_6.5rem_5.5rem_5.5rem_5rem_7rem_1rem] items-center gap-x-4 rounded-lg border border-l-4 border-border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 @max-[46rem]:h-auto @max-[46rem]:grid-cols-[3rem_repeat(4,minmax(0,1fr))_1rem] @max-[46rem]:gap-x-3 @max-[46rem]:gap-y-1.5 @max-[46rem]:py-2 {SURFACE[
             row.outcome
         ]}"
     >
-        <div class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
+        <div
+            class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border @max-[46rem]:row-span-2"
+        >
             {#if hero?.icon}
                 <ArtImage src={hero.icon} alt="" class="size-full bg-transparent object-cover" loading="lazy">
                     {#snippet fallback()}<CircleHelp class="size-6 text-muted-foreground" />{/snippet}
@@ -85,7 +87,7 @@
             {/if}
         </div>
 
-        <div class="min-w-0">
+        <div class="min-w-0 @max-[46rem]:col-span-3">
             <p class="truncate font-heading text-base leading-tight">
                 {hero?.name ?? t("stats.hero_fallback", { id: row.heroId })}
             </p>
@@ -158,7 +160,7 @@
         </div>
 
         <ChevronRight
-            class="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none"
+            class="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none @max-[46rem]:col-start-6 @max-[46rem]:row-span-2 @max-[46rem]:row-start-1"
             aria-hidden="true"
         />
     </a>
