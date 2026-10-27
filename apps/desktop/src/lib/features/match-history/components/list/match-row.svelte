@@ -14,6 +14,7 @@
     } from "@lucide/svelte";
 
     import { formatDate, formatNumber, t } from "$lib/core/i18n.svelte";
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import RankBadge from "$lib/features/live/components/rank-badge.svelte";
@@ -76,7 +77,9 @@
     >
         <div class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
             {#if hero?.icon}
-                <img src={hero.icon} alt="" class="size-full object-cover" loading="lazy" />
+                <ArtImage src={hero.icon} alt="" class="size-full bg-transparent object-cover" loading="lazy">
+                    {#snippet fallback()}<CircleHelp class="size-6 text-muted-foreground" />{/snippet}
+                </ArtImage>
             {:else}
                 <CircleHelp class="size-6 text-muted-foreground" aria-label={t("stats.unknown_hero")} />
             {/if}

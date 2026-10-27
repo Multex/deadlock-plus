@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { heroInitials } from "$lib/features/live/live";
     import type { ItemSlot } from "@deadlock-plus/match/scoreboard";
@@ -11,11 +12,13 @@
 {#if slot}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <li class="tile" data-label={label} tabindex="0">
-        {#if slot.src}
-            <img src={slot.src} alt={label} />
-        {:else}
-            <span class="ph" role="img" aria-label={label}>{slot.name ? heroInitials(slot.name) : "?"}</span>
-        {/if}
+        <ArtImage
+            src={slot.src}
+            alt={label}
+            class="absolute inset-0 size-full rounded-[4px] bg-transparent object-cover text-[10px] font-bold"
+        >
+            {#snippet fallback()}{slot.name ? heroInitials(slot.name) : "?"}{/snippet}
+        </ArtImage>
     </li>
 {:else}
     <li class="tile empty" aria-hidden="true"></li>
@@ -59,23 +62,5 @@
     .tile:hover::after,
     .tile:focus-visible::after {
         display: block;
-    }
-    img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 4px;
-        object-fit: cover;
-    }
-    .ph {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--muted-foreground);
     }
 </style>

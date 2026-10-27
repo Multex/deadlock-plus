@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import type { MinimapArt } from "$lib/features/gamedata/gamedata";
     import { formatClock } from "$lib/features/live/live";
@@ -158,17 +159,22 @@
         style:box-shadow="inset 0 0 0 {style.borderPx}px rgba(0, 0, 0, 0.55)"
     ></span>
     {#if style.marker}
-        <img
+        <ArtImage
             src={style.marker.src}
             alt=""
             draggable="false"
-            class="layer"
-            style:scale={style.marker.scale}
-            style:clip-path={style.marker.clip}
+            class="pointer-events-none absolute inset-0 size-full bg-transparent object-contain"
+            style="scale: {style.marker.scale}; clip-path: {style.marker.clip}"
         />
     {/if}
     {#if style.head}
-        <img src={style.head.src} alt="" draggable="false" class="layer" style:scale={style.head.scale} />
+        <ArtImage
+            src={style.head.src}
+            alt=""
+            draggable="false"
+            class="pointer-events-none absolute inset-0 size-full bg-transparent object-contain"
+            style="scale: {style.head.scale}"
+        />
     {/if}
     {#if style.skull}
         <img
@@ -207,7 +213,12 @@
     aria-label={t("match_history.detail.replay.map_aria")}
 >
     {#if art}
-        <img src={art.src} alt="" draggable="false" class="absolute inset-0 size-full select-none object-fill" />
+        <ArtImage
+            src={art.src}
+            alt=""
+            draggable="false"
+            class="absolute inset-0 size-full bg-transparent select-none object-fill"
+        />
     {/if}
 
     {#if laneLines.length > 0}
@@ -385,12 +396,12 @@
                             style:opacity={o.highlight && !o.highlight.solid ? HIGHLIGHT_ICON_OPACITY : undefined}
                         ></span>
                     {:else}
-                        <img
+                        <ArtImage
                             src={part.src}
                             alt=""
                             draggable="false"
-                            class="layer"
-                            style:opacity={o.highlight && !o.highlight.solid ? HIGHLIGHT_ICON_OPACITY : undefined}
+                            class="pointer-events-none absolute inset-0 size-full bg-transparent object-contain"
+                            style={o.highlight && !o.highlight.solid ? `opacity: ${HIGHLIGHT_ICON_OPACITY}` : undefined}
                         />
                     {/if}
                 {/each}
