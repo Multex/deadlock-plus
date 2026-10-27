@@ -1054,6 +1054,7 @@
             "estimated_other": "Estimated from the rank rules until the Deadlock API confirms your last matches.",
             "top_tier": "Top tier. Subranks here depend on how you compare to other top players, so there is no progress bar.",
             "progress": "{within} / {span} to {next}.",
+            "progress_aria": "Progress to {next}",
             "progress_streak_one": "{within} / {span} to {next}. {count} win in a row from here.",
             "progress_streak_other": "{within} / {span} to {next}. {count} wins in a row from here.",
             "boundary": "Your progress just crossed a boundary and the Deadlock API still shows the old badge, so there is no bar until the next match.",

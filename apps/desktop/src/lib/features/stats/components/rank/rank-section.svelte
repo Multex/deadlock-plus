@@ -97,6 +97,7 @@
                     <div
                         class="mt-3 h-2.5 w-full max-w-xl overflow-hidden rounded-full bg-muted"
                         role="progressbar"
+                        aria-label={t("rank.summary.progress_aria", { next: nextName })}
                         aria-valuemin="0"
                         aria-valuemax={now.span}
                         aria-valuenow={now.within}
