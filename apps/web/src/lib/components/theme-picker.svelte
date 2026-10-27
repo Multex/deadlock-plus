@@ -43,7 +43,7 @@
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
     <p id="theme-picker-label" class="font-heading text-sm font-semibold tracking-widest text-brass uppercase">Theme</p>
-    <div role="radiogroup" aria-labelledby="theme-picker-label" class="flex gap-1.5">
+    <div role="radiogroup" aria-labelledby="theme-picker-label" class="flex flex-wrap gap-1.5">
         {#each THEMES as theme (theme.id)}
             {@const selected = current === theme.id}
             <Button
