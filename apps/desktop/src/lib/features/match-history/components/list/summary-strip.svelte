@@ -47,10 +47,12 @@
     <div class="bg-card px-4 py-3">
         <dt class="text-xs text-muted-foreground">{t("stats.summary.winrate")}</dt>
         <dd class="mt-0.5 font-heading text-2xl tabular-nums">{pct(summary.winrate)}</dd>
-        <dd class="mt-1.5 flex gap-0.5" role="img" aria-label={t("stats.summary.form_aria", { count: form.length })}>
-            {#each form as p (p.matchId)}
-                <span class="h-1.5 flex-1 rounded-full {PIP[p.outcome]}"></span>
-            {/each}
+        <dd class="mt-1.5">
+            <span class="flex gap-0.5" role="img" aria-label={t("stats.summary.form_aria", { count: form.length })}>
+                {#each form as p (p.matchId)}
+                    <span class="h-1.5 flex-1 rounded-full {PIP[p.outcome]}"></span>
+                {/each}
+            </span>
         </dd>
     </div>
 

@@ -60,4 +60,11 @@ describe("summary strip", () => {
             expect(group.children.map((c) => c.tag).every((t) => t === "dt" || t === "dd")).toBe(true);
         }
     });
+
+    it("keeps the list's own roles on every dt and dd", () => {
+        const { body } = render(SummaryStrip, { props: { summary: summary(null), form: [], heroes: {} } });
+        const items = [...body.matchAll(/<(dt|dd)\b([^>]*)>/g)];
+        expect(items.length).toBeGreaterThan(0);
+        for (const [tag, , attrs] of items) expect(attrs, tag).not.toMatch(/\brole="/);
+    });
 });
