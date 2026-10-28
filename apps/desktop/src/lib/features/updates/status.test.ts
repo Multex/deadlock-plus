@@ -36,4 +36,16 @@ describe("updateLine", () => {
         expect(updateLine({ ...base, phase: "checking" })).toBe("Checking...");
         expect(updateLine({ ...base, phase: "upToDate" })).toBe("You're on the latest version.");
     });
+
+    it("still names the version once it is downloaded", () => {
+        expect(updateLine({ phase: "ready", version: "0.2.0", progress: 1, error: null })).toBe(
+            "Version 0.2.0 is available.",
+        );
+    });
+
+    it("does not call a failed install a failed check", () => {
+        expect(updateLine({ phase: "error", version: "0.2.0", progress: null, error: "install" })).toBe(
+            t("updates.status.download_failed"),
+        );
+    });
 });

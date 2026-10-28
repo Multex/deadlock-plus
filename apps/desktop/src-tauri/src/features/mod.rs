@@ -41,5 +41,6 @@ pub mod support;
 pub mod telemetry;
 pub mod toggle;
 pub mod tray;
+pub mod updates;
 pub mod voice_bans;
 pub mod window_state;

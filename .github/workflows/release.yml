@@ -1,8 +1,9 @@
 name: Release
 
+# A `v1.2.0-beta.1` tag ships to the Beta update channel as a prerelease. Nightlies come from nightly.yml.
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "!v*-nightly.*"]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -66,6 +67,7 @@ jobs:
         run: |
           version="$(node -p "require('./apps/desktop/package.json').version")"
           [ "${GITHUB_REF_NAME}" = "v${version}" ] || { echo "Tag ${GITHUB_REF_NAME} does not match apps/desktop/package.json version ${version}"; exit 1; }
+          node scripts/release.mjs channel "${GITHUB_REF_NAME}"
 
       - run: pnpm check
         working-directory: apps/desktop
@@ -189,6 +191,7 @@ jobs:
         run: |
           version="$(node -p "require('./apps/desktop/package.json').version")"
           [ "${GITHUB_REF_NAME}" = "v${version}" ] || { echo "Tag ${GITHUB_REF_NAME} does not match apps/desktop/package.json version ${version}"; exit 1; }
+          node scripts/release.mjs channel "${GITHUB_REF_NAME}"
 
       # Built against glibc 2.31 so it loads inside Steam's Debian 11 based runtime container. The runner's own
       # glibc is too new for that, so the layer cannot be built with plain cargo here.
@@ -251,6 +254,10 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    outputs:
+      channel: ${{ steps.channel.outputs.channel }}
+      prerelease: ${{ steps.channel.outputs.prerelease }}
+      feed: ${{ steps.channel.outputs.feed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -264,6 +271,10 @@ jobs:
         with:
           pattern: release-*
           path: release-parts
+
+      - name: Read the update channel
+        id: channel
+        run: node scripts/release.mjs channel "${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Build updater feed
         env:
@@ -291,6 +302,7 @@ jobs:
           path: release-out
 
       - name: Draft release
+        if: needs.assemble.outputs.prerelease != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -304,6 +316,37 @@ jobs:
             release-out/Deadlock-Plus_*_amd64.AppImage \
             release-out/Deadlock-Plus_*_amd64.deb \
             release-out/latest.json
+
+      # A prerelease ships at once: its channel's feed must point at assets users can download, and a draft's
+      # assets are not public. GitHub's "latest" never picks a prerelease, so Release users never see it.
+      - name: Publish prerelease and update its channel feed
+        if: needs.assemble.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CHANNEL: ${{ needs.assemble.outputs.channel }}
+          FEED: ${{ needs.assemble.outputs.feed }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${REPOSITORY}" \
+            --prerelease \
+            --latest=false \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-out/notes.md \
+            release-out/Deadlock-Plus_*_x64-setup.exe \
+            release-out/Deadlock-Plus_*_amd64.AppImage \
+            release-out/Deadlock-Plus_*_amd64.deb \
+            release-out/latest.json
+          if ! gh release view "${FEED}" --repo "${REPOSITORY}" > /dev/null 2>&1; then
+            gh release create "${FEED}" \
+              --repo "${REPOSITORY}" \
+              --prerelease \
+              --latest=false \
+              --target "${GITHUB_SHA}" \
+              --title "${FEED}" \
+              --notes "Holds latest.json for the ${CHANNEL} update channel. Not a build of its own."
+          fi
+          gh release upload "${FEED}" release-out/latest.json --repo "${REPOSITORY}" --clobber
 
   # Refreshes the translators' screenshots in Crowdin from this release's demo. It runs beside the build and nothing
   # waits on it, so it never makes a release slower, and a failure here never fails the release.

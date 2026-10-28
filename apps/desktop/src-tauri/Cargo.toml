@@ -91,6 +91,8 @@ tauri-plugin-window-state = "2"
 # No `zip` feature: releases ship the raw setup .exe, AppImage and .deb, so the archive extraction path is unused.
 tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls", "system-proxy"] }
 ts-rs = "12"
+# Already built for tauri and dp-announcements; compares update feed versions across channels.
+semver = "1.0.28"
 # Dev-only UI automation bridge. Pinned: 0.13.1 requires tauri 2.12.2 or later. Registered in debug builds only.
 tauri-plugin-mcp-bridge = "=0.13.0"
 

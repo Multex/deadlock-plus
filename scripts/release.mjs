@@ -17,6 +17,42 @@ export function changelogNotes(markdown, version) {
     );
 }
 
+const CHANNELS = {
+    release: { feed: null },
+    beta: { feed: "beta-feed", label: /^beta\.\d+$/ },
+    nightly: { feed: "nightly-feed", label: /^nightly\.\d{8}(\.\d+)?$/ },
+};
+
+/** The update channel a version ships on, from its prerelease label. Accepts a `v` tag too. */
+export function channelOf(version) {
+    const match = /^v?\d+\.\d+\.\d+(?:-(.+))?$/.exec(version);
+    if (!match) throw new Error(`Not a release version: ${version}`);
+    const label = match[1];
+    if (label === undefined) return "release";
+    const channel = Object.keys(CHANNELS).find((name) => CHANNELS[name].label?.test(label));
+    if (!channel) throw new Error(`No update channel ships prerelease ${label}`);
+    return channel;
+}
+
+/** `GITHUB_OUTPUT` lines telling the publish job how to release a tag and which rolling feed it updates. */
+export function channelOutputs(tag) {
+    const channel = channelOf(tag);
+    const feed = CHANNELS[channel].feed;
+    return `channel=${channel}
+prerelease=${feed !== null}
+feed=${feed ?? ""}
+`;
+}
+
+/** A release needs its own CHANGELOG entry; a prerelease falls back to what is listed as unreleased. */
+export function releaseNotes(markdown, version) {
+    const own = changelogNotes(markdown, version);
+    const channel = channelOf(version);
+    if (own || channel === "release") return own;
+    const name = channel[0].toUpperCase() + channel.slice(1);
+    return changelogNotes(markdown, "Unreleased") ?? `${name} build ${version}.`;
+}
+
 const PLATFORMS = {
     "windows-x86_64": { bundleDir: "nsis", suffix: "_x64-setup.exe" },
     "linux-x86_64-appimage": { bundleDir: "appimage", suffix: "_amd64.AppImage" },
@@ -35,9 +71,9 @@ export function assetName(version, platform) {
     return `Deadlock-Plus_${version}${entry.suffix}`;
 }
 
-export function updaterManifest({ version, notes, pubDate, signatures, repo }) {
+export function updaterManifest({ version, notes, pubDate, signatures, repo, platforms: only }) {
     const platforms = {};
-    for (const platform of Object.keys(PLATFORMS)) {
+    for (const platform of only ?? Object.keys(PLATFORMS)) {
         const signature = signatures[platform];
         if (!signature) throw new Error(`No signature for ${platform}`);
         platforms[platform] = {
@@ -75,10 +111,13 @@ function prepare(group) {
     console.log(`Prepared ${out} for v${version}`);
 }
 
-/** Merges the per-group outputs in the `parts` directory into one release-out with the updater feed. */
-function manifest(repo, parts) {
+/**
+ * Merges the per-group outputs in the `parts` directory into one release-out with the updater feed. With `groups`,
+ * the feed lists only those groups' platforms (nightlies are built for Windows alone).
+ */
+function manifest(repo, parts, groups) {
     const { root, version } = rootAndVersion();
-    const notes = changelogNotes(readFileSync(`${root}CHANGELOG.md`, "utf8"), version);
+    const notes = releaseNotes(readFileSync(`${root}CHANGELOG.md`, "utf8"), version);
     if (!notes) throw new Error(`CHANGELOG.md has no entry for ${version}`);
 
     const out = `${root}release-out`;
@@ -93,20 +132,26 @@ function manifest(repo, parts) {
             }
         }
     }
-    const feed = updaterManifest({ version, notes, pubDate: new Date().toISOString(), signatures, repo });
+    const platforms = groups?.split(",").flatMap((group) => {
+        if (!GROUPS[group]) throw new Error(`Unknown group ${group}`);
+        return GROUPS[group];
+    });
+    const feed = updaterManifest({ version, notes, pubDate: new Date().toISOString(), signatures, repo, platforms });
     writeFileSync(`${out}/latest.json`, JSON.stringify(feed, null, 2));
     writeFileSync(`${out}/notes.md`, notes);
     console.log(`Prepared ${out} for v${version}`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    const [command, a, b] = process.argv.slice(2);
+    const [command, a, b, c] = process.argv.slice(2);
     try {
         if (command === "prepare" && a) prepare(a);
-        else if (command === "manifest" && a && b) manifest(a, b);
+        else if (command === "manifest" && a && b) manifest(a, b, c);
+        else if (command === "channel" && a) process.stdout.write(channelOutputs(a));
         else {
             console.error("Usage: node scripts/release.mjs prepare <windows|linux>");
-            console.error("       node scripts/release.mjs manifest <owner/repo> <parts-dir>");
+            console.error("       node scripts/release.mjs manifest <owner/repo> <parts-dir> [windows,linux]");
+            console.error("       node scripts/release.mjs channel <tag>");
             process.exit(1);
         }
     } catch (e) {

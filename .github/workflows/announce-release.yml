@@ -55,7 +55,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ -n "$INPUT_TAG" ]; then
-            release="$(gh release view "$INPUT_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,url,body)"
+            release="$(gh release view "$INPUT_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,url,body,isPrerelease)"
+            if [ "$(jq -r .isPrerelease <<<"$release")" = "true" ]; then
+              echo "::notice::$INPUT_TAG is a Beta or Nightly prerelease; only releases are announced."
+              exit 0
+            fi
             RELEASE_TAG="$(jq -r .tagName <<<"$release")"
             RELEASE_URL="$(jq -r .url <<<"$release")"
             RELEASE_BODY="$(jq -r .body <<<"$release")"

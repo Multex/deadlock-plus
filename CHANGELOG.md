@@ -64,6 +64,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - When a front page is waiting while you're in game, the game overlay tells you.
 - Turn the front page waiting alert off with "Front page waiting" in Settings > Notifications.
 
+#### Update channels
+
+- Choose an update channel in Settings > About: Release, Beta or Nightly.
+- Beta gets the next release a few days early, for testing.
+- Nightly gets a new build of the latest code every night.
+- Moving to a more stable channel never installs an older version: Deadlock+ waits until that channel catches up.
+
 #### Theme effects
 
 - Most themes now draw their own art and animation behind the page.
@@ -131,6 +138,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- On Linux, Deadlock+ now restarts by itself after installing an update.
 - Deadlock+ no longer crashes when you shut down or sign out of Windows with the game open.
 - The first start after an update no longer gets stuck before the window opens.
 - Deadlock+ no longer crashes now and then after picking up a match from the game.
