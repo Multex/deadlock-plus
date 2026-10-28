@@ -10,7 +10,12 @@ test("the default scenario reads public game data through the cache", async ({ p
     await expect(page.getByRole("main").getByText(/^Hero \d+ · /)).toHaveCount(0);
 });
 
-for (const scenario of ["offline", "api-down"]) {
+const STATUS = {
+    offline: { title: "Deadlock API is unreachable", text: "Deadlock API offline" },
+    "api-down": { title: "Deadlock API is turning requests away for now", text: "Deadlock API busy" },
+};
+
+for (const [scenario, status] of Object.entries(STATUS)) {
     test.describe(scenario, () => {
         test.use({ scenario });
 
@@ -20,7 +25,7 @@ for (const scenario of ["offline", "api-down"]) {
         }) => {
             await page.goto("/demos");
             await settle(page);
-            await expect(page.getByTitle("Deadlock API is unreachable")).toHaveText("Deadlock API offline");
+            await expect(page.getByTitle(status.title)).toHaveText(status.text);
             await expect(
                 page
                     .getByRole("main")
