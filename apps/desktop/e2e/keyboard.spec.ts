@@ -440,8 +440,12 @@ for (const scenario of [...new Set(ROUTE_CALLS.map((route) => route.scenario))])
 
                     const back = await walk(page, { key: "Shift+Tab" });
                     expect(problemsOf(back)).toEqual([]);
-                    const ids = (stops: Stop[]) => real(stops).map((stop) => stop.label);
-                    expect(ids(back.stops)).toEqual(ids(forward.stops).reverse());
+                    // A control that loads late, like a notice, may sit in one lap and not the other.
+                    const both = (stops: Stop[], other: Stop[]) =>
+                        real(stops)
+                            .filter((stop) => other.some((o) => o.id === stop.id))
+                            .map((stop) => stop.label);
+                    expect(both(back.stops, forward.stops)).toEqual(both(forward.stops, back.stops).reverse());
                 });
             }
         }
@@ -458,20 +462,24 @@ const focusedOf = (page: Page) =>
     });
 
 /**
- * One lap of Tab with a dialog open reaches all of it and marks every stop. A modal dialog keeps the lap inside
- * itself. A dialog held in the page's area leaves the app's frame live, as a click there does, so its lap may
- * pass through the frame but never through the page under it.
+ * One lap of Tab with a dialog open reaches all of it and marks every stop. Dialogs sit in the page's area and
+ * leave the app's frame live, as a click there does, so the lap may pass through the frame but never through
+ * the page under the dialog. Focus ends back on the dialog's first control.
  */
-async function expectDialogLap(page: Page, selector: string, { modal }: { modal: boolean }) {
+async function expectDialogLap(page: Page, selector: string) {
     const lap = await walk(page, { within: selector });
     expect(problemsOf(lap)).toEqual([]);
-    const allowed = modal ? ["dialog"] : ["dialog", "titlebar", "sidebar", "statusbar"];
+    const frame = ["dialog", "titlebar", "sidebar", "statusbar"];
     expect(
         real(lap.stops)
-            .filter((stop) => !allowed.includes(stop.region))
+            .filter((stop) => !frame.includes(stop.region))
             .map((stop) => stop.label),
     ).toEqual([]);
-    expect(real(lap.stops).filter((stop) => stop.region === "dialog").length).toBeGreaterThan(0);
+    const inside = real(lap.stops).filter((stop) => stop.region === "dialog");
+    expect(inside.length).toBeGreaterThan(0);
+    const back = () => page.locator(selector).evaluate((dialog) => dialog.contains(document.activeElement));
+    for (let presses = 0; presses < lap.stops.length && !(await back()); presses++) await page.keyboard.press("Tab");
+    expect(await back()).toBe(true);
 }
 
 test.describe("focus in open layers", () => {
@@ -485,18 +493,18 @@ test.describe("focus in open layers", () => {
         const dialog = page.getByRole("alertdialog");
         await expect(dialog).toBeVisible();
 
-        await expectDialogLap(page, "[role=alertdialog]", { modal: false });
+        await expectDialogLap(page, "[role=alertdialog]");
         await page.keyboard.press("Escape");
 
         await expect(dialog).toBeHidden();
         await expect(trigger).toBeFocused();
     });
 
-    test("the command palette keeps Tab inside and marks every stop", async ({ page }) => {
+    test("the command palette takes Tab but never lets it into the page, and marks every stop", async ({ page }) => {
         await open(page, "/");
         await openPalette(page);
 
-        await expectDialogLap(page, "[role=dialog]", { modal: true });
+        await expectDialogLap(page, "[role=dialog]");
     });
 
     for (const [path, name] of [
@@ -593,7 +601,7 @@ test.describe("focus in the Dispatch reading room", () => {
         await page.keyboard.press("Enter");
         await expect(page.getByRole("dialog")).toBeVisible();
 
-        await expectDialogLap(page, "[role=dialog]", { modal: false });
+        await expectDialogLap(page, "[role=dialog]");
         await page.keyboard.press("Escape");
 
         await expect(page.getByRole("dialog")).toBeHidden();

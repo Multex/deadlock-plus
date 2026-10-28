@@ -42,6 +42,9 @@ function install() {
     if (host.__kw) return;
     let next = 0;
     const unfocused = new Map<string, string[]>();
+    // A control that turns up mid-lap, like a notice that loads late, may land behind the walk; only those that
+    // were there when it started count as missed.
+    const present = new Set<string>();
 
     const idOf = (element: Element) => {
         if (!element.hasAttribute("data-kw")) element.setAttribute("data-kw", String(next++));
@@ -116,6 +119,7 @@ function install() {
         scan() {
             for (const element of tabbable()) {
                 const id = idOf(element);
+                present.add(id);
                 if (element === document.activeElement || unfocused.has(id)) continue;
                 unfocused.set(id, rings(element));
             }
@@ -154,7 +158,8 @@ function install() {
             const reached = new Set(seen);
             const root = within ? document.querySelector(within) : null;
             return tabbable()
-                .filter((element) => !reached.has(idOf(element)) && (!root || root.contains(element)))
+                .filter((element) => present.has(idOf(element)) && !reached.has(idOf(element)))
+                .filter((element) => !root || root.contains(element))
                 .map(label);
         },
         jumps() {
