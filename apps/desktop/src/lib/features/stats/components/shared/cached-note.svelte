@@ -10,7 +10,7 @@
 
 {#if stats.cachedAt !== null}
     <p class="text-sm text-muted-foreground">
-        {t("stats.cached_note", {
+        {t(stats.busy.active ? "stats.cached_note_busy" : "stats.cached_note_down", {
             time: formatDate(stats.cachedAt, {
                 year: "numeric",
                 month: "numeric",

@@ -166,6 +166,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Diagnostics log remembers Auto-scroll and Minimum level.
 - In the build editor, a category's note no longer runs under its size badge.
 - The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
+- Stats and Match History now say when the Deadlock API is busy instead of saying it could not be reached.
 
 #### Keyboard and screen readers
 
