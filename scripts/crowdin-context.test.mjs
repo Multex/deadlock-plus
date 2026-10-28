@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { batches, contextOps, readConfig, request } from "./crowdin-context.mjs";
+import { batches, contextOps, listAll, readConfig, request } from "./crowdin-context.mjs";
 
 describe("contextOps", () => {
     const notes = { "common.save": "Button.", n: "Count." };
@@ -61,5 +61,39 @@ describe("request", () => {
         const call = request({ token: "secret", fetcher, sleep: async () => {} }, "PATCH", "/x", []);
         await expect(call).rejects.toThrow("PATCH /x -> 403: forbidden");
         await expect(call).rejects.not.toThrow("secret");
+    });
+
+    it("sends a binary body as is, with the headers it is given", async () => {
+        const calls = [];
+        const fetcher = async (url, init) => (calls.push(init), reply(201, '{"data":{"id":7}}'));
+        const bytes = new Uint8Array([1, 2, 3]);
+        const client = { token: "t", fetcher, sleep: async () => {} };
+        await request(client, "POST", "/storages", bytes, {
+            "Content-Type": "image/png",
+            "Crowdin-API-FileName": "a.png",
+        });
+        expect(calls[0].body).toBe(bytes);
+        expect(calls[0].headers).toEqual({
+            Authorization: "Bearer t",
+            "Content-Type": "image/png",
+            "Crowdin-API-FileName": "a.png",
+        });
+    });
+});
+
+describe("listAll", () => {
+    it("follows offsets until a page comes back short", async () => {
+        const urls = [];
+        const api = async (method, url) => {
+            urls.push(url);
+            const offset = Number(/offset=(\d+)/.exec(url)[1]);
+            const size = offset === 0 ? 2 : 1;
+            return { data: Array.from({ length: size }, (_, i) => ({ data: { id: offset + i } })) };
+        };
+        expect(await listAll(api, "/projects/1/strings?fileId=3", 2)).toEqual([{ id: 0 }, { id: 1 }, { id: 2 }]);
+        expect(urls).toEqual([
+            "/projects/1/strings?fileId=3&limit=2&offset=0",
+            "/projects/1/strings?fileId=3&limit=2&offset=2",
+        ]);
     });
 });

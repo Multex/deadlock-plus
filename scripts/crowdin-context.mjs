@@ -17,12 +17,18 @@ export function readConfig(env) {
     return { token: env.CROWDIN_PERSONAL_TOKEN, projectId: env.CROWDIN_PROJECT_ID };
 }
 
-export async function request({ token, fetcher = fetch, sleep }, method, url, body) {
+/** A `Uint8Array` body goes out as is, with its type in `headers`; anything else is sent as JSON. */
+export async function request({ token, fetcher = fetch, sleep }, method, url, body, headers = {}) {
+    const binary = body instanceof Uint8Array;
     for (let attempt = 0; ; attempt++) {
         const res = await fetcher(`${API}${url}`, {
             method,
-            headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
-            body: body && JSON.stringify(body),
+            headers: {
+                Authorization: `Bearer ${token}`,
+                ...(body && !binary ? { "Content-Type": "application/json" } : {}),
+                ...headers,
+            },
+            body: binary ? body : body && JSON.stringify(body),
         });
         if (res.status === 429 && attempt < RETRIES) {
             await sleep(2000 * (attempt + 1));
@@ -31,6 +37,17 @@ export async function request({ token, fetcher = fetch, sleep }, method, url, bo
         const text = await res.text();
         if (!res.ok) throw new Error(`${method} ${url} -> ${res.status}: ${text.slice(0, 300)}`);
         return text ? JSON.parse(text) : null;
+    }
+}
+
+/** Every item of a paged Crowdin list. */
+export async function listAll(api, url, page = PAGE) {
+    const out = [];
+    for (let offset = 0; ; offset += page) {
+        const sep = url.includes("?") ? "&" : "?";
+        const { data } = await api("GET", `${url}${sep}limit=${page}&offset=${offset}`);
+        out.push(...data.map((d) => d.data));
+        if (data.length < page) return out;
     }
 }
 
@@ -74,15 +91,7 @@ async function main() {
     const client = { token: config.token, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) };
     const api = (method, url, body) => request(client, method, url, body);
     const project = `/projects/${config.projectId}`;
-    const pages = async (url) => {
-        const out = [];
-        for (let offset = 0; ; offset += PAGE) {
-            const sep = url.includes("?") ? "&" : "?";
-            const { data } = await api("GET", `${url}${sep}limit=${PAGE}&offset=${offset}`);
-            out.push(...data.map((d) => d.data));
-            if (data.length < PAGE) return out;
-        }
-    };
+    const pages = (url) => listAll(api, url);
 
     const root = fileURLToPath(new URL("..", import.meta.url));
     const files = await pages(`${project}/files`);
