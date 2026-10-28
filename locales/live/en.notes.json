@@ -1,0 +1,245 @@
+{
+    "server_picker": {
+        "title": "Page heading of the Server Picker page. {game} = game name, e.g. \"Deadlock\". Keep the game name untranslated.",
+        "subtitle": "Page subtitle under the Server Picker heading. Explains that turning a region's toggle on blocks it from matchmaking.",
+        "presets_button": "Button in the Server Picker header that opens the presets dialog. Keep short, about 8 characters.",
+        "ping_button": "Button in the Server Picker header that measures the direct ping to each region. Keep short, about 6 characters.",
+        "unblock_all_button": "Button in the Server Picker header that removes all blocks. {count} = number of blocked regions, e.g. 3. Keep short, about 16 characters.",
+        "filter_placeholder": "Placeholder text in the region search box on the Server Picker page.",
+        "filter_aria": "Screen reader label for the region search box on the Server Picker page.",
+        "loading": "Loading message shown on the Server Picker page while the server list loads.",
+        "no_games": "Error message on the Server Picker page when the server list cannot be loaded. Contains the app name Deadlock+, keep it untranslated.",
+        "no_match": "Empty state in the region list when the search finds nothing. {search} = text the user typed, e.g. \"Tokyo\".",
+        "external_fallback": "Name used for another firewall tool when its real name is unknown. Fills {source} in the import dialog and toast.",
+        "unsupported": "Warning banner on the Server Picker page. {platform} = operating system name, e.g. \"macOS\".",
+        "unblock_all": {
+            "title": "Title of the confirm dialog for removing all server blocks.",
+            "description": "Body of the unblock all confirm dialog. {count} = number of firewall rules, e.g. 3. Plural forms. Contains the app name Deadlock+, keep it untranslated.",
+            "confirm": "Confirm button in the unblock all dialog. Keep short, about 11 characters."
+        },
+        "import": {
+            "title": "Title of the confirm dialog for importing blocks made by another tool. {source} = name of that tool, e.g. \"Other tool\".",
+            "description": "Body of the import dialog. Contains the app name Deadlock+, keep it untranslated. {source} = name of the other tool, e.g. \"Other tool\".",
+            "confirm": "Confirm button in the import blocks dialog. Keep short, about 6 characters."
+        },
+        "ping": {
+            "ms": "Ping value shown next to a region. {value} = number of milliseconds, e.g. \"42\". Keep short, about 7 characters.",
+            "no_reply": "Ping cell text when the region never answered. Keep short, about 8 characters."
+        },
+        "external": {
+            "summary": "Banner text saying another tool already blocks regions. {rules} = rule count text, e.g. \"2 Foo rules\". {regions} = region count text, e.g. \"3 regions\".",
+            "rules": "Rule count inside the banner summary. Plural forms. {count} = number of rules, e.g. 2. {label} = name of the other tool, e.g. \"Other tool\".",
+            "regions": "Region count inside the banner summary. Plural forms. {count} = number of regions, e.g. 3.",
+            "import": "Button in the banner that imports blocks made by another tool. Keep short, about 6 characters."
+        },
+        "game_running": {
+            "title": "Heading of a warning banner on the Server Picker page. Deadlock is the game name, keep it untranslated.",
+            "body": "Body of the warning banner shown while the game is running. Tells the user to restart the game after changes."
+        },
+        "sort": {
+            "by": "Screen reader label for a sortable column header. {label} = column name, e.g. \"Region\".",
+            "ascending": "Screen reader label for the sort direction arrow in a column header. Lowercase word.",
+            "descending": "Screen reader label for the sort direction arrow in a column header. Lowercase word.",
+            "region": "Table column header in the server list for the region name. Keep short, about 6 characters.",
+            "ping": "Table column header in the server list for the direct ping. Keep short, about 11 characters.",
+            "blocked": "Table column header in the server list for the blocked switch. Keep short, about 7 characters."
+        },
+        "presets": {
+            "title": "Title of the presets dialog on the Server Picker page.",
+            "description": "Description in the presets dialog. Explains saving a set of regions to block or keep open and applying it in one click.",
+            "edit_title": "Title of the presets dialog while editing an existing preset.",
+            "new_title": "Title of the presets dialog while creating a new preset.",
+            "edit_description": "Description in the preset editor. Warns that applying a preset sets every region and clears single server blocks.",
+            "name_placeholder": "Placeholder text in the preset name input. The example name is \"EU only\" (Europe), translate the example.",
+            "name_aria": "Screen reader label for the preset name input.",
+            "mode_aria": "Screen reader label for the radio group choosing the preset mode.",
+            "mode_allow_title": "Radio option title in the preset editor. The listed regions stay open and the rest are blocked. Keep short, about 16 characters.",
+            "mode_allow_note": "Short note under the allow mode option in the preset editor.",
+            "mode_block_title": "Radio option title in the preset editor. The listed regions get blocked. Keep short, about 16 characters.",
+            "mode_block_note": "Short note under the block mode option in the preset editor.",
+            "filter_placeholder": "Placeholder text in the region search box inside the preset editor.",
+            "filter_aria": "Screen reader label for the region search box inside the preset editor.",
+            "will_block": "Summary line in the preset editor. {blocked} = regions blocked, e.g. 5. {total} = all regions, e.g. 12. {open} = regions left open, e.g. 7.",
+            "summary_allow": "Summary line for a preset in the presets list. {listed} = regions kept open, e.g. 3. {blocked} = regions blocked, e.g. 9. {total} = all regions, e.g. 12.",
+            "summary_block": "Summary line for a preset in the presets list. {listed} = regions listed as blocked, e.g. 3. {blocked} = regions blocked, e.g. 3. {total} = all regions, e.g. 12.",
+            "back": "Button in the preset editor that returns to the presets list without saving. Keep short, about 4 characters.",
+            "save": "Button in the preset editor that saves the preset. Keep short, about 11 characters.",
+            "apply": "Button on a preset row in the presets list that applies it. Keep short, about 5 characters.",
+            "edit_label": "Screen reader and tooltip label for the edit icon button on a preset row. {name} = preset name, e.g. \"EU only\".",
+            "delete_label": "Screen reader and tooltip label for the delete icon button on a preset row. {name} = preset name, e.g. \"EU only\".",
+            "empty": "Empty state in the presets dialog when no presets exist.",
+            "save_current": "Button in the presets dialog that saves the currently blocked regions as a new preset. Keep short, about 20 characters.",
+            "new": "Button in the presets dialog that starts a blank preset. Keep short, about 10 characters.",
+            "apply_label": "Screen reader label for the apply button on a preset row. {name} = preset name, e.g. \"EU only\"."
+        },
+        "row": {
+            "collapse": "UNUSED",
+            "expand": "UNUSED",
+            "relay_groups": "Badge on a region row showing how many server groups it holds. Plural forms. {count} = number, e.g. 3. Keep short, about 14 characters.",
+            "relays": "Badge text for the number of servers in a region. Plural forms. {count} = number, e.g. 3. Keep short, about 11 characters.",
+            "partial": "Badge on a region row when only some servers are blocked. {blocked} = blocked servers, e.g. 1. {total} = all servers, e.g. 3. Keep short, about 13 characters.",
+            "routing_aria": "Screen reader label for the info icon on a region row that opens a routing tooltip. {name} = region name, e.g. \"Frankfurt\".",
+            "unblockable": "Line in the routing tooltip of a region row. {names} = list of region names, e.g. \"Dubai, Mumbai\". Valve is a company name.",
+            "block_siblings": "Clickable link in the routing tooltip that also blocks nearby regions. {names} = list of region names, e.g. \"Dubai, Mumbai\".",
+            "no_reply_hint": "Tooltip on a ping cell when the region never answered.",
+            "ping_region": "Tooltip on a ping cell for a region row with several servers.",
+            "ping_relay": "Tooltip on a ping cell for a single server row.",
+            "applying": "Screen reader label for a spinner shown while a block is being applied to the firewall.",
+            "blocked": "Status text next to a switch on a region row when it is blocked. Keep short, about 7 characters.",
+            "open": "Status text next to a switch on a region row when it is not blocked. Keep short, about 4 characters.",
+            "block_aria": "Screen reader label for the block switch on a region row. {name} = region name, e.g. \"Frankfurt\".",
+            "locked": "Tooltip on a disabled block switch of a single server. {region} = region name, e.g. \"Frankfurt\".",
+            "expand_aria": "Screen reader label for the expander button on a region row. {name} = region name, e.g. \"Frankfurt\".",
+            "collapse_aria": "Screen reader label for the collapse button on a region row. {name} = region name, e.g. \"Frankfurt\".",
+            "ping_aria": "Screen reader label for a ping cell. {name} = region name, e.g. \"Frankfurt\". {ping} = ping text, e.g. \"42 ms\" or \"No reply\"."
+        },
+        "toast": {
+            "refresh_failed": "Error toast on the Server Picker page when the server list could not be refreshed.",
+            "firewall_read_failed": "Error toast on the Server Picker page when current firewall rules could not be read.",
+            "relays_moved": "Info toast. Valve changed its servers and the app updated the user's blocks. {names} = region names, e.g. \"Dubai, Mumbai\".",
+            "blocks_update_failed": "Error toast when blocks could not be updated after Valve changed its servers. {names} = region names, e.g. \"Dubai, Mumbai\".",
+            "sync_failed": "Error toast when the app could not compare user blocks with Valve's latest server list.",
+            "unsupported": "Error toast when the user tries to block servers on a system that does not support it.",
+            "blocked": "Success toast after blocking a region. {name} = region name, e.g. \"Frankfurt\".",
+            "unblocked": "Success toast after unblocking a region. {name} = region name, e.g. \"Frankfurt\".",
+            "block_failed": "Error toast when blocking a region failed. {name} = region name, e.g. \"Frankfurt\".",
+            "unblock_failed": "Error toast when unblocking a region failed. {name} = region name, e.g. \"Frankfurt\".",
+            "siblings_failed": "Error toast when blocking the related regions failed.",
+            "unblocked_rules": "Success toast after removing all blocks. Plural forms. {count} = number of rules, e.g. 3.",
+            "unblock_all_failed": "Error toast when removing all blocks failed.",
+            "preset_applied": "Success toast after applying a preset. {name} = preset name, e.g. \"EU only\". {blocked} = regions blocked, e.g. 9. {total} = all regions, e.g. 12.",
+            "preset_apply_failed": "Error toast when applying a preset failed. {name} = preset name, e.g. \"EU only\".",
+            "preset_saved": "Success toast after saving a preset. {name} = preset name, e.g. \"EU only\".",
+            "preset_save_failed": "Error toast when saving a preset failed.",
+            "preset_delete_failed": "Error toast when deleting a preset failed.",
+            "imported": "Success toast after importing blocks from another tool. Plural forms. {count} = number of blocks, e.g. 2. {source} = name of the other tool.",
+            "import_failed": "Error toast when importing blocks from another tool failed."
+        },
+        "admin_needed": {
+            "block": "Title of the admin access dialog or error toast when blocking a region fails. {name} = region name, e.g. \"Frankfurt\".",
+            "unblock": "Title of the admin access dialog or error toast when unblocking a region fails. {name} = region name, e.g. \"Frankfurt\".",
+            "siblings": "Title of the admin access dialog or error toast when blocking related regions fails.",
+            "unblock_all": "Title of the admin access dialog or error toast when removing all blocks fails.",
+            "preset": "Title of the admin access dialog or error toast when applying a preset fails. {name} = preset name, e.g. \"EU only\".",
+            "import": "Title of the admin access dialog or error toast when importing blocks fails.",
+            "description": "Body of the admin access dialog. Contains the app name Deadlock+, keep it untranslated. \"Allow\" and \"Always allow\" must match the dialog's button labels."
+        }
+    },
+    "live": {
+        "state": {
+            "game_closed": "Status headline on the Live page when the game is not running. Deadlock is the game name, keep it untranslated.",
+            "menus": "Status headline on the Live page when the player is in the game menus.",
+            "queuing": "Status headline on the Live page while the player is queuing for a match.",
+            "pregame": "Status headline on the Live page while the match is about to start (hero select).",
+            "in_match": "Status headline on the Live page while a match is in progress.",
+            "post_match": "Status headline on the Live page after a match ended.",
+            "game_closed_hint": "Short hint under the Live page status headline when the game is closed.",
+            "menus_hint": "Short hint under the Live page status headline when the player is in the menus.",
+            "queuing_hint": "Short hint under the Live page status headline while queuing.",
+            "pregame_hint": "Short hint under the Live page status headline before the match starts. Heroes are Deadlock game terms.",
+            "in_match_hint": "Short hint under the Live page status headline during a match while data is being read.",
+            "post_match_hint": "Short hint under the Live page status headline after a match ended.",
+            "loading_match": "Status headline on the Live page while match data is loading.",
+            "loading_match_hint": "Short hint under the loading headline on the Live page."
+        },
+        "team": {
+            "amber": "Team name on the Live page for the Amber side. It is a Deadlock game term, match the game's own translation. Also used as the team table's screen reader label.",
+            "sapphire": "Team name on the Live page for the Sapphire side. It is a Deadlock game term, match the game's own translation. Also used as the team table's screen reader label."
+        },
+        "mode": {
+            "unranked": "Match mode badge in the Live page match header. Keep short, about 8 characters.",
+            "ranked": "Match mode badge in the Live page match header. Keep short, about 6 characters.",
+            "privateLobby": "Match mode badge in the Live page match header for a private lobby. Keep short, about 7 characters.",
+            "coopBot": "Match mode badge in the Live page match header for a match against bots. Keep short, about 6 characters.",
+            "tutorial": "Match mode badge in the Live page match header for the tutorial. Keep short, about 8 characters.",
+            "other": "Match mode badge in the Live page match header for an unknown mode. Keep short, about 5 characters."
+        },
+        "game": {
+            "normal": "Game mode badge in the Live page match header for the standard game mode. Keep short, about 8 characters.",
+            "streetBrawl": "Game mode name in the Live page match header and match history filters. Street Brawl is a Deadlock game term, match the game's own translation.",
+            "sandbox": "Game mode badge in the Live page match header. Sandbox is a Deadlock game term, match the game's own translation. Keep short, about 7 characters.",
+            "exploreNyc": "Game mode badge in the Live page match header. Explore NYC is a Deadlock game term, match the game's own translation. Keep short, about 11 characters.",
+            "other": "Game mode badge in the Live page match header for an unknown mode. Keep short, about 5 characters."
+        },
+        "col": {
+            "rank": "Table column header in the Live page team table for player rank. Keep short, about 4 characters.",
+            "souls": "Table column header in the Live page team table for total souls. Souls is a Deadlock game term, match the game. Keep short, about 5 characters.",
+            "souls_per_min": "Table column header (tooltip or screen reader name) in the Live page team table for souls per minute. Souls is a Deadlock game term.",
+            "kills": "Table column header in the Live page team table for kills. Part of the kills, deaths, assists group. Keep short, about 5 characters.",
+            "deaths": "Table column header in the Live page team table for deaths. Part of the kills, deaths, assists group. Keep short, about 6 characters.",
+            "assists": "Table column header in the Live page team table for assists. Part of the kills, deaths, assists group. Keep short, about 7 characters.",
+            "kill_participation": "Table column header (tooltip or screen reader name) in the Live page team table for kill participation percentage.",
+            "hero_damage": "Table column header (tooltip or screen reader name) in the Live page team table for damage dealt to heroes. Hero is a Deadlock game term.",
+            "objective_damage": "Table column header (tooltip or screen reader name) in the Live page team table for damage dealt to objectives such as Walkers and Guardians.",
+            "healing": "Table column header (tooltip or screen reader name) in the Live page team table for healing done. Keep short, about 7 characters."
+        },
+        "rank_from_history": "Tooltip on a rank badge in the Live page team table. {rank} = rank name, e.g. \"Archon 3\". Ranks are Deadlock game terms, match the game.",
+        "paused": "Screen reader label for the pause icon next to the match clock on the Live page. Keep short, about 6 characters.",
+        "queue": {
+            "party": "Tooltip on the party size count shown while queuing on the Live page."
+        },
+        "swaps": {
+            "line": "Notice line on the Live page when a player changed hero. {from} = old hero, e.g. \"Haze\". {to} = new hero, e.g. \"Seven\". Heroes are Deadlock game terms.",
+            "named": "Notice line on the Live page when a player changed hero. {name} = player name, e.g. \"Sammi\". {from} = old hero, e.g. \"Haze\". {to} = new hero, e.g. \"Seven\". Heroes are game terms.",
+            "dismiss": "Screen reader label for the close button of the hero change notice on the Live page."
+        },
+        "grades": {
+            "label": {
+                "overall": "Label on the overall grade tile in the Live page grade strip. Keep short, about 7 characters.",
+                "kills": "Label on a grade tile in the Live page grade strip. Keep short, about 5 characters.",
+                "deaths": "Label on a grade tile in the Live page grade strip. Keep short, about 6 characters.",
+                "assists": "Label on a grade tile in the Live page grade strip. Keep short, about 7 characters.",
+                "souls": "Label on a grade tile in the Live page grade strip for souls per minute. Souls is a Deadlock game term. Keep short, about 10 characters.",
+                "damage": "Label on a grade tile in the Live page grade strip for damage per minute. Keep short, about 8 characters.",
+                "objective_damage": "Label on a grade tile in the Live page grade strip for objective damage per minute. Keep short, about 12 characters.",
+                "healing": "Label on a grade tile in the Live page grade strip. Keep short, about 7 characters."
+            },
+            "name": {
+                "kills": "Full stat name in the grade tile tooltip on the Live page.",
+                "deaths": "Full stat name in the grade tile tooltip on the Live page.",
+                "assists": "Full stat name in the grade tile tooltip on the Live page.",
+                "souls": "Full stat name in the grade tile tooltip on the Live page. Souls is a Deadlock game term.",
+                "damage": "Full stat name in the grade tile tooltip on the Live page.",
+                "objective_damage": "Full stat name in the grade tile tooltip on the Live page. Objectives are things like Walkers and Guardians, Deadlock game terms.",
+                "healing": "Full stat name in the grade tile tooltip on the Live page."
+            },
+            "too_early": "Short value shown on a grade tile when a grade cannot be given yet. Keep short, about 9 characters.",
+            "too_early_long": "Tooltip line on a grade tile saying the match is too early to give a grade.",
+            "after_first_minute": "Short note on the Live page grade strip. Grades appear once the match clock passes 1:00. Keep the time format.",
+            "no_targets": "Short note on the Live page grade strip when no comparison targets are available.",
+            "frozen": "Short note on the Live page grade strip. The comparison targets stopped updating.",
+            "loading": "Short note on the Live page grade strip while comparison targets load.",
+            "avg": "Tiny label on the grade bar marking the average position. Keep short, about 3 characters.",
+            "average": "Tooltip line on a grade tile. {value} = average stat value, e.g. \"12.5\".",
+            "better_than": "Tooltip line on a grade tile. {pct} = percentage of players, e.g. 72. The percent sign is already in the text.",
+            "fewer_deaths": "Tooltip line on the deaths grade tile. {pct} = percentage of players, e.g. 72. The percent sign is already in the text.",
+            "self_heal": "Tooltip line on the healing grade tile. {n} = healing amount on yourself, e.g. \"1,200\".",
+            "healing_teammates": "Tooltip line on the healing grade tile. {n} = healing amount on teammates, e.g. \"3,400\".",
+            "group": {
+                "rank": "Tooltip line on a grade tile naming the comparison group. {hero} = hero name, e.g. \"Haze\". {rank} = rank name, e.g. \"Archon\". Hero and ranks are Deadlock game terms.",
+                "range": "Tooltip line on a grade tile naming the comparison group. {hero} = hero name, e.g. \"Haze\". {rankFrom} and {rankTo} = rank names, e.g. \"Emissary\", \"Archon\". Game terms.",
+                "all_ranks": "Tooltip line on a grade tile naming the comparison group. {hero} = hero name, e.g. \"Haze\". Hero is a Deadlock game term.",
+                "street_brawl": "Tooltip line on a grade tile naming the comparison group. {hero} = hero name, e.g. \"Haze\". Hero and Street Brawl are Deadlock game terms."
+            },
+            "reason": {
+                "offline": "Note on the Live page grade strip explaining why no comparison targets are available. The user's internet looks down.",
+                "api_down": "Note on the Live page grade strip explaining why no targets are available. Deadlock API is a name, keep Deadlock untranslated.",
+                "rate_limited": "Note on the Live page grade strip explaining why no targets are available. Deadlock API is a name, keep Deadlock untranslated.",
+                "empty_data": "Note on the Live page grade strip explaining why no targets are available. Deadlock API is a name, keep Deadlock untranslated. Hero is a game term."
+            }
+        },
+        "ptrace": {
+            "title": "Heading of a warning card on the Live page for Linux users. Deadlock+ is the app name, keep it untranslated.",
+            "body": "Body text of the Linux warning card on the Live page. ptrace is a Linux kernel feature name, keep it untranslated.",
+            "fix": "Button on the Linux warning card that changes the ptrace setting. Keep short, about 12 characters.",
+            "fix_restart": "Button on the Linux warning card that changes the ptrace setting and restarts. Keep short, about 25 characters.",
+            "reboot": "Small note on the Linux warning card saying a computer restart is needed.",
+            "manual": "Small note on the Linux warning card for setups the app cannot fix. Steam, Flatpak and Snap are product names, keep them untranslated. Deadlock+ is the app name.",
+            "failed": "Error toast shown when changing the ptrace setting failed. ptrace is a Linux kernel feature name, keep it untranslated."
+        },
+        "game_admin": {
+            "title": "Heading of a warning card on the Live page. Deadlock is the game name, keep it untranslated. It describes a temporary state.",
+            "body": "Body of the warning card on the Live page. Steam is a product name, keep it untranslated."
+        }
+    }
+}

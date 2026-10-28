@@ -1,0 +1,325 @@
+{
+    "performance": {
+        "title": "Page heading of the Performance page, which has tabs for frametimes, mod scripts and comparing runs.",
+        "rules": {
+            "nulled_not_cancelled": "Short name of a script problem found in a mod, shown as a finding title on the Mod scripts tab. Describes a timer that was dropped but keeps running.",
+            "unguarded_rearm": "Short name of a script problem found in a mod, shown as a finding title on the Mod scripts tab. Describes a timer that keeps adding copies of itself."
+        },
+        "severity": {
+            "low": "Badge on a script finding showing low severity. Keep short, about 6 characters.",
+            "medium": "Badge on a script finding showing medium severity. Keep short, about 8 characters.",
+            "high": "Badge on a script finding showing high severity. Keep short, about 6 characters."
+        },
+        "addon": {
+            "gamebanana_mod": "Fallback name of an installed mod on the Performance page, used when only its GameBanana ID is known. {id} = number, e.g. 123456. GameBanana is a site name.",
+            "mod_id": "Small label next to a mod file name on the Performance page. {id} = GameBanana mod number, e.g. 123456. Keep short, about 12 characters.",
+            "disabled": "Badge on a mod row on the Performance page for a mod that is switched off. Keep short, about 8 characters."
+        },
+        "frame_capture": {
+            "note_windows": "Note under the frame capture controls on Windows. Says the feature needs administrator rights and Windows will ask the user to allow it.",
+            "note_linux": "Note under the frame capture controls on Linux. Explains a Vulkan layer runs inside Deadlock, to install below and then add a launch option in Steam. Deadlock is the game name.",
+            "note_macos": "Note under the frame capture controls saying the feature is not available on macOS or under Wine."
+        },
+        "runs": {
+            "default_label": "Default name of a saved frametime run when the user gives no label. {date} = short date, e.g. \"Oct 28\"."
+        },
+        "metrics": {
+            "avg_fps": "Stat tile label on the Frametimes tab for average frames per second. Keep short, about 11 characters.",
+            "low_1pct_fps": "Stat tile label on the Frametimes tab for the FPS of the slowest 1% of frames. Keep short, about 10 characters.",
+            "low_01pct_fps": "Stat tile label on the Frametimes tab for the FPS of the slowest 0.1% of frames. Keep short, about 12 characters.",
+            "median_frametime": "Stat tile label on the Frametimes tab for the median time one frame takes. Keep short, about 16 characters.",
+            "p95": "Metric label for the 95th percentile frame time, used in the Frametimes stats and the Compare table. Keep short, about 15 characters.",
+            "p99": "Metric label for the 99th percentile frame time, used in the Frametimes stats and the Compare table. Keep short, about 15 characters.",
+            "spikes_per_minute": "Row label in the Compare table for how many frame spikes happen per minute. Keep short, about 17 characters.",
+            "spikes": "Stat tile label on the Frametimes tab for the number of frame spikes. Keep short, about 6 characters.",
+            "longest_frame": "Stat tile label on the Frametimes tab for the single longest frame time. Keep short, about 13 characters."
+        },
+        "units": {
+            "ms": "Value with a unit for milliseconds. {value} = number, e.g. \"16.67\". Keep the unit ms."
+        },
+        "only_on_in": "Line in the copied comparison report listing mods that were on in only one run. {run} = run name, e.g. \"Run A\". {addons} = comma separated mod names.",
+        "same_addons": "Warning text on the Compare tab and in the report when both runs had the same mods on, so a mod is not the cause of any difference.",
+        "report": {
+            "title": "First line of the text report produced by Compare (copied or saved). Deadlock+ stays untranslated.",
+            "tie": "Word in the text report table marking a measure where the two runs are within 3% of each other. Keep short, about 3 characters.",
+            "run_length": "Run length used in the text report. {minutes} = number of minutes, e.g. 12. {frames} = number of frames, e.g. 45000.",
+            "run_a": "Line in the text report naming the first run. {label} = run name, e.g. \"Mod off\". {length} = run length text, e.g. \"12 min, 45000 frames\".",
+            "run_b": "Line in the text report naming the second run. {label} = run name, e.g. \"Mod on\". {length} = run length text, e.g. \"12 min, 45000 frames\".",
+            "better": "Column header in the text report table for which run did better on each measure. Keep short, about 6 characters.",
+            "disclaimer": "Closing note in the text report. Explains differences under 3% count as a tie and a difference does not prove a mod is the cause."
+        },
+        "layer": {
+            "copied": "Toast title after the launch option was copied to the clipboard.",
+            "copy_failed": "Error toast title when copying the launch option to the clipboard failed.",
+            "installed": "Status heading in the frame layer setup card on Linux. Says the Vulkan frame layer is installed.",
+            "not_installed": "Status heading in the frame layer setup card on Linux. Says the Vulkan frame layer is not installed.",
+            "installed_hint": "Hint under the status in the frame layer setup card. Says the layer only loads in games started with the launch option shown below.",
+            "install_hint": "Hint in the frame layer setup card. Says installing adds a small Vulkan layer to the home folder and does nothing until the launch option is added.",
+            "unavailable": "Hint in the frame layer setup card when this app build has no layer included, so it cannot be installed. Deadlock+ stays untranslated.",
+            "remove": "Button in the frame layer setup card that removes the installed layer. Keep short, about 6 characters.",
+            "install": "Button in the frame layer setup card that installs the layer. Keep short, about 7 characters.",
+            "steps": "Instruction in the frame layer setup card. Lists Steam menu steps to reach Launch options, then says to start the game and press Start. Steam, Deadlock and the menu names should match Steam's own wording.",
+            "copy": "Button next to the launch option text that copies it. Keep short, about 4 characters."
+        },
+        "tabs": {
+            "frametimes": {
+                "title": "Tab title on the Performance page for recording frame times. Keep short, about 10 characters.",
+                "blurb": "Short description under the Frametimes tab title on the Performance page. Mentions frame pacing, 1% lows and stutter spikes."
+            },
+            "scripts": {
+                "title": "Tab title on the Performance page for scanning mod scripts. Keep short, about 12 characters.",
+                "blurb": "Short description under the Mod scripts tab title. Says it checks installed mods for script patterns that can hurt performance."
+            },
+            "compare": {
+                "title": "Tab title on the Performance page for comparing two saved runs. Keep short, about 7 characters.",
+                "blurb": "Short description under the Compare tab title. Says to put two saved runs side by side, for example with a mod on and off."
+            }
+        },
+        "compare": {
+            "copied": "Toast title after the comparison report was copied to the clipboard.",
+            "copy_failed": "Error toast title when copying the comparison report failed.",
+            "saved": "Toast title after the comparison report was saved to a file.",
+            "save_failed": "Error toast body when saving the comparison report to a file failed.",
+            "file_filter": "Name of the plain text file type in the save file dialog for the comparison report. Keep short, about 4 characters.",
+            "pick_run": "Placeholder text in a dropdown on the Compare tab where the user chooses a saved run. Keep short, about 10 characters.",
+            "intro": "Intro paragraph at the top of the Compare tab. Explains to play the same map for a similar time with a mod on and off, and that a difference is not proof.",
+            "empty_none": "Empty state line on the Compare tab when no runs are saved yet.",
+            "empty_single": "Empty state line on the Compare tab when only one run is saved.",
+            "empty_hint": "Empty state hint on the Compare tab. Says to record a run on the Frametimes tab and save it with a label, and that two runs are needed.",
+            "run_a": "Dropdown label on the Compare tab for the first of two runs. Keep short, about 5 characters.",
+            "run_b": "Dropdown label on the Compare tab for the second of two runs. Keep short, about 5 characters.",
+            "pick_different": "Warning on the Compare tab when the same run is chosen on both sides.",
+            "copy_report": "Button on the Compare tab that copies the text report. Keep short, about 11 characters.",
+            "save_report": "Button on the Compare tab that saves the text report to a file. Keep short, about 11 characters.",
+            "legend": "Legend text under the Compare table. Green marks the better side. {a} = length of run A, e.g. \"12 min\". {b} = length of run B, e.g. \"11 min\".",
+            "no_difference": "Verdict line on the Compare tab when no measure clearly differs between the runs.",
+            "mixed": "Verdict line on the Compare tab when some measures favour run A and some favour run B. {a} = number of measures, e.g. 2. {b} = number of measures, e.g. 3.",
+            "favours_a": "Verdict line on the Compare tab when every differing measure favours run A.",
+            "favours_b": "Verdict line on the Compare tab when every differing measure favours run B.",
+            "addons_differ": "Heading of a card on the Compare tab listing mods that were on in only one of the two runs.",
+            "only_on_in": "Label before a list of mod chips on the Compare tab. {run} = run name, e.g. \"Run A\". Ends with a colon.",
+            "addons_on": "Small count under a saved run in the Compare tab list. {count} = number of mods that were on, e.g. 3. Mod means a game modification.",
+            "delete_run": "Screen reader label of the icon button that deletes a saved run. {label} = run name, e.g. \"Mod off\"."
+        },
+        "frametimes": {
+            "intro": "Intro paragraph on the Frametimes tab. Explains to start recording, play, stop to see numbers, and to repeat with a mod on and off to compare. Deadlock is the game name.",
+            "start": "Button on the Frametimes tab that starts recording frame times. Keep short, about 5 characters.",
+            "stop": "Button on the Frametimes tab that stops recording frame times. Keep short, about 4 characters.",
+            "waiting": "Status line on the Frametimes tab while recording is armed but the game has not started. Deadlock is the game name.",
+            "recording": "Status line on the Frametimes tab while recording. {time} = elapsed time, e.g. \"01:23\". {count} = frames recorded so far, e.g. 5000.",
+            "background": "Warning on the Frametimes tab shown when the game window is not in focus, so frames are not counted. Deadlock is the game name.",
+            "limit": "Warning on the Frametimes tab when the recording reached its maximum size and the user should stop it.",
+            "graph_caption": "Caption under the live frame time graph. {count} = frames shown, e.g. 300. {ms} = milliseconds at the top of the graph, e.g. 33.",
+            "no_frames": "Warning on the Frametimes tab when the game runs but no frames reach the app. Deadlock and Deadlock+ stay untranslated.",
+            "none_recorded": "Message on the Frametimes tab after stopping a recording that captured nothing.",
+            "summary": "Summary under the results on the Frametimes tab. {count} = frame total, e.g. 45000. {time} = duration, e.g. \"12:30\". Also defines a spike as at least 33 ms and 2.5 times the median.",
+            "left_out": "Note under the results saying time spent with the game out of focus was excluded. {time} = duration, e.g. \"1:20\".",
+            "save_hint": "Hint above the save run field. {count} = number of mods currently on, e.g. 3. Mod means a game modification.",
+            "label_aria": "Screen reader label of the text field where the user names a run before saving it.",
+            "label_placeholder": "Placeholder text in the run name input on the Frametimes tab. Gives an example name like \"Mod off\". Keep \"Label, e.g.\" style short.",
+            "save": "Button on the Frametimes tab that saves the recorded run. Keep short, about 8 characters.",
+            "saved": "Disabled button text after the run was saved. Keep short, about 5 characters.",
+            "spike_at": "Small text next to a spike in the spike list showing when it happened. {time} = time into the run, e.g. \"03:21\". Keep short, about 8 characters.",
+            "needs_admin": "Warning on the Frametimes tab saying frame time capture needs administrator access."
+        },
+        "scripts": {
+            "intro": "Intro paragraph on the Mod scripts tab. Says it scans scripts of installed Deadlock mods for patterns that can hurt frametimes, and nothing is changed or run. Deadlock is the game name.",
+            "run_now": "Button on the Mod scripts tab that starts a scan right away while it is paused. Keep short, about 8 characters.",
+            "scanning_button": "Disabled button text on the Mod scripts tab while a scan runs. Keep short, about 11 characters.",
+            "scan_again": "Button on the Mod scripts tab that runs the scan again. Keep short, about 10 characters.",
+            "disclaimer": "Disclaimer card on the Mod scripts tab. Says the check is best effort, a finding is only a hint, a clean result is no proof, and comparing frametimes shows the real cause.",
+            "no_install": "Empty state on the Mod scripts tab when the Deadlock install folder was not found. Deadlock is the game name.",
+            "none_installed": "Empty state on the Mod scripts tab when no mods are installed.",
+            "finding": "Loading text on the Mod scripts tab while the list of mods is being found.",
+            "progress": "Progress text on the Mod scripts tab during a scan. {done} = mods scanned, e.g. 5. {total} = all mods, e.g. 20.",
+            "progress_paused": "Progress text on the Mod scripts tab when the scan is paused because the game is running. {done} = mods scanned, e.g. 5. {total} = all mods, e.g. 20. Deadlock is the game name.",
+            "progress_aria": "Screen reader label of the progress bar for the mod scan.",
+            "with_findings": "Summary tile label on the Mod scripts tab. {count} = number of findings, e.g. 3. Finding means a flagged script pattern.",
+            "scripts_clean": "Summary tile label on the Mod scripts tab for mods that have scripts but no findings.",
+            "no_scripts": "Summary tile label on the Mod scripts tab for mods that contain no scripts.",
+            "worth_a_look": "Section heading on the Mod scripts tab above mods with findings.",
+            "could_not_read": "Section heading on the Mod scripts tab above mods whose files could not be read.",
+            "scanned_clean": "Section heading on the Mod scripts tab above mods that were scanned with no findings.",
+            "error_badge": "Badge on a mod row that could not be read. Keep short, about 5 characters.",
+            "scripts_count": "Count label on a mod row on the Mod scripts tab. {count} = number of scripts in the mod, e.g. 4. Keep short.",
+            "pending": "Line on the Mod scripts tab during a scan. {count} = mods still waiting, e.g. 8. Mod means a game modification.",
+            "addons_without_scripts": "Toggle label on the Mod scripts tab that expands a list of mods without scripts. {count} = number of mods, e.g. 6."
+        },
+        "findings": {
+            "nulled_not_cancelled": "Explanation of a script finding. {fn} = a function name from the mod code, e.g. \"OnThink\". Keep the name as is. Describes a forgotten timer that can pile up.",
+            "unguarded_rearm": "Explanation of a script finding. {fn} = a function name from the mod code, e.g. \"OnThink\". Keep the name as is. Describes a timer restarted without stopping the old one."
+        }
+    },
+    "demos": {
+        "title": "Page heading of the Replays page, which lists match replays saved by Deadlock.",
+        "subtitle": "Page subtitle under the Replays heading. Says these are match replays saved by Deadlock on this PC. Deadlock is the game name.",
+        "open_folder": "Button on the Replays page header that opens the replays folder in the file manager. Keep short, about 12 characters.",
+        "clean_up": "Button on the Replays page header that opens the cleanup dialog. Keep short, about 8 characters.",
+        "delete_selected": "Button on the Replays page header that deletes the chosen replays. {count} = number selected, e.g. 3. Keep short, about 22 characters.",
+        "refresh": "Button on the Replays page header that reloads the replay list. Keep short, about 7 characters.",
+        "reading": "Loading text on the Replays page while replay files are being read.",
+        "no_folder": "Empty state on the Replays page when Deadlock's replays folder was not found. Deadlock is the game name and Steam is a product name.",
+        "select_page": "Screen reader label of the checkbox that selects all replays on the current page.",
+        "empty_none": "Empty state line on the Replays page when no replays are saved.",
+        "empty_filtered": "Empty state line on the Replays page when the chosen status filter matches nothing.",
+        "reference_build": "Note under the filter bar on the Replays page. \"Older build\" is the name of a status filter (keep it matching demos.status.outdated.label). {build} = game build number, e.g. 5678.",
+        "match_id": "Label of a replay in the cleanup review list. {id} = match number, e.g. 12345678.",
+        "hero_id": "Fallback title of a replay when the hero name is unknown. {id} = hero number, e.g. 17. Hero is a Deadlock game term.",
+        "status": {
+            "complete": {
+                "label": "Badge and filter name for a replay that is fully downloaded and current. Keep short, about 8 characters.",
+                "hint": "Tooltip for the Ready replay status. Says the replay matches the newest replay build found on this PC."
+            },
+            "partial": {
+                "label": "Badge and filter name for a replay that is only partly downloaded. Keep short, about 8 characters.",
+                "hint": "Tooltip for the Partial replay status. Says it is an unfinished download that will not play."
+            },
+            "outdated": {
+                "label": "Badge and filter name for a replay recorded on an older game build. Keep short, about 12 characters.",
+                "hint": "Tooltip for the Older build replay status. Says it was recorded on an older game build and may not play."
+            },
+            "unknown": {
+                "label": "Badge and filter name for a replay whose state could not be read. Keep short, about 8 characters.",
+                "hint": "Tooltip for the Unknown replay status. Says the replay could not be read and the file may be damaged."
+            }
+        },
+        "filter": {
+            "all": "Filter button on the Replays page showing all replays. {count} = number of replays, e.g. 24. Keep short, about 10 characters.",
+            "pinned": "Filter button on the Replays page showing pinned replays. {count} = number pinned, e.g. 2. Keep short, about 12 characters.",
+            "status_count": "Filter button for one replay status. {label} = status name such as \"Ready\" or \"Partial\". {count} = number of replays, e.g. 5. Keep short.",
+            "summary": "Summary text on the right of the filter bar. {count} = number of replays shown, e.g. 12. {size} = total file size, e.g. \"3.2 GB\"."
+        },
+        "pager": {
+            "previous": "Screen reader label and tooltip of the previous page arrow button under the replay list.",
+            "next": "Screen reader label and tooltip of the next page arrow button under the replay list.",
+            "page": "Page indicator under the replay list. {page} = current page, e.g. 2. {count} = total pages, e.g. 5."
+        },
+        "row": {
+            "select": "Screen reader label of the checkbox on a replay row. {id} = match number, e.g. 12345678.",
+            "unknown_hero": "Screen reader label of the question mark icon shown when a replay's hero is unknown. Hero is a Deadlock game term.",
+            "build": "Small detail on a replay row. {build} = game build number, e.g. 5678.",
+            "not_in_api": "Small detail on a replay row saying the match is not yet in the Deadlock API. Deadlock is the game name.",
+            "details_unavailable": "Small detail on a replay row saying match details could not be loaded.",
+            "win": "Badge on a replay row for a won match. Keep short, about 3 characters.",
+            "loss": "Badge on a replay row for a lost match. Keep short, about 4 characters.",
+            "pin": "UNUSED",
+            "pinned_hint": "Tooltip on the pin button of a pinned replay. Says delete and cleanup skip it, and that clicking unpins it.",
+            "unpinned_hint": "Tooltip on the pin button of an unpinned replay. Says pinning protects the replay from delete and cleanup.",
+            "more_actions": "Tooltip of the three dot menu button on a replay row.",
+            "open_statlocker": "Menu item in the replay row menu that opens the match on the Statlocker website. Statlocker is a site name and stays untranslated.",
+            "show_in_folder": "Menu item in the replay row menu that shows the replay file in the file manager.",
+            "delete": "Menu item in the replay row menu that deletes the replay.",
+            "delete_unpin_first": "Menu item in the replay row menu, shown for a pinned replay, saying it must be unpinned before deleting.",
+            "pin_match": "Screen reader label of the pin button on a replay row. {id} = match number, e.g. 12345678.",
+            "more_actions_match": "Screen reader label of the three dot menu button on a replay row. {id} = match number, e.g. 12345678."
+        },
+        "delete": {
+            "title": "Dialog title asking to confirm deleting replays. {count} = number of replays, e.g. 3.",
+            "disabled": "Warning in the delete dialog. {trash} = name of the system trash, e.g. \"Recycle Bin\". Says the trash is off for this drive so deletion is permanent.",
+            "too_large": "Warning in the delete dialog when files are too large for the trash. {trash} = name of the system trash, e.g. \"Recycle Bin\". Deletion is permanent.",
+            "too_large_room": "Warning in the delete dialog when the trash lacks space. {trash} = trash name, e.g. \"Recycle Bin\". {needed} = size needed, e.g. \"2 GB\". {free} = free size, e.g. \"500 MB\".",
+            "description": "Dialog description in the delete dialog. {size} = total size freed, e.g. \"1.5 GB\". Says replays are not backed up in Steam Cloud. Steam Cloud is a product name.",
+            "method": "Screen reader label of the radio group for choosing how to delete replays.",
+            "recycle": "Radio option in the delete dialog. {trash} = name of the system trash, e.g. \"Recycle Bin\".",
+            "recycle_hint": "Hint under the move to trash option. Says the user can restore the replay from the trash.",
+            "permanent": "Radio option in the delete dialog for deleting without using the trash.",
+            "permanent_hint": "Hint under the permanent delete option. Says it frees space now and cannot be undone."
+        },
+        "cleanup": {
+            "title": "Dialog title of the replay cleanup dialog.",
+            "description": "Dialog description in the cleanup dialog. Says to pick what counts as clutter, nothing is deleted until the user reviews and confirms, and pinned replays are skipped.",
+            "older_than": "Label before a number input in a cleanup rule, for deleting replays older than a number of days. Keep short, about 10 characters.",
+            "days_label": "Screen reader label of the number input for days in a cleanup rule.",
+            "days_unit": "Unit text after the days number input in a cleanup rule. Keep short, about 4 characters.",
+            "larger_than": "Label before a number input in a cleanup rule, for replays larger than a size. Keep short, about 11 characters.",
+            "gigabytes_label": "Screen reader label of the number input for gigabytes in a cleanup rule.",
+            "gb_unit": "Unit text after the size input in a cleanup rule. Gigabytes abbreviation. Keep short, about 2 characters.",
+            "turn_on": "Status line in the cleanup dialog when no rule is switched on.",
+            "checking": "Status line in the cleanup dialog while replays are being checked against the rules.",
+            "matches": "Status line in the cleanup dialog. {count} = number of matching replays, e.g. 8. {size} = total size, e.g. \"4.1 GB\".",
+            "close": "Button in the cleanup dialog that closes it. Keep short, about 5 characters.",
+            "review": "Button in the cleanup dialog that opens the review list. {count} = number of replays, e.g. 8. Keep short, about 16 characters.",
+            "rule_older_than_days": "Name of a cleanup rule in the review list. {count} = number of days, e.g. 30.",
+            "rule_larger_gb": "Name of a cleanup rule in the review list. {size} = size in gigabytes, e.g. 2.",
+            "rule_larger_mb": "Name of a cleanup rule in the review list. {size} = size in megabytes, e.g. 500.",
+            "rule_outdated": "Name of a cleanup rule in the review list for replays from an older game build.",
+            "rule_partial": "Name of a cleanup rule in the review list for replays that are unfinished downloads."
+        },
+        "toast": {
+            "deleted": "Success toast title after replays were deleted. {count} = number deleted, e.g. 3.",
+            "delete_failed": "Error toast title when replays could not be deleted. {count} = number that failed, e.g. 1. Tells the user to check the log."
+        }
+    },
+    "voice_bans": {
+        "title": "Page heading of the Mutes page, where the user manages players muted in Deadlock. Deadlock is the game name.",
+        "subtitle": "Page subtitle on the Mutes page. {account} = Steam account name, e.g. \"Sammi\". Deadlock is the game name. Says every change saves a backup of the file first.",
+        "your_account": "Fallback account name used in the Mutes page subtitle when the Steam name is unknown. Fits after \"for\".",
+        "export_all": "Button on the Mutes page header that exports the whole mute list to a file. Keep short, about 10 characters.",
+        "export_selected": "Button on the Mutes page header that exports only the chosen mutes. {count} = number selected, e.g. 3. Keep short, about 20 characters.",
+        "import": "Button on the Mutes page header that imports a mute list from a file. Keep short, about 6 characters.",
+        "reading": "Loading text on the Mutes page while the mute list is being read.",
+        "no_file": "Empty state on the Mutes page when the account has no mute list file yet. Deadlock is the game name.",
+        "unknown_player": "Fallback player name on a mute row when the name is not known yet.",
+        "profile_unknown": "Fallback player name for a Steam profile with no name. Keep short, about 7 characters.",
+        "not_a_voice_ban": "Error message when a file is not a Deadlock mute list. Deadlock is the game name.",
+        "unrecognised_import": "Error message when an imported file cannot be read. Deadlock+ stays untranslated. Says to pick a mute list exported from Deadlock+.",
+        "api_error": "Error message when the Deadlock API cannot be reached. {status} = HTTP error code, e.g. 503. Deadlock is the game name.",
+        "game_running": {
+            "title": "Heading of a warning banner on the Mutes page shown while the game is open. Deadlock is the game name.",
+            "body": "Body text of the warning banner on the Mutes page. Explains mutes cannot be changed while the game is open because it rewrites the file on close. Deadlock is the game name."
+        },
+        "add": {
+            "placeholder": "Placeholder text in the input on the Mutes page where the user enters a player name, Steam profile link or Steam ID.",
+            "aria": "Screen reader label of the input for adding a player to mute.",
+            "mute": "Button next to the add input that mutes the player when a Steam ID or link was entered. Keep short, about 4 characters.",
+            "search": "Button next to the add input that searches players by name. Keep short, about 6 characters.",
+            "none_found": "Message in the search results on the Mutes page when no player matches the name.",
+            "muted": "Badge on a search result for a player who is already muted. Keep short, about 5 characters.",
+            "mute_named": "Screen reader label of the mute button on a search result. {name} = player name, e.g. \"Sammi\"."
+        },
+        "filter": {
+            "placeholder": "Placeholder text in the filter input above the mute list. Ends with an ellipsis.",
+            "aria": "Screen reader label of the filter input above the mute list.",
+            "unmute_selected": "Button above the mute list that unmutes the chosen players. {count} = number selected, e.g. 3. Keep short, about 20 characters."
+        },
+        "list": {
+            "select_page": "Screen reader label of the checkbox that selects all mutes on the current page.",
+            "count": "Count text above the mute list. {filtered} = number shown after filtering, e.g. 5. {total} = all muted players, e.g. 40.",
+            "empty": "Empty state line in the mute list when nobody is muted.",
+            "no_match": "Empty state line in the mute list when the filter matches no one. {filter} = the text the user typed, e.g. \"sam\"."
+        },
+        "row": {
+            "select": "Screen reader label of the checkbox on a mute row. {name} = player name or Steam ID, e.g. \"Sammi\".",
+            "open_title": "Tooltip of the icon button that opens a player's profile on the Statlocker website. Statlocker is a site name and stays untranslated.",
+            "unmute": "Button on a mute row that unmutes the player. Keep short, about 6 characters.",
+            "unmute_named": "Screen reader label of the unmute button on a mute row. {name} = player name, e.g. \"Sammi\".",
+            "open_named_aria": "Screen reader label of the icon button that opens a player's Statlocker profile. {name} = player name, e.g. \"Sammi\". Statlocker is a site name."
+        },
+        "pager": {
+            "previous": "Screen reader label and tooltip of the previous page arrow button under the mute list.",
+            "next": "Screen reader label and tooltip of the next page arrow button under the mute list.",
+            "page": "Page indicator under the mute list. {page} = current page, e.g. 2. {count} = total pages, e.g. 5."
+        },
+        "unmute": {
+            "title": "Confirm dialog title for unmuting players. {count} = number of players, e.g. 3.",
+            "description": "Confirm dialog description for unmuting. Says players are removed from the mute list and a backup is saved first.",
+            "confirm": "Confirm button in the unmute dialog. Keep short, about 6 characters."
+        },
+        "import_dialog": {
+            "title": "Confirm dialog title for importing mutes. {count} = number of new mutes, e.g. 4.",
+            "description": "Confirm dialog description for importing mutes. {count} = players in the file, e.g. 10. {already} = how many are already muted, e.g. 6. Says a backup is saved first.",
+            "confirm": "Confirm button in the import dialog. Keep short, about 6 characters."
+        },
+        "toast": {
+            "unmuted": "Success toast title after players were unmuted. {count} = number of players, e.g. 3.",
+            "muted": "Success toast title after players were muted. {count} = number of players, e.g. 1.",
+            "backup": "Toast body after a mute list change, saying a backup was saved and where to find it (the Storage page). The Storage page name should match the app's own page title.",
+            "already_muted": "Info toast title when the player the user tried to mute is already muted.",
+            "not_recognised": "Error toast title when the entered text is not a valid Steam profile link or Steam ID.",
+            "search_failed": "Error toast title when searching for players failed, with a hint to check the connection.",
+            "exported": "Success toast title after exporting mutes to a file. {count} = number of mutes, e.g. 12.",
+            "export_failed": "Error toast title when exporting mutes failed. Tells the user to check the log.",
+            "import_failed": "Error toast title when an imported file cannot be read. Deadlock+ stays untranslated. Mentions the game's own mute file."
+        }
+    }
+}

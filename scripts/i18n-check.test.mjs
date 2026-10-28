@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
     checkCatalogs,
+    checkNotes,
     extractKeyLiterals,
     extractKeys,
     extractNamespacePrefixes,
     extractTemplatePrefixes,
     flatten,
+    isCatalogFile,
     mergeAreas,
     sourceDirs,
 } from "./i18n-check.mjs";
@@ -172,5 +174,37 @@ describe("mergeAreas", () => {
     it("reports a namespace a locale keeps in a different area than en", () => {
         const { errors } = mergeAreas([file("live", "en", { live: {} }), file("app", "fr", { live: {} })]);
         expect(errors).toEqual(["fr: live is in app but en keeps it in live"]);
+    });
+});
+
+describe("isCatalogFile", () => {
+    it("reads locale files and skips translator notes", () => {
+        expect(["en.json", "pt-BR.json", "en.notes.json", "notes.txt"].filter(isCatalogFile)).toEqual([
+            "en.json",
+            "pt-BR.json",
+        ]);
+    });
+});
+
+describe("checkNotes", () => {
+    const en = { common: { save: "Save" }, n_one: "{count} a", n_other: "{count} as" };
+
+    it("accepts one note per key, with a plural set under its base key", () => {
+        expect(checkNotes("app", en, { common: { save: "Button." }, n: "Count." })).toEqual([]);
+    });
+
+    it("reports a key without a note, or with a blank one", () => {
+        expect(checkNotes("app", en, { common: { save: " " } })).toEqual([
+            "app: common.save has no translator note in en.notes.json",
+            "app: n has no translator note in en.notes.json",
+        ]);
+    });
+
+    it("reports a note whose key is gone, including one written for a single plural form", () => {
+        const notes = { common: { save: "Button.", gone: "Old." }, n: "Count.", n_one: "Form." };
+        expect(checkNotes("app", en, notes)).toEqual([
+            "app: en.notes.json has a note for common.gone, which en.json does not have",
+            "app: en.notes.json has a note for n_one, which en.json does not have",
+        ]);
     });
 });
