@@ -108,28 +108,28 @@
             "write_failed": "Não foi possível salvar sua lista de silenciados. Nenhuma alteração foi feita. Há um backup na página “Armazenamento”."
         },
         "builds": {
-            "no_account": "",
-            "no_userdata": "",
-            "read_failed": "",
-            "bad_file": "",
-            "no_backup_name": "",
-            "backup_failed": "",
-            "write_failed": "",
-            "bad_base": "",
-            "invalid_ability_order": "",
-            "abilities_unknown": "",
-            "published_delete_in_game": "",
-            "unknown_hero": "",
-            "no_local_id": "",
-            "build_not_found": "",
-            "history_failed": "",
-            "version_not_found": "",
-            "queue_failed": "",
-            "drafts_failed": "",
-            "code_empty": "",
-            "code_invalid": "",
-            "code_incomplete": "",
-            "code_damaged": ""
+            "no_account": "Nenhuma conta do Steam foi encontrada.",
+            "no_userdata": "Não foi possível encontrar os dados do Steam desta conta. Inicie o Deadlock com ela uma vez e tente novamente.",
+            "read_failed": "Não foi possível ler seu arquivo de guias. Verifique o log para mais detalhes.",
+            "bad_file": "Seu arquivo de guias está corrompido, por isso o Deadlock+ não consegue lê-lo.",
+            "no_backup_name": "Não foi possível encontrar um nome livre para o backup. O arquivo não foi alterado.",
+            "backup_failed": "Não foi possível fazer backup do seu arquivo de guias, então nada foi alterado. Verifique o log para mais detalhes.",
+            "write_failed": "Não foi possível salvar seus guias. Nada foi alterado.",
+            "bad_base": "Não foi possível ler este guia. Recarregue seus guias e tente novamente.",
+            "invalid_ability_order": "O passo {step} da ordem das habilidades não é possível no jogo.",
+            "abilities_unknown": "O Deadlock+ ainda não conhece as habilidades desse herói, por isso não consegue verificar a ordem das habilidades.",
+            "published_delete_in_game": "Este guia está publicado. Exclua-o no jogo.",
+            "unknown_hero": "O Deadlock+ ainda não reconhece esse herói. Atualize o jogo e tente novamente.",
+            "no_local_id": "Você tem guias locais demais. Exclua um e tente novamente.",
+            "build_not_found": "Esse guia não está mais no seu arquivo de guias.",
+            "history_failed": "Não foi possível ler as versões salvas deste guia. Verifique o log para mais detalhes.",
+            "version_not_found": "Essa versão salva não está mais disponível.",
+            "queue_failed": "Não foi possível atualizar os guias que aguardam o fechamento do Deadlock. Verifique o log para mais detalhes.",
+            "drafts_failed": "Não foi possível salvar ou ler seus rascunhos de guia. Verifique o log para mais detalhes.",
+            "code_empty": "Cole primeiro um código de guia.",
+            "code_invalid": "Isso não é um código de guia. No Deadlock, use “Copiar para a área de transferência” e cole o código inteiro.",
+            "code_incomplete": "Este código de guia está incompleto ou não é do Deadlock. Copie-o novamente.",
+            "code_damaged": "Este código de guia está corrompido. Copie-o novamente do Deadlock."
         },
         "match_history": {
             "too_large": "Essa partida é grande demais para ser salva neste PC.",
@@ -202,12 +202,12 @@
             "body": "Sua partida está carregando."
         },
         "queue_stopped": {
-            "title": "",
-            "body": ""
+            "title": "Fila interrompida",
+            "body": "Você não está mais na fila."
         },
         "front_page_waiting": {
-            "title": "",
-            "body": ""
+            "title": "Extra! Extra!",
+            "body": "Sua primeira página está esperando por você no Deadlock+."
         },
         "dispatch_weekly": {
             "title": "",
@@ -245,15 +245,15 @@
         "link_open_failed": "Não foi possível abrir o link."
     },
     "player_links": {
-        "menu": "",
-        "steam": "",
-        "statlocker": "",
-        "buildlocker": "",
-        "steam_of": "",
-        "statlocker_of": "",
-        "buildlocker_of": "",
-        "builds_by": "",
-        "build_on_buildlocker": ""
+        "menu": "Links de perfil de {name}",
+        "steam": "Perfil no Steam",
+        "statlocker": "Perfil no Statlocker",
+        "buildlocker": "Perfil no Buildlocker",
+        "steam_of": "Abrir o perfil do Steam de {name}",
+        "statlocker_of": "Abrir {name} no Statlocker",
+        "buildlocker_of": "Abrir {name} no Buildlocker",
+        "builds_by": "Guias de {name}",
+        "build_on_buildlocker": "Abrir no Buildlocker"
     },
     "platform": {
         "windows": "Windows",
@@ -274,7 +274,7 @@
             "demos": "Replays",
             "match_history": "Histórico de partidas",
             "presence": "Presença",
-            "builds": "",
+            "builds": "Guias",
             "dispatch": ""
         },
         "sidebar": {
@@ -361,7 +361,7 @@
             "demos": "Navegue pelos seus replays salvos e veja quais estão desatualizados",
             "match_history": "Todas as partidas disponíveis na API do Deadlock, com um placar completo para cada uma delas",
             "presence": "Mostre seu herói, modo e cronômetro da partida no seu perfil do Discord",
-            "builds": "",
+            "builds": "Navegue, copie e edite guias de herói, salvos diretamente no jogo",
             "dispatch": ""
         }
     },
