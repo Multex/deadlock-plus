@@ -10,6 +10,8 @@ use tauri::window::Color;
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 
 pub mod startup_watch;
+#[cfg(windows)]
+mod webview_settle;
 
 use startup_watch::StartupWatch;
 
@@ -258,6 +260,8 @@ pub fn build_main(app: &tauri::App, startup: &StartupWatch) -> Result<(), Box<dy
         app.config().app.windows.iter().find(|w| w.label == MAIN_WINDOW).ok_or("tauri.conf.json has no main window")?;
     let theme = theme_id(read(THEME_KEY).as_ref());
     let variant = variant_id(theme, read(THEME_OPTIONS_KEY).as_ref());
+    #[cfg(windows)]
+    settle_after_update(app, startup);
     startup.step("building the main window");
     log::debug!("building the main window");
     let started = Instant::now();
@@ -273,6 +277,37 @@ pub fn build_main(app: &tauri::App, startup: &StartupWatch) -> Result<(), Box<dy
         crate::features::tray::show_main(app.handle());
     }
     Ok(())
+}
+
+/// Tauri hands WebView2 the app's local data folder, so that is where leftover processes would be working.
+#[cfg(windows)]
+fn settle_after_update(app: &tauri::App, startup: &StartupWatch) {
+    let Some(from) = crate::features::crash::updated_from() else { return };
+    let data_dir = match app.path().app_local_data_dir() {
+        Ok(dir) => dir,
+        Err(e) => return log::warn!("could not find the WebView2 data folder: {e}"),
+    };
+    startup.step("waiting for the previous version's WebView2 processes");
+    let Some(settled) =
+        webview_settle::settle(Some(from), &data_dir, webview_settle::SystemWebviews::new, std::thread::sleep)
+    else {
+        return;
+    };
+    let ms = settled.waited.as_millis();
+    match settled {
+        webview_settle::Settled { found: 0, .. } => {
+            log::info!("first launch after updating from {from}: no WebView2 processes left over")
+        }
+        webview_settle::Settled { found, left: 0, .. } => {
+            log::info!(
+                "first launch after updating from {from}: waited {ms} ms for {found} leftover WebView2 process(es)"
+            )
+        }
+        webview_settle::Settled { found, left, .. } => log::warn!(
+            "first launch after updating from {from}: {left} of {found} leftover WebView2 process(es) still running \
+             after {ms} ms, building the window anyway"
+        ),
+    }
 }
 
 fn apply_zoom(window: &WebviewWindow, factor: f64) {

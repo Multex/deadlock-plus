@@ -8,6 +8,7 @@ Crash marker files, the session sentinel, the crash report text and the pre-fill
 - `write_marker(ctx, kind, message, backtrace, timestamp_ms)` writes `<dir>/<timestamp>-<kind>.json` and returns its id. `record_panic(ctx, message, backtrace)` is the panic-hook form.
 - `list_markers(dir)`, `pending(dir)`, `read_marker(dir, id)` read markers, newest first.
 - `begin_session(ctx, previous_log)` runs once per launch and `end_session(dir)` on a clean exit.
+- `updated_from(dir, version)` names the previous run's version when a sentinel from another build was left behind, which is how the Windows updater ends the old version. Call it before `begin_session`.
 - `dismiss_all(dir)` deletes every marker and report file. `prune(dir, keep)` keeps the newest markers; `KEEP_MARKERS` is 10.
 - `write_bundle(dir, id, current_log)` writes `deadlock-plus-crash-<id>.txt` and returns its path. `build_bundle(marker, current_log)` builds the text.
 - `issue_url(marker, bundle_file_name)` builds the GitHub link for `deadlock-plus/deadlock-plus`.

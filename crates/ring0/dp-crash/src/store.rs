@@ -202,6 +202,12 @@ pub fn begin_session(ctx: &CrashContext, previous_log: &str) -> io::Result<Optio
     Ok(written)
 }
 
+/// The version of the previous run when it was another build that never exited cleanly, which is how the Windows
+/// updater ends the old version. Read it before `begin_session`, which replaces the sentinel.
+pub fn updated_from(dir: &Path, version: &str) -> Option<String> {
+    read_sentinel(dir).flatten().map(|s| s.version).filter(|previous| previous != version)
+}
+
 /// Call on a clean exit.
 pub fn end_session(dir: &Path) {
     let _ = fs::remove_file(dir.join(SENTINEL_FILE));
@@ -381,6 +387,30 @@ mod tests {
         old.version = "0.4.1".into();
         begin_session(&old, "").unwrap();
         assert_eq!(begin_session(&ctx(&dir), "").unwrap(), None);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_sentinel_from_another_build_names_the_version_updated_from() {
+        let dir = scratch("updated-from");
+        let mut old = ctx(&dir);
+        old.version = "0.4.1".into();
+        begin_session(&old, "").unwrap();
+        assert_eq!(updated_from(&dir, "0.5.0").as_deref(), Some("0.4.1"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn no_update_is_seen_after_a_clean_exit_the_same_build_or_a_first_launch() {
+        let dir = scratch("not-updated");
+        assert_eq!(updated_from(&dir, "0.5.0"), None);
+        begin_session(&ctx(&dir), "").unwrap();
+        assert_eq!(updated_from(&dir, "0.5.0"), None);
+        let mut old = ctx(&dir);
+        old.version = "0.4.1".into();
+        begin_session(&old, "").unwrap();
+        end_session(&dir);
+        assert_eq!(updated_from(&dir, "0.5.0"), None);
         let _ = fs::remove_dir_all(&dir);
     }
 
