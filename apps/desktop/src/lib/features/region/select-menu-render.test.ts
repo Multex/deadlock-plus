@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
-import SelectMenu from "./select-menu.svelte";
+import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
 
 const items = [
     { value: "", label: "All heroes" },
