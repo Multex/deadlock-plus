@@ -1,11 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import worker from "../src/index";
+import worker, { type Env, Relay } from "../src/index";
+import { FakeStorage } from "./fake-storage";
 import fileTranslated from "./fixtures/file-translated.json";
 
-const env = {
-    DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/123/token",
-    PATH_SECRET: "s3cret",
-};
+const WEBHOOK = "https://discord.com/api/webhooks/123/token";
+
+let storage: FakeStorage;
+let relayFetch: (request: Request) => Promise<Response>;
+
+const namespace = {
+    idFromName: (name: string) => name,
+    get: () => ({ fetch: (input: RequestInfo, init?: RequestInit) => relayFetch(new Request(input, init)) }),
+} as unknown as DurableObjectNamespace;
+
+function withEnv(overrides: Partial<Env> = {}): Env {
+    const env: Env = { DISCORD_WEBHOOK_URL: WEBHOOK, PATH_SECRET: "s3cret", RELAY: namespace, ...overrides };
+    const relay = new Relay({ storage } as unknown as DurableObjectState, env);
+    relayFetch = (request) => relay.fetch(request);
+    return env;
+}
+
+let env: Env;
+
+async function runAlarm(): Promise<void> {
+    const relay = new Relay({ storage } as unknown as DurableObjectState, env);
+    await relay.alarm();
+}
 
 function post(path: string, body: unknown, init: RequestInit = {}): Request {
     return new Request(`https://relay.example${path}`, {
@@ -18,6 +38,8 @@ function post(path: string, body: unknown, init: RequestInit = {}): Request {
 const fetchMock = vi.fn<typeof fetch>();
 
 beforeEach(() => {
+    storage = new FakeStorage();
+    env = withEnv();
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -53,20 +75,20 @@ describe("routing", () => {
     });
 
     it("answers 500 when the path secret is not configured", async () => {
-        const res = await worker.fetch(post("/", fileTranslated), { ...env, PATH_SECRET: "" });
+        const res = await worker.fetch(post("/", fileTranslated), withEnv({ PATH_SECRET: "" }));
         expect(res.status).toBe(500);
     });
 
     it("answers 500 and logs when the webhook url is not a valid url", async () => {
         const error = vi.spyOn(console, "error").mockImplementation(() => {});
-        const res = await worker.fetch(post("/s3cret", fileTranslated), { ...env, DISCORD_WEBHOOK_URL: '"nope"' });
+        const res = await worker.fetch(post("/s3cret", fileTranslated), withEnv({ DISCORD_WEBHOOK_URL: '"nope"' }));
         expect(res.status).toBe(500);
         expect(error).toHaveBeenCalledWith("DISCORD_WEBHOOK_URL is not a valid URL");
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("answers 500 when the webhook url is not configured", async () => {
-        const res = await worker.fetch(post("/s3cret", fileTranslated), { ...env, DISCORD_WEBHOOK_URL: "" });
+        const res = await worker.fetch(post("/s3cret", fileTranslated), withEnv({ DISCORD_WEBHOOK_URL: "" }));
         expect(res.status).toBe(500);
     });
 });
@@ -86,14 +108,17 @@ describe("body", () => {
 });
 
 describe("forwarding", () => {
-    it("posts the rendered message to Discord with with_components=true", async () => {
+    it("queues the event, answers 204 and posts it from the alarm with with_components=true", async () => {
         const res = await worker.fetch(post("/s3cret", fileTranslated), env);
         expect(res.status).toBe(204);
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(storage.alarm).not.toBeNull();
 
+        await runAlarm();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
         const [url, init] = fetchMock.mock.calls[0]!;
         const target = new URL(String(url));
-        expect(target.origin + target.pathname).toBe("https://discord.com/api/webhooks/123/token");
+        expect(target.origin + target.pathname).toBe(WEBHOOK);
         expect(target.searchParams.get("with_components")).toBe("true");
         expect(init?.method).toBe("POST");
         expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
@@ -104,35 +129,44 @@ describe("forwarding", () => {
     });
 
     it("keeps query parameters already on the webhook url", async () => {
-        await worker.fetch(post("/s3cret", fileTranslated), {
-            ...env,
-            DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/123/token?thread_id=9",
-        });
+        env = withEnv({ DISCORD_WEBHOOK_URL: `${WEBHOOK}?thread_id=9` });
+        await worker.fetch(post("/s3cret", fileTranslated), env);
+        await runAlarm();
         const target = new URL(String(fetchMock.mock.calls[0]![0]));
         expect(target.searchParams.get("thread_id")).toBe("9");
         expect(target.searchParams.get("with_components")).toBe("true");
     });
 
-    it("answers 502 when Discord rejects the message", async () => {
-        fetchMock.mockResolvedValue(new Response('{"message":"bad"}', { status: 400 }));
-        vi.spyOn(console, "error").mockImplementation(() => {});
+    it("keeps the event when Discord rejects it", async () => {
+        fetchMock.mockResolvedValueOnce(new Response('{"message":"bad"}', { status: 400 }));
+        vi.spyOn(console, "warn").mockImplementation(() => {});
         const res = await worker.fetch(post("/s3cret", fileTranslated), env);
-        expect(res.status).toBe(502);
+        expect(res.status).toBe(204);
+
+        await runAlarm();
+        expect([...storage.data.keys()].some((k) => k.startsWith("out:"))).toBe(true);
+        expect(storage.alarm).not.toBeNull();
     });
 
-    it("answers 502 when the request to Discord fails", async () => {
-        fetchMock.mockRejectedValue(new Error("network down"));
-        vi.spyOn(console, "error").mockImplementation(() => {});
+    it("answers 503 when the events cannot be queued", async () => {
+        relayFetch = () => Promise.reject(new Error("storage down"));
+        const error = vi.spyOn(console, "error").mockImplementation(() => {});
         const res = await worker.fetch(post("/s3cret", fileTranslated), env);
-        expect(res.status).toBe(502);
+        expect(res.status).toBe(503);
+        expect(error).toHaveBeenCalledWith("Could not queue the events");
     });
 
     it("never logs the webhook url or the path secret", async () => {
-        fetchMock.mockRejectedValue(new Error(`failed for ${env.DISCORD_WEBHOOK_URL}`));
+        relayFetch = () => Promise.reject(new Error(`failed for ${WEBHOOK}`));
+        fetchMock.mockRejectedValue(new Error(`failed for ${WEBHOOK}`));
         const error = vi.spyOn(console, "error").mockImplementation(() => {});
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const log = vi.spyOn(console, "log").mockImplementation(() => {});
         await worker.fetch(post("/s3cret", fileTranslated), env);
-        const logged = JSON.stringify([...error.mock.calls, ...log.mock.calls]);
+        env = withEnv();
+        await worker.fetch(post("/s3cret", fileTranslated), env);
+        await runAlarm();
+        const logged = JSON.stringify([...error.mock.calls, ...warn.mock.calls, ...log.mock.calls]);
         expect(logged).not.toContain("token");
         expect(logged).not.toContain("s3cret");
     });
@@ -141,9 +175,10 @@ describe("forwarding", () => {
 describe("batched bodies", () => {
     const batch = { events: [fileTranslated, { ...fileTranslated, event: "file.added" }] };
 
-    it("posts one message per event", async () => {
+    it("posts one message per file event, in order", async () => {
         const res = await worker.fetch(post("/s3cret", batch), env);
         expect(res.status).toBe(204);
+        await runAlarm();
         expect(fetchMock).toHaveBeenCalledTimes(2);
         const headers = fetchMock.mock.calls.map(([, init]) =>
             JSON.stringify(JSON.parse(String(init?.body)).components[0].components[0]),
@@ -152,17 +187,10 @@ describe("batched bodies", () => {
         expect(headers[1]).toContain("File added");
     });
 
-    it("answers 502 when any message is rejected", async () => {
-        fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-        fetchMock.mockResolvedValueOnce(new Response(null, { status: 400 }));
-        vi.spyOn(console, "error").mockImplementation(() => {});
-        const res = await worker.fetch(post("/s3cret", batch), env);
-        expect(res.status).toBe(502);
-    });
-
     it("still posts a single message for an empty events array", async () => {
         const res = await worker.fetch(post("/s3cret", { events: [] }), env);
         expect(res.status).toBe(204);
+        await runAlarm();
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });

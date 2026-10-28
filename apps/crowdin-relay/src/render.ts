@@ -16,7 +16,7 @@ type Json = Record<string, unknown>;
 
 const MAX_TEXT = 1000;
 
-function obj(value: unknown): Json | undefined {
+export function obj(value: unknown): Json | undefined {
     return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Json) : undefined;
 }
 
@@ -26,7 +26,7 @@ function str(value: unknown): string | undefined {
     return trimmed === "" ? undefined : trimmed;
 }
 
-function first(...values: unknown[]): string | undefined {
+export function first(...values: unknown[]): string | undefined {
     for (const value of values) {
         const s = str(value);
         if (s !== undefined) return s;
@@ -59,7 +59,7 @@ function plain(value: string | undefined): string | undefined {
     return value === undefined ? undefined : clip(value);
 }
 
-function person(user: Json | undefined): string | undefined {
+export function person(user: Json | undefined): string | undefined {
     return plain(first(user?.fullName, user?.username));
 }
 
@@ -70,7 +70,7 @@ function language(lang: Json | undefined): string | undefined {
     return plain(name ?? locale);
 }
 
-function editorLink(project: Json | undefined, lang: Json | undefined): string | undefined {
+export function editorLink(project: Json | undefined, lang: Json | undefined): string | undefined {
     const identifier = first(project?.identifier);
     const editorCode = first(lang?.editorCode);
     if (!identifier || !editorCode) return undefined;

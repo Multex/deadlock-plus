@@ -1,8 +1,11 @@
-import { render } from "./render";
+import { webhookTarget } from "./discord";
+
+export { Relay } from "./relay";
 
 export interface Env {
     DISCORD_WEBHOOK_URL: string;
     PATH_SECRET: string;
+    RELAY: DurableObjectNamespace;
 }
 
 function status(code: number, headers?: HeadersInit): Response {
@@ -28,30 +31,24 @@ export default {
         }
         if (typeof payload !== "object" || payload === null || Array.isArray(payload)) return status(400);
 
-        let target: URL;
         try {
-            target = new URL(env.DISCORD_WEBHOOK_URL);
+            webhookTarget(env.DISCORD_WEBHOOK_URL);
         } catch {
             console.error("DISCORD_WEBHOOK_URL is not a valid URL");
             return status(500);
         }
-        target.searchParams.set("with_components", "true");
 
         try {
-            for (const event of unwrap(payload)) {
-                const res = await fetch(target, {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify(render(event)),
-                });
-                if (!res.ok) {
-                    console.error(`Discord rejected the message: ${res.status}`);
-                    return status(502);
-                }
-            }
+            const relay = env.RELAY.get(env.RELAY.idFromName("discord"));
+            const res = await relay.fetch("https://relay/events", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ events: unwrap(payload) }),
+            });
+            if (!res.ok) throw new Error(`relay answered ${res.status}`);
         } catch {
-            console.error("Request to Discord failed");
-            return status(502);
+            console.error("Could not queue the events");
+            return status(503);
         }
         return status(204);
     },
