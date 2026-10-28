@@ -57,7 +57,7 @@ const LAND = 14;
  */
 export const leftStack = (a1: number): number => Math.min(1, Math.max(0, (-a1 - (180 - LAND)) / LAND));
 
-export const spreadPages =(spread: number): { from: number; to: number } | null =>
+export const spreadPages = (spread: number): { from: number; to: number } | null =>
     spread <= 0 ? null : { from: spread * 2, to: spread * 2 + 1 };
 
 /** `open`: the magazine is past its cover (or on its way). */

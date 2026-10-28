@@ -76,7 +76,11 @@ describe("cutAt", () => {
 });
 
 describe("stageOf", () => {
-    const ref = (key: string, count?: number) => ({ key, params: { year: "2026" }, ...(count === undefined ? {} : { count }) });
+    const ref = (key: string, count?: number) => ({
+        key,
+        params: { year: "2026" },
+        ...(count === undefined ? {} : { count }),
+    });
     const night = {
         preshow: { marquee: ref("m"), hook: ref("h", 486), figures: [] },
         welcome: { line: ref("w") },

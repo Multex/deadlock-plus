@@ -69,9 +69,20 @@ describe("dispatch table", () => {
     });
 
     it.each([null, "weekly-2025"])("names every button with the words it shows (open %s)", (open) => {
-        const withProof: TableCopies = { ...copies, monthly: [copies.monthly[0], { ...monthly[1], state: "proof", number: null }, ...copies.monthly.slice(2)] };
+        const withProof: TableCopies = {
+            ...copies,
+            monthly: [copies.monthly[0], { ...monthly[1], state: "proof", number: null }, ...copies.monthly.slice(2)],
+        };
         const body = render(Table, {
-            props: { copies: withProof, covers: {}, width: 1250, height: 620, open, onpick: () => {}, onprint: () => {} },
+            props: {
+                copies: withProof,
+                covers: {},
+                width: 1250,
+                height: 620,
+                open,
+                onpick: () => {},
+                onprint: () => {},
+            },
         }).body;
         const buttons = labelledElements(body, "button");
         expect(buttons.length).toBeGreaterThan(10);

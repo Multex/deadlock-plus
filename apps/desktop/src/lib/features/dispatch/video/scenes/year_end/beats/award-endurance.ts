@@ -6,7 +6,15 @@ import { glow, type Look } from "./award-paint";
 const BRONZE = "236 186 124";
 const MAX_TICKS = 24;
 
-function hand(ctx: Ctx, x: number, y: number, len: number, a: number, width: number, fill: string | CanvasGradient): void {
+function hand(
+    ctx: Ctx,
+    x: number,
+    y: number,
+    len: number,
+    a: number,
+    width: number,
+    fill: string | CanvasGradient,
+): void {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(a);
@@ -123,7 +131,16 @@ export const endurance: Look = {
         const lit = s.landed > 0 ? Math.floor(s.landed / 0.06) : 0;
         const turn = s.winner && s.revealed > 0 ? easeOutCubic(s.revealed) * Math.PI * 2 : 0;
         const rad = Math.min(r.w * 0.42, (r.h - 100 * u) * 0.45);
-        dial(ctx, r.x + r.w / 2, r.y + 20 * u + rad + 10 * u, rad, count, lit, u, (Math.min(lit, count) / Math.max(1, count)) * Math.PI * 2 + turn);
+        dial(
+            ctx,
+            r.x + r.w / 2,
+            r.y + 20 * u + rad + 10 * u,
+            rad,
+            count,
+            lit,
+            u,
+            (Math.min(lit, count) / Math.max(1, count)) * Math.PI * 2 + turn,
+        );
     },
     flourish(f, r, dt) {
         const k = clamp01(dt / 0.5);

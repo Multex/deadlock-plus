@@ -7,7 +7,7 @@ const KEY_CALL = /(?<![\w$])(tn?)\(\s*(["'])([\w.]+)\2/g;
 const TEMPLATE_KEY_CALL = /(?<![\w$])tn?\(\s*`([^`$]+)\$\{/g;
 const DOTTED_TEMPLATE = /`(\w+(?:\.\w+)+\.[^`]*\$\{[^`]*)`/g;
 const INTERPOLATION = /\$\{[^}]*\}/;
-const STRING_LITERAL =/(["'])([\w.]+)\1/g;
+const STRING_LITERAL = /(["'])([\w.]+)\1/g;
 const PLACEHOLDER = /\{(\w+)\}/g;
 const NAMESPACE_CONST = /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(["'])(\w+(?:\.\w+)+)\2/g;
 const NAMESPACE_TEMPLATE = /`\$\{([A-Za-z_$][\w$]*)\}\.\$\{/g;

@@ -93,7 +93,13 @@ export const longestRun: Look = {
         }
         const lit = s.landed > 0 ? Math.floor(s.landed / STEP) : 0;
         const chase = s.winner && s.revealed > 0 ? f.t : 0;
-        bulbGrid(f, { x: r.x + 18 * u, y: r.y + head + 14 * u, w: r.w - 36 * u, h: r.h - head - 32 * u }, count, lit, chase);
+        bulbGrid(
+            f,
+            { x: r.x + 18 * u, y: r.y + head + 14 * u, w: r.w - 36 * u, h: r.h - head - 32 * u },
+            count,
+            lit,
+            chase,
+        );
     },
     flourish(f, r, dt) {
         glow(f.ctx, r.x + r.w / 2, r.y + r.h / 2, r.h * 1.15, AMBER, 0.5 * clamp01(dt / 0.25));

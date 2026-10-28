@@ -12,10 +12,31 @@ function hooded(ctx: Ctx, r: Rect, fill: string): void {
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.moveTo(r.x + r.w * 0.04, r.y + r.h);
-    ctx.bezierCurveTo(r.x + r.w * 0.1, r.y + r.h * 0.62, r.x + r.w * 0.22, r.y + r.h * 0.55, cx - r.w * 0.2, r.y + r.h * 0.42);
+    ctx.bezierCurveTo(
+        r.x + r.w * 0.1,
+        r.y + r.h * 0.62,
+        r.x + r.w * 0.22,
+        r.y + r.h * 0.55,
+        cx - r.w * 0.2,
+        r.y + r.h * 0.42,
+    );
     ctx.bezierCurveTo(cx - r.w * 0.26, r.y + r.h * 0.18, cx - r.w * 0.08, r.y + r.h * 0.05, cx, r.y + r.h * 0.04);
-    ctx.bezierCurveTo(cx + r.w * 0.08, r.y + r.h * 0.05, cx + r.w * 0.26, r.y + r.h * 0.18, cx + r.w * 0.2, r.y + r.h * 0.42);
-    ctx.bezierCurveTo(r.x + r.w * 0.78, r.y + r.h * 0.55, r.x + r.w * 0.9, r.y + r.h * 0.62, r.x + r.w * 0.96, r.y + r.h);
+    ctx.bezierCurveTo(
+        cx + r.w * 0.08,
+        r.y + r.h * 0.05,
+        cx + r.w * 0.26,
+        r.y + r.h * 0.18,
+        cx + r.w * 0.2,
+        r.y + r.h * 0.42,
+    );
+    ctx.bezierCurveTo(
+        r.x + r.w * 0.78,
+        r.y + r.h * 0.55,
+        r.x + r.w * 0.9,
+        r.y + r.h * 0.62,
+        r.x + r.w * 0.96,
+        r.y + r.h,
+    );
     ctx.closePath();
     ctx.fill();
     // The face: only the eyes catch the light.

@@ -114,10 +114,18 @@ export const breakthrough: Look = {
         ctx.lineWidth = 5 * u;
         ctx.strokeRect(r.x, r.y, r.w, r.h);
         // The lift's light under a card still coming up.
-        if (s.landed >= 0 && s.landed < 0.5) glow(ctx, r.x + r.w / 2, r.y + r.h, r.w * 0.9, STAR, 0.6 * (1 - s.landed / 0.5));
+        if (s.landed >= 0 && s.landed < 0.5)
+            glow(ctx, r.x + r.w / 2, r.y + r.h, r.w * 0.9, STAR, 0.6 * (1 - s.landed / 0.5));
     },
     flourish(f, r, dt) {
-        star(f.ctx, r.x + r.w / 2, r.y + r.h * 0.45, r.h * 0.95 * easeOutCubic(clamp01(dt / 0.4)), `rgb(${STAR} / 0.16)`, f.t * 0.3);
+        star(
+            f.ctx,
+            r.x + r.w / 2,
+            r.y + r.h * 0.45,
+            r.h * 0.95 * easeOutCubic(clamp01(dt / 0.4)),
+            `rgb(${STAR} / 0.16)`,
+            f.t * 0.3,
+        );
     },
     stamp(f, r, dt) {
         firework(f, r.x - 30 * f.u, r.y + r.h * 0.1, dt - 0.05, f.seed + 5, "255 214 140");

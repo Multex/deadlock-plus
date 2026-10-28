@@ -61,7 +61,13 @@ function withoutGameData(module: Module): Module {
 
 const rateLimited: Respond = () =>
     new Response(
-        JSON.stringify({ type: "ip", quota: { limit: 30, period: 60 }, requests: 31, remaining: 0, next_request_in: 12 }),
+        JSON.stringify({
+            type: "ip",
+            quota: { limit: 30, period: 60 },
+            requests: 31,
+            remaining: 0,
+            next_request_in: 12,
+        }),
         {
             status: 429,
             statusText: "Too Many Requests",

@@ -8,8 +8,9 @@ const items = [
 ];
 
 const trigger = (props: Record<string, unknown>) =>
-    render(SelectMenu, { props: { items, value: "", ...props } }).body.match(/<button[^>]*data-select-trigger[^>]*>/)?.[0] ??
-    "";
+    render(SelectMenu, { props: { items, value: "", ...props } }).body.match(
+        /<button[^>]*data-select-trigger[^>]*>/,
+    )?.[0] ?? "";
 
 describe("SelectMenu trigger", () => {
     // A combobox is named by its field, not by the value it shows, so the label can differ from the visible text.

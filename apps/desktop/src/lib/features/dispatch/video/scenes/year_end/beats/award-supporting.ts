@@ -5,7 +5,15 @@ import { art, glow, heroArt, type F, type Look } from "./award-paint";
 
 const ROSE = "246 196 176";
 
-function linkedRings(ctx: Ctx, cx: number, cy: number, r: number, apart: number, fill: string | CanvasGradient, u: number): void {
+function linkedRings(
+    ctx: Ctx,
+    cx: number,
+    cy: number,
+    r: number,
+    apart: number,
+    fill: string | CanvasGradient,
+    u: number,
+): void {
     ctx.strokeStyle = fill;
     ctx.lineWidth = 5 * u;
     for (const dx of [-apart / 2, apart / 2]) {
@@ -66,7 +74,15 @@ export const supporting: Look = {
         pool(ctx, cx + d, cy, 380 * u, 1.8 * a);
         ctx.save();
         ctx.globalAlpha = 0.6 * a * meet;
-        linkedRings(ctx, cx, cy - 210 * u, 80 * u, 110 * u, goldGradient(ctx, cx - 150 * u, 0, cx + 150 * u, 0), u * 1.6);
+        linkedRings(
+            ctx,
+            cx,
+            cy - 210 * u,
+            80 * u,
+            110 * u,
+            goldGradient(ctx, cx - 150 * u, 0, cx + 150 * u, 0),
+            u * 1.6,
+        );
         ctx.restore();
     },
     card(f, r, n, s) {
@@ -100,7 +116,15 @@ export const supporting: Look = {
         ctx.stroke();
         // The rings close up as the plaque lands.
         const k = easeOutBack(clamp01((s.landed - 0.1) / 0.4));
-        linkedRings(ctx, r.x + r.w / 2, r.y + r.h * 0.2, r.w * 0.11, lerp(r.w * 0.4, r.w * 0.13, k), goldGradient(ctx, r.x, 0, r.x + r.w, 0), u);
+        linkedRings(
+            ctx,
+            r.x + r.w / 2,
+            r.y + r.h * 0.2,
+            r.w * 0.11,
+            lerp(r.w * 0.4, r.w * 0.13, k),
+            goldGradient(ctx, r.x, 0, r.x + r.w, 0),
+            u,
+        );
         // The name, set as large as the plaque allows.
         const name = n.label ?? "";
         const maxW = r.w * 0.82;

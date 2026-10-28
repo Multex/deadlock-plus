@@ -27,11 +27,7 @@
                 {t("settings.privacy.advanced")}
             </summary>
             <div class="mt-3">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onclick={() => settings.resetTelemetryId()}
-                >
+                <Button variant="outline" size="sm" onclick={() => settings.resetTelemetryId()}>
                     {t("settings.privacy.telemetry_reset")}
                 </Button>
             </div>
