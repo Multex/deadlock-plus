@@ -1,17 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { check, command, settings } = vi.hoisted(() => {
+const { check, command, settings, host } = vi.hoisted(() => {
     const settings = {
         updateChannel: "release" as "release" | "beta" | "nightly",
         setUpdateChannel: vi.fn(async (channel: "release" | "beta" | "nightly") => {
             settings.updateChannel = channel;
         }),
     };
-    return { check: vi.fn(), command: vi.fn(), settings };
+    return { check: vi.fn(), command: vi.fn(), settings, host: { platform: "windows" as "windows" | "linux" } };
 });
 vi.mock("./api", () => ({ checkUpdate: check }));
 vi.mock("$lib/core/tauri", () => ({ command, listen: vi.fn() }));
 vi.mock("$lib/features/settings/settings.svelte", () => ({ settings }));
+vi.mock("$lib/core/platform", () => ({
+    get platform() {
+        return host.platform;
+    },
+}));
 
 import { onBeforeExit } from "$lib/core/exit";
 import { updater } from "./updater.svelte";
@@ -24,6 +29,9 @@ describe("updater", () => {
         updater.phase = "idle";
         updater.error = null;
         updater.version = null;
+        updater.notes = null;
+        updater.checkError = null;
+        host.platform = "windows";
         settings.updateChannel = "release";
         settings.setUpdateChannel.mockClear();
         vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -204,5 +212,184 @@ describe("updater", () => {
         expect(check).not.toHaveBeenCalled();
         expect(updater.phase).toBe("downloading");
         expect(updater.version).toBe("9.9.9");
+    });
+
+    describe("release notes", () => {
+        it("keeps the found update's notes", async () => {
+            check.mockResolvedValue({ version: "9.9.9", body: "### Fixed\n\n- Things", download: vi.fn() });
+            await updater.check();
+            expect(updater.notes).toBe("### Fixed\n\n- Things");
+        });
+
+        it("has none for an update with an empty body, or no update", async () => {
+            check.mockResolvedValue({ version: "9.9.9", body: "  ", download: vi.fn() });
+            await updater.check();
+            expect(updater.notes).toBeNull();
+            check.mockResolvedValue({ version: "9.9.9", body: "notes", download: vi.fn() });
+            await updater.check();
+            check.mockResolvedValue(null);
+            await updater.check();
+            expect(updater.notes).toBeNull();
+        });
+    });
+
+    describe("download progress", () => {
+        type Event = { event: string; data?: Record<string, number> };
+
+        it("counts bytes and works out the speed over the last few seconds", async () => {
+            vi.useFakeTimers({ now: 0 });
+            const seen: { received: number; total: number | null; speed: number | null }[] = [];
+            const record = () => seen.push({ received: updater.received, total: updater.total, speed: updater.speed });
+            try {
+                check.mockResolvedValue({
+                    version: "9.9.9",
+                    download: vi.fn(async (onEvent: (e: Event) => void) => {
+                        onEvent({ event: "Started", data: { contentLength: 10_000 } });
+                        onEvent({ event: "Progress", data: { chunkLength: 250 } });
+                        record();
+                        vi.setSystemTime(500);
+                        onEvent({ event: "Progress", data: { chunkLength: 250 } });
+                        record();
+                        vi.setSystemTime(4500);
+                        onEvent({ event: "Progress", data: { chunkLength: 500 } });
+                        record();
+                    }),
+                });
+                await updater.check();
+                await updater.download();
+            } finally {
+                vi.useRealTimers();
+            }
+            expect(seen).toEqual([
+                { received: 250, total: 10_000, speed: null },
+                { received: 500, total: 10_000, speed: 1000 },
+                { received: 1000, total: 10_000, speed: 125 },
+            ]);
+            expect(updater.progress).toBe(0.1);
+        });
+
+        it("has no total when the server sends no length", async () => {
+            check.mockResolvedValue({
+                version: "9.9.9",
+                download: vi.fn(async (onEvent: (e: Event) => void) => {
+                    onEvent({ event: "Started", data: {} });
+                    onEvent({ event: "Progress", data: { chunkLength: 10 } });
+                }),
+            });
+            await updater.check();
+            await updater.download();
+            expect(updater.total).toBeNull();
+            expect(updater.received).toBe(10);
+            expect(updater.progress).toBeNull();
+        });
+    });
+
+    describe("download, then restart", () => {
+        function staged() {
+            const steps: string[] = [];
+            command.mockImplementation(async (name: string) => void steps.push(name));
+            const update = {
+                version: "9.9.9",
+                download: vi.fn(async () => void steps.push("download")),
+                install: vi.fn(async () => void steps.push("install")),
+            };
+            check.mockResolvedValue(update);
+            const remove = onBeforeExit(() => steps.push("save"));
+            return { steps, update, remove };
+        }
+
+        it("downloads into ready and runs nothing yet", async () => {
+            const { steps, remove } = staged();
+            await updater.check();
+            expect(await updater.download()).toBe(true);
+            remove();
+            expect(updater.phase).toBe("ready");
+            expect(steps).toEqual(["download"]);
+        });
+
+        it("keeps a ready update through a recheck and a channel switch", async () => {
+            const { remove } = staged();
+            await updater.check();
+            await updater.download();
+            check.mockClear();
+            expect(await updater.check()).toBe(true);
+            await updater.setChannel("beta");
+            remove();
+            expect(check).not.toHaveBeenCalled();
+            expect(updater.phase).toBe("ready");
+            expect(updater.version).toBe("9.9.9");
+        });
+
+        it("on Windows saves and flushes, then hands over to the installer", async () => {
+            const { steps, remove } = staged();
+            await updater.check();
+            await updater.download();
+            await updater.restart();
+            remove();
+            expect(steps).toEqual(["download", "save", "flush_telemetry", "install"]);
+        });
+
+        it("on Linux installs, then saves and relaunches", async () => {
+            host.platform = "linux";
+            const { steps, remove } = staged();
+            await updater.check();
+            await updater.download();
+            await updater.restart();
+            remove();
+            expect(steps).toEqual(["download", "flush_telemetry", "install", "save", "restart_app"]);
+        });
+
+        it("relaunches on Linux after the one-step install too", async () => {
+            host.platform = "linux";
+            const { steps, remove } = staged();
+            await updater.check();
+            await updater.install();
+            remove();
+            expect(steps).toEqual(["download", "flush_telemetry", "install", "save", "restart_app"]);
+        });
+
+        it("does nothing before a download finished", async () => {
+            const { update, remove } = staged();
+            await updater.check();
+            await updater.restart();
+            remove();
+            expect(update.install).not.toHaveBeenCalled();
+        });
+
+        it("records a failed install by step", async () => {
+            const { update, remove } = staged();
+            update.install.mockRejectedValue("installer refused");
+            await updater.check();
+            await updater.download();
+            await updater.restart();
+            remove();
+            expect(updater.phase).toBe("error");
+            expect(updater.error).toBe("install");
+            expect(command).not.toHaveBeenCalledWith("restart_app");
+        });
+    });
+
+    describe("check errors", () => {
+        it("keeps a failed check's text and time without showing anything", async () => {
+            vi.useFakeTimers({ now: 1234 });
+            try {
+                check.mockRejectedValue(new Error("error sending request for url"));
+                await updater.check();
+            } finally {
+                vi.useRealTimers();
+            }
+            expect(updater.checkError).toEqual({
+                message: "Couldn't check for updates. Check your connection and try again.",
+                at: 1234,
+            });
+        });
+
+        it("clears it once a check succeeds", async () => {
+            check.mockRejectedValue(new Error("offline"));
+            await updater.check();
+            check.mockResolvedValue(null);
+            await updater.check();
+            expect(updater.checkError).toBeNull();
+        });
     });
 });

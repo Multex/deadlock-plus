@@ -17,6 +17,7 @@ export function updateLine(u: UpdateView): string {
         case "upToDate":
             return t("updates.status.up_to_date");
         case "available":
+        case "ready":
             return t("updates.status.available", { version: u.version ?? "" });
         case "downloading": {
             const version = u.version ?? "";
@@ -25,6 +26,6 @@ export function updateLine(u: UpdateView): string {
                 : t("updates.status.downloading_percent", { version, percent: Math.round(u.progress * 100) });
         }
         case "error":
-            return u.error === "download" ? t("updates.status.download_failed") : t("updates.status.check_failed");
+            return u.error === "check" ? t("updates.status.check_failed") : t("updates.status.download_failed");
     }
 }
