@@ -1,4 +1,5 @@
 import { render } from "./render.mjs";
+import { post } from "./send.mjs";
 
 const { DISCORD_UPDATES_WEBHOOK, RELEASE_TAG, RELEASE_URL, RELEASE_BODY } = process.env;
 
@@ -7,17 +8,12 @@ if (!DISCORD_UPDATES_WEBHOOK || !RELEASE_TAG || !RELEASE_URL) {
     process.exit(1);
 }
 
-const target = new URL(DISCORD_UPDATES_WEBHOOK);
-target.searchParams.set("with_components", "true");
+const messages = render({ tag: RELEASE_TAG, url: RELEASE_URL, notes: RELEASE_BODY ?? "" });
 
-const res = await fetch(target, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(render({ tag: RELEASE_TAG, url: RELEASE_URL, notes: RELEASE_BODY ?? "" })),
-});
-
-if (!res.ok) {
-    console.error(`Discord rejected the message: ${res.status}`);
+try {
+    await post(DISCORD_UPDATES_WEBHOOK, messages);
+} catch (err) {
+    console.error(err.message);
     process.exit(1);
 }
-console.log(`Announced ${RELEASE_TAG}`);
+console.log(`Announced ${RELEASE_TAG} in ${messages.length} message${messages.length === 1 ? "" : "s"}`);
