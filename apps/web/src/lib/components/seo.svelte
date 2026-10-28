@@ -1,8 +1,10 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, socialMeta } from "./seo";
-    import { SITE_NODES, jsonLd, type SchemaNode } from "./structured-data";
+    import { useI18n } from "$lib/i18n";
+    import { alternates } from "$lib/i18n/routes";
+    import { OG_IMAGE, SITE_NAME, socialMeta } from "./seo";
+    import { siteNodes, jsonLd, type SchemaNode } from "./structured-data";
 
     let {
         title,
@@ -11,9 +13,12 @@
         schema = [],
     }: { title: string; description?: string; noindex?: boolean; schema?: SchemaNode[] } = $props();
 
+    const { t, locale } = useI18n();
+
     const meta = $derived(socialMeta(page.url.pathname));
-    const preview = $derived(description ?? SITE_DESCRIPTION);
-    const structuredData = $derived(jsonLd([...SITE_NODES, ...schema]));
+    const languages = $derived(noindex ? [] : alternates(page.url.pathname));
+    const preview = $derived(description ?? t("site.tagline"));
+    const structuredData = $derived(jsonLd([...siteNodes(locale), ...schema]));
 </script>
 
 <svelte:head>
@@ -25,6 +30,9 @@
         <meta name="robots" content="noindex" />
     {/if}
     <link rel="canonical" href={meta.url} />
+    {#each languages as alternate (alternate.hreflang)}
+        <link rel="alternate" hreflang={alternate.hreflang} href={socialMeta(alternate.path).url} />
+    {/each}
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={SITE_NAME} />
@@ -34,7 +42,7 @@
     <meta property="og:image" content={meta.image} />
     <meta property="og:image:width" content={String(OG_IMAGE.width)} />
     <meta property="og:image:height" content={String(OG_IMAGE.height)} />
-    <meta property="og:image:alt" content={OG_IMAGE.alt} />
+    <meta property="og:image:alt" content={t("site.og_image_alt")} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />

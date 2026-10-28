@@ -12,33 +12,21 @@ export { DEFAULT_THEME, resolveTheme, type ThemeId } from "@deadlock-plus/ui/the
 
 export interface Theme {
     id: ThemeId;
-    label: string;
     /** `--chrome` as sRGB hex: mobile browsers do not read `oklch()` in a theme-color tag. */
     chrome: string;
     /** Background, card, brass and primary, drawn in the picker swatch. */
     swatch: [string, string, string, string];
 }
 
-const LABELS: Record<ThemeId, string> = {
-    deadlock: "Deadlock",
-    midnight: "Midnight",
-    daylight: "Daylight",
-    contrast: "High contrast",
-    nightshift: "Nightshift",
-    "deadlock-api": "Deadlock API",
-    statlocker: "Statlocker",
-    "flint-snow": "Flint Snow",
-    void: "Void",
-    deadchaps: "DeadChaps",
-    "pretty-in-pink": "Pretty in Pink",
-    catppuccin: "Catppuccin",
-};
-
 export const THEME_STORAGE_KEY = "theme";
+
+/** The theme's name under `themes.` in the catalog, which keys with underscores. */
+export function themeKey(id: ThemeId): string {
+    return id.replaceAll("-", "_");
+}
 
 export const THEMES: Theme[] = THEME_DATA.map((theme) => ({
     id: theme.id,
-    label: LABELS[theme.id] ?? "",
     chrome: chromeHex(theme),
     swatch: themeSwatch(theme),
 }));

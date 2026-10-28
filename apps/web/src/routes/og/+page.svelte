@@ -3,10 +3,15 @@
     import { SITE_URL } from "@deadlock-plus/links/urls";
     import { OG_IMAGE } from "$lib/components/seo";
     import { shotUrl } from "$lib/content/shots";
+    import { around, useI18n } from "$lib/i18n";
+    import og from "virtual:en/og";
+
+    const { t } = useI18n(og);
+    const [taglineBefore, taglineAfter] = around(t("og.tagline"), "game");
 </script>
 
 <svelte:head>
-    <title>Link preview image | Deadlock+</title>
+    <title>{t("og.title")}</title>
 </svelte:head>
 
 <!-- Fixed over the site's header, footer and film grain (the grain doubles the PNG's size): `scripts/og.mjs` captures exactly this box as `static/og.png`. -->
@@ -19,7 +24,7 @@
     <div class="flex min-w-0 flex-1 flex-col items-start">
         <BrandMark class="[zoom:3]" />
         <p class="mt-[34px] font-heading text-[3.4rem] leading-[1.15] font-semibold text-foreground">
-            A free companion app for <span class="text-brass">Deadlock</span>
+            {taglineBefore}<span class="text-brass">Deadlock</span>{taglineAfter}
         </p>
         <p class="mt-[34px] text-[1.9rem] text-muted-foreground">{new URL(SITE_URL).host}</p>
     </div>

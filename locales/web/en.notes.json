@@ -1,0 +1,350 @@
+{
+    "site": {
+        "tagline": "Site tagline in the website footer and the fallback text of link previews. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "og_image_alt": "Alt text of the link preview image shown when the site is shared. Read by screen readers. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "home_label": "Screen reader label of the logo link in the header and footer that goes to the home page. \"Deadlock+\" stays untranslated."
+    },
+    "nav": {
+        "main_label": "Screen reader label of the main menu in the website header. \"Main\" as in main navigation.",
+        "footer_label": "Screen reader label of the link list in the website footer. \"Footer\" as in footer navigation.",
+        "features": "Header menu and footer link to the Features page. Keep short, about 10 characters. Most visitors read on phones, keep it short.",
+        "download": "Header menu link, footer link and button that go to the Download page. Keep short, about 10 characters. Most visitors read on phones, keep it short.",
+        "faq": "Footer and home page link to the FAQ page (frequently asked questions). Keep short, about 10 characters.",
+        "privacy": "Header menu, footer and FAQ link to the website Privacy page. Keep short, about 10 characters.",
+        "transparency": "Footer and FAQ link to the Transparency page, which shows running costs and user counts. Keep short, about 14 characters.",
+        "join_discord": "Button in the home page hero and header icon label. Opens the Deadlock+ Discord invite. Discord is a brand. Keep short, about 18 characters.",
+        "support": "Header icon label and footer link to the Ko-fi page where people can donate. Ko-fi is a brand, untranslated.",
+        "source_on_github": "Header icon label. Opens the Deadlock+ code on GitHub. GitHub is a brand, untranslated.",
+        "discord": "Footer link to the Deadlock+ Discord server. Brand name, usually left as is.",
+        "source": "Footer link to the Deadlock+ code on GitHub. Keep short, about 14 characters."
+    },
+    "footer": {
+        "product": "Footer column heading over the Features, Download and FAQ links. Keep short, about 12 characters.",
+        "community": "Footer column heading over the Discord, code, Transparency and support links. Keep short, about 12 characters.",
+        "legal": "Footer column heading over the Privacy link. Keep short, about 12 characters.",
+        "license": "Small print in the website footer. GPL-3.0-or-later is the license name, keep it exactly as written.",
+        "unofficial": "Small print disclaimer in the website footer. Valve Corporation makes Deadlock, keep the name as is.",
+        "theme": "Label of the colour theme picker in the website footer. Keep short, about 10 characters."
+    },
+    "themes": {
+        "deadlock": "Colour theme name in the website footer theme picker. Styled after the game. Deadlock is the game name, untranslated.",
+        "midnight": "Colour theme name in the website footer theme picker. A dark blue theme. Keep short, about 12 characters.",
+        "daylight": "Colour theme name in the website footer theme picker. The light theme. Keep short, about 12 characters.",
+        "contrast": "Colour theme name in the website footer theme picker. An accessibility theme with strong contrast. Keep short, about 16 characters.",
+        "nightshift": "Colour theme name in the footer theme picker. Named after the Deadlock Night Shift show, a brand name, keep it untranslated.",
+        "deadlock_api": "Colour theme name in the footer theme picker. Named after the Deadlock API community project, a brand name, keep it untranslated.",
+        "statlocker": "Colour theme name in the footer theme picker. Named after the Statlocker site, a brand name, keep it untranslated.",
+        "flint_snow": "Colour theme name in the footer theme picker. Named after a person, keep it untranslated.",
+        "void": "Colour theme name in the website footer theme picker. A near black theme. Keep short, about 12 characters.",
+        "deadchaps": "Colour theme name in the footer theme picker. Named after the DeadChaps community, a brand name, keep it untranslated.",
+        "pretty_in_pink": "Colour theme name in the footer theme picker. A playful name for a pink theme, a free translation is fine. Keep short, about 16 characters.",
+        "catppuccin": "Colour theme name in the footer theme picker. Catppuccin is a known colour scheme brand, keep it untranslated."
+    },
+    "home": {
+        "title": "Home page title. Shown in search results and browser tabs. Keep short, about 60 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "description": "Home page description. Shown under the title in search results and link previews. Keep to about 155 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "heading": "Big headline at the top of the home page. {game} = the word \"Deadlock\" in gold. Move {game} where your grammar needs it. Most visitors read on phones, keep it short.",
+        "intro": "Paragraph under the home page headline. Lists what the app does. Most visitors read on phones, keep it short.",
+        "download_windows": "Main button in the home page hero. Goes to the Download page. Keep short, about 22 characters. Most visitors read on phones, keep it short.",
+        "platforms": "Small text under the home page buttons. {linux} = a link with the word \"Linux\" (see home.platforms_linux).",
+        "platforms_linux": "Link text inside the small text under the home page buttons. Goes to the Linux download. Usually left as \"Linux\".",
+        "hero_label": "Screen reader label and caption of the big screenshot on the home page. \"Deadlock+\" stays untranslated.",
+        "what_it_does": "Section heading on the home page above the feature cards. Keep short, about 16 characters.",
+        "every_feature": "Small link next to the \"What it does\" heading on the home page. Goes to the Features page. Keep short, about 14 characters.",
+        "shot_label": "Screen reader label of a feature screenshot on the home and Features pages. {name} = feature name, e.g. \"Server Picker\". \"Deadlock+\" stays untranslated.",
+        "safety_title": "Section heading on the home page above three cards about safety and privacy. Most visitors read on phones, keep it short.",
+        "trust": {
+            "free": {
+                "title": "Card title in the home page safety section. Keep short, about 18 characters.",
+                "body": "Card text under \"Free, no account\" in the home page safety section. \"Deadlock+\" stays untranslated."
+            },
+            "local": {
+                "title": "Card title in the home page safety section. Means the app runs on your own computer. Keep short, about 18 characters.",
+                "body": "Card text under \"Stays on your PC\" in the home page safety section. \"Privacy page\" is the website Privacy page."
+            },
+            "open": {
+                "title": "Card title in the home page safety section. Means the app code is open source. Keep short, about 18 characters.",
+                "body": "Card text under \"Nothing hidden\" in the home page safety section. Explains open source in plain words."
+            }
+        },
+        "read_code": "Link in the home page safety section. Opens the app code on GitHub. Keep short, about 14 characters.",
+        "ready_title": "Heading of the last section on the home page, above the download button. Keep short, about 24 characters.",
+        "ready_body": "Text in the last section of the home page, above the download button. \"Deadlock+\" stays untranslated."
+    },
+    "features": {
+        "title": "Features page title. Shown in search results and browser tabs. Keep short, about 60 characters. Server Picker and Match History are app page names. \"Deadlock+\" stays untranslated.",
+        "description": "Features page description. Shown under the title in search results and link previews. Keep to about 155 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "heading": "Page heading at the top of the Features page. \"Deadlock+\" stays untranslated.",
+        "subtitle": "Text under the Features page heading. \"Page\" means a page of the app. \"Deadlock+\" stays untranslated.",
+        "groups": {
+            "match": {
+                "name": "Tab on the Features page for the match features. Tabs sit two per row on phones. Keep short, about 18 characters.",
+                "blurb": "Text under the \"Around the match\" tab on the Features page."
+            },
+            "builds": {
+                "name": "Tab on the Features page for the build features. Item build is a Deadlock game term, match the game's translation. Keep short, about 18 characters.",
+                "blurb": "Text under the \"Item builds\" tab on the Features page. Build and hero are Deadlock game terms, match the game's translation."
+            },
+            "progress": {
+                "name": "Tab on the Features page for match history and stats features. Keep short, about 18 characters.",
+                "blurb": "Text under the \"Your progress\" tab on the Features page."
+            },
+            "upkeep": {
+                "name": "Tab on the Features page for maintenance tools like mutes, replays and storage. Keep short, about 18 characters.",
+                "blurb": "Text under the \"Upkeep\" tab on the Features page. Chores = small boring tasks."
+            }
+        },
+        "items": {
+            "discord_presence": {
+                "name": "Feature name on the website Features page and home page cards. Rich Presence is Discord's feature name, use Discord's own translation if it has one.",
+                "summary": "One line summary under the Discord Rich Presence feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Discord Rich Presence on the website Features page. Detailed and Basic are app option names. Hero and mode are Deadlock game terms. Deadlock is the game name, untranslated.",
+                    "2": "Bullet point under Discord Rich Presence on the website Features page. Hero and rank are Deadlock game terms, match the game's translation.",
+                    "3": "Bullet point under Discord Rich Presence on the website Features page. Activity means what the player is doing, e.g. in a match or in the menu.",
+                    "4": "Bullet point under Discord Rich Presence on the website Features page. Presence page is the app page for Discord settings."
+                }
+            },
+            "server_picker": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Server Picker feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Server Picker on the website Features page. Region means a server region of the game, e.g. Europe.",
+                    "2": "Bullet point under Server Picker on the website Features page. Ping is the network delay in milliseconds, often left untranslated.",
+                    "3": "Bullet point under Server Picker on the website Features page. ServerPickerX and CS2ServerPicker are names of other apps, keep them untranslated."
+                }
+            },
+            "live": {
+                "name": "Feature name on the website Features page and home page cards. The app page that shows the current match, match the app's translation.",
+                "summary": "One line summary under the Live feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Live on the website Features page. Rank, souls, kills, deaths, assists and damage are Deadlock game terms, match the game's translation.",
+                    "2": "Bullet point under Live on the website Features page. Ping is the network delay, often left untranslated.",
+                    "3": "Bullet point under Live on the website Features page. Queue means waiting for a match. Results is the end of match screen."
+                }
+            },
+            "builds": {
+                "name": "Feature name on the website Features page and home page cards. Build is a Deadlock game term, match the game's translation.",
+                "summary": "One line summary under the Builds feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Builds on the website Features page. Tag, hero and author are filters on the app Builds page. Hero is a Deadlock game term.",
+                    "2": "Bullet point under Builds on the website Features page. Win rate = share of matches won with this build.",
+                    "3": "Bullet point under Builds on the website Features page. Shop and ability order are Deadlock game terms, match the game's translation.",
+                    "4": "Bullet point under Builds on the website Features page. Tooltip = the info box the game shows on hover. Item, ability and stats are Deadlock game terms.",
+                    "5": "Bullet point under Builds on the website Features page. Mine is the name of a tab in the app, match the app's translation. Favourite = mark as a favourite.",
+                    "6": "Bullet point under Builds on the website Features page. Copy for game and Paste code are app button names, match the app. Create New Build is a game button, match the game."
+                }
+            },
+            "build_editor": {
+                "name": "Feature name on the website Features page and home page cards. Build is a Deadlock game term, match the game's translation.",
+                "summary": "One line summary under the Build editor feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Build editor on the website Features page. Shop and category are parts of the game's build page, match the game's translation.",
+                    "2": "Bullet point under Build editor on the website Features page. 1080p, 1440p and 4K are screen resolutions. Build Browser is a game screen, match the game.",
+                    "3": "Bullet point under Build editor on the website Features page. Souls is the Deadlock currency, match the game's translation.",
+                    "4": "Bullet point under Build editor on the website Features page. Ability order is a Deadlock game term, match the game's translation.",
+                    "5": "Bullet point under Build editor on the website Features page. Versions = earlier saved copies of the build.",
+                    "6": "Bullet point under Build editor on the website Features page. Game files = the build files of Deadlock on the PC."
+                }
+            },
+            "match_history": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Match History feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Match History on the website Features page. Session = matches played in one sitting. Verdict = a short judgement like \"Good session\". Record = wins and losses.",
+                    "2": "Bullet point under Match History on the website Features page. Notes the app writes from the player's match times.",
+                    "3": "Bullet point under Match History on the website Features page. An optional notification that suggests a break.",
+                    "4": "Bullet point under Match History on the website Features page. Mode, hero and outcome are filters. Mode and hero are Deadlock game terms.",
+                    "5": "Bullet point under Match History on the website Features page. Scoreboard, items, ranks and bans are Deadlock game terms, match the game's translation.",
+                    "6": "Bullet point under Match History on the website Features page. Souls, objectives and accolades are Deadlock game terms, match the game's translation."
+                }
+            },
+            "stats": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Stats feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Stats on the website Features page. Rank and demotion shields are Deadlock game terms, match the game's translation.",
+                    "2": "Bullet point under Stats on the website Features page. Worth = how much rank the next win or loss gains or costs.",
+                    "3": "Bullet point under Stats on the website Features page. Outlook = a forecast. Winrate = share of matches won.",
+                    "4": "Bullet point under Stats on the website Features page. Promotion and demotion = going up or down a rank.",
+                    "5": "Bullet point under Stats on the website Features page. Streaks = wins or losses in a row. Hero is a Deadlock game term.",
+                    "6": "Bullet point under Stats on the website Features page. Leaderboard is the game's ranked leaderboard, match the game's translation."
+                }
+            },
+            "mutes": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Mutes feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Mutes on the website Features page. Muted players = players silenced in the game.",
+                    "2": "Bullet point under Mutes on the website Features page. Backup = a copy of the mute list file."
+                }
+            },
+            "replays": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Replays feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Replays on the website Features page. Replays are recordings of matches the game saves.",
+                    "2": "Bullet point under Replays on the website Features page. Pin = mark to keep. Clean up = delete."
+                }
+            },
+            "storage": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Storage feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Storage on the website Features page. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+                    "2": "Bullet point under Storage on the website Features page. Files like caches that the game rebuilds by itself."
+                }
+            },
+            "performance": {
+                "name": "Feature name on the website Features page and home page cards. The app page name, match the app's translation.",
+                "summary": "One line summary under the Performance feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Performance on the website Features page. FPS = frames per second. Dips = moments of low FPS. Stutters = short freezes.",
+                    "2": "Bullet point under Performance on the website Features page. Mods = files players add to change the game.",
+                    "3": "Bullet point under Performance on the website Features page. Recordings = recorded play sessions from the Performance page."
+                }
+            },
+            "background": {
+                "name": "Feature name on the website Features page and home page cards. App settings for running in the background.",
+                "summary": "One line summary under the Background options feature name on the Features page and home page cards. Most visitors read on phones, keep it short.",
+                "points": {
+                    "1": "Bullet point under Background options on the website Features page. Tray = the system tray icons next to the Windows clock.",
+                    "2": "Bullet point under Background options on the website Features page. Steam is a brand, untranslated. Steam goes down for maintenance every week.",
+                    "3": "Bullet point under Background options on the website Features page. Patches = Deadlock game updates."
+                }
+            }
+        }
+    },
+    "faq": {
+        "title": "FAQ page title. Shown in search results and browser tabs. Keep short, about 60 characters. \"Deadlock+\" stays untranslated.",
+        "description": "FAQ page description. Shown under the title in search results and link previews. Keep to about 155 characters. Mac means Apple computers. \"Deadlock+\" stays untranslated.",
+        "heading": "Page heading at the top of the FAQ page. FAQ = frequently asked questions. \"Deadlock+\" stays untranslated.",
+        "subtitle": "Text under the FAQ page heading.",
+        "items": {
+            "free": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. \"Deadlock+\" stays untranslated.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Answers \"Is Deadlock+ free?\"."
+            },
+            "discord": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. Deadlock is the game name, untranslated.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Presence page is the app page for Discord settings. Hero, mode and rank are game terms."
+            },
+            "servers": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Server Picker is an app page. ServerPickerX and CS2ServerPicker are other apps, untranslated."
+            },
+            "platforms": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. Mac means Apple computers.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. .deb and AppImage are Linux file types, keep them as written. macOS is a brand name."
+            },
+            "stats": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Deadlock API is a community project name, keep it untranslated. Steam account ID = the player's Steam number."
+            },
+            "privacy": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. Record = collect or store. \"Deadlock+\" stays untranslated.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Settings is the app settings page. Cookies = browser cookies."
+            },
+            "performance": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. \"It\" is the app, \"the game\" is Deadlock.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. Resource use = CPU and memory use. \"Deadlock+\" stays untranslated."
+            },
+            "open_source": {
+                "question": "FAQ question on the website FAQ page, also shown in Google results. \"Deadlock+\" stays untranslated.",
+                "answer": "FAQ answer on the website FAQ page, also read by Google. GPL-3.0-or-later is a license name, keep it as written. Transparency page is a website page."
+            }
+        },
+        "links": {
+            "discord_presence": "Link under the Discord FAQ answer. Goes to Discord Rich Presence on the Features page. Match features.items.discord_presence.name.",
+            "server_picker": "Link under the servers FAQ answer. Goes to Server Picker on the Features page. Match features.items.server_picker.name.",
+            "linux_notes": "Link under the Linux FAQ answer. Opens notes about running the app on Linux. Keep short, about 18 characters.",
+            "app_privacy": "Link under the privacy FAQ answer. Opens the list on GitHub of everything the app sends out.",
+            "read_code": "Link under the open source FAQ answer. Opens the app code on GitHub. Keep short, about 14 characters."
+        }
+    },
+    "download": {
+        "title": "Download page title. Shown in search results and browser tabs. Keep short, about 60 characters. \"Deadlock+\" stays untranslated.",
+        "description": "Download page description. Shown under the title in search results and link previews. Keep to about 155 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
+        "heading": "Page heading at the top of the Download page. \"Deadlock+\" stays untranslated.",
+        "subtitle": "Text under the Download page heading. \"Deadlock+\" stays untranslated. Most visitors read on phones, keep it short.",
+        "version": "Item in the \"Older versions\" menu on the Download page. {version} = version number, e.g. 0.14.2.",
+        "version_file": "Item in the older Linux versions menu. {version} = version number, e.g. 0.14.2. {file} = file type, \".deb\" or \"AppImage\".",
+        "released": "Small text under a download button. {version} = version number, e.g. 0.14.2. {date} = formatted release date, e.g. 21 Oct 2026.",
+        "deb_note": "Small note next to the .deb file in the Linux download menu. Names Linux systems, keep the names as written.",
+        "appimage_note": "Small note next to the AppImage file in the Linux download menu. Means any Linux system not in the .deb list.",
+        "older_versions": "Button on the Download page that opens a menu of older releases. Keep short, about 16 characters.",
+        "windows": {
+            "name": "Card heading on the Download page for the Windows download. Usually left as \"Windows\".",
+            "badge": "Small badge next to the Windows card heading on the Download page. Keep short, about 12 characters.",
+            "for": "Text under the Windows card heading on the Download page.",
+            "button": "Main download button on the Windows card of the Download page. Keep short, about 22 characters. Most visitors read on phones, keep it short.",
+            "older_label": "Screen reader label of the older Windows versions menu on the Download page.",
+            "fallback": "Small text under the Windows button when the newest version could not be loaded. \"setup.exe\" is a file name, keep it as written.",
+            "step_open": "Install step 1 on the Windows card of the Download page.",
+            "step_start": "Install step 2 on the Windows card of the Download page. \"Deadlock+\" stays untranslated.",
+            "step_admin": "Install step 3 on the Windows card. {yes} = the bold word \"Yes\" (see download.windows.step_admin_yes). Server Picker is an app page. \"Deadlock+\" stays untranslated.",
+            "step_admin_yes": "Bold button name inside install step 3. Use the exact word the Windows permission prompt shows in your language."
+        },
+        "linux": {
+            "name": "Card heading on the Download page for the Linux download. Usually left as \"Linux\".",
+            "badge": "Small badge next to the Linux card heading. Means support is not guaranteed. Keep short, about 12 characters.",
+            "for": "Text under the Linux card heading on the Download page.",
+            "button": "Download button on the Linux card of the Download page. Opens a menu of file types. Keep short, about 22 characters.",
+            "choose_label": "Screen reader label of the Linux download menu, where the visitor picks .deb or AppImage.",
+            "older_label": "Screen reader label of the older Linux versions menu on the Download page.",
+            "fallback": "Small text under the Linux button when the newest version could not be loaded. \".deb\" and \".AppImage\" are file endings, keep them.",
+            "setup": "Text on the Linux card of the Download page. {link} = a link, see download.linux.setup_link. Move {link} where your grammar needs it.",
+            "setup_link": "Link text inside the Linux setup sentence on the Download page. Opens notes about Linux setup.",
+            "no_mac": "Text at the bottom of the Linux card on the Download page. macOS is a brand name. \"Deadlock+\" stays untranslated."
+        },
+        "smartscreen": {
+            "title": "Section heading on the Download page. Quotes the Windows SmartScreen warning. Use the exact words Windows SmartScreen shows in your language.",
+            "body": "Text in the SmartScreen help section of the Download page. Ends with a colon before a two step list.",
+            "step": "Step in the SmartScreen help list. {button} = a bold button name, \"More info\" or \"Run anyway\". Used for both steps.",
+            "more_info": "Bold button name in the SmartScreen help steps. Use the exact words Windows SmartScreen shows in your language.",
+            "run_anyway": "Bold button name in the SmartScreen help steps. Use the exact words Windows SmartScreen shows in your language."
+        },
+        "updates": {
+            "title": "Section heading on the Download page about app updates. Keep short, about 12 characters.",
+            "body": "Text in the Updates section of the Download page. \"Us\" is the Deadlock+ team. \"Deadlock+\" stays untranslated.",
+            "changes": "Button in the Updates section. Opens the release notes on GitHub. Keep short, about 36 characters."
+        },
+        "check": {
+            "title": "Section heading at the bottom of the Download page about checking the app code.",
+            "body": "Text in the last section of the Download page. {link} = a link, see download.check.link. Move {link} where your grammar needs it. \"Deadlock+\" stays untranslated.",
+            "link": "Link text inside download.check.body. Opens the app code on GitHub. Lowercase in English because it sits mid sentence."
+        }
+    },
+    "shot": {
+        "expand": "Screen reader label of the button on a screenshot that opens it full screen. {label} = what it shows, e.g. \"Server Picker in Deadlock+\".",
+        "alt": "Alt text of a screenshot. {label} = what it shows, e.g. \"Server Picker in Deadlock+\". Sample data = made up example data.",
+        "alt_close_up": "Alt text of a zoomed in crop of a screenshot. {label} = what it shows, e.g. \"Server Picker in Deadlock+\".",
+        "close": "Screen reader label of the close button of the full screen screenshot viewer.",
+        "zoom_hint": "Hint in the full screen screenshot viewer on phones. Explains touch zoom. Keep short, about 30 characters.",
+        "picture_label": "Screen reader label of the pair of buttons that switch between the close-up and the full screenshot.",
+        "detail": "Toggle button in the screenshot viewer that shows the close-up crop. Keep short, about 10 characters.",
+        "detail_hint": "Hidden screen reader text read right after the \"Detail\" button. Starts with a comma and a space because it continues that word.",
+        "full": "Toggle button in the screenshot viewer that shows the whole screenshot. Keep short, about 12 characters.",
+        "full_hint": "Hidden screen reader text read right after the \"Full window\" button. Starts with a comma and a space because it continues that word.",
+        "zoom_out": "Screen reader label of the zoom out button in the screenshot viewer.",
+        "zoom_in": "Screen reader label of the zoom in button in the screenshot viewer.",
+        "zoom_reset": "Screen reader label of the button that resets zoom in the screenshot viewer."
+    },
+    "error": {
+        "not_found_title": "Browser tab title of the website 404 page. Keep short, about 30 characters.",
+        "not_found": "Heading on the website 404 page, when a link points to no page.",
+        "failed": "Heading and tab title of the website error page, when a page failed to load.",
+        "home": "Button on the website error page that goes to the home page. Keep short, about 22 characters."
+    },
+    "og": {
+        "title": "Tab title of an internal page used to draw the link preview image. Rarely seen. \"Deadlock+\" stays untranslated.",
+        "tagline": "Large text on the link preview image shown when the site is shared in social apps. {game} = the word \"Deadlock\" in gold. Keep short."
+    },
+    "language": {
+        "label": "Label of the language picker in the website footer. Keep short, about 10 characters.",
+        "current": "Screen reader label of the footer language picker button. {language} = language name in that language, e.g. \"Deutsch\".",
+        "suggestion": "Banner at the top of a page for visitors whose browser uses this language, shown in this language. {language} = language name in that language, e.g. \"Deutsch\".",
+        "switch": "Button in the language banner. {language} = language name in that language, e.g. \"Deutsch\". Keep short, about 24 characters.",
+        "dismiss": "Screen reader label of the X button that closes the language banner."
+    }
+}

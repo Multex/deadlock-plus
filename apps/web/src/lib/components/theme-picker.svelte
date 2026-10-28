@@ -2,10 +2,21 @@
     import { onMount } from "svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
-    import { DEFAULT_THEME, THEMES, applyTheme, loadTheme, saveTheme, type ThemeId } from "$lib/content/themes";
+    import {
+        DEFAULT_THEME,
+        THEMES,
+        applyTheme,
+        loadTheme,
+        saveTheme,
+        themeKey,
+        type ThemeId,
+    } from "$lib/content/themes";
+    import { useI18n } from "$lib/i18n";
+
+    const { t } = useI18n();
 
     let current = $state<ThemeId>(DEFAULT_THEME);
-    const currentLabel = $derived(THEMES.find((t) => t.id === current)?.label);
+    const currentLabel = $derived(t(`themes.${themeKey(current)}`));
 
     function select(id: ThemeId) {
         current = id;
@@ -22,7 +33,7 @@
     function onKeydown(e: KeyboardEvent) {
         const next = radioTarget(
             e.key,
-            THEMES.findIndex((t) => t.id === current),
+            THEMES.findIndex((theme) => theme.id === current),
             THEMES.length,
         );
         const theme = next === null ? undefined : THEMES[next];
@@ -42,7 +53,9 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-    <p id="theme-picker-label" class="font-heading text-sm font-semibold tracking-widest text-brass uppercase">Theme</p>
+    <p id="theme-picker-label" class="font-heading text-sm font-semibold tracking-widest text-brass uppercase">
+        {t("footer.theme")}
+    </p>
     <div role="radiogroup" aria-labelledby="theme-picker-label" class="flex flex-wrap gap-1.5">
         {#each THEMES as theme (theme.id)}
             {@const selected = current === theme.id}
@@ -51,7 +64,7 @@
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                aria-label={theme.label}
+                aria-label={t(`themes.${themeKey(theme.id)}`)}
                 tabindex={selected ? 0 : -1}
                 onkeydown={onKeydown}
                 onclick={() => select(theme.id)}

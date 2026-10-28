@@ -4,87 +4,83 @@
     import { ArrowRight, Download } from "@lucide/svelte";
     import DiscordIcon from "@deadlock-plus/ui/icons/discord.svelte";
     import Shot from "$lib/components/shot.svelte";
-    import { HERO_DETAIL_SHOT, HERO_SHOT, highlights } from "$lib/content/features";
+    import { HERO_DETAIL_SHOT, HERO_SHOT, featureText, highlights } from "$lib/content/features";
     import { LINKS } from "$lib/content/links";
     import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import { page } from "$app/state";
+    import { around, useI18n } from "$lib/i18n";
+    import features from "virtual:en/features";
+    import home from "virtual:en/home";
+    import { localizedHref } from "$lib/i18n/routes";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
 
+    const i18n = useI18n(home, features);
+    const { t } = i18n;
+
     const ref = $derived(currentRef(page.url));
 
-    const description =
-        "Deadlock+ is a free companion app for Deadlock: Discord Rich Presence, a server picker, a build editor, match history, rank and stats. No account needed.";
+    const local = (href: string) => localizedHref(withRef(href, ref), i18n.locale);
 
-    const trust = [
-        {
-            title: "Free, no account",
-            body: "Deadlock+ is free. There is nothing to sign up for.",
-        },
-        {
-            title: "Stays on your PC",
-            body: "Everything runs on your PC. The few things the app sends out are listed on the privacy page.",
-        },
-        {
-            title: "Nothing hidden",
-            body: "The app's code is public. Anyone can read it and see exactly what it does.",
-        },
-    ];
+    const description = t("home.description");
+
+    const trust = ["free", "local", "open"].map((key) => ({
+        title: t(`home.trust.${key}.title`),
+        body: t(`home.trust.${key}.body`),
+    }));
+
+    const [headingBefore, headingAfter] = around(t("home.heading"), "game");
+    const [platformsBefore, platformsAfter] = around(t("home.platforms"), "linux");
 </script>
 
-<Seo
-    title="Deadlock+ | Discord Rich Presence and Stats for Deadlock"
-    {description}
-    schema={[softwareApplication(description)]}
-/>
+<Seo title={t("home.title")} {description} schema={[softwareApplication(description, i18n.locale)]} />
 
 <Page>
     <header class="py-12 sm:py-20">
         <h1 class="max-w-3xl text-5xl leading-tight sm:text-6xl">
-            Your new favorite companion for <span class="text-brass">Deadlock</span>
+            {headingBefore}<span class="text-brass">Deadlock</span>{headingAfter}
         </h1>
         <p class="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Show friends what you are playing on Discord, pick which servers you play on, follow your match as it
-            happens, find and edit item builds, look back at your matches and rank, and tidy up mutes, replays and disk
-            space. One app, no account.
+            {t("home.intro")}
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
-            <a href={withRef("/download", ref)} class={buttonVariants({ size: "lg" })}>
+            <a href={local("/download")} class={buttonVariants({ size: "lg" })}>
                 <Download />
-                Download for Windows
+                {t("home.download_windows")}
             </a>
             <a href={discordHref(ref)} class={buttonVariants({ variant: "outline", size: "lg" })}>
                 <DiscordIcon class="size-4" />
-                Join our Discord
+                {t("nav.join_discord")}
             </a>
         </div>
         <p class="mt-3 text-sm text-muted-foreground">
-            Windows 10 and 11. <a href={withRef("/download#linux", ref)} class="underline hover:text-foreground"
-                >Linux</a
-            > may not work on every setup.
+            {platformsBefore}<a href={local("/download#linux")} class="underline hover:text-foreground"
+                >{t("home.platforms_linux")}</a
+            >{platformsAfter}
         </p>
     </header>
 
     <Shot
         name={HERO_SHOT}
         detail={HERO_DETAIL_SHOT}
-        label="A match page in Deadlock+"
+        label={t("home.hero_label")}
         eager
         class="shadow-2xl shadow-black/60"
     />
 
     <section>
         <div class="mb-3 flex items-end justify-between gap-3">
-            <h2 class="text-2xl">What it does</h2>
-            <a href={withRef("/features", ref)} class={buttonVariants({ variant: "ghost", size: "sm" })}>
-                Every feature
+            <h2 class="text-2xl">{t("home.what_it_does")}</h2>
+            <a href={local("/features")} class={buttonVariants({ variant: "ghost", size: "sm" })}>
+                {t("home.every_feature")}
                 <ArrowRight />
             </a>
         </div>
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {#each highlights() as feature (feature.id)}
+                {@const text = featureText(i18n, feature)}
                 <li>
                     <Card
                         padding="none"
@@ -94,16 +90,13 @@
                             <Shot
                                 name={feature.shot}
                                 detail={feature.detailShot}
-                                label="{feature.name} in Deadlock+"
+                                label={t("home.shot_label", { name: text.name })}
                                 framed={false}
                             />
                         {/if}
-                        <a
-                            href={withRef(`/features#${feature.id}`, ref)}
-                            class="block flex-1 border-t border-border p-4"
-                        >
-                            <h3 class="text-base font-semibold text-brass">{feature.name}</h3>
-                            <p class="mt-1 text-sm text-muted-foreground">{feature.summary}</p>
+                        <a href={local(`/features#${feature.id}`)} class="block flex-1 border-t border-border p-4">
+                            <h3 class="text-base font-semibold text-brass">{text.name}</h3>
+                            <p class="mt-1 text-sm text-muted-foreground">{text.summary}</p>
                         </a>
                     </Card>
                 </li>
@@ -111,7 +104,7 @@
         </ul>
     </section>
 
-    <Section title="Is it safe? Check it yourself." titleClass="mb-4">
+    <Section title={t("home.safety_title")} titleClass="mb-4">
         <ul class="grid gap-5 md:grid-cols-3">
             {#each trust as item (item.title)}
                 <li class="border-l-2 border-brass pl-4">
@@ -121,25 +114,26 @@
             {/each}
         </ul>
         <div class="mt-5 flex flex-wrap gap-2">
-            <a href={LINKS.repo} class={buttonVariants({ variant: "outline", size: "sm" })}>Read the code</a>
-            <a href={withRef("/privacy", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>Privacy</a>
-            <a href={withRef("/transparency", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}
-                >Transparency</a
+            <a href={LINKS.repo} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("home.read_code")}</a>
+            <a href={local("/privacy")} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("nav.privacy")}</a
             >
-            <a href={withRef("/faq", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>FAQ</a>
+            <a href={local("/transparency")} class={buttonVariants({ variant: "outline", size: "sm" })}
+                >{t("nav.transparency")}</a
+            >
+            <a href={local("/faq")} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("nav.faq")}</a>
         </div>
     </Section>
 
     <Section class="flex flex-wrap items-center justify-between gap-4" padding="lg">
         <div>
-            <h2 class="text-xl">Ready when you are</h2>
+            <h2 class="text-xl">{t("home.ready_title")}</h2>
             <p class="mt-1 text-sm text-muted-foreground">
-                Deadlock+ is free. Updates install only when you click, and each one is checked before it runs.
+                {t("home.ready_body")}
             </p>
         </div>
-        <a href={withRef("/download", ref)} class={buttonVariants()}>
+        <a href={local("/download")} class={buttonVariants()}>
             <Download />
-            Download
+            {t("nav.download")}
         </a>
     </Section>
 </Page>
