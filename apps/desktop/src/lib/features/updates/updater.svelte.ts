@@ -21,6 +21,12 @@ export interface CheckError {
 /** Long enough to smooth over chunk bursts, short enough that the speed follows a connection that slows down. */
 const SPEED_WINDOW_MS = 3000;
 const MIN_SPEED_SPAN_MS = 200;
+/**
+ * The plugin's download has no stall timeout and cannot be cancelled, so a dead connection would keep the page on
+ * "downloading" forever. Past these limits the attempt is abandoned and a retry starts a new one.
+ */
+const FIRST_BYTE_LIMIT_MS = 30_000;
+const STALL_LIMIT_MS = 45_000;
 
 class Updater {
     phase = $state<UpdatePhase>("idle");
@@ -40,6 +46,7 @@ class Updater {
     private checking: Promise<boolean> | null = null;
     private finishing: Promise<void> | null = null;
     private samples: { at: number; received: number }[] = [];
+    private attempt = 0;
 
     /** The update channel setting. */
     get channel(): UpdateChannel {
@@ -133,20 +140,37 @@ class Updater {
         this.total = null;
         this.speed = null;
         this.error = null;
+        const attempt = ++this.attempt;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let stalled = () => {};
+        const stall = new Promise<never>((_, reject) => {
+            stalled = () => reject(new Error("the update download stopped receiving data"));
+        });
+        const watch = (limit: number) => {
+            clearTimeout(timer);
+            timer = setTimeout(stalled, limit);
+        };
+        watch(FIRST_BYTE_LIMIT_MS);
         try {
-            await update.download((event) => {
+            const download = update.download((event) => {
+                if (attempt !== this.attempt) return;
+                watch(STALL_LIMIT_MS);
                 if (event.event === "Started") {
                     this.total = event.data.contentLength || null;
                     this.samples = [{ at: Date.now(), received: 0 }];
                 }
                 if (event.event === "Progress") this.advance(event.data.chunkLength);
             });
+            await Promise.race([download, stall]);
             return true;
         } catch (e) {
             console.warn("update download failed:", e);
             this.phase = "error";
             this.error = "download";
             return false;
+        } finally {
+            clearTimeout(timer);
+            if (attempt === this.attempt) this.attempt++;
         }
     }
 

@@ -214,6 +214,83 @@ describe("updater", () => {
         expect(updater.version).toBe("9.9.9");
     });
 
+    describe("a stalled download", () => {
+        type OnEvent = (event: { event: string; data?: Record<string, number> }) => void;
+
+        function stalling() {
+            const calls: OnEvent[] = [];
+            const update = {
+                version: "9.9.9",
+                download: vi.fn((onEvent: OnEvent) => {
+                    calls.push(onEvent);
+                    return new Promise<void>(() => {});
+                }),
+                install: vi.fn(),
+            };
+            check.mockResolvedValue(update);
+            return { update, calls };
+        }
+
+        async function run(body: () => Promise<void>) {
+            vi.useFakeTimers({ now: 0 });
+            try {
+                await body();
+            } finally {
+                vi.useRealTimers();
+            }
+        }
+
+        it("fails as a download when no first byte arrives in 30 s", () =>
+            run(async () => {
+                stalling();
+                await updater.check();
+                const downloading = updater.download();
+                await vi.advanceTimersByTimeAsync(29_900);
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(100);
+                expect(await downloading).toBe(false);
+                expect(updater.phase).toBe("error");
+                expect(updater.error).toBe("download");
+            }));
+
+        it("fails once bytes stop for 45 s, however long it ran before", () =>
+            run(async () => {
+                const { calls } = stalling();
+                await updater.check();
+                const downloading = updater.download();
+                calls[0]!({ event: "Started", data: { contentLength: 1000 } });
+                for (let i = 0; i < 4; i++) {
+                    await vi.advanceTimersByTimeAsync(40_000);
+                    calls[0]!({ event: "Progress", data: { chunkLength: 10 } });
+                }
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(44_900);
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(100);
+                expect(await downloading).toBe(false);
+                expect(updater.error).toBe("download");
+            }));
+
+        it("starts over on retry and ignores the stalled attempt", () =>
+            run(async () => {
+                const { update, calls } = stalling();
+                await updater.check();
+                const first = updater.download();
+                await vi.advanceTimersByTimeAsync(30_000);
+                await first;
+                const second = updater.download();
+                expect(update.download).toHaveBeenCalledTimes(2);
+                expect(updater.phase).toBe("downloading");
+                expect(updater.received).toBe(0);
+                calls[0]!({ event: "Progress", data: { chunkLength: 500 } });
+                expect(updater.received).toBe(0);
+                calls[1]!({ event: "Progress", data: { chunkLength: 10 } });
+                expect(updater.received).toBe(10);
+                await vi.advanceTimersByTimeAsync(45_000);
+                expect(await second).toBe(false);
+            }));
+    });
+
     describe("release notes", () => {
         it("keeps the found update's notes", async () => {
             check.mockResolvedValue({ version: "9.9.9", body: "### Fixed\n\n- Things", download: vi.fn() });
