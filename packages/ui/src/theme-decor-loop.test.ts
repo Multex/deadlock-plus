@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { burst } from "./theme-decor-loop";
+import { burst, stirsDecor } from "./theme-decor-loop";
+
+describe("stirsDecor", () => {
+    it("lets a mouse or pen stir the decor", () => {
+        expect(stirsDecor({ pointerType: "mouse" })).toBe(true);
+        expect(stirsDecor({ pointerType: "pen" })).toBe(true);
+    });
+
+    it("never lets a finger stir it, so scrolling a phone leaves the scene alone", () => {
+        expect(stirsDecor({ pointerType: "touch" })).toBe(false);
+    });
+});
 
 describe("burst", () => {
     it("is active for its length at the start of every period, by the wall clock", () => {
