@@ -125,9 +125,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Deadlock+ reads the game's memory in small steps at low priority, so it takes less CPU from the game.
 - Saving settings and match data no longer freezes the app for a moment.
-- Deadlock+ starts faster: Dispatch's text loads only when you open Dispatch.
 - Match details and the Builds page show up faster.
-- Dispatch editions open faster.
 - The website loads about half as much on a phone.
 - The website keeps its pictures and fonts cached between visits.
 
@@ -143,8 +141,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Diagnostics log remembers Auto-scroll and Minimum level.
 - In the build editor, a category's note no longer runs under its size badge.
 - The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
-- Nightshift's string lights no longer hang over page titles and buttons.
-- Badges in the Pretty in Pink theme are easier to read.
 
 #### Keyboard and screen readers
 
@@ -161,7 +157,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The sidebars scroll when the window is too short for them.
 - Match History rows wrap onto two lines in a narrow window instead of hiding the hero name.
 - The Builds list and build editor stay usable at 200% zoom.
-- The share sheet fits a small window.
 
 ## [0.14.0] - 2026-10-24
 
