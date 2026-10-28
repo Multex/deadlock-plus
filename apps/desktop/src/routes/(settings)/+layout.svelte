@@ -27,6 +27,13 @@
             settingsUi.query = "";
             return;
         }
+        // Escape closes the disclosure focus is in before it leaves Settings, as it closes a menu.
+        const disclosure = e.target instanceof Element ? e.target.closest("details[open]") : null;
+        if (disclosure instanceof HTMLDetailsElement) {
+            disclosure.open = false;
+            disclosure.querySelector("summary")?.focus();
+            return;
+        }
         back();
     }
 </script>
