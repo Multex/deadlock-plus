@@ -438,14 +438,18 @@ test.describe("default, for contrast", () => {
         await page.goto("/stats");
         await settle(page);
         const main = page.getByRole("main");
-        await expect(main.getByText(/Couldn't reach the Deadlock API/)).toHaveCount(0);
+        await expect(
+            main.getByText(/^Deadlock\+ can't reach the Deadlock API right now\. Showing the copy saved /),
+        ).toHaveCount(0);
 
         await page.evaluate(() => {
             window.fetch = () => Promise.reject(new TypeError("Failed to fetch"));
         });
         await main.getByRole("button", { name: "Refresh" }).click();
 
-        await expect(main.getByText(/^Couldn't reach the Deadlock API. Showing the copy saved /)).toBeVisible();
+        await expect(
+            main.getByText(/^Deadlock\+ can't reach the Deadlock API right now\. Showing the copy saved /),
+        ).toBeVisible();
         expect((await demoState(page)).unhandled).toEqual([]);
     });
 });
