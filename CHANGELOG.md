@@ -107,6 +107,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Saving settings and match data no longer freezes the app for a moment.
 - Dispatch editions are kept in their own file, listed on its own row in Settings > Storage.
 - The website loads about half as much on a phone and keeps its pictures and fonts cached between visits.
+- Deadlock+ starts faster: Dispatch's text loads only when you open Dispatch.
+- Dispatch editions open faster.
+- Match details and the Builds page show up faster.
+- Deadlock+ reads the game's memory in small steps at low priority, so it takes less CPU from the game.
+- With reduced motion on, nothing moves on the page, including video previews and scrolling.
+- The Motion setting in Deadlock+ now wins over the Windows reduced motion setting everywhere.
 
 ### Fixed
 
@@ -122,6 +128,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - In the build editor, a category's note no longer runs under its size badge.
 - Nightshift's string lights no longer hang over page titles and buttons.
 - The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
+- Keyboard focus goes back to the button that opened a dialog when the dialog closes.
+- After you switch pages, keyboard focus starts at the page heading.
+- Deleting a replay with the keyboard keeps focus in the list.
+- Escape in an open Settings section closes that section first instead of leaving Settings.
+- The Builds tabs, build authors and the command palette search box now show where keyboard focus is.
+- The sidebars scroll when the window is too short for them.
+- Match History rows wrap onto two lines in a narrow window instead of hiding the hero name.
+- The Builds list and build editor stay usable at 200% zoom.
+- The share sheet fits a small window.
+- The website no longer scrolls sideways on a phone.
+- Badges in the Pretty in Pink theme are easier to read.
 
 ## [0.14.0] - 2026-10-24
 
