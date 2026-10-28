@@ -221,7 +221,18 @@ export function problemsOf(walk: Walk): string[] {
     // A page that puts focus somewhere first starts the lap midway; the wrap marks where the page begins.
     const wrap = walk.stops.indexOf(walk.stops.find((stop, i) => i > start && stop.id === "body")!);
     const lap = wrap > 0 ? real([...walk.stops.slice(wrap), ...walk.stops.slice(0, wrap)]) : stops;
-    const inOrder = walk.backward ? [...lap].reverse() : lap;
+    let inOrder = walk.backward ? [...lap].reverse() : lap;
+    const rank = (stop: Stop) => REGIONS.indexOf(stop.region as (typeof REGIONS)[number]);
+    // Chrome sometimes takes Shift+Tab off the first control straight to the last, never through the body. A lap
+    // in order then steps back to an earlier landmark exactly once, at the wrap, so the page begins there.
+    if (wrap <= 0) {
+        const ranked = inOrder.filter((stop) => rank(stop) >= 0);
+        const drop = ranked.findIndex((stop, i) => i > 0 && rank(stop) < rank(ranked[i - 1]!));
+        if (drop > 0 && rank(ranked[0]!) >= rank(ranked.at(-1)!)) {
+            const at = inOrder.indexOf(ranked[drop]!);
+            inOrder = [...inOrder.slice(at), ...inOrder.slice(0, at)];
+        }
+    }
     const seen = new Set<string>();
     for (const stop of stops) {
         if (seen.has(stop.id)) problems.push(`${stop.label} is reached twice in one lap`);
@@ -229,7 +240,7 @@ export function problemsOf(walk: Walk): string[] {
         if (stop.unmarked) problems.push(`${stop.label} in ${stop.region}: ${stop.unmarked}`);
         if (!stop.onScreen) problems.push(`${stop.label} in ${stop.region}: off screen or zero size when focused`);
     }
-    const order = inOrder.map((stop) => REGIONS.indexOf(stop.region as (typeof REGIONS)[number]));
+    const order = inOrder.map(rank);
     for (let i = 1; i < order.length; i++) {
         if (order[i]! >= 0 && order[i - 1]! >= 0 && order[i]! < order[i - 1]!) {
             const [now, before] = [inOrder[i]!, inOrder[i - 1]!];
