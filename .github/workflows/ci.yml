@@ -262,6 +262,9 @@ jobs:
         working-directory: apps/web
       - run: pnpm build
         working-directory: apps/web
+      # The bundle budgets read the build output, so they skip in the test run above.
+      - run: pnpm exec vitest run src/lib/perf.test.ts
+        working-directory: apps/web
 
   discord-updates:
     runs-on: ubuntu-latest
