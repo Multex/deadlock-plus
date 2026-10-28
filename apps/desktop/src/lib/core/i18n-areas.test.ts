@@ -2,11 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { en, i18n, lookup, SUPPORTED_LOCALES, t, type Catalog } from "./i18n.svelte";
 
 const englishAreas = import.meta.glob<Catalog>(
-    ["../../../../../locales/*/en.json", "!../../../../../locales/dispatch/*.json"],
+    [
+        "../../../../../locales/*/en.json",
+        "!../../../../../locales/dispatch/*.json",
+        "!../../../../../locales/web/*.json",
+    ],
     { eager: true, import: "default" },
 );
-const allEnglishAreas = import.meta.glob("../../../../../locales/*/en.json");
-const russianAreas = import.meta.glob<Catalog>("../../../../../locales/*/ru.json", { eager: true, import: "default" });
+const allEnglishAreas = import.meta.glob(["../../../../../locales/*/en.json", "!../../../../../locales/web/*.json"]);
+const russianAreas = import.meta.glob<Catalog>(
+    ["../../../../../locales/*/ru.json", "!../../../../../locales/web/*.json"],
+    { eager: true, import: "default" },
+);
 
 const areaOf = (path: string): string => path.split("/").at(-2) ?? path;
 

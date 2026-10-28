@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    checkAreas,
     checkCatalogs,
     checkNotes,
     extractKeyLiterals,
@@ -194,6 +195,32 @@ describe("mergeAreas", () => {
     it("reports a namespace a locale keeps in a different area than en", () => {
         const { errors } = mergeAreas([file("live", "en", { live: {} }), file("app", "fr", { live: {} })]);
         expect(errors).toEqual(["fr: live is in app but en keeps it in live"]);
+    });
+});
+
+describe("checkAreas", () => {
+    const file = (area, locale, catalog) => ({ area, locale, catalog });
+    const files = [
+        file("app", "en", { shell: { title: "Deadlock+" } }),
+        file("web", "en", { home: { title: "Home", unused: "Unused" } }),
+        file("web", "de", { home: { title: "Start" } }),
+    ];
+
+    it("checks the website's catalog against the website's code, apart from the app's", () => {
+        const { errors, warnings } = checkAreas(files, {
+            app: [{ file: "apps/desktop/src/a.ts", text: 't("shell.title")' }],
+            web: [{ file: "apps/web/src/b.svelte", text: 't("home.title") t("home.gone")' }],
+        });
+        expect(errors).toEqual(["web: apps/web/src/b.svelte uses missing key home.gone"]);
+        expect(warnings).toEqual(["web: unused en key home.unused"]);
+    });
+
+    it("does not count the website's code as using an app key", () => {
+        const { warnings } = checkAreas(files, {
+            app: [],
+            web: [{ file: "apps/web/src/b.svelte", text: 't("home.title") t("home.unused")' }],
+        });
+        expect(warnings).toEqual(["unused en key shell.title"]);
     });
 });
 

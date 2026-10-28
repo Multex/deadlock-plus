@@ -1,0 +1,350 @@
+{
+    "site": {
+        "tagline": "A free companion app for Deadlock. No account needed.",
+        "og_image_alt": "Deadlock+, a free companion app for Deadlock, next to a match page from the app.",
+        "home_label": "Deadlock+ home"
+    },
+    "nav": {
+        "main_label": "Main",
+        "footer_label": "Footer",
+        "features": "Features",
+        "download": "Download",
+        "faq": "FAQ",
+        "privacy": "Privacy",
+        "transparency": "Transparency",
+        "join_discord": "Join our Discord",
+        "support": "Support the project",
+        "source_on_github": "Source code on GitHub",
+        "discord": "Discord",
+        "source": "Source code"
+    },
+    "footer": {
+        "product": "Product",
+        "community": "Community",
+        "legal": "Legal",
+        "license": "Licensed under GPL-3.0-or-later.",
+        "unofficial": "Unofficial fan tool. Not made by, affiliated with or endorsed by Valve Corporation.",
+        "theme": "Theme"
+    },
+    "themes": {
+        "deadlock": "Deadlock",
+        "midnight": "Midnight",
+        "daylight": "Daylight",
+        "contrast": "High contrast",
+        "nightshift": "Nightshift",
+        "deadlock_api": "Deadlock API",
+        "statlocker": "Statlocker",
+        "flint_snow": "Flint Snow",
+        "void": "Void",
+        "deadchaps": "DeadChaps",
+        "pretty_in_pink": "Pretty in Pink",
+        "catppuccin": "Catppuccin"
+    },
+    "home": {
+        "title": "Deadlock+ | Discord Rich Presence and Stats for Deadlock",
+        "description": "Deadlock+ is a free companion app for Deadlock: Discord Rich Presence, a server picker, a build editor, match history, rank and stats. No account needed.",
+        "heading": "Your new favorite companion for {game}",
+        "intro": "Show friends what you are playing on Discord, pick which servers you play on, follow your match as it happens, find and edit item builds, look back at your matches and rank, and tidy up mutes, replays and disk space. One app, no account.",
+        "download_windows": "Download for Windows",
+        "platforms": "Windows 10 and 11. {linux} may not work on every setup.",
+        "platforms_linux": "Linux",
+        "hero_label": "A match page in Deadlock+",
+        "what_it_does": "What it does",
+        "every_feature": "Every feature",
+        "shot_label": "{name} in Deadlock+",
+        "safety_title": "Is it safe? Check it yourself.",
+        "trust": {
+            "free": {
+                "title": "Free, no account",
+                "body": "Deadlock+ is free. There is nothing to sign up for."
+            },
+            "local": {
+                "title": "Stays on your PC",
+                "body": "Everything runs on your PC. The few things the app sends out are listed on the privacy page."
+            },
+            "open": {
+                "title": "Nothing hidden",
+                "body": "The app's code is public. Anyone can read it and see exactly what it does."
+            }
+        },
+        "read_code": "Read the code",
+        "ready_title": "Ready when you are",
+        "ready_body": "Deadlock+ is free. Updates install only when you click, and each one is checked before it runs."
+    },
+    "features": {
+        "title": "Rich Presence, Server Picker, Match History | Deadlock+",
+        "description": "Everything Deadlock+ does for Deadlock: Discord Rich Presence, a server picker, live match info, a build editor, match history, stats, replays and performance.",
+        "heading": "Deadlock+ features",
+        "subtitle": "Each page of Deadlock+ does one job. Here is what each one is for.",
+        "groups": {
+            "match": {
+                "name": "Around the match",
+                "blurb": "Show friends what you are playing, pick where you play and follow your match as it happens."
+            },
+            "builds": {
+                "name": "Item builds",
+                "blurb": "Find a build for your hero, then make it your own."
+            },
+            "progress": {
+                "name": "Your progress",
+                "blurb": "See how you are doing, match by match and over time."
+            },
+            "upkeep": {
+                "name": "Upkeep",
+                "blurb": "The chores around the game, in one place."
+            }
+        },
+        "items": {
+            "discord_presence": {
+                "name": "Discord Rich Presence",
+                "summary": "Show what you are playing on your Discord profile.",
+                "points": {
+                    "1": "Detailed shows your hero, mode and match timer. Basic shows only that you are in Deadlock.",
+                    "2": "Your hero icon is the big image, and your rank badge the small one in ranked matches.",
+                    "3": "Change the text, images and timer Discord shows for each activity.",
+                    "4": "Off until you turn it on in the Presence page, where you also pick which Discord apps show it."
+                }
+            },
+            "server_picker": {
+                "name": "Server Picker",
+                "summary": "Pick which server regions you play on.",
+                "points": {
+                    "1": "Block the regions you do not want, and unblock them later.",
+                    "2": "See your ping to every region before you choose.",
+                    "3": "Bring over your blocked regions from ServerPickerX and CS2ServerPicker."
+                }
+            },
+            "live": {
+                "name": "Live",
+                "summary": "Both teams in your current match, with the server and your ping.",
+                "points": {
+                    "1": "A scoreboard for both teams: rank, souls, kills, deaths, assists and damage.",
+                    "2": "The server you are on and your ping while you play.",
+                    "3": "Follows the game from queue to results, which land in your match history."
+                }
+            },
+            "builds": {
+                "name": "Builds",
+                "summary": "Public builds for any hero, starting with the one you played last.",
+                "points": {
+                    "1": "This week's favourites come first. Filter by hero, tag, language, author and name.",
+                    "2": "A build shows its win rate once it has enough recent matches.",
+                    "3": "Open a build to see its shop and ability order as the game draws them.",
+                    "4": "Hover an item or ability for the game's tooltip, with your stats at that point in the build.",
+                    "5": "Favourite a public build and it shows in the Mine tab and in your favourites in the game.",
+                    "6": "Copy for game and Paste code move builds between Deadlock+ and the game's Create New Build."
+                }
+            },
+            "build_editor": {
+                "name": "Build editor",
+                "summary": "Edit any build, yours or a public one, on a copy of the game's shop page.",
+                "points": {
+                    "1": "Drag items in from the shop and drag a category's edges to resize it.",
+                    "2": "Sizes snap so categories look the same at 1080p, 1440p, 4K and in the Build Browser.",
+                    "3": "A souls timeline shows when each item and ability step becomes affordable.",
+                    "4": "Click abilities to set the ability order. Orders the game would reject are blocked.",
+                    "5": "Undo and redo every change, and restore any of the last 20 saved versions.",
+                    "6": "Saves go to your game files, with a backup of the file before every write."
+                }
+            },
+            "match_history": {
+                "name": "Match History",
+                "summary": "Every match on record for your account, grouped into play sessions.",
+                "points": {
+                    "1": "Each session shows its verdict, record and rank change above its matches.",
+                    "2": "Plain notes on when you play best.",
+                    "3": "A break reminder notification after three losses in a row, if you turn it on.",
+                    "4": "Filter by mode, hero, outcome and date.",
+                    "5": "Open a match for the full scoreboard: both teams, items, ranks and bans.",
+                    "6": "Souls and damage over time, when items were bought, objectives and accolades."
+                }
+            },
+            "stats": {
+                "name": "Stats",
+                "summary": "Your rank, and your results over the last 7, 30 or 90 days or all time.",
+                "points": {
+                    "1": "Progress to the next rank and your demotion shields.",
+                    "2": "What your next win or loss is worth.",
+                    "3": "An outlook: the winrate that holds your rank, next to your recent one.",
+                    "4": "Your rank over time, with each promotion and demotion marked.",
+                    "5": "Win rate, streaks, playtime and numbers for each hero.",
+                    "6": "How close you are to qualifying for the leaderboard."
+                }
+            },
+            "mutes": {
+                "name": "Mutes",
+                "summary": "Manage the players you have muted.",
+                "points": {
+                    "1": "View, add, unmute, export and import muted players.",
+                    "2": "A backup is made before every change."
+                }
+            },
+            "replays": {
+                "name": "Replays",
+                "summary": "Keep the replays that matter.",
+                "points": {
+                    "1": "Browse your saved replays.",
+                    "2": "Pin the ones to keep and clean up the rest."
+                }
+            },
+            "storage": {
+                "name": "Storage",
+                "summary": "See how much space the game takes on your drive.",
+                "points": {
+                    "1": "How much space Deadlock and Deadlock+ each use.",
+                    "2": "Clear files the game makes again on its own."
+                }
+            },
+            "performance": {
+                "name": "Performance",
+                "summary": "Measure how smoothly the game runs, then compare.",
+                "points": {
+                    "1": "Record a play session: FPS, your lowest dips and stutters.",
+                    "2": "Check your installed mods for things that can slow the game down.",
+                    "3": "Compare two recordings side by side."
+                }
+            },
+            "background": {
+                "name": "Background options",
+                "summary": "Runs quietly until you need it.",
+                "points": {
+                    "1": "Start with Windows and stay in the tray, by the clock.",
+                    "2": "A reminder before Steam's weekly maintenance.",
+                    "3": "Turn on alerts for patches and news."
+                }
+            }
+        }
+    },
+    "faq": {
+        "title": "Deadlock+ FAQ: Discord, Servers, Linux, Privacy",
+        "description": "Answers about Deadlock+: showing your match and rank on Discord, picking servers, Linux and Mac, where stats come from, privacy and open source.",
+        "heading": "Deadlock+ FAQ",
+        "subtitle": "Short answers to what people ask most.",
+        "items": {
+            "free": {
+                "question": "Is Deadlock+ free? Do I need an account?",
+                "answer": "Yes, it is free. There is no account to make and nothing to sign up for."
+            },
+            "discord": {
+                "question": "How do I show my Deadlock match and rank on Discord?",
+                "answer": "Turn on Discord Rich Presence in the app's Presence page. Your Discord profile then shows your hero, mode and match timer, and your rank badge in ranked matches. You can change the text, images and timer Discord shows."
+            },
+            "servers": {
+                "question": "How do I pick which servers I play on?",
+                "answer": "Open the Server Picker and block the regions you do not want. It shows your ping to every region first. On Windows it uses firewall rules, which is why the app asks for administrator rights. You can unblock a region at any time, and bring over your blocked regions from ServerPickerX or CS2ServerPicker."
+            },
+            "platforms": {
+                "question": "Does it work on Linux? On Mac?",
+                "answer": "Linux: yes, as a .deb or an AppImage. Support is best-effort, and some features need extra setup. Mac: no, macOS is not supported."
+            },
+            "stats": {
+                "question": "Where do my stats and match history come from?",
+                "answer": "From the Deadlock API, a free community database. To fetch your matches and rank, the app sends it your Steam account ID and nothing else about you."
+            },
+            "privacy": {
+                "question": "What does Deadlock+ record about me?",
+                "answer": "The app runs on your PC. The few things it sends are listed one by one on GitHub, and anonymous usage data and error reports can be turned off in Settings. This website uses no cookies."
+            },
+            "performance": {
+                "question": "Does it slow down the game?",
+                "answer": "We cannot guarantee it, but we try our best to keep Deadlock+'s resource use as low as possible."
+            },
+            "open_source": {
+                "question": "Is Deadlock+ open source?",
+                "answer": "Yes. The code is public on GitHub under GPL-3.0-or-later, so anyone can check what it does. What it costs to run and how many people use it are on the Transparency page."
+            }
+        },
+        "links": {
+            "discord_presence": "Discord Rich Presence",
+            "server_picker": "Server Picker",
+            "linux_notes": "Linux notes",
+            "app_privacy": "The app's privacy list",
+            "read_code": "Read the code"
+        }
+    },
+    "download": {
+        "title": "Download Deadlock+ for Windows and Linux (Free)",
+        "description": "Download Deadlock+, the free companion app for Deadlock, for Windows 10 and 11 or Linux. No account needed.",
+        "heading": "Download Deadlock+",
+        "subtitle": "Deadlock+ is free. Download it, open the file, and you are ready to go.",
+        "version": "Version {version}",
+        "version_file": "Version {version}, {file}",
+        "released": "Version {version}, released {date}",
+        "deb_note": "Ubuntu, Debian, Mint",
+        "appimage_note": "Any other system",
+        "older_versions": "Older versions",
+        "windows": {
+            "name": "Windows",
+            "badge": "Recommended",
+            "for": "For Windows 10 and Windows 11.",
+            "button": "Download for Windows",
+            "older_label": "Older versions for Windows",
+            "fallback": "This opens the newest version on GitHub. Choose the file whose name ends in \"setup.exe\".",
+            "step_open": "Open the file you downloaded and follow the steps.",
+            "step_start": "Start Deadlock+.",
+            "step_admin": "Windows asks for permission each time Deadlock+ starts. Choose {yes}. Deadlock+ needs it because Server Picker changes Windows Firewall settings.",
+            "step_admin_yes": "Yes"
+        },
+        "linux": {
+            "name": "Linux",
+            "badge": "Best-effort",
+            "for": "It should work, but it is tested far less than Windows.",
+            "button": "Download for Linux",
+            "choose_label": "Download for Linux: choose a file type",
+            "older_label": "Older versions for Linux",
+            "fallback": "This opens the newest version on GitHub. Choose the file whose name ends in \".deb\" or \".AppImage\".",
+            "setup": "Some features need extra setup on Linux. {link} first.",
+            "setup_link": "Read the Linux notes",
+            "no_mac": "Deadlock+ does not run on macOS."
+        },
+        "smartscreen": {
+            "title": "Windows says it \"protected your PC\"?",
+            "body": "Windows shows this blue screen for any app that few people have installed yet. It does not mean that something is wrong with the file. To carry on:",
+            "step": "Click {button}.",
+            "more_info": "More info",
+            "run_anyway": "Run anyway"
+        },
+        "updates": {
+            "title": "Updates",
+            "body": "Deadlock+ tells you when a new version is out. It updates only when you click, and it refuses any update that does not come from us.",
+            "changes": "See what changed in each version"
+        },
+        "check": {
+            "title": "Want to check it yourself?",
+            "body": "Deadlock+ is open source, so anyone can {link} and see exactly what it does.",
+            "link": "read the code"
+        }
+    },
+    "shot": {
+        "expand": "Expand screenshot: {label}",
+        "alt": "{label}, shown with sample data",
+        "alt_close_up": "{label}, close-up, shown with sample data",
+        "close": "Close screenshot",
+        "zoom_hint": "Pinch or double-tap to zoom",
+        "picture_label": "Which picture to show",
+        "detail": "Detail",
+        "detail_hint": ", a close-up of the same screenshot",
+        "full": "Full window",
+        "full_hint": ", the whole screenshot",
+        "zoom_out": "Zoom out",
+        "zoom_in": "Zoom in",
+        "zoom_reset": "Reset zoom"
+    },
+    "error": {
+        "not_found_title": "Page not found",
+        "not_found": "This page does not exist",
+        "failed": "Something went wrong",
+        "home": "Back to the home page"
+    },
+    "og": {
+        "title": "Link preview image | Deadlock+",
+        "tagline": "A free companion app for {game}"
+    },
+    "language": {
+        "label": "Language",
+        "current": "Language: {language}",
+        "suggestion": "This page is also in {language}.",
+        "switch": "Read it in {language}",
+        "dismiss": "Dismiss"
+    }
+}

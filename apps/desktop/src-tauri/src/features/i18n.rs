@@ -258,6 +258,8 @@ mod tests {
             .map(|entry| entry.expect("readable entry").path())
             .filter(|path| path.is_dir())
             .map(|path| path.file_name().and_then(|n| n.to_str()).expect("utf-8 dir name").to_string())
+            // The website's copy lives beside the app's areas but never ships in the app.
+            .filter(|area| area != "web")
             .collect();
         // The frontend loads these areas on demand and Rust never translates their keys, so embedding them
         // would only grow the binary.

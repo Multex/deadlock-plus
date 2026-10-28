@@ -1,5 +1,6 @@
 import { FALLBACK_CODE, INVITES, slug, type Channel, type Invite } from "./invites";
 import { LANDINGS, type Landing } from "./landing";
+import { WEB_LOCALES } from "./locales";
 
 export interface Links {
     invites: readonly Invite[];
@@ -29,6 +30,8 @@ export const RESERVED_PATHS: readonly string[] = [
     "screenshots",
     "sitemap.xml",
     "transparency",
+    // `/de` and the other locale homes win too. Landing paths are lowercase, so the names are compared that way.
+    ...WEB_LOCALES.map((locale) => locale.toLowerCase()),
 ];
 
 const CHANNELS: readonly string[] = ["web", "app", "direct"] satisfies Channel[];

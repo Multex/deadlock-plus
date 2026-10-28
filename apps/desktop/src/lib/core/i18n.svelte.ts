@@ -12,12 +12,20 @@ const mergeAreas = (areas: Catalog[]): Catalog => Object.assign({}, ...areas);
 
 const localeOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1, -".json".length);
 
+// `locales/web` is the website's catalog, which the app never shows.
 export const en: Catalog = mergeAreas(
     Object.values(
-        import.meta.glob<Catalog>(["../../../../../locales/*/en.json", "!../../../../../locales/dispatch/*.json"], {
-            eager: true,
-            import: "default",
-        }),
+        import.meta.glob<Catalog>(
+            [
+                "../../../../../locales/*/en.json",
+                "!../../../../../locales/dispatch/*.json",
+                "!../../../../../locales/web/*.json",
+            ],
+            {
+                eager: true,
+                import: "default",
+            },
+        ),
     ),
 );
 
@@ -29,6 +37,7 @@ for (const [path, load] of Object.entries(
             "!../../../../../locales/*/en.json",
             "!../../../../../locales/dispatch/*.json",
             "!../../../../../locales/*/*.notes.json",
+            "!../../../../../locales/web/*.json",
         ],
         { import: "default" },
     ),

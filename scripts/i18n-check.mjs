@@ -197,18 +197,12 @@ export function sourceDirs(packageNames) {
     ];
 }
 
-function main() {
-    const root = fileURLToPath(new URL("..", import.meta.url));
-    const { catalogs, errors: areaErrors } = mergeAreas(readAreas(path.join(root, "locales")));
-    const packageNames = readdirSync(path.join(root, "packages"), { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "src")))
-        .map((entry) => entry.name);
-    const sources = sourceDirs(packageNames)
-        .flatMap((dir) => walk(path.join(root, dir)))
-        .map((full) => ({
-            file: path.relative(root, full).replaceAll("\\", "/"),
-            text: readFileSync(full, "utf8"),
-        }));
+// The website ships its own catalog, so its keys are checked against its own code and the app's against the app's.
+export const WEB_AREA = "web";
+
+function checkSources(files, sources) {
+    const { catalogs, errors: areaErrors } = mergeAreas(files);
+    if (!catalogs.en) return { errors: areaErrors, warnings: [] };
     const used = sources.flatMap(({ file, text }) => extractKeys(text).map((k) => ({ ...k, file })));
     const known = new Set(Object.keys(flatten(catalogs.en)).flatMap((key) => [key, key.replace(PLURAL_SUFFIX, "")]));
     const referenced = {
@@ -217,8 +211,42 @@ function main() {
         patterns: sources.flatMap(({ text }) => extractTemplatePatterns(text)),
     };
     const checked = checkCatalogs(catalogs, used, referenced);
-    const errors = [...areaErrors, ...checked.errors, ...readAreaNotes(path.join(root, "locales"))];
-    const warnings = checked.warnings;
+    return { errors: [...areaErrors, ...checked.errors], warnings: checked.warnings };
+}
+
+/** `sources.app` and `sources.web` are `{ file, text }` lists for the app's and the website's code. */
+export function checkAreas(files, sources) {
+    const app = checkSources(
+        files.filter((f) => f.area !== WEB_AREA),
+        sources.app,
+    );
+    const web = checkSources(
+        files.filter((f) => f.area === WEB_AREA),
+        sources.web,
+    );
+    const tag = (line) => `${WEB_AREA}: ${line}`;
+    return { errors: [...app.errors, ...web.errors.map(tag)], warnings: [...app.warnings, ...web.warnings.map(tag)] };
+}
+
+function readSources(root, dirs) {
+    return dirs
+        .flatMap((dir) => walk(path.join(root, dir)))
+        .map((full) => ({
+            file: path.relative(root, full).replaceAll("\\", "/"),
+            text: readFileSync(full, "utf8"),
+        }));
+}
+
+function main() {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    const packageNames = readdirSync(path.join(root, "packages"), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "src")))
+        .map((entry) => entry.name);
+    const { errors, warnings } = checkAreas(readAreas(path.join(root, "locales")), {
+        app: readSources(root, sourceDirs(packageNames)),
+        web: readSources(root, ["apps/web/src"]),
+    });
+    errors.push(...readAreaNotes(path.join(root, "locales")));
     for (const line of warnings) console.warn(`warning: ${line}`);
     for (const line of errors) console.error(line);
     if (errors.length) process.exit(1);

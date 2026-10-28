@@ -23,6 +23,7 @@
 <script lang="ts">
     import { RotateCcw, X, ZoomIn, ZoomOut } from "@lucide/svelte";
     import { onMount, untrack } from "svelte";
+    import { useI18n } from "$lib/i18n";
 
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -55,6 +56,7 @@
     };
 
     let { src, detailSrc, startOnDetail = false, label, onclose }: Props = $props();
+    const { t } = useI18n();
 
     let wantsDetail = $state(untrack(() => startOnDetail));
     const showingDetail = $derived(wantsDetail && detailSrc !== undefined);
@@ -240,7 +242,7 @@
 
 <div class="flex items-center gap-3 py-2 pr-2 pl-4">
     <Dialog.Title class="min-w-0 flex-1 truncate text-sm font-semibold">{label}</Dialog.Title>
-    <IconButton label="Close screenshot" variant="outline" class="size-12 [&_svg]:size-5" onclick={onclose}>
+    <IconButton label={t("shot.close")} variant="outline" class="size-12 [&_svg]:size-5" onclick={onclose}>
         <X aria-hidden="true" />
     </IconButton>
 </div>
@@ -260,7 +262,7 @@
         <img
             bind:this={picture}
             src={shownSrc}
-            alt={showingDetail ? `${label}, close-up, shown with sample data` : `${label}, shown with sample data`}
+            alt={showingDetail ? t("shot.alt_close_up", { label }) : t("shot.alt", { label })}
             decoding="async"
             draggable="false"
             onload={measure}
@@ -281,21 +283,21 @@
                 hint === "fading" && "opacity-0",
             )}
         >
-            Pinch or double-tap to zoom
+            {t("shot.zoom_hint")}
         </p>
     {/if}
 </div>
 
 <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-2 py-2">
     {#if detailSrc}
-        <div role="group" aria-label="Which picture to show" class="flex">
+        <div role="group" aria-label={t("shot.picture_label")} class="flex">
             <Button
                 variant="toggle"
                 class="h-12 rounded-r-none px-4"
                 aria-pressed={showingDetail}
                 onclick={() => choose(true)}
             >
-                Detail<span class="sr-only">, a close-up of the same screenshot</span>
+                {t("shot.detail")}<span class="sr-only">{t("shot.detail_hint")}</span>
             </Button>
             <Button
                 variant="toggle"
@@ -303,13 +305,13 @@
                 aria-pressed={!showingDetail}
                 onclick={() => choose(false)}
             >
-                Full window<span class="sr-only">, the whole screenshot</span>
+                {t("shot.full")}<span class="sr-only">{t("shot.full_hint")}</span>
             </Button>
         </div>
     {/if}
     <div class="flex items-center gap-2">
         <IconButton
-            label="Zoom out"
+            label={t("shot.zoom_out")}
             variant="outline"
             class="size-12 aria-disabled:opacity-50 [&_svg]:size-5"
             aria-disabled={!zoomed}
@@ -321,7 +323,7 @@
             {Math.round(view.scale * 100)}%
         </span>
         <IconButton
-            label="Zoom in"
+            label={t("shot.zoom_in")}
             variant="outline"
             class="size-12 aria-disabled:opacity-50 [&_svg]:size-5"
             aria-disabled={atMax}
@@ -330,7 +332,7 @@
             <ZoomIn aria-hidden="true" />
         </IconButton>
         <IconButton
-            label="Reset zoom"
+            label={t("shot.zoom_reset")}
             variant="outline"
             class="size-12 aria-disabled:opacity-50 [&_svg]:size-5"
             aria-disabled={!zoomed}
