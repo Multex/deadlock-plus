@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { render } from "svelte/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -68,5 +69,63 @@ describe("first load", () => {
         expect(preloadAsset({ type: "font", path: "/_app/immutable/assets/retaildemo-bold.Ab1.woff2" })).toBe(false);
         expect(preloadAsset({ type: "js", path: "/_app/immutable/chunks/a.js" })).toBe(true);
         expect(preloadAsset({ type: "css", path: "/_app/immutable/assets/0.css" })).toBe(true);
+    });
+});
+
+const CLIENT = join(SRC, "../.svelte-kit/output/client");
+const MANIFEST = join(CLIENT, ".vite/manifest.json");
+
+interface Chunk {
+    file: string;
+    isEntry?: boolean;
+    imports?: string[];
+}
+
+/** The chunks and every chunk they import statically: what the browser fetches before it runs them. */
+function closure(manifest: Record<string, Chunk>, roots: string[]): Set<string> {
+    const seen = new Set<string>();
+    const walk = (key: string) => {
+        if (seen.has(key)) return;
+        seen.add(key);
+        for (const next of manifest[key]?.imports ?? []) walk(next);
+    };
+    roots.forEach(walk);
+    return seen;
+}
+
+const DECOR = /\/(theme-decor\.svelte|themes\/[\w-]+\/decor\.svelte)$/;
+
+// Reads the output of `pnpm build`, so CI runs this file once more after its build step.
+describe.skipIf(!existsSync(MANIFEST))("built bundle", () => {
+    const manifest: Record<string, Chunk> = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};
+    const read = (key: string) => readFileSync(join(CLIENT, manifest[key]?.file ?? ""));
+    // The client entry, the app and the root layout load on every page.
+    const firstLoad = closure(
+        manifest,
+        Object.keys(manifest).filter((key) => manifest[key]?.isEntry && /(entry|app|nodes\/0)\.js$/.test(key)),
+    );
+
+    it("keeps theme decor out of the code every page loads first", () => {
+        expect(firstLoad.size).toBeGreaterThan(0);
+        for (const key of firstLoad) {
+            expect(key).not.toMatch(DECOR);
+            // The shared decor loop pauses on this attribute; finding it means decor code came along.
+            expect(read(key).includes("data-decor-paused"), key).toBe(false);
+        }
+    });
+
+    it("keeps the code every page loads first within its byte budget", () => {
+        const bytes = [...firstLoad].reduce((sum, key) => sum + gzipSync(read(key)).length, 0);
+        expect(bytes).toBeLessThan(112_000);
+    });
+
+    it("keeps each theme's decor, with what it brings along, within its byte budget", () => {
+        const decors = Object.keys(manifest).filter((key) => /\/themes\/[\w-]+\/decor\.svelte$/.test(key));
+        expect(decors.length).toBeGreaterThan(0);
+        for (const decor of decors) {
+            const extra = [...closure(manifest, [decor])].filter((key) => !firstLoad.has(key));
+            const bytes = extra.reduce((sum, key) => sum + gzipSync(read(key)).length, 0);
+            expect(bytes, decor).toBeLessThan(12_000);
+        }
     });
 });

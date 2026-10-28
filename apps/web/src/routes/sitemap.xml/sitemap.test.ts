@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { WEB_LOCALES } from "@deadlock-plus/links";
 import { SITE_URL } from "@deadlock-plus/links/urls";
+import { THEMES } from "$lib/content/themes";
 import { GET } from "./+server";
 
 type Event = Parameters<typeof GET>[0];
@@ -17,6 +18,7 @@ const PAGE_ROUTES = [
         .filter((entry) => entry.isDirectory() && existsSync(`${routes}/${entry.name}/+page.svelte`))
         .map((entry) => `/${entry.name}`)
         .filter((path) => path !== "/og"),
+    ...THEMES.map((theme) => `/themes/${theme.id}`),
 ];
 
 async function sitemap(): Promise<{ response: Response; body: string; locs: string[] }> {
@@ -48,10 +50,18 @@ describe("GET /sitemap.xml", () => {
     it("lists each translated page in every language, and the English-only pages in English alone", async () => {
         const { locs } = await sitemap();
         for (const locale of WEB_LOCALES) {
-            for (const path of ["", "/features", "/download", "/faq"])
+            for (const path of ["", "/features", "/download", "/faq", "/themes", "/themes/nightshift"])
                 expect(locs).toContain(`${SITE_URL}/${locale}${path}`);
             expect(locs).not.toContain(`${SITE_URL}/${locale}/privacy`);
             expect(locs).not.toContain(`${SITE_URL}/${locale}/transparency`);
+        }
+    });
+
+    it("lists every theme's page in every language", async () => {
+        const { locs } = await sitemap();
+        for (const theme of THEMES) {
+            expect(locs).toContain(`${SITE_URL}/themes/${theme.id}`);
+            for (const locale of WEB_LOCALES) expect(locs).toContain(`${SITE_URL}/${locale}/themes/${theme.id}`);
         }
     });
 

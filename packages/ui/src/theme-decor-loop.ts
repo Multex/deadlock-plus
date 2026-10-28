@@ -29,6 +29,11 @@ export interface CanvasScene {
     ): number;
 }
 
+/** A finger on a phone is scrolling or tapping the page, not waving through the air, so only a cursor stirs it. */
+export function stirsDecor(e: Pick<PointerEvent, "pointerType">): boolean {
+    return e.pointerType !== "touch";
+}
+
 /** The decor stops while the window is hidden or not focused, or when motion is reduced. */
 function paused(root: HTMLElement): boolean {
     return document.hidden || root.hasAttribute("data-decor-paused") || root.hasAttribute("data-reduced-motion");
@@ -117,6 +122,7 @@ export function runCanvas(canvas: HTMLCanvasElement, scene: CanvasScene, maxPixe
     let pointer: Pointer | null = null;
     let lastMove = 0;
     const onMove = (e: PointerEvent) => {
+        if (!stirsDecor(e)) return;
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const seconds = (e.timeStamp - lastMove) / 1000;

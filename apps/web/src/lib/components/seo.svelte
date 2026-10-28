@@ -11,11 +11,21 @@
         description,
         noindex = false,
         schema = [],
-    }: { title: string; description?: string; noindex?: boolean; schema?: SchemaNode[] } = $props();
+        image,
+        imageAlt,
+    }: {
+        title: string;
+        description?: string;
+        noindex?: boolean;
+        schema?: SchemaNode[];
+        /** A page's own link preview, as a path on this site; the site's picture otherwise. */
+        image?: string;
+        imageAlt?: string;
+    } = $props();
 
     const { t, locale } = useI18n();
 
-    const meta = $derived(socialMeta(page.url.pathname));
+    const meta = $derived(socialMeta(page.url.pathname, image));
     const languages = $derived(noindex ? [] : alternates(page.url.pathname));
     const preview = $derived(description ?? t("site.tagline"));
     const structuredData = $derived(jsonLd([...siteNodes(locale), ...schema]));
@@ -42,7 +52,7 @@
     <meta property="og:image" content={meta.image} />
     <meta property="og:image:width" content={String(OG_IMAGE.width)} />
     <meta property="og:image:height" content={String(OG_IMAGE.height)} />
-    <meta property="og:image:alt" content={t("site.og_image_alt")} />
+    <meta property="og:image:alt" content={imageAlt ?? t("site.og_image_alt")} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />

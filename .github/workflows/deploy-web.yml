@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - apps/web/**
+      - locales/web/**
       - packages/ui/**
       - packages/links/**
       - packages/analytics/**
@@ -12,16 +13,16 @@ on:
       - pnpm-lock.yaml
   workflow_dispatch:
 
-concurrency:
-  group: deploy-web
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # On the job, not the workflow, so a slow screenshot job never holds the next deploy back.
+    concurrency:
+      group: deploy-web
+      cancel-in-progress: false
     steps:
       - name: Check Cloudflare secrets
         id: gate
@@ -71,3 +72,62 @@ jobs:
           workingDirectory: apps/web
           packageManager: pnpm
           command: deploy
+
+  # Beside the deploy, never in its way: nothing needs this job and its failure does not fail the run.
+  crowdin-screenshots:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    concurrency:
+      group: crowdin-web-screenshots
+      cancel-in-progress: true
+    steps:
+      - name: Check Crowdin secrets
+        id: gate
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+        run: |
+          if [ -n "$CROWDIN_PERSONAL_TOKEN" ] && [ -n "$CROWDIN_PROJECT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Crowdin secrets are not set; skipping."
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.gate.outputs.enabled == 'true'
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          version: 11
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      # The capture lives with the app's Playwright and drives the runner's own Chrome, so no browser download.
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile --filter "deadlock-plus-web..." --filter "deadlock-plus..."
+
+      - name: Build the website
+        if: steps.gate.outputs.enabled == 'true'
+        run: pnpm build
+        working-directory: apps/web
+
+      - name: Capture screenshots
+        if: steps.gate.outputs.enabled == 'true'
+        run: node e2e/support/crowdin-web-shots.mjs
+        working-directory: apps/desktop
+
+      - name: Upload to Crowdin
+        if: steps.gate.outputs.enabled == 'true'
+        run: node scripts/crowdin-screenshots.mjs --dir apps/desktop/test-results/crowdin-web
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}

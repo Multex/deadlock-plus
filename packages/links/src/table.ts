@@ -29,6 +29,7 @@ export const RESERVED_PATHS: readonly string[] = [
     "privacy",
     "screenshots",
     "sitemap.xml",
+    "themes",
     "transparency",
     // `/de` and the other locale homes win too. Landing paths are lowercase, so the names are compared that way.
     ...WEB_LOCALES.map((locale) => locale.toLowerCase()),
