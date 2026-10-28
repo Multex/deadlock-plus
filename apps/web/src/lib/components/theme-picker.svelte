@@ -1,13 +1,20 @@
 <script lang="ts">
     import { onMount, type Component, type ComponentProps } from "svelte";
+    import { ArrowRight } from "@lucide/svelte";
+    import { page } from "$app/state";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
     import { THEMES, themeKey, type ThemeId } from "$lib/content/themes";
     import { themeState } from "$lib/content/theme-state.svelte";
+    import { currentRef, withRef } from "$lib/content/ref";
     import { useI18n } from "$lib/i18n";
+    import { localizedHref } from "$lib/i18n/routes";
     import type ThemeOptions from "./theme-options.svelte";
 
-    const { t } = useI18n();
+    const i18n = useI18n();
+    const { t } = i18n;
+
+    const gallery = $derived(localizedHref(withRef("/themes", currentRef(page.url)), i18n.locale));
 
     const current = $derived(themeState.theme);
     const currentLabel = $derived(t(`themes.${themeKey(current)}`));
@@ -76,6 +83,13 @@
             {/each}
         </div>
         <p class="text-muted-foreground" aria-hidden="true">{currentLabel}</p>
+        <a
+            href={gallery}
+            class="-mx-2 inline-flex h-9 items-center gap-2 rounded-md px-2 whitespace-nowrap text-foreground transition-colors hover:bg-accent/50 hover:text-brass focus-visible:bg-accent/50 focus-visible:text-brass"
+        >
+            {t("themes.all")}
+            <ArrowRight class="size-4 shrink-0" aria-hidden="true" />
+        </a>
     </div>
     {#if Options && active}
         <Options theme={active} />

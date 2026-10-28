@@ -1,5 +1,7 @@
 import { render } from "svelte/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("$app/state", () => ({ page: { url: new URL("https://deadlockplus.app/") } }));
 import { THEMES, type Theme } from "$lib/content/themes";
 
 import ThemeOptions from "./theme-options.svelte";
