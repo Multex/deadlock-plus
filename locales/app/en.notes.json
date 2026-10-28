@@ -958,5 +958,8 @@
         "error_body": "Error detail. Shown under the section error title. Says the rest of Deadlock+ is not affected. Deadlock+ stays untranslated.",
         "retry": "Button on error messages. Tries the failed action or section again. Keep short, about 5 characters.",
         "page_title": "Error title. Shown when a whole page fails to render. Followed by a Retry button."
+    },
+    "announcements": {
+        "dismiss": "Tooltip and screen reader label of the icon button that hides a notice from the Deadlock+ team. The notice stays hidden for good. Deadlock+ stays untranslated."
     }
 }

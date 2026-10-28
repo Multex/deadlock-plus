@@ -287,6 +287,7 @@ export function shellModule({
                 ...Object.fromEntries(SETTERS.map((name) => [name, () => null])),
                 app_info: () => info,
                 changelog: () => changelog,
+                get_announcements: () => [],
                 current_steam_account: () => steamAccount,
                 pending_crash: () => null,
                 ingest_status: () => INGEST,

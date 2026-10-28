@@ -1,4 +1,5 @@
 import type { Scenario } from "../scenario";
+import { ANNOUNCEMENT_SCENARIOS } from "./announcements";
 import { defaultScenario, postMatchScenario, recoveryScenario, type ScenarioOptions } from "./default";
 import { RECOVERY_PRESETS } from "./default/recovery";
 import { dispatchPersonaScenario, dispatchScenario, dispatchSpecialsScenario } from "./dispatch";
@@ -37,6 +38,7 @@ export const scenarios: Record<string, ScenarioFactory> = {
     ...Object.fromEntries(
         RECOVERY_SCENARIO_IDS.map((id): [string, ScenarioFactory] => [id, (options) => recoveryScenario(id, options)]),
     ),
+    ...ANNOUNCEMENT_SCENARIOS,
 };
 
 /** The factory of scenario `id`. Throws on an id that is not registered. */

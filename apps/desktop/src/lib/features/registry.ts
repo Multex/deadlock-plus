@@ -15,6 +15,7 @@ import {
 import type { Component } from "svelte";
 import { installFrontendLogging } from "./logging/frontend";
 import { adminAccess } from "./admin-access/admin-access.svelte";
+import { announcements } from "./announcements/announcements.svelte";
 import { apiHealth } from "./api-health/health.svelte";
 import { alerts } from "./alerts/alerts.svelte";
 import { connectivity } from "./connectivity/online.svelte";
@@ -238,6 +239,7 @@ export const SERVICES: Service[] = [
     },
     () => nudgeOnLaunch(),
     startBackgroundUpdateChecks,
+    () => announcements.start(),
 ];
 
 export { isActivePath } from "./home/home";
