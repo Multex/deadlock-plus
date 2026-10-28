@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { focusIsVisible, open, seedTheme } from "./support/flows";
 import { problemsOf, real, walk, type Stop } from "./support/focus-walk";
+import { WINDOWS_UA } from "./support/platform";
 import { ROUTE_CALLS } from "./support/route-calls";
 import { expect, settle, test } from "./support/test";
 
@@ -423,7 +424,8 @@ const WALK_THEMES = ["deadlock", "daylight", "contrast"];
 
 for (const scenario of [...new Set(ROUTE_CALLS.map((route) => route.scenario))]) {
     test.describe(`keyboard walk on the ${scenario} scenario`, () => {
-        test.use({ scenario });
+        // The routes were recorded as Windows, and some of them, like the overlay settings, exist only there.
+        test.use({ scenario, userAgent: WINDOWS_UA });
         // A match page has a few hundred stops, and each one is a key press and a look at the page.
         test.describe.configure({ timeout: 120_000 });
         for (const route of ROUTE_CALLS.filter((r) => r.scenario === scenario)) {
