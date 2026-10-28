@@ -8,6 +8,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { BUSY_MS, burst, glowSprite, runCanvas, runTicker } from "../../theme-decor-loop";
+    import { decorScope } from "../../theme-decor-scope";
     import { between, seeded } from "../../theme-decor-random";
     import { litShare, sky } from "./city";
     import { TURN_STEP_MS, hands, onShift, turnAt } from "./clock";
@@ -267,14 +268,15 @@
             }
         };
 
-        const main = document.querySelector("main");
+        const page = decorScope(canvas, document, window);
+        const main = page.root;
         // The page's title row on the canvas, measured from the top of the page rather than the scrolled view.
         const header = (): Header | null => {
             const title = main?.querySelector("h1");
             if (!main || !title) return null;
             const box = (title.closest("header") ?? title).getBoundingClientRect();
             const origin = canvas.getBoundingClientRect();
-            const top = box.top - origin.top + main.scrollTop;
+            const top = box.top - origin.top + page.scrollTop();
             if (top >= LIGHTS_HEIGHT) return null;
             return { left: box.left - origin.left, right: box.right - origin.left, top };
         };
