@@ -95,19 +95,20 @@ export const landing = staffCommand("landing", "Short paths typed after the site
     ]),
 ]);
 
+export const announce = staffCommand("announce", "Post an announcement as the bot; the text is asked next").options([
+    makeChannelOption("channel", "The channel to post in")
+        .required(true)
+        .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
+    makeRoleOption("role", "The only role the post mentions; nobody if empty"),
+]);
+
 const time = (name: string, description: string) =>
     makeStringOption(name, `${description}, as YYYY-MM-DD or 2026-10-28T18:00Z`).max_length(40);
 const pickAnnouncement = (description: string) =>
     makeStringOption("id", description).required(true).autocomplete(true).max_length(64);
 
 // Limits match what the app accepts from the feed.
-export const announce = staffCommand("announce", "Announcements in a Discord channel or in the app").options([
-    makeSubCommand("discord", "Post in a Discord channel as the bot; the text is asked next").options([
-        makeChannelOption("channel", "The channel to post in")
-            .required(true)
-            .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
-        makeRoleOption("role", "The only role the post mentions; nobody if empty"),
-    ]),
+export const notice = staffCommand("notice", "Announcements shown in the Deadlock+ app").options([
     makeSubCommand("post", "Show an announcement in the app; you see a preview first").options([
         makeStringOption("title", "One line, plain text").required(true).max_length(80),
         makeStringOption("body", "Plain text; type \\n for a new line").required(true).max_length(1200),
@@ -138,4 +139,4 @@ export const announce = staffCommand("announce", "Announcements in a Discord cha
     ]),
 ]);
 
-export const commands = [cost, invite, landing, announce];
+export const commands = [cost, invite, landing, announce, notice];

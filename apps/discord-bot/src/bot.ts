@@ -86,8 +86,12 @@ export function createBot(options: BotOptions = {}) {
                 c.flags("EPHEMERAL").res(await runLanding(c.sub.command, c.var, c.env.TRANSPARENCY)),
             ),
         )
-        .autocomplete(
+        .command(
             "announce",
+            staffOnly((c) => c.resModal(modalFor(c.var))),
+        )
+        .autocomplete(
+            "notice",
             staffSuggestions(async (c) =>
                 c.resAutocomplete(await feedChoices(String(c.focused?.value ?? ""), c.env.TRANSPARENCY)),
             ),
@@ -95,8 +99,6 @@ export function createBot(options: BotOptions = {}) {
                 const deps = feedDeps(c.env);
                 const input: Input = c.var;
                 switch (c.sub.command) {
-                    case "discord":
-                        return c.resModal(modalFor(c.var));
                     case "post": {
                         const preview = await previewPost(c.var, c.interaction.id, deps);
                         return typeof preview === "string" ? c.flags("EPHEMERAL").res(preview) : c.res(preview);

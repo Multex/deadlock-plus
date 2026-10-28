@@ -67,3 +67,13 @@ describe("commands", () => {
         }
     });
 });
+
+describe("/announce and /notice", () => {
+    const names = (command: { toJSON(): unknown }) => ((command.toJSON() as Option).options ?? []).map((o) => o.name);
+    const named = (name: string) => commands.find((command) => command.toJSON().name === name)!;
+
+    it("keep the channel post and the app feed apart", () => {
+        expect(names(named("announce"))).toEqual(["channel", "role"]);
+        expect(names(named("notice"))).toEqual(["post", "list", "end", "remove"]);
+    });
+});

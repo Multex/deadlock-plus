@@ -32,9 +32,9 @@ import {
     type Severity,
 } from "./feed";
 
-export const CONFIRM_BUTTON = "announce-confirm";
-export const CANCEL_BUTTON = "announce-cancel";
-export const DRAFT_PREFIX = "announce-draft:";
+export const CONFIRM_BUTTON = "notice-confirm";
+export const CANCEL_BUTTON = "notice-cancel";
+export const DRAFT_PREFIX = "notice-draft:";
 /** A preview's buttons stay on screen for a while; past this, Confirm asks for a new preview. */
 const DRAFT_TTL = 3600;
 const POSTED = "posted";
@@ -159,13 +159,13 @@ export async function previewPost(input: Input, draftId: string, deps: FeedDeps)
 export async function confirmPost(draftId: string, deps: FeedDeps): Promise<string> {
     const key = `${DRAFT_PREFIX}${draftId}`;
     const stored = await deps.store.get(key);
-    if (stored === null) return "This preview has expired, so nothing was posted. Run `/announce post` again.";
+    if (stored === null) return "This preview has expired, so nothing was posted. Run `/notice post` again.";
     if (stored === POSTED) return "This announcement was already posted.";
     if (!deps.signingKey) return NO_KEY;
     const loaded = await load(deps.store);
     if (!loaded.ok) return BROKEN;
     if (loaded.announcements.length >= MAX_ANNOUNCEMENTS) {
-        return `The feed holds ${MAX_ANNOUNCEMENTS} announcements at most. Remove one with \`/announce remove\` first.`;
+        return `The feed holds ${MAX_ANNOUNCEMENTS} announcements at most. Remove one with \`/notice remove\` first.`;
     }
     const draft = JSON.parse(stored) as Draft;
     const id = announcementId(

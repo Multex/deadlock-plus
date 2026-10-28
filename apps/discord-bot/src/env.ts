@@ -17,7 +17,7 @@ export interface Env extends PostHogQueryEnv, AnalyticsEnv {
     DISCORD_GUILD_ID: string;
     /** The website's KV namespace: the site reads the cost list, the links table and the announcements feed from it. */
     TRANSPARENCY: Kv;
-    /** Ed25519 private JWK that signs the app's announcements feed; `/announce` refuses to write without it. */
+    /** Ed25519 private JWK that signs the app's announcements feed; `/notice` refuses to write without it. */
     ANNOUNCE_SIGNING_KEY?: string;
 }
 

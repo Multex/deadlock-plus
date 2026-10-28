@@ -72,8 +72,8 @@ describe("previewPost", () => {
         expect(json).toContain("0.13.1 cannot update itself.");
         expect(json).toContain("Critical");
         expect(json).toContain("=0.13.1");
-        expect(json).toContain("announce-confirm;111");
-        expect(json).toContain("announce-cancel;111");
+        expect(json).toContain("notice-confirm;111");
+        expect(json).toContain("notice-cancel;111");
         expect(d.store.data.has(ANNOUNCEMENTS_KEY)).toBe(false);
         expect(d.store.puts).toEqual([{ key: `${DRAFT_PREFIX}111`, ttl: 3600 }]);
     });
@@ -160,7 +160,7 @@ describe("confirmPost", () => {
 
     it("says so when the preview is gone", async () => {
         const d = deps();
-        expect(await confirmPost("404", d)).toContain("/announce post");
+        expect(await confirmPost("404", d)).toContain("/notice post");
         expect(d.store.data.has(ANNOUNCEMENTS_KEY)).toBe(false);
     });
 

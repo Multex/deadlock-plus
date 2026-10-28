@@ -7,19 +7,19 @@ The internal Deadlock+ bot. It is a Cloudflare Worker that answers Discord's int
 - `/cost list|add|edit|end`: the running costs on the website's transparency page.
 - `/invite list|stats|create|edit|delete`: the invite codes the website and the app link to, with joins per invite.
 - `/landing add|delete`: short paths such as `deadlockplus.app/ig` and the invite each one counts under.
-- `/announce discord channel [role]`: opens a form for a title, text and an optional link, then posts it as the bot. It mentions only the picked role.
-- `/announce post|list|end|remove`: the announcements the app shows in its banner. See [App announcements](#app-announcements).
+- `/announce channel [role]`: opens a form for a title, text and an optional link, then posts it as the bot. It mentions only the picked role.
+- `/notice post|list|end|remove`: the announcements the app shows in its banner. See [App announcements](#app-announcements).
 
-Every reply is private. `/cost`, `/invite`, `/landing` and `/announce post|end|remove` write the website's `TRANSPARENCY` KV namespace (keys `costs`, `links` and `announcements`). The website reads them from there.
+Every reply is private. `/cost`, `/invite`, `/landing` and `/notice post|end|remove` write the website's `TRANSPARENCY` KV namespace (keys `costs`, `links` and `announcements`). The website reads them from there.
 
 ## App announcements
 
 The app fetches `https://deadlockplus.app/announcements.json`, which the website serves straight from the `announcements` key. The bot is the only writer.
 
-- `/announce post` takes a title (80 characters), a text (600 characters, `\n` for a new line), a severity, and optionally a version range (Rust semver syntax, e.g. `>=0.13.0, <0.13.2`), a platform, start and end times, and a link with a label. Links may only go to `deadlockplus.app`, `discord.gg`, `discord.com/invite` or `github.com/deadlock-plus`.
-- It answers with a preview and Confirm/Cancel. Nothing is written until Confirm. The preview's draft waits under `announce-draft:<id>` for an hour.
+- `/notice post` takes a title (80 characters), a text (600 characters, `\n` for a new line), a severity, and optionally a version range (Rust semver syntax, e.g. `>=0.13.0, <0.13.2`), a platform, start and end times, and a link with a label. Links may only go to `deadlockplus.app`, `discord.gg`, `discord.com/invite` or `github.com/deadlock-plus`.
+- It answers with a preview and Confirm/Cancel. Nothing is written until Confirm. The preview's draft waits under `notice-draft:<id>` for an hour.
 - Confirm re-reads the feed, adds the announcement with an id made of the title and the day, and signs the whole feed again.
-- `/announce end <id>` sets its end to now. `/announce remove <id>` deletes it. `/announce list` shows every one.
+- `/notice end <id>` sets its end to now. `/notice remove <id>` deletes it. `/notice list` shows every one.
 - The feed holds 20 announcements and 64 KiB at most. Remove old ones once they have ended.
 
 The feed is an envelope `{"keyId", "payload", "signature"}`. `payload` is the feed's JSON as base64url, and `signature` is an Ed25519 signature over those bytes. Every write moves `issuedAt` forward, since the app ignores a feed older than the last one it checked. The key id is `ANNOUNCE_KEY_ID` in `src/feed.ts`.
@@ -50,7 +50,7 @@ Every hour the cron sends each invite's use count to PostHog as `discord_invite_
     - `DISCORD_GUILD_ID`: the server's id. While it is empty, the bot refuses every command.
     - `POSTHOG_KEY`: the project key (`phc_…`), to send the hourly counts.
     - `POSTHOG_PERSONAL_KEY`: a personal key with `query:read`, for `/invite stats`.
-    - `ANNOUNCE_SIGNING_KEY`: the Ed25519 private key that signs the app's announcements, as a JWK (`{"kty":"OKP","crv":"Ed25519","d":...,"x":...}`). Without it, `/announce post|end|remove` write nothing. Its public half (`x`) is built into the app; a new key needs a new `ANNOUNCE_KEY_ID` and an app release that knows it. To make a key and set it in one go, run this from this folder instead of the `secret put` line above. It prints only the public `x` for the app and hands the private key straight to wrangler (not through a PowerShell pipe, which would add a BOM). The private key is never shown, so a lost secret means a new key and a new key id:
+    - `ANNOUNCE_SIGNING_KEY`: the Ed25519 private key that signs the app's announcements, as a JWK (`{"kty":"OKP","crv":"Ed25519","d":...,"x":...}`). Without it, `/notice post|end|remove` write nothing. Its public half (`x`) is built into the app; a new key needs a new `ANNOUNCE_KEY_ID` and an app release that knows it. To make a key and set it in one go, run this from this folder instead of the `secret put` line above. It prints only the public `x` for the app and hands the private key straight to wrangler (not through a PowerShell pipe, which would add a BOM). The private key is never shown, so a lost secret means a new key and a new key id:
         ```sh
         node -e "const k=require('crypto').generateKeyPairSync('ed25519').privateKey.export({format:'jwk'});console.log('x='+k.x);require('child_process').execSync('pnpm wrangler secret put ANNOUNCE_SIGNING_KEY',{input:JSON.stringify(k),stdio:['pipe','inherit','inherit']})"
         ```
