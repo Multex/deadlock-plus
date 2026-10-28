@@ -1,0 +1,326 @@
+{
+    "performance": {
+        "title": "",
+        "rules": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
+        },
+        "severity": {
+            "low": "",
+            "medium": "",
+            "high": ""
+        },
+        "addon": {
+            "gamebanana_mod": "",
+            "mod_id": "",
+            "disabled": ""
+        },
+        "frame_capture": {
+            "note_windows": "",
+            "note_linux": "",
+            "note_macos": ""
+        },
+        "runs": {
+            "default_label": ""
+        },
+        "metrics": {
+            "avg_fps": "",
+            "low_1pct_fps": "",
+            "low_01pct_fps": "",
+            "median_frametime": "",
+            "p95": "",
+            "p99": "",
+            "spikes_per_minute": "",
+            "spikes": "",
+            "longest_frame": ""
+        },
+        "units": {
+            "ms": ""
+        },
+        "only_on_in": "",
+        "same_addons": "",
+        "report": {
+            "title": "",
+            "tie": "",
+            "run_length": "",
+            "run_a": "",
+            "run_b": "",
+            "better": "",
+            "disclaimer": ""
+        },
+        "layer": {
+            "copied": "",
+            "copy_failed": "",
+            "installed": "",
+            "not_installed": "",
+            "installed_hint": "",
+            "install_hint": "",
+            "unavailable": "",
+            "remove": "",
+            "install": "",
+            "steps": "",
+            "copy": ""
+        },
+        "tabs": {
+            "frametimes": {
+                "title": "",
+                "blurb": ""
+            },
+            "scripts": {
+                "title": "",
+                "blurb": ""
+            },
+            "compare": {
+                "title": "",
+                "blurb": ""
+            }
+        },
+        "compare": {
+            "copied": "",
+            "copy_failed": "",
+            "saved": "",
+            "save_failed": "",
+            "file_filter": "",
+            "pick_run": "",
+            "intro": "",
+            "empty_none": "",
+            "empty_single": "",
+            "empty_hint": "",
+            "run_a": "",
+            "run_b": "",
+            "pick_different": "",
+            "copy_report": "",
+            "save_report": "",
+            "legend": "",
+            "no_difference": "",
+            "mixed": "",
+            "favours_a": "",
+            "favours_b": "",
+            "addons_differ": "",
+            "only_on_in": "",
+            "delete_run": "",
+            "addons_on_other": ""
+        },
+        "frametimes": {
+            "intro": "",
+            "start": "",
+            "stop": "",
+            "waiting": "",
+            "background": "",
+            "limit": "",
+            "no_frames": "",
+            "none_recorded": "",
+            "left_out": "",
+            "label_aria": "",
+            "label_placeholder": "",
+            "save": "",
+            "saved": "",
+            "spike_at": "",
+            "needs_admin": "",
+            "recording_other": "",
+            "graph_caption_other": "",
+            "summary_other": "",
+            "save_hint_other": ""
+        },
+        "scripts": {
+            "intro": "",
+            "run_now": "",
+            "scanning_button": "",
+            "scan_again": "",
+            "disclaimer": "",
+            "no_install": "",
+            "none_installed": "",
+            "finding": "",
+            "progress": "",
+            "progress_paused": "",
+            "progress_aria": "",
+            "scripts_clean": "",
+            "no_scripts": "",
+            "worth_a_look": "",
+            "could_not_read": "",
+            "scanned_clean": "",
+            "error_badge": "",
+            "with_findings_other": "",
+            "scripts_count_other": "",
+            "pending_other": "",
+            "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
+        }
+    },
+    "demos": {
+        "title": "",
+        "subtitle": "",
+        "open_folder": "",
+        "clean_up": "",
+        "delete_selected": "",
+        "refresh": "",
+        "reading": "",
+        "no_folder": "",
+        "select_page": "",
+        "empty_none": "",
+        "empty_filtered": "",
+        "reference_build": "",
+        "match_id": "",
+        "hero_id": "",
+        "status": {
+            "complete": {
+                "label": "",
+                "hint": ""
+            },
+            "partial": {
+                "label": "",
+                "hint": ""
+            },
+            "outdated": {
+                "label": "",
+                "hint": ""
+            },
+            "unknown": {
+                "label": "",
+                "hint": ""
+            }
+        },
+        "filter": {
+            "all": "",
+            "pinned": "",
+            "status_count": "",
+            "summary_other": ""
+        },
+        "pager": {
+            "previous": "",
+            "next": "",
+            "page": ""
+        },
+        "row": {
+            "select": "",
+            "unknown_hero": "",
+            "build": "",
+            "not_in_api": "",
+            "details_unavailable": "",
+            "win": "",
+            "loss": "",
+            "pin": "",
+            "pinned_hint": "",
+            "unpinned_hint": "",
+            "more_actions": "",
+            "open_statlocker": "",
+            "show_in_folder": "",
+            "delete": "",
+            "delete_unpin_first": "",
+            "pin_match": "",
+            "more_actions_match": ""
+        },
+        "delete": {
+            "disabled": "",
+            "description": "",
+            "method": "",
+            "recycle": "",
+            "recycle_hint": "",
+            "permanent": "",
+            "permanent_hint": "",
+            "title_other": "",
+            "too_large_other": "",
+            "too_large_room_other": ""
+        },
+        "cleanup": {
+            "title": "",
+            "description": "",
+            "older_than": "",
+            "days_label": "",
+            "days_unit": "",
+            "larger_than": "",
+            "gigabytes_label": "",
+            "gb_unit": "",
+            "turn_on": "",
+            "checking": "",
+            "close": "",
+            "rule_larger_gb": "",
+            "rule_larger_mb": "",
+            "rule_outdated": "",
+            "rule_partial": "",
+            "matches_other": "",
+            "review_other": "",
+            "rule_older_than_days_other": ""
+        },
+        "toast": {
+            "deleted_other": "",
+            "delete_failed_other": ""
+        }
+    },
+    "voice_bans": {
+        "title": "",
+        "subtitle": "",
+        "your_account": "",
+        "export_all": "",
+        "export_selected": "",
+        "import": "",
+        "reading": "",
+        "no_file": "",
+        "unknown_player": "",
+        "profile_unknown": "",
+        "not_a_voice_ban": "",
+        "unrecognised_import": "",
+        "api_error": "",
+        "game_running": {
+            "title": "",
+            "body": ""
+        },
+        "add": {
+            "placeholder": "",
+            "aria": "",
+            "mute": "",
+            "search": "",
+            "none_found": "",
+            "muted": "",
+            "mute_named": ""
+        },
+        "filter": {
+            "placeholder": "",
+            "aria": "",
+            "unmute_selected": ""
+        },
+        "list": {
+            "select_page": "",
+            "count": "",
+            "empty": "",
+            "no_match": ""
+        },
+        "row": {
+            "select": "",
+            "open_aria": "",
+            "open_title": "",
+            "unmute": "",
+            "unmute_named": "",
+            "open_named_aria": ""
+        },
+        "pager": {
+            "previous": "",
+            "next": "",
+            "page": ""
+        },
+        "unmute": {
+            "description": "",
+            "confirm": "",
+            "title_other": ""
+        },
+        "import_dialog": {
+            "confirm": "",
+            "title_other": "",
+            "description_other": ""
+        },
+        "toast": {
+            "backup": "",
+            "already_muted": "",
+            "not_recognised": "",
+            "search_failed": "",
+            "exported": "",
+            "export_failed": "",
+            "import_failed": "",
+            "unmuted_other": "",
+            "muted_other": ""
+        }
+    }
+}

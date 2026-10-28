@@ -267,8 +267,8 @@ Want a language that isn't there yet? [Open an issue](../../issues).
 
 - English is the source language.
 - Approved translations arrive as a pull request.
-- Do not edit `locales/<lang>.json` by hand. Crowdin overwrites it.
-- To fix English text, change `locales/en.json` in a pull request.
+- Do not edit `locales/<area>/<lang>.json` by hand. Crowdin overwrites them.
+- To fix English text, change `locales/<area>/en.json` in a pull request.
 
 How the sync works is in [CONTRIBUTING.md](CONTRIBUTING.md#translations).
 

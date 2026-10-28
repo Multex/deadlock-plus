@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - locales/en.json
+      - locales/*/en.json
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:

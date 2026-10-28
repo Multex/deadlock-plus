@@ -1,0 +1,252 @@
+{
+    "server_picker": {
+        "title": "",
+        "subtitle": "",
+        "presets_button": "",
+        "ping_button": "Ping",
+        "unblock_all_button": "",
+        "filter_placeholder": "",
+        "filter_aria": "",
+        "loading": "",
+        "no_games": "",
+        "no_match": "",
+        "external_fallback": "",
+        "unsupported": "",
+        "unblock_all": {
+            "title": "",
+            "confirm": "",
+            "description_one": "",
+            "description_other": ""
+        },
+        "import": {
+            "title": "",
+            "description": "",
+            "confirm": "Importer"
+        },
+        "ping": {
+            "ms": "{value} ms",
+            "no_reply": "Pas de réponse"
+        },
+        "external": {
+            "summary": "Détecté : {rules} bloquant {regions}.",
+            "import": "Importer",
+            "rules_one": "",
+            "rules_other": "",
+            "regions_one": "",
+            "regions_other": ""
+        },
+        "game_running": {
+            "title": "",
+            "body": ""
+        },
+        "sort": {
+            "by": "Trier par {label}",
+            "ascending": "croissant",
+            "descending": "décroissant",
+            "region": "Région",
+            "ping": "",
+            "blocked": "Bloqué"
+        },
+        "presets": {
+            "title": "Préréglages",
+            "description": "",
+            "edit_title": "Modifier le préréglage",
+            "new_title": "Nouveau préréglage",
+            "edit_description": "",
+            "name_placeholder": "Nom du préréglage, par exemple \"UE uniquement\"",
+            "name_aria": "Nom du préréglage",
+            "mode_aria": "Mode de préréglage",
+            "mode_allow_title": "",
+            "mode_allow_note": "",
+            "mode_block_title": "",
+            "mode_block_note": "",
+            "filter_placeholder": "",
+            "filter_aria": "",
+            "will_block": "",
+            "summary_allow": "",
+            "summary_block": "",
+            "back": "",
+            "save": "",
+            "apply": "Appliquer",
+            "edit_label": "Modifier {name}",
+            "delete_label": "Supprimer {name}",
+            "empty": "Aucun préréglage pour l'instant.",
+            "save_current": "",
+            "new": "",
+            "apply_label": ""
+        },
+        "row": {
+            "collapse": "",
+            "expand": "",
+            "partial": "",
+            "routing_aria": "",
+            "unblockable": "",
+            "block_siblings": "",
+            "no_reply_hint": "",
+            "ping_region": "",
+            "ping_relay": "",
+            "applying": "Application en cours",
+            "blocked": "Bloqué",
+            "open": "Ouvert",
+            "block_aria": "Bloquer {name}",
+            "locked": "",
+            "expand_aria": "",
+            "collapse_aria": "",
+            "ping_aria": "",
+            "relay_groups_one": "",
+            "relay_groups_other": "",
+            "relays_one": "",
+            "relays_other": ""
+        },
+        "toast": {
+            "refresh_failed": "",
+            "firewall_read_failed": "",
+            "relays_moved": "",
+            "blocks_update_failed": "",
+            "sync_failed": "",
+            "unsupported": "",
+            "blocked": "Bloqué : {name}",
+            "unblocked": "Débloqué : {name}",
+            "block_failed": "",
+            "unblock_failed": "",
+            "siblings_failed": "",
+            "unblock_all_failed": "",
+            "preset_applied": "",
+            "preset_apply_failed": "",
+            "preset_saved": "Enregistré : \"{name}\"",
+            "preset_save_failed": "",
+            "preset_delete_failed": "",
+            "import_failed": "",
+            "unblocked_rules_one": "",
+            "unblocked_rules_other": "",
+            "imported_one": "",
+            "imported_other": ""
+        },
+        "admin_needed": {
+            "block": "",
+            "unblock": "",
+            "siblings": "",
+            "unblock_all": "",
+            "preset": "",
+            "import": "",
+            "description": ""
+        }
+    },
+    "live": {
+        "state": {
+            "game_closed": "",
+            "menus": "",
+            "queuing": "",
+            "pregame": "Début de la partie",
+            "in_match": "Dans une partie",
+            "post_match": "Partie terminée",
+            "game_closed_hint": "",
+            "menus_hint": "",
+            "queuing_hint": "",
+            "pregame_hint": "",
+            "in_match_hint": "",
+            "post_match_hint": "",
+            "loading_match": "",
+            "loading_match_hint": ""
+        },
+        "team": {
+            "amber": "Le Roi de l'Ombre",
+            "sapphire": "La Matriarche"
+        },
+        "mode": {
+            "unranked": "",
+            "ranked": "",
+            "privateLobby": "",
+            "coopBot": "",
+            "tutorial": "Tutoriel",
+            "other": ""
+        },
+        "game": {
+            "normal": "",
+            "streetBrawl": "",
+            "sandbox": "",
+            "exploreNyc": "",
+            "other": ""
+        },
+        "col": {
+            "rank": "Grade",
+            "souls": "",
+            "souls_per_min": "",
+            "kills": "",
+            "deaths": "",
+            "assists": "",
+            "kill_participation": "",
+            "hero_damage": "",
+            "objective_damage": "",
+            "healing": ""
+        },
+        "rank_from_history": "",
+        "paused": "",
+        "queue": {
+            "party": ""
+        },
+        "swaps": {
+            "line": "",
+            "named": "",
+            "dismiss": ""
+        },
+        "grades": {
+            "label": {
+                "overall": "",
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "damage": "",
+                "objective_damage": "",
+                "healing": ""
+            },
+            "name": {
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "damage": "",
+                "objective_damage": "",
+                "healing": ""
+            },
+            "too_early": "",
+            "too_early_long": "",
+            "after_first_minute": "",
+            "no_targets": "",
+            "frozen": "",
+            "loading": "",
+            "avg": "",
+            "average": "",
+            "better_than": "",
+            "fewer_deaths": "",
+            "self_heal": "",
+            "healing_teammates": "",
+            "group": {
+                "rank": "",
+                "range": "",
+                "all_ranks": "",
+                "street_brawl": ""
+            },
+            "reason": {
+                "offline": "",
+                "api_down": "",
+                "rate_limited": "",
+                "empty_data": ""
+            }
+        },
+        "ptrace": {
+            "title": "",
+            "body": "",
+            "fix": "",
+            "fix_restart": "",
+            "reboot": "",
+            "manual": "",
+            "failed": ""
+        },
+        "game_admin": {
+            "title": "",
+            "body": ""
+        }
+    }
+}

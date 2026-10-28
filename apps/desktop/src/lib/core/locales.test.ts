@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import en from "../../../../../locales/en.json";
-import { i18n, tn } from "./i18n.svelte";
+import { en, i18n, tn } from "./i18n.svelte";
 
 describe("en counted labels", () => {
     beforeEach(() => i18n.reset({ en }, "en"));

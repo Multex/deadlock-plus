@@ -1,0 +1,765 @@
+{
+    "settings": {
+        "language": {
+            "label": "Idioma",
+            "description": "Escolha o idioma usado pelo aplicativo. \"Seguir o sistema\" usa o idioma do seu sistema operacional.",
+            "system": "Seguir o sistema",
+            "system_current": "Atualmente: {language}",
+            "completion_hint": "A barra mostra a porcentagem do aplicativo que já foi traduzida. O que ainda não foi traduzido aparece em inglês.",
+            "translated": "{percent}% traduzido",
+            "coming_soon": "Em breve"
+        },
+        "categories": {
+            "appearance": "Aparência",
+            "language": "Idioma",
+            "startup": "Inicialização e segundo plano",
+            "notifications": "Notificações",
+            "overlay": "Sobreposição do jogo",
+            "privacy": "Privacidade",
+            "about": "Sobre",
+            "diagnostics": "Diagnósticos",
+            "sharing": "Compartilhamento de partidas",
+            "storage": "Armazenamento"
+        },
+        "items": {
+            "theme": "Tema",
+            "theme_effects": "",
+            "reduced_motion": "Movimento reduzido",
+            "accessible_font": "Fonte acessível",
+            "close_to_tray": "Manter em execução na bandeja",
+            "background_jobs": "Execução em segundo plano",
+            "update_alerts": "Alertas de atualizações e notícias",
+            "maintenance": "Lembrete de manutenção do Steam",
+            "discord_presence": "Presença no Discord",
+            "discord_clients": "Aplicativos do Discord",
+            "discord_editor": "Editor de presença do Discord",
+            "match_ingest": "Compartilhar minhas partidas",
+            "telemetry": "Compartilhar dados anônimos de uso e relatórios de erros",
+            "gc_recovery": "Preencher detalhes de partidas ausentes",
+            "version": "Versão",
+            "whats_new": "Novidades",
+            "updates": "Atualizações do app",
+            "thanks": "Agradecimentos",
+            "diagnostics": "Diagnósticos",
+            "licenses": "Licenças",
+            "storage": "Uso do disco",
+            "overlay": "Sobreposição do jogo",
+            "overlay_position": "Posição da sobreposição",
+            "overlay_duration": "Duração da sobreposição",
+            "overlay_test": "Testar a sobreposição",
+            "overlay_notifications": "Notificações da sobreposição",
+            "overlay_match_found": "Partida encontrada",
+            "server_blocks_updated": "Blocos de servidor atualizados",
+            "server_blocks_stale": "Blocos de servidor desatualizados",
+            "break_reminder": "Lembrete de intervalo",
+            "ui_scale": "Escala da interface",
+            "hardware_acceleration": "Aceleração de hardware",
+            "open_on_game_start": "Abrir com o Deadlock",
+            "admin_access": "Acesso de administrador"
+        },
+        "nav": {
+            "label": "Categorias de configurações",
+            "search": "Pesquisar configurações",
+            "back": "Voltar",
+            "no_matches": "Nenhuma configuração corresponde a \"{query}\"."
+        },
+        "appearance": {
+            "theme_description": "Escolha as cores usadas pelo aplicativo.",
+            "effects_description": "",
+            "motion_description": "Desative animações e transições. \"Seguir o sistema\" usa a configuração do seu sistema operacional.",
+            "motion_system": "Seguir o sistema",
+            "motion_reduce": "Reduzir",
+            "motion_full": "Movimento completo",
+            "font_description": "Substitua as fontes no estilo do jogo pela Atkinson Hyperlegible, projetada para baixa visão e leitura mais fácil.",
+            "scale_description": "Aumente ou diminua o tamanho de tudo no Deadlock+.",
+            "hardware_acceleration_description": "O Deadlock+ é renderizado pela sua placa de vídeo. Desative essa opção se a janela piscar ou aparecer preta nas capturas de tela.",
+            "restart_app": "Reiniciar o Deadlock+",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
+        },
+        "themes": {
+            "deadlock": {
+                "label": "Deadlock",
+                "description": "Quase-preto quente com detalhes em latão.",
+                "source": ""
+            },
+            "midnight": {
+                "label": "Meia-noite",
+                "description": "Preto-azulado frio com um detalhe em prata suave.",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
+            },
+            "daylight": {
+                "label": "Luz do dia",
+                "description": "Tema claro em tom de papel quente."
+            },
+            "contrast": {
+                "label": "Alto contraste",
+                "description": "Preto e branco puros com bordas destacadas."
+            },
+            "nightshift": {
+                "label": "Nightshift",
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
+            },
+            "deadlock_api": {
+                "label": "Deadlock API",
+                "description": "Preto OLED com brilho vermelho elétrico.",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
+            }
+        },
+        "autostart": {
+            "title_windows": "Iniciar com o Windows",
+            "title_macos": "Iniciar com o macOS",
+            "title_linux": "Iniciar no login",
+            "description_windows": "Inicia o Deadlock+ quando você entra no Windows.",
+            "description_macos": "Inicia o Deadlock+ quando você faz login no macOS.",
+            "description_linux": "Inicia o Deadlock+ quando você entra na sua área de trabalho.",
+            "failed": "Não foi possível alterar esta configuração. Verifique o log para mais detalhes.",
+            "stale": "A inicialização está configurada para outra cópia do Deadlock+. Desative e ative novamente para usar esta."
+        },
+        "startup": {
+            "tray_description": "Fechar a janela oculta o Deadlock+ em vez de encerrá-lo, para que o monitoramento continue. Encerre pelo ícone da bandeja.",
+            "jobs_description": "O Deadlock+ escaneia seus mods, prepara as notas de atualização para busca e mantém seus blocos de servidor atualizados em segundo plano. Estas configurações definem se esse trabalho é executado e o que ele faz enquanto o Deadlock estiver aberto.",
+            "all_jobs_label": "Permitir tarefas em segundo plano",
+            "all_jobs_description": "Desative isto e nenhuma tarefa será iniciada sozinha. Você ainda poderá executar uma verificação na página Desempenho.",
+            "tasks_title": "Tarefas",
+            "tasks_description": "Cada tarefa pode ser executada de forma independente ou não, e pode ser pausada, desacelerada ou continuar em execução enquanto o Deadlock estiver aberto.",
+            "run_by_itself": "Executar por conta própria",
+            "while_running": "Enquanto o Deadlock estiver em execução",
+            "advanced": "Avançado",
+            "open_on_game_start_description": "Exibe a janela do Deadlock+ quando o jogo é iniciado, mesmo que o Deadlock+ estivesse na bandeja.",
+            "admin_access_ask": "Perguntar sempre",
+            "admin_access_description": "Os blocos de servidor, o monitor de conexão e os tempos de quadro exigem direitos de administrador do Windows."
+        },
+        "notifications": {
+            "alerts_description": "Notifica você quando uma nova nota de atualização do Deadlock ou anúncio do Steam for publicado. Verifica a API pública do Deadlock a cada 15 minutos e não envia nenhuma informação sobre você. É necessário que o aplicativo esteja em execução, portanto, combine essa opção com a bandeja do sistema.",
+            "maintenance_description": "Notifica você antes da manutenção semanal do Steam, que pode derrubar ou reiniciar os servidores. A Valve não publica um cronograma, portanto este é o horário habitual (terça-feira à noite, por volta de 00:00 UTC de quarta-feira), não um oficial. Geralmente dura de 15 a 30 minutos. Altere se o seu for diferente. É necessário que o aplicativo esteja em execução, portanto, combine essa opção com a bandeja do sistema.",
+            "day": "Dia",
+            "time": "Horário (UTC)",
+            "remind": "Me lembrar",
+            "lead_minutes": "{minutes} min antes",
+            "lead_hours": "{hours} h antes",
+            "overlay_description": "Exiba notificações sobre o Deadlock enquanto você joga.",
+            "overlay_fullscreen": "O Deadlock está no modo de tela cheia. Alterne para a janela sem bordas para ver a sobreposição sobre o jogo.",
+            "overlay_position_description": "Onde as notificações aparecem durante o jogo.",
+            "overlay_duration_description": "Por quanto tempo cada notificação permanece na tela.",
+            "overlay_test_description": "Mostra um exemplo de notificação exibida durante o jogo.",
+            "overlay_notifications_description": "Ative ou desative a opção “Partida encontrada” e outras notificações em “Notificações”.",
+            "overlay_notifications_button": "Abrir notificações",
+            "overlay_test_button": "Mostrar teste",
+            "overlay_test_countdown": "Exibindo em {seconds}",
+            "overlay_seconds": "{seconds}s",
+            "position": {
+                "top_left": "Canto superior esquerdo",
+                "top_center": "Superior central",
+                "top_right": "Canto superior direito",
+                "left": "Esquerda",
+                "right": "Direita",
+                "bottom_left": "Canto inferior esquerdo",
+                "bottom_center": "Inferior central",
+                "bottom_right": "Canto inferior direito",
+                "center": "Partida encontrada"
+            },
+            "overlay_match_found_description": "Avisa quando sua partida é encontrada, mesmo que outra janela esteja na frente.",
+            "server_blocks_updated_description": "Avisa quando a Valve altera os endereços dos servidores e o Deadlock+ atualiza seus blocos do Seletor de servidores.",
+            "server_blocks_stale_description": "Avisa quando o Deadlock+ não conseguiu atualizar seus blocos do Seletor de servidores, então alguns servidores podem não estar bloqueados.",
+            "break_reminder_description": "Sugere uma pausa após várias derrotas consecutivas em uma sessão. O mesmo botão da página “Sessões”.",
+            "delivery_label": "Exibe como",
+            "delivery": {
+                "both": "Sobreposição no jogo ou área de trabalho",
+                "overlay": "Apenas sobreposição",
+                "os": "Notificação na área de trabalho",
+                "quiet": "Área de trabalho, não durante o jogo",
+                "center": "Apenas na Central de Notificações"
+            },
+            "overlay_off_fallback": "A sobreposição do jogo está desativada, por isso ela aparece como uma notificação na área de trabalho.",
+            "overlay_off_hidden": "A sobreposição do jogo está desativada, portanto isso não é exibido."
+        },
+        "weekdays": {
+            "monday": "Segunda-feira",
+            "tuesday": "Terça-feira",
+            "wednesday": "Quarta-feira",
+            "thursday": "Quinta-feira",
+            "friday": "Sexta-feira",
+            "saturday": "Sábado",
+            "sunday": "Domingo"
+        },
+        "countdown": {
+            "days": "{days} d {hours} h",
+            "hours": "{hours} h {minutes} min",
+            "minutes": "{minutes} min",
+            "soon": "menos de um minuto"
+        },
+        "discord": {
+            "presence_description": "Mostre o que você está jogando no seu perfil do Discord.",
+            "level_off": "Desativado",
+            "level_basic": "Básico",
+            "level_detailed": "Detalhado",
+            "level_off_description": "Não exibe nada.",
+            "level_basic_description": "Indica que você está no Deadlock.",
+            "level_detailed_description": "Mostra seu herói, modo, classificação e cronômetro da partida.",
+            "support_label": "Apoiar o Deadlock+",
+            "support_description": "Adiciona um botão “Baixar Deadlock+” à sua atividade para que outras pessoas possam encontrar o aplicativo. Funciona com as versões Básica e Detalhada.",
+            "client_running": "Em execução",
+            "client_not_running": "Não está em execução",
+            "client_other_hint": "Vesktop e outros aplicativos",
+            "clients_description": "Escolha quais aplicativos do Discord mostram sua presença.",
+            "client_stable": "Discord",
+            "client_ptb": "Discord PTB",
+            "client_canary": "Discord Canary",
+            "client_other_label": "",
+            "client_stable_name": "Discord",
+            "client_ptb_name": "Discord PTB",
+            "client_canary_name": "Discord Canary",
+            "client_other_name": "Aplicativo Discord {pipe}",
+            "status_off": "Desativado",
+            "status_none": "Não foi encontrado nenhum Discord em execução.",
+            "status_showing": "Exibindo: {clients}."
+        },
+        "discord_editor": {
+            "description": "Altere o que cada atividade exibe. Escolha um estado e, em seguida, edite suas linhas de texto, imagens e temporizador. Tudo o que você não alterar utilizará o padrão integrado.",
+            "loading": "Carregando...",
+            "states": "Estados da atividade",
+            "customised": "Personalizado",
+            "inherited": "Padrão",
+            "field_details": "Linha superior",
+            "field_state": "Linha inferior",
+            "field_large_image": "Imagem grande",
+            "field_large_text": "Texto ao passar o mouse (imagem grande)",
+            "field_small_image": "Imagem pequena",
+            "field_small_text": "Texto ao passar o mouse (imagem pequena)",
+            "field_timer": "Temporizador",
+            "reset_field": "Redefinir {field}",
+            "reset_scope": "Redefinir este estado",
+            "reset_all": "Redefinir tudo",
+            "reset_all_title": "Redefinir todas as configurações de presença?",
+            "reset_all_description": "Todas as alterações feitas no texto, nas imagens e nos temporizadores das atividades do Discord são removidas. O Deadlock+ volta aos padrões integrados.",
+            "all_heroes": "Padrão (todos os heróis)",
+            "sample_hero": "Haze",
+            "image_enabled": "Mostrar {image}",
+            "image_source": "Fonte de {image}",
+            "image_url": "URL de {image}",
+            "source_heroPortrait": "Retrato do herói",
+            "source_heroIcon": "Ícone do herói",
+            "source_rankBadge": "Emblema de classificação",
+            "source_modeIcon": "Ícone de modo",
+            "source_customUrl": "URL personalizada",
+            "timer_none": "Sem temporizador",
+            "timer_elapsedInState": "",
+            "timer_matchTime": "Tempo da partida",
+            "preview": "Pré-visualização da atividade",
+            "preview_header": "Jogando",
+            "preview_disabled": "Este estado não envia nenhuma atividade.",
+            "preview_failed": "Não foi possível exibir a pré-visualização. Verifique se há algum erro de digitação nas linhas deste estado.",
+            "preview_large_text": "Imagem grande: {text}",
+            "preview_small_text": "Imagem pequena: {text}",
+            "share": "Compartilhar uma predefinição",
+            "share_description": "A opção “Copiar predefinição” coloca suas alterações na área de transferência como texto. A opção “Importar” substitui-as pelo texto colado ou por um arquivo.",
+            "import_label": "Texto da predefinição",
+            "import": "Importar",
+            "import_file": "Importar do arquivo",
+            "export": "Copiar predefinição",
+            "exported": "Predefinição copiada",
+            "export_failed": "Não foi possível copiar para a área de transferência",
+            "imported": "Predefinição importada",
+            "state": {
+                "playing": "Jogando",
+                "mainMenu": "Menu principal",
+                "hideout": "Esconderijo",
+                "findingMatch": "Procurando partida",
+                "matchFound": "Partida encontrada",
+                "preGame": "Pré-jogo",
+                "inMatch": "Em uma partida",
+                "streetBrawlRound": "Rodada da Briga de Rua",
+                "paused": "Pausado",
+                "spectating": "Assistindo",
+                "postGame": "Pós-jogo",
+                "privateLobby": "Sala privada",
+                "practice": "Prática"
+            },
+            "variant": {
+                "solo": "Solo",
+                "party": "Grupo",
+                "unranked": "Sem classificação",
+                "ranked": "Competitiva",
+                "bots": "Bots",
+                "tutorial": "Tutorial",
+                "normal": "Normal",
+                "streetBrawl": "Briga de Rua",
+                "sandbox": "Campo de testes",
+                "exploreNyc": "Explore Nova York",
+                "won": "Vitória",
+                "lost": "Derrota",
+                "unscored": "Sem pontuação"
+            },
+            "editing": "Herói",
+            "editing_default_hint": "As alterações aqui se aplicam a todos os heróis. Escolha um herói para substituir apenas as linhas desse herói.",
+            "editing_hero_hint": "As alterações aqui se aplicam apenas enquanto você joga com {hero}. Os campos que você não alterar seguirão o padrão.",
+            "no_hero_layer": "Esse estado não pode ser definido individualmente para cada herói. As alterações se aplicam a todos os heróis.",
+            "row_enabled": "Mostrar {name} no Discord",
+            "no_top_line": "Sem linha superior",
+            "insert_variable": "Inserir valor",
+            "insert_into": "Em: {field}",
+            "sensitive": "Mostra o ID da partida",
+            "syntax_help": "Ajuda sobre sintaxe",
+            "variables_hint": "Clique em uma linha e, em seguida, insira um valor nela.",
+            "placeholder": {
+                "hero": "Seu herói",
+                "mode": "Modo de partida, como Competitiva",
+                "gameMode": "Modo de jogo, como Briga de Rua",
+                "rank": "Sua divisão, em partidas competitivas",
+                "kills": "Suas vítimas",
+                "deaths": "Suas mortes",
+                "assists": "Suas assistências",
+                "souls": "Suas almas, como 24,1 mil",
+                "partySize": "Jogadores do seu grupo",
+                "partyMax": "Tamanho máximo do grupo",
+                "round": "Rodada da Briga de Rua",
+                "scoreAmber": "Pontuação do Âmbar na Briga de Rua",
+                "scoreSapphire": "Pontuação da Safira na Briga de Rua",
+                "elapsed": "Tempo neste estado",
+                "queueTime": "Há quanto tempo você está na fila",
+                "result": "Venceu ou perdeu",
+                "matchId": "O ID da partida",
+                "heroPresence": "A frase do esconderijo do seu herói"
+            },
+            "preview_game": "Deadlock",
+            "preview_logo": "Logotipo do Deadlock (o Discord o exibe quando nenhuma imagem grande é enviada)",
+            "preview_large_image": "Imagem ampliada",
+            "preview_small_image": "Imagem pequena",
+            "preview_elapsed": "{time} decorridos",
+            "preview_discord_row": "Adicionado pelo Discord",
+            "preview_discord_sample": "As informações sobre sequência de vitórias, tendências e tempo de jogo são exibidas aqui quando o Discord as disponibiliza.",
+            "preview_support_button": "Baixar Deadlock+",
+            "syntax": {
+                "title": "Como funcionam as linhas",
+                "copied": "Exemplo copiado",
+                "copy_example": "Copiar {text}",
+                "nothing": "(nada)",
+                "no_sample": "não há valor nesta pré-visualização",
+                "rules_title": "É bom saber",
+                "rule_length": "Cada linha deve ter de 2 a 128 caracteres. Linhas curtas são preenchidas com espaços. Linhas longas são cortadas com reticências.",
+                "rule_empty": "Uma linha que você deixar em branco fica oculta.",
+                "rule_unclosed": "Esqueceu de fechar um [[? Ele aparece como texto simples.",
+                "rule_unknown": "Uma variável com erro ortográfico é exibida como texto simples.",
+                "privacy": "Apenas você e sua equipe estão disponíveis. O ID da partida fica oculto em partidas privadas e no modo Básico. Enquanto você assiste, ele só aparece se você digitá-lo.",
+                "intro": "Cada linha no seu cartão do Discord é um texto curto. Misture palavras simples com valores que se preenchem automaticamente.",
+                "you_see": "Você vê:",
+                "step1_title": "Insira um valor",
+                "step1_body": "Coloque uma palavra entre chaves. O Deadlock+ a troca pelo valor real enquanto você joga. Clique em um exemplo para copiá-lo.",
+                "step2_title": "E se não houver nenhum valor?",
+                "step2_body": "Às vezes, o jogo ainda não tem essa informação, como a sua classificação. Essa parte simplesmente fica de fora. As palavras ao lado permanecem.",
+                "step3_title": "Mostrar uma parte só quando houver valores",
+                "step3_body": "Coloque colchetes duplos em torno de uma parte. Se algum valor dentro dela estiver faltando, a parte inteira desaparece.",
+                "step4_title": "Adicionar um backup",
+                "step4_body": "Coloque duas barras entre as opções. O Deadlock+ exibe a primeira opção que tenha todos os seus valores. Termine com palavras simples para que haja sempre algo para mostrar.",
+                "list_title": "Todos os valores",
+                "list_body": "Copie qualquer um desses textos em uma linha ou use o botão “Inserir valor”. A coluna de exemplo mostra como fica no momento.",
+                "col_variable": "Valor",
+                "col_shows": "O que ele exibe",
+                "col_example": "Exemplo",
+                "group_you": "Você",
+                "group_match": "Partida",
+                "group_party": "Grupo e fila",
+                "group_streetBrawl": "Briga de Rua",
+                "group_misc": ""
+            },
+            "timer_queueTime": "Tempo na fila",
+            "field_party_size": "Tamanho do grupo",
+            "party_size_hint": "Exibe o número de participantes do grupo, como (2 de 6), quando você estiver em um grupo de duas ou mais pessoas.",
+            "preview_party": "({size} de {max})",
+            "detailed_only": "Apenas o modo “Detalhado” utiliza esses estados. O modo “Básico” sempre exibe “Jogando”."
+        },
+        "privacy": {
+            "telemetry_description": "Envia informações sobre a versão e o sistema que você usa, quais páginas você abre, quando você abre o convite do Discord, quando uma atualização é oferecida ou iniciada, além de relatórios de erros. Ele usa um ID aleatório que não está vinculado a você e nunca envia caminhos, nomes, IDs do Steam, endereços IP ou dados de partidas.",
+            "telemetry_reset": "Redefinir ID de dados de uso",
+            "telemetry_reset_done": "ID de dados de uso redefinido.",
+            "ingest_waiting": "Aguardando sua resposta.",
+            "ingest_off": "Desativado",
+            "ingest_no_cache": "Não foi possível encontrar os dados da web salvos do Steam neste PC. O Steam está instalado?",
+            "ingest_failed": "O último envio falhou. Verifique o log para obter detalhes.",
+            "ingest_watching": "Monitorando novas partidas. Compartilhadas nesta sessão: {count}.",
+            "ingest_description": "Oferece detalhes completos e replays das suas partidas em sites de estatísticas e no Histórico de Partidas.",
+            "gc_description": "Preenche as partidas que faltam na API do Deadlock, suas e de outros jogadores.",
+            "how_it_works": "Como funciona",
+            "ingest_how_find": "O Deadlock+ identifica o que é necessário para carregar cada partida, neste PC e no Deadlock enquanto você joga.",
+            "ingest_how_send": "Ele envia isso, os IDs das partidas e seu ID do Steam para a API do Deadlock. Nada mais.",
+            "gc_how_login": "Entra no Steam com o login salvo neste PC. Seu login nunca sai deste PC.",
+            "gc_how_limit": "Até 40 partidas por conta por dia.",
+            "gc_how_game": "Enquanto o Deadlock estiver aberto, ele detecta as partidas que você abre no jogo, em vez de fazer login.",
+            "gc_how_send": "Envia apenas os IDs das partidas, os IDs do Steam e o que for necessário para carregar cada partida.",
+            "gc_own_label": "Recuperar meu histórico de partidas",
+            "gc_own_description": "Preenche todas as partidas do seu histórico que faltam na API do Deadlock.",
+            "advanced": "Avançado",
+            "gc_own_open": "Abrir no Histórico de Partidas",
+            "shared": {
+                "title": "Partidas compartilhadas",
+                "source_steam": "Steam",
+                "source_deadlock": "Deadlock",
+                "source_login": "Login no Steam",
+                "with_replay": "{count} com replay",
+                "when": "Quando",
+                "match": "Partida",
+                "from": "De",
+                "details": "Detalhes",
+                "replay": "Replay",
+                "sent": "Enviado",
+                "not_sent": "Não enviado",
+                "empty": "Ainda não foi compartilhado nada."
+            }
+        },
+        "about_page": {
+            "copy": "Copiar",
+            "copied": "Detalhes da versão copiados",
+            "copy_failed": "Não foi possível copiar para a área de transferência",
+            "install": "Instalar {version}",
+            "check_now": "Verificar agora",
+            "auto_check_label": "Verificar automaticamente",
+            "auto_check_description": "Consulta o GitHub em busca de uma versão mais recente ao iniciar e a cada hora. Nada é instalado sem o seu clique.",
+            "whats_new_in": "Novidades na versão {version}"
+        },
+        "diagnostics": {
+            "description": "Log desta sessão. Nomes nos caminhos de arquivos são ocultados ao copiar ou salvar. Necessário apenas ao relatar um bug.",
+            "collapse": "Recolher",
+            "expand": "Expandir"
+        },
+        "licenses": {
+            "read_full": "Ler a licença completa",
+            "terms_link": "Termos da licença",
+            "copyright": "Aviso de direitos autorais",
+            "fonts_heading": "Fontes e artes",
+            "app_summary": "O Deadlock+ é um software livre. Você pode usá-lo, compartilhá-lo e alterá-lo sob a GNU General Public License, versão 3 ou qualquer versão posterior.",
+            "app_warranty": "Ele é fornecido sem nenhuma garantia.",
+            "disclaimer": "O Deadlock+ é uma ferramenta não oficial feita por fãs, que não foi criada, nem é afiliada ou endossada pela Valve Corporation. \"Deadlock\" e \"Steam\" são marcas registradas da Valve Corporation. As fontes do Deadlock continuam sendo propriedade de seus donos e podem ser removidas mediante solicitação.",
+            "kind_font": "Fonte",
+            "kind_artwork": "Arte",
+            "terms_not_open_source": "Não é código aberto.",
+            "terms_valve_oracle": "O arquivo de fonte aponta para os metadados da sua licença para obter detalhes.",
+            "terms_valve_pulp": "Assim como outros conteúdos de jogos da Valve, pode ser usado para criar Fan Art, conforme descrito no Acordo de Assinante do Steam.",
+            "terms_twemoji": "O código do pacote npm é MIT.",
+            "dependencies_title": "Dependências de código aberto",
+            "dependencies_description": "Os pacotes com os quais o Deadlock+ foi construído, agrupados por licença.",
+            "dependencies_failed": "Não foi possível carregar as licenças das dependências.",
+            "dependencies_loading": "Carregando...",
+            "dependencies_packages": "Pacotes",
+            "dependencies_rust": "Crates do Rust",
+            "dependencies_npm": "Pacotes npm",
+            "dependencies_no_file": "Estes pacotes não incluem um arquivo de licença. Licença declarada pelos autores: {title}."
+        },
+        "thanks": {
+            "intro": "O Deadlock+ existe graças a essas pessoas.",
+            "contributors": "Colaboradores",
+            "contributors_description": "Escreveram código, documentação ou correções.",
+            "translators": "Tradutores",
+            "translators_description": "Levaram o Deadlock+ para mais idiomas.",
+            "donators": "Doadores",
+            "donators_description": "Mantêm o aplicativo gratuito.",
+            "nobody_yet": "Ninguém foi listado ainda.",
+            "others_one": "",
+            "others_other": "",
+            "anonymous_one": "",
+            "anonymous_other": ""
+        }
+    },
+    "storage": {
+        "subtitle": "O que o Deadlock e o Deadlock+ mantêm neste PC.",
+        "show_paths": "Mostrar caminhos",
+        "hide_paths": "Ocultar caminhos",
+        "refresh": "Atualizar",
+        "looking": "Dando uma olhada...",
+        "footnote": "Aqui só é possível limpar o que o jogo ou o Deadlock+ recriam ou mantêm para você. Todo o restante pertence ao jogo ou ao seu gerenciador de mods.",
+        "summary": {
+            "total": "Total encontrado",
+            "can_clear": "Podem ser limpos aqui",
+            "clear_regenerable": "Limpar arquivos reconstruíveis"
+        },
+        "entry": {
+            "path_missing": "Não encontrado neste PC",
+            "not_found": "Não encontrado",
+            "retry_aria": "Tentar medir {label} novamente",
+            "retry": "Tentar novamente",
+            "measuring": "Medindo",
+            "open_aria": "Abrir a página {label}",
+            "open_title": "Abrir a página {label}",
+            "reveal_aria": "Mostrar {label} na pasta",
+            "reveal_title": "Mostrar na pasta",
+            "clear_aria": "Limpar {label}",
+            "clear_title": "Limpar"
+        },
+        "dialog": {
+            "cancel": "Cancelar",
+            "clear": "Limpar"
+        },
+        "clear": {
+            "title": "Limpar {name}?",
+            "body": "Libera {size}. {consequence} Não é possível desfazer esta ação.",
+            "all_title": "Limpar todos os arquivos que se recriam sozinhos?",
+            "all_body": "Libera {size} de: {names}. O jogo recria esses dados sozinho. Isso não pode ser desfeito."
+        },
+        "toast": {
+            "freed": "{size} liberados",
+            "nothing": "Não há nada para limpar.",
+            "remove_failed": "Não foi possível remover {count}: {first}"
+        },
+        "age": {
+            "today": "hoje",
+            "days_one": "",
+            "days_other": "",
+            "months_one": "",
+            "months_other": "",
+            "years_one": "",
+            "years_other": ""
+        },
+        "units_oldest": "{units}, mais antigo {age}",
+        "owners": {
+            "deadlock": {
+                "label": "Deadlock",
+                "blurb": "Arquivos que o jogo mantém neste PC."
+            },
+            "deadlock_plus": {
+                "label": "Deadlock+",
+                "blurb": "O que este aplicativo armazena."
+            },
+            "mods": {
+                "label": "Mods e backups",
+                "blurb": "Gerenciados pelas suas ferramentas de mods. Não são alterados aqui."
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "Se recria sozinho",
+                "hint": "Recriado automaticamente quando necessário."
+            },
+            "history": {
+                "label": "Histórico",
+                "hint": "Um registro do passado. Não pode ser recriado depois de excluído."
+            },
+            "backup": {
+                "label": "Backup",
+                "hint": "Uma cópia de segurança. Necessária apenas caso algo dê errado."
+            },
+            "yours": {
+                "label": "Seus",
+                "hint": "Suas próprias configurações e dados."
+            },
+            "managed": {
+                "label": "Gerenciado por mods",
+                "hint": "Pertence a um mod ou a um gerenciador de mods."
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "Replays",
+                "clear_name": "replays",
+                "description": "Replays de partidas salvos pelo Deadlock.",
+                "consequence": "Replays excluídos são perdidos para sempre. Escolha quais remover na página Replays.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "hero_presence_cache": {
+                "label": "Cache de presença de heróis",
+                "clear_name": "cache de presença de heróis",
+                "description": "Um arquivo pequeno que o jogo recria sozinho.",
+                "consequence": "Recriado na próxima inicialização. Muito pequeno para valer a pena ser apagado."
+            },
+            "shader_cache": {
+                "label": "Cache de shader",
+                "clear_name": "o cache de shaders",
+                "description": "Shaders compilados, para que o jogo não precise recompilá-los a cada partida.",
+                "consequence": "O jogo o recria. A primeira partida após a limpeza pode apresentar travamentos."
+            },
+            "console_log": {
+                "label": "Log do console",
+                "clear_name": "o log do console",
+                "description": "A saída do console do jogo. Só aparece quando o jogo é iniciado com a opção -condebug.",
+                "consequence": "Reescrito a cada inicialização. Você não perde nada de que precise."
+            },
+            "voice_ban_backups": {
+                "label": "Backups da lista de silenciados",
+                "clear_name": "seus backups da lista de silenciados",
+                "description": "O Deadlock+ cria cópias sempre que você altera sua lista de silenciados.",
+                "consequence": "Limpá-los impede que você volte a uma lista de silenciados anterior.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "frame_runs": {
+                "label": "Execuções do Frametime",
+                "clear_name": "execuções do frametime",
+                "description": "Suas capturas de frametime salvas.",
+                "consequence": "Não podem ser recapturadas. Exclua execuções individuais na página Desempenho."
+            },
+            "settings": {
+                "label": "Configurações",
+                "clear_name": "configurações",
+                "description": "Suas configurações do Deadlock+ e a posição da janela.",
+                "consequence": "Não é possível recuperar. Ao removê-lo, suas preferências serão redefinidas."
+            },
+            "server_presets": {
+                "label": "Predefinições de servidor",
+                "clear_name": "predefinições de servidor",
+                "description": "Suas predefinições salvas no Seletor de servidores.",
+                "consequence": "Não é possível recuperá-los. Você teria que criá-los novamente."
+            },
+            "replay_rules": {
+                "label": "Pins de replay e regras de limpeza",
+                "clear_name": "pins de replay e regras de limpeza",
+                "description": "Replays que você fixou e suas regras de limpeza.",
+                "consequence": "Sem ele, os replays fixados perdem a proteção e as regras de limpeza são redefinidas."
+            },
+            "connection_history": {
+                "label": "Histórico de conexões",
+                "clear_name": "histórico de conexões",
+                "description": "Amostras de ping e rota registradas na página Live.",
+                "consequence": "Amostras anteriores não podem ser gravadas novamente. As novas começam a se acumular do zero."
+            },
+            "notifications": {
+                "label": "Alertas e notificações",
+                "clear_name": "alertas e notificações",
+                "description": "Alertas e notificações exibidos no aplicativo.",
+                "consequence": "As entradas anteriores foram excluídas. Nada mais depende delas."
+            },
+            "patch_notes_index": {
+                "label": "Pesquisa de notas de atualização",
+                "clear_name": "pesquisa de notas de atualização",
+                "description": "Notas de atualização e o índice de pesquisa criado a partir delas.",
+                "consequence": "Baixado e indexado de novo automaticamente, o que leva um tempo e usa CPU."
+            },
+            "stats_cache": {
+                "label": "Estatísticas salvas",
+                "clear_name": "estatísticas salvas",
+                "description": "Estatísticas e dados das partidas obtidos da internet.",
+                "consequence": "Serão recarregados na próxima vez que você abrir o Stats."
+            },
+            "server_list_cache": {
+                "label": "Lista de servidores salva",
+                "clear_name": "lista de servidores salva",
+                "description": "A última lista de servidores que o Seletor de servidores carregou.",
+                "consequence": "Será buscada de novo na próxima vez que você abrir o Seletor de servidores."
+            },
+            "replay_info_cache": {
+                "label": "Detalhes dos replays salvos",
+                "clear_name": "detalhes dos replays salvos",
+                "description": "Detalhes de partida consultados para os seus replays.",
+                "consequence": "Consultados novamente ao abrir um replay."
+            },
+            "match_cache": {
+                "label": "Detalhes das partidas salvas",
+                "clear_name": "detalhes das partidas salvas",
+                "description": "Placares completos das partidas que você abriu no Histórico de Partidas.",
+                "consequence": "Serão recuperados novamente na próxima vez que você abrir a partida.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "other_app_files": {
+                "label": "Outros arquivos do aplicativo",
+                "clear_name": "outros arquivos do aplicativo",
+                "description": "Arquivos pequenos que não se enquadram em nenhuma das categorias acima.",
+                "consequence": "Lembretes e sobras. Não vale a pena mexer nisso."
+            },
+            "logs": {
+                "label": "Logs do aplicativo",
+                "clear_name": "arquivos antigos de log",
+                "description": "Os arquivos de log deste aplicativo, um arquivo compactado por dia.",
+                "consequence": "Útil apenas para relatórios de bugs. Ao limpar, os dias antigos são removidos; o log de hoje permanece.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "addons": {
+                "label": "Mods instalados",
+                "clear_name": "mods instalados",
+                "description": "Arquivos instalados por mods ou por um gerenciador de mods, sem os replays.",
+                "consequence": "Excluir arquivos daqui pode danificar os mods instalados. Use seu gerenciador de mods em vez disso."
+            },
+            "addons_backups": {
+                "label": "Backups de mods",
+                "clear_name": "backups de mods",
+                "description": "Cópias de backup de mods feitas por um gerenciador de mods.",
+                "consequence": "Sem elas, não é possível reverter os mods para um estado anterior.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "config_backups": {
+                "label": "Backups de configuração",
+                "clear_name": "backups de configuração",
+                "description": "Pastas de configuração com backup feito pelo jogo ou por um gerenciador de mods.",
+                "consequence": "Instantâneos das suas configurações antes de uma alteração. Guarde o mais recente.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "gameinfo_backups": {
+                "label": "backups do gameinfo.gi",
+                "clear_name": "backups do gameinfo.gi",
+                "description": "Cópias do arquivo gameinfo.gi criadas por ferramentas de modificação.",
+                "consequence": "Pontos de restauração para o arquivo que carrega os mods. Mantenha pelo menos um.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "Dados da partida após o jogo",
+                "clear_name": "dados da partida após o jogo",
+                "description": "Placares completos das partidas que o Deadlock+ capturou do jogo, mantidos até que a API do Deadlock os receba.",
+                "consequence": "As partidas que a API do Deadlock ainda não tem perdem a visualização de detalhes. A linha de resumo permanece.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "match_ping": {
+                "label": "Gravações de ping das partidas",
+                "clear_name": "gravações de ping das partidas",
+                "description": "Ping, perda de pacotes e jitter registrados durante cada partida, exibidos no cartão de ping dos detalhes da partida.",
+                "consequence": "As partidas perdem seu gráfico de ping registrado. A partida que você está jogando no momento é mantida.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "mvp_grades": {
+                "label": "Notas das partidas",
+                "clear_name": "notas das partidas",
+                "description": "As notas que o Deadlock+ atribuiu às suas partidas.",
+                "consequence": "As notas são recalculadas na próxima execução em segundo plano. Nada mais é perdido.",
+                "units_one": "",
+                "units_other": ""
+            },
+            "shared_matches": {
+                "label": "Partidas compartilhadas",
+                "clear_name": "partidas compartilhadas",
+                "description": "Partidas que o Deadlock+ compartilhou com a API do Deadlock.",
+                "consequence": "O Deadlock+ pode compartilhar essas partidas novamente. Nada mais se perde."
+            }
+        }
+    }
+}

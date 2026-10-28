@@ -6,6 +6,7 @@ import {
     extractNamespacePrefixes,
     extractTemplatePrefixes,
     flatten,
+    mergeAreas,
     sourceDirs,
 } from "./i18n-check.mjs";
 
@@ -147,5 +148,29 @@ describe("sourceDirs", () => {
             "packages/demo/src",
             "packages/match/src",
         ]);
+    });
+});
+
+describe("mergeAreas", () => {
+    const file = (area, locale, catalog) => ({ area, locale, catalog });
+
+    it("joins each locale's area files into one catalog", () => {
+        const { catalogs, errors } = mergeAreas([
+            file("app", "en", { shell: { a: "A" } }),
+            file("live", "en", { live: { b: "B" } }),
+            file("app", "fr", { shell: { a: "Un" } }),
+        ]);
+        expect(catalogs).toEqual({ en: { shell: { a: "A" }, live: { b: "B" } }, fr: { shell: { a: "Un" } } });
+        expect(errors).toEqual([]);
+    });
+
+    it("reports a namespace held by two areas", () => {
+        const { errors } = mergeAreas([file("app", "en", { live: {} }), file("live", "en", { live: {} })]);
+        expect(errors).toEqual(["en: live is in both app and live"]);
+    });
+
+    it("reports a namespace a locale keeps in a different area than en", () => {
+        const { errors } = mergeAreas([file("live", "en", { live: {} }), file("app", "fr", { live: {} })]);
+        expect(errors).toEqual(["fr: live is in app but en keeps it in live"]);
     });
 });

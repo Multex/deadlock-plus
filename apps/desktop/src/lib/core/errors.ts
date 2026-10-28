@@ -1,5 +1,4 @@
-import en from "../../../../../locales/en.json";
-import { interpolate, lookup, t, type Catalog } from "./i18n.svelte";
+import { en, interpolate, lookup, t, type Catalog } from "./i18n.svelte";
 
 const GENERIC = "errors.common.internal";
 const LOG_HINT = "Check the log for details.";

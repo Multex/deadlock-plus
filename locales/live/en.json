@@ -1,0 +1,252 @@
+{
+    "server_picker": {
+        "title": "{game} Server Picker",
+        "subtitle": "Turn a region's toggle on to block it. Blocked regions can't be matched to you, so matchmaking picks from the ones left open.",
+        "presets_button": "Presets",
+        "ping_button": "Ping",
+        "unblock_all_button": "Unblock all ({count})",
+        "filter_placeholder": "Filter by region...",
+        "filter_aria": "Filter by region",
+        "loading": "Loading servers...",
+        "no_games": "Couldn't load the server list. Restart Deadlock+ and try again.",
+        "no_match": "No regions match \"{search}\".",
+        "external_fallback": "Other tool",
+        "unsupported": "Blocking servers isn't available on {platform} yet.",
+        "unblock_all": {
+            "title": "Unblock all servers?",
+            "description_one": "This removes all {count} firewall rule Deadlock+ created. Matchmaking will be able to route you to every region again.",
+            "description_other": "This removes all {count} firewall rules Deadlock+ created. Matchmaking will be able to route you to every region again.",
+            "confirm": "Unblock all"
+        },
+        "import": {
+            "title": "Import {source} blocks?",
+            "description": "Deadlock+ will recreate these blocks as its own rules, then delete the {source} rules they replace. Any such rule that blocks something outside these regions is left alone.",
+            "confirm": "Import"
+        },
+        "ping": {
+            "ms": "{value} ms",
+            "no_reply": "No reply"
+        },
+        "external": {
+            "summary": "Found {rules} blocking {regions}.",
+            "rules_one": "{count} {label} rule",
+            "rules_other": "{count} {label} rules",
+            "regions_one": "{count} region",
+            "regions_other": "{count} regions",
+            "import": "Import"
+        },
+        "game_running": {
+            "title": "Deadlock is running",
+            "body": "Restart your game after changing anything on this page. Blocks only apply to connections made after the game starts."
+        },
+        "sort": {
+            "by": "Sort by {label}",
+            "ascending": "ascending",
+            "descending": "descending",
+            "region": "Region",
+            "ping": "Direct ping",
+            "blocked": "Blocked"
+        },
+        "presets": {
+            "title": "Presets",
+            "description": "Save a set of regions to block or keep open, then apply it in one click. Useful for region-locking, like an EU-only preset.",
+            "edit_title": "Edit preset",
+            "new_title": "New preset",
+            "edit_description": "Applying a preset sets every region at once. Single-server blocks inside a region are cleared.",
+            "name_placeholder": "Preset name, e.g. EU only",
+            "name_aria": "Preset name",
+            "mode_aria": "Preset mode",
+            "mode_allow_title": "Only allow these",
+            "mode_allow_note": "Listed regions stay open, everything else is blocked.",
+            "mode_block_title": "Only block these",
+            "mode_block_note": "Listed regions are blocked, everything else is open.",
+            "filter_placeholder": "Filter regions...",
+            "filter_aria": "Filter regions",
+            "will_block": "{blocked} of {total} regions will be blocked, {open} left open.",
+            "summary_allow": "Only {listed} open · blocks {blocked} of {total} regions",
+            "summary_block": "{listed} blocked · blocks {blocked} of {total} regions",
+            "back": "Back",
+            "save": "Save preset",
+            "apply": "Apply",
+            "edit_label": "Edit {name}",
+            "delete_label": "Delete {name}",
+            "empty": "No presets yet.",
+            "save_current": "Save current blocks",
+            "new": "New preset",
+            "apply_label": "Apply preset {name}"
+        },
+        "row": {
+            "collapse": "Collapse servers",
+            "expand": "Expand servers",
+            "relay_groups_one": "{count} server group",
+            "relay_groups_other": "{count} server groups",
+            "relays_one": "{count} server",
+            "relays_other": "{count} servers",
+            "partial": "{blocked}/{total} blocked",
+            "routing_aria": "About routing for {name}",
+            "unblockable": "Valve lists no servers for {names}, so it can't be blocked here.",
+            "block_siblings": "Also block {names} to cover more of this route",
+            "no_reply_hint": "No reply after several attempts. The region may be unreachable from your network or drop ping traffic.",
+            "ping_region": "Direct ping to this region's closest server.",
+            "ping_relay": "Direct ping to this server.",
+            "applying": "Applying",
+            "blocked": "Blocked",
+            "open": "Open",
+            "block_aria": "Block {name}",
+            "locked": "Blocked because all of {region} is blocked. Unblock the region to change this.",
+            "expand_aria": "Expand servers for {name}",
+            "collapse_aria": "Collapse servers for {name}",
+            "ping_aria": "{name}: {ping}"
+        },
+        "toast": {
+            "refresh_failed": "Couldn't refresh the server list. Showing the last saved one.",
+            "firewall_read_failed": "Couldn't read the current firewall rules.",
+            "relays_moved": "Valve changed its servers. Updated blocks for {names}.",
+            "blocks_update_failed": "Couldn't update blocks for {names}. Re-apply them.",
+            "sync_failed": "Couldn't check your blocks against Valve's latest servers. Check the log for details.",
+            "unsupported": "Blocking servers isn't supported on this platform yet.",
+            "blocked": "Blocked {name}",
+            "unblocked": "Unblocked {name}",
+            "block_failed": "Couldn't block {name}. Check the log for details.",
+            "unblock_failed": "Couldn't unblock {name}. Check the log for details.",
+            "siblings_failed": "Couldn't block the related servers. Check the log for details.",
+            "unblocked_rules_one": "Unblocked {count} rule",
+            "unblocked_rules_other": "Unblocked {count} rules",
+            "unblock_all_failed": "Couldn't unblock everything. Check the log for details.",
+            "preset_applied": "Applied \"{name}\": {blocked} of {total} regions blocked",
+            "preset_apply_failed": "Couldn't apply \"{name}\". Check the log for details.",
+            "preset_saved": "Saved \"{name}\"",
+            "preset_save_failed": "Couldn't save the preset. Check the log for details.",
+            "preset_delete_failed": "Couldn't delete the preset. Check the log for details.",
+            "imported_one": "Imported {count} block from {source}",
+            "imported_other": "Imported {count} blocks from {source}",
+            "import_failed": "Couldn't import the existing firewall blocks. Check the log for details."
+        },
+        "admin_needed": {
+            "block": "Couldn't block {name}.",
+            "unblock": "Couldn't unblock {name}.",
+            "siblings": "Couldn't block the related servers.",
+            "unblock_all": "Couldn't unblock everything.",
+            "preset": "Couldn't apply \"{name}\".",
+            "import": "Couldn't import the existing firewall blocks.",
+            "description": "Deadlock+ needs administrator access to change firewall rules. Allow asks Windows once for this session. Always allow asks once, then never again on this Windows account."
+        }
+    },
+    "live": {
+        "state": {
+            "game_closed": "Deadlock is not running",
+            "menus": "In the menus",
+            "queuing": "Searching for a match",
+            "pregame": "Match starting",
+            "in_match": "In a match",
+            "post_match": "Match finished",
+            "game_closed_hint": "Start the game and this page follows along.",
+            "menus_hint": "Queue up or join a lobby to see the match here.",
+            "queuing_hint": "The board appears once the match is found.",
+            "pregame_hint": "Players and heroes show up as they lock in.",
+            "in_match_hint": "Reading the match.",
+            "post_match_hint": "Results are saved to your match history.",
+            "loading_match": "Reading the match",
+            "loading_match_hint": "Player data shows up in a moment."
+        },
+        "team": {
+            "amber": "The Hidden King",
+            "sapphire": "The Archmother"
+        },
+        "mode": {
+            "unranked": "Unranked",
+            "ranked": "Ranked",
+            "privateLobby": "Private",
+            "coopBot": "Co-op",
+            "tutorial": "Tutorial",
+            "other": "Other"
+        },
+        "game": {
+            "normal": "Standard",
+            "streetBrawl": "Street Brawl",
+            "sandbox": "Sandbox",
+            "exploreNyc": "Explore NYC",
+            "other": "Other"
+        },
+        "col": {
+            "rank": "Rank",
+            "souls": "Souls",
+            "souls_per_min": "Souls per minute",
+            "kills": "Kills",
+            "deaths": "Deaths",
+            "assists": "Assists",
+            "kill_participation": "Kill participation",
+            "hero_damage": "Hero damage",
+            "objective_damage": "Objective damage",
+            "healing": "Healing"
+        },
+        "rank_from_history": "{rank}, from their ranked matches",
+        "paused": "Paused",
+        "queue": {
+            "party": "Party size"
+        },
+        "swaps": {
+            "line": "{from} switched to {to}",
+            "named": "{name} switched from {from} to {to}",
+            "dismiss": "Dismiss"
+        },
+        "grades": {
+            "label": {
+                "overall": "Overall",
+                "kills": "Kills",
+                "deaths": "Deaths",
+                "assists": "Assists",
+                "souls": "Souls/min",
+                "damage": "Dmg/min",
+                "objective_damage": "Obj dmg/min",
+                "healing": "Healing"
+            },
+            "name": {
+                "kills": "Kills",
+                "deaths": "Deaths",
+                "assists": "Assists",
+                "souls": "Souls per minute",
+                "damage": "Damage per minute",
+                "objective_damage": "Objective damage per minute",
+                "healing": "Healing"
+            },
+            "too_early": "Too early",
+            "too_early_long": "Too early to grade",
+            "after_first_minute": "Grades after 1:00",
+            "no_targets": "No targets",
+            "frozen": "Targets frozen",
+            "loading": "Loading targets",
+            "avg": "avg",
+            "average": "Average: {value}",
+            "better_than": "Better than {pct}%",
+            "fewer_deaths": "Fewer deaths than {pct}%",
+            "self_heal": "Self heal {n}",
+            "healing_teammates": "Healing teammates {n}",
+            "group": {
+                "rank": "vs Average for {hero} at {rank}",
+                "range": "vs Average for {hero} at {rankFrom}–{rankTo}",
+                "all_ranks": "vs Average for {hero}, all ranks",
+                "street_brawl": "vs Average for {hero} in Street Brawl"
+            },
+            "reason": {
+                "offline": "No targets: you appear to be offline.",
+                "api_down": "No targets: the Deadlock API is not responding.",
+                "rate_limited": "No targets: too many requests to the Deadlock API.",
+                "empty_data": "No targets: the Deadlock API has no data for this hero yet."
+            }
+        },
+        "ptrace": {
+            "title": "Linux is blocking Deadlock+ from reading the game",
+            "body": "Your kernel's ptrace setting stops live match data and instant results.",
+            "fix": "Allow access",
+            "fix_restart": "Allow access and restart",
+            "reboot": "Takes effect after you restart your computer.",
+            "manual": "Run Steam and Deadlock+ as the same user, outside a Flatpak or Snap sandbox.",
+            "failed": "Could not change the ptrace setting."
+        },
+        "game_admin": {
+            "title": "Deadlock is running as admin",
+            "body": "Start Steam normally, or restart Deadlock+ as administrator."
+        }
+    }
+}

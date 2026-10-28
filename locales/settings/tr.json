@@ -1,0 +1,765 @@
+{
+    "settings": {
+        "language": {
+            "label": "Dil",
+            "description": "",
+            "system": "",
+            "system_current": "",
+            "completion_hint": "",
+            "translated": "%{percent} çevrildi",
+            "coming_soon": "Yakında"
+        },
+        "categories": {
+            "appearance": "Görünüm",
+            "language": "Dil",
+            "startup": "Başlangıç ve arka plan",
+            "notifications": "Bildirimler",
+            "overlay": "",
+            "privacy": "Gizlilik",
+            "about": "",
+            "diagnostics": "Tanılama",
+            "sharing": "",
+            "storage": ""
+        },
+        "items": {
+            "theme": "Tema",
+            "theme_effects": "",
+            "reduced_motion": "Azaltılmış hareket",
+            "accessible_font": "Erişilebilirlik fontu",
+            "close_to_tray": "Sistem tepsisinde çalışmaya devam et",
+            "background_jobs": "Arka plan işleri",
+            "update_alerts": "Yama ve haber bildirimleri",
+            "maintenance": "Steam bakım hatırlatması",
+            "discord_presence": "Discord durumu",
+            "discord_clients": "Discord uygulamaları",
+            "discord_editor": "Durum düzenleyicisi",
+            "match_ingest": "",
+            "telemetry": "Anonim kullanım verilerini ve hata raporlarını paylaş",
+            "gc_recovery": "",
+            "version": "Sürüm",
+            "whats_new": "Yenilikler",
+            "updates": "Uygulama güncellemeleri",
+            "thanks": "Teşekkürler",
+            "diagnostics": "Tanılama",
+            "licenses": "Lisanslar",
+            "storage": "",
+            "overlay": "",
+            "overlay_position": "",
+            "overlay_duration": "",
+            "overlay_test": "",
+            "overlay_notifications": "",
+            "overlay_match_found": "",
+            "server_blocks_updated": "",
+            "server_blocks_stale": "",
+            "break_reminder": "",
+            "ui_scale": "",
+            "hardware_acceleration": "",
+            "open_on_game_start": "",
+            "admin_access": ""
+        },
+        "nav": {
+            "label": "Ayar kategorileri",
+            "search": "Ayarlarda ara",
+            "back": "Geri",
+            "no_matches": "\"{query}\" ile eşleşme yok."
+        },
+        "appearance": {
+            "theme_description": "Uygulamanın kullanacağı renkleri seç.",
+            "effects_description": "",
+            "motion_description": "Animasyonları ve geçişleri kapatır. \"Sistem\" işletim sistemi ayarını kullanır.",
+            "motion_system": "Sistem",
+            "motion_reduce": "Azalt",
+            "motion_full": "Tüm hareketler",
+            "font_description": "Oyun tarzı yazı tiplerini, az gören kullanıcılar için tasarlanmış ve okunması kolay Atkinson Hyperlegible ile değiştirin.",
+            "scale_description": "",
+            "hardware_acceleration_description": "",
+            "restart_app": "",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
+        },
+        "themes": {
+            "deadlock": {
+                "label": "Deadlock",
+                "description": "Pirinç detaylı, siyaha yakın ton.",
+                "source": ""
+            },
+            "midnight": {
+                "label": "Gece yarısı",
+                "description": "Soğuk mavi-siyah, yumuşak gümüş vurgulu.",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
+            },
+            "daylight": {
+                "label": "Gün ışığı",
+                "description": "Açık renk teması."
+            },
+            "contrast": {
+                "label": "Yüksek kontrast",
+                "description": "Saf siyah ve beyaz, belirgin kenarlıklarla."
+            },
+            "nightshift": {
+                "label": "Gece vardiyası",
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
+            },
+            "deadlock_api": {
+                "label": "Deadlock API",
+                "description": "Kızıl parıltılı OLED siyah.",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
+            }
+        },
+        "autostart": {
+            "title_windows": "Windows ile başlat",
+            "title_macos": "macOS ile başlat",
+            "title_linux": "Girişte başlat",
+            "description_windows": "Windows'ta oturum açtığınızda Deadlock+'ı başlatır.",
+            "description_macos": "macOS'ta oturum açtığınızda Deadlock+'ı başlatır.",
+            "description_linux": "Masaüstünde oturum açtığınızda Deadlock+'ı başlatır.",
+            "failed": "",
+            "stale": ""
+        },
+        "startup": {
+            "tray_description": "",
+            "jobs_description": "",
+            "all_jobs_label": "",
+            "all_jobs_description": "",
+            "tasks_title": "",
+            "tasks_description": "",
+            "run_by_itself": "",
+            "while_running": "",
+            "advanced": "",
+            "open_on_game_start_description": "",
+            "admin_access_ask": "",
+            "admin_access_description": ""
+        },
+        "notifications": {
+            "alerts_description": "",
+            "maintenance_description": "",
+            "day": "Gün",
+            "time": "Saat (UTC)",
+            "remind": "Hatırlat",
+            "lead_minutes": "{minutes} dk önce",
+            "lead_hours": "{hours} sa önce",
+            "overlay_description": "",
+            "overlay_fullscreen": "",
+            "overlay_position_description": "",
+            "overlay_duration_description": "",
+            "overlay_test_description": "",
+            "overlay_notifications_description": "",
+            "overlay_notifications_button": "",
+            "overlay_test_button": "",
+            "overlay_test_countdown": "",
+            "overlay_seconds": "",
+            "position": {
+                "top_left": "",
+                "top_center": "",
+                "top_right": "",
+                "left": "",
+                "right": "",
+                "bottom_left": "",
+                "bottom_center": "",
+                "bottom_right": "",
+                "center": ""
+            },
+            "overlay_match_found_description": "",
+            "server_blocks_updated_description": "",
+            "server_blocks_stale_description": "",
+            "break_reminder_description": "",
+            "delivery_label": "",
+            "delivery": {
+                "both": "",
+                "overlay": "",
+                "os": "",
+                "quiet": "",
+                "center": ""
+            },
+            "overlay_off_fallback": "",
+            "overlay_off_hidden": ""
+        },
+        "weekdays": {
+            "monday": "Pazartesi",
+            "tuesday": "Salı",
+            "wednesday": "Çarşamba",
+            "thursday": "Perşembe",
+            "friday": "Cuma",
+            "saturday": "Cumartesi",
+            "sunday": "Pazar"
+        },
+        "countdown": {
+            "days": "{days} gün {hours} sa",
+            "hours": "{hours} sa {minutes} dk",
+            "minutes": "{minutes} dk",
+            "soon": "bir dakikadan az"
+        },
+        "discord": {
+            "presence_description": "Ne oynadığını Discord profilinde göster.",
+            "level_off": "Kapalı",
+            "level_basic": "Temel",
+            "level_detailed": "Ayrıntılı",
+            "level_off_description": "Hiçbir şey göstermez.",
+            "level_basic_description": "Deadlock'ta olduğunu gösterir.",
+            "level_detailed_description": "",
+            "support_label": "Deadlock+'ı destekle",
+            "support_description": "Etkinliğinize \"Deadlock+ İndir\" düğmesi ekler, böylece diğerleri uygulamayı bulabilir. Temel ve Ayrıntılı seviyelerinde çalışır.",
+            "client_running": "Çalışıyor",
+            "client_not_running": "Çalışmıyor",
+            "client_other_hint": "Vesktop ve diğer uygulamalar",
+            "clients_description": "Durumunuzu hangi Discord uygulamalarının göstereceğini seçin.",
+            "client_stable": "Discord",
+            "client_ptb": "Discord PTB",
+            "client_canary": "Discord Canary",
+            "client_other_label": "",
+            "client_stable_name": "Discord",
+            "client_ptb_name": "Discord PTB",
+            "client_canary_name": "Discord Canary",
+            "client_other_name": "",
+            "status_off": "Kapalı",
+            "status_none": "Discord bulunamadı.",
+            "status_showing": ""
+        },
+        "discord_editor": {
+            "description": "",
+            "loading": "",
+            "states": "",
+            "customised": "",
+            "inherited": "",
+            "field_details": "",
+            "field_state": "",
+            "field_large_image": "",
+            "field_large_text": "",
+            "field_small_image": "",
+            "field_small_text": "",
+            "field_timer": "",
+            "reset_field": "",
+            "reset_scope": "",
+            "reset_all": "",
+            "reset_all_title": "",
+            "reset_all_description": "",
+            "all_heroes": "",
+            "sample_hero": "",
+            "image_enabled": "",
+            "image_source": "",
+            "image_url": "",
+            "source_heroPortrait": "",
+            "source_heroIcon": "",
+            "source_rankBadge": "",
+            "source_modeIcon": "",
+            "source_customUrl": "",
+            "timer_none": "",
+            "timer_elapsedInState": "",
+            "timer_matchTime": "",
+            "preview": "",
+            "preview_header": "",
+            "preview_disabled": "",
+            "preview_failed": "",
+            "preview_large_text": "",
+            "preview_small_text": "",
+            "share": "Ön ayar paylaş",
+            "share_description": "",
+            "import_label": "Ön ayar metni",
+            "import": "İçeri aktar",
+            "import_file": "Dosyadan içeri aktar",
+            "export": "",
+            "exported": "",
+            "export_failed": "Panoya kopyalanamadı",
+            "imported": "",
+            "state": {
+                "playing": "Oynuyor",
+                "mainMenu": "Ana menü",
+                "hideout": "Sığınakta",
+                "findingMatch": "Maç arıyor",
+                "matchFound": "Maç bulundu",
+                "preGame": "Oyun öncesi",
+                "inMatch": "Maçta",
+                "streetBrawlRound": "Sokak Kavgası turu",
+                "paused": "Durduruldu",
+                "spectating": "İzliyor",
+                "postGame": "Oyun sonrası",
+                "privateLobby": "Özel lobi",
+                "practice": "Pratik"
+            },
+            "variant": {
+                "solo": "Solo",
+                "party": "Parti",
+                "unranked": "Derecesiz",
+                "ranked": "Dereceli",
+                "bots": "Botlar",
+                "tutorial": "Eğitim",
+                "normal": "Normal",
+                "streetBrawl": "Sokak Kavgası",
+                "sandbox": "",
+                "exploreNyc": "NYC'yi Keşfet",
+                "won": "Zafer",
+                "lost": "Yenilgi",
+                "unscored": "Değerlendirilmedi"
+            },
+            "editing": "",
+            "editing_default_hint": "Buradaki değişiklikler her kahraman için geçerlidir. Yalnızca bir kahramanın satırlarını değiştirmek için o kahramanı seçin.",
+            "editing_hero_hint": "Buradaki değişiklikler yalnızca {hero} oynarken geçerlidir. Boş bıraktığınız alanlar Varsayılan'ı izler.",
+            "no_hero_layer": "",
+            "row_enabled": "",
+            "no_top_line": "",
+            "insert_variable": "",
+            "insert_into": "",
+            "sensitive": "",
+            "syntax_help": "",
+            "variables_hint": "",
+            "placeholder": {
+                "hero": "Kahramanınız",
+                "mode": "Maç modu, örneğin Dereceli",
+                "gameMode": "Oyun modu, örneğin Sokak Kavgası",
+                "rank": "Dereceli maçlardaki dereceniz",
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "partySize": "",
+                "partyMax": "",
+                "round": "",
+                "scoreAmber": "",
+                "scoreSapphire": "",
+                "elapsed": "",
+                "queueTime": "",
+                "result": "",
+                "matchId": "",
+                "heroPresence": ""
+            },
+            "preview_game": "",
+            "preview_logo": "",
+            "preview_large_image": "",
+            "preview_small_image": "",
+            "preview_elapsed": "",
+            "preview_discord_row": "",
+            "preview_discord_sample": "",
+            "preview_support_button": "",
+            "syntax": {
+                "title": "",
+                "copied": "",
+                "copy_example": "",
+                "nothing": "",
+                "no_sample": "",
+                "rules_title": "",
+                "rule_length": "",
+                "rule_empty": "",
+                "rule_unclosed": "",
+                "rule_unknown": "",
+                "privacy": "",
+                "intro": "",
+                "you_see": "",
+                "step1_title": "",
+                "step1_body": "",
+                "step2_title": "",
+                "step2_body": "",
+                "step3_title": "",
+                "step3_body": "",
+                "step4_title": "",
+                "step4_body": "",
+                "list_title": "",
+                "list_body": "",
+                "col_variable": "",
+                "col_shows": "",
+                "col_example": "",
+                "group_you": "",
+                "group_match": "",
+                "group_party": "",
+                "group_streetBrawl": "",
+                "group_misc": ""
+            },
+            "timer_queueTime": "",
+            "field_party_size": "",
+            "party_size_hint": "",
+            "preview_party": "",
+            "detailed_only": ""
+        },
+        "privacy": {
+            "telemetry_description": "",
+            "telemetry_reset": "",
+            "telemetry_reset_done": "",
+            "ingest_waiting": "",
+            "ingest_off": "",
+            "ingest_no_cache": "",
+            "ingest_failed": "",
+            "ingest_watching": "",
+            "ingest_description": "",
+            "gc_description": "",
+            "how_it_works": "",
+            "ingest_how_find": "",
+            "ingest_how_send": "",
+            "gc_how_login": "",
+            "gc_how_limit": "",
+            "gc_how_game": "",
+            "gc_how_send": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "advanced": "",
+            "gc_own_open": "",
+            "shared": {
+                "title": "",
+                "source_steam": "",
+                "source_deadlock": "",
+                "source_login": "",
+                "with_replay": "",
+                "when": "",
+                "match": "",
+                "from": "",
+                "details": "",
+                "replay": "",
+                "sent": "",
+                "not_sent": "",
+                "empty": ""
+            }
+        },
+        "about_page": {
+            "copy": "",
+            "copied": "",
+            "copy_failed": "",
+            "install": "",
+            "check_now": "",
+            "auto_check_label": "",
+            "auto_check_description": "",
+            "whats_new_in": ""
+        },
+        "diagnostics": {
+            "description": "",
+            "collapse": "",
+            "expand": ""
+        },
+        "licenses": {
+            "read_full": "",
+            "terms_link": "",
+            "copyright": "",
+            "fonts_heading": "",
+            "app_summary": "",
+            "app_warranty": "",
+            "disclaimer": "",
+            "kind_font": "",
+            "kind_artwork": "",
+            "terms_not_open_source": "",
+            "terms_valve_oracle": "",
+            "terms_valve_pulp": "",
+            "terms_twemoji": "",
+            "dependencies_title": "",
+            "dependencies_description": "",
+            "dependencies_failed": "",
+            "dependencies_loading": "",
+            "dependencies_packages": "",
+            "dependencies_rust": "",
+            "dependencies_npm": "",
+            "dependencies_no_file": ""
+        },
+        "thanks": {
+            "intro": "",
+            "contributors": "",
+            "contributors_description": "",
+            "translators": "",
+            "translators_description": "",
+            "donators": "",
+            "donators_description": "",
+            "nobody_yet": "",
+            "others_one": "",
+            "others_other": "",
+            "anonymous_one": "",
+            "anonymous_other": ""
+        }
+    },
+    "storage": {
+        "subtitle": "",
+        "show_paths": "",
+        "hide_paths": "",
+        "refresh": "",
+        "looking": "",
+        "footnote": "",
+        "summary": {
+            "total": "",
+            "can_clear": "",
+            "clear_regenerable": ""
+        },
+        "entry": {
+            "path_missing": "",
+            "not_found": "",
+            "retry_aria": "",
+            "retry": "",
+            "measuring": "",
+            "open_aria": "",
+            "open_title": "",
+            "reveal_aria": "",
+            "reveal_title": "",
+            "clear_aria": "",
+            "clear_title": ""
+        },
+        "dialog": {
+            "cancel": "",
+            "clear": ""
+        },
+        "clear": {
+            "title": "",
+            "body": "",
+            "all_title": "",
+            "all_body": ""
+        },
+        "toast": {
+            "freed": "",
+            "nothing": "",
+            "remove_failed": ""
+        },
+        "age": {
+            "today": "",
+            "days_one": "",
+            "days_other": "",
+            "months_one": "",
+            "months_other": "",
+            "years_one": "",
+            "years_other": ""
+        },
+        "units_oldest": "",
+        "owners": {
+            "deadlock": {
+                "label": "",
+                "blurb": ""
+            },
+            "deadlock_plus": {
+                "label": "",
+                "blurb": ""
+            },
+            "mods": {
+                "label": "",
+                "blurb": ""
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "",
+                "hint": ""
+            },
+            "history": {
+                "label": "",
+                "hint": ""
+            },
+            "backup": {
+                "label": "",
+                "hint": ""
+            },
+            "yours": {
+                "label": "",
+                "hint": ""
+            },
+            "managed": {
+                "label": "",
+                "hint": ""
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "hero_presence_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "shader_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "console_log": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "voice_ban_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "frame_runs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "settings": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "server_presets": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_rules": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "connection_history": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "notifications": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "patch_notes_index": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "stats_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "server_list_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_info_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "match_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "other_app_files": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "logs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "addons": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "addons_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "config_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "gameinfo_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "match_ping": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "mvp_grades": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "shared_matches": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            }
+        }
+    }
+}

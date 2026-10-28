@@ -31,9 +31,9 @@ mod tests {
     use std::path::PathBuf;
 
     fn locale_codes() -> Vec<String> {
-        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../locales");
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../locales/app");
         let mut codes: Vec<String> = std::fs::read_dir(&dir)
-            .expect("locales dir exists")
+            .expect("locales/app dir exists")
             .filter_map(|e| {
                 let path = e.ok()?.path();
                 (path.extension()? == "json").then(|| path.file_stem()?.to_str().map(str::to_string))?

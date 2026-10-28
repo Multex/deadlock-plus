@@ -1,0 +1,349 @@
+{
+    "performance": {
+        "title": "",
+        "rules": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
+        },
+        "severity": {
+            "low": "Laag",
+            "medium": "Medium",
+            "high": "Hoog"
+        },
+        "addon": {
+            "gamebanana_mod": "",
+            "mod_id": "",
+            "disabled": ""
+        },
+        "frame_capture": {
+            "note_windows": "",
+            "note_linux": "",
+            "note_macos": ""
+        },
+        "runs": {
+            "default_label": ""
+        },
+        "metrics": {
+            "avg_fps": "Gemiddelde FPS",
+            "low_1pct_fps": "1% laag FPS",
+            "low_01pct_fps": "0.1% laag FPS",
+            "median_frametime": "",
+            "p95": "95ste persentiel",
+            "p99": "99ste persentiel",
+            "spikes_per_minute": "",
+            "spikes": "",
+            "longest_frame": ""
+        },
+        "units": {
+            "ms": "{value} ms"
+        },
+        "only_on_in": "",
+        "same_addons": "",
+        "report": {
+            "title": "",
+            "tie": "",
+            "run_length": "",
+            "run_a": "",
+            "run_b": "",
+            "better": "",
+            "disclaimer": ""
+        },
+        "layer": {
+            "copied": "",
+            "copy_failed": "",
+            "installed": "",
+            "not_installed": "",
+            "installed_hint": "",
+            "install_hint": "",
+            "unavailable": "",
+            "remove": "",
+            "install": "",
+            "steps": "",
+            "copy": ""
+        },
+        "tabs": {
+            "frametimes": {
+                "title": "",
+                "blurb": ""
+            },
+            "scripts": {
+                "title": "",
+                "blurb": ""
+            },
+            "compare": {
+                "title": "",
+                "blurb": ""
+            }
+        },
+        "compare": {
+            "copied": "",
+            "copy_failed": "",
+            "saved": "",
+            "save_failed": "",
+            "file_filter": "Teks",
+            "pick_run": "",
+            "intro": "",
+            "empty_none": "",
+            "empty_single": "",
+            "empty_hint": "",
+            "run_a": "",
+            "run_b": "",
+            "pick_different": "",
+            "copy_report": "",
+            "save_report": "",
+            "legend": "",
+            "no_difference": "Geen duidelike verskil.",
+            "mixed": "",
+            "favours_a": "",
+            "favours_b": "",
+            "addons_differ": "",
+            "only_on_in": "",
+            "delete_run": "",
+            "addons_on_one": "",
+            "addons_on_other": ""
+        },
+        "frametimes": {
+            "intro": "",
+            "start": "Begin",
+            "stop": "Eindig",
+            "waiting": "Wag vir Deadlock om te begin loop...",
+            "background": "",
+            "limit": "",
+            "no_frames": "",
+            "none_recorded": "",
+            "left_out": "",
+            "label_aria": "",
+            "label_placeholder": "",
+            "save": "",
+            "saved": "Gestoor",
+            "spike_at": "by {time}",
+            "needs_admin": "",
+            "recording_one": "",
+            "recording_other": "",
+            "graph_caption_one": "",
+            "graph_caption_other": "",
+            "summary_one": "",
+            "summary_other": "",
+            "save_hint_one": "",
+            "save_hint_other": ""
+        },
+        "scripts": {
+            "intro": "",
+            "run_now": "Loop nou",
+            "scanning_button": "",
+            "scan_again": "",
+            "disclaimer": "",
+            "no_install": "",
+            "none_installed": "",
+            "finding": "",
+            "progress": "",
+            "progress_paused": "",
+            "progress_aria": "",
+            "scripts_clean": "",
+            "no_scripts": "",
+            "worth_a_look": "",
+            "could_not_read": "Kon nie lees",
+            "scanned_clean": "",
+            "error_badge": "Fout",
+            "with_findings_one": "",
+            "with_findings_other": "",
+            "scripts_count_one": "",
+            "scripts_count_other": "",
+            "pending_one": "",
+            "pending_other": "",
+            "addons_without_scripts_one": "",
+            "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "",
+            "unguarded_rearm": ""
+        }
+    },
+    "demos": {
+        "title": "Herhalings",
+        "subtitle": "",
+        "open_folder": "",
+        "clean_up": "",
+        "delete_selected": "",
+        "refresh": "",
+        "reading": "",
+        "no_folder": "",
+        "select_page": "",
+        "empty_none": "",
+        "empty_filtered": "",
+        "reference_build": "",
+        "match_id": "",
+        "hero_id": "Held {id}",
+        "status": {
+            "complete": {
+                "label": "Gereed",
+                "hint": ""
+            },
+            "partial": {
+                "label": "",
+                "hint": ""
+            },
+            "outdated": {
+                "label": "",
+                "hint": ""
+            },
+            "unknown": {
+                "label": "",
+                "hint": ""
+            }
+        },
+        "filter": {
+            "all": "Alle ({count})",
+            "pinned": "",
+            "status_count": "{label} ({count})",
+            "summary_one": "",
+            "summary_other": ""
+        },
+        "pager": {
+            "previous": "Vorige bladsy",
+            "next": "Volgende bladsy",
+            "page": "Bladsy {page} van {count}"
+        },
+        "row": {
+            "select": "",
+            "unknown_hero": "Onbekende held",
+            "build": "",
+            "not_in_api": "nog nie in die Deadlock API nie",
+            "details_unavailable": "",
+            "win": "Oorwinning",
+            "loss": "Verlies",
+            "pin": "",
+            "pinned_hint": "",
+            "unpinned_hint": "",
+            "more_actions": "",
+            "open_statlocker": "",
+            "show_in_folder": "",
+            "delete": "",
+            "delete_unpin_first": "",
+            "pin_match": "",
+            "more_actions_match": ""
+        },
+        "delete": {
+            "disabled": "",
+            "description": "",
+            "method": "",
+            "recycle": "",
+            "recycle_hint": "",
+            "permanent": "",
+            "permanent_hint": "",
+            "title_one": "",
+            "title_other": "",
+            "too_large_one": "",
+            "too_large_other": "",
+            "too_large_room_one": "",
+            "too_large_room_other": ""
+        },
+        "cleanup": {
+            "title": "",
+            "description": "",
+            "older_than": "Ouer as",
+            "days_label": "Dae",
+            "days_unit": "dae",
+            "larger_than": "",
+            "gigabytes_label": "",
+            "gb_unit": "",
+            "turn_on": "",
+            "checking": "",
+            "close": "",
+            "rule_larger_gb": "",
+            "rule_larger_mb": "",
+            "rule_outdated": "",
+            "rule_partial": "",
+            "matches_one": "",
+            "matches_other": "",
+            "review_one": "",
+            "review_other": "",
+            "rule_older_than_days_one": "",
+            "rule_older_than_days_other": ""
+        },
+        "toast": {
+            "deleted_one": "",
+            "deleted_other": "",
+            "delete_failed_one": "",
+            "delete_failed_other": ""
+        }
+    },
+    "voice_bans": {
+        "title": "",
+        "subtitle": "",
+        "your_account": "",
+        "export_all": "",
+        "export_selected": "",
+        "import": "",
+        "reading": "",
+        "no_file": "",
+        "unknown_player": "",
+        "profile_unknown": "Onbekend",
+        "not_a_voice_ban": "",
+        "unrecognised_import": "",
+        "api_error": "",
+        "game_running": {
+            "title": "Deadlock loop tans",
+            "body": ""
+        },
+        "add": {
+            "placeholder": "",
+            "aria": "",
+            "mute": "",
+            "search": "",
+            "none_found": "",
+            "muted": "",
+            "mute_named": ""
+        },
+        "filter": {
+            "placeholder": "",
+            "aria": "",
+            "unmute_selected": ""
+        },
+        "list": {
+            "select_page": "",
+            "count": "",
+            "empty": "",
+            "no_match": ""
+        },
+        "row": {
+            "select": "",
+            "open_aria": "",
+            "open_title": "Statlocker-profiel",
+            "unmute": "",
+            "unmute_named": "",
+            "open_named_aria": ""
+        },
+        "pager": {
+            "previous": "Vorige bladsy",
+            "next": "Volgende bladsy",
+            "page": "Bladsy {page} van {count}"
+        },
+        "unmute": {
+            "description": "",
+            "confirm": "",
+            "title_one": "",
+            "title_other": ""
+        },
+        "import_dialog": {
+            "confirm": "Invoer",
+            "title_one": "",
+            "title_other": "",
+            "description_one": "",
+            "description_other": ""
+        },
+        "toast": {
+            "backup": "",
+            "already_muted": "",
+            "not_recognised": "",
+            "search_failed": "",
+            "exported": "",
+            "export_failed": "",
+            "import_failed": "",
+            "unmuted_one": "",
+            "unmuted_other": "",
+            "muted_one": "",
+            "muted_other": ""
+        }
+    }
+}
