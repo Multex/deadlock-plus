@@ -11,9 +11,24 @@ pub enum UpdateChannel {
     Nightly,
 }
 
+#[cfg(not(feature = "update-rehearsal"))]
 const RELEASE_FEED: &str = "https://github.com/deadlock-plus/deadlock-plus/releases/latest/download/latest.json";
+#[cfg(not(feature = "update-rehearsal"))]
 const BETA_FEED: &str = "https://github.com/deadlock-plus/deadlock-plus/releases/download/beta-feed/latest.json";
+#[cfg(not(feature = "update-rehearsal"))]
 const NIGHTLY_FEED: &str = "https://github.com/deadlock-plus/deadlock-plus/releases/download/nightly-feed/latest.json";
+
+// A local release build pointed at feeds on this machine, so a real signed installer can be installed through the
+// whole update flow before a release ships. Only a build switch selects them: nothing at run time can change a feed,
+// and a build on GitHub's runners refuses the switch.
+#[cfg(feature = "update-rehearsal")]
+const RELEASE_FEED: &str = "http://127.0.0.1:4790/latest.json";
+#[cfg(feature = "update-rehearsal")]
+const BETA_FEED: &str = "http://127.0.0.1:4791/latest.json";
+#[cfg(feature = "update-rehearsal")]
+const NIGHTLY_FEED: &str = "http://127.0.0.1:4792/latest.json";
+#[cfg(feature = "update-rehearsal")]
+const _: () = assert!(option_env!("GITHUB_ACTIONS").is_none(), "update-rehearsal must never build on CI");
 
 impl UpdateChannel {
     /// A channel also follows every more stable one, so a beta that ends in a release moves its users onto that

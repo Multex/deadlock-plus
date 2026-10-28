@@ -27,6 +27,7 @@ required-features = ["privileged-helper"]
 
 [features]
 privileged-helper = []
+update-rehearsal = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

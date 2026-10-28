@@ -287,9 +287,6 @@
         "titlebar": {
             "expand_sidebar": "Tooltip and screen reader label for the title bar button that opens the sidebar.",
             "collapse_sidebar": "Tooltip and screen reader label for the title bar button that hides the sidebar.",
-            "update_downloading": "Tooltip of a title bar indicator while an app update downloads.",
-            "downloading_update": "Screen reader label for the title bar update indicator while an update downloads.",
-            "update_available": "Tooltip of a title bar button that offers an app update. {version} = version number, e.g. \"0.15.0\".",
             "minimize": "Tooltip and screen reader label for the window minimize button. Match the OS translation.",
             "maximize": "Tooltip and screen reader label for the window maximize button. Match the OS translation.",
             "restore": "Tooltip and screen reader label for the button that restores a maximized window to normal size. Match the OS translation.",
@@ -517,8 +514,9 @@
             "checking": "Status text on Settings > Updates while checking for a new version. Ends with an ellipsis.",
             "up_to_date": "Status text on Settings > Updates when the installed version is the newest.",
             "available": "Status text on Settings > Updates when a newer version exists. {version} = version number, e.g. \"0.15.0\".",
-            "downloading": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
-            "downloading_percent": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". {percent} = whole number 0 to 100, e.g. 42. Deadlock+ stays untranslated.",
+            "downloading": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". The user restarts the app afterwards to install it.",
+            "downloading_percent": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". {percent} = whole number 0 to 100, e.g. 42. The user restarts the app afterwards to install it.",
+            "ready": "Status text on Settings > Updates once an update has downloaded. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
             "check_failed": "Error status text on Settings > Updates when the update check failed, usually because of the network.",
             "download_failed": "Error status text on Settings > Updates when the update download failed."
         },
@@ -526,7 +524,93 @@
             "title": "Title of the update banner shown in the app. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
             "body": "Body text of the update banner. Says the update is quick and the app restarts by itself.",
             "install": "Button on the update banner that installs the update now. Keep short, about 12 characters.",
-            "dismiss": "Tooltip and screen reader label of the icon button that dismisses the update banner. Means not now, so the banner can come back."
+            "dismiss": "Tooltip and screen reader label of the icon button that dismisses the update banner. Means not now, so the banner can come back.",
+            "view": "Button on the update banner that opens the updates page."
+        },
+        "surface": {
+            "title": "Title of the updates page and dialog.",
+            "kicker": {
+                "available": "Small caps label above the new version number when an update exists.",
+                "downloading": "Small caps label above the version number while the update downloads.",
+                "ready": "Small caps label above the version number once the update has downloaded.",
+                "failed": "Small caps label above the version number after the update download failed. Calm, not alarming.",
+                "check_failed": "Small caps label when the update check could not reach the server.",
+                "up_to_date": "Small caps label when no newer version exists.",
+                "checking": "Small caps label while checking for a new version.",
+                "idle": "Small caps label before any update check has run."
+            },
+            "from_version": "Shown under the new version number. {version} = the installed version number, e.g. \"0.15.0\".",
+            "body": {
+                "available": "Explains what happens after the user starts an update. Deadlock+ stays untranslated.",
+                "downloading": "Shown while the update downloads. Deadlock+ stays untranslated.",
+                "ready": "Shown once the update has downloaded. What's New is the name of the app's release notes page. Deadlock+ stays untranslated.",
+                "failed": "Shown after the update download failed. Reassures the user and offers two ways forward.",
+                "check_failed": "Shown when the update check failed, usually because of the network. Deadlock+ stays untranslated.",
+                "up_to_date": "Shown when no update exists. {version} = the installed version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
+                "up_to_date_plain": "Shown when no update exists and the installed version is not known yet.",
+                "checking": "Shown while checking for a new version. Ends with an ellipsis.",
+                "idle": "Shown before any update check has run. Deadlock+ stays untranslated.",
+                "install_failed": "Shown after installing a downloaded update failed. Reassures that nothing changed and offers two ways forward. Deadlock+ stays untranslated."
+            },
+            "action": {
+                "update": "Primary button that starts downloading and installing the update. Keep short, about 12 characters.",
+                "restart": "Primary button that restarts the app to install a downloaded update. Keep short, about 12 characters.",
+                "retry": "Button that retries a failed update check or download.",
+                "check": "Button that checks for a new version.",
+                "manual": "Button that opens the download page in the browser, so the user can install the update by hand.",
+                "notes": "Link that opens the release notes of the new version in the browser."
+            },
+            "highlights_title": "Heading above the list of the new version's main features.",
+            "more_changes": "Below the feature list. Plural. {count} = number of further changes, e.g. 24."
+        },
+        "progress": {
+            "label": "Screen reader label of the update's download progress bar.",
+            "of": "Download progress. {received} and {total} = sizes in megabytes with one decimal, e.g. 24.0 and 38.6.",
+            "received": "Download progress when the total size is unknown. {received} = megabytes with one decimal, e.g. 24.0.",
+            "speed": "Download speed. {speed} = megabytes per second with one decimal, e.g. 3.2.",
+            "left_seconds": "Time left for the download. Plural. {count} = number of seconds, e.g. 12.",
+            "left_minutes": "Time left for the download. Plural. {count} = number of minutes, e.g. 3.",
+            "percent": "Download progress as a percentage. {percent} = whole number 0 to 100."
+        },
+        "channel": {
+            "title": "Heading of the picker that chooses which builds the app updates to.",
+            "summary": "Line in Settings > About naming the update channel in use. {channel} = Release, Beta or Nightly.",
+            "release": {
+                "name": "Name of the stable update channel. Keep short.",
+                "body": "One line under the Release channel."
+            },
+            "beta": {
+                "name": "Name of the early-access update channel. Keep short.",
+                "body": "One line under the Beta channel. Release is the stable channel's name."
+            },
+            "nightly": {
+                "name": "Name of the daily build update channel. Keep short.",
+                "body": "One line under the Nightly channel."
+            },
+            "nightly_warning": "Warning shown when the Nightly channel is picked.",
+            "keeps_build": "Shown after moving to a steadier channel: the app never goes back to an older version. {version} = the installed version number, e.g. \"0.15.0\". {channel} = Release or Beta."
+        },
+        "indicator": {
+            "available": "Title bar button label and tooltip when an update exists. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
+            "downloading": "Title bar button label while the update downloads. {percent} = whole number 0 to 100.",
+            "downloading_plain": "Title bar button label while the update downloads and its size is unknown.",
+            "ready": "Title bar button label once the update has downloaded.",
+            "failed": "Title bar button label after the update download or install failed. {version} = version number, e.g. \"0.15.0\".",
+            "kicker": {
+                "available": "Small caps label above the version on the title bar update button. One short word.",
+                "downloading": "Small caps label above the download percentage on the title bar update button. One short word.",
+                "ready": "Small caps label on the title bar update button once the update has downloaded. One short word.",
+                "failed": "Small caps label on the title bar update button after the download failed. One short word, calm."
+            }
+        },
+        "history": {
+            "title": "Heading of the list of recent Deadlock+ versions on the updates page.",
+            "installed": "Small tag on the version the user has installed.",
+            "cadence": "Under the recent releases. Plural. {count} = average days between releases, e.g. 10.",
+            "all": "Link to the full release notes page in the app."
+        },
+        "overview": {
+            "open": "Button in Settings > About that opens the updates page."
         }
     },
     "connection": {

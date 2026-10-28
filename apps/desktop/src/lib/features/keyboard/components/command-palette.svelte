@@ -6,7 +6,7 @@
     import { platform } from "$lib/core/platform";
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import { overlayHost } from "$lib/shell/overlay-host.svelte";
-    import { NAV_ENTRIES, updater } from "$lib/features/registry";
+    import { NAV_ENTRIES, updateSurface } from "$lib/features/registry";
     import { SHOWN_CATEGORIES } from "$lib/features/settings/catalog";
     import { openSupport } from "$lib/features/support/support";
     import { buildCommands, type Command as PaletteCommand, type CommandGroup } from "../commands";
@@ -36,8 +36,8 @@
             platform,
             go: (href) => void goto(href),
             checkForUpdates: () => {
-                void goto("/settings/about");
-                void updater.check();
+                updateSurface.show();
+                void updateSurface.check();
             },
             openSupport,
         }),

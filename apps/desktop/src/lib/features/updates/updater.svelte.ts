@@ -1,5 +1,5 @@
 import { failureText } from "$lib/core/errors";
-import { restartAfterSaves, runBeforeExit } from "$lib/core/exit";
+import { restartAfterSaves, runBeforeExitWithinLimit } from "$lib/core/exit";
 import { t } from "$lib/core/i18n.svelte";
 import { platform } from "$lib/core/platform";
 import type { Update } from "$lib/core/updater";
@@ -21,6 +21,20 @@ export interface CheckError {
 /** Long enough to smooth over chunk bursts, short enough that the speed follows a connection that slows down. */
 const SPEED_WINDOW_MS = 3000;
 const MIN_SPEED_SPAN_MS = 200;
+/**
+ * The plugin's download has no stall timeout and cannot be cancelled, so a dead connection would keep the page on
+ * "downloading" forever. Past these limits the attempt is abandoned and a retry starts a new one.
+ */
+const FIRST_BYTE_LIMIT_MS = 30_000;
+const STALL_LIMIT_MS = 45_000;
+
+/** The plugin keeps every update a check finds until it is closed; a stale rid is harmless to close. */
+function release(update: Update | null) {
+    if (!update) return;
+    void Promise.resolve()
+        .then(() => update.close())
+        .catch(() => {});
+}
 
 class Updater {
     phase = $state<UpdatePhase>("idle");
@@ -38,7 +52,9 @@ class Updater {
 
     private update: Update | null = null;
     private checking: Promise<boolean> | null = null;
+    private finishing: Promise<void> | null = null;
     private samples: { at: number; received: number }[] = [];
+    private attempt = 0;
 
     /** The update channel setting. */
     get channel(): UpdateChannel {
@@ -64,6 +80,7 @@ class Updater {
             if (this.channel !== channel) return false;
         }
         if (this.phase === "downloading" || this.phase === "ready") return true;
+        release(this.update);
         this.update = null;
         this.version = null;
         this.notes = null;
@@ -90,7 +107,16 @@ class Updater {
                 this.error = "check";
                 return false;
             }
-            if (channel !== this.channel) continue;
+            if (channel !== this.channel) {
+                release(update);
+                continue;
+            }
+            // A download started from the update this check began with; the answer must not reset its phase.
+            if (this.phase === "downloading" || this.phase === "ready") {
+                release(update);
+                return true;
+            }
+            if (this.update !== update) release(this.update);
             this.update = update;
             this.version = update?.version ?? null;
             this.notes = update?.body?.trim() ? update.body : null;
@@ -113,7 +139,7 @@ class Updater {
      */
     async restart() {
         if (this.phase !== "ready") return;
-        await this.finish("install");
+        await (this.finishing ??= this.finish("install").finally(() => (this.finishing = null)));
     }
 
     /** Download and restart in one step. On Windows a successful call rarely returns. */
@@ -130,20 +156,37 @@ class Updater {
         this.total = null;
         this.speed = null;
         this.error = null;
+        const attempt = ++this.attempt;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let stalled = () => {};
+        const stall = new Promise<never>((_, reject) => {
+            stalled = () => reject(new Error("the update download stopped receiving data"));
+        });
+        const watch = (limit: number) => {
+            clearTimeout(timer);
+            timer = setTimeout(stalled, limit);
+        };
+        watch(FIRST_BYTE_LIMIT_MS);
         try {
-            await update.download((event) => {
+            const download = update.download((event) => {
+                if (attempt !== this.attempt) return;
+                watch(STALL_LIMIT_MS);
                 if (event.event === "Started") {
                     this.total = event.data.contentLength || null;
                     this.samples = [{ at: Date.now(), received: 0 }];
                 }
                 if (event.event === "Progress") this.advance(event.data.chunkLength);
             });
+            await Promise.race([download, stall]);
             return true;
         } catch (e) {
             console.warn("update download failed:", e);
             this.phase = "error";
             this.error = "download";
             return false;
+        } finally {
+            clearTimeout(timer);
+            if (attempt === this.attempt) this.attempt++;
         }
     }
 
@@ -166,7 +209,7 @@ class Updater {
             if (platform === "windows") {
                 // The Windows installer ends the process without the backend's exit flush, so the queued
                 // install click would never leave the machine.
-                await Promise.all([runBeforeExit(), flushTelemetry()]);
+                await Promise.all([runBeforeExitWithinLimit(), flushTelemetry()]);
                 await update.install();
             } else {
                 await flushTelemetry();

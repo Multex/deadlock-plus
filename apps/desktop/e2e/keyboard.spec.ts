@@ -136,7 +136,7 @@ test.describe("the command palette", () => {
             ["mutes", /\/voice-bans$/],
             ["settings: privacy", /\/settings\/privacy$/],
             ["open settings", /\/settings\/appearance$/],
-            ["check for updates", /\/settings\/about$/],
+            ["check for updates", /\/updates$/],
             ["match history", /\/match-history$/],
         ] as const) {
             await run(page, text);

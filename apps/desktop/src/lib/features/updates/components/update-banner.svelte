@@ -4,6 +4,7 @@
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { installUpdate, updateBanner } from "../banner.svelte";
+    import { updateSurface } from "../update-surface.svelte";
     import { updater } from "../updater.svelte";
 </script>
 
@@ -14,6 +15,9 @@
             <p class="text-sm font-semibold">{t("updates.banner.title", { version: updater.version ?? "" })}</p>
             <p class="text-xs text-muted-foreground">{t("updates.banner.body")}</p>
         </div>
+        <Button size="sm" variant="outline" onclick={() => updateSurface.show()}>
+            {t("updates.banner.view")}
+        </Button>
         <Button size="sm" onclick={() => installUpdate("banner")}>
             <Download />
             {t("updates.banner.install")}

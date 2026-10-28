@@ -16,7 +16,7 @@ export function trackUpdateShown(toVersion: string) {
     return command("track_update_shown", { toVersion });
 }
 
-export function trackUpdateInstallClicked(toVersion: string, source: "banner" | "toast" | "about") {
+export function trackUpdateInstallClicked(toVersion: string, source: "banner" | "toast" | "about" | "panel") {
     return command("track_update_install_clicked", { toVersion, source });
 }
 

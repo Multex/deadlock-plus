@@ -214,6 +214,134 @@ describe("updater", () => {
         expect(updater.version).toBe("9.9.9");
     });
 
+    describe("a stalled download", () => {
+        type OnEvent = (event: { event: string; data?: Record<string, number> }) => void;
+
+        function stalling() {
+            const calls: OnEvent[] = [];
+            const update = {
+                version: "9.9.9",
+                download: vi.fn((onEvent: OnEvent) => {
+                    calls.push(onEvent);
+                    return new Promise<void>(() => {});
+                }),
+                install: vi.fn(),
+            };
+            check.mockResolvedValue(update);
+            return { update, calls };
+        }
+
+        async function run(body: () => Promise<void>) {
+            vi.useFakeTimers({ now: 0 });
+            try {
+                await body();
+            } finally {
+                vi.useRealTimers();
+            }
+        }
+
+        it("fails as a download when no first byte arrives in 30 s", () =>
+            run(async () => {
+                stalling();
+                await updater.check();
+                const downloading = updater.download();
+                await vi.advanceTimersByTimeAsync(29_900);
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(100);
+                expect(await downloading).toBe(false);
+                expect(updater.phase).toBe("error");
+                expect(updater.error).toBe("download");
+            }));
+
+        it("fails once bytes stop for 45 s, however long it ran before", () =>
+            run(async () => {
+                const { calls } = stalling();
+                await updater.check();
+                const downloading = updater.download();
+                calls[0]!({ event: "Started", data: { contentLength: 1000 } });
+                for (let i = 0; i < 4; i++) {
+                    await vi.advanceTimersByTimeAsync(40_000);
+                    calls[0]!({ event: "Progress", data: { chunkLength: 10 } });
+                }
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(44_900);
+                expect(updater.phase).toBe("downloading");
+                await vi.advanceTimersByTimeAsync(100);
+                expect(await downloading).toBe(false);
+                expect(updater.error).toBe("download");
+            }));
+
+        it("starts over on retry and ignores the stalled attempt", () =>
+            run(async () => {
+                const { update, calls } = stalling();
+                await updater.check();
+                const first = updater.download();
+                await vi.advanceTimersByTimeAsync(30_000);
+                await first;
+                const second = updater.download();
+                expect(update.download).toHaveBeenCalledTimes(2);
+                expect(updater.phase).toBe("downloading");
+                expect(updater.received).toBe(0);
+                calls[0]!({ event: "Progress", data: { chunkLength: 500 } });
+                expect(updater.received).toBe(0);
+                calls[1]!({ event: "Progress", data: { chunkLength: 10 } });
+                expect(updater.received).toBe(10);
+                await vi.advanceTimersByTimeAsync(45_000);
+                expect(await second).toBe(false);
+            }));
+    });
+
+    describe("finished checks", () => {
+        const offer = (version: string) => ({
+            version,
+            download: vi.fn(),
+            install: vi.fn(),
+            close: vi.fn(async () => {}),
+        });
+
+        it("releases the update a newer check replaces", async () => {
+            const first = offer("9.9.8");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            await updater.check();
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("releases the update once a check finds nothing", async () => {
+            const first = offer("9.9.9");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(null);
+            await updater.check();
+            await updater.check();
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("releases the old channel's update on a switch", async () => {
+            const first = offer("9.9.9");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(null);
+            await updater.check();
+            await updater.setChannel("beta");
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("keeps the update a download uses", async () => {
+            const first = { ...offer("9.9.9"), download: vi.fn(() => new Promise<void>(() => {})) };
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            void updater.download();
+            await updater.check();
+            await updater.setChannel("beta");
+            expect(first.close).not.toHaveBeenCalled();
+        });
+
+        it("still checks when releasing an old update fails", async () => {
+            const first = { ...offer("9.9.8"), close: vi.fn(async () => Promise.reject(new Error("bad rid"))) };
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            expect(await updater.check()).toBe(true);
+            expect(updater.version).toBe("9.9.9");
+        });
+    });
+
     describe("release notes", () => {
         it("keeps the found update's notes", async () => {
             check.mockResolvedValue({ version: "9.9.9", body: "### Fixed\n\n- Things", download: vi.fn() });
@@ -346,6 +474,57 @@ describe("updater", () => {
             await updater.install();
             remove();
             expect(steps).toEqual(["download", "flush_telemetry", "install", "save", "restart_app"]);
+        });
+
+        it("on Windows still hands over to the installer when a before-exit task never settles", async () => {
+            vi.useFakeTimers();
+            try {
+                const { update, remove } = staged();
+                const removeStuck = onBeforeExit(() => new Promise(() => {}));
+                await updater.check();
+                await updater.download();
+                const restarting = updater.restart();
+                await vi.advanceTimersByTimeAsync(2900);
+                expect(update.install).not.toHaveBeenCalled();
+                await vi.advanceTimersByTimeAsync(100);
+                await restarting;
+                removeStuck();
+                remove();
+                expect(update.install).toHaveBeenCalledOnce();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("starts the installer once when Restart is pressed again while it starts", async () => {
+            const { update, remove } = staged();
+            await updater.check();
+            await updater.download();
+            await Promise.all([updater.restart(), updater.restart()]);
+            remove();
+            expect(update.install).toHaveBeenCalledOnce();
+        });
+
+        it("keeps a download that started while a recheck was out", async () => {
+            let finishDownload = () => {};
+            const found = {
+                version: "9.9.9",
+                download: vi.fn(() => new Promise<void>((resolve) => (finishDownload = resolve))),
+                install: vi.fn(),
+            };
+            check.mockResolvedValueOnce(found);
+            await updater.check();
+            let answer: (update: unknown) => void = () => {};
+            check.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+            const rechecking = updater.check();
+            const downloading = updater.download();
+            answer({ ...found, download: vi.fn(), install: vi.fn() });
+            await rechecking;
+            expect(updater.phase).toBe("downloading");
+            finishDownload();
+            expect(await downloading).toBe(true);
+            expect(updater.phase).toBe("ready");
+            expect(found.download).toHaveBeenCalledOnce();
         });
 
         it("does nothing before a download finished", async () => {

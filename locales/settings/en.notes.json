@@ -493,7 +493,6 @@
             "copied": "Toast shown after version details were copied on Settings > About.",
             "copy_failed": "Error toast shown when version details could not be copied to the clipboard.",
             "install": "Button on Settings > About that installs an available update. {version} = version number, e.g. \"0.15.0\".",
-            "check_now": "Button on Settings > About that checks for an app update right now. Keep short, about 10 characters.",
             "auto_check_label": "Setting label on Settings > About for the switch that checks for updates on its own.",
             "auto_check_description": "Setting description on Settings > About for automatic update checks. GitHub is a product name and stays untranslated.",
             "whats_new_in": "Expandable heading on Settings > About for the release notes. {version} = version number, e.g. \"0.15.0\".",

@@ -4,13 +4,13 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { ChevronRight, Download, RefreshCw } from "@lucide/svelte";
+    import { ChevronRight } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { updater } from "$lib/features/updates/updater.svelte";
-    import { installUpdate } from "$lib/features/updates/banner.svelte";
+    import { indicatorKind } from "$lib/features/updates/flow";
     import { updateLine } from "$lib/features/updates/status";
+    import { updateSurface } from "$lib/features/updates/update-surface.svelte";
     import { WHATS_NEW_ROUTE } from "$lib/features/updates/whats-new";
     import ThanksCard from "$lib/features/thanks/thanks-card.svelte";
     import LicensesList from "$lib/features/settings/components/licenses-list.svelte";
@@ -37,24 +37,19 @@
         <div class="flex items-center justify-between gap-4">
             <div class="flex flex-col gap-1">
                 <h2 class="font-heading text-sm font-semibold tracking-wide">{t("settings.items.updates")}</h2>
-                <p class="text-sm text-muted-foreground" aria-live="polite">{updateLine(updater)}</p>
+                <p class="text-sm text-muted-foreground" aria-live="polite">{updateLine(updateSurface.source)}</p>
+                <p class="text-xs text-muted-foreground">
+                    {t("updates.channel.summary", { channel: t(`updates.channel.${updateSurface.channel}.name`) })}
+                </p>
             </div>
-            {#if updater.phase === "available"}
-                <Button size="sm" onclick={() => installUpdate("about")}>
-                    <Download />
-                    {t("settings.about_page.install", { version: updater.version ?? "" })}
-                </Button>
-            {:else}
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={updater.phase === "checking" || updater.phase === "downloading"}
-                    onclick={() => updater.check()}
-                >
-                    <RefreshCw />
-                    {t("settings.about_page.check_now")}
-                </Button>
-            {/if}
+            <Button
+                size="sm"
+                variant={indicatorKind(updateSurface.source) ? "default" : "outline"}
+                onclick={() => updateSurface.show()}
+            >
+                {t("updates.overview.open")}
+                <ChevronRight />
+            </Button>
         </div>
         <SettingRow
             class="mt-4 border-t pt-4"

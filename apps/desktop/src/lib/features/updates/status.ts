@@ -1,15 +1,9 @@
 import { t } from "$lib/core/i18n.svelte";
-import type { UpdateFailure, UpdatePhase } from "./updater.svelte";
+import { byteProgress, updateStage, type UpdateSource } from "./flow";
 
-export interface UpdateView {
-    phase: UpdatePhase;
-    version: string | null;
-    progress: number | null;
-    error: UpdateFailure | null;
-}
-
-export function updateLine(u: UpdateView): string {
-    switch (u.phase) {
+export function updateLine(u: UpdateSource): string {
+    const version = u.version ?? "";
+    switch (updateStage(u)) {
         case "idle":
             return t("updates.status.idle");
         case "checking":
@@ -17,15 +11,16 @@ export function updateLine(u: UpdateView): string {
         case "upToDate":
             return t("updates.status.up_to_date");
         case "available":
-        case "ready":
-            return t("updates.status.available", { version: u.version ?? "" });
+            return t("updates.status.available", { version });
         case "downloading": {
-            const version = u.version ?? "";
-            return u.progress === null
+            const { fraction } = byteProgress(u);
+            return fraction === null
                 ? t("updates.status.downloading", { version })
-                : t("updates.status.downloading_percent", { version, percent: Math.round(u.progress * 100) });
+                : t("updates.status.downloading_percent", { version, percent: Math.round(fraction * 100) });
         }
-        case "error":
+        case "ready":
+            return t("updates.status.ready", { version });
+        case "failed":
             return u.error === "check" ? t("updates.status.check_failed") : t("updates.status.download_failed");
     }
 }

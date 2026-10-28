@@ -97,3 +97,41 @@ fn skips_an_offer_whose_version_does_not_parse() {
     let found = newest(&v("0.14.0"), answers(&[Some("not a version"), Some("0.14.1")]), |s| s);
     assert_eq!(found, Ok(Some("0.14.1")));
 }
+
+#[test]
+fn every_feed_is_a_github_release_asset_over_https() {
+    for feed in UpdateChannel::Nightly.feeds() {
+        assert!(feed.starts_with("https://github.com/deadlock-plus/deadlock-plus/releases/"), "{feed}");
+    }
+}
+
+#[test]
+fn no_workflow_builds_with_the_rehearsal_feeds() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.github/workflows");
+    let mut read = 0;
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let path = entry.unwrap().path();
+        let text = std::fs::read_to_string(&path).unwrap();
+        for switch in ["update-rehearsal", "--all-features"] {
+            assert!(!text.contains(switch), "{} uses {switch}", path.display());
+        }
+        read += 1;
+    }
+    assert!(read > 0, "no workflows in {}", dir.display());
+}
+
+#[test]
+fn update_metadata_has_the_fields_the_plugins_update_class_reads() {
+    let metadata = UpdateMetadata {
+        rid: 7,
+        current_version: "0.13.99".into(),
+        version: "0.14.0".into(),
+        date: None,
+        body: None,
+        raw_json: serde_json::json!({}),
+    };
+    let json = serde_json::to_value(&metadata).unwrap();
+    let mut keys: Vec<_> = json.as_object().unwrap().keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(keys, ["body", "currentVersion", "date", "rawJson", "rid", "version"]);
+}

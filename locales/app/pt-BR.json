@@ -262,9 +262,6 @@
         "titlebar": {
             "expand_sidebar": "Expandir barra lateral",
             "collapse_sidebar": "Recolher barra lateral",
-            "update_downloading": "Download da atualização",
-            "downloading_update": "Baixando atualização",
-            "update_available": "Atualização {version} disponível",
             "minimize": "Minimizar",
             "maximize": "Maximizar",
             "restore": "Restaurar",

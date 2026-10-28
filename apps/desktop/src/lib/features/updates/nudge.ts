@@ -1,4 +1,4 @@
-export type InstallSource = "banner" | "toast" | "about";
+export type InstallSource = "banner" | "toast" | "about" | "panel";
 
 /** Showing the window often comes in bursts (alt-tab, tray clicks); one check per burst is enough. */
 export const RECHECK_ON_SHOW_MIN_MS = 10 * 60 * 1000;

@@ -64,9 +64,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - When a front page is waiting while you're in game, the game overlay tells you.
 - Turn the front page waiting alert off with "Front page waiting" in Settings > Notifications.
 
+#### Updates page
+
+- A new Updates page shows the next version, its headline features and what you have now.
+- The download shows its progress with size, speed and time left.
+- Updates download first, and a Restart now button installs them when you're ready.
+- A failed update says what happened and offers Try again or a manual download.
+- The Updates page lists recent releases and how often new ones come out.
+- The title bar shows the update's state at a glance and opens the Updates page.
+- Installing from the update notification or banner opens the Updates page and starts the download.
+- Settings > About shows the update status and channel, with a button to the Updates page.
+
 #### Update channels
 
-- Choose an update channel in Settings > About: Release, Beta or Nightly.
+- Choose an update channel on the Updates page: Release, Beta or Nightly.
 - Beta gets the next release a few days early, for testing.
 - Nightly gets a new build of the latest code every night.
 - Moving to a more stable channel never installs an older version: Deadlock+ waits until that channel catches up.

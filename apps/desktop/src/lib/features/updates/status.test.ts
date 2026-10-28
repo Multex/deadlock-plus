@@ -11,13 +11,13 @@ describe("updateLine", () => {
 
     it("shows a percentage while downloading", () => {
         expect(updateLine({ phase: "downloading", version: "0.2.0", progress: 0.426, error: null })).toBe(
-            "Downloading 0.2.0 (43%). Deadlock+ restarts when it finishes.",
+            "Downloading 0.2.0 (43%). Restart when it is done to install it.",
         );
     });
 
     it("omits the percentage when the size is unknown", () => {
         expect(updateLine({ phase: "downloading", version: "0.2.0", progress: null, error: null })).toBe(
-            "Downloading 0.2.0. Deadlock+ restarts when it finishes.",
+            "Downloading 0.2.0. Restart when it is done to install it.",
         );
     });
 
@@ -30,17 +30,17 @@ describe("updateLine", () => {
         );
     });
 
+    it("says a downloaded update waits for a restart", () => {
+        expect(updateLine({ phase: "ready", version: "0.2.0", progress: 1, error: null })).toBe(
+            "Version 0.2.0 is downloaded. Restart Deadlock+ to install it.",
+        );
+    });
+
     it("covers the quiet phases", () => {
         const base = { version: null, progress: null, error: null };
         expect(updateLine({ ...base, phase: "idle" })).toBe("Not checked yet.");
         expect(updateLine({ ...base, phase: "checking" })).toBe("Checking...");
         expect(updateLine({ ...base, phase: "upToDate" })).toBe("You're on the latest version.");
-    });
-
-    it("still names the version once it is downloaded", () => {
-        expect(updateLine({ phase: "ready", version: "0.2.0", progress: 1, error: null })).toBe(
-            "Version 0.2.0 is available.",
-        );
     });
 
     it("does not call a failed install a failed check", () => {
