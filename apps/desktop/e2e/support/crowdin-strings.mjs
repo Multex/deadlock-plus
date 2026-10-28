@@ -14,11 +14,12 @@ export function stringEntries(tree, file, prefix = "") {
     });
 }
 
-/** The strings of `locales/<area>/en.json` for every area folder that has one. */
-export function readSourceStrings(localesDir) {
+/** The strings of `locales/<area>/en.json` for every area folder that has one, or for `areas` only. */
+export function readSourceStrings(localesDir, areas) {
     return readdirSync(localesDir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory() && existsSync(path.join(localesDir, entry.name, "en.json")))
         .map((entry) => entry.name)
+        .filter((area) => !areas || areas.includes(area))
         .sort()
         .flatMap((area) => {
             const json = JSON.parse(readFileSync(path.join(localesDir, area, "en.json"), "utf8"));

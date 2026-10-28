@@ -88,4 +88,11 @@ describe("readSourceStrings", () => {
             ],
         );
     });
+
+    it("reads only the named areas when given some", () => {
+        assert.deepEqual(
+            readSourceStrings(root, ["tools"]).map((e) => e.file),
+            ["locales/tools/en.json"],
+        );
+    });
 });
