@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import { heroInitials } from "../live";
 
@@ -12,39 +13,21 @@
     const hue = $derived(((heroId ?? 0) * 47) % 360);
 </script>
 
-{#if hero?.icon}
-    <img
-        src={hero.icon}
-        alt={hero.name}
-        title={hero.name}
-        class="hero"
-        style:width="{size}px"
-        style:height="{size}px"
-    />
-{:else}
-    <span
-        class="hero initials"
-        title={hero?.name}
-        style:width="{size}px"
-        style:height="{size}px"
-        style:background="oklch(0.72 0.07 {hue})"
-    >
-        {heroInitials(hero?.name ?? null)}
-    </span>
-{/if}
-
-<style>
-    .hero {
-        display: inline-flex;
-        flex: none;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        object-fit: cover;
-    }
-    .initials {
-        font-size: 10px;
-        font-weight: 700;
-        color: oklch(0.15 0.01 70);
-    }
-</style>
+<ArtImage
+    src={hero?.icon}
+    alt={hero?.name ?? ""}
+    title={hero?.name}
+    class="inline-flex flex-none items-center justify-center rounded-[6px] object-cover"
+    width={size}
+    height={size}
+    style="width: {size}px; height: {size}px"
+>
+    {#snippet fallback()}
+        <span
+            class="inline-flex size-full items-center justify-center text-[10px] font-bold text-[oklch(0.15_0.01_70)]"
+            style:background="oklch(0.72 0.07 {hue})"
+        >
+            {heroInitials(hero?.name ?? null)}
+        </span>
+    {/snippet}
+</ArtImage>

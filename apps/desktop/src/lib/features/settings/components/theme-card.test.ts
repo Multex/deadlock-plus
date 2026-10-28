@@ -89,6 +89,13 @@ describe("ThemeCard", () => {
         expect(body).toMatch(/<button\b[^>]*title="https:\/\/deadlock-api\.com"/);
     });
 
+    it("draws the source link as the shared link button, with its keyboard focus ring", () => {
+        const link = html("deadlock-api").match(/<button\b[^>]*title="https:\/\/deadlock-api\.com"[^>]*>/)?.[0] ?? "";
+
+        expect(link).toContain("focus-visible:ring-2");
+        expect(link).toContain("underline-offset-4");
+    });
+
     it("offers an accent of your own, except on High contrast", () => {
         expect(html("void")).toContain("Accent colour");
         expect(html("contrast")).not.toContain("Accent colour");
@@ -97,8 +104,8 @@ describe("ThemeCard", () => {
     it("picks Catppuccin's flavour and accent from menus named after the theme, instead of a free accent", () => {
         const body = html("catppuccin", { variant: "latte", namedAccent: "peach" });
 
-        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Flavour"/);
-        expect(body).toMatch(/<button\b[^>]*aria-label="Catppuccin Accent"/);
+        expect(body).toMatch(/<button\b[^>]*aria-label="Flavour for Catppuccin"/);
+        expect(body).toMatch(/<button\b[^>]*aria-label="Accent for Catppuccin"/);
         expect(body).toContain("Latte");
         expect(body).toContain("Peach");
         expect(body).not.toContain("Accent colour");

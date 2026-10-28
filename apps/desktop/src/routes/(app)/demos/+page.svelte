@@ -12,6 +12,7 @@
     import DeleteDialog from "$lib/features/demos/components/delete-dialog.svelte";
     import DemoRow from "$lib/features/demos/components/demo-row.svelte";
     import FilterBar from "$lib/features/demos/components/filter-bar.svelte";
+    import ListError from "$lib/features/demos/components/list-error.svelte";
     import Pager from "$lib/features/demos/components/pager.svelte";
     import { DemoList } from "$lib/features/demos/demo-list.svelte";
     import { statlockerMatchUrl } from "$lib/features/demos/demos";
@@ -54,7 +55,7 @@
     </PageHeader>
 
     {#if list.error}
-        <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{list.error}</div>
+        <ListError onretry={list.load} />
     {:else if list.loading && !list.listing}
         <div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t("demos.reading")}</div>
     {:else if list.listing && !list.listing.dir}

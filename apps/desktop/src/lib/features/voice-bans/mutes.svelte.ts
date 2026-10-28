@@ -1,5 +1,5 @@
 import { toast } from "svelte-sonner";
-import { errorCode, errorText, failureText } from "$lib/core/errors";
+import { errorCode, failureText } from "$lib/core/errors";
 import { t, tn } from "$lib/core/i18n.svelte";
 import { saveTextFile } from "$lib/core/files";
 import { openProfile, parseSteamId, steam64ToSteam32 } from "$lib/core/player-links";
@@ -74,7 +74,7 @@ export class Mutes {
                 this.file = null;
                 this.error = null;
             } else {
-                this.error = errorText(e);
+                this.error = t("voice_bans.list_error");
             }
         } finally {
             this.loading = false;
@@ -92,18 +92,21 @@ export class Mutes {
         });
     }
 
-    private async commit(text: string, message: string) {
-        if (this.locked) return;
+    /** False when the file was left as it was. */
+    private async commit(text: string, message: string): Promise<boolean> {
+        if (this.locked) return false;
         this.busy = true;
         try {
             const backup = await writeVoiceBan(text);
             toast.success(message, { description: t("voice_bans.toast.backup", { path: backup }) });
-            await this.load();
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("voice_bans.toast.save_failed")));
+            return false;
         } finally {
             this.busy = false;
         }
+        await this.load();
+        return true;
     }
 
     askUnmute(ids: string[]) {
@@ -114,8 +117,8 @@ export class Mutes {
     async confirmUnmute() {
         if (!this.file) return;
         const count = this.unmuteIds.length;
-        await this.commit(removeMutedUsers(this.file.text, this.unmuteIds), tn("voice_bans.toast.unmuted", count));
-        this.selected = new Set();
+        if (await this.commit(removeMutedUsers(this.file.text, this.unmuteIds), tn("voice_bans.toast.unmuted", count)))
+            this.selected = new Set();
     }
 
     async mute(ids: string[]) {
@@ -125,7 +128,7 @@ export class Mutes {
             toast.info(t("voice_bans.toast.already_muted"));
             return;
         }
-        await this.commit(text, tn("voice_bans.toast.muted", added.length));
+        if (!(await this.commit(text, tn("voice_bans.toast.muted", added.length)))) return;
         this.addInput = "";
         this.searchResults = null;
     }

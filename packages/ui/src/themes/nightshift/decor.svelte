@@ -401,7 +401,7 @@
     });
 </script>
 
-<div class="nightshift" class:glinting class:shift>
+<div class="nightshift" class:glinting class:shift data-decor-frame={frames ? "" : undefined}>
     <canvas bind:this={cityCanvas} class="layer city"></canvas>
     {#if lit}
         <canvas bind:this={lightsCanvas} class="lights"></canvas>

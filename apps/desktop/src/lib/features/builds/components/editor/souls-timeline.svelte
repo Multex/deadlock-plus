@@ -287,7 +287,7 @@
 
     const label = "text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase";
     const laneLabel =
-        "pointer-events-none absolute left-2.5 max-w-[66px] -translate-y-1/2 truncate text-[10px] font-semibold tracking-[0.08em] text-muted-foreground/70 uppercase";
+        "pointer-events-none absolute left-2.5 max-w-[66px] -translate-y-1/2 truncate text-[10px] font-semibold tracking-[0.08em] text-muted-foreground uppercase";
 </script>
 
 <svelte:window bind:innerHeight={windowHeight} />
@@ -310,7 +310,7 @@
                             {...props}
                             variant="unstyled"
                             aria-label={t("builds.editor.timeline.about")}
-                            class="grid size-4 place-items-center rounded-full text-muted-foreground/60 hover:text-foreground focus-visible:text-foreground"
+                            class="grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:text-foreground"
                         >
                             <Info class="size-3.5" />
                         </Button>

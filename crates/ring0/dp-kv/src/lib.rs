@@ -1,6 +1,7 @@
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use dp_versioned::{self, ReadError};
@@ -18,7 +19,14 @@ const STORES: &[&str] = &[
     "background-jobs",
     "gc-state",
     "postgame-matches",
+    EDITIONS_STORE,
 ];
+
+/// Dispatch editions are frozen for good, so they live apart from the stats cache, which is rewritten
+/// after every match. Older installs kept them in the stats cache under this prefix.
+const EDITIONS_STORE: &str = "dispatch-editions";
+const EDITIONS_OLD_STORE: &str = "stats-cache";
+const EDITION_KEY_PREFIX: &str = "dispatch:";
 
 type Entries = Map<String, Value>;
 
@@ -28,6 +36,7 @@ pub struct KvStore {
     /// Serialises writers so the disk write (with its fsync) can run without holding `loaded`,
     /// which would stall every read for as long as the disk takes.
     writing: Mutex<()>,
+    editions_moved: AtomicBool,
 }
 
 fn store_path(dir: &Path, store: &str) -> Result<PathBuf, String> {
@@ -69,6 +78,7 @@ impl KvStore {
     }
 
     pub fn get(&self, dir: &Path, store: &str, key: &str) -> Result<Option<Value>, String> {
+        self.move_editions_once(dir, store)?;
         self.with_entries(dir, store, |e| e.get(key).cloned())
     }
 
@@ -85,15 +95,52 @@ impl KvStore {
     }
 
     fn change(&self, dir: &Path, store: &str, f: impl FnOnce(&mut Entries)) -> Result<(), String> {
-        let path = store_path(dir, store)?;
+        self.move_editions_once(dir, store)?;
         let _writer = self.writing.lock().unwrap_or_else(|e| e.into_inner());
         let mut next = self.with_entries(dir, store, |entries| entries.clone())?;
         f(&mut next);
+        self.replace(dir, store, next)
+    }
+
+    /// Callers hold `writing`.
+    fn replace(&self, dir: &Path, store: &str, next: Entries) -> Result<(), String> {
+        let path = store_path(dir, store)?;
         dp_versioned::write(&path, migrations::for_store(store), &next).map_err(|e| {
             log::warn!("could not write {store}.json: {e}");
             e.to_string()
         })?;
         self.with_entries(dir, store, |entries| *entries = next)
+    }
+
+    /// The editions are written to their own file before the stats cache lets go of them, so a crash in
+    /// between leaves a second copy rather than none. A copy already in the editions file always wins,
+    /// which makes running this again after such a crash safe.
+    fn move_editions_once(&self, dir: &Path, store: &str) -> Result<(), String> {
+        if store != EDITIONS_STORE || self.editions_moved.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let _writer = self.writing.lock().unwrap_or_else(|e| e.into_inner());
+        if self.editions_moved.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let is_edition = |key: &String| key.starts_with(EDITION_KEY_PREFIX);
+        let old: Entries = self.with_entries(dir, EDITIONS_OLD_STORE, |e| {
+            e.iter().filter(|(k, _)| is_edition(k)).map(|(k, v)| (k.clone(), v.clone())).collect()
+        })?;
+        if !old.is_empty() {
+            let mut editions = self.with_entries(dir, EDITIONS_STORE, |e| e.clone())?;
+            for (key, value) in old {
+                editions.entry(key).or_insert(value);
+            }
+            self.replace(dir, EDITIONS_STORE, editions)?;
+            let mut rest = self.with_entries(dir, EDITIONS_OLD_STORE, |e| e.clone())?;
+            rest.retain(|k, _| !is_edition(k));
+            if let Err(e) = self.replace(dir, EDITIONS_OLD_STORE, rest) {
+                log::warn!("moved the Dispatch editions but could not drop them from {EDITIONS_OLD_STORE}.json: {e}");
+            }
+        }
+        self.editions_moved.store(true, Ordering::Release);
+        Ok(())
     }
 }
 
@@ -248,6 +295,97 @@ mod tests {
         assert!(kv.set(&dir, "app-settings", "theme", json!("x")).is_err());
         assert_eq!(kv.get(&dir, "app-settings", "theme").unwrap(), None);
         assert_eq!(std::fs::read_to_string(dir.join("app-settings.json")).unwrap(), original);
+    }
+
+    const OLD_STATS: &str = r#"{"schema_version":1,"data":{
+        "dispatch:7:index":{"issued":[1]},
+        "dispatch:7:weekly-2026-10-19":{"number":1},
+        "statsCache:7":[1,2,3]
+    }}"#;
+
+    fn read_raw(dir: &Path, file: &str) -> Value {
+        serde_json::from_str(&std::fs::read_to_string(dir.join(file)).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn editions_move_out_of_the_stats_cache_on_first_read() {
+        let dir = seeded("editions-move", "stats-cache.json", OLD_STATS);
+        let kv = KvStore::default();
+        assert_eq!(
+            kv.get(&dir, "dispatch-editions", "dispatch:7:weekly-2026-10-19").unwrap(),
+            Some(json!({"number": 1}))
+        );
+        assert_eq!(kv.get(&dir, "stats-cache", "dispatch:7:index").unwrap(), None);
+        assert_eq!(kv.get(&dir, "stats-cache", "statsCache:7").unwrap(), Some(json!([1, 2, 3])));
+
+        assert_eq!(
+            read_raw(&dir, "dispatch-editions.json")["data"],
+            json!({"dispatch:7:index": {"issued": [1]}, "dispatch:7:weekly-2026-10-19": {"number": 1}})
+        );
+        assert_eq!(read_raw(&dir, "stats-cache.json")["data"], json!({"statsCache:7": [1, 2, 3]}));
+        let fresh = KvStore::default();
+        assert_eq!(fresh.get(&dir, "dispatch-editions", "dispatch:7:index").unwrap(), Some(json!({"issued": [1]})));
+    }
+
+    #[test]
+    fn a_first_write_to_editions_keeps_the_moved_ones() {
+        let dir = seeded("editions-write-first", "stats-cache.json", OLD_STATS);
+        let kv = KvStore::default();
+        kv.set(&dir, "dispatch-editions", "dispatch:7:index", json!({"issued": [1, 2]})).unwrap();
+        let fresh = KvStore::default();
+        assert_eq!(fresh.get(&dir, "dispatch-editions", "dispatch:7:index").unwrap(), Some(json!({"issued": [1, 2]})));
+        assert_eq!(
+            fresh.get(&dir, "dispatch-editions", "dispatch:7:weekly-2026-10-19").unwrap(),
+            Some(json!({"number": 1}))
+        );
+    }
+
+    #[test]
+    fn a_copy_left_in_the_stats_cache_never_replaces_a_newer_edition() {
+        let dir = seeded("editions-leftover", "stats-cache.json", OLD_STATS);
+        std::fs::write(
+            dir.join("dispatch-editions.json"),
+            r#"{"schema_version":1,"data":{"dispatch:7:index":{"issued":[1,2]}}}"#,
+        )
+        .unwrap();
+        let kv = KvStore::default();
+        assert_eq!(kv.get(&dir, "dispatch-editions", "dispatch:7:index").unwrap(), Some(json!({"issued": [1, 2]})));
+        assert_eq!(
+            kv.get(&dir, "dispatch-editions", "dispatch:7:weekly-2026-10-19").unwrap(),
+            Some(json!({"number": 1}))
+        );
+        assert_eq!(read_raw(&dir, "stats-cache.json")["data"], json!({"statsCache:7": [1, 2, 3]}));
+    }
+
+    #[test]
+    fn a_failed_move_keeps_the_editions_in_the_stats_cache() {
+        let dir = seeded("editions-failed", "stats-cache.json", OLD_STATS);
+        std::fs::create_dir_all(dir.join("dispatch-editions.json")).unwrap();
+        let kv = KvStore::default();
+        assert!(kv.get(&dir, "dispatch-editions", "dispatch:7:index").is_err());
+        assert_eq!(kv.get(&dir, "stats-cache", "dispatch:7:index").unwrap(), Some(json!({"issued": [1]})));
+        assert_eq!(read_raw(&dir, "stats-cache.json")["data"]["dispatch:7:index"], json!({"issued": [1]}));
+    }
+
+    #[test]
+    fn writes_racing_on_one_store_all_land() {
+        let dir = temp_dir("racing");
+        let kv = std::sync::Arc::new(KvStore::default());
+        let handles: Vec<_> = (0..16)
+            .map(|i| {
+                let (kv, dir) = (kv.clone(), dir.clone());
+                std::thread::spawn(move || {
+                    kv.set(&dir, "dispatch-editions", &format!("dispatch:1:{i}"), json!(i)).unwrap();
+                    kv.set(&dir, "stats-cache", &format!("k{i}"), json!(i)).unwrap();
+                })
+            })
+            .collect();
+        handles.into_iter().for_each(|h| h.join().unwrap());
+        let fresh = KvStore::default();
+        for i in 0..16 {
+            assert_eq!(fresh.get(&dir, "dispatch-editions", &format!("dispatch:1:{i}")).unwrap(), Some(json!(i)));
+            assert_eq!(fresh.get(&dir, "stats-cache", &format!("k{i}")).unwrap(), Some(json!(i)));
+        }
     }
 
     #[test]

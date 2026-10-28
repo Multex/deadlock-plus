@@ -15,16 +15,17 @@ pub struct Reply {
     status: &'static str,
     set_cookie: Option<&'static str>,
     retry_after: Option<&'static str>,
+    rate_limit_reset: Option<&'static str>,
     body: &'static str,
 }
 
 impl Reply {
     pub fn json(body: &'static str) -> Self {
-        Self { status: "200 OK", set_cookie: None, retry_after: None, body }
+        Self { status: "200 OK", set_cookie: None, retry_after: None, rate_limit_reset: None, body }
     }
 
     pub fn status(status: &'static str) -> Self {
-        Self { status, set_cookie: None, retry_after: None, body: "" }
+        Self { status, set_cookie: None, retry_after: None, rate_limit_reset: None, body: "" }
     }
 
     pub fn set_cookie(mut self, header: &'static str) -> Self {
@@ -34,6 +35,11 @@ impl Reply {
 
     pub fn retry_after(mut self, secs: &'static str) -> Self {
         self.retry_after = Some(secs);
+        self
+    }
+
+    pub fn rate_limit_reset(mut self, secs: &'static str) -> Self {
+        self.rate_limit_reset = Some(secs);
         self
     }
 
@@ -64,8 +70,9 @@ impl FakeApi {
                 let reply = replies.pop_front().unwrap_or(Reply::status("404 Not Found"));
                 let cookie = reply.set_cookie.map(|c| format!("Set-Cookie: {c}\r\n")).unwrap_or_default();
                 let retry_after = reply.retry_after.map(|s| format!("Retry-After: {s}\r\n")).unwrap_or_default();
+                let reset = reply.rate_limit_reset.map(|s| format!("RateLimit-Reset: {s}\r\n")).unwrap_or_default();
                 let head = format!(
-                    "HTTP/1.1 {}\r\n{cookie}{retry_after}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    "HTTP/1.1 {}\r\n{cookie}{retry_after}{reset}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                     reply.status,
                     reply.body.len()
                 );

@@ -3,6 +3,7 @@
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import type { LiveMatch } from "@deadlock-plus/ipc-types/LiveMatch";
     import type { LivePhase } from "@deadlock-plus/ipc-types/LivePhase";
+    import type { Theme } from "@deadlock-plus/ui/themes";
     import { grades } from "../grades.svelte";
     import { live } from "../live.svelte";
     import { orderTeams } from "../live";
@@ -15,7 +16,15 @@
         phase,
         heroes,
         tiers,
-    }: { match: LiveMatch; phase: LivePhase; heroes: Record<number, Hero>; tiers: RankTier[] } = $props();
+        theme,
+    }: {
+        match: LiveMatch;
+        phase: LivePhase;
+        heroes: Record<number, Hero>;
+        tiers: RankTier[];
+        /** The theme as drawn, which the stat colours are made readable on. */
+        theme: Theme;
+    } = $props();
 
     const teams = $derived(orderTeams(match.teams, match.yourSide));
     const swapped = $derived(new Map(live.swaps.map((s) => [s.key, s])));
@@ -34,6 +43,7 @@
             {heroes}
             {tiers}
             {swapped}
+            {theme}
         />
     {/each}
 </div>

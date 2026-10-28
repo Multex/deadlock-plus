@@ -114,7 +114,7 @@ async fn remote_minimap(http: &reqwest::Client, dest: &Path) -> Option<(PathBuf,
 
 pub async fn minimap_art(art: ArtCache, http: &reqwest::Client) -> MinimapArtResult {
     let local_art = art.clone();
-    let local = match tauri::async_runtime::spawn_blocking(move || local_art.minimap_art()).await {
+    let local = match crate::command_panics::spawn_blocking_guarded(move || local_art.minimap_art()).await {
         Ok(result) => result,
         Err(e) => {
             log::debug!("minimap extraction task failed: {e}");

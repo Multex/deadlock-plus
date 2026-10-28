@@ -83,7 +83,7 @@ From `apps/desktop/`: `pnpm check`, `pnpm test`, `pnpm format:check`, `pnpm laye
 
 ## Translations
 
-All user-facing text lives in `locales/<area>/en.json`, one file per app area (`app`, `settings`, `matches`, `builds`, `live`, `tools`). Each top-level namespace belongs to exactly one area. Never hardcode text in `.svelte` or `.ts` files.
+All user-facing text lives in `locales/<area>/en.json`, one file per app area (`app`, `settings`, `matches`, `builds`, `live`, `tools`, `dispatch`). `dispatch` loads only when the Dispatch page opens. Each top-level namespace belongs to exactly one area. Never hardcode text in `.svelte` or `.ts` files.
 
 - Keys are nested, snake_case, dotted: `t("settings.language.label")`. Placeholders are `{name}`.
 - Plurals use sibling keys with CLDR suffixes: `replays_count_one`, `replays_count_other`. Call `tn("replays_count", n)`.

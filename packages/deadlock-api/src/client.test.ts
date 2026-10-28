@@ -22,6 +22,7 @@ describe("createDeadlockApi", () => {
         await api.heroes();
         await api.items();
         await api.ranks();
+        await api.rankedSeasons();
         await api.playerMatchHistory(77);
         await api.playerRank(77);
         await api.steamProfiles([1, 2, 3]);
@@ -31,6 +32,7 @@ describe("createDeadlockApi", () => {
             [`${BASE}/assets/heroes`],
             [`${BASE}/assets/items`],
             [`${BASE}/assets/ranks`],
+            [`${BASE}/assets/ranked-seasons`],
             [`${BASE}/players/77/match-history`],
             [`${BASE}/players/77/rank`],
             [`${BASE}/players/steam?account_ids=1,2,3`],
@@ -95,6 +97,7 @@ describe("createDeadlockApi", () => {
             () => api.heroes(),
             () => api.items(),
             () => api.ranks(),
+            () => api.rankedSeasons(),
             () => api.playerRank(1),
             () => api.steamProfiles([1]),
             () => api.searchSteamProfiles("x", 1),
@@ -105,6 +108,19 @@ describe("createDeadlockApi", () => {
             expect((error as DeadlockApiError).status).toBe(429);
             expect((error as DeadlockApiError).message).toBe("HTTP 429");
         }
+    });
+
+    it("carries the wait a rate-limited answer asks for", async () => {
+        const status = (headers: Record<string, string>) =>
+            setup(() => new Response("{}", { status: 429, headers }))
+                .api.heroes()
+                .catch((e: unknown) => (e as DeadlockApiError).retryAfterS);
+        expect(await status({ "Retry-After": "7" })).toBe(7);
+        expect(await status({ "RateLimit-Reset": "12" })).toBe(12);
+        expect(await status({ "Retry-After": "3", "RateLimit-Reset": "40" })).toBe(3);
+        expect(await status({})).toBeNull();
+        expect(await status({ "Retry-After": "soon" })).toBeNull();
+        expect(new DeadlockApiError(500).retryAfterS).toBeNull();
     });
 
     it("lets a network failure through unchanged", async () => {
@@ -356,6 +372,62 @@ describe("createDeadlockApi", () => {
                 .api.itemStats({})
                 .catch((e: unknown) => e);
             expect((error as DeadlockApiError).status).toBe(500);
+        });
+    });
+
+    describe("player period stats", () => {
+        const window = { minS: 1_790_000_000, maxS: 1_790_604_799 };
+
+        it("asks hero-stats for one account in a time window", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.playerHeroStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/hero-stats?account_ids=501&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799`,
+                ],
+            ]);
+        });
+
+        it("narrows hero-stats to the given match modes", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.playerHeroStats(501, { ...window, matchMode: ["ranked"] });
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/hero-stats?account_ids=501&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799&match_mode=ranked`,
+                ],
+            ]);
+        });
+
+        it("asks mate-stats for parties only, in a time window", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.mateStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [
+                    `${BASE}/players/501/mate-stats?same_party=true` +
+                        "&min_unix_timestamp=1790000000&max_unix_timestamp=1790604799",
+                ],
+            ]);
+        });
+
+        it("asks enemy-stats in a time window without a party filter", async () => {
+            const { fetch, api } = setup(() => Response.json([]));
+            await api.enemyStats(501, window);
+            expect(fetch.mock.calls).toEqual([
+                [`${BASE}/players/501/enemy-stats?min_unix_timestamp=1790000000&max_unix_timestamp=1790604799`],
+            ]);
+        });
+
+        it("returns each body as it came and rejects a failed status", async () => {
+            const mates = [{ mate_id: 7, wins: 2, matches_played: 3, matches: [1, 2, 3] }];
+            const enemies = [{ enemy_id: 8, wins: 1, matches_played: 4, matches: [1, 2, 3, 4] }];
+            const heroes = [{ account_id: 501, hero_id: 1, matches_played: 2, wins: 1, mvp_rank_counts: [0, 1, 0] }];
+            expect(await setup(() => Response.json(mates)).api.mateStats(501, window)).toEqual(mates);
+            expect(await setup(() => Response.json(enemies)).api.enemyStats(501, window)).toEqual(enemies);
+            expect(await setup(() => Response.json(heroes)).api.playerHeroStats(501, window)).toEqual(heroes);
+            const error = await setup(() => new Response("", { status: 429 }))
+                .api.mateStats(501, window)
+                .catch((e: unknown) => e);
+            expect((error as DeadlockApiError).status).toBe(429);
         });
     });
 });

@@ -185,31 +185,33 @@ mod platform {
 }
 
 pub mod commands {
+    use crate::command_panics::guarded;
     use tauri::AppHandle;
 
     use super::*;
 
     #[tauri::command]
     pub async fn ptrace_status() -> Result<PtraceStatus, AppError> {
-        tauri::async_runtime::spawn_blocking(platform::status).await.map_err(AppError::internal)
+        guarded(async move { crate::command_panics::spawn_blocking_guarded(platform::status).await }).await
     }
 
     /// Runs the fix the backend picks, never one the page names. Returns whether it was applied; after `setcap` the
     /// app restarts, since a file capability only takes effect on exec.
     #[tauri::command]
     pub async fn fix_ptrace(app: AppHandle) -> Result<bool, AppError> {
-        let fix = tauri::async_runtime::spawn_blocking(platform::status)
-            .await
-            .map_err(AppError::internal)?
-            .fix
-            .ok_or_else(|| AppError::new(PtraceError::Unavailable))?;
-        let applied =
-            tauri::async_runtime::spawn_blocking(move || platform::apply(fix)).await.map_err(AppError::internal)??;
-        log::info!("ptrace fix {fix:?} {}", if applied { "applied" } else { "cancelled" });
-        if applied && fix == PtraceFix::Setcap {
-            app.request_restart();
-        }
-        Ok(applied)
+        guarded(async move {
+            let fix = crate::command_panics::spawn_blocking_guarded(platform::status)
+                .await?
+                .fix
+                .ok_or_else(|| AppError::new(PtraceError::Unavailable))?;
+            let applied = crate::command_panics::spawn_blocking_guarded(move || platform::apply(fix)).await??;
+            log::info!("ptrace fix {fix:?} {}", if applied { "applied" } else { "cancelled" });
+            if applied && fix == PtraceFix::Setcap {
+                app.request_restart();
+            }
+            Ok(applied)
+        })
+        .await
     }
 }
 

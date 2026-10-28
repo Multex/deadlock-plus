@@ -9,6 +9,7 @@ import {
     clientLabel,
     delayLabel,
     delaySecsOf,
+    discordBarCopy,
     discordBarState,
     heroArtMap,
     patchPresence,
@@ -182,7 +183,12 @@ describe("clientLabel", () => {
 });
 
 describe("runningLine", () => {
-    const status = (over: Partial<PresenceStatus> = {}): PresenceStatus => ({ running: true, clients: [], ...over });
+    const status = (over: Partial<PresenceStatus> = {}): PresenceStatus => ({
+        running: true,
+        clients: [],
+        link: "notFound",
+        ...over,
+    });
 
     it("says off when presence is off", () => {
         expect(runningLine(false, status())).toBe("Off");
@@ -196,10 +202,27 @@ describe("runningLine", () => {
         expect(runningLine(true, status())).toBe("No running Discord found.");
     });
 
+    it("waits for Deadlock when Discord runs and the game is closed", () => {
+        const line = runningLine(
+            true,
+            status({ running: false, link: "waiting", clients: [{ kind: "stable", pipeIndex: 0, connected: false }] }),
+        );
+        expect(line).toBe("Discord is running. Waiting for Deadlock to start.");
+    });
+
+    it("reports connecting while the game runs and Discord has not answered", () => {
+        const line = runningLine(
+            true,
+            status({ link: "connecting", clients: [{ kind: "ptb", pipeIndex: 1, connected: false }] }),
+        );
+        expect(line).toBe("Connecting to Discord.");
+    });
+
     it("lists connected clients only", () => {
         const line = runningLine(
             true,
             status({
+                link: "connected",
                 clients: [
                     { kind: "stable", pipeIndex: 0, connected: true },
                     { kind: "ptb", pipeIndex: 1, connected: false },
@@ -210,36 +233,60 @@ describe("runningLine", () => {
         expect(line).toBe("Showing on: Discord, Discord app 3.");
     });
 
-    it("reports found but not connected", () => {
-        expect(runningLine(true, status({ clients: [{ kind: "ptb", pipeIndex: 1, connected: false }] }))).toBe(
-            "No running Discord found.",
-        );
+    it("never says Discord is missing while a Discord is running", () => {
+        const found = [{ kind: "ptb", pipeIndex: 1, connected: false }] as const;
+        for (const link of ["waiting", "connecting"] as const) {
+            expect(runningLine(true, status({ link, clients: [...found] }))).not.toBe("No running Discord found.");
+        }
     });
 });
 
 describe("discordBarState", () => {
-    const status = (clients: PresenceStatus["clients"]): PresenceStatus => ({ running: true, clients });
+    const status = (link: PresenceStatus["link"], running = true): PresenceStatus => ({
+        running,
+        clients: link === "notFound" ? [] : [{ kind: "stable", pipeIndex: 0, connected: link === "connected" }],
+        link,
+    });
 
     it("is off when presence is off, whatever Discord is doing", () => {
-        expect(discordBarState(false, status([{ kind: "stable", pipeIndex: 0, connected: true }]))).toBe("off");
+        expect(discordBarState(false, status("connected"))).toBe("off");
     });
 
-    it("is searching until a client is connected", () => {
-        expect(discordBarState(true, null)).toBe("searching");
-        expect(discordBarState(true, status([]))).toBe("searching");
-        expect(discordBarState(true, status([{ kind: "stable", pipeIndex: 0, connected: false }]))).toBe("searching");
+    it("is checking until the first status arrives", () => {
+        expect(discordBarState(true, null)).toBe("checking");
     });
 
-    it("is connected once any client is connected", () => {
-        expect(
-            discordBarState(
-                true,
-                status([
-                    { kind: "ptb", pipeIndex: 1, connected: false },
-                    { kind: "stable", pipeIndex: 0, connected: true },
-                ]),
-            ),
-        ).toBe("connected");
+    it("follows the link the app reports", () => {
+        expect(discordBarState(true, status("notFound"))).toBe("missing");
+        expect(discordBarState(true, status("waiting", false))).toBe("waiting");
+        expect(discordBarState(true, status("connecting"))).toBe("connecting");
+        expect(discordBarState(true, status("connected"))).toBe("connected");
+    });
+});
+
+describe("discordBarCopy", () => {
+    it("labels each state", () => {
+        expect(discordBarCopy("off")).toEqual({
+            label: "Discord off",
+            title: "Discord presence is off. Click to set it up.",
+        });
+        expect(discordBarCopy("checking")).toEqual({ label: "Looking for Discord", title: "Looking for Discord" });
+        expect(discordBarCopy("missing")).toEqual({
+            label: "Discord not found",
+            title: "Discord presence is on, but no running Discord was found",
+        });
+        expect(discordBarCopy("waiting")).toEqual({
+            label: "Waiting for Deadlock",
+            title: "Discord is running. Your activity shows once Deadlock starts.",
+        });
+        expect(discordBarCopy("connecting")).toEqual({
+            label: "Connecting to Discord",
+            title: "Deadlock is running. Connecting to Discord.",
+        });
+        expect(discordBarCopy("connected")).toEqual({
+            label: null,
+            title: "Showing your Deadlock activity on Discord",
+        });
     });
 });
 
@@ -255,6 +302,7 @@ describe("runningKinds", () => {
                 { kind: "stable", pipeIndex: 0, connected: false },
                 { kind: "other", pipeIndex: 2, connected: false },
             ],
+            link: "waiting",
         });
         expect([...kinds].sort()).toEqual(["other", "stable"]);
     });

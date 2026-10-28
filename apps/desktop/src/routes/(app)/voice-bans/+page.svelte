@@ -10,6 +10,7 @@
     import AddMuteCard from "$lib/features/voice-bans/components/add-mute-card.svelte";
     import FilterBar from "$lib/features/voice-bans/components/filter-bar.svelte";
     import GameRunningBanner from "$lib/features/voice-bans/components/game-running-banner.svelte";
+    import ListError from "$lib/features/voice-bans/components/list-error.svelte";
     import HeaderActions from "$lib/features/voice-bans/components/header-actions.svelte";
     import MutedList from "$lib/features/voice-bans/components/muted-list.svelte";
     import Pager from "$lib/features/voice-bans/components/pager.svelte";
@@ -58,7 +59,7 @@
             {t("errors.voice_bans.no_account")}
         </EmptyState>
     {:else if m.error}
-        <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{m.error}</div>
+        <ListError onretry={() => void m.load()} />
     {:else if m.loading && !m.file}
         <div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             {t("voice_bans.reading")}

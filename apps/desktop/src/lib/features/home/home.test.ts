@@ -108,6 +108,12 @@ describe("statsNote", () => {
         expect(statsNote("idle", "No matches yet.")).toBe("Loading...");
     });
 
+    it("says the API is busy, with its wait, while the history is turned away or being tried again", () => {
+        const busy = "Busy for 12 s";
+        expect(statsNote("error", "No matches yet.", false, busy)).toBe(busy);
+        expect(statsNote("loading", "No matches yet.", false, busy)).toBe(busy);
+    });
+
     it("names the missing Steam account, whose stats never load", () => {
         expect(statsNote("idle", "No matches yet.", true)).toBe("No Steam account found");
     });

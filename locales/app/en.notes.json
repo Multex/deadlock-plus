@@ -208,6 +208,22 @@
         "front_page_waiting": {
             "title": "Notification title (OS notification, in game overlay and notification list). Newspaper style call, like a street seller shouting. Playful tone.",
             "body": "Notification body (OS notification, in game overlay and notification list). Says the post match front page (a newspaper style recap) is ready. \"Deadlock+\" stays untranslated."
+        },
+        "dispatch_weekly": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Dispatch is the newspaper style recap feature. Deadlock+ stays untranslated. Keep short, about 18 characters.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Tells the user the weekly Dispatch edition (a newspaper style recap of last week) is ready. Deadlock+ stays untranslated."
+        },
+        "dispatch_monthly": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Dispatch is the newspaper style recap feature. Deadlock+ stays untranslated. Keep short, about 18 characters.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Tells the user the monthly Dispatch edition (a newspaper style recap of last month) is ready. Deadlock+ stays untranslated."
+        },
+        "dispatch_collectors": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Dispatch is the newspaper style recap feature. Deadlock+ stays untranslated. Keep short, about 18 characters.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Sent when a Deadlock season ends. Collector's Copy is the name of the end of season Dispatch edition. Deadlock+ stays untranslated."
+        },
+        "dispatch_year_end": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Dispatch is the newspaper style recap feature. Deadlock+ stays untranslated. Keep short, about 18 characters.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Year-End Special is the name of the yearly Dispatch edition. Deadlock+ stays untranslated."
         }
     },
     "admin_access": {
@@ -258,7 +274,8 @@
             "demos": "Sidebar navigation item for the page listing saved match replays. Keep short, about 8 characters.",
             "match_history": "Sidebar navigation item for the list of past matches. Keep short, about 14 characters.",
             "presence": "Sidebar navigation item for the Discord presence settings page. Keep short, about 10 characters.",
-            "builds": "Sidebar navigation item for the hero builds page. Hero is a Deadlock game term. Keep short, about 8 characters."
+            "builds": "Sidebar navigation item for the hero builds page. Hero is a Deadlock game term. Keep short, about 8 characters.",
+            "dispatch": "Sidebar navigation item for the Dispatch page, a newspaper style recap of the user's weekly and monthly play. Keep short, about 8 characters."
         },
         "sidebar": {
             "unread": "Badge or screen reader text next to a sidebar item with unread entries. {count} = number of unread items, e.g. 3. Keep short, about 10 characters.",
@@ -294,7 +311,9 @@
                 "degraded": "Status bar item text. Some Deadlock API services are down. Keep short, about 25 characters.",
                 "degraded_title": "Tooltip of the status bar item. {services} = names of the services that are down, e.g. \"matches, players\".",
                 "offline": "Status bar item text. The Deadlock API can't be reached. Keep short, about 20 characters.",
-                "offline_title": "Tooltip of the status bar item. Says the Deadlock API can't be reached."
+                "offline_title": "Tooltip of the status bar item. Says the Deadlock API can't be reached.",
+                "busy": "Status bar label at the bottom of the window. The Deadlock API (the data service the app uses) is turning requests away because it is overloaded. Keep short, about 17 characters.",
+                "busy_title": "Tooltip for the status bar API busy label. Explains the Deadlock API is refusing requests for now and the app will retry."
             },
             "game": {
                 "running": "Status bar item text. The game process is running. Deadlock is the game name, untranslated. Keep short, about 20 characters.",
@@ -305,6 +324,11 @@
             "discord": {
                 "searching": "Status bar item text. Discord presence is on but no Discord app is running. Discord is a brand name. Keep short, about 20 characters.",
                 "searching_title": "Tooltip of the status bar item. Presence is on but no running Discord was found.",
+                "checking": "Status bar label at the bottom of the window. The app is checking whether Discord is running, for the Discord activity feature. Keep short, about 19 characters.",
+                "waiting": "Status bar label at the bottom of the window. Discord is running but the game Deadlock has not started yet. Keep short, about 20 characters.",
+                "waiting_title": "Tooltip for the status bar Discord waiting label. Discord is running and the Discord activity shows once the game Deadlock starts.",
+                "connecting": "Status bar label at the bottom of the window. The app is connecting to Discord to show the activity. Keep short, about 21 characters.",
+                "connecting_title": "Tooltip for the status bar Discord connecting label. The game Deadlock is running and the app is connecting to Discord.",
                 "connected_title": "Tooltip of the status bar item. The player's game activity is shown on Discord. Deadlock is the game name.",
                 "off": "Status bar item text. Discord presence is turned off. Discord is a brand name. Keep short, about 12 characters.",
                 "off_title": "Tooltip of the status bar item. Discord presence is off. Tells the user to click to set it up."
@@ -340,7 +364,8 @@
             "demos": "Short description of the Replays page, shown in a sidebar tooltip or home card. Outdated means made with an old game version.",
             "match_history": "Short description of the Match History page, shown in a sidebar tooltip or home card. Deadlock API is a service name.",
             "presence": "Short description of the Presence page, shown in a sidebar tooltip or home card. Hero is a Deadlock game term. Discord is a brand name.",
-            "builds": "Short description of the Builds page, shown in a sidebar tooltip or home card. Hero is a Deadlock game term."
+            "builds": "Short description of the Builds page, shown in a sidebar tooltip or home card. Hero is a Deadlock game term.",
+            "dispatch": "Short description of the Dispatch page, shown in a sidebar tooltip or home card. Dispatch is a newspaper style recap feature."
         }
     },
     "ui": {},
@@ -532,7 +557,9 @@
         "history": {
             "title": "Heading of the ping history chart on the Live page. {minutes} = length of the time window, e.g. 5.",
             "empty": "Empty state of the ping history chart on the Live page. Chart fills once a match is running.",
-            "chart_label": "Screen reader label for the ping history chart on the Live page. Not shown visually."
+            "chart_label": "Screen reader label for the ping history chart on the Live page. Not shown visually.",
+            "error_title": "Error message. Shown on the Connection page, in the connection history section, when the saved history could not be read.",
+            "error_body": "Error detail. Shown under the connection history error title, and on the match detail page when the connection history fails. Says the rest of the page is fine."
         },
         "notices": {
             "permission": "Notice on the Live page asking for permission to watch network traffic. The OS asks for the user's password. Deadlock stays untranslated.",
@@ -763,7 +790,10 @@
         "privacy": "Small privacy note at the bottom of the crash dialog. \"Settings\" refers to the Settings page, match its translation.",
         "dismiss": "Button in the crash dialog that closes it. Keep short, about 8 characters.",
         "open_folder": "Button in the crash dialog that opens the folder holding the crash report. Keep short, about 20 characters.",
-        "report_github": "Primary button in the crash dialog that opens a new bug report on GitHub. GitHub stays untranslated. Keep short, about 18 characters."
+        "report_github": "Primary button in the crash dialog that opens a new bug report on GitHub. GitHub stays untranslated. Keep short, about 18 characters.",
+        "reveal_failed": "Error message. Shown in the crash dialog when the folder with the crash report could not be opened in the file manager.",
+        "issue_failed": "Error message. Shown in the crash dialog when the browser page to file a GitHub issue could not be opened. GitHub stays untranslated.",
+        "dismiss_failed": "Error message. Shown in the crash dialog when closing or dismissing the crash report failed."
     },
     "notification_list": {
         "title": "Tooltip and screen reader label of the bell button that opens the notifications menu in the app header.",
@@ -816,6 +846,7 @@
     },
     "heroes": {},
     "jobs": {
+        "run_failed": "Error message. Shown when a background task (such as a scan or sync) could not be started.",
         "catalog": {
             "addon_scan": {
                 "title": "Title of a background job in the jobs list. The job scans installed Deadlock mods. Keep short, about 15 characters.",
@@ -916,5 +947,16 @@
         "saved": "Toast shown after the support report was saved to a file.",
         "save_failed": "Error toast shown when saving the support report failed. The log is in Settings > Diagnostics.",
         "build_failed": "Error toast shown when building the support report failed. The log is in Settings > Diagnostics."
+    },
+    "api_busy": {
+        "waiting": "Notice shown where data could not load because the Deadlock API (the data service) is overloaded. {seconds} = seconds until the next retry, e.g. 12. Keep \"s\" as the seconds unit.",
+        "retrying": "Notice shown where data could not load because the Deadlock API (the data service) is overloaded. The app is retrying right now.",
+        "try_now": "Button in the API busy notice. Skips the countdown and retries now. Keep short, about 7 characters."
+    },
+    "region": {
+        "error_title": "Error title. Shown in place of one section of a page when that section fails to render. Followed by a Retry button.",
+        "error_body": "Error detail. Shown under the section error title. Says the rest of Deadlock+ is not affected. Deadlock+ stays untranslated.",
+        "retry": "Button on error messages. Tries the failed action or section again. Keep short, about 5 characters.",
+        "page_title": "Error title. Shown when a whole page fails to render. Followed by a Retry button."
     }
 }

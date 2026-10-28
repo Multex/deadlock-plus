@@ -37,7 +37,7 @@ async function expectEveryRow(page: Page, name: RegExp) {
 }
 
 async function pickHero(page: Page, hero: string) {
-    await filters(page).getByRole("button", { name: "Hero", exact: true }).click();
+    await filters(page).getByRole("combobox", { name: "Hero", exact: true }).click();
     await page.getByRole("listbox").getByRole("option", { name: hero, exact: true }).click();
     await expect(page.getByRole("listbox")).toBeHidden();
 }
@@ -100,7 +100,7 @@ test.describe("the list", () => {
 
     test("the hero menu keeps only matches on the picked hero", async ({ page }) => {
         await pickHero(page, "Abrams");
-        await expect(filters(page).getByRole("button", { name: "Hero", exact: true })).toHaveText(/Abrams/);
+        await expect(filters(page).getByRole("combobox", { name: "Hero", exact: true })).toHaveText(/Abrams/);
         await expectTotal(page, 11);
         await expectEveryRow(page, /^Abrams /);
 
@@ -124,7 +124,7 @@ test.describe("the list", () => {
 
         await expectTotal(page, MATCHES);
         await expect(option(page, "Outcome", "All outcomes")).toHaveAttribute("aria-pressed", "true");
-        await expect(filters(page).getByRole("button", { name: "Hero", exact: true })).toHaveText(/All heroes/);
+        await expect(filters(page).getByRole("combobox", { name: "Hero", exact: true })).toHaveText(/All heroes/);
     });
 
     test("Custom matches switches to custom games and locks the mode filter", async ({ page }) => {
@@ -257,7 +257,7 @@ test.describe("a match", () => {
     test("every graded player shows a grade with a score and a place, and a tie shares the place", async ({ page }) => {
         const scoreboard = page.getByRole("table", { name: "Scoreboard" });
         const grades = scoreboard.getByRole("button", {
-            name: /^Grade [SABCDEF][+-]?, score \d+\.\d, \d+(st|nd|rd|th)$/,
+            name: /^Grade [SABCDEF][+-]?, \d+\.\d, \d+(st|nd|rd|th)$/,
         });
 
         await expect(scoreboard.getByRole("rowheader", { name: "Grade", exact: true })).toBeVisible();
@@ -332,16 +332,16 @@ test.describe("a match", () => {
             "Player for accolades",
         ];
         for (const name of names) {
-            await expect(page.getByRole("button", { name, exact: true })).toHaveCount(1);
+            await expect(page.getByRole("combobox", { name, exact: true })).toHaveCount(1);
         }
-        await expect(page.getByRole("button", { name: "Player", exact: true })).toHaveCount(0);
+        await expect(page.getByRole("combobox", { name: "Player", exact: true })).toHaveCount(0);
     });
 
     test("the death map's player menu shows another player's deaths", async ({ page }) => {
         await deathMap(page).click();
         await expect(minimap(page).getByRole("button", { name: /^Death of / })).toHaveCount(4);
 
-        await page.getByRole("button", { name: "Player for death map", exact: true }).click();
+        await page.getByRole("combobox", { name: "Player for death map", exact: true }).click();
         await page
             .getByRole("listbox")
             .getByRole("option", { name: /Cinderblock/ })

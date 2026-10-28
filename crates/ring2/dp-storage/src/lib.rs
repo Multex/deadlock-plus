@@ -12,6 +12,9 @@ const DEADLOCK_APP_ID: &str = "1422450";
 /// Saved frametime runs, written by the kv store as `<store>.json`.
 const FRAME_RUNS_FILE: &str = "frame-runs.json";
 
+/// The user's issued Dispatch editions, written by the kv store as `<store>.json`.
+const DISPATCH_EDITIONS_FILE: &str = "dispatch-editions.json";
+
 /// One JSON file per opened match, see [`matches`].
 const MATCHES_DIR: &str = "matches";
 
@@ -44,6 +47,7 @@ const APP_FILES: &[(EntryId, &[&str])] = &[
     (EntryId::MatchPing, &[MATCH_PING_DIR]),
     (EntryId::MvpGrades, &[MVP_DIR]),
     (EntryId::SharedMatches, &[shared_matches::SHARED_MATCHES_FILE]),
+    (EntryId::DispatchEditions, &[DISPATCH_EDITIONS_FILE]),
 ];
 
 fn app_files(id: EntryId) -> Option<&'static [&'static str]> {
@@ -78,11 +82,12 @@ pub enum EntryId {
     MatchPing,
     MvpGrades,
     SharedMatches,
+    DispatchEditions,
     OtherAppFiles,
     Logs,
 }
 
-pub const ALL_ENTRIES: [EntryId; 26] = [
+pub const ALL_ENTRIES: [EntryId; 27] = [
     EntryId::Replays,
     EntryId::Addons,
     EntryId::AddonsBackups,
@@ -107,6 +112,7 @@ pub const ALL_ENTRIES: [EntryId; 26] = [
     EntryId::MatchPing,
     EntryId::MvpGrades,
     EntryId::SharedMatches,
+    EntryId::DispatchEditions,
     EntryId::OtherAppFiles,
     EntryId::Logs,
 ];
@@ -469,6 +475,7 @@ mod tests {
             ("demo-keep.json", 15),
             (FRAME_RUNS_FILE, 25),
             (shared_matches::SHARED_MATCHES_FILE, 17),
+            (DISPATCH_EDITIONS_FILE, 19),
         ] {
             write(&appdata.join(name), bytes);
         }
@@ -563,6 +570,7 @@ mod tests {
         assert_eq!(entry_size(EntryId::MvpGrades, &roots), 30);
         assert_eq!(entry_size(EntryId::SharedMatches, &roots), 17);
         assert_eq!(entry_size(EntryId::OtherAppFiles, &roots), 29);
+        assert_eq!(entry_size(EntryId::DispatchEditions, &roots), 19);
         assert_eq!(entry_size(EntryId::Logs, &roots), 55);
     }
 
@@ -741,8 +749,20 @@ mod tests {
     }
 
     #[test]
+    fn the_dispatch_editions_file_is_its_own_entry_and_never_clearable() {
+        let (base, roots) = fixture("dispatch");
+        let file = base.join("appdata").join(DISPATCH_EDITIONS_FILE);
+        assert_eq!(entry_size(EntryId::DispatchEditions, &roots), 19);
+        assert_eq!(location(EntryId::DispatchEditions, &roots), Some(file.clone()));
+        assert_eq!(entry_stats(EntryId::DispatchEditions, &roots).count, None);
+        assert!(!is_clearable(EntryId::DispatchEditions));
+        assert!(clear(EntryId::DispatchEditions, &roots).is_err());
+        assert!(file.is_file());
+    }
+
+    #[test]
     fn every_entry_is_listed_once_shared_matches_included() {
-        assert_eq!(ALL_ENTRIES.len(), 26);
+        assert_eq!(ALL_ENTRIES.len(), 27);
         assert_eq!(ALL_ENTRIES.iter().filter(|id| **id == EntryId::SharedMatches).count(), 1);
     }
 
@@ -889,6 +909,7 @@ mod tests {
             EntryId::MatchPing,
             EntryId::MvpGrades,
             EntryId::SharedMatches,
+            EntryId::DispatchEditions,
             EntryId::OtherAppFiles,
         ];
         let sum: u64 = app_entries.iter().map(|id| entry_size(*id, &roots)).sum();

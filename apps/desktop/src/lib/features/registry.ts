@@ -8,6 +8,7 @@ import {
     History,
     House,
     MessageCircle,
+    Newspaper,
     Swords,
     VolumeX,
 } from "@lucide/svelte";
@@ -17,6 +18,7 @@ import { adminAccess } from "./admin-access/admin-access.svelte";
 import { apiHealth } from "./api-health/health.svelte";
 import { alerts } from "./alerts/alerts.svelte";
 import { connectivity } from "./connectivity/online.svelte";
+import { dispatch } from "./dispatch/dispatch.svelte";
 import { gameArt } from "./gamedata/art-refresh";
 import { gcStatus } from "./gc/status.svelte";
 import { ingestStatus } from "./ingest/status.svelte";
@@ -146,6 +148,18 @@ export const FEATURES: FeatureNavEntry[] = [
         icon: MessageCircle,
     },
     {
+        id: "dispatch",
+        get label() {
+            return t("shell.nav.dispatch");
+        },
+        href: "/dispatch",
+        get description() {
+            return t("shell.nav_description.dispatch");
+        },
+        icon: Newspaper,
+        badge: () => dispatch.unseen,
+    },
+    {
         id: "performance",
         get label() {
             return t("shell.nav.performance");
@@ -210,6 +224,7 @@ export const SERVICES: Service[] = [
     () => lobbyRanks.start(),
     () => adminAccess.start(),
     () => presenceStatus.start(),
+    () => dispatch.start(),
     startBreakReminder,
     () => {
         void onboarding.init();
@@ -229,7 +244,7 @@ export { isActivePath } from "./home/home";
 export { apiHealth, gcStatus, ingestStatus, jobs, live, performanceScan, presenceStatus, settings };
 export { jobPercent, jobStatusText } from "./jobs/jobs";
 export { recoveryBarItem } from "./gc/recovery-bar";
-export { discordBarState } from "./presence/presence";
+export { discordBarCopy, discordBarState } from "./presence/presence";
 export { liveBarItem } from "./live/live";
 export { isLightTheme, resolveReducedMotion } from "./settings/themes";
 export { accentOf, accentStyle, layersOf, namedAccentStyle, variantOf } from "./settings/theme-options";

@@ -1,5 +1,6 @@
 import { t } from "$lib/core/i18n.svelte";
 import { command } from "$lib/core/tauri";
+import { classifyApiFailure } from "$lib/features/api-health/busy";
 import { createDeadlockApi, DeadlockApiError } from "@deadlock-plus/deadlock-api";
 import { parseApiDetail } from "@deadlock-plus/match/api-detail";
 import type { MatchDetail } from "@deadlock-plus/match/detail";
@@ -12,7 +13,8 @@ export async function fetchMetadata(matchId: number, fetchFn: typeof fetch = fet
     try {
         return await createDeadlockApi({ fetch: fetchFn }).matchMetadata(matchId);
     } catch (e) {
-        if (e instanceof DeadlockApiError && e.status === 404) throw e;
+        // A 404 and a busy answer are states of their own for the caller, so they stay typed.
+        if (e instanceof DeadlockApiError && (e.status === 404 || classifyApiFailure(e).kind === "busy")) throw e;
         if (e instanceof DeadlockApiError) throw new Error(t("match_history.api_error", { status: e.status }));
         throw new Error(t("errors.common.network"));
     }

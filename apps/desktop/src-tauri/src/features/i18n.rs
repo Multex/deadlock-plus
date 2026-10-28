@@ -261,6 +261,10 @@ mod tests {
             // The website's copy lives beside the app's areas but never ships in the app.
             .filter(|area| area != "web")
             .collect();
+        // The frontend loads these areas on demand and Rust never translates their keys, so embedding them
+        // would only grow the binary.
+        const FRONTEND_ONLY: [&str; 1] = ["dispatch"];
+        areas.retain(|area| !FRONTEND_ONLY.contains(&area.as_str()));
         areas.sort();
         assert_eq!(areas, AREAS, "every locales/<area> dir is embedded");
         for area in AREAS {

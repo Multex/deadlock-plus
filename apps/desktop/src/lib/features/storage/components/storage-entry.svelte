@@ -46,7 +46,7 @@
             <p class="text-sm font-semibold text-foreground">{text.label}</p>
             <Badge variant={kindVariant} title={kind.hint}>{kind.label}</Badge>
         </div>
-        <p class="mt-0.5 text-xs text-foreground/80">{text.description}</p>
+        <p class="mt-0.5 text-xs text-foreground">{text.description}</p>
         <p class="mt-0.5 text-xs text-muted-foreground">{text.consequence}</p>
         {#if units}
             <p class="mt-0.5 text-xs text-muted-foreground">{units}</p>
@@ -60,24 +60,25 @@
             </div>
         {/if}
         {#if showPath}
-            <p class="mt-1.5 truncate font-mono text-[11px] text-muted-foreground/60" title={entry.path ?? ""}>
+            <p class="mt-1.5 truncate font-mono text-[11px] text-muted-foreground" title={entry.path ?? ""}>
                 {entry.path ?? t("storage.entry.path_missing")}
             </p>
         {/if}
     </div>
 
-    <div class="w-20 shrink-0 text-right text-sm tabular-nums">
+    <div class="flex w-28 shrink-0 flex-col items-end text-right text-sm tabular-nums">
         {#if !entry.path}
             <span class="text-xs text-muted-foreground">{t("storage.entry.not_found")}</span>
         {:else if failed}
-            <button
-                type="button"
-                class="text-xs text-destructive underline"
+            <span class="text-xs text-muted-foreground">{t("storage.entry.unmeasured")}</span>
+            <Button
+                variant="ghost"
+                size="sm"
                 aria-label={t("storage.entry.retry_aria", { label: text.label })}
                 onclick={onretry}
             >
                 {t("storage.entry.retry")}
-            </button>
+            </Button>
         {:else if stats === undefined}
             <LoaderCircle
                 class="ml-auto size-4 animate-spin text-muted-foreground"

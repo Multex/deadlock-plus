@@ -175,6 +175,13 @@ export interface HeroKit {
     abilities: ReadonlyMap<number, AbilityInfo>;
     ultimateId: number | null;
     levels: readonly Level[];
+    /** Set when the kit could not be read: no abilities, and the ability order offers `retry`. */
+    failed?: { retry: () => void };
+}
+
+/** Stands in for a kit that could not be read, so the ability order ends its loading state. */
+export function failedKit(retry: () => void): HeroKit {
+    return { abilities: new Map(), ultimateId: null, levels: [], failed: { retry } };
 }
 
 export async function loadKit(heroId: number): Promise<HeroKit> {
@@ -300,13 +307,18 @@ export class BuildDetail {
             (heroes) => (this.hero = heroes[build.heroId] ?? null),
             () => {},
         );
-        void loadKit(build.heroId).then(
-            (kit) => (this.kit = kit),
-            () => {},
-        );
+        this.loadHeroKit(build.heroId);
         void playerNames.resolve([build.authorAccountId]).then(
             (names) => (this.author = names.get(build.authorAccountId) ?? null),
             () => {},
+        );
+    }
+
+    private loadHeroKit(heroId: number): void {
+        this.kit = null;
+        void loadKit(heroId).then(
+            (kit) => (this.kit = kit),
+            () => (this.kit = failedKit(() => this.loadHeroKit(heroId))),
         );
     }
 

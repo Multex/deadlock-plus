@@ -1,8 +1,9 @@
 <script lang="ts">
+    import { prefersReducedMotion } from "$lib/core/reduced-motion";
     import { untrack } from "svelte";
     import { Portal } from "bits-ui";
     import { toast } from "svelte-sonner";
-    import { Copy, ImageDown, LoaderCircle, X } from "@lucide/svelte";
+    import { ArrowRight, Copy, ImageDown, LoaderCircle, X } from "@lucide/svelte";
 
     import { t } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -31,12 +32,15 @@
         ownAccountId,
         takeover,
         requestGrade = false,
+        onopenmatch,
     }: {
         detail: MatchDetail;
         ownAccountId: number | null;
         takeover: Takeover<HTMLElement>;
         /** Asks for a grade and fills the critics when it lands, instead of reading a stored one. */
         requestGrade?: boolean;
+        /** Shows "Open full match"; left out where the paper opens from that match's own page. */
+        onopenmatch?: () => void;
     } = $props();
 
     const RAIL = 168;
@@ -57,9 +61,7 @@
     let gradeTimedOut = $state(false);
     let photoReady = $state(false);
 
-    const reducedMotion =
-        document.documentElement.hasAttribute("data-reduced-motion") ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = prefersReducedMotion();
     const landing = nextLanding(reducedMotion);
 
     const matchId = $derived(detail.matchId);
@@ -251,6 +253,16 @@
                 role="group"
                 aria-label={t("front_page.export.group")}
             >
+                {#if onopenmatch}
+                    <Button
+                        variant="outline"
+                        class="w-full justify-start bg-background/85 backdrop-blur-sm"
+                        onclick={onopenmatch}
+                    >
+                        <ArrowRight />
+                        {t("front_page.open_match")}
+                    </Button>
+                {/if}
                 <Button
                     variant="outline"
                     class="w-full justify-start bg-background/85 backdrop-blur-sm"

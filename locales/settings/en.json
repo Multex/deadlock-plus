@@ -1,5 +1,6 @@
 {
     "settings": {
+        "save_failed": "Couldn't save that setting. It was changed back.",
         "language": {
             "label": "Language",
             "description": "Pick the language the app uses. \"Follow system\" uses your OS language.",
@@ -58,7 +59,8 @@
             "ui_scale": "UI scale",
             "hardware_acceleration": "Hardware acceleration",
             "open_on_game_start": "Open with Deadlock",
-            "admin_access": "Admin access"
+            "admin_access": "Admin access",
+            "dispatch_alerts": "New Dispatch edition"
         },
         "nav": {
             "label": "Settings categories",
@@ -81,7 +83,8 @@
             "accent_hue": "Hue",
             "accent_vividness": "Vividness",
             "accent_hex": "Hex colour",
-            "accent_reset": "Reset"
+            "accent_reset": "Reset",
+            "theme_option_aria": "{option} for {theme}"
         },
         "themes": {
             "deadlock": {
@@ -203,6 +206,7 @@
             "overlay_notifications_button": "Open Notifications",
             "overlay_test_button": "Show test",
             "overlay_test_countdown": "Showing in {seconds}",
+            "overlay_test_failed": "Couldn't show the test notification. Try again.",
             "overlay_seconds": "{seconds} s",
             "position": {
                 "top_left": "Top left",
@@ -216,12 +220,13 @@
                 "center": "Match found"
             },
             "overlay_match_found_description": "Tells you when your queue pops, even if another window is in front.",
-            "overlay_queue_stopped_description": "Tells you when your queue stops without a match, even if another window is in front.",
+            "overlay_queue_stopped_description": "Tells you when your queue stops without a match while another window is in front of Deadlock.",
             "server_blocks_updated_description": "Tells you when Valve changes server addresses and Deadlock+ updates your Server Picker blocks to match.",
             "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
             "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
             "front_page_after_match_description": "Tosses a newspaper front page of the match onto the window when Deadlock+ captures the match at its end.",
             "front_page_modes": "Match modes",
+            "front_page_mode_aria": "Front page for {mode}",
             "front_page_overlay_alert_description": "Tells you in the game overlay when a front page is waiting in Deadlock+.",
             "delivery_label": "Shows as",
             "delivery": {
@@ -232,7 +237,8 @@
                 "center": "Notification center only"
             },
             "overlay_off_fallback": "The game overlay is off, so this shows as a desktop notification.",
-            "overlay_off_hidden": "The game overlay is off, so this does not show."
+            "overlay_off_hidden": "The game overlay is off, so this does not show.",
+            "dispatch_alerts_description": "Tells you when a new Deadlock+ Dispatch edition is out."
         },
         "weekdays": {
             "monday": "Monday",
@@ -279,6 +285,8 @@
             "client_other_name": "Discord app {pipe}",
             "status_off": "Off",
             "status_none": "No running Discord found.",
+            "status_waiting": "Discord is running. Waiting for Deadlock to start.",
+            "status_connecting": "Connecting to Discord.",
             "status_showing": "Showing on: {clients}."
         },
         "discord_editor": {
@@ -328,6 +336,8 @@
             "exported": "Copied preset",
             "export_failed": "Couldn't copy to the clipboard",
             "imported": "Imported preset",
+            "import_failed": "Couldn't read that preset.",
+            "save_failed": "Couldn't save your Discord activity changes. Try again.",
             "state": {
                 "playing": "Playing",
                 "mainMenu": "Main menu",
@@ -383,7 +393,7 @@
                 "round": "Street Brawl round",
                 "scoreAmber": "Amber score in Street Brawl",
                 "scoreSapphire": "Sapphire score in Street Brawl",
-                "elapsed": "Time in this state",
+                "elapsed": "The match clock",
                 "queueTime": "How long you have queued",
                 "result": "Won or lost",
                 "matchId": "The match's ID",
@@ -435,12 +445,14 @@
             "party_size_aria": "Show party size",
             "party_size_hint": "Adds the party count, like (2 of 6), when you are in a party of two or more.",
             "preview_party": "({size} of {max})",
-            "detailed_only": "Only Detailed uses these states. Basic always shows Playing."
+            "detailed_only": "Only Detailed uses these states. Basic always shows Playing.",
+            "load_error": "Couldn't load the presence editor."
         },
         "privacy": {
             "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
             "telemetry_reset": "Reset usage data ID",
             "telemetry_reset_done": "Usage data ID reset.",
+            "telemetry_reset_failed": "Couldn't reset the usage data ID. Try again.",
             "ingest_waiting": "Waiting for your answer.",
             "ingest_off": "Off",
             "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",
@@ -472,7 +484,8 @@
                 "replay": "Replay",
                 "sent": "Sent",
                 "not_sent": "Not sent",
-                "empty": "Nothing shared yet."
+                "empty": "Nothing shared yet.",
+                "load_error": "Couldn't read the shared matches."
             }
         },
         "about_page": {
@@ -483,7 +496,8 @@
             "check_now": "Check now",
             "auto_check_label": "Check automatically",
             "auto_check_description": "Asks GitHub for a newer release on launch and every hour after. Nothing installs without your click.",
-            "whats_new_in": "What's new in {version}"
+            "whats_new_in": "What's new in {version}",
+            "version_error": "Couldn't read the version."
         },
         "diagnostics": {
             "description": "This session's log. Names in file paths are hidden when you copy or save it. Only needed when reporting a bug.",
@@ -538,7 +552,8 @@
         "summary": {
             "total": "Total found",
             "can_clear": "Can be cleared here",
-            "clear_regenerable": "Clear rebuildable files"
+            "clear_regenerable": "Clear rebuildable files",
+            "total_at_least": "At least {size}"
         },
         "entry": {
             "path_missing": "Not found on this PC",
@@ -551,7 +566,8 @@
             "reveal_aria": "Show {label} in folder",
             "reveal_title": "Show in folder",
             "clear_aria": "Clear {label}",
-            "clear_title": "Clear"
+            "clear_title": "Clear",
+            "unmeasured": "Couldn't measure"
         },
         "dialog": {
             "cancel": "Cancel",
@@ -566,7 +582,9 @@
         "toast": {
             "freed": "Freed {size}",
             "nothing": "Nothing to clear.",
-            "remove_failed": "Couldn't remove {count}: {first}"
+            "clear_failed_one": "Couldn't clear {count} item. Try again.",
+            "clear_failed_other": "Couldn't clear {count} items. Try again.",
+            "reveal_failed": "Couldn't open that folder."
         },
         "age": {
             "today": "today",
@@ -790,7 +808,14 @@
                 "clear_name": "shared matches",
                 "description": "Matches Deadlock+ shared with the Deadlock API.",
                 "consequence": "Deadlock+ may share those matches again. Nothing else is lost."
+            },
+            "dispatch_editions": {
+                "label": "Dispatch editions",
+                "clear_name": "Dispatch editions",
+                "description": "The Dispatch editions Deadlock+ has issued for you.",
+                "consequence": "Not recoverable. Past editions are not made again."
             }
-        }
+        },
+        "list_error": "Couldn't list what's stored on this PC."
     }
 }

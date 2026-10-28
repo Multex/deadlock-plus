@@ -68,6 +68,7 @@
 >
     <Select.Trigger
         {id}
+        role="combobox"
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledby}
         class={cn(

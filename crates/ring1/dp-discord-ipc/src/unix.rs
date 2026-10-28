@@ -1,3 +1,4 @@
+use crate::discovery::Probe;
 use crate::kind::{classify_path, ClientKind, Pipe};
 use crate::paths::{socket_dirs, MAX_PIPES};
 use std::io;
@@ -12,13 +13,20 @@ fn candidates() -> impl Iterator<Item = (u8, PathBuf)> {
     dirs.into_iter().flat_map(|d| (0..MAX_PIPES).map(move |i| (i, d.join(format!("discord-ipc-{i}")))))
 }
 
-pub fn discover() -> Vec<Pipe> {
+pub(crate) fn endpoints() -> Vec<Pipe> {
     candidates()
-        .filter_map(|(index, path)| {
-            let stream = UnixStream::connect(&path).ok()?;
-            Some(Pipe { index, kind: label(&stream, &path), path: Some(path) })
-        })
+        .filter(|(_, path)| path.exists())
+        .map(|(index, path)| Pipe { index, kind: None, path: Some(path) })
         .collect()
+}
+
+/// A socket file left behind by a Discord that quit refuses the connection, so it reads as gone.
+pub(crate) fn probe(pipe: &Pipe) -> Probe {
+    let Some(path) = &pipe.path else { return Probe::Gone };
+    match UnixStream::connect(path) {
+        Ok(stream) => Probe::Labelled(label(&stream, path)),
+        Err(_) => Probe::Gone,
+    }
 }
 
 pub fn connect(pipe: &Pipe) -> io::Result<Connection> {

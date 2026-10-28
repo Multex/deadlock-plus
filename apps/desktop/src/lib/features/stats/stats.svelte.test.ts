@@ -76,6 +76,45 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
+describe("a load the API turns away as busy", () => {
+    const limited = { type: "ip", remaining: 0, next_request_in: 12 };
+
+    it("turns busy with the wait a 429 body names", async () => {
+        mocks.playerMatchHistory.mockResolvedValue(answered(limited, 429));
+        const stats = await freshStore();
+        await stats.load(ACCOUNT);
+        expect(stats.status).toBe("error");
+        expect(stats.busy.active).toBe(true);
+        expect(stats.busy.remainingS).toBe(12);
+    });
+
+    it("loads again on its own after the wait, and clears once the API answers", async () => {
+        mocks.playerMatchHistory.mockResolvedValue(answered(limited, 429));
+        const stats = await freshStore();
+        await stats.load(ACCOUNT);
+        mocks.playerMatchHistory.mockResolvedValue(answered([row(1)]));
+        await vi.advanceTimersByTimeAsync(12_000);
+        expect(mocks.playerMatchHistory).toHaveBeenCalledTimes(2);
+        expect(stats.status).toBe("ready");
+        expect(stats.busy.active).toBe(false);
+    });
+
+    it("leaves a page's plain load to the planned retry, so it never jumps the wait", async () => {
+        mocks.playerMatchHistory.mockResolvedValue(answered(limited, 429));
+        const stats = await freshStore();
+        await stats.load(ACCOUNT);
+        await stats.load(ACCOUNT);
+        expect(mocks.playerMatchHistory).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not busy when the connection drops", async () => {
+        mocks.playerMatchHistory.mockImplementation(dropped);
+        const stats = await freshStore();
+        await stats.load(ACCOUNT);
+        expect(stats.busy.active).toBe(false);
+    });
+});
+
 describe("a load that fails with no saved copy", () => {
     it("reports a dropped connection in the app's words, not the browser's", async () => {
         mocks.playerMatchHistory.mockImplementation(dropped);

@@ -1,3 +1,4 @@
+import type { GcStatus } from "@deadlock-plus/ipc-types/GcStatus";
 import type { MinimapArtResult } from "@deadlock-plus/ipc-types/MinimapArtResult";
 
 import type { Handlers } from "../../backend";
@@ -44,6 +45,8 @@ function withoutGameData(module: Module): Module {
         game_ability_art: none,
         game_accolades: none,
         game_hero_art: none,
+        game_hero_backdrop: () => null,
+        game_hero_mood: () => null,
         game_minimap_icons: none,
         game_minimap_art: () => NO_MINIMAP,
     };
@@ -56,7 +59,72 @@ function withoutGameData(module: Module): Module {
     };
 }
 
-function outage(id: string, respond: Respond, options: ScenarioOptions): Scenario {
+const rateLimited: Respond = () =>
+    new Response(
+        JSON.stringify({
+            type: "ip",
+            quota: { limit: 30, period: 60 },
+            requests: 31,
+            remaining: 0,
+            next_request_in: 12,
+        }),
+        {
+            status: 429,
+            statusText: "Too Many Requests",
+            headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "12",
+                "RateLimit-Limit": "30",
+                "RateLimit-Period": "60",
+                "RateLimit-Remaining": "0",
+                "RateLimit-Reset": "12",
+            },
+        },
+    );
+
+/** What the app's own HTTP layer reports to the UI when the API answers 429 and retries run out. */
+const NETWORK_ERROR = { code: "common.network", params: {} };
+
+/**
+ * The commands that stand for Rust code calling the API: the coverage check fails, and own recovery ends
+ * incomplete because it could not read the account history.
+ */
+const rateLimitedCommandsModule: Module = {
+    name: "api-rate-limited-commands",
+    overrides: ["match_detail_coverage", "gc_status"],
+    create: (_, replaced) => ({
+        handlers: {
+            match_detail_coverage: () => {
+                throw NETWORK_ERROR;
+            },
+            gc_status: (args) => {
+                const status = replaced.gc_status!(args) as GcStatus;
+                const endedAt = Math.floor(NOW_MS / 1000) - 60;
+                return {
+                    ...status,
+                    ownRecovery: {
+                        running: false,
+                        paused: false,
+                        waiting: null,
+                        done: 0,
+                        total: 0,
+                        delivered: 0,
+                        failed: 0,
+                        queued: [],
+                        etaSecs: 0,
+                        accounts: status.ownRecovery?.accounts ?? [],
+                        outcome: "incomplete",
+                        error: NETWORK_ERROR,
+                        steps: [],
+                    },
+                    lastRun: { endedAt, delivered: 0, left: 0, outcome: "incomplete" },
+                };
+            },
+        },
+    }),
+};
+
+function outage(id: string, respond: Respond, options: ScenarioOptions, extra: readonly Module[] = []): Scenario {
     return defineScenario({
         id,
         identity: IDENTITY,
@@ -72,6 +140,7 @@ function outage(id: string, respond: Respond, options: ScenarioOptions): Scenari
             upkeepModule,
             adminAccessModule(),
             buildsModule,
+            ...extra,
         ],
     });
 }
@@ -87,4 +156,12 @@ export function offlineScenario(options: ScenarioOptions): Scenario {
 /** As `offline`, but the Deadlock API is reachable and answers every request with a 503. */
 export function apiDownScenario(options: ScenarioOptions): Scenario {
     return outage("api-down", unavailable, options);
+}
+
+/**
+ * As `offline`, but the Deadlock API is reachable and answers every request with a 429 and the headers and
+ * body the real API sends. The commands that call it from Rust fail or end incomplete to match.
+ */
+export function rateLimitedScenario(options: ScenarioOptions): Scenario {
+    return outage("rate-limited", rateLimited, options, [rateLimitedCommandsModule]);
 }

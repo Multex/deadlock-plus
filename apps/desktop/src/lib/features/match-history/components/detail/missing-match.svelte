@@ -1,21 +1,20 @@
 <script lang="ts">
     import { CircleCheck, FileText, Film, Gamepad2, LoaderCircle, RotateCw, TriangleAlert } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
 
-    import { errorText } from "$lib/core/errors";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
-    import type { DetailCoverage } from "@deadlock-plus/ipc-types/DetailCoverage";
-    import { matchDetailCoverage, recoverMatches } from "$lib/features/gc/api";
+    import { recoverMatches } from "$lib/features/gc/api";
     import { gcStatus } from "$lib/features/gc/status.svelte";
     import { continuesText } from "$lib/features/gc/status-line";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { formatClock } from "$lib/features/live/live";
     import { settings } from "$lib/features/settings/settings.svelte";
+    import { matchCoverage } from "../../coverage.svelte";
     import { detailState, etaParts, replayState, type DetailState } from "../../detail-state";
+    import { runRecovery } from "../../recovery-action";
     import { matchHistory } from "../../history.svelte";
     import { kdaText, modeLabelKey, outcomeLabelKey } from "../list/view-model";
 
@@ -25,7 +24,8 @@
 
     const row = $derived(matchHistory.rows.find((r) => r.matchId === matchId) ?? null);
     let heroes = $state<Record<number, Hero>>({});
-    let coverage = $state.raw<DetailCoverage | null>(null);
+    const coverage = $derived(matchCoverage.forMatch(matchId));
+    const applies = $derived(matchCoverage.applies(matchId));
     let busy = $state(false);
     let nowMs = $state(Date.now());
     let headSinceMs = $state<number | null>(null);
@@ -127,27 +127,16 @@
         return onHeroesRefreshed((h) => (heroes = h));
     });
 
-    $effect(() => {
-        let current = true;
-        coverage = null;
-        matchDetailCoverage([matchId]).then(
-            (c) => {
-                if (current) coverage = c;
-            },
-            (e: unknown) => console.warn("match coverage failed", e),
-        );
-        return () => {
-            current = false;
-        };
-    });
+    $effect(() => matchCoverage.trackRun());
+    $effect(() => matchCoverage.load(matchId));
 
     async function recover() {
         busy = true;
         try {
-            await recoverMatches([matchId], [], false);
-            await gcStatus.refresh();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runRecovery("match", async () => {
+                await recoverMatches([matchId], [], false);
+                await gcStatus.refresh();
+            });
         } finally {
             busy = false;
         }
@@ -170,7 +159,11 @@
                         "match_history.detail.missing.details",
                     )}
                 </p>
-                {#if details.kind === "recovering"}
+                {#if !applies}
+                    <Badge variant="outline" class="text-muted-foreground"
+                        >{t("match_history.detail.missing.badge_not_applicable")}</Badge
+                    >
+                {:else if details.kind === "recovering"}
                     <Badge variant="secondary">
                         <LoaderCircle class="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                         {t("match_history.detail.missing.badge_recovering")}
@@ -182,8 +175,12 @@
                 {/if}
             </div>
             <div class="flex flex-col items-start gap-1">
-                <p class="text-sm text-foreground">{t("match_history.detail.missing.lead")}</p>
-                {#if details.kind === "recovering"}
+                <p class="text-sm text-foreground">
+                    {t(applies ? "match_history.detail.missing.lead" : "match_history.detail.missing.not_applicable")}
+                </p>
+                {#if !applies}
+                    <!-- Recovery skips matches outside matchmaking. -->
+                {:else if details.kind === "recovering"}
                     <div class="flex flex-col items-start gap-3">
                         <span class="text-xs text-muted-foreground tabular-nums">{progressText}</span>
                         <div class="h-1 w-56 overflow-hidden rounded-full bg-muted" aria-hidden="true">

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import type { MatchPlayer, MatchTeam } from "@deadlock-plus/match/detail";
@@ -73,5 +75,22 @@ describe("TeamBoard player names", () => {
             .replace(/<[^>]+>/g, "")
             .trim();
         expect(exported).toBe("Ash");
+    });
+});
+
+describe("TeamBoard surface", () => {
+    // An undefined custom property inside `background` drops the whole declaration, leaving the board see-through.
+    it("colours the team bars from tokens every theme defines", () => {
+        const tokens = readFileSync(
+            fileURLToPath(new URL("../../../../../../../../packages/ui/src/theme-tokens.css", import.meta.url)),
+            "utf8",
+        );
+        const rootBlock = /^:root \{([\s\S]*?)^\}/m.exec(tokens)?.[1] ?? "";
+        const body = board();
+        for (const side of ["left", "right"]) {
+            const token = new RegExp(`--bar-${side}: var\\((--[\\w-]+)\\)`).exec(body)?.[1];
+            expect(token, side).toBeDefined();
+            expect(rootBlock, `${side} bar uses ${token}`).toContain(`${token}:`);
+        }
     });
 });

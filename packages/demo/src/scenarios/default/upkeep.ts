@@ -206,6 +206,7 @@ const storageRows = (remote: string): StorageRow[] => [
     { id: "match-ping", path: `${APP_DATA}\\match-ping`, clearable: true, bytes: 2.3 * MB, count: 46, oldestDays: 38 },
     { id: "mvp-grades", path: `${APP_DATA}\\mvp`, clearable: true, bytes: 412_000, count: 46, oldestDays: 38 },
     { id: "shared-matches", path: `${APP_DATA}\\shared-matches.json`, clearable: true, bytes: 96_000 },
+    { id: "dispatch-editions", path: `${APP_DATA}\\dispatch-editions.json`, bytes: 142_000 },
     { id: "other-app-files", path: APP_DATA, bytes: 88_000 },
     { id: "logs", path: APP_LOGS, clearable: true, bytes: 5.2 * MB, count: 9, oldestDays: 12 },
 ];

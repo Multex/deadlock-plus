@@ -47,10 +47,12 @@
     <div class="bg-card px-4 py-3">
         <dt class="text-xs text-muted-foreground">{t("stats.summary.winrate")}</dt>
         <dd class="mt-0.5 font-heading text-2xl tabular-nums">{pct(summary.winrate)}</dd>
-        <dd class="mt-1.5 flex gap-0.5" role="img" aria-label={t("stats.summary.form_aria", { count: form.length })}>
-            {#each form as p (p.matchId)}
-                <span class="h-1.5 flex-1 rounded-full {PIP[p.outcome]}"></span>
-            {/each}
+        <dd class="mt-1.5">
+            <span class="flex gap-0.5" role="img" aria-label={t("stats.summary.form_aria", { count: form.length })}>
+                {#each form as p (p.matchId)}
+                    <span class="h-1.5 flex-1 rounded-full {PIP[p.outcome]}"></span>
+                {/each}
+            </span>
         </dd>
     </div>
 
@@ -77,21 +79,25 @@
         </dd>
     </div>
 
-    <div class="flex items-center gap-3 bg-card px-4 py-3">
-        {#if top}
-            <HeroIcon hero={topHero} size="size-10" />
-            <div class="min-w-0">
-                <dt class="text-xs text-muted-foreground">{t("stats.highlights.most_played")}</dt>
-                <dd class="truncate text-sm font-medium">
-                    {topHero?.name ?? t("stats.hero_fallback", { id: top.heroId })}
-                </dd>
-                <dd class="text-xs text-muted-foreground tabular-nums">{tn("match_history.list.count", top.games)}</dd>
-            </div>
-        {:else}
-            <div>
-                <dt class="text-xs text-muted-foreground">{t("stats.highlights.most_played")}</dt>
-                <dd class="text-sm">-</dd>
-            </div>
-        {/if}
-    </div>
+    {#if top}
+        <div class="grid grid-cols-[auto_minmax(0,1fr)] content-center gap-x-3 bg-card px-4 py-3">
+            <dt class="col-start-2 row-start-1 text-xs text-muted-foreground">
+                {t("stats.highlights.most_played")}
+            </dt>
+            <dd class="col-start-1 row-span-3 row-start-1 self-center" aria-hidden="true">
+                <HeroIcon hero={topHero} size="size-10" />
+            </dd>
+            <dd class="col-start-2 truncate text-sm font-medium">
+                {topHero?.name ?? t("stats.hero_fallback", { id: top.heroId })}
+            </dd>
+            <dd class="col-start-2 text-xs text-muted-foreground tabular-nums">
+                {tn("match_history.list.count", top.games)}
+            </dd>
+        </div>
+    {:else}
+        <div class="flex flex-col justify-center bg-card px-4 py-3">
+            <dt class="text-xs text-muted-foreground">{t("stats.highlights.most_played")}</dt>
+            <dd class="text-sm">-</dd>
+        </div>
+    {/if}
 </dl>

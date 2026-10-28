@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { WINDOWS_UA } from "./support/platform";
 import { isDynamic, routePatterns, settingsCategories } from "./support/routes";
@@ -96,6 +96,7 @@ test.describe("new-user", () => {
     const NO_ACCOUNT = "No Steam account found, so there is no history to load.";
     const EMPTY_STATES: Record<string, string> = {
         "/demos": "No replays saved yet.",
+        "/dispatch": "No Steam account found, so there is no paper to print.",
         "/match-history": NO_ACCOUNT,
         "/stats": NO_ACCOUNT,
         "/voice-bans": "No Steam account found.",
@@ -253,7 +254,46 @@ test.describe("live-match", () => {
 });
 
 const HISTORY_PAGES = ["/", "/stats", "/match-history"];
-const NO_CONNECTION = "A network request failed. Check your connection and try again.";
+/** The sections of each page that are filled from the match history, by the title each shows when it fails. */
+const HISTORY_SECTIONS: Record<string, string[]> = {
+    "/stats": ["Couldn't load your rank.", "Couldn't load your match history."],
+    "/match-history": ["Couldn't load your matches."],
+};
+const ERROR_BODY = "The rest of Deadlock+ still works.";
+const BUSY = /Deadlock API is busy\. Trying again (in \d+\s*s|now)\./;
+
+/**
+ * No answer at all is a failure the user can retry; a 503 is the API turning requests away for now, which the
+ * app waits out and retries by itself.
+ */
+const OUTAGES = [
+    {
+        scenario: "offline",
+        state: "error",
+        card: "Couldn't load. Try again later.",
+        statusTitle: "Deadlock API is unreachable",
+        statusText: "Deadlock API offline",
+    },
+    {
+        scenario: "api-down",
+        state: "busy",
+        card: BUSY,
+        statusTitle: "Deadlock API is turning requests away for now",
+        statusText: "Deadlock API busy",
+    },
+] as const;
+
+/** The section says it failed and offers a retry: its own error with Retry, or the busy notice with Try now. */
+async function expectFailed(section: Locator, state: "error" | "busy", title: string): Promise<void> {
+    if (state === "error") {
+        await expect(section).toContainText(title);
+        await expect(section).toContainText(ERROR_BODY);
+        await expect(section.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+    } else {
+        await expect(section).toContainText(BUSY);
+        await expect(section.getByRole("button", { name: "Try now", exact: true })).toBeVisible();
+    }
+}
 
 /**
  * Records the address of every request the page makes, from before the app starts, and returns a reader of
@@ -279,10 +319,7 @@ async function recordRequests(page: Page): Promise<() => Promise<string[]>> {
     return () => page.evaluate(() => (window as unknown as { __E2E_REQUESTS__: string[] }).__E2E_REQUESTS__);
 }
 
-for (const [scenario, historyError, matchError] of [
-    ["offline", NO_CONNECTION, NO_CONNECTION],
-    ["api-down", "The Deadlock API returned an error (503).", "The Deadlock API returned an error (503)."],
-] as const) {
+for (const { scenario, state, card, statusTitle, statusText } of OUTAGES) {
     test.describe(scenario, () => {
         test.use({ scenario });
 
@@ -301,13 +338,13 @@ for (const [scenario, historyError, matchError] of [
             });
         }
 
-        for (const path of HISTORY_PAGES.filter((path) => path !== "/")) {
+        for (const [path, titles] of Object.entries(HISTORY_SECTIONS)) {
             test(`${path} says the history could not load, and why`, async ({ page }) => {
                 await page.goto(path);
                 await settle(page);
-                await expect(page.getByRole("main").getByRole("alert")).toHaveText(
-                    `Could not load your match history. ${historyError}`,
-                );
+                const sections = page.getByRole("main").locator(`[data-region-state="${state}"]`);
+                await expect(sections).toHaveCount(titles.length);
+                for (const [i, title] of titles.entries()) await expectFailed(sections.nth(i), state, title);
             });
         }
 
@@ -315,20 +352,21 @@ for (const [scenario, historyError, matchError] of [
             await page.goto("/");
             await settle(page);
             await expect(page.getByRole("main").getByText("Loading...")).toHaveCount(0);
-            for (const card of STATS_CARDS)
-                await expect(statsCard(page, card)).toContainText("Couldn't load. Try again later.");
+            for (const title of STATS_CARDS) await expect(statsCard(page, title)).toContainText(card);
         });
 
-        test("the status bar reports the API as unreachable", async ({ page }) => {
+        test("the status bar reports the API's state", async ({ page }) => {
             await page.goto("/alerts");
             await settle(page);
-            await expect(page.getByTitle("Deadlock API is unreachable")).toHaveText("Deadlock API offline");
+            await expect(page.getByTitle(statusTitle)).toHaveText(statusText);
         });
 
         test("a match page says it could not load, and why", async ({ page }) => {
             await page.goto("/match-history/990000060");
             await settle(page);
-            await expect(page.getByRole("main")).toContainText(`Could not load this match. ${matchError}`);
+            const section = page.getByRole("main").locator(`[data-region-state="${state}"]`);
+            await expect(section).toHaveCount(1);
+            await expectFailed(section, state, "Couldn't load this match.");
             expect(await demoState(page)).toEqual({ scenario, unhandled: [] });
         });
 

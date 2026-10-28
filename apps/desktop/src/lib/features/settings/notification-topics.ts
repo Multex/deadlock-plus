@@ -17,6 +17,7 @@ const DEFAULT_DELIVERIES: Deliveries = {
     matchFound: "overlay",
     queueStopped: "overlay",
     frontPageWaiting: "overlay",
+    dispatchEdition: "quiet",
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationSettings & { deliveries: Deliveries } = {

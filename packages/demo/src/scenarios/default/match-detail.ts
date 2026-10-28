@@ -234,6 +234,9 @@ function nearestU(lane: Lane, x: number, y: number): number {
     return best;
 }
 
+/** How many full match simulations have run; tests read it to prove the work is not repeated. */
+export const simulationRuns = { count: 0 };
+
 interface Player {
     slot: number;
     team: Side;
@@ -596,6 +599,7 @@ interface World {
     /** The player's own line of every match: the match page repeats what the match list says. */
     rows: ReadonlyMap<number, HistoryRow>;
     cores: Map<number, Core>;
+    details: Map<number, ReturnType<typeof buildMetadata>>;
 }
 
 function coreOf(world: World, matchId: number): Core {
@@ -896,6 +900,7 @@ function stepToward(w: Walker, x: number, y: number, speed: number): number {
  * records all describe the same events.
  */
 function simulate(core: Core): { paths: ApiPath[]; deaths: ApiDeath[][] } {
+    simulationRuns.count++;
     const { durationS } = core;
     const rng = stream(core.matchId, 2);
     const samples = durationS + 1;
@@ -1244,13 +1249,30 @@ function objectiveRows(rng: Rng, core: Core) {
     });
 }
 
+const DETAIL_CACHE_SIZE = 8;
+
 /** The body of `GET /v1/matches/{id}/metadata`. */
 function metadata(world: World, matchId: number) {
+    let detail = world.details.get(matchId);
+    if (!detail) {
+        detail = buildMetadata(world, matchId, true);
+        if (world.details.size >= DETAIL_CACHE_SIZE) world.details.delete(world.details.keys().next().value!);
+        world.details.set(matchId, detail);
+    }
+    return detail;
+}
+
+/** Grades read the players and their stats only, so they skip the per-second walk that fills paths and death details. */
+function gradedMetadata(world: World, matchId: number) {
+    return buildMetadata(world, matchId, false);
+}
+
+function buildMetadata(world: World, matchId: number, withPaths: boolean) {
     const core = coreOf(world, matchId);
     const rng = stream(matchId, 3);
     const all = finals(rng, core);
     const mvp = mvpRanks(core, all);
-    const { paths, deaths } = simulate(core);
+    const { paths, deaths } = withPaths ? simulate(core) : { paths: [], deaths: core.players.map(() => []) };
 
     const players = core.players.map((p, i) => {
         const f = all[i]!;
@@ -1393,7 +1415,12 @@ interface AssetAccolade {
 
 interface AssetHero extends GameAssetHero {
     id: number;
-    images?: { minimap_image_webp?: string | null };
+    images?: {
+        minimap_image_webp?: string | null;
+        background_image_webp?: string | null;
+        hero_card_gloat_webp?: string | null;
+        hero_card_critical_webp?: string | null;
+    };
     items?: Record<string, string>;
     level_info?: Record<string, { required_gold: number; bonus_currencies?: string[] }>;
     popular_items?: {
@@ -1670,6 +1697,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession, captured = fal
                 history,
                 rows: new Map(history.map((row) => [row.match_id, row])),
                 cores: new Map(),
+                details: new Map(),
             };
             const asset = assetLoader();
             const mapItems = fixtureMapItems(mapItemsTsv);
@@ -1678,7 +1706,7 @@ export function matchDetailModule({ mapItemsTsv, recoverySession, captured = fal
                 if (!world.rows.has(matchId)) return null;
                 let grade = grades.get(matchId);
                 if (!grade) {
-                    grade = demoGrade(metadata(world, matchId), identity.accountId);
+                    grade = demoGrade(gradedMetadata(world, matchId), identity.accountId);
                     grades.set(matchId, grade);
                 }
                 return grade;
@@ -1758,6 +1786,23 @@ export function matchDetailModule({ mapItemsTsv, recoverySession, captured = fal
                         mm: hero.images?.minimap_image_webp ?? null,
                     }));
                 },
+                game_hero_backdrop: (args) =>
+                    orNoGame(
+                        async () =>
+                            (await asset<AssetHero[]>("heroes")).find((hero) => hero.id === Number(args.heroId))?.images
+                                ?.background_image_webp ?? null,
+                        null,
+                    ),
+                game_hero_mood: (args) =>
+                    orNoGame(async () => {
+                        const images = (await asset<AssetHero[]>("heroes")).find(
+                            (hero) => hero.id === Number(args.heroId),
+                        )?.images;
+                        return (
+                            (args.mood === "gloat" ? images?.hero_card_gloat_webp : images?.hero_card_critical_webp) ??
+                            null
+                        );
+                    }, null),
                 game_minimap_art: async (): Promise<MinimapArtResult> => {
                     const map = await asset<AssetMap>("map");
                     const path = map.images?.minimap;

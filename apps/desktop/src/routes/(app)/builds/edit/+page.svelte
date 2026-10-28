@@ -267,7 +267,9 @@
     </EmptyState>
 {/snippet}
 
-<div class="flex h-full min-h-0 flex-col">
+<!-- The editor is a workspace laid out in two dimensions: in a window too small for it (a zoomed page), it keeps
+     this size and the page scrolls both ways instead of crushing the canvas. -->
+<div class="flex h-full min-h-[43rem] min-w-[70rem] flex-col">
     <header class="flex items-center gap-2.5 border-b border-border bg-card px-3 py-1.5" data-testid="editor-bar">
         <a
             href="/builds"

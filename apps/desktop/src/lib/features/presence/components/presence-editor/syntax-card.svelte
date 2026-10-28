@@ -3,13 +3,22 @@
     import { toast } from "svelte-sonner";
     import { Copy } from "@lucide/svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
+    import RegionError from "@deadlock-plus/ui/region-error.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { presencePreview } from "$lib/features/presence/api";
     import type { PresencePlaceholder } from "@deadlock-plus/ipc-types/PresencePlaceholder";
     import { SYNTAX_EXAMPLES, groupPlaceholders, renderTemplate } from "./editor";
     import { PLACEHOLDER_GROUP_LABELS, PLACEHOLDER_HELP, SYNTAX_LABELS } from "./labels";
 
-    let { placeholders }: { placeholders: PresencePlaceholder[] } = $props();
+    let {
+        placeholders,
+        status = "ready",
+        onretry,
+    }: {
+        placeholders: PresencePlaceholder[];
+        status?: "loading" | "ready" | "error";
+        onretry?: () => void;
+    } = $props();
 
     let rendered = $state<Record<string, string>>({});
     let samples = $state<Record<string, string>>({});
@@ -101,7 +110,19 @@
     <section class="flex flex-col gap-2">
         <h5 class="text-sm font-semibold">{t("settings.discord_editor.syntax.list_title")}</h5>
         <p class="text-sm text-muted-foreground">{t("settings.discord_editor.syntax.list_body")}</p>
-        {#each groups as group (group.id)}
+        {#if status === "error"}
+            <RegionError
+                name="presence-syntax"
+                size="sm"
+                title={t("region.error_title")}
+                body={t("region.error_body")}
+                retryLabel={t("region.retry")}
+                {onretry}
+            />
+        {:else if status === "loading"}
+            <p class="text-sm text-muted-foreground">{t("settings.discord_editor.loading")}</p>
+        {/if}
+        {#each status === "ready" ? groups : [] as group (group.id)}
             <div class="overflow-hidden rounded-md border">
                 <h6 class="bg-muted px-3 py-1.5 text-xs font-semibold tracking-wide uppercase">
                     {PLACEHOLDER_GROUP_LABELS[group.id]()}

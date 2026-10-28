@@ -8,6 +8,9 @@ const PORT = Number(process.env.E2E_PORT ?? 4310);
 const CI = Boolean(process.env.CI);
 // `pnpm screenshots` sets this: the run then writes the website's pictures and checks nothing else.
 const SCREENSHOTS = process.env.SCREENSHOTS === "1";
+const DEGRADATION_SPEC = "**/degradation.spec.ts";
+const A11Y_SPEC = "**/a11y.spec.ts";
+const A11Y = process.env.E2E_A11Y === "1";
 
 // Windows hands a below-normal class down to the workers, the browsers and the demo server, so a local run
 // yields to whatever else the machine is doing.
@@ -50,6 +53,16 @@ export default defineConfig<DemoOptions>({
         screenshot: "only-on-failure",
         scenario: "default",
     },
+    // The degradation sweep loads every route under hundreds of faults, so a plain run leaves it out:
+    // `E2E_DEGRADATION=1 pnpm e2e --project degradation`. Workers read the config again, hence an env switch.
+    // The accessibility sweep is opt-in the same way: `E2E_A11Y=1 pnpm e2e --project a11y`. It writes a summary
+    // and passes unless `A11Y_STRICT=1`.
+    projects: [
+        { name: "app", testIgnore: [DEGRADATION_SPEC, A11Y_SPEC] },
+        ...(process.env.E2E_DEGRADATION === "1" ? [{ name: "degradation", testMatch: DEGRADATION_SPEC }] : []),
+        ...(A11Y ? [{ name: "a11y", testMatch: A11Y_SPEC }] : []),
+    ],
+    globalSetup: A11Y ? "./e2e/support/a11y-report.ts" : undefined,
     webServer: {
         command: "node e2e/support/demo.mjs build preview",
         url: `http://127.0.0.1:${PORT}`,

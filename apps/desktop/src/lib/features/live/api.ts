@@ -11,6 +11,18 @@ export const getLiveState = () => command<LiveState>("get_live_state");
 export const onLiveSnapshot = (handler: (state: LiveState) => void): Promise<Unlisten> =>
     listen<LiveState>(SNAPSHOT_EVENT, handler);
 
-export const getLiveMatch = () => command<LiveMatch>("get_live_match");
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+export async function getLiveMatch() {
+    const match = await command<LiveMatch>("get_live_match");
+    if (
+        !isRecord(match) ||
+        !Array.isArray(match.teams) ||
+        !match.teams.every((t) => isRecord(t) && Array.isArray(t.players))
+    )
+        throw new Error("get_live_match returned an unexpected shape");
+    return match;
+}
+
 export const onLiveMatch = (handler: (match: LiveMatch) => void): Promise<Unlisten> =>
     listen<LiveMatch>(MATCH_EVENT, handler);

@@ -21,7 +21,9 @@
             "note_macos": "Note under the frame capture controls saying the feature is not available on macOS or under Wine."
         },
         "runs": {
-            "default_label": "Default name of a saved frametime run when the user gives no label. {date} = short date, e.g. \"Oct 28\"."
+            "default_label": "Default name of a saved frametime run when the user gives no label. {date} = short date, e.g. \"Oct 28\".",
+            "save_failed": "Toast shown on the Performance page when saving a benchmark run failed.",
+            "delete_failed": "Toast shown on the Performance page when deleting a saved run failed."
         },
         "metrics": {
             "avg_fps": "Stat tile label on the Frametimes tab for average frames per second. Keep short, about 11 characters.",
@@ -120,7 +122,10 @@
             "save": "Button on the Frametimes tab that saves the recorded run. Keep short, about 8 characters.",
             "saved": "Disabled button text after the run was saved. Keep short, about 5 characters.",
             "spike_at": "Small text next to a spike in the spike list showing when it happened. {time} = time into the run, e.g. \"03:21\". Keep short, about 8 characters.",
-            "needs_admin": "Warning on the Frametimes tab saying frame time capture needs administrator access."
+            "needs_admin": "Warning on the Frametimes tab saying frame time capture needs administrator access.",
+            "start_failed": "Toast shown on the Performance page when starting a frame time recording failed.",
+            "stop_failed": "Toast shown on the Performance page when finishing a frame time recording failed.",
+            "read_failed": "Error message. Shown on the Performance page when live frame data could not be read just now."
         },
         "scripts": {
             "intro": "Intro paragraph on the Mod scripts tab. Says it scans scripts of installed Deadlock mods for patterns that can hurt frametimes, and nothing is changed or run. Deadlock is the game name.",
@@ -233,6 +238,9 @@
             "days_unit": "Unit text after the days number input in a cleanup rule. Keep short, about 4 characters.",
             "larger_than": "Label before a number input in a cleanup rule, for replays larger than a size. Keep short, about 11 characters.",
             "gigabytes_label": "Screen reader label of the number input for gigabytes in a cleanup rule.",
+            "load_failed": "Error message. Shown on the Replays page when the automatic cleanup rules could not be loaded.",
+            "save_failed": "Toast shown on the Replays page when the cleanup rules could not be saved. The rules went back to what they were before.",
+            "check_failed": "Error message. Shown on the Replays page when the app could not check which replays match the cleanup rules.",
             "gb_unit": "Unit text after the size input in a cleanup rule. Gigabytes abbreviation. Keep short, about 2 characters.",
             "turn_on": "Status line in the cleanup dialog when no rule is switched on.",
             "checking": "Status line in the cleanup dialog while replays are being checked against the rules.",
@@ -247,8 +255,12 @@
         },
         "toast": {
             "deleted": "Success toast title after replays were deleted. {count} = number deleted, e.g. 3.",
-            "delete_failed": "Error toast title when replays could not be deleted. {count} = number that failed, e.g. 1. Tells the user to check the log."
-        }
+            "delete_failed": "Error toast title when replays could not be deleted. {count} = number that failed, e.g. 1. Tells the user to check the log.",
+            "delete_none": "Toast shown on the Replays page when deleting the selected replays failed and none were deleted.",
+            "pin_failed": "Toast shown on the Replays page when pinning a replay (protecting it from cleanup) failed.",
+            "open_failed": "Toast shown when a folder or page could not be opened from the app, such as the replays folder."
+        },
+        "list_error": "Error message. Shown on the Replays page when the list of replay files could not be read."
     },
     "voice_bans": {
         "title": "Page heading of the Mutes page, where the user manages players muted in Deadlock. Deadlock is the game name.",
@@ -319,7 +331,9 @@
             "search_failed": "Error toast title when searching for players failed, with a hint to check the connection.",
             "exported": "Success toast title after exporting mutes to a file. {count} = number of mutes, e.g. 12.",
             "export_failed": "Error toast title when exporting mutes failed. Tells the user to check the log.",
+            "save_failed": "Toast shown on the Mutes page when saving the muted players list failed.",
             "import_failed": "Error toast title when an imported file cannot be read. Deadlock+ stays untranslated. Mentions the game's own mute file."
-        }
+        },
+        "list_error": "Error message. Shown on the Mutes page when the list of muted players could not be read."
     }
 }

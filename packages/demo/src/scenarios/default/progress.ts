@@ -1,5 +1,6 @@
 import type { ApiRoute } from "../../fetch";
 import type { Module, ScenarioContext } from "../../scenario";
+import { RANKED_SEASONS } from "../dispatch/seasons";
 import { MATCH_IDS } from "./identity";
 
 /** One row of `GET /v1/players/{account_id}/match-history`. */
@@ -206,6 +207,10 @@ export const progressModule: Module = {
         const routes: ApiRoute[] = [
             [/^\/v1\/players\/\d+\/match-history$/, (url) => (accountOf(url) === accountId ? rows : [])],
             [/^\/v1\/players\/\d+\/rank$/, (url) => (accountOf(url) === accountId ? rank : UNRANKED)],
+            [/^\/v1\/players\/hero-stats$/, () => []],
+            [/^\/v1\/players\/\d+\/mate-stats$/, () => []],
+            [/^\/v1\/players\/\d+\/enemy-stats$/, () => []],
+            [/^\/v1\/assets\/ranked-seasons$/, () => RANKED_SEASONS],
         ];
         return { routes };
     },

@@ -48,13 +48,19 @@
     overflow-wrap: anywhere;
 }
 
-/* Set on <html> from the motion setting or the OS preference. Near-zero durations (not 0) keep animationend/transitionend events firing. */
+/* Set on <html> from the motion setting or the OS preference. A near-zero animation duration (not 0 or none)
+   keeps animationend firing for dialogs that unmount on it. Transitions go entirely: a duration alone would give
+   every element an `all` transition, and code that sets a size and measures it straight away reads the old one. */
 :root[data-reduced-motion] *,
 :root[data-reduced-motion] *::before,
 :root[data-reduced-motion] *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    transition-delay: 0s !important;
+    transition: none !important;
     scroll-behavior: auto !important;
+}
+
+/* The heading a page change moves focus to is not a control, so it takes no ring. */
+[data-route-focus]:focus {
+    outline: none;
 }

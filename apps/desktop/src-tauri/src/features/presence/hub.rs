@@ -28,11 +28,17 @@ struct Conn<S> {
 /// reconnected client knows nothing of what was sent before.
 pub struct Hub<S> {
     conns: Vec<Conn<S>>,
+    /// Pipes whose last connect failed, with when to try again. Discord accepts and drops each open, so a pipe
+    /// that will not hand-shake is not opened on every tick.
+    retry_at: Vec<(u8, u64)>,
 }
+
+/// How long a pipe that failed to connect waits before it is opened again.
+const CONNECT_RETRY_MS: u64 = 30_000;
 
 impl<S: Sink> Hub<S> {
     pub fn new() -> Self {
-        Self { conns: Vec::new() }
+        Self { conns: Vec::new(), retry_at: Vec::new() }
     }
 
     pub fn connected(&self) -> Vec<u8> {
@@ -57,11 +63,18 @@ impl<S: Sink> Hub<S> {
             keep
         });
 
+        self.retry_at.retain(|(index, _)| targets.iter().any(|t| t.index == *index));
         for pipe in targets {
-            if self.conns.iter().all(|c| c.index != pipe.index) {
-                if let Some(sink) = connect(pipe) {
-                    self.conns.push(Conn { index: pipe.index, sink, coalescer: Coalescer::new() });
-                }
+            if self.conns.iter().any(|c| c.index == pipe.index) {
+                continue;
+            }
+            if self.retry_at.iter().any(|&(index, at)| index == pipe.index && now_ms < at) {
+                continue;
+            }
+            self.retry_at.retain(|(index, _)| *index != pipe.index);
+            match connect(pipe) {
+                Some(sink) => self.conns.push(Conn { index: pipe.index, sink, coalescer: Coalescer::new() }),
+                None => self.retry_at.push((pipe.index, now_ms + CONNECT_RETRY_MS)),
             }
         }
 
@@ -231,10 +244,37 @@ mod tests {
         assert!(r.hub.connected().is_empty());
     }
 
+    fn attempts(hub: &mut Hub<Fake>, targets: &[Pipe], at: &[u64]) -> Vec<u64> {
+        let mut tried = Vec::new();
+        for &now in at {
+            hub.tick(targets, &want("a"), now, |_| {
+                tried.push(now);
+                None
+            });
+        }
+        tried
+    }
+
     #[test]
-    fn unreachable_pipe_is_retried_next_tick() {
+    fn an_unreachable_pipe_waits_before_it_is_opened_again() {
         let mut hub: Hub<Fake> = Hub::new();
-        hub.tick(&[pipe(0)], &want("a"), 0, |_| None);
+        let tried = attempts(&mut hub, &[pipe(0)], &[0, 2_000, 28_000, 30_000, 32_000, 60_000]);
+        assert_eq!(tried, [0, 30_000, 60_000]);
         assert!(hub.connected().is_empty());
+    }
+
+    #[test]
+    fn a_pipe_that_reappears_is_tried_at_once() {
+        let mut hub: Hub<Fake> = Hub::new();
+        attempts(&mut hub, &[pipe(0)], &[0]);
+        attempts(&mut hub, &[], &[2_000]);
+        assert_eq!(attempts(&mut hub, &[pipe(0)], &[4_000]), [4_000]);
+    }
+
+    #[test]
+    fn waiting_on_one_pipe_does_not_hold_back_another() {
+        let mut hub: Hub<Fake> = Hub::new();
+        attempts(&mut hub, &[pipe(0)], &[0]);
+        assert_eq!(attempts(&mut hub, &[pipe(0), pipe(1)], &[2_000]), [2_000]);
     }
 }

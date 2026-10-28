@@ -2,6 +2,16 @@ use std::path::PathBuf;
 
 pub(crate) const MAX_PIPES: u8 = 10;
 
+/// The index in a `discord-ipc-N` endpoint name, for the indexes Discord uses.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn pipe_index(name: &str) -> Option<u8> {
+    let digits = name.strip_prefix("discord-ipc-")?;
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    digits.parse().ok().filter(|i| *i < MAX_PIPES)
+}
+
 #[cfg_attr(windows, allow(dead_code))]
 const SANDBOX_SUBDIRS: [&str; 7] = [
     ".flatpak/dev.vencord.Vesktop/xdg-run",
@@ -40,6 +50,18 @@ pub(crate) fn socket_dirs(xdg_runtime: Option<&str>, tmpdir: Option<&str>) -> Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pipe_names_give_their_index() {
+        assert_eq!(pipe_index("discord-ipc-0"), Some(0));
+        assert_eq!(pipe_index("discord-ipc-9"), Some(9));
+        assert_eq!(pipe_index("discord-ipc-10"), None);
+        assert_eq!(pipe_index("discord-ipc-"), None);
+        assert_eq!(pipe_index("discord-ipc-+1"), None);
+        assert_eq!(pipe_index("discord-ipc-1x"), None);
+        assert_eq!(pipe_index("mojo.1234.discord-ipc-0"), None);
+        assert_eq!(pipe_index("Discord-IPC-0"), None);
+    }
 
     #[test]
     fn plain_dirs_come_first_then_sandbox_subpaths() {

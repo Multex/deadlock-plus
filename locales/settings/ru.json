@@ -538,8 +538,7 @@
         },
         "toast": {
             "freed": "Освобождено {size}",
-            "nothing": "Нечего удалять.",
-            "remove_failed": "Не удалось удалить {count}: {first}"
+            "nothing": "Нечего удалять."
         },
         "age": {
             "today": "сегодня",

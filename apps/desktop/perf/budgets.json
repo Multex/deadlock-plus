@@ -1,0 +1,27 @@
+{
+    "bundle": {
+        "shellGzipKB": 355,
+        "defaultRouteGzipKB": 60,
+        "routeGzipKB": {
+            "(app)/dispatch": 185,
+            "(app)/builds/edit": 145,
+            "(app)/builds": 125,
+            "(app)/match-history/[id]": 95,
+            "(app)/builds/view": 90,
+            "(settings)/settings/[category=category]": 75
+        },
+        "maxChunkGzipKB": 120,
+        "allowLargeChunks": []
+    },
+    "runtime": {
+        "coldReadyMs": 600,
+        "routeSwitchMs": 500,
+        "longTaskMs": 120,
+        "longTaskOverridesMs": {
+            "switch Match History": 400,
+            "match-history list": 400,
+            "dispatch open edition": 300
+        },
+        "heapGrowthMB": 3
+    }
+}

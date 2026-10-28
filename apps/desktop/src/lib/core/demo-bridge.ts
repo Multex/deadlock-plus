@@ -1,4 +1,12 @@
-import { install, scenarioFactory, selectScenarioId, type DemoHandle } from "@deadlock-plus/demo";
+import {
+    install,
+    missingArtUrl,
+    scenarioFactory,
+    selectFaults,
+    selectScenarioId,
+    type DemoHandle,
+    type Fault,
+} from "@deadlock-plus/demo";
 import { emit } from "@tauri-apps/api/event";
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
@@ -6,9 +14,13 @@ import CHANGELOG from "../../../../../CHANGELOG.md?raw";
 import MAP_ITEMS_TSV from "../../../../../crates/ring2/dp-gamedata/fixtures/map_items.tsv?raw";
 import { version as APP_VERSION } from "../../../package.json";
 
-/** What a test reads from the page. Before load it may hold only `scenario`, to pick the one to start. */
+/**
+ * What a test reads from the page. Before load it may hold only `scenario` and `faults`, to pick what to start
+ * with.
+ */
 export interface DemoWindowHook {
     scenario: string;
+    faults: readonly Fault[];
     unhandled(): string[];
     handle: DemoHandle;
 }
@@ -36,26 +48,32 @@ function installBridge(handle: DemoHandle): void {
     // local files, so its art paths are public image URLs and must reach the page unchanged.
     const internals = (window as unknown as { __TAURI_INTERNALS__: TauriInternals }).__TAURI_INTERNALS__;
     const local = internals.convertFileSrc;
-    internals.convertFileSrc = (path, protocol) => (/^https?:\/\//.test(path) ? path : local(path, protocol));
+    internals.convertFileSrc = (path, protocol) => {
+        if (handle.faults().some((fault) => "art" in fault)) return missingArtUrl(path);
+        return /^https?:\/\//.test(path) ? path : local(path, protocol);
+    };
 }
 
 /**
  * Runs the frontend in a plain browser on a scenario of made-up data. The scenario is the one a test named
  * on `window.__DEADLOCK_PLUS_DEMO__` before load, else the `demo` query parameter, else `buildValue`; the query
- * is read here, once, because in-app navigation drops it.
+ * is read here, once, because in-app navigation drops it. Faults come the same way: the hook's `faults`, else
+ * the `fault` query parameter.
  */
 export function startDemo(buildValue: string): void {
+    const query = new URLSearchParams(window.location.search);
     const id = selectScenarioId({
         hook: window.__DEADLOCK_PLUS_DEMO__?.scenario,
-        query: new URLSearchParams(window.location.search).get("demo"),
+        query: query.get("demo"),
         env: buildValue,
     });
+    const faults = selectFaults({ hook: window.__DEADLOCK_PLUS_DEMO__?.faults, query: query.get("fault") });
     const scenario = scenarioFactory(id)({
         appVersion: APP_VERSION,
         changelog: CHANGELOG,
         mapItemsTsv: MAP_ITEMS_TSV,
     });
-    const handle = install(scenario);
+    const handle = install(scenario, { faults });
     installBridge(handle);
     window.__DEADLOCK_PLUS_DEMO__ = { scenario: handle.scenario, unhandled: handle.unhandled, handle };
 }

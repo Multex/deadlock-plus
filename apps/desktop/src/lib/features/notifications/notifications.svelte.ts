@@ -8,15 +8,18 @@ import {
 } from "./api";
 import { openNotificationFromEvent, unreadCount, type AppNotification } from "./notifications";
 
-class NotificationsStore {
+export class NotificationsStore {
     items = $state<AppNotification[]>([]);
+    status = $state<"loading" | "ready" | "error">("loading");
     unread = $derived(unreadCount(this.items));
 
     async refresh() {
         try {
             this.items = await listNotifications();
+            this.status = "ready";
         } catch {
-            // Not running inside Tauri.
+            // Outside Tauri, a failed command or a malformed body: keep the last good list.
+            this.status = "error";
         }
     }
 

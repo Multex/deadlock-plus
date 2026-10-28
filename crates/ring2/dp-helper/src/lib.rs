@@ -1,5 +1,6 @@
 pub mod access;
 pub mod args;
+pub mod batch;
 pub mod client;
 pub mod idle;
 pub mod logfile;

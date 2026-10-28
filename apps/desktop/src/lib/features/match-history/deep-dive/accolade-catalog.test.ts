@@ -36,3 +36,21 @@ describe("resolveAccoladeInfo", () => {
         expect((await resolveAccoladeInfo([1], "en")).size).toBe(0);
     });
 });
+
+describe("resolveAccoladeInfo with bad game_accolades answers", () => {
+    beforeEach(() => {
+        invoke.mockReset();
+    });
+
+    for (const bad of [null, "nope", {}, [null], [{ id: "24", name: 5 }]]) {
+        it(`is empty when game_accolades answers ${JSON.stringify(bad)}`, async () => {
+            invoke.mockResolvedValue(bad);
+            expect((await resolveAccoladeInfo([24], "en")).size).toBe(0);
+        });
+    }
+
+    it("keeps the well-formed entries next to a malformed one", async () => {
+        invoke.mockResolvedValue([null, { id: 24, name: "The Zapper", description: null, trackedStat: null }]);
+        expect((await resolveAccoladeInfo([24], "en")).get(24)?.name).toBe("The Zapper");
+    });
+});

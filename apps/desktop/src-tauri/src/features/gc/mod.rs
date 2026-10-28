@@ -35,6 +35,7 @@ use super::salts::record::SaltRecordService;
 use super::stop::StopSignal;
 use super::toggle::{toggle, Toggle};
 use crate::features::error::AppError;
+use crate::http::limiter::Priority;
 use crate::http::Http;
 use error::GcError;
 pub use own::{DetailCoverage, LastRun, OwnRecovery};
@@ -562,7 +563,7 @@ async fn friend_matches(
     if ids.is_empty() {
         return ids;
     }
-    let known = api::known_match_ids_with(http, &ids, api::Patience::Wait).await;
+    let known = api::known_match_ids_with(http, &ids, Priority::Background).await;
     let ids = unknown_friend_matches(ids, known, ledger_attempts);
     log::debug!("gc: found {} new friend match(es)", ids.len());
     ids
@@ -761,6 +762,7 @@ fn run(stop: &StopSignal, shared: &Shared, app: &AppHandle, http: &reqwest::Clie
 }
 
 pub mod commands {
+    use crate::command_panics::guarded;
     use tauri::{AppHandle, State};
 
     use super::{api, coverage, local_coverage, DetailCoverage, GcService, GcStatus, LocalCoverage};
@@ -783,16 +785,19 @@ pub mod commands {
         app: AppHandle,
         http: State<'_, Http>,
     ) -> Result<DetailCoverage, AppError> {
-        let http = http.0.clone();
-        let ids = match_ids.clone();
-        let local = tauri::async_runtime::spawn_blocking(move || local_coverage(&app, &ids));
-        let (known, replays) =
-            futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
-        let local = local.await.unwrap_or_else(|e| {
-            log::warn!("gc: could not read what Deadlock+ holds of these matches: {e}");
-            LocalCoverage::default()
-        });
-        Ok(coverage(&match_ids, &known?, &replays?, &local))
+        guarded(async move {
+            let http = http.0.clone();
+            let ids = match_ids.clone();
+            let local = crate::command_panics::spawn_blocking_guarded(move || local_coverage(&app, &ids));
+            let (known, replays) =
+                futures::join!(api::known_match_ids(&http, &match_ids), api::replay_match_ids(&http, &match_ids));
+            let local = local.await.unwrap_or_else(|e| {
+                log::warn!("gc: could not read what Deadlock+ holds of these matches: {e}");
+                LocalCoverage::default()
+            });
+            Ok(coverage(&match_ids, &known?, &replays?, &local))
+        })
+        .await
     }
 
     #[tauri::command]

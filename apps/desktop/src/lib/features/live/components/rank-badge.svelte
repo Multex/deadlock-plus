@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import type { RankTier } from "@deadlock-plus/stats/rank";
     import { t } from "$lib/core/i18n.svelte";
     import { partsName } from "$lib/features/stats/rank-view";
@@ -16,12 +17,15 @@
 
 {#if parts}
     {@const name = partsName(tiers, parts)}
+    {@const numeral = parts.tier}
     <span class="badge" title={fromHistory ? t("live.rank_from_history", { rank: name }) : name}>
+        <ArtImage src={tier?.image} alt="" class="art bg-transparent">
+            {#snippet fallback()}
+                <span class="numeral" style:background={tier?.color ?? "oklch(0.7 0.05 200)"}>{numeral}</span>
+            {/snippet}
+        </ArtImage>
         {#if tier?.image}
-            <img src={tier.image} alt="" class="art" />
             <span class="sub">{parts.sub}</span>
-        {:else}
-            <span class="numeral" style:background={tier?.color ?? "oklch(0.7 0.05 200)"}>{parts.tier}</span>
         {/if}
     </span>
 {:else}
@@ -37,7 +41,7 @@
         align-items: center;
         justify-content: center;
     }
-    .art {
+    .badge :global(img.art) {
         height: 100%;
         width: 100%;
         object-fit: contain;

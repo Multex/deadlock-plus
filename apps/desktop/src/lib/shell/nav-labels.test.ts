@@ -10,6 +10,7 @@ describe("navLabel", () => {
             stats: "Stats",
             alerts: "News",
             presence: "Presence",
+            dispatch: "Dispatch",
             "match-history": "Match History",
             performance: "Performance",
             "voice-bans": "Mutes",

@@ -23,6 +23,7 @@
     "demo:build": "node e2e/support/demo.mjs build",
     "demo:preview": "node e2e/support/demo.mjs preview",
     "build:no-demo": "node e2e/support/no-demo-in-build.mjs",
+    "bundle:check": "node perf/bundle-size.mjs --check",
     "licenses": "node ../../scripts/gen-licenses.mjs",
     "version:sync": "node ../../scripts/version.mjs",
     "version:check": "node ../../scripts/version.mjs --check",
@@ -53,11 +54,13 @@
     "bits-ui": "^2.19.3",
     "clsx": "^2.1.1",
     "html-to-image": "1.11.13",
+    "mediabunny": "1.61.3",
     "svelte-sonner": "^1.2.1",
     "tailwind-merge": "^3.7.0",
     "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@deadlock-plus/demo": "workspace:*",
     "@playwright/test": "1.64.0",
     "@sveltejs/adapter-static": "^3.0.10",

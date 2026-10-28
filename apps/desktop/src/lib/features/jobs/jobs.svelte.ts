@@ -1,6 +1,10 @@
 import type { JobsSnapshot } from "@deadlock-plus/ipc-types/JobsSnapshot";
 import { forceRunJob, jobsSnapshot, onJobsChanged, setAllJobsEnabled, setJobEnabled, setJobPolicy } from "./api";
 import { activeJobs, isJobEnabled, type Policy } from "./jobs";
+import { toast } from "svelte-sonner";
+import { failureText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
+import { settingSaveFailed } from "$lib/features/settings/save-failed";
 
 type Listener = (snapshot: JobsSnapshot) => void;
 
@@ -40,24 +44,33 @@ class JobsStore {
         }
     }
 
-    async setPolicy(id: string, policy: Policy) {
-        await setJobPolicy(id, policy);
+    /** A failed change re-reads the snapshot, so every control lands back on what the backend holds. */
+    async #change(write: () => Promise<unknown>, failed: (error: unknown) => void) {
+        try {
+            await write();
+        } catch (e) {
+            failed(e);
+        }
         await this.refresh();
     }
 
-    async setEnabled(id: string, enabled: boolean) {
-        await setJobEnabled(id, enabled);
-        await this.refresh();
+    setPolicy(id: string, policy: Policy) {
+        return this.#change(() => setJobPolicy(id, policy), settingSaveFailed);
     }
 
-    async setAllEnabled(enabled: boolean) {
-        await setAllJobsEnabled(enabled);
-        await this.refresh();
+    setEnabled(id: string, enabled: boolean) {
+        return this.#change(() => setJobEnabled(id, enabled), settingSaveFailed);
     }
 
-    async forceRun(id: string) {
-        await forceRunJob(id);
-        await this.refresh();
+    setAllEnabled(enabled: boolean) {
+        return this.#change(() => setAllJobsEnabled(enabled), settingSaveFailed);
+    }
+
+    forceRun(id: string) {
+        return this.#change(
+            () => forceRunJob(id),
+            (e) => toast.error(failureText(e, t("jobs.run_failed"))),
+        );
     }
 
     start() {

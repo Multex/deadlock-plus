@@ -33,7 +33,7 @@
         <div class="mt-3 flex flex-col gap-4">
             {#if THANKS.contributors.length > 0}
                 <div>
-                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground/70">
+                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground">
                         {t("settings.thanks.contributors")}
                     </h3>
                     <p class="mb-1 text-xs text-muted-foreground">{t("settings.thanks.contributors_description")}</p>
@@ -46,7 +46,7 @@
             {/if}
             {#if THANKS.translators.length > 0}
                 <div>
-                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground/70">
+                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground">
                         {t("settings.thanks.translators")}
                     </h3>
                     <p class="mb-1 text-xs text-muted-foreground">{t("settings.thanks.translators_description")}</p>
@@ -65,7 +65,7 @@
             {/if}
             {#if THANKS.donators.names.length > 0 || THANKS.donators.others > 0}
                 <div>
-                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground/70">
+                    <h3 class="text-xs uppercase tracking-widest text-muted-foreground">
                         {t("settings.thanks.donators")}
                     </h3>
                     <p class="mb-1 text-xs text-muted-foreground">{t("settings.thanks.donators_description")}</p>

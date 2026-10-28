@@ -4,6 +4,7 @@
     import { page } from "$app/state";
     import { CalendarClock, ExternalLink, Star, UserRound, X } from "@lucide/svelte";
     import Button, { buttonVariants } from "@deadlock-plus/ui/button.svelte";
+    import ApiBusyNotice from "$lib/features/api-health/components/api-busy-notice.svelte";
     import EmptyState from "@deadlock-plus/ui/empty-state.svelte";
     import IconButton from "@deadlock-plus/ui/icon-button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
@@ -230,7 +231,9 @@
         </div>
     </div>
 
-    {#if browser.status === "loading"}
+    {#if browser.status !== "ready" && browser.busy.active}
+        <ApiBusyNotice busy={browser.busy} />
+    {:else if browser.status === "loading"}
         <EmptyState role="status" aria-busy="true">{t("builds.browser.loading")}</EmptyState>
     {:else if browser.status === "error"}
         <EmptyState role="status" tone="destructive">

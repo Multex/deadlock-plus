@@ -87,16 +87,50 @@ export function clientLabel(client: PresenceClient): string {
 export function runningLine(enabled: boolean, status: PresenceStatus | null): string {
     if (!enabled) return t("settings.discord.status_off");
     if (!status) return "";
-    const connected = status.clients.filter((c) => c.connected);
-    if (connected.length === 0) return t("settings.discord.status_none");
-    return t("settings.discord.status_showing", { clients: connected.map(clientLabel).join(", ") });
+    switch (status.link) {
+        case "notFound":
+            return t("settings.discord.status_none");
+        case "waiting":
+            return t("settings.discord.status_waiting");
+        case "connecting":
+            return t("settings.discord.status_connecting");
+        case "connected": {
+            const connected = status.clients.filter((c) => c.connected).map(clientLabel);
+            return t("settings.discord.status_showing", { clients: connected.join(", ") });
+        }
+    }
 }
 
-export type DiscordBarState = "off" | "searching" | "connected";
+export type DiscordBarState = "off" | "checking" | "missing" | "waiting" | "connecting" | "connected";
 
 export function discordBarState(enabled: boolean, status: PresenceStatus | null): DiscordBarState {
     if (!enabled) return "off";
-    return status?.clients.some((c) => c.connected) ? "connected" : "searching";
+    if (!status) return "checking";
+    return status.link === "notFound" ? "missing" : status.link;
+}
+
+/** `label` is null when the icon alone says it. */
+export function discordBarCopy(state: DiscordBarState): { label: string | null; title: string } {
+    switch (state) {
+        case "off":
+            return { label: t("shell.statusbar.discord.off"), title: t("shell.statusbar.discord.off_title") };
+        case "checking":
+            return { label: t("shell.statusbar.discord.checking"), title: t("shell.statusbar.discord.checking") };
+        case "missing":
+            return {
+                label: t("shell.statusbar.discord.searching"),
+                title: t("shell.statusbar.discord.searching_title"),
+            };
+        case "waiting":
+            return { label: t("shell.statusbar.discord.waiting"), title: t("shell.statusbar.discord.waiting_title") };
+        case "connecting":
+            return {
+                label: t("shell.statusbar.discord.connecting"),
+                title: t("shell.statusbar.discord.connecting_title"),
+            };
+        case "connected":
+            return { label: null, title: t("shell.statusbar.discord.connected_title") };
+    }
 }
 
 export function runningKinds(status: PresenceStatus | null): Set<DiscordClientKind> {

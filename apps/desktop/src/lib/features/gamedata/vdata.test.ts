@@ -91,6 +91,17 @@ describe("loadPopularItems", () => {
         invoke.mockRejectedValue(new Error("no backend"));
         expect(await loadPopularItems(7)).toBeNull();
     });
+
+    it.each([
+        ["garbage", { garbage: true }],
+        ["a string", "garbage"],
+        ["a missing phase", { timestamp: 1, earlyGame: [], midGame: [] }],
+        ["a phase that is not a list", { timestamp: 1, earlyGame: {}, midGame: [], lateGame: [] }],
+        ["an item without an id", { timestamp: 1, earlyGame: [{ pickPct: 1 }], midGame: [], lateGame: [] }],
+    ])("is null when the game answers %s", async (_, bad) => {
+        invoke.mockResolvedValue(bad);
+        expect(await loadPopularItems(7)).toBeNull();
+    });
 });
 
 describe("loadHeroStats", () => {
@@ -103,6 +114,25 @@ describe("loadHeroStats", () => {
 
     it("is null when the command fails", async () => {
         invoke.mockRejectedValue(new Error("no backend"));
+        expect(await loadHeroStats(7)).toBeNull();
+    });
+
+    it.each([
+        ["garbage", { garbage: true }],
+        ["a string", "x"],
+        ["stats without investment tiers", { heroId: 7, base: {}, perLevel: {}, investment: {}, bulletDamage: null }],
+        [
+            "a text bullet damage",
+            {
+                heroId: 7,
+                base: {},
+                perLevel: {},
+                investment: { weapon: [], spirit: [], vitality: [] },
+                bulletDamage: "9",
+            },
+        ],
+    ])("is null when the command answers %s", async (_, answer) => {
+        invoke.mockResolvedValue(answer);
         expect(await loadHeroStats(7)).toBeNull();
     });
 });

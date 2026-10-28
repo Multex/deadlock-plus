@@ -1,3 +1,4 @@
+use crate::command_panics::guarded;
 use tauri::State;
 
 use crate::features::diagnostics::error::DiagnosticsError;
@@ -14,12 +15,15 @@ pub async fn start_frame_capture(
     capture: State<'_, FrameCapture>,
     focus: State<'_, GameFocusService>,
 ) -> Result<(), AppError> {
-    capture.set_game_focused(counts_as_focused(focus.state().focus));
-    #[cfg(windows)]
-    capture.start_with(find_game_pid, present_source());
-    #[cfg(not(windows))]
-    capture.start(find_game_pid);
-    Ok(())
+    guarded(async move {
+        capture.set_game_focused(counts_as_focused(focus.state().focus));
+        #[cfg(windows)]
+        capture.start_with(find_game_pid, present_source());
+        #[cfg(not(windows))]
+        capture.start(find_game_pid);
+        Ok(())
+    })
+    .await
 }
 
 fn find_game_pid() -> u32 {
@@ -33,12 +37,12 @@ fn present_source() -> dp_frames::capture::PresentSource {
 
 #[tauri::command]
 pub async fn frame_capture_status(capture: State<'_, FrameCapture>) -> Result<CaptureStatus, AppError> {
-    Ok(capture.status())
+    guarded(async move { Ok(capture.status()) }).await
 }
 
 #[tauri::command]
 pub async fn stop_frame_capture(capture: State<'_, FrameCapture>) -> Result<FrameStats, AppError> {
-    Ok(capture.stop())
+    guarded(async move { Ok(capture.stop()) }).await
 }
 
 /// Mirrors the Windows capture, where no game process also counts as focused, so a capture started before
@@ -54,12 +58,12 @@ fn layer_status() -> LayerStatus {
 
 #[tauri::command]
 pub async fn frame_layer_status() -> Result<LayerStatus, AppError> {
-    Ok(layer_status())
+    guarded(async move { Ok(layer_status()) }).await
 }
 
 #[tauri::command]
 pub async fn install_frame_layer() -> Result<LayerStatus, AppError> {
-    install_layer()
+    guarded(async move { install_layer() }).await
 }
 
 pub(crate) fn install_layer() -> Result<LayerStatus, AppError> {
@@ -76,11 +80,14 @@ pub(crate) fn install_layer() -> Result<LayerStatus, AppError> {
 
 #[tauri::command]
 pub async fn uninstall_frame_layer() -> Result<LayerStatus, AppError> {
-    if let Some(data_home) = layer_install::system_data_home() {
-        layer_install::uninstall(&data_home)
-            .map_err(|e| AppError::new(DiagnosticsError::FrameLayerRemoveFailed).detail(e))?;
-    }
-    Ok(layer_status())
+    guarded(async move {
+        if let Some(data_home) = layer_install::system_data_home() {
+            layer_install::uninstall(&data_home)
+                .map_err(|e| AppError::new(DiagnosticsError::FrameLayerRemoveFailed).detail(e))?;
+        }
+        Ok(layer_status())
+    })
+    .await
 }
 
 #[cfg(test)]

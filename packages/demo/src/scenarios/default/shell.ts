@@ -103,6 +103,7 @@ const PRESENCE: PresenceSettings = {
 const PRESENCE_STATUS: PresenceStatus = {
     running: true,
     clients: [{ kind: "stable", pipeIndex: 0, connected: true }],
+    link: "connected",
 };
 const PRESENCE_UNEDITED: PresenceConfig = { states: {}, variants: {}, heroes: {} };
 
@@ -225,6 +226,7 @@ const SETTERS = [
     "mark_notifications_read",
     "mark_notification_read",
     "notify_break_reminder",
+    "notify_dispatch_edition",
     "notify_front_page_waiting",
     "dismiss_crash",
     "report_webview_crash",

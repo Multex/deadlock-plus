@@ -9,16 +9,38 @@ import type { Demo } from "@deadlock-plus/ipc-types/Demo";
 import type { DemoListing } from "@deadlock-plus/ipc-types/DemoListing";
 import type { MetaResult } from "@deadlock-plus/ipc-types/MetaResult";
 
-export function fetchDemoMetadata(matchId: number) {
-    return command<MetaResult>("demo_metadata", { matchId });
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+const isMetaResult = (value: unknown): value is MetaResult => {
+    if (!isRecord(value)) return false;
+    if (value.state === "missing") return true;
+    if (value.state === "error") return typeof value.message === "string";
+    return value.state === "ok" && isRecord(value.summary) && Array.isArray(value.summary.players);
+};
+
+export async function fetchDemoMetadata(matchId: number) {
+    const value = await command<unknown>("demo_metadata", { matchId });
+    if (!isMetaResult(value)) throw new Error("demo_metadata answered an unexpected shape");
+    return value;
 }
 
-export function localAccountIds() {
-    return command<number[]>("local_steam_account_ids");
+export async function localAccountIds() {
+    const value = await command<unknown>("local_steam_account_ids");
+    if (!Array.isArray(value) || !value.every((id) => typeof id === "number"))
+        throw new Error("local_steam_account_ids answered an unexpected shape");
+    return value as number[];
 }
 
-export function listDemos() {
-    return command<DemoListing>("list_demos");
+const isListing = (value: unknown): value is DemoListing => {
+    if (typeof value !== "object" || value === null) return false;
+    const { dir, demos } = value as Record<string, unknown>;
+    return (dir === null || typeof dir === "string") && Array.isArray(demos);
+};
+
+export async function listDemos() {
+    const value = await command<unknown>("list_demos");
+    if (!isListing(value)) throw new Error("list_demos answered an unexpected shape");
+    return value;
 }
 
 export function openReplaysDir() {

@@ -80,7 +80,7 @@
     <div class="flex min-w-0 flex-1 flex-col gap-1">
         <div class="flex min-w-0 items-center gap-2">
             {#if tags.length > 0}
-                <span class="flex shrink-0 items-center gap-1 text-foreground/75">
+                <span class="flex shrink-0 items-center gap-1 text-foreground">
                     {#each tags as tag (tag.id)}
                         <span title={tagLabel(tag)} class="contents"><TagGlyph {tag} class="size-[18px]" /></span>
                     {/each}
@@ -131,7 +131,7 @@
                 {#if weekly}<span>{t("builds.browser.this_week", { count: formatNumber(weekly) })}</span>{/if}
                 {#if winRate && rate}
                     <span
-                        class="inline-flex items-center gap-1 text-foreground/85"
+                        class="inline-flex items-center gap-1 text-foreground"
                         title={t("builds.browser.win_rate_detail", {
                             wins: formatNumber(winRate.wins),
                             matches: formatNumber(winRate.matches),
@@ -205,6 +205,10 @@
     .author:focus-visible {
         color: var(--foreground);
         text-decoration: underline;
+    }
+    .author:focus-visible {
+        border-radius: 2px;
+        box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 60%, transparent);
     }
     /* Over the row's bottom-right corner so showing it never moves the row's content. */
     .row :global(.links) {

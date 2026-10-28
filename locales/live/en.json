@@ -116,8 +116,8 @@
             "preset_applied": "Applied \"{name}\": {blocked} of {total} regions blocked",
             "preset_apply_failed": "Couldn't apply \"{name}\". Check the log for details.",
             "preset_saved": "Saved \"{name}\"",
-            "preset_save_failed": "Couldn't save the preset. Check the log for details.",
-            "preset_delete_failed": "Couldn't delete the preset. Check the log for details.",
+            "preset_save_failed": "Couldn't save the preset. Try again.",
+            "preset_delete_failed": "Couldn't delete the preset. Try again.",
             "imported_one": "Imported {count} block from {source}",
             "imported_other": "Imported {count} blocks from {source}",
             "import_failed": "Couldn't import the existing firewall blocks. Check the log for details."
@@ -130,7 +130,8 @@
             "preset": "Couldn't apply \"{name}\".",
             "import": "Couldn't import the existing firewall blocks.",
             "description": "Deadlock+ needs administrator access to change firewall rules. Allow asks Windows once for this session. Always allow asks once, then never again on this Windows account."
-        }
+        },
+        "load_failed": "Couldn't load the server list."
     },
     "live": {
         "state": {

@@ -29,7 +29,6 @@ export function failureText(error: unknown, fallback: string): string {
 
 export function errorText(error: unknown, catalog?: Catalog): string {
     if (typeof error === "string") return error;
-    if (error instanceof Error) return error.message;
     const generic = () => (catalog ? (lookup(catalog, GENERIC) ?? GENERIC) : t(GENERIC));
     if (!isAppError(error)) return generic();
     const key = `errors.${error.code}`;

@@ -32,7 +32,7 @@ import {
     type DemoFilter,
 } from "./list";
 import { errorText, failureText } from "$lib/core/errors";
-import { tn } from "$lib/core/i18n.svelte";
+import { t, tn } from "$lib/core/i18n.svelte";
 import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
 
 export class DemoList {
@@ -106,8 +106,8 @@ export class DemoList {
         this.error = null;
         try {
             this.listing = await listDemos();
-        } catch (e) {
-            this.error = errorText(e);
+        } catch {
+            this.error = t("demos.list_error");
         } finally {
             this.loading = false;
         }
@@ -134,7 +134,7 @@ export class DemoList {
             this.pinned = new Set(await setPinned(d.matchId, on));
             if (on) this.toggle(d.fileName, false);
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("demos.toast.pin_failed")));
         }
     }
 
@@ -142,7 +142,7 @@ export class DemoList {
         try {
             this.preview = await previewDelete(names);
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("demos.toast.delete_none")));
             return;
         }
         this.deleteNames = names;
@@ -169,7 +169,7 @@ export class DemoList {
             const gone = new Set(report.deleted);
             this.selected = new Set([...this.selected].filter((n) => !gone.has(n)));
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("demos.toast.delete_none")));
         } finally {
             this.deleting = false;
             this.deleteOpen = false;
@@ -181,7 +181,7 @@ export class DemoList {
         try {
             await revealDemo(d);
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("demos.toast.open_failed")));
         }
     }
 
@@ -189,7 +189,7 @@ export class DemoList {
         try {
             await openReplaysDir();
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("demos.toast.open_failed")));
         }
     };
 

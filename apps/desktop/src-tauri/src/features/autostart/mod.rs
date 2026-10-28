@@ -65,21 +65,24 @@ mod run_key;
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
 
     #[tauri::command]
     pub async fn autostart_status() -> Result<AutostartStatus, AppError> {
-        tauri::async_runtime::spawn_blocking(platform::status).await.map_err(AppError::internal)?
+        guarded(async move { crate::command_panics::spawn_blocking_guarded(platform::status).await? }).await
     }
 
     #[tauri::command]
     pub async fn set_autostart(enabled: bool) -> Result<AutostartStatus, AppError> {
-        tauri::async_runtime::spawn_blocking(move || {
-            if enabled { platform::enable() } else { platform::disable() }?;
-            log::info!("autostart {}", if enabled { "enabled" } else { "disabled" });
-            platform::status()
+        guarded(async move {
+            crate::command_panics::spawn_blocking_guarded(move || {
+                if enabled { platform::enable() } else { platform::disable() }?;
+                log::info!("autostart {}", if enabled { "enabled" } else { "disabled" });
+                platform::status()
+            })
+            .await?
         })
         .await
-        .map_err(AppError::internal)?
     }
 }
 

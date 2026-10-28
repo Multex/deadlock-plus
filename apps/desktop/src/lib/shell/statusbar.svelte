@@ -6,6 +6,7 @@
         CloudUpload,
         CloudOff,
         Gamepad2,
+        Hourglass,
         MessageCircle,
         Radio,
         Gauge,
@@ -16,6 +17,7 @@
     } from "@lucide/svelte";
     import {
         apiHealth,
+        discordBarCopy,
         discordBarState,
         gcStatus,
         ingestStatus,
@@ -55,14 +57,14 @@
             return {
                 icon: CloudOff,
                 ok: true,
-                tone: "text-muted-foreground/70",
+                tone: "text-muted-foreground",
                 text: t("shell.statusbar.ingest.off"),
             };
         if (!s)
             return {
                 icon: CloudUpload,
                 ok: false,
-                tone: "text-muted-foreground/70",
+                tone: "text-muted-foreground",
                 text: t("shell.statusbar.ingest.starting"),
             };
         if (!s.steamFound)
@@ -93,7 +95,7 @@
             return {
                 icon: Server,
                 ok: false,
-                tone: "text-muted-foreground/70",
+                tone: "text-muted-foreground",
                 text: t("shell.statusbar.api.checking"),
                 title: t("shell.statusbar.api.checking_title"),
             };
@@ -112,6 +114,14 @@
                 tone: "text-warning",
                 text: t("shell.statusbar.api.degraded"),
                 title: t("shell.statusbar.api.degraded_title", { services: r.down.join(", ") }),
+            };
+        if (r.level === "busy")
+            return {
+                icon: Hourglass,
+                ok: false,
+                tone: "text-warning",
+                text: t("shell.statusbar.api.busy"),
+                title: t("shell.statusbar.api.busy_title"),
             };
         return {
             icon: ServerOff,
@@ -133,6 +143,7 @@
     const recovery = $derived(recoveryBarItem(gcStatus.status?.ownRecovery ?? null));
 
     const discord = $derived(discordBarState(settings.presence.level !== "off", presenceStatus.status));
+    const discordCopy = $derived(discordBarCopy(discord));
 
     const liveItem = $derived(
         live.state ? liveBarItem(live.state.phase, live.match?.clockSecs ?? null, live.match?.paused ?? false) : null,
@@ -165,7 +176,7 @@
         <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
     {:else if gameRunning !== null}
         <span
-            class="flex items-center gap-1.5 {gameRunning ? 'text-success' : 'text-muted-foreground/70'}"
+            class="flex items-center gap-1.5 {gameRunning ? 'text-success' : 'text-muted-foreground'}"
             title={gameRunning ? t("shell.statusbar.game.running_title") : t("shell.statusbar.game.stopped_title")}
         >
             <Gamepad2 class="size-3.5 shrink-0" />
@@ -178,19 +189,13 @@
         class="flex min-w-0 items-center gap-1.5 hover:underline {discord === 'connected'
             ? 'text-success'
             : discord === 'off'
-              ? 'text-muted-foreground/50'
-              : 'text-muted-foreground/70'}"
-        title={discord === "connected"
-            ? t("shell.statusbar.discord.connected_title")
-            : discord === "off"
-              ? t("shell.statusbar.discord.off_title")
-              : t("shell.statusbar.discord.searching_title")}
+              ? 'text-muted-foreground'
+              : 'text-muted-foreground'}"
+        title={discordCopy.title}
     >
         <MessageCircle class="size-3.5 shrink-0" />
-        {#if discord === "off"}
-            <span class="truncate">{t("shell.statusbar.discord.off")}</span>
-        {:else if discord === "searching"}
-            <span class="truncate">{t("shell.statusbar.discord.searching")}</span>
+        {#if discordCopy.label}
+            <span class="truncate">{discordCopy.label}</span>
         {/if}
     </a>
     <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
@@ -222,7 +227,7 @@
     {#if jobs.active.length > 1}
         <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
         <span
-            class="flex min-w-0 items-center gap-2 text-muted-foreground/70"
+            class="flex min-w-0 items-center gap-2 text-muted-foreground"
             title={jobs.active.map(jobStatusText).join("\n")}
         >
             <Activity class="size-3.5 shrink-0" />
@@ -249,7 +254,7 @@
             {@const JobIcon = JOB_ICONS[job.id] ?? Activity}
             {@const text = jobStatusText(job)}
             <span class="text-muted-foreground/30" aria-hidden="true">&middot;</span>
-            <span class="flex min-w-0 items-center gap-2 text-muted-foreground/70" title={text}>
+            <span class="flex min-w-0 items-center gap-2 text-muted-foreground" title={text}>
                 <JobIcon class="size-3.5 shrink-0" />
                 <span class="truncate">{text}</span>
                 {#if job.state === "paused"}
@@ -284,7 +289,7 @@
     {/if}
     {#if version}
         <span
-            class="mr-auto shrink-0 truncate text-center text-muted-foreground/60 tabular-nums transition-[width] duration-200 {withSidebar
+            class="mr-auto shrink-0 truncate text-center text-muted-foreground tabular-nums transition-[width] duration-200 {withSidebar
                 ? `-ml-3 ${sidebarState.collapsed ? 'w-16' : 'w-56'}`
                 : ''}">v{version}</span
         >

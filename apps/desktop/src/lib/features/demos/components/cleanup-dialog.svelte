@@ -1,13 +1,11 @@
 <script lang="ts">
-    import { toast } from "svelte-sonner";
-
-    import { errorText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Input from "@deadlock-plus/ui/input.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import * as Dialog from "@deadlock-plus/ui/dialog";
     import { cleanupMatches, listCleanupRules, saveCleanupRules } from "$lib/features/demos/api";
+    import { cleanupFailed, persistRules } from "$lib/features/demos/cleanup-rules";
     import {
         formatBytes,
         gbToMb,
@@ -24,6 +22,7 @@
     const SAVE_DELAY_MS = 400;
 
     let rules = $state<CleanupRule[]>([]);
+    let stored: CleanupRule[] = [];
     let matches = $state<CleanupMatch[]>([]);
     let loading = $state(false);
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -41,9 +40,10 @@
         loading = true;
         try {
             rules = withAllRules(await listCleanupRules());
+            stored = $state.snapshot(rules);
             await refresh();
         } catch (e) {
-            toast.error(errorText(e));
+            cleanupFailed(e, "load");
         } finally {
             loading = false;
         }
@@ -58,11 +58,16 @@
     function changed() {
         clearTimeout(timer);
         timer = setTimeout(async () => {
+            const result = await persistRules($state.snapshot(rules), stored, saveCleanupRules);
+            if (!result.saved) {
+                rules = result.rules;
+                return;
+            }
+            stored = result.rules;
             try {
-                await saveCleanupRules($state.snapshot(rules));
                 await refresh();
             } catch (e) {
-                toast.error(errorText(e));
+                cleanupFailed(e, "check");
             }
         }, SAVE_DELAY_MS);
     }

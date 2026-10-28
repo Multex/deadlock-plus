@@ -9,6 +9,7 @@ import {
     createToastQueue,
     expire,
     nextExpiry,
+    parseToast,
     reposition,
     show,
     stackOrder,
@@ -226,5 +227,46 @@ describe("toast queue", () => {
         clock.advance(5000);
         expect(clock.pending()).toBe(0);
         expect(seen).toHaveLength(1);
+    });
+});
+
+describe("parseToast", () => {
+    it("accepts a well-formed toast", () => {
+        expect(parseToast(toast("a"))).toEqual(toast("a"));
+    });
+
+    it.each([
+        ["null", null],
+        ["a string", "toast"],
+        ["no id", { ...toast("a"), id: undefined }],
+        ["empty id", toast("")],
+        ["a non-string title", { ...toast("a"), title: 5 }],
+        ["a null body", { ...toast("a"), body: null }],
+        ["an unknown kind", { ...toast("a"), kind: "nope" }],
+        ["an unknown placement", { ...toast("a"), placement: "middle" }],
+        ["an unknown position", { ...toast("a"), position: "nowhere" }],
+        ["a string duration", { ...toast("a"), durationMs: "6000" }],
+        ["a NaN duration", toast("a", { durationMs: NaN })],
+    ])("drops %s", (_, payload) => {
+        expect(parseToast(payload)).toBeNull();
+    });
+});
+
+describe("toast queue remove", () => {
+    it("drops one toast and keeps the rest", () => {
+        const seen: OverlayToasts[] = [];
+        const queue = createToastQueue(fakeClock(), (state) => seen.push(state));
+        queue.push(toast("a"));
+        queue.push(toast("b"));
+        queue.remove("a");
+        expect(ids(seen.at(-1)!)).toEqual(["b"]);
+    });
+
+    it("drops the center toast by id", () => {
+        const seen: OverlayToasts[] = [];
+        const queue = createToastQueue(fakeClock(), (state) => seen.push(state));
+        queue.push(toast("c", { placement: "center" }));
+        queue.remove("c");
+        expect(seen.at(-1)!.center).toBeNull();
     });
 });

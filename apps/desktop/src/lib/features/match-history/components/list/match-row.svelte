@@ -14,6 +14,7 @@
     } from "@lucide/svelte";
 
     import { formatDate, formatNumber, t } from "$lib/core/i18n.svelte";
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
     import RankBadge from "$lib/features/live/components/rank-badge.svelte";
@@ -22,7 +23,7 @@
     import type { MatchRow, RowMode } from "@deadlock-plus/match/list";
     import { kdaRatio } from "@deadlock-plus/match/list-summary";
     import { rowState } from "@deadlock-plus/match/coverage";
-    import { matchCoverage } from "../../coverage.svelte";
+    import { coverageApplies, matchCoverage } from "../../coverage.svelte";
     import { rowGrades } from "../../row-grades.svelte";
     import RowGrade from "./row-grade.svelte";
     import { rowStateBadge, showGrade } from "./row-state";
@@ -56,7 +57,9 @@
     const duration = $derived(formatClock(row.durationS) ?? "-");
     const time = $derived(formatDate(row.startTime * 1000, { hour: "2-digit", minute: "2-digit" }));
     const grade = $derived(rowGrades.own(row.matchId));
-    const state = $derived(rowState(row.matchId, matchCoverage.coverage, matchCoverage.queued));
+    const state = $derived(
+        coverageApplies(row.mode) ? rowState(row.matchId, matchCoverage.coverage, matchCoverage.queued) : null,
+    );
     const stateBadge = $derived(rowStateBadge(state));
     const outcomeVariant = $derived(
         row.outcome === "win" ? "success" : row.outcome === "loss" ? "destructive" : "outline",
@@ -65,22 +68,26 @@
     $effect(() => rowGrades.watch(row.matchId));
 </script>
 
-<li>
+<li class="@container">
     <a
         href={matchHref(row.matchId)}
-        class="group grid h-[4.5rem] grid-cols-[3rem_minmax(0,1fr)_6.5rem_5.5rem_5.5rem_5rem_7rem_1rem] items-center gap-x-4 rounded-lg border border-l-4 border-border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 {SURFACE[
+        class="group grid h-[4.5rem] grid-cols-[3rem_minmax(0,1fr)_6.5rem_5.5rem_5.5rem_5rem_7rem_1rem] items-center gap-x-4 rounded-lg border border-l-4 border-border px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 @max-[46rem]:h-auto @max-[46rem]:grid-cols-[3rem_repeat(4,minmax(0,1fr))_1rem] @max-[46rem]:gap-x-3 @max-[46rem]:gap-y-1.5 @max-[46rem]:py-2 {SURFACE[
             row.outcome
         ]}"
     >
-        <div class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
+        <div
+            class="flex size-12 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border @max-[46rem]:row-span-2"
+        >
             {#if hero?.icon}
-                <img src={hero.icon} alt="" class="size-full object-cover" loading="lazy" />
+                <ArtImage src={hero.icon} alt="" class="size-full bg-transparent object-cover" loading="lazy">
+                    {#snippet fallback()}<CircleHelp class="size-6 text-muted-foreground" />{/snippet}
+                </ArtImage>
             {:else}
                 <CircleHelp class="size-6 text-muted-foreground" aria-label={t("stats.unknown_hero")} />
             {/if}
         </div>
 
-        <div class="min-w-0">
+        <div class="min-w-0 @max-[46rem]:col-span-3">
             <p class="truncate font-heading text-base leading-tight">
                 {hero?.name ?? t("stats.hero_fallback", { id: row.heroId })}
             </p>
@@ -153,7 +160,7 @@
         </div>
 
         <ChevronRight
-            class="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none"
+            class="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none @max-[46rem]:col-start-6 @max-[46rem]:row-span-2 @max-[46rem]:row-start-1"
             aria-hidden="true"
         />
     </a>

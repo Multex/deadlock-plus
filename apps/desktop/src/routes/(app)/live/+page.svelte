@@ -10,7 +10,7 @@
 
     import { adminAccess } from "$lib/features/admin-access/admin-access.svelte";
     import CurrentServer from "$lib/features/connection/components/current-server.svelte";
-    import HistoryCard from "$lib/features/connection/components/history-card.svelte";
+    import NetworkHistory from "$lib/features/connection/components/network-history.svelte";
     import MonitorNotices from "$lib/features/connection/components/monitor-notices.svelte";
     import PingCard from "$lib/features/connection/components/ping-card.svelte";
     import GameAdminCard from "$lib/features/live/components/game-admin-card.svelte";
@@ -21,27 +21,28 @@
     import { live } from "$lib/features/live/live.svelte";
     import { stateLine } from "$lib/features/live/live";
     import { ptraceNotice, ptraceStatus, type PtraceStatus } from "$lib/features/live/ptrace";
-    import { enginePingLatest, networkPoll, startNetworkMonitor } from "$lib/features/connection/api";
-    import { appendPoint, historySeries, mergeTail } from "$lib/features/connection/connection";
-    import type { EnginePingView, HistoryPoint, NetworkSnapshot } from "$lib/features/connection/types";
+    import { networkMonitor } from "$lib/features/connection/monitor.svelte";
+    import { settings, variantOf } from "$lib/features/registry";
+    import AppRegion from "$lib/shell/app-region.svelte";
+    import { THEMES, themeVariant } from "@deadlock-plus/ui/themes";
 
     const REFRESH_MS = 1000;
 
-    let snap = $state.raw<NetworkSnapshot | null>(null);
-    let history = $state.raw<HistoryPoint[]>([]);
-    let engine = $state.raw<EnginePingView | null>(null);
     let ptrace = $state.raw<PtraceStatus | null>(null);
     let ptraceApplied = $state(false);
     const ptraceShown = $derived(ptraceNotice(ptrace, platform, ptraceApplied));
 
+    const snap = $derived(networkMonitor.snap);
     const relay = $derived(snap?.relay ?? null);
-    let engineHistory = $state.raw<HistoryPoint[]>([]);
-    const chart = $derived(historySeries(engine ? engineHistory : history));
     const board = $derived(
         live.boardShown && live.state && live.match && live.match.teams.length > 0
             ? { match: live.match, phase: live.state.phase }
             : null,
     );
+    const theme = $derived.by(() => {
+        const data = THEMES.find((t) => t.id === settings.theme) ?? THEMES[0]!;
+        return themeVariant(data, variantOf(settings.themeOptions, settings.theme));
+    });
     const line = $derived(live.state ? stateLine(live.state.phase, live.state.matchPresent) : null);
 
     async function refresh() {
@@ -50,24 +51,12 @@
                 .then((next) => (ptrace = next))
                 .catch(() => {});
         }
-        try {
-            const poll = await networkPoll(history.at(-1)?.t ?? null);
-            snap = poll.snapshot;
-            history = mergeTail(history, poll.tail);
-            engine = await enginePingLatest();
-            engineHistory = engine ? appendPoint(engineHistory, { t: Date.now(), raw: engine.pingMs }) : [];
-        } catch {
-            // Transient invoke failures just skip a tick.
-        }
-    }
-
-    async function retry() {
-        await startNetworkMonitor(true);
-        await refresh();
+        await networkMonitor.refresh();
     }
 
     onMount(() => {
-        void startNetworkMonitor().then(refresh);
+        networkMonitor.reset();
+        void networkMonitor.start();
         const stopPolling = createPoller(refresh, { intervalMs: REFRESH_MS, pauseWhenHidden: true }).start();
         return () => {
             stopPolling();
@@ -78,35 +67,49 @@
 <Page>
     <PageHeader title={t("connection.page.title")} subtitle={t("connection.subtitle")}>
         {#snippet actions()}
-            {#if board}<MatchHeader match={board.match} phase={board.phase} />{/if}
+            {#if board}
+                <AppRegion name="live-match-header" quiet>
+                    <MatchHeader match={board.match} phase={board.phase} />
+                </AppRegion>
+            {/if}
             <Badge variant={snap?.gameRunning ? "success" : "outline"}>
                 {snap?.gameRunning ? t("connection.page.deadlock_running") : t("connection.page.deadlock_not_running")}
             </Badge>
         {/snippet}
     </PageHeader>
 
-    {#if board}
-        <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} />
-    {:else if adminAccess.status?.gameRunsAsAdmin}
-        <GameAdminCard />
-    {:else if ptraceShown}
-        <PtraceCard notice={ptraceShown} onapplied={() => (ptraceApplied = true)} />
-    {:else if line}
-        <StateCard {line} queue={live.state?.phase === "queuing" ? (live.match?.queue ?? null) : null} />
-    {/if}
+    <AppRegion name="live-match">
+        {#if board}
+            <MatchBoard match={board.match} phase={board.phase} heroes={live.heroes} tiers={live.tiers} {theme} />
+        {:else if adminAccess.status?.gameRunsAsAdmin}
+            <GameAdminCard />
+        {:else if ptraceShown}
+            <PtraceCard notice={ptraceShown} onapplied={() => (ptraceApplied = true)} />
+        {:else if line}
+            <StateCard {line} queue={live.state?.phase === "queuing" ? (live.match?.queue ?? null) : null} />
+        {/if}
+    </AppRegion>
 
-    <MonitorNotices {snap} onretry={retry} />
+    <AppRegion name="live-monitor-notices" size="sm">
+        <MonitorNotices {snap} onretry={() => networkMonitor.retry()} />
+    </AppRegion>
 
-    <CurrentServer gameRunning={snap?.gameRunning ?? false} {relay} />
+    <AppRegion name="live-current-server" size="sm">
+        <CurrentServer gameRunning={snap?.gameRunning ?? false} {relay} />
+    </AppRegion>
 
-    <PingCard
-        title={t("connection.series.ping")}
-        note={live.state?.phase === "inMatch" ? t("connection.page.direct_note") : undefined}
-        stats={relay?.ping ?? null}
-        {engine}
-        engineNote={t("connection.page.engine_note")}
-        unavailable={relay ? undefined : t("connection.page.waiting_server")}
-    />
+    <AppRegion name="live-ping" size="sm">
+        <PingCard
+            title={t("connection.series.ping")}
+            note={live.state?.phase === "inMatch" ? t("connection.page.direct_note") : undefined}
+            stats={relay?.ping ?? null}
+            engine={networkMonitor.engine}
+            engineNote={t("connection.page.engine_note")}
+            unavailable={relay ? undefined : t("connection.page.waiting_server")}
+        />
+    </AppRegion>
 
-    <HistoryCard shown={chart.shown} series={chart.series} />
+    <AppRegion name="live-history" size="sm">
+        <NetworkHistory />
+    </AppRegion>
 </Page>

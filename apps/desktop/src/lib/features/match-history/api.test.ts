@@ -95,6 +95,13 @@ describe("fetchMetadata", () => {
         await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toThrow();
     });
 
+    it("keeps a busy answer typed, with the wait the API named", async () => {
+        const f = vi.fn(async () => new Response("", { status: 429, headers: { "Retry-After": "12" } }));
+        const error = await fetchMetadata(42, f as unknown as typeof fetch).catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(DeadlockApiError);
+        expect((error as DeadlockApiError).retryAfterS).toBe(12);
+    });
+
     it("keeps a 404 recognisable so the caller can tell a missing match from a failure", async () => {
         const f = vi.fn(async () => new Response("", { status: 404 }));
         await expect(fetchMetadata(42, f as unknown as typeof fetch)).rejects.toBeInstanceOf(DeadlockApiError);

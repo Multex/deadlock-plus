@@ -364,10 +364,10 @@
         opacity: 0.95;
     }
 
-    /* A ribbon bow tied on the panel's corner. */
+    /* Tied on the bottom corner, on the cloud bank: page headers own the top corners. */
     .bow {
         position: absolute;
-        top: 10px;
+        bottom: 22px;
         left: 12px;
         width: 104px;
         rotate: -12deg;

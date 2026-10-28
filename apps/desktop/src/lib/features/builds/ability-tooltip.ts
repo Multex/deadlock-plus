@@ -149,11 +149,17 @@ export function abilityChanges(
 const cache = new Map<string, Promise<ReadonlyMap<number, AbilityTooltip>>>();
 let watching = false;
 
+const isTooltip = (row: unknown): row is AbilityTooltip =>
+    typeof row === "object" && row !== null && Number.isFinite((row as { abilityId?: unknown }).abilityId);
+
 function read(locale: string): Promise<ReadonlyMap<number, AbilityTooltip>> {
-    const reading = loadAbilityTooltips(locale).then((list) => {
-        if (list.length === 0) cache.delete(locale);
-        return new Map(list.map((a) => [a.abilityId, a]));
-    });
+    const reading = loadAbilityTooltips(locale)
+        .then((list: unknown) => (Array.isArray(list) ? list.filter(isTooltip) : []))
+        .catch((): AbilityTooltip[] => [])
+        .then((list) => {
+            if (list.length === 0 && cache.get(locale) === reading) cache.delete(locale);
+            return new Map(list.map((a) => [a.abilityId, a]));
+        });
     cache.set(locale, reading);
     return reading;
 }

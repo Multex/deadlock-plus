@@ -13,8 +13,25 @@ import type { SaveResult } from "@deadlock-plus/ipc-types/SaveResult";
 
 const FLUSHED_EVENT = "builds://flushed";
 
-export function buildsLocal() {
-    return command<LocalBuilds>("builds_local");
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+function isLocalBuilds(value: unknown): value is LocalBuilds {
+    if (!isRecord(value)) return false;
+    const { accountId, gameRunning, builds, lastUsed, queue } = value;
+    return (
+        typeof accountId === "number" &&
+        typeof gameRunning === "boolean" &&
+        Array.isArray(builds) &&
+        builds.every((b) => isRecord(b) && typeof b.section === "string" && isRecord(b.build)) &&
+        Array.isArray(lastUsed) &&
+        Array.isArray(queue)
+    );
+}
+
+export async function buildsLocal(): Promise<LocalBuilds> {
+    const local = await command<LocalBuilds>("builds_local");
+    if (!isLocalBuilds(local)) throw new Error("builds_local answered an unexpected shape");
+    return local;
 }
 
 /** A written or queued save also drops the draft `draftId` and every draft of the saved build. */

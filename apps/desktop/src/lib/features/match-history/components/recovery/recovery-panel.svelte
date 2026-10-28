@@ -1,9 +1,7 @@
 <script lang="ts">
     import { onDestroy } from "svelte";
     import { X } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
 
-    import { errorText } from "$lib/core/errors";
     import { formatNumber, t } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
@@ -16,6 +14,7 @@
     import { lastRunLine, ownRecoveryLine } from "$lib/features/gc/status-line";
     import { matchCoverage } from "$lib/features/match-history/coverage.svelte";
     import { playerNames } from "$lib/features/match-history/names";
+    import { runRecovery } from "$lib/features/match-history/recovery-action";
     import { recoveryPanel } from "$lib/features/match-history/recovery-panel.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import ProgressBar from "./progress-bar.svelte";
@@ -107,10 +106,10 @@
     async function act(action: RecoveryAction) {
         busy = true;
         try {
-            await BUTTONS[action].run();
-            await gcStatus.refresh();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runRecovery(action, async () => {
+                await BUTTONS[action].run();
+                await gcStatus.refresh();
+            });
         } finally {
             busy = false;
         }

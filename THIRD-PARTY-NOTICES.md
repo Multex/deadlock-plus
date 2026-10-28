@@ -25,6 +25,14 @@ owner asks for one to be removed, it will be removed and the app falls back to s
 Licence text: https://openfontlicense.org/open-font-license-official-text/ (also shipped inside each
 package's `LICENSE` file under `node_modules/@fontsource/`).
 
+## Sound effects
+
+- **Applause 2** by Sandermotions, released under CC0 1.0
+  (https://creativecommons.org/publicdomain/zero/1.0/). Source:
+  https://commons.wikimedia.org/wiki/File:277021_sandermotions_applause-2.wav (Freesound 277021). A
+  5 s excerpt is bundled at `apps/desktop/src/lib/features/dispatch/video/sfx-assets/crowd.mp3` for the
+  Year-End Dispatch video.
+
 ## Patch notes search model
 
 - **all-MiniLM-L6-v2** (int8 quantized ONNX export), based on

@@ -2,7 +2,10 @@ import { untrack } from "svelte";
 import { deadlockApi } from "$lib/core/deadlock-api";
 import { t } from "$lib/core/i18n.svelte";
 import { kvGet, kvSet } from "$lib/core/kv";
+import { ApiBusy } from "$lib/features/api-health/api-busy.svelte";
+import { nextRequestIn } from "$lib/features/api-health/busy";
 import { onGameArtChanged } from "$lib/features/gamedata/art-refresh";
+import { DeadlockApiError } from "@deadlock-plus/deadlock-api";
 import { parseStatsCache, toStatsCache, type StatsSnapshot } from "@deadlock-plus/stats/cache";
 import { apiForm, loadApiRanks, withLocalArt } from "$lib/features/ranks/ranks";
 import { parseRankInfo, type RankInfo, type RankTier } from "@deadlock-plus/stats/rank";
@@ -26,6 +29,8 @@ class StatsStore {
     error = $state<string | null>(null);
     /** Set while the data shown is a saved copy from this time (ms) because the API could not be reached. */
     cachedAt = $state<number | null>(null);
+    /** Set while the API turns the history away as busy; it loads again on its own. */
+    readonly busy = new ApiBusy(() => (this.wanted === null ? undefined : this.load(this.wanted, true)));
     private account: number | null = null;
     private wanted: number | null = null;
     private loadedFor: number | null = null;
@@ -56,6 +61,8 @@ class StatsStore {
         this.switchAccount(accountId);
         const fresh = this.loadedFor === accountId && Date.now() - this.loadedAt < STALE_MS;
         if (fresh && !force) return;
+        // While the API is busy only the planned retry, a refresh or Try now asks again.
+        if (this.busy.active && !force) return;
 
         this.status = "loading";
         this.error = null;
@@ -71,11 +78,13 @@ class StatsStore {
             ]);
             // A rate-limited response still carries the stored history in its body.
             const matches = parseHistory(history.body);
-            if (!history.ok && matches.length === 0) throw new Error(t("stats.api_error", { status: history.status }));
+            if (!history.ok && matches.length === 0)
+                throw new DeadlockApiError(history.status, nextRequestIn(history.body));
             // Art is read once the slow requests are done, so a game update meanwhile cannot leave old paths.
             const ranks = await withLocalArt(apiRanks);
 
             this.apply({ matches, ranks, rankInfo: parseRankInfo(rank) });
+            this.busy.clear();
             this.cachedAt = null;
             void this.save(accountId);
             this.loadedFor = accountId;
@@ -84,6 +93,7 @@ class StatsStore {
             await this.syncProvisional(matches.map((m) => m.matchId));
             this.schedule.arrived();
         } catch (e) {
+            this.busy.handle(e);
             const cached = await this.readCache(accountId);
             if (cached) {
                 this.apply(cached);
@@ -98,7 +108,14 @@ class StatsStore {
                 this.schedule.arrived();
                 return;
             }
-            this.error = e instanceof Error ? e.message : String(e);
+            // Matches captured on this PC still show while the API is down.
+            await this.syncProvisional(null);
+            this.error =
+                e instanceof DeadlockApiError
+                    ? t("stats.api_error", { status: e.status })
+                    : e instanceof Error
+                      ? e.message
+                      : String(e);
             this.status = "error";
         }
     }
@@ -114,6 +131,7 @@ class StatsStore {
     private switchAccount(accountId: number) {
         if (this.account === accountId) return;
         this.account = accountId;
+        this.busy.clear();
         this.provisional = [];
         this.schedule.stop();
     }

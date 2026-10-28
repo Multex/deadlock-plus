@@ -1,4 +1,5 @@
-import { errorText } from "$lib/core/errors";
+import { failureText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
 import { onBeforeExit } from "$lib/core/exit";
 import * as api from "./api";
 
@@ -19,6 +20,8 @@ export type PresenceConfigApi = Pick<
     | "importPresenceConfig"
 >;
 
+export type PresenceLoadStatus = "loading" | "ready" | "error";
+
 const emptyConfig = (): PresenceConfig => ({ states: {}, variants: {}, heroes: {} });
 
 export class PresenceConfigStore {
@@ -26,8 +29,9 @@ export class PresenceConfigStore {
     defaults = $state<PresenceConfig>(emptyConfig());
     layout = $state<PresenceStateInfo[]>([]);
     placeholders = $state<PresencePlaceholder[]>([]);
-    loaded = $state(false);
+    status = $state<PresenceLoadStatus>("loading");
     error = $state<string | null>(null);
+    importError = $state("");
 
     private timer: ReturnType<typeof setTimeout> | undefined;
     private dirty = false;
@@ -36,6 +40,7 @@ export class PresenceConfigStore {
     constructor(private backend: PresenceConfigApi = api) {}
 
     async load() {
+        if (this.status === "error") this.status = "loading";
         try {
             // A pending edit is newer than what the backend holds; save it first or it is overwritten.
             await this.flush();
@@ -49,10 +54,9 @@ export class PresenceConfigStore {
             this.defaults = defaults;
             this.layout = layout;
             this.placeholders = placeholders;
-            this.error = null;
-            this.loaded = true;
-        } catch (e) {
-            this.error = errorText(e);
+            this.status = "ready";
+        } catch {
+            this.status = "error";
         }
     }
 
@@ -73,12 +77,21 @@ export class PresenceConfigStore {
         await this.saving;
     }
 
-    async importText(text: string) {
-        const imported = await this.backend.importPresenceConfig(text);
+    /** False when the text was not a preset; the editor keeps what it had. */
+    async importText(text: string): Promise<boolean> {
+        this.importError = "";
+        let imported: PresenceConfig;
+        try {
+            imported = await this.backend.importPresenceConfig(text);
+        } catch (e) {
+            this.importError = failureText(e, t("settings.discord_editor.import_failed"));
+            return false;
+        }
         clearTimeout(this.timer);
         this.dirty = false;
         this.config = imported;
         this.error = null;
+        return true;
     }
 
     async exportText() {
@@ -96,7 +109,7 @@ export class PresenceConfigStore {
             await this.backend.setPresenceConfig(config);
             this.error = null;
         } catch (e) {
-            this.error = errorText(e);
+            this.error = failureText(e, t("settings.discord_editor.save_failed"));
         }
     }
 }

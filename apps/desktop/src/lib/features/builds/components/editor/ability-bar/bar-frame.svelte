@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import RegionError from "@deadlock-plus/ui/region-error.svelte";
     import { cn } from "@deadlock-plus/ui/utils";
     import { t } from "$lib/core/i18n.svelte";
     import type { HeroKit } from "../../../build-detail.svelte";
@@ -34,6 +35,16 @@
                 <div class="size-16 rounded-full bg-muted/40"></div>
             {/each}
         </div>
+    {:else if kit.failed}
+        <RegionError
+            name="ability-order"
+            title={t("region.error_title")}
+            body={t("region.error_body")}
+            retryLabel={t("region.retry")}
+            onretry={kit.failed.retry}
+            size="sm"
+            class="m-auto"
+        />
     {:else if kit.abilities.size === 0}
         <p class="m-auto text-sm text-muted-foreground">{t("builds.editor.abilities.no_kit")}</p>
     {:else}

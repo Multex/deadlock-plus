@@ -75,7 +75,9 @@
             "not_eligible": "Not yet eligible",
             "note": "Approximate. Counts your ranked and unranked games known to the Deadlock API. Valve does not publish which queues count.",
             "recent_games": "Games in the last {days} days",
-            "total_games": "Total games on your account"
+            "total_games": "Total games on your account",
+            "rank_error": "Couldn't load your rank.",
+            "games_error": "Couldn't load your match history."
         },
         "page": {
             "matches_known": "{count} matches known for this account. Anything not seen yet is not counted.",
@@ -83,7 +85,8 @@
         },
         "section": {
             "games": "Your games"
-        }
+        },
+        "captured_only": "Couldn't reach the Deadlock API. Showing only matches captured on this PC."
     },
     "rank": {
         "title": "Rank",
@@ -138,6 +141,7 @@
             "estimated_other": "Estimated from the rank rules until the Deadlock API confirms your last matches.",
             "top_tier": "Top tier. Subranks here depend on how you compare to other top players, so there is no progress bar.",
             "progress": "{within} / {span} to {next}.",
+            "progress_aria": "Progress to {next}",
             "progress_streak_one": "{within} / {span} to {next}. {count} win in a row from here.",
             "progress_streak_other": "{within} / {span} to {next}. {count} wins in a row from here.",
             "boundary": "Your progress just crossed a boundary and the Deadlock API still shows the old badge, so there is no bar until the next match.",
@@ -292,7 +296,8 @@
                 "duration": "Duration",
                 "kda_split": "Kills / deaths / assists",
                 "kda_ratio": "{ratio} KDA"
-            }
+            },
+            "error": "Couldn't load your matches."
         },
         "deep_dive": {
             "not_available": "Not available for this match.",
@@ -523,6 +528,7 @@
                 "place_ordinal_few": "{place}rd",
                 "place_ordinal_other": "{place}th",
                 "aria": "Grade {letter}, score {score}, {place}",
+                "chip_aria": "Grade {letter}, {score}, {place}",
                 "leaver": "Someone left this match early, so every grade in it is skewed.",
                 "unchecked": "Early leavers not checked: this grade comes from the game's own match data.",
                 "farm_bonus": "Team farm bonus",
@@ -568,7 +574,9 @@
                 "replay_recoverable": "Not available yet",
                 "replay_recoverable_note": "The Deadlock API has no replay for this match yet.",
                 "replay_unrecoverable": "Not available",
-                "replay_unrecoverable_note": "This replay can't be recovered anymore."
+                "replay_unrecoverable_note": "This replay can't be recovered anymore.",
+                "badge_not_applicable": "Not applicable",
+                "not_applicable": "Deadlock+ only recovers ranked, unranked and Street Brawl matches, so this one has no scoreboard."
             },
             "replay_status": {
                 "available": "Replay available",
@@ -580,7 +588,8 @@
                 "recover": "Recover replay",
                 "recover_note": "Counts toward the 40 matches a day.",
                 "consent_note": "Just this replay. Background recovery stays off."
-            }
+            },
+            "load_error": "Couldn't load this match."
         },
         "ping": {
             "heading": "Ping",
@@ -626,7 +635,13 @@
             "resume": "Resume",
             "limit_note": "Continues tomorrow on its own",
             "step_details": "Missing details",
-            "step_replays": "Recent replays"
+            "step_replays": "Recent replays",
+            "start_failed": "Couldn't start recovery. Try again.",
+            "pause_failed": "Couldn't pause recovery.",
+            "resume_failed": "Couldn't resume recovery.",
+            "cancel_failed": "Couldn't stop recovery.",
+            "match_failed": "Couldn't recover that match. Try again.",
+            "replay_failed": "Couldn't recover that replay. Try again."
         },
         "row_state": {
             "missing": "No details",
@@ -709,6 +724,7 @@
             "grade": "Grade"
         },
         "open": "Front page",
+        "open_match": "Open full match",
         "close": "Close",
         "dialog": "Front page for match {id}",
         "loading": "Printing the front page...",

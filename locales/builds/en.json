@@ -253,7 +253,7 @@
                 "reason_unknown": "Not one of this hero's abilities.",
                 "sequence": "Sequence",
                 "sequence_hint": "Drag a step to reorder it, or use Alt+Left and Alt+Right.",
-                "chip_label": "Step {step}: {ability}, {kind}",
+                "chip_label": "Step {step}: {kind}, {ability}",
                 "clear": "Clear",
                 "spent": "{spent} AP spent",
                 "spent_of": "{spent} of {available} AP spent",

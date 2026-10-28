@@ -301,6 +301,18 @@ const BASE_ITEMS: SettingItem[] = [
             "break hint reminder tilt loss streak losing sessions rest shows as desktop notification toast overlay notification center popup",
     },
     {
+        id: "dispatch-alerts",
+        category: "notifications",
+        get title() {
+            return t("settings.items.dispatch_alerts");
+        },
+        get description() {
+            return t("settings.notifications.dispatch_alerts_description");
+        },
+        keywords:
+            "dispatch newspaper edition weekly monthly new issue out recap shows as desktop notification toast overlay notification center popup",
+    },
+    {
         id: "front-page-after-match",
         category: "notifications",
         get title() {

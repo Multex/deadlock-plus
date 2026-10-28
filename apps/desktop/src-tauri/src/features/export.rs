@@ -33,6 +33,7 @@ fn check_binary_request(default_name: Option<&str>, extension: Option<&str>, bod
 
 pub mod commands {
     use super::check_binary_request;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
     use tauri::ipc::{InvokeBody, Request};
     use tauri_plugin_dialog::DialogExt;
@@ -46,47 +47,51 @@ pub mod commands {
         extension: String,
         contents: String,
     ) -> Result<bool, AppError> {
-        dp_export::validate_request(&default_name, &extension)?;
-        let picked = tauri::async_runtime::spawn_blocking(move || {
-            app.dialog()
-                .file()
-                .set_file_name(default_name)
-                .add_filter(filter_name, &[extension.as_str()])
-                .blocking_save_file()
+        guarded(async move {
+            dp_export::validate_request(&default_name, &extension)?;
+            let picked = crate::command_panics::spawn_blocking_guarded(move || {
+                app.dialog()
+                    .file()
+                    .set_file_name(default_name)
+                    .add_filter(filter_name, &[extension.as_str()])
+                    .blocking_save_file()
+            })
+            .await?;
+            let Some(picked) = picked else { return Ok(false) };
+            let path = picked.into_path().map_err(AppError::io)?;
+            dp_export::write_export(&path, &contents)?;
+            Ok(true)
         })
         .await
-        .map_err(AppError::internal)?;
-        let Some(picked) = picked else { return Ok(false) };
-        let path = picked.into_path().map_err(AppError::io)?;
-        dp_export::write_export(&path, &contents)?;
-        Ok(true)
     }
 
     /// Like `save_text_file`, but the file bytes are the raw request body and the suggestion rides in the
     /// `x-default-name` and `x-extension` headers. The dialog filter is the upper-cased extension.
     #[tauri::command]
     pub async fn save_binary_file(app: tauri::AppHandle, request: Request<'_>) -> Result<bool, AppError> {
-        let InvokeBody::Raw(bytes) = request.body() else {
-            return Err(AppError::new(super::ExportError::SaveFailed).detail("export body was not raw bytes"));
-        };
-        let header = |name: &str| request.headers().get(name).and_then(|v| v.to_str().ok()).map(str::to_owned);
-        let default_name = header("x-default-name");
-        let extension = header("x-extension");
-        check_binary_request(default_name.as_deref(), extension.as_deref(), bytes.len())?;
-        let (default_name, extension) = (default_name.unwrap_or_default(), extension.unwrap_or_default());
-        let picked = tauri::async_runtime::spawn_blocking(move || {
-            app.dialog()
-                .file()
-                .set_file_name(default_name)
-                .add_filter(extension.to_uppercase(), &[extension.as_str()])
-                .blocking_save_file()
+        guarded(async move {
+            let InvokeBody::Raw(bytes) = request.body() else {
+                return Err(AppError::new(super::ExportError::SaveFailed).detail("export body was not raw bytes"));
+            };
+            let header = |name: &str| request.headers().get(name).and_then(|v| v.to_str().ok()).map(str::to_owned);
+            let default_name = header("x-default-name");
+            let extension = header("x-extension");
+            check_binary_request(default_name.as_deref(), extension.as_deref(), bytes.len())?;
+            let (default_name, extension) = (default_name.unwrap_or_default(), extension.unwrap_or_default());
+            let picked = crate::command_panics::spawn_blocking_guarded(move || {
+                app.dialog()
+                    .file()
+                    .set_file_name(default_name)
+                    .add_filter(extension.to_uppercase(), &[extension.as_str()])
+                    .blocking_save_file()
+            })
+            .await?;
+            let Some(picked) = picked else { return Ok(false) };
+            let path = picked.into_path().map_err(AppError::io)?;
+            dp_export::write_export(&path, bytes)?;
+            Ok(true)
         })
         .await
-        .map_err(AppError::internal)?;
-        let Some(picked) = picked else { return Ok(false) };
-        let path = picked.into_path().map_err(AppError::io)?;
-        dp_export::write_export(&path, bytes)?;
-        Ok(true)
     }
 }
 

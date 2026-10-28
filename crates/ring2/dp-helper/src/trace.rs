@@ -9,6 +9,7 @@ use dp_connection::{wire, Config, Packet, Status};
 use dp_frames::capture::{start_present_trace, CaptureError, Present};
 use dp_frames::line::{self, FrameLine};
 
+use crate::batch::{self, LineBatch};
 use crate::serve::{send, Out};
 use crate::sid::process_user_sid;
 
@@ -98,18 +99,26 @@ impl FrameFilter {
     }
 }
 
+/// Packet lines carry their own event time, so holding them this long changes no measurement.
+const NET_FLUSH_EVERY: Duration = Duration::from_millis(100);
+
 pub fn start_net(out: Out, sid: String) -> Sender<()> {
-    let status_out = out.clone();
-    dp_connection::start(Config {
+    let batch = Arc::new(Mutex::new(LineBatch::default()));
+    let (packets, statuses) = (batch.clone(), batch.clone());
+    let stop_trace = dp_connection::start(Config {
         wanted: Arc::new(move |pid| game_pid_for(&sid) == Some(pid)),
         sink: Arc::new(move |packet: Packet| {
-            send(&out, &packet_line(packet.inbound, packet.remote, packet.ticks_100ns));
+            let line = packet_line(packet.inbound, packet.remote, packet.ticks_100ns);
+            packets.lock().unwrap_or_else(PoisonError::into_inner).push(&line);
         }),
         remotes: Arc::new(Vec::new),
         on_status: Box::new(move |status| {
-            send(&status_out, &status_line(status));
+            statuses.lock().unwrap_or_else(PoisonError::into_inner).push(&status_line(status));
         }),
         prompt: false,
+    });
+    batch::spawn_flusher(batch, out, NET_FLUSH_EVERY, move || {
+        let _ = stop_trace.send(());
     })
 }
 

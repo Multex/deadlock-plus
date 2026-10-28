@@ -70,7 +70,9 @@
             "not_eligible": "Status text in the region leaderboard card heading. The user does not qualify yet. Keep short, about 18 characters.",
             "note": "Note under the region leaderboard heading. The Deadlock API is a service name. Valve is a company name and stays untranslated.",
             "recent_games": "Label of a progress bar in the region leaderboard card. {days} = number of days, e.g. 30.",
-            "total_games": "Label of a progress bar in the region leaderboard card for all games ever played on the account."
+            "total_games": "Label of a progress bar in the region leaderboard card for all games ever played on the account.",
+            "rank_error": "Error message. Shown on the Stats page in place of the rank section when the user's rank could not be loaded.",
+            "games_error": "Error message. Shown on the Stats page in place of the match list when the user's match history could not be loaded."
         },
         "page": {
             "matches_known": "Note on the Stats page. {count} = number of matches known, e.g. 120. The count may be 1 or more.",
@@ -78,7 +80,8 @@
         },
         "section": {
             "games": "Section heading on the Stats page above the match list. Keep short, about 12 characters."
-        }
+        },
+        "captured_only": "Notice shown on the Stats page when the Deadlock API (the data service) is unreachable. Only matches the app recorded on this PC are listed."
     },
     "rank": {
         "title": "Section heading on the Stats page for the user's competitive rank. Match the game's own wording. Keep short, about 8 characters.",
@@ -130,6 +133,7 @@
             "estimated": "Small note in the rank section. Rank is a guess from the rules, not yet confirmed by the Deadlock API (a service name). Plural forms, one or several matches.",
             "top_tier": "Note in the rank section shown at the highest rank. Subranks here depend on comparison with other top players, so no progress bar.",
             "progress": "Progress text under the rank bar. {within} = points gained in this rank, e.g. 12. {span} = points needed, e.g. 20. {next} = next rank name, e.g. \"Ritualist 4\".",
+            "progress_aria": "Screen reader label for the rank progress bar. {next} = name of the next rank, e.g. \"Archon 3\". Rank names are Deadlock game terms.",
             "progress_streak": "Progress text under the rank bar with win streak info. {within} = points gained, e.g. 12. {span} = points needed, e.g. 20. {next} = next rank name. {count} = wins needed in a row, e.g. 3. Plural forms.",
             "boundary": "Note in the rank section replacing the progress bar. The progress crossed a rank boundary but the Deadlock API (a service name) still shows the old badge.",
             "placement_left": "Note in the rank section. {count} = placement games still to play, e.g. 4. Placement games are the first ranked games."
@@ -281,7 +285,8 @@
                 "duration": "Tooltip on the match length in a match row.",
                 "kda_split": "Tooltip on the kills / deaths / assists figure in a match row. Keep the slashes.",
                 "kda_ratio": "Small text in a match row. {ratio} = kills plus assists per death, e.g. \"3.2\". KDA is the usual kills, deaths, assists abbreviation."
-            }
+            },
+            "error": "Error message. Shown on the Match History page when the match list could not be loaded."
         },
         "deep_dive": {
             "not_available": "Notice inside a match detail section when the data is missing for that match.",
@@ -508,6 +513,7 @@
                 "label": "Label in the grade tooltip, next to the numeric score and letter, on a player's row in the match scoreboard. Keep short, about 5 characters.",
                 "place_ordinal": "Ordinal place in the match, used inside the grade label. {place} = number, e.g. 2 gives \"2nd\". Plural forms by ordinal category. Adjust each form to your language.",
                 "aria": "Screen reader label for the grade chip on a player's scoreboard row. {letter} = grade letter, e.g. \"B+\". {score} = number, e.g. 78. {place} = ordinal place, e.g. \"2nd\".",
+                "chip_aria": "Screen reader label for a player's grade chip on the match page. {letter} = grade letter, e.g. A. {score} = score, e.g. 87. {place} = placement in the match, e.g. 2nd.",
                 "leaver": "Tooltip for a flag icon on the scoreboard. Warns that a player left early, which skews all grades in the match.",
                 "unchecked": "Tooltip for a flag icon on the scoreboard. Says leavers were not checked, so the grade uses the game's own match data.",
                 "farm_bonus": "Row label in the grade tooltip, followed by a number. A bonus score from the team's farming. Farm means collecting Souls from troopers and camps.",
@@ -552,7 +558,9 @@
                 "replay_recoverable": "Badge in the replay section of the missing match page. Replay is not there yet but can be recovered. Keep short, about 17 characters.",
                 "replay_recoverable_note": "Note in the replay section of the missing match page. The Deadlock API is a third party data service and stays untranslated.",
                 "replay_unrecoverable": "Badge in the replay section of the missing match page. Replay can never be recovered. Keep short, about 13 characters.",
-                "replay_unrecoverable_note": "Note in the replay section of the missing match page, shown with the unrecoverable badge."
+                "replay_unrecoverable_note": "Note in the replay section of the missing match page, shown with the unrecoverable badge.",
+                "badge_not_applicable": "Small badge on a match page that cannot have a scoreboard because of its game mode. Keep short, about 14 characters.",
+                "not_applicable": "Explanation on a match page with no scoreboard. Only ranked, unranked and Street Brawl are recovered. These are Deadlock game mode names, match the game's translation. Deadlock+ stays untranslated."
             },
             "replay_status": {
                 "available": "Badge on the match detail page. A replay can be watched. Keep short, about 16 characters.",
@@ -564,7 +572,8 @@
                 "recover": "Button next to the replay badge on the match detail page that starts recovering the replay. Keep short, about 14 characters.",
                 "recover_note": "Tooltip on the Recover replay button. Recovery uses part of a daily limit of 40 matches. Keep the number 40.",
                 "consent_note": "Tooltip on the Recover replay button when the user already agreed to recovery. Only this replay is recovered, background recovery stays off."
-            }
+            },
+            "load_error": "Error message. Shown on the match detail page when the match could not be loaded."
         },
         "ping": {
             "heading": "Section heading on the match detail page above the ping chart. Ping is network latency in milliseconds.",
@@ -610,7 +619,13 @@
             "resume": "Button in the recovery panel that continues a paused recovery. Keep short, about 6 characters.",
             "limit_note": "Status note in the recovery panel when the daily limit was reached. Recovery restarts by itself the next day.",
             "step_details": "Step label in the recovery panel progress. This step fills in missing match details. Keep short, about 15 characters.",
-            "step_replays": "Step label in the recovery panel progress. This step fetches replays of recent matches. Keep short, about 14 characters."
+            "step_replays": "Step label in the recovery panel progress. This step fetches replays of recent matches. Keep short, about 14 characters.",
+            "start_failed": "Toast shown when starting the recovery of past matches failed.",
+            "pause_failed": "Toast shown when pausing the recovery of past matches failed.",
+            "resume_failed": "Toast shown when resuming the recovery of past matches failed.",
+            "cancel_failed": "Toast shown when stopping the recovery of past matches failed.",
+            "match_failed": "Toast shown when recovering a single match failed.",
+            "replay_failed": "Toast shown when recovering a single match from its replay file failed."
         },
         "row_state": {
             "missing": "Small badge on a row in the match history list. The match has no scoreboard details. Keep short, about 10 characters.",
@@ -692,6 +707,7 @@
             "grade": "Screen reader column header in the front page player table for the letter grade."
         },
         "open": "Button on the match detail page that opens the newspaper style front page recap for the match. Keep short, about 10 characters.",
+        "open_match": "Button on the post match front page (newspaper style recap). Opens the full match page. Keep short, about 15 characters.",
         "close": "Button that closes the front page dialog. Keep short, about 5 characters.",
         "dialog": "Screen reader label for the front page dialog. {id} = match ID number, e.g. 12345678.",
         "loading": "Loading message while the front page newspaper is being built.",

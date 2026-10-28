@@ -75,6 +75,7 @@
     const compact = (n: number) => formatCompact(n) ?? "0";
     const teamName = (b: BoardTeam) =>
         b.team === "hidden-king" ? t("match_history.team.hidden_king") : t("match_history.team.archmother");
+    const teamColour = (b: BoardTeam) => (b.team === "hidden-king" ? "var(--dd-hk)" : "var(--dd-am)");
 
     const rowIcon: Record<BoardRowKey, Component> = {
         items: Package,
@@ -262,8 +263,8 @@
         style:--item-cols={ITEM_GRID_COLUMNS}
         style:--item-size="{ITEM_TILE_PX}px"
         style:--item-gap="{ITEM_GAP_PX}px"
-        style:--bar-left="var(--team-{boards[0].team})"
-        style:--bar-right="var(--team-{boards[1].team})"
+        style:--bar-left={teamColour(boards[0])}
+        style:--bar-right={teamColour(boards[1])}
     >
         <table
             aria-label={t("match_history.detail.board.label")}

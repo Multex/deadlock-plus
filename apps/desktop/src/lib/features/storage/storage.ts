@@ -34,6 +34,7 @@ export const ENTRY_IDS: EntryId[] = [
     "match-ping",
     "mvp-grades",
     "shared-matches",
+    "dispatch-editions",
     "other-app-files",
     "logs",
 ];
@@ -159,6 +160,10 @@ export const ENTRY_META: Record<EntryId, EntryMeta> = {
     "shared-matches": {
         owner: "deadlock-plus",
         kind: "history",
+    },
+    "dispatch-editions": {
+        owner: "deadlock-plus",
+        kind: "yours",
     },
     "replay-info-cache": {
         owner: "deadlock-plus",

@@ -357,6 +357,7 @@ fn spawn_indexer_thread(app: &AppHandle) {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use crate::features::error::{error_codes, AppError};
 
     error_codes! {
@@ -375,7 +376,10 @@ pub mod commands {
         state: tauri::State<'_, PatchNotesState>,
         id: String,
     ) -> Result<Option<PatchDetail>, AppError> {
-        Ok(state.with_index(&app, |index| index.patches.iter().find(|p| p.id == id).map(PatchDetail::from)))
+        guarded(async move {
+            Ok(state.with_index(&app, |index| index.patches.iter().find(|p| p.id == id).map(PatchDetail::from)))
+        })
+        .await
     }
 
     /// Runs off the async runtime: loading/optimising the ONNX graph and running inference are
@@ -386,13 +390,18 @@ pub mod commands {
         state: tauri::State<'_, PatchNotesState>,
         query: String,
     ) -> Result<Vec<PatchSearchResult>, AppError> {
-        if query.trim().is_empty() {
-            return Ok(Vec::new());
-        }
-        let index = state.snapshot(&app);
-        tauri::async_runtime::spawn_blocking(move || search::search(&index, &query, embed::embedder, RESULT_LIMIT))
+        guarded(async move {
+            if query.trim().is_empty() {
+                return Ok(Vec::new());
+            }
+            let index = state.snapshot(&app);
+            crate::command_panics::spawn_blocking_guarded(move || {
+                search::search(&index, &query, embed::embedder, RESULT_LIMIT)
+            })
             .await
             .map_err(|e| AppError::new(PatchNotesError::SearchFailed).detail(e))
+        })
+        .await
     }
 }
 

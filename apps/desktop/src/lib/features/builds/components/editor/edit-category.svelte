@@ -88,6 +88,7 @@
     const caret = $derived(dropIndex === null ? null : itemCaret(slots, dropIndex, shop, screen));
     const shifts = $derived(chipShifts(view.chips, dropIndex, Math.max(3, 6 * shop.unit)));
     const active = $derived(editor.activeCategory === index);
+    const displayName = $derived(category.name || t("builds.editor.unnamed"));
     const warn = $derived(tag.unsafe || rowWraps);
     // Below three columns the header controls have room for the menu only.
     const narrow = $derived(tag.columns < 3);
@@ -151,7 +152,7 @@
 
     function headerDown(event: PointerEvent) {
         if (renaming || interactive(event.target)) return;
-        drag.begin({ kind: "category", index }, event, { label: category.name || t("builds.editor.unnamed") });
+        drag.begin({ kind: "category", index }, event, { label: displayName });
     }
 
     let draft = $state("");
@@ -288,7 +289,7 @@
     );
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <div
     class="category"
     class:optional={category.optional}
@@ -299,9 +300,8 @@
     class:straining={resizing?.row === "pulling"}
     class:warn={warn && !!resizing}
     class:target={dropIndex !== null}
-    role="listbox"
-    aria-multiselectable="true"
-    aria-label={category.name || t("builds.editor.unnamed")}
+    role="group"
+    aria-label={displayName}
     tabindex="-1"
     data-category={index}
     style:left="{view.box.x}px"
@@ -328,7 +328,7 @@
         {:else}
             <CategoryTitle
                 {category}
-                label={category.name || t("builds.editor.unnamed")}
+                label={displayName}
                 unnamed={!category.name}
                 unit={shop.unit}
                 reserve={controlsWidth}
@@ -399,7 +399,13 @@
         ></div>
     {/if}
 
-    <div class="chips" style:height="{Math.max(0, innerHeight)}px">
+    <div
+        class="chips"
+        role="listbox"
+        aria-multiselectable="true"
+        aria-label={displayName}
+        style:height="{Math.max(0, innerHeight)}px"
+    >
         {#each view.chips as chip, i (i)}
             {@const box = local(chip)}
             {@const mod = category.mods[i]}

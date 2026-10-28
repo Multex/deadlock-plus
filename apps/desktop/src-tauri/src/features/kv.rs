@@ -15,42 +15,37 @@ fn store_failed(source: String) -> AppError {
     AppError::new(KvError::StoreFailed).detail(source)
 }
 
+/// Store files are rewritten whole and synced to disk, which takes long enough on a large store to
+/// stall the window if it ran on the main thread.
+async fn on_worker<R: Send + 'static>(
+    app: tauri::AppHandle,
+    run: impl FnOnce(&dp_kv::KvStore, &std::path::Path) -> Result<R, String> + Send + 'static,
+) -> Result<R, AppError> {
+    let dir = dir(&app)?;
+    crate::command_panics::spawn_blocking_guarded(move || run(&app.state::<dp_kv::KvStore>(), &dir))
+        .await?
+        .map_err(store_failed)
+}
+
 pub mod commands {
-    use super::{dir, store_failed};
+    use super::on_worker;
+    use crate::command_panics::guarded;
     use crate::features::error::AppError;
-    use dp_kv::KvStore;
     use serde_json::Value;
-    use tauri::State;
 
     #[tauri::command]
-    pub fn kv_get(
-        app: tauri::AppHandle,
-        kv: State<'_, KvStore>,
-        store: String,
-        key: String,
-    ) -> Result<Option<Value>, AppError> {
-        kv.get(&dir(&app)?, &store, &key).map_err(store_failed)
+    pub async fn kv_get(app: tauri::AppHandle, store: String, key: String) -> Result<Option<Value>, AppError> {
+        guarded(async move { on_worker(app, move |kv, dir| kv.get(dir, &store, &key)).await }).await
     }
 
     #[tauri::command]
-    pub fn kv_set(
-        app: tauri::AppHandle,
-        kv: State<'_, KvStore>,
-        store: String,
-        key: String,
-        value: Value,
-    ) -> Result<(), AppError> {
-        kv.set(&dir(&app)?, &store, &key, value).map_err(store_failed)
+    pub async fn kv_set(app: tauri::AppHandle, store: String, key: String, value: Value) -> Result<(), AppError> {
+        guarded(async move { on_worker(app, move |kv, dir| kv.set(dir, &store, &key, value)).await }).await
     }
 
     #[tauri::command]
-    pub fn kv_delete(
-        app: tauri::AppHandle,
-        kv: State<'_, KvStore>,
-        store: String,
-        key: String,
-    ) -> Result<(), AppError> {
-        kv.delete(&dir(&app)?, &store, &key).map_err(store_failed)
+    pub async fn kv_delete(app: tauri::AppHandle, store: String, key: String) -> Result<(), AppError> {
+        guarded(async move { on_worker(app, move |kv, dir| kv.delete(dir, &store, &key)).await }).await
     }
 }
 

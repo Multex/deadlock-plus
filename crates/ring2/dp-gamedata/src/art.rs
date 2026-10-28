@@ -1,9 +1,9 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
 use std::time::UNIX_EPOCH;
 
-use deadlock_data::art::{Art, ArtArchive, HeroArtKind, ItemArtKind, MinimapArtKind, RankArtKind};
+use deadlock_data::art::{Art, ArtArchive, HeroArtKind, Image, ItemArtKind, MinimapArtKind, RankArtKind};
 use serde::{Deserialize, Serialize};
 use source2::vpk::Vpk;
 use ts_rs::TS;
@@ -20,9 +20,14 @@ pub enum HeroImage {
     Sm,
     Card,
     Mm,
+    /// The card with the hero smug, as the game shows it after a win.
+    CardGloat,
+    /// The card with the hero battered, as the game shows it at low health.
+    CardCritical,
 }
 
 impl HeroImage {
+    /// The images `hero_art` serves, in its field order. The mood cards are fetched one by one instead.
     const ALL: [HeroImage; 3] = [HeroImage::Sm, HeroImage::Card, HeroImage::Mm];
 
     fn suffix(self) -> &'static str {
@@ -30,6 +35,8 @@ impl HeroImage {
             HeroImage::Sm => "sm",
             HeroImage::Card => "card",
             HeroImage::Mm => "mm",
+            HeroImage::CardGloat => "card_gloat",
+            HeroImage::CardCritical => "card_critical",
         }
     }
 }
@@ -654,6 +661,11 @@ pub enum Miss {
 /// Where decoded images come from. Each `write_*` returns `Ok` once `dest` holds a complete PNG.
 pub trait ArtSource: Send + Sync + 'static {
     fn write_hero(&self, class_name: &str, image: HeroImage, dest: &Path) -> Result<(), Miss>;
+    /// Writes the hero's backdrop, a half-size PNG of the game's 4096x2312 art. A separate call because
+    /// decoding it costs far more than the other hero images together.
+    fn write_backdrop(&self, _class_name: &str, _dest: &Path) -> Result<(), Miss> {
+        Err(Miss::Absent)
+    }
     fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss>;
     fn write_ability(&self, class_name: &str, dest: &Path) -> Result<(), Miss>;
     fn write_item(&self, class_name: &str, image: ItemImage, dest: &Path) -> Result<(), Miss>;
@@ -667,13 +679,26 @@ pub trait ArtSource: Send + Sync + 'static {
     }
 }
 
+/// The game's hero-select stylesheet; each `.hero_<class>` rule names that hero's backdrop texture.
+const BACKDROP_STYLESHEET: &str = "panorama/styles/hero_backgrounds/hero_background_default.vcss_c";
+
 struct ArchiveSource {
     art: ArtArchive,
     /// `ArtArchive` keeps its own archive handle private, so UI images need a second one.
     vpk: Vpk,
+    /// Backdrop texture per hero class, read from `BACKDROP_STYLESHEET` on first use.
+    backdrops: OnceLock<HashMap<String, String>>,
 }
 
 impl ArchiveSource {
+    fn backdrop_paths(&self) -> Result<&HashMap<String, String>, Miss> {
+        if let Some(paths) = self.backdrops.get() {
+            return Ok(paths);
+        }
+        let css = self.ui_stylesheet(BACKDROP_STYLESHEET)?;
+        Ok(self.backdrops.get_or_init(|| backdrop_paths(&css)))
+    }
+
     fn read_ui(&self, compiled_path: &str) -> Result<Vec<u8>, Miss> {
         self.vpk.read_path(compiled_path).map_err(|e| {
             log::debug!("no game UI file {compiled_path}: {e}");
@@ -704,8 +729,25 @@ impl ArtSource for ArchiveSource {
             HeroImage::Sm => HeroArtKind::Sm,
             HeroImage::Card => HeroArtKind::Card,
             HeroImage::Mm => HeroArtKind::Mm,
+            HeroImage::CardGloat => HeroArtKind::CardGloat,
+            HeroImage::CardCritical => HeroArtKind::CardCritical,
         };
         self.write(&Art::hero(class_name, kind), dest, &format!("{class_name} {}", image.suffix()))
+    }
+
+    fn write_backdrop(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
+        let compiled = self.backdrop_paths()?.get(class_name).ok_or(Miss::Absent)?;
+        let bytes = self.read_ui(compiled)?;
+        let png = ui_art::decoded_image(compiled, &bytes)
+            .and_then(|image| downscale_half(&image).to_png().map_err(|e| format!("{compiled}: {e}")))
+            .map_err(|e| {
+                log::debug!("no local backdrop for {class_name}: {e}");
+                Miss::Absent
+            })?;
+        write_whole(dest, &png).map_err(|e| {
+            log::debug!("no local backdrop for {class_name}: {}: {e}", dest.display());
+            Miss::Transient
+        })
     }
 
     fn write_rank(&self, tier: u8, image: RankImage, dest: &Path) -> Result<(), Miss> {
@@ -756,6 +798,53 @@ impl ArtSource for ArchiveSource {
             Miss::Absent
         })
     }
+}
+
+/// Hero class to compiled backdrop path, from the hero-select stylesheet's
+/// `.hero_<class> #CustomHeroBackground #HeroBackground` rules.
+fn backdrop_paths(css: &str) -> HashMap<String, String> {
+    const SELECTOR: &str = "#CustomHeroBackground #HeroBackground";
+    const DIR: &str = "images/heroes/backgrounds/";
+    let mut out = HashMap::new();
+    for rule in css.split('}') {
+        let Some((selector, body)) = rule.split_once('{') else { continue };
+        let Some(class) = selector.trim().strip_suffix(SELECTOR).and_then(|c| c.trim().strip_prefix('.')) else {
+            continue;
+        };
+        if !class.starts_with("hero_") || class.contains(char::is_whitespace) {
+            continue;
+        }
+        let Some(file) = body.split_once(DIR).and_then(|(_, rest)| rest.split_once(".vtex")) else { continue };
+        out.insert(class.to_string(), format!("panorama/{DIR}{}.vtex_c", file.0));
+    }
+    out
+}
+
+/// Halves each side by averaging 2x2 blocks. Colour is weighted by alpha so the hidden colour of a transparent
+/// pixel never bleeds into a cutout's edge. An odd last row or column is dropped.
+fn downscale_half(image: &Image) -> Image {
+    let (width, height) = ((image.width / 2).max(1), (image.height / 2).max(1));
+    let at = |x: u32, y: u32| {
+        let i = (y.min(image.height - 1) as usize * image.width as usize + x.min(image.width - 1) as usize) * 4;
+        &image.rgba[i..i + 4]
+    };
+    let mut rgba = Vec::with_capacity(width as usize * height as usize * 4);
+    for y in 0..height {
+        for x in 0..width {
+            let block = [at(2 * x, 2 * y), at(2 * x + 1, 2 * y), at(2 * x, 2 * y + 1), at(2 * x + 1, 2 * y + 1)];
+            let weight: u32 = block.iter().map(|p| u32::from(p[3])).sum();
+            if weight == 0 {
+                rgba.extend_from_slice(&[0; 4]);
+                continue;
+            }
+            for channel in 0..3 {
+                let sum: u32 = block.iter().map(|p| u32::from(p[channel]) * u32::from(p[3])).sum();
+                rgba.push(((sum + weight / 2) / weight) as u8);
+            }
+            rgba.push(((weight + 2) / 4) as u8);
+        }
+    }
+    Image { width, height, rgba }
 }
 
 /// Writes beside `dest` and renames, so a file that exists is always complete.
@@ -854,7 +943,7 @@ fn open_archive(citadel_dir: &Path) -> Option<Arc<dyn ArtSource>> {
     let vpk = Vpk::open(citadel_dir.join(deadlock_data::vdata::ARCHIVE))
         .map_err(|e| log::debug!("game UI art unavailable: {e}"))
         .ok()?;
-    Some(Arc::new(ArchiveSource { art, vpk }))
+    Some(Arc::new(ArchiveSource { art, vpk, backdrops: OnceLock::new() }))
 }
 
 fn fingerprint(dir: &Path) -> Option<String> {
@@ -916,23 +1005,35 @@ impl<I: Install> ArtCache<I> {
                 if !file_safe(&hero.class_name) {
                     continue;
                 }
-                let mut entry = HeroArt { id: hero.id, sm: None, card: None, mm: None };
-                for image in HeroImage::ALL {
-                    let name = format!("{}_{}.png", hero.class_name, image.suffix());
-                    let found = self.ensure(build, build_dir, name, |s, p| s.write_hero(&hero.class_name, image, p));
-                    match image {
-                        HeroImage::Sm => entry.sm = found,
-                        HeroImage::Card => entry.card = found,
-                        HeroImage::Mm => entry.mm = found,
-                    }
-                }
-                if entry.sm.is_some() || entry.card.is_some() || entry.mm.is_some() {
-                    out.push(entry);
+                let [sm, card, mm] = HeroImage::ALL.map(|image| self.ensure_hero(build, build_dir, hero, image));
+                if sm.is_some() || card.is_some() || mm.is_some() {
+                    out.push(HeroArt { id: hero.id, sm, card, mm });
                 }
             }
             out
         })
         .unwrap_or_default()
+    }
+
+    /// One hero image, decoded on the first ask. `None` when the hero has none or the game cannot be read.
+    pub fn hero_image(&self, hero: &HeroEntry, image: HeroImage) -> Option<String> {
+        if !file_safe(&hero.class_name) {
+            return None;
+        }
+        self.with_build(|build, build_dir| self.ensure_hero(build, build_dir, hero, image)).flatten()
+    }
+
+    /// The hero's backdrop: a half-size PNG of the game's 4096x2312 hero-coloured silhouette, decoded on the
+    /// first ask and kept in the build directory. `None` when the hero has none or the game cannot be read.
+    pub fn hero_backdrop(&self, hero: &HeroEntry) -> Option<String> {
+        if !file_safe(&hero.class_name) {
+            return None;
+        }
+        self.with_build(|build, build_dir| {
+            let name = format!("{}_bg.png", hero.class_name);
+            self.ensure(build, build_dir, name, |s, p| s.write_backdrop(&hero.class_name, p))
+        })
+        .flatten()
     }
 
     /// Local `lg` and `chalk` badge files per rank tier, decoding what the cache lacks. Tiers with no
@@ -1024,6 +1125,12 @@ impl<I: Install> ArtCache<I> {
     /// art calls wait for one image at most. Card art comes first and the large tooltip backers last.
     /// Returns how many files it wrote.
     pub fn warm_ui_art(&self) -> usize {
+        self.warm_ui_art_gated(&|| {})
+    }
+
+    /// `warm_ui_art`, calling `gate` before each image so the caller can hold the pass, for example while the
+    /// game runs.
+    fn warm_ui_art_gated(&self, gate: &dyn Fn()) -> usize {
         let rules = self.with_build(|build, _| self.source(build).is_some().then(|| self.icon_rules(build)));
         let Some(rules) = rules.flatten() else { return 0 };
         let shop = |image: ShopUiImage| (shop_ui_file_name(image), image.compiled_path().to_string());
@@ -1034,13 +1141,17 @@ impl<I: Install> ArtCache<I> {
             .map(shop)
             .chain(icons)
             .chain(large.into_iter().map(shop))
-            .filter(|(name, compiled)| self.warm_one(name, compiled))
+            .filter(|(name, compiled)| {
+                gate();
+                self.warm_one(name, compiled)
+            })
             .count()
     }
 
     /// Starts the one thread that runs `warm_ui_art`: now, and again whenever an art call finds a new game
-    /// build. `on_ready` runs after each pass that wrote files. A second call does nothing.
-    pub fn warm_in_background(&self, on_ready: impl Fn() + Send + 'static) {
+    /// build. `gate` runs before each image and may block to hold the pass. `on_ready` runs after each pass
+    /// that wrote files. A second call does nothing.
+    pub fn warm_in_background(&self, gate: impl Fn() + Send + 'static, on_ready: impl Fn() + Send + 'static) {
         let (tx, rx) = mpsc::channel();
         if self.shared.warm.set(tx.clone()).is_err() {
             return;
@@ -1051,7 +1162,7 @@ impl<I: Install> ArtCache<I> {
             while rx.recv().is_ok() {
                 while rx.try_recv().is_ok() {}
                 let Some(shared) = Weak::upgrade(&shared) else { return };
-                if (ArtCache { shared }).warm_ui_art() > 0 {
+                if (ArtCache { shared }).warm_ui_art_gated(&gate) > 0 {
                     on_ready();
                 }
             }
@@ -1206,6 +1317,11 @@ impl<I: Install> ArtCache<I> {
         out
     }
 
+    fn ensure_hero(&self, build: &mut Build, build_dir: &Path, hero: &HeroEntry, image: HeroImage) -> Option<String> {
+        let name = format!("{}_{}.png", hero.class_name, image.suffix());
+        self.ensure(build, build_dir, name, |s, p| s.write_hero(&hero.class_name, image, p))
+    }
+
     fn ensure(
         &self,
         build: &mut Build,
@@ -1286,6 +1402,10 @@ mod tests {
 
     impl ArtSource for FakeSource {
         fn write_hero(&self, class_name: &str, _image: HeroImage, dest: &Path) -> Result<(), Miss> {
+            self.write_class(class_name, dest)
+        }
+
+        fn write_backdrop(&self, class_name: &str, dest: &Path) -> Result<(), Miss> {
             self.write_class(class_name, dest)
         }
 
@@ -1475,6 +1595,141 @@ mod tests {
         assert_eq!(art.len(), 1);
         assert!(art[0].sm.is_none());
         assert!(art[0].card.is_some());
+    }
+
+    #[test]
+    fn a_backdrop_is_decoded_once_into_its_own_file() {
+        let rig = Rig::new("backdrop", &[]);
+        let cache = rig.cache();
+        let heroes = hero(1, "hero_inferno");
+        let path = PathBuf::from(cache.hero_backdrop(&heroes).unwrap());
+        assert_eq!(path.file_name().unwrap(), "hero_inferno_bg.png");
+        assert!(path.is_file() && path.starts_with(&rig.root));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+        assert_eq!(cache.hero_backdrop(&heroes), Some(path.to_string_lossy().into_owned()));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn hero_art_never_decodes_the_backdrop() {
+        let rig = Rig::new("backdrop-lazy", &[]);
+        let art = rig.cache().hero_art(&[hero(1, "hero_inferno")]);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 3);
+        let card = PathBuf::from(art[0].card.as_ref().unwrap());
+        assert!(!card.with_file_name("hero_inferno_bg.png").exists());
+    }
+
+    #[test]
+    fn a_hero_without_a_backdrop_has_none_and_is_not_retried() {
+        let rig = Rig::new("backdrop-missing", &["hero_vindicta"]);
+        let cache = rig.cache();
+        let heroes = hero(2, "hero_vindicta");
+        assert_eq!(cache.hero_backdrop(&heroes), None);
+        assert_eq!(cache.hero_backdrop(&heroes), None);
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn a_class_name_that_is_not_file_safe_reaches_no_archive() {
+        let rig = Rig::new("backdrop-unsafe", &[]);
+        assert_eq!(rig.cache().hero_backdrop(&hero(1, "../hero_inferno")), None);
+        assert_eq!(rig.opens.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn a_mood_card_is_decoded_once_into_its_own_file() {
+        let rig = Rig::new("mood", &[]);
+        let cache = rig.cache();
+        let inferno = hero(1, "hero_inferno");
+        let gloat = PathBuf::from(cache.hero_image(&inferno, HeroImage::CardGloat).unwrap());
+        let critical = PathBuf::from(cache.hero_image(&inferno, HeroImage::CardCritical).unwrap());
+        assert_eq!(gloat.file_name().unwrap(), "hero_inferno_card_gloat.png");
+        assert_eq!(critical.file_name().unwrap(), "hero_inferno_card_critical.png");
+        assert!(gloat.is_file() && gloat.starts_with(&rig.root));
+        assert!(critical.is_file() && critical.starts_with(&rig.root));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+        assert_eq!(cache.hero_image(&inferno, HeroImage::CardGloat), Some(gloat.to_string_lossy().into_owned()));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn hero_art_never_decodes_the_mood_cards() {
+        let rig = Rig::new("mood-lazy", &[]);
+        let art = rig.cache().hero_art(&[hero(1, "hero_inferno")]);
+        let card = PathBuf::from(art[0].card.as_ref().unwrap());
+        assert!(!card.with_file_name("hero_inferno_card_gloat.png").exists());
+        assert!(!card.with_file_name("hero_inferno_card_critical.png").exists());
+    }
+
+    #[test]
+    fn a_hero_without_a_mood_card_has_none() {
+        let rig = Rig::new("mood-missing", &["hero_vindicta"]);
+        let cache = rig.cache();
+        assert_eq!(cache.hero_image(&hero(2, "hero_vindicta"), HeroImage::CardCritical), None);
+        assert_eq!(cache.hero_image(&hero(1, "../hero_inferno"), HeroImage::CardGloat), None);
+    }
+
+    #[test]
+    fn the_hero_select_stylesheet_names_each_heros_backdrop() {
+        let css = r#"
+#CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/generic_bg_psd.vtex");
+}
+
+.hero_atlas #CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/abrams_bg_psd.vtex");
+}
+
+.hero_bookworm #CustomHeroBackground #HeroBackground
+{
+	background-image: url("s2r://panorama/images/heroes/backgrounds/patience_bg_psd.vtex");
+}
+
+.AspectRatio16x10 #CustomHeroBackground #HeroBackground
+{
+	background-size: cover;
+}
+
+.ShowPregame .hero_forge #CustomHeroBackground .HeroIntro2DElement
+{
+	visibility: visible;
+}
+
+.hero_forge #CustomHeroBackground #HeroBackground
+{
+	saturation: 1;
+}
+"#;
+        let paths = backdrop_paths(css);
+        assert_eq!(paths.len(), 2, "{paths:?}");
+        assert_eq!(paths["hero_atlas"], "panorama/images/heroes/backgrounds/abrams_bg_psd.vtex_c");
+        assert_eq!(paths["hero_bookworm"], "panorama/images/heroes/backgrounds/patience_bg_psd.vtex_c");
+    }
+
+    #[test]
+    fn halving_averages_blocks_and_ignores_the_colour_of_transparent_pixels() {
+        let image = Image {
+            width: 4,
+            height: 2,
+            #[rustfmt::skip]
+            rgba: vec![
+                255, 0, 0, 255,   0, 0, 255, 0,   10, 20, 30, 255,   10, 20, 30, 255,
+                255, 0, 0, 255,   0, 255, 0, 0,   10, 20, 30, 255,   10, 20, 30, 255,
+            ],
+        };
+        let half = downscale_half(&image);
+        assert_eq!((half.width, half.height), (2, 1));
+        assert_eq!(half.rgba, vec![255, 0, 0, 128, 10, 20, 30, 255]);
+    }
+
+    #[test]
+    fn halving_keeps_a_one_pixel_side_and_fully_transparent_blocks_clear() {
+        let image = Image { width: 2, height: 1, rgba: vec![9, 9, 9, 0, 7, 7, 7, 0] };
+        let half = downscale_half(&image);
+        assert_eq!((half.width, half.height), (1, 1));
+        assert_eq!(half.rgba, vec![0, 0, 0, 0]);
     }
 
     struct MmOnly(Arc<FakeSource>);
@@ -2388,9 +2643,12 @@ mod tests {
 
     fn reports(cache: &ArtCache<FakeInstall>) -> std::sync::mpsc::Receiver<()> {
         let (tx, rx) = std::sync::mpsc::channel();
-        cache.warm_in_background(move || {
-            let _ = tx.send(());
-        });
+        cache.warm_in_background(
+            || {},
+            move || {
+                let _ = tx.send(());
+            },
+        );
         rx
     }
 
@@ -2407,6 +2665,41 @@ mod tests {
         assert_eq!(cache.property_icon_art().len(), 4);
         assert_eq!(cache.warm_ui_art(), 0);
         assert_eq!(rig.source.writes.load(Ordering::Relaxed), writes);
+    }
+
+    #[test]
+    fn warming_passes_the_gate_before_every_image() {
+        let rig = warm_rig("warm-gate");
+        let cache = rig.cache();
+        let seen = std::cell::RefCell::new(Vec::new());
+        let written = cache.warm_ui_art_gated(&|| seen.borrow_mut().push(rig.source.writes.load(Ordering::Relaxed)));
+        let seen = seen.into_inner();
+        assert!(written > 0);
+        // Each image is gated before it is written, so writes rise by at most one between gates.
+        assert_eq!(seen.first(), Some(&0));
+        assert!(seen.windows(2).all(|w| w[1] - w[0] <= 1), "{seen:?}");
+        assert!(seen.len() >= written);
+    }
+
+    #[test]
+    fn background_warming_writes_nothing_while_the_gate_holds() {
+        let rig = warm_rig("warm-held");
+        let cache = rig.cache();
+        let hold = Arc::new(Mutex::new(()));
+        let held = hold.lock().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let gate = Arc::clone(&hold);
+        cache.warm_in_background(
+            move || drop(gate.lock()),
+            move || {
+                let _ = tx.send(());
+            },
+        );
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        assert_eq!(rig.source.writes.load(Ordering::Relaxed), 0);
+        drop(held);
+        rx.recv_timeout(PASS).expect("warming finished once the gate opened");
+        assert!(rig.source.writes.load(Ordering::Relaxed) > 0);
     }
 
     #[test]
@@ -2681,6 +2974,71 @@ mod tests {
             }
         }
         assert!(failed.is_empty(), "icons that did not decode: {failed:?}");
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_decodes_hero_backdrops_at_half_size() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-backdrop-real-{}", std::process::id()));
+        let css = open_archive(&dir).and_then(|s| s.ui_stylesheet(BACKDROP_STYLESHEET).ok()).expect("the stylesheet");
+        assert!(backdrop_paths(&css).len() >= 40, "{:?}", backdrop_paths(&css).len());
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        for class in ["hero_inferno", "hero_haze", "hero_atlas", "hero_bookworm"] {
+            let path = cache.hero_backdrop(&hero(1, class)).unwrap_or_else(|| panic!("{class} has no backdrop"));
+            let bytes = fs::read(&path).unwrap();
+            assert_eq!(&bytes[1..4], b"PNG");
+            assert_eq!(u32::from_be_bytes(bytes[16..20].try_into().unwrap()), 2048, "{class} width");
+            assert_eq!(u32::from_be_bytes(bytes[20..24].try_into().unwrap()), 1156, "{class} height");
+            println!("{class}: {} bytes at {path}", bytes.len());
+        }
+        if std::env::var_os("KEEP_UI_ART").is_none() {
+            fs::remove_dir_all(root).ok();
+        }
+    }
+
+    #[test]
+    #[ignore = "needs DEADLOCK_CITADEL_DIR pointing at an installed game"]
+    fn a_real_install_has_both_mood_cards_for_every_playable_hero() {
+        let dir = PathBuf::from(std::env::var("DEADLOCK_CITADEL_DIR").expect("DEADLOCK_CITADEL_DIR"));
+        let root = std::env::temp_dir().join(format!("dp-gamedata-mood-real-{}", std::process::id()));
+        let heroes = crate::catalog::GameData::new(FakeInstall(Mutex::new(Some(dir.clone())))).heroes("en");
+        // The practice-range target dummy is listed as selectable but is not a hero and has no cards.
+        let playable: Vec<_> = heroes
+            .iter()
+            .filter(|h| h.selectable && !h.disabled && !h.in_development && h.class_name != "hero_targetdummy")
+            .collect();
+        assert!(playable.len() >= 40, "{} playable heroes", playable.len());
+        let archive = ArtArchive::open(&dir).unwrap();
+        let cache = ArtCache::with_opener(FakeInstall(Mutex::new(Some(dir))), root.clone(), Box::new(open_archive));
+        let mut missing = Vec::new();
+        for hero in playable {
+            for (image, kind) in
+                [(HeroImage::CardGloat, HeroArtKind::CardGloat), (HeroImage::CardCritical, HeroArtKind::CardCritical)]
+            {
+                match cache.hero_image(hero, image) {
+                    Some(path) => {
+                        let bytes = fs::read(&path).unwrap();
+                        let (w, h) = (
+                            u32::from_be_bytes(bytes[16..20].try_into().unwrap()),
+                            u32::from_be_bytes(bytes[20..24].try_into().unwrap()),
+                        );
+                        println!(
+                            "{} {}: {} {w}x{h}",
+                            hero.id,
+                            hero.name,
+                            archive.path(&Art::hero(&hero.class_name, kind))
+                        );
+                    }
+                    None => missing.push(format!("{} {} {}", hero.id, hero.class_name, image.suffix())),
+                }
+            }
+        }
+        println!("cached under {}", root.display());
+        if std::env::var_os("KEEP_UI_ART").is_none() {
+            fs::remove_dir_all(root).ok();
+        }
+        assert!(missing.is_empty(), "heroes without a mood card: {missing:?}");
     }
 
     #[test]

@@ -385,13 +385,22 @@ pub fn plugin<R: tauri::Runtime>(dir: &Path) -> io::Result<tauri::plugin::TauriP
 pub fn install_panic_hook() {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        let message = info.to_string();
         let backtrace = std::backtrace::Backtrace::force_capture().to_string();
-        crate::features::crash::record_panic(&message, &backtrace);
-        log::error!("{message}\n{backtrace}");
-        log::logger().flush();
+        report_panic(&info.to_string(), &backtrace, crate::features::crash::record_panic);
         previous(info);
     }));
+}
+
+/// A panic inside a command body is answered with `common.internal` and the app keeps running, so it is logged
+/// but leaves no crash marker for the next launch's crash dialog.
+pub(crate) fn report_panic(message: &str, backtrace: &str, record_crash: impl FnOnce(&str, &str)) {
+    if crate::command_panics::panic_is_handled() {
+        log::error!("a command panicked and answered common.internal: {message}\n{backtrace}");
+    } else {
+        record_crash(message, backtrace);
+        log::error!("{message}\n{backtrace}");
+    }
+    log::logger().flush();
 }
 
 pub fn log_startup(app: &tauri::AppHandle) {
@@ -406,6 +415,7 @@ pub fn log_startup(app: &tauri::AppHandle) {
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
     use tauri::Manager;
 
     const MAX_RETURNED: usize = 2000;
@@ -427,30 +437,34 @@ pub mod commands {
 
     #[tauri::command]
     pub async fn read_logs(app: tauri::AppHandle) -> Result<Vec<LogEntry>, AppError> {
-        tauri::async_runtime::spawn_blocking(move || {
-            let mut entries = parse_entries(&read_current(&app)?);
-            let excess = entries.len().saturating_sub(MAX_RETURNED);
-            entries.drain(..excess);
-            Ok(entries)
+        guarded(async move {
+            crate::command_panics::spawn_blocking_guarded(move || {
+                let mut entries = parse_entries(&read_current(&app)?);
+                let excess = entries.len().saturating_sub(MAX_RETURNED);
+                entries.drain(..excess);
+                Ok(entries)
+            })
+            .await?
         })
         .await
-        .map_err(AppError::internal)?
     }
 
     /// The current session at debug level, with user names in paths masked, ready to paste into a bug report.
     #[tauri::command]
     pub async fn export_logs(app: tauri::AppHandle) -> Result<String, AppError> {
-        tauri::async_runtime::spawn_blocking(move || {
-            let header = format!(
-                "Deadlock+ {} on {} {}\n\n",
-                app.package_info().version,
-                sysinfo::System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
-                std::env::consts::ARCH
-            );
-            Ok(dp_crash::redact(&(header + &read_current(&app)?)))
+        guarded(async move {
+            crate::command_panics::spawn_blocking_guarded(move || {
+                let header = format!(
+                    "Deadlock+ {} on {} {}\n\n",
+                    app.package_info().version,
+                    sysinfo::System::long_os_version().unwrap_or_else(|| std::env::consts::OS.to_string()),
+                    std::env::consts::ARCH
+                );
+                Ok(dp_crash::redact(&(header + &read_current(&app)?)))
+            })
+            .await?
         })
         .await
-        .map_err(AppError::internal)?
     }
 
     #[tauri::command]

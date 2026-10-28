@@ -1,3 +1,4 @@
+mod command_panics;
 mod features;
 mod http;
 
@@ -117,7 +118,7 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(features::tray::on_window_event)
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler(command_panics::reject_panics(tauri::generate_handler![
             server_picker::commands::get_game_definitions,
             server_picker::commands::fetch_server_groups,
             server_picker::commands::ping_server_groups,
@@ -176,6 +177,8 @@ pub fn run() {
             features::gamedata::commands::game_build_tags,
             features::gamedata::commands::game_ui_strings,
             features::gamedata::commands::game_hero_art,
+            features::gamedata::commands::game_hero_backdrop,
+            features::gamedata::commands::game_hero_mood,
             features::gamedata::commands::game_rank_art,
             features::gamedata::commands::game_ability_art,
             features::gamedata::commands::game_item_art,
@@ -185,6 +188,8 @@ pub fn run() {
             features::gamedata::commands::game_property_icon_art,
             features::gamedata::commands::release_old_game_art,
             features::gamedata::commands::game_map_items,
+            features::gamedata::commands::dispatch_music_track,
+            features::gamedata::commands::dispatch_sfx,
             features::steam_account::commands::current_steam_account,
             features::steam_account::commands::local_steam_account_ids,
             features::builds::commands::builds_local,
@@ -266,6 +271,7 @@ pub fn run() {
             features::notifications::commands::take_launch_route,
             features::notifications::commands::notify_break_reminder,
             features::notifications::commands::notify_front_page_waiting,
+            features::notifications::commands::notify_dispatch_edition,
             features::notifications::commands::set_notification_settings,
             features::overlay::commands::set_overlay_settings,
             features::overlay::commands::show_overlay_test,
@@ -298,7 +304,7 @@ pub fn run() {
             features::diagnostics::frames::commands::frame_layer_status,
             features::diagnostics::frames::commands::install_frame_layer,
             features::diagnostics::frames::commands::uninstall_frame_layer,
-        ])
+        ]))
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 

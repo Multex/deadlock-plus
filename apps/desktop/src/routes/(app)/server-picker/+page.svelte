@@ -16,6 +16,7 @@
     import GameRunningBanner from "$lib/features/server-picker/components/game-running-banner.svelte";
     import PresetsDialog from "$lib/features/server-picker/components/presets-dialog.svelte";
     import RegionList from "$lib/features/server-picker/components/region-list.svelte";
+    import ServerListError from "$lib/features/server-picker/components/server-list-error.svelte";
     import SortHeader from "$lib/features/server-picker/components/sort-header.svelte";
     import UnsupportedBanner from "$lib/features/server-picker/components/unsupported-banner.svelte";
 
@@ -102,7 +103,7 @@
     </div>
 
     {#if picker.error}
-        <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{picker.error}</div>
+        <ServerListError onretry={() => void picker.loadAll()} />
     {:else if picker.loading && !picker.serverData}
         <div role="status" class="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             {t("server_picker.loading")}

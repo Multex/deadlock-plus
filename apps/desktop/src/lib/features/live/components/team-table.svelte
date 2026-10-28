@@ -34,6 +34,8 @@
     import HeroIcon from "./hero-icon.svelte";
     import { lobbyRanks } from "../lobby-ranks.svelte";
     import RankBadge from "./rank-badge.svelte";
+    import { statColourStyle } from "../stat-colours";
+    import type { Theme } from "@deadlock-plus/ui/themes";
 
     let {
         team,
@@ -43,6 +45,7 @@
         heroes,
         tiers,
         swapped,
+        theme,
     }: {
         team: LiveTeam;
         totalSouls: number;
@@ -51,6 +54,7 @@
         heroes: Record<number, Hero>;
         tiers: RankTier[];
         swapped: Map<number, HeroSwap>;
+        theme: Theme;
     } = $props();
 
     const totals = $derived(teamTotals(team.players));
@@ -84,7 +88,7 @@
     <Tooltip.Root delayDuration={100}>
         <Tooltip.Trigger>
             {#snippet child({ props })}
-                <span {...props} class="hp {cls}" aria-label={label}>
+                <span {...props} class="hp {cls}" role="img" aria-label={label}>
                     <Icon size={16} />
                 </span>
             {/snippet}
@@ -100,7 +104,13 @@
 {/snippet}
 
 <Tooltip.Provider>
-    <div class="team" data-side={team.side} role="table" aria-label={t(`live.team.${team.side}`)}>
+    <div
+        class="team"
+        style={statColourStyle(theme)}
+        data-side={team.side}
+        role="table"
+        aria-label={t(`live.team.${team.side}`)}
+    >
         <div class="grid head" role="row">
             <span class="tn" role="columnheader">{t(`live.team.${team.side}`)}</span>
             {@render head(Shield, t("live.col.rank"), "")}
@@ -185,15 +195,6 @@
 <style>
     .team {
         --tc: var(--dd-hk);
-        --c-souls: oklch(0.86 0.14 98);
-        --c-spm: oklch(0.76 0.08 98);
-        --c-k: oklch(0.82 0.12 195);
-        --c-d: oklch(0.68 0.19 25);
-        --c-a: oklch(0.8 0.12 340);
-        --c-r: oklch(0.8 0.05 240);
-        --c-hd: oklch(0.76 0.15 55);
-        --c-od: oklch(0.74 0.12 270);
-        --c-hl: oklch(0.78 0.16 150);
         container-type: inline-size;
         border: 1px solid var(--border);
         border-top: 2px solid var(--tc);

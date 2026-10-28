@@ -1,23 +1,20 @@
 <script lang="ts">
-    import { untrack } from "svelte";
     import { CircleCheck, Film, LoaderCircle, RotateCw } from "@lucide/svelte";
-    import { toast } from "svelte-sonner";
 
-    import { errorText } from "$lib/core/errors";
     import { t, tn } from "$lib/core/i18n.svelte";
     import Badge from "@deadlock-plus/ui/badge.svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
-    import type { DetailCoverage } from "@deadlock-plus/ipc-types/DetailCoverage";
-    import { matchDetailCoverage, recoverMatches } from "$lib/features/gc/api";
+    import { recoverMatches } from "$lib/features/gc/api";
     import { gcStatus } from "$lib/features/gc/status.svelte";
     import { jobs } from "$lib/features/jobs/jobs.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
+    import { matchCoverage } from "../../coverage.svelte";
     import { replayRecoverStep, replayState } from "../../detail-state";
+    import { runRecovery } from "../../recovery-action";
 
     let { matchId, startTime, own }: { matchId: number; startTime: number; own: boolean } = $props();
 
-    let coverage = $state.raw<DetailCoverage | null>(null);
-    let reloads = $state(0);
+    const coverage = $derived(matchCoverage.forMatch(matchId));
     let busy = $state(false);
 
     const replay = $derived(
@@ -32,7 +29,6 @@
             run: gcStatus.status?.ownRecovery ?? null,
         }),
     );
-    const recovering = $derived(replay?.kind === "recovering");
     const recover = $derived(replayRecoverStep(replay, own));
 
     const hint = $derived.by(() => {
@@ -56,33 +52,16 @@
         }
     });
 
-    $effect(() => {
-        reloads;
-        let current = true;
-        matchDetailCoverage([matchId]).then(
-            (c) => {
-                if (current) coverage = c;
-            },
-            (e: unknown) => console.warn("match coverage failed", e),
-        );
-        return () => {
-            current = false;
-        };
-    });
-
-    let wasRecovering = false;
-    $effect(() => {
-        if (wasRecovering && !recovering) untrack(() => reloads++);
-        wasRecovering = recovering;
-    });
+    $effect(() => matchCoverage.trackRun());
+    $effect(() => matchCoverage.load(matchId, { hasDetails: true }));
 
     async function recoverReplay() {
         busy = true;
         try {
-            await recoverMatches([], [matchId], false);
-            await gcStatus.refresh();
-        } catch (e) {
-            toast.error(errorText(e));
+            await runRecovery("replay", async () => {
+                await recoverMatches([], [matchId], false);
+                await gcStatus.refresh();
+            });
         } finally {
             busy = false;
         }

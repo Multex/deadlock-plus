@@ -10,12 +10,23 @@ export interface DeadlockApiOptions {
 /** The API answered with a status outside 200-299. A network failure is not one of these: it rejects as it came. */
 export class DeadlockApiError extends Error {
     readonly status: number;
+    /** Seconds the API asked to wait (`Retry-After`, else `RateLimit-Reset`); null when it named none. */
+    readonly retryAfterS: number | null;
 
-    constructor(status: number) {
+    constructor(status: number, retryAfterS: number | null = null) {
         super(`HTTP ${status}`);
         this.name = "DeadlockApiError";
         this.status = status;
+        this.retryAfterS = retryAfterS;
     }
+}
+
+function waitSeconds(headers: Headers): number | null {
+    for (const name of ["retry-after", "ratelimit-reset"]) {
+        const raw = headers.get(name)?.trim();
+        if (raw && /^\d+$/.test(raw)) return Number(raw);
+    }
+    return null;
 }
 
 /** One level of a hero's `level_info`. Levels that grant an ability unlock list `EAbilityUnlocks`, the others `EAbilityPoints`. */
@@ -39,6 +50,8 @@ export interface AssetHero {
     player_selectable?: boolean;
     /** `release` or `pre_release`; absent for heroes the game has not released. */
     development_state?: string | null;
+    /** `style_hex` is the hero's own colour; `ui` repeats one value across many heroes. */
+    colors?: { style_hex?: string | null };
     images?: {
         icon_image_small_webp?: string | null;
         icon_hero_card?: string | null;
@@ -73,6 +86,53 @@ export interface SteamProfile {
     personaname?: string | null;
     avatarmedium?: string | null;
     profileurl?: string | null;
+}
+
+/** A row of `/players/hero-stats`: one hero's totals for the account in the window. There is no healing field. */
+export interface PlayerHeroStatsRow {
+    account_id: number;
+    hero_id: number;
+    matches_played: number;
+    time_played: number;
+    wins: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    total_player_damage: number;
+    obj_damage_per_min: number;
+    accuracy: number;
+    crit_shot_rate: number;
+    /** Valve MVP placements in order; present since 2026-01-06. */
+    mvp_rank_counts: number[];
+    mvp_rated_matches: number;
+    [key: string]: unknown;
+}
+
+/** A row of `/players/{id}/mate-stats`. `wins` are the viewer's wins in `matches`. */
+export interface PlayerMateStats {
+    mate_id: number;
+    wins: number;
+    matches_played: number;
+    matches: number[];
+}
+
+/** A row of `/players/{id}/enemy-stats`. `wins` are the viewer's wins in `matches`. */
+export interface PlayerEnemyStats {
+    enemy_id: number;
+    wins: number;
+    matches_played: number;
+    matches: number[];
+}
+
+/** Match start times in unix seconds, both ends sent as given. */
+export interface PlayerStatsWindow {
+    minS: number;
+    maxS: number;
+}
+
+export interface PlayerHeroStatsQuery extends PlayerStatsWindow {
+    /** The API defaults to `ranked,unranked`. */
+    matchMode?: readonly string[];
 }
 
 export interface MatchHistoryResponse {
@@ -168,6 +228,10 @@ export interface ItemStatsFilter extends AnalyticsFilter {
 }
 
 type Scalar = string | number | boolean | undefined;
+
+function windowQuery({ minS, maxS }: PlayerStatsWindow): string {
+    return `min_unix_timestamp=${minS}&max_unix_timestamp=${maxS}`;
+}
 
 function pushScalars(pairs: [string, string][], fields: readonly (readonly [string, Scalar])[]) {
     for (const [key, value] of fields) if (value !== undefined) pairs.push([key, String(value)]);
@@ -271,7 +335,7 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
 
     async function ok(path: string, init?: RequestInit): Promise<Response> {
         const res = await send(path, init);
-        if (!res.ok) throw new DeadlockApiError(res.status);
+        if (!res.ok) throw new DeadlockApiError(res.status, waitSeconds(res.headers));
         return res;
     }
 
@@ -286,6 +350,8 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
         items: () => json<AssetItem[]>("/assets/items"),
 
         ranks: () => json<unknown>("/assets/ranks"),
+
+        rankedSeasons: () => json<unknown>("/assets/ranked-seasons"),
 
         /** Never rejects on a status: a rate-limited response still carries the stored history in its body. */
         async playerMatchHistory(accountId: number): Promise<MatchHistoryResponse> {
@@ -335,6 +401,22 @@ export function createDeadlockApi({ fetch, baseUrl = DEFAULT_BASE_URL }: Deadloc
         /** Opted-out accounts are absent from the result. At most 1000 ids per call. */
         playerRanks: (accountIds: readonly (number | string)[]) =>
             json<PlayerRank[]>(`/players/rank?account_ids=${accountIds.join(",")}`),
+
+        /** Rate limit 100 req/s per IP. Covers only matches the API holds metadata for. */
+        playerHeroStats: (accountId: number, query: PlayerHeroStatsQuery) =>
+            json<PlayerHeroStatsRow[]>(
+                `/players/hero-stats?account_ids=${accountId}&${windowQuery(query)}${
+                    query.matchMode?.length ? `&match_mode=${query.matchMode.join(",")}` : ""
+                }`,
+            ),
+
+        /** Players who were in the viewer's party, as the API defines a party. Rate limit 100 req/s per IP. */
+        mateStats: (accountId: number, window: PlayerStatsWindow) =>
+            json<PlayerMateStats[]>(`/players/${accountId}/mate-stats?same_party=true&${windowQuery(window)}`),
+
+        /** Rate limit 100 req/s per IP. */
+        enemyStats: (accountId: number, window: PlayerStatsWindow) =>
+            json<PlayerEnemyStats[]>(`/players/${accountId}/enemy-stats?${windowQuery(window)}`),
 
         /** The match metadata as the raw JSON text, so a caller can store exactly what was sent. */
         matchMetadata: async (matchId: number): Promise<string> => (await ok(`/matches/${matchId}/metadata`)).text(),

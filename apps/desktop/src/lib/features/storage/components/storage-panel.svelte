@@ -2,17 +2,16 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { toast } from "svelte-sonner";
-    import { errorText } from "$lib/core/errors";
+    import { failureText } from "$lib/core/errors";
     import { t } from "$lib/core/i18n.svelte";
     import { Eye, EyeOff, RefreshCw } from "@lucide/svelte";
 
     import Button from "@deadlock-plus/ui/button.svelte";
-    import { formatBytes } from "$lib/features/demos/demos";
+    import RegionError from "@deadlock-plus/ui/region-error.svelte";
     import {
         clearAllCopy,
         clearCopy,
         groupEntries,
-        knownTotal,
         reclaimable,
         regenerableIds,
         storageClear,
@@ -20,25 +19,25 @@
         storageEntryStats,
         storageReveal,
         type EntryId,
-        type EntryInfo,
-        type StatsById,
     } from "$lib/features/storage/storage";
+    import { StorageSizes } from "$lib/features/storage/sizes.svelte";
+    import { StorageList } from "$lib/features/storage/entries.svelte";
+    import { clearEntries, clearMessages } from "$lib/features/storage/clear";
     import ClearDialog from "./clear-dialog.svelte";
     import StorageGroup from "./storage-group.svelte";
     import StorageSummary from "./storage-summary.svelte";
 
-    let entries = $state<EntryInfo[]>([]);
-    let stats = $state<StatsById>({});
-    let failed = $state<Set<EntryId>>(new Set());
-    let loading = $state(true);
-    let error = $state<string | null>(null);
+    const list = new StorageList(storageEntries);
+    const sizes = new StorageSizes(storageEntryStats);
     let clearing = $state(false);
     let pendingClear = $state<EntryId | null>(null);
     let pendingAll = $state(false);
     let showPaths = $state(false);
     let now = $state(Math.floor(Date.now() / 1000));
 
-    const total = $derived(knownTotal(stats));
+    const entries = $derived(list.entries);
+    const stats = $derived(sizes.stats);
+    const total = $derived(sizes.total);
     const groups = $derived(groupEntries(entries, stats));
     const canClear = $derived(reclaimable(entries, stats));
     const regenerable = $derived(regenerableIds(entries, stats));
@@ -50,37 +49,18 @@
               : null,
     );
 
-    async function loadStats(id: EntryId) {
-        try {
-            stats[id] = await storageEntryStats(id);
-            failed.delete(id);
-        } catch {
-            failed.add(id);
-        }
-    }
-
     async function load() {
-        loading = true;
-        error = null;
-        try {
-            entries = await storageEntries();
-        } catch (e) {
-            error = errorText(e);
-            loading = false;
-            return;
-        }
-        stats = {};
-        failed = new Set();
+        if (!(await list.load())) return;
+        sizes.reset();
         now = Math.floor(Date.now() / 1000);
-        loading = false;
-        await Promise.all(entries.filter((e) => e.path).map((e) => loadStats(e.id)));
+        await Promise.all(list.entries.filter((e) => e.path).map((e) => sizes.measure(e.id)));
     }
 
     async function reveal(id: EntryId) {
         try {
             await storageReveal(id);
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, t("storage.toast.reveal_failed")));
         }
     }
 
@@ -88,29 +68,13 @@
         const ids = pendingAll ? [...regenerable] : pendingClear ? [pendingClear] : [];
         if (ids.length === 0) return;
         clearing = true;
-        let freed = 0;
-        let removed = 0;
-        const problems: string[] = [];
-        for (const id of ids) {
-            try {
-                const report = await storageClear(id);
-                freed += report.freedBytes;
-                removed += report.removed;
-                problems.push(...report.failed.map((f) => errorText(f)));
-            } catch (e) {
-                problems.push(errorText(e));
-                break;
-            }
-        }
-        if (removed > 0) toast.success(t("storage.toast.freed", { size: formatBytes(freed) }));
-        else if (problems.length === 0) toast.info(t("storage.toast.nothing"));
-        if (problems.length > 0)
-            toast.error(t("storage.toast.remove_failed", { count: problems.length, first: problems[0] }));
+        const outcome = await clearEntries(ids, storageClear);
+        for (const message of clearMessages(outcome)) toast[message.kind](message.text);
         clearing = false;
         pendingClear = null;
         pendingAll = false;
-        for (const id of ids) delete stats[id];
-        await Promise.all(ids.map(loadStats));
+        for (const id of ids) sizes.forget(id);
+        await Promise.all(ids.map((id) => sizes.measure(id)));
     }
 
     onMount(() => void load());
@@ -122,21 +86,28 @@
         <Button variant="outline" size="sm" onclick={() => (showPaths = !showPaths)}>
             {#if showPaths}<EyeOff />{t("storage.hide_paths")}{:else}<Eye />{t("storage.show_paths")}{/if}
         </Button>
-        <Button variant="outline" size="sm" onclick={load} disabled={loading}>
-            <RefreshCw class={loading ? "animate-spin" : ""} />
+        <Button variant="outline" size="sm" onclick={load} disabled={list.loading}>
+            <RefreshCw class={list.loading ? "animate-spin" : ""} />
             {t("storage.refresh")}
         </Button>
     </div>
 </div>
 
 <div class="flex flex-col gap-4">
-    {#if error}
-        <div role="alert" class="flex flex-1 items-center justify-center text-sm text-destructive">{error}</div>
-    {:else if loading}
+    {#if list.error}
+        <RegionError
+            name="storage-list"
+            title={list.error}
+            body={t("region.error_body")}
+            retryLabel={t("region.retry")}
+            onretry={load}
+        />
+    {:else if list.loading}
         <div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t("storage.looking")}</div>
     {:else}
         <StorageSummary
             {total}
+            incomplete={sizes.incomplete}
             {canClear}
             disabled={regenerable.length === 0 || clearing}
             onclear={() => (pendingAll = true)}
@@ -146,12 +117,12 @@
             <StorageGroup
                 {group}
                 {stats}
-                {failed}
+                failed={sizes.failed}
                 {total}
                 {now}
                 {showPaths}
                 {clearing}
-                onretry={loadStats}
+                onretry={(id) => sizes.measure(id)}
                 onopen={(link) => goto(link)}
                 onreveal={reveal}
                 onclear={(id) => (pendingClear = id)}

@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use dp_discord_ipc::ClientKind;
+use dp_discord_ipc::{ClientKind, Discovery};
 use dp_game::start_time;
 use dp_presence::{
     clamp_delay_secs, map_with, with_deadlock_plus_logo, with_support_button, Config, Delay, GameFacts, Presence,
@@ -166,12 +166,37 @@ pub struct PresenceClient {
     pub connected: bool,
 }
 
+/// How far presence has got with Discord. Presence only connects while there is something to show, so a running
+/// Discord that is not connected while the game is closed is `Waiting`, not missing.
+#[derive(Serialize, Clone, Copy, Debug, Default, PartialEq, Eq, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub enum DiscordLink {
+    #[default]
+    NotFound,
+    Waiting,
+    Connecting,
+    Connected,
+}
+
+impl DiscordLink {
+    fn of(discord_found: bool, connected: bool, game_running: bool) -> Self {
+        match (discord_found, connected, game_running) {
+            (_, true, _) => Self::Connected,
+            (false, false, _) => Self::NotFound,
+            (true, false, true) => Self::Connecting,
+            (true, false, false) => Self::Waiting,
+        }
+    }
+}
+
 #[derive(Serialize, Clone, Default, PartialEq, Eq, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct PresenceStatus {
     pub running: bool,
     pub clients: Vec<PresenceClient>,
+    pub link: DiscordLink,
 }
 
 #[derive(Serialize, Clone, PartialEq, Eq, TS)]
@@ -246,6 +271,7 @@ struct Slots {
 pub struct PresenceService {
     settings: Arc<Mutex<PresenceSettings>>,
     connected: Arc<Mutex<Vec<u8>>>,
+    discovery: Arc<Mutex<Discovery>>,
     lookups: Arc<Mutex<Lookups>>,
     config: Arc<Mutex<Config>>,
     snapshot: Mutex<dp_live::Slot<dp_live::Snapshot>>,
@@ -290,6 +316,7 @@ impl PresenceService {
                 slots.active = Some(worker);
                 let settings = self.settings.clone();
                 let connected = self.connected.clone();
+                let discovery = self.discovery.clone();
                 let lookups = self.lookups.clone();
                 let config = self.config.clone();
                 let snapshot = self.snapshot.lock_or_recover().clone();
@@ -300,7 +327,7 @@ impl PresenceService {
                         if let Some(previous) = previous {
                             wait_done(&previous, Instant::now() + SHUTDOWN_GRACE);
                         }
-                        run(&stop, &settings, &connected, &lookups, &config, &snapshot);
+                        run(&stop, &settings, &connected, &discovery, &lookups, &config, &snapshot);
                         connected.lock_or_recover().clear();
                     })
                     .expect("spawn thread");
@@ -333,7 +360,10 @@ impl PresenceService {
 
     pub fn status(&self) -> PresenceStatus {
         let connected = self.connected.lock_or_recover().clone();
-        let clients = dp_discord_ipc::discover()
+        let selected = self.settings.lock_or_recover().selected();
+        let pipes = self.discovery.lock_or_recover().pipes();
+        let discord_found = !dp_discord_ipc::select_targets(&selected, &pipes).is_empty();
+        let clients: Vec<PresenceClient> = pipes
             .into_iter()
             .map(|p| PresenceClient {
                 kind: p.effective_kind().into(),
@@ -341,7 +371,9 @@ impl PresenceService {
                 connected: connected.contains(&p.index),
             })
             .collect();
-        PresenceStatus { running: dp_game::is_running(), clients }
+        let running = dp_game::is_running();
+        let link = DiscordLink::of(discord_found, clients.iter().any(|c| c.connected), running);
+        PresenceStatus { running, clients, link }
     }
 
     pub fn stop(&self) {
@@ -369,6 +401,7 @@ fn run(
     stop: &StopSignal,
     settings: &Mutex<PresenceSettings>,
     connected: &Mutex<Vec<u8>>,
+    discovery: &Mutex<Discovery>,
     lookups: &Mutex<Lookups>,
     config: &Mutex<Config>,
     snapshot: &dp_live::Slot<dp_live::Snapshot>,
@@ -392,7 +425,7 @@ fn run(
         let desired = held.show(&current, mapped, now_ms);
         // A held-back activity outlives the game by the delay, so its clients stay connected until it clears.
         let targets = if facts.running || desired.is_some() {
-            dp_discord_ipc::select_targets(&current.selected(), &dp_discord_ipc::discover())
+            dp_discord_ipc::select_targets(&current.selected(), &discovery.lock_or_recover().pipes())
         } else {
             Vec::new()
         };
@@ -701,11 +734,27 @@ mod tests {
         let s = PresenceStatus {
             running: true,
             clients: vec![PresenceClient { kind: DiscordClientKind::Canary, pipe_index: 1, connected: false }],
+            link: DiscordLink::Connecting,
         };
         assert_eq!(
             serde_json::to_string(&s).unwrap(),
-            r#"{"running":true,"clients":[{"kind":"canary","pipeIndex":1,"connected":false}]}"#
+            r#"{"running":true,"clients":[{"kind":"canary","pipeIndex":1,"connected":false}],"link":"connecting"}"#
         );
+    }
+
+    #[test]
+    fn running_discord_without_the_game_is_waiting_not_missing() {
+        assert_eq!(DiscordLink::of(true, false, false), DiscordLink::Waiting);
+    }
+
+    #[test]
+    fn discord_link_covers_every_case() {
+        assert_eq!(DiscordLink::of(false, false, false), DiscordLink::NotFound);
+        assert_eq!(DiscordLink::of(false, false, true), DiscordLink::NotFound);
+        assert_eq!(DiscordLink::of(true, false, true), DiscordLink::Connecting);
+        assert_eq!(DiscordLink::of(true, true, true), DiscordLink::Connected);
+        // A delayed activity stays on Discord after the game closes.
+        assert_eq!(DiscordLink::of(true, true, false), DiscordLink::Connected);
     }
 
     #[test]

@@ -68,10 +68,16 @@ impl AppError {
     }
 
     /// Raw English detail for the logs. It is never sent to the UI.
-    pub fn detail(mut self, detail: impl Display) -> Self {
-        let detail = detail.to_string();
-        log::warn!("{}: {detail}", self.code);
-        self.detail = Some(detail);
+    pub fn detail(self, detail: impl Display) -> Self {
+        let quiet = self.quiet_detail(detail);
+        log::warn!("{quiet}");
+        quiet
+    }
+
+    /// `detail` without the WARN line, for expected flow control such as a local budget refusal.
+    /// The caller decides what, if anything, to log.
+    pub fn quiet_detail(mut self, detail: impl Display) -> Self {
+        self.detail = Some(detail.to_string());
         self
     }
 
@@ -144,6 +150,13 @@ mod tests {
         let err = AppError::new(CommonError::Network).detail("timed out");
         assert_eq!(err.to_string(), "common.network: timed out");
         assert_eq!(AppError::new(CommonError::Internal).to_string(), "common.internal");
+    }
+
+    #[test]
+    fn a_quiet_detail_reads_like_a_logged_one() {
+        let quiet = AppError::new(CommonError::Network).quiet_detail("budget is low");
+        assert_eq!(quiet, AppError::new(CommonError::Network).detail("budget is low"));
+        assert_eq!(quiet.to_string(), "common.network: budget is low");
     }
 
     #[test]

@@ -9,6 +9,9 @@ use deadlock_reader::Reader;
 use crate::{detail_json, to_match, Done, PostGameMatch, Stop, Worker};
 
 const TICK: Duration = Duration::from_secs(1);
+/// How often the source snapshots the game to spot the post-game screen. Each one walks the whole live snapshot, and
+/// the metadata read it waits for retries every 2 s anyway, so polling faster finds nothing sooner.
+const SNAPSHOT_INTERVAL: Duration = Duration::from_secs(2);
 
 /// An `Updated` read replaces the earlier `Captured` copy, so both map the same way.
 pub fn from_event(event: &PostGameEvent, account_id: u32) -> Option<PostGameMatch> {
@@ -50,8 +53,8 @@ impl Capture {
                 TICK,
                 &mut reader,
                 |reader| {
-                    let (engine, rx) =
-                        Engine::new().with(PostGameSource::new(Arc::clone(reader), account_id)).start()?;
+                    let source = PostGameSource::new(Arc::clone(reader), account_id).every(SNAPSHOT_INTERVAL);
+                    let (engine, rx) = Engine::new().with(source).start()?;
                     Ok(EngineSession { engine, rx })
                 },
                 &mut |event| match &event {

@@ -1,5 +1,6 @@
 import { toast } from "svelte-sonner";
-import { errorText } from "$lib/core/errors";
+import { failureText } from "$lib/core/errors";
+import { t } from "$lib/core/i18n.svelte";
 import { dismissCrash, openCrashIssue, pendingCrash, revealCrashBundle, type CrashReport } from "./crash";
 
 class CrashPrompt {
@@ -25,25 +26,25 @@ class CrashPrompt {
     }
 
     async reveal() {
-        await this.run(async (id) => {
+        await this.run(t("crash.reveal_failed"), async (id) => {
             this.reportPath = await revealCrashBundle(id);
         });
     }
 
     async openIssue() {
-        await this.run(async (id) => {
+        await this.run(t("crash.issue_failed"), async (id) => {
             this.reportPath = await openCrashIssue(id);
         });
     }
 
     async dismiss(): Promise<boolean> {
-        return this.run(async () => {
+        return this.run(t("crash.dismiss_failed"), async () => {
             await dismissCrash();
             this.dismissed = true;
         });
     }
 
-    private async run(action: (id: string) => Promise<void>): Promise<boolean> {
+    private async run(fallback: string, action: (id: string) => Promise<void>): Promise<boolean> {
         const report = this.report;
         if (report === null || this.busy) return false;
         this.busy = true;
@@ -51,7 +52,7 @@ class CrashPrompt {
             await action(report.id);
             return true;
         } catch (e) {
-            toast.error(errorText(e));
+            toast.error(failureText(e, fallback));
             return false;
         } finally {
             this.busy = false;

@@ -6,6 +6,7 @@ import {
     extractKeyLiterals,
     extractKeys,
     extractNamespacePrefixes,
+    extractTemplatePatterns,
     extractTemplatePrefixes,
     flatten,
     isCatalogFile,
@@ -57,6 +58,19 @@ describe("extractNamespacePrefixes", () => {
     });
 });
 
+describe("extractTemplatePatterns", () => {
+    it("turns a dotted-key template outside a t call into a pattern matching whole keys only", () => {
+        const [pattern] = extractTemplatePatterns("return `dispatch.video.${kind}.${beat}.${slot}_${variant}`;");
+        expect(pattern.test("dispatch.video.monthly.open.title_3")).toBe(true);
+        expect(pattern.test("dispatch.video.monthly.open.title")).toBe(false);
+        expect(pattern.test("dispatch.story.monthly.open.title_3")).toBe(false);
+    });
+
+    it("ignores templates that do not start with a dotted namespace", () => {
+        expect(extractTemplatePatterns("`${a}.${b}`; `hello ${name}`; `x.${y}`")).toEqual([]);
+    });
+});
+
 describe("extractKeyLiterals", () => {
     const known = new Set(["shell.bar.live", "common.save"]);
 
@@ -71,6 +85,12 @@ describe("extractKeyLiterals", () => {
 });
 
 describe("checkCatalogs", () => {
+    it("counts keys matching a template pattern as used and still flags the rest", () => {
+        const en = { a: { b: { x_1: "1", x_2: "2" }, c: "z" } };
+        const referenced = { literals: new Set(), prefixes: [], patterns: [/^a\.b\.\w+$/] };
+        expect(checkCatalogs({ en }, [], referenced).warnings).toEqual(["unused en key a.c"]);
+    });
+
     const en = { common: { save: "Save", hi: "Hi {name}" }, n_one: "{count} a", n_other: "{count} as" };
 
     it("accepts a clean setup", () => {
@@ -139,7 +159,7 @@ describe("checkCatalogs", () => {
 
     it("does not warn on a key referenced by a literal or under a template prefix", () => {
         const catalog = { en: { a: { x: "1", y: "2", z: "3" }, b: { w: "4" } } };
-        const result = checkCatalogs(catalog, [], { literals: new Set(["a.x"]), prefixes: ["a.y"] });
+        const result = checkCatalogs(catalog, [], { literals: new Set(["a.x"]), prefixes: ["a.y"], patterns: [] });
         expect(result.warnings).toEqual(["unused en key a.z", "unused en key b.w"]);
     });
 });

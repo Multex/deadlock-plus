@@ -198,6 +198,7 @@ describe("catalog", () => {
             "server-blocks-updated",
             "server-blocks-stale",
             "break-reminder",
+            "dispatch-alerts",
             "front-page-after-match",
             "front-page-overlay-alert",
             "match-found",

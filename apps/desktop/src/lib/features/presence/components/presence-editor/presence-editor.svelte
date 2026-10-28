@@ -3,11 +3,11 @@
     import { toast } from "svelte-sonner";
     import { CircleHelp, Copy, RotateCcw, Upload, Users } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
+    import RegionError from "@deadlock-plus/ui/region-error.svelte";
     import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
     import SelectMenu from "@deadlock-plus/ui/select-menu.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { errorText } from "$lib/core/errors";
     import { loadHeroes, onHeroesRefreshed, type Hero } from "$lib/features/heroes/heroes";
     import { presencePreview } from "$lib/features/presence/api";
     import { showsDeadlockPlusLogo } from "$lib/features/presence/presence";
@@ -34,7 +34,6 @@
     let variant = $state<PresenceVariantId | undefined>();
     let heroId = $state<number | undefined>();
     let importText = $state("");
-    let importError = $state("");
     let confirmReset = $state(false);
     let card = $state<PresenceCard | null>(null);
     let previewFailed = $state(false);
@@ -46,7 +45,6 @@
         variant ? `${STATE_LABELS[stateId]()}: ${VARIANT_LABELS[variant]()}` : STATE_LABELS[stateId](),
     );
     const scopeCustom = $derived(isCustomised(store.config, scope));
-    const ready = $derived(store.loaded && store.layout.length > 0);
     const heroChoices = $derived(heroItems(heroes, t("settings.discord_editor.all_heroes")));
     const sample = $derived(previewSample(heroes, heroId, t("settings.discord_editor.sample_hero"), rankNames));
     const art = $derived<SourceArt>({
@@ -72,7 +70,7 @@
     });
 
     $effect(() => {
-        if (!store.loaded) return;
+        if (store.status !== "ready") return;
         const config = store.config;
         const { state, variant: v, heroId: h } = scope;
         const shown = sample;
@@ -110,14 +108,9 @@
     }
 
     async function runImport(text: string) {
-        importError = "";
-        try {
-            await store.importText(text);
-            importText = "";
-            toast.success(t("settings.discord_editor.imported"));
-        } catch (e) {
-            importError = errorText(e);
-        }
+        if (!(await store.importText(text))) return;
+        importText = "";
+        toast.success(t("settings.discord_editor.imported"));
     }
 
     async function onFile(e: Event & { currentTarget: HTMLInputElement }) {
@@ -142,7 +135,15 @@
         </p>
     {/if}
 
-    {#if !ready}
+    {#if store.status === "error"}
+        <RegionError
+            name="presence-editor"
+            title={t("settings.discord_editor.load_error")}
+            body={t("region.error_body")}
+            retryLabel={t("region.retry")}
+            onretry={() => void store.load()}
+        />
+    {:else if store.status === "loading"}
         <p class="text-sm text-muted-foreground">{t("settings.discord_editor.loading")}</p>
     {:else}
         <div class="flex flex-col gap-1.5">
@@ -232,8 +233,8 @@
             spellcheck="false"
             class="w-full rounded-md border border-input bg-transparent p-2 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         ></textarea>
-        {#if importError}
-            <p role="alert" class="text-sm text-destructive">{importError}</p>
+        {#if store.importError}
+            <p role="alert" class="text-sm text-destructive">{store.importError}</p>
         {/if}
         <div class="flex flex-wrap gap-2">
             <Button size="sm" disabled={importText.trim() === ""} onclick={() => runImport(importText)}>

@@ -6,6 +6,7 @@ import { loadGameUiStrings, loadHeroStats, loadPropertyIcons, loadShopUiArt } fr
 import { keepGameArt, onGameArtChanged } from "$lib/features/gamedata/art-refresh";
 import { loadAbilityArt, loadHeroMinimapArt } from "$lib/features/gamedata/gamedata";
 import { loadHeroes, type Hero } from "$lib/features/heroes/heroes";
+import { command as tauriCommand } from "$lib/core/tauri";
 
 vi.mock("$lib/features/gamedata/vdata", () => ({
     loadShopUiArt: vi.fn(),
@@ -16,6 +17,11 @@ vi.mock("$lib/features/gamedata/vdata", () => ({
 vi.mock("$lib/features/gamedata/art-refresh", () => ({ keepGameArt: vi.fn(), onGameArtChanged: vi.fn() }));
 vi.mock("$lib/features/gamedata/gamedata", () => ({ loadHeroMinimapArt: vi.fn(), loadAbilityArt: vi.fn() }));
 vi.mock("$lib/features/heroes/heroes", () => ({ loadHeroes: vi.fn() }));
+vi.mock("$lib/core/tauri", () => ({
+    command: vi.fn(),
+    fileSrc: (path: string) => path,
+    listen: vi.fn(async () => () => {}),
+}));
 
 const shopUiArt = vi.mocked(loadShopUiArt);
 const propertyIcons = vi.mocked(loadPropertyIcons);
@@ -26,6 +32,7 @@ const heroStats = vi.mocked(loadHeroStats);
 const minimapArt = vi.mocked(loadHeroMinimapArt);
 const abilityArt = vi.mocked(loadAbilityArt);
 const heroes = vi.mocked(loadHeroes);
+const command = vi.mocked(tauriCommand);
 
 /** An image that fails to decode when its url names it broken, as a missing file does in the webview. */
 class FakeImage {
@@ -237,6 +244,17 @@ describe("buildsHero", () => {
         buildsHero(4);
         await vi.waitFor(() => expect(buildsHero(4)).not.toBeNull());
         expect(buildsHero(4)).toEqual({ stats: null, icon: "https://api/lady_geist.webp", weaponIcon: null });
+    });
+
+    it("loads the hero with no stats when the game answers stats of the wrong shape", async () => {
+        const actual =
+            await vi.importActual<typeof import("$lib/features/gamedata/vdata")>("$lib/features/gamedata/vdata");
+        command.mockResolvedValue({ garbage: true });
+        heroStats.mockImplementation(actual.loadHeroStats);
+        const { buildsHero } = await host();
+        buildsHero(2);
+        await vi.waitFor(() => expect(buildsHero(2)).not.toBeNull());
+        expect(buildsHero(2)).toEqual({ stats: null, icon: "asset://seven_mm.png", weaponIcon: null });
     });
 
     it("reloads the loaded heroes after a game update", async () => {

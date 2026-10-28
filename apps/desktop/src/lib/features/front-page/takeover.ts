@@ -19,6 +19,8 @@ export interface Takeover<T extends Focusable> {
     readonly open: boolean;
     show(): void;
     close(): void;
+    /** Closes without handing the focus back, then runs `navigate`, for an action that leaves the page. */
+    leave(navigate: () => void): void;
     /** `focusables` are the takeover's own, in tab order. */
     keydown(e: TakeoverKey, focusables: readonly T[], active: T | null): void;
 }
@@ -47,6 +49,13 @@ export function createTakeover<T extends Focusable>(deps: TakeoverDeps<T>): Take
             deps.onChange(true);
         },
         close,
+        leave(navigate) {
+            if (!open) return;
+            open = false;
+            returnTo = null;
+            deps.onChange(false);
+            navigate();
+        },
         keydown(e, focusables, active) {
             if (!open) return;
             if (e.key === "Escape") {

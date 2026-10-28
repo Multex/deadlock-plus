@@ -1,8 +1,21 @@
 import type { Locator, Page } from "@playwright/test";
-import { focusIsVisible, open } from "./support/flows";
+import { focusIsVisible, open, seedTheme } from "./support/flows";
+import { problemsOf, real, walk, type Stop } from "./support/focus-walk";
+import { WINDOWS_UA } from "./support/platform";
+import { ROUTE_CALLS } from "./support/route-calls";
 import { expect, settle, test } from "./support/test";
 
-const MAIN_HREFS = ["/", "/server-picker", "/live", "/stats", "/match-history", "/builds", "/alerts", "/presence"];
+const MAIN_HREFS = [
+    "/",
+    "/server-picker",
+    "/live",
+    "/stats",
+    "/match-history",
+    "/builds",
+    "/alerts",
+    "/presence",
+    "/dispatch",
+];
 const MAIN_PAGES = MAIN_HREFS.length;
 
 const palette = (page: Page) => page.getByRole("dialog", { name: "Quick search" });
@@ -331,7 +344,7 @@ test.describe("Escape in Settings", () => {
 
     test("closes an open menu without leaving Settings", async ({ page }) => {
         await open(page, "/settings/appearance");
-        await page.getByRole("button", { name: "Reduced motion" }).click();
+        await page.getByRole("combobox", { name: "Reduced motion" }).click();
         await expect(page.getByRole("listbox")).toBeVisible();
 
         await page.keyboard.press("Escape");
@@ -401,5 +414,272 @@ test.describe("Tab order on Home", () => {
         await expect(page).toHaveURL(/\/voice-bans$/);
         await settle(page);
         await expect(page.getByRole("heading", { level: 1, name: "Mutes" })).toBeVisible();
+    });
+});
+
+// Visible focus is checked under the default dark theme, a light one and Contrast. Every theme draws its ring
+// from the same `--ring` token with the same widths, so these three cover the dark, light and forced-colour
+// shapes the ring takes; the colour of the ring against each theme is the contrast check's job.
+const WALK_THEMES = ["deadlock", "daylight", "contrast"];
+const LONG_WALKS = ["match-detail"];
+
+for (const scenario of [...new Set(ROUTE_CALLS.map((route) => route.scenario))]) {
+    test.describe(`keyboard walk on the ${scenario} scenario`, () => {
+        // The routes were recorded as Windows, and some of them, like the overlay settings, exist only there.
+        test.use({ scenario, userAgent: WINDOWS_UA });
+        // Each stop is a key press and a look at the page, and each of those waits on the page's next frame.
+        test.describe.configure({ timeout: 120_000 });
+        for (const route of ROUTE_CALLS.filter((r) => r.scenario === scenario)) {
+            for (const theme of WALK_THEMES) {
+                test(`${route.name} under ${theme}: one lap of Tab reaches every control with a mark, Shift+Tab walks it back`, async ({
+                    page,
+                }) => {
+                    test.slow(
+                        LONG_WALKS.includes(route.name),
+                        "about 360 stops, four times the next longest, and a CI runner draws each frame of it far slower",
+                    );
+                    await seedTheme(page, theme);
+                    await open(page, route.path);
+                    await expect(page.locator(":root")).toHaveAttribute("data-theme", theme);
+
+                    const forward = await walk(page);
+                    expect(problemsOf(forward)).toEqual([]);
+
+                    const back = await walk(page, { key: "Shift+Tab" });
+                    expect(problemsOf(back)).toEqual([]);
+                    // A control that loads late, like a notice, may sit in one lap and not the other.
+                    const both = (stops: Stop[], other: Stop[]) =>
+                        real(stops)
+                            .filter((stop) => other.some((o) => o.id === stop.id))
+                            .map((stop) => stop.label);
+                    expect(both(back.stops, forward.stops)).toEqual(both(forward.stops, back.stops).reverse());
+                });
+            }
+        }
+    });
+}
+
+/** What has focus, for a message. */
+const focusedOf = (page: Page) =>
+    page.evaluate(() => {
+        const element = document.activeElement;
+        if (!element || element === document.body) return "body";
+        const name = (element.getAttribute("aria-label") ?? element.textContent ?? "").trim().slice(0, 40);
+        return `${element.tagName.toLowerCase()} "${name}"`;
+    });
+
+/**
+ * One lap of Tab with a dialog open reaches all of it and marks every stop. Dialogs sit in the page's area and
+ * leave the app's frame live, as a click there does, so the lap may pass through the frame but never through
+ * the page under the dialog. Focus ends back on the dialog's first control.
+ */
+async function expectDialogLap(page: Page, selector: string) {
+    const lap = await walk(page, { within: selector });
+    expect(problemsOf(lap)).toEqual([]);
+    const frame = ["dialog", "titlebar", "sidebar", "statusbar"];
+    expect(
+        real(lap.stops)
+            .filter((stop) => !frame.includes(stop.region))
+            .map((stop) => stop.label),
+    ).toEqual([]);
+    const inside = real(lap.stops).filter((stop) => stop.region === "dialog");
+    expect(inside.length).toBeGreaterThan(0);
+    const back = () => page.locator(selector).evaluate((dialog) => dialog.contains(document.activeElement));
+    for (let presses = 0; presses < lap.stops.length && !(await back()); presses++) await page.keyboard.press("Tab");
+    expect(await back()).toBe(true);
+}
+
+test.describe("focus in open layers", () => {
+    test("the confirm dialog takes Tab but never lets it into the page, and Escape closes it onto its button", async ({
+        page,
+    }) => {
+        await open(page, "/server-picker");
+        const trigger = page.getByRole("button", { name: /^Unblock all/ });
+        await trigger.focus();
+        await page.keyboard.press("Enter");
+        const dialog = page.getByRole("alertdialog");
+        await expect(dialog).toBeVisible();
+
+        await expectDialogLap(page, "[role=alertdialog]");
+        await page.keyboard.press("Escape");
+
+        await expect(dialog).toBeHidden();
+        await expect(trigger).toBeFocused();
+    });
+
+    test("the command palette takes Tab but never lets it into the page, and marks every stop", async ({ page }) => {
+        await open(page, "/");
+        await openPalette(page);
+
+        await expectDialogLap(page, "[role=dialog]");
+    });
+
+    for (const [path, name] of [
+        ["/builds", "Sort builds"],
+        ["/settings/appearance", "Reduced motion"],
+    ] as const) {
+        test(`the ${name} menu opens from the keyboard, and Escape closes it back onto its button`, async ({
+            page,
+        }) => {
+            await open(page, path);
+            const trigger = page.getByRole("combobox", { name, exact: true });
+            await trigger.focus();
+            await page.keyboard.press("Enter");
+            await expect(page.getByRole("listbox")).toBeVisible();
+            await page.keyboard.press("ArrowDown");
+
+            await page.keyboard.press("Escape");
+
+            await expect(page.getByRole("listbox")).toBeHidden();
+            await expect(trigger).toBeFocused();
+            expect(pathOf(page)).toBe(path);
+        });
+    }
+
+    test("a row's menu opens from the keyboard, and Escape closes it back onto its button", async ({ page }) => {
+        await open(page, "/demos");
+        const trigger = page.getByRole("button", { name: /^More actions for match / }).first();
+        await trigger.focus();
+        await page.keyboard.press("Enter");
+        await expect(page.getByRole("menu")).toBeVisible();
+
+        await page.keyboard.press("Escape");
+
+        await expect(page.getByRole("menu")).toBeHidden();
+        await expect(trigger).toBeFocused();
+    });
+
+    test("deleting a replay from the keyboard leaves focus in the list, not on the body", async ({ page }) => {
+        await open(page, "/demos");
+        const triggers = page.getByRole("button", { name: /^More actions for match / });
+        const before = await triggers.count();
+        await triggers.nth(1).focus();
+        await page.keyboard.press("Enter");
+        await page.getByRole("menuitem", { name: "Delete", exact: true }).focus();
+        await page.keyboard.press("Enter");
+        const question = page.getByRole("alertdialog");
+        await expect(question).toBeVisible();
+        await question.getByRole("button", { name: /^Move to / }).focus();
+        await page.keyboard.press("Enter");
+
+        await expect(triggers).toHaveCount(before - 1);
+        await expect(question).toBeHidden();
+        await expect.poll(() => focusedOf(page)).not.toBe("body");
+        await expect(page.getByRole("main").locator(":focus")).toHaveCount(1);
+    });
+});
+
+test.describe("focus in the Dispatch reading room", () => {
+    test.use({ scenario: "dispatch" });
+
+    const copies = (page: Page) => page.locator("[data-copy]:not([aria-disabled=true])");
+    const exportButton = (page: Page) => page.getByRole("button", { name: "Export" });
+
+    async function openCopy(page: Page) {
+        await open(page, "/dispatch");
+        await copies(page).first().focus();
+        await page.keyboard.press("Enter");
+        await expect(exportButton(page)).toBeEnabled();
+    }
+
+    test("opening a copy takes focus into the room, and Escape puts it back with focus on the copy", async ({
+        page,
+    }) => {
+        const id = await (async () => {
+            await open(page, "/dispatch");
+            return copies(page).first().getAttribute("data-copy");
+        })();
+        await copies(page).first().focus();
+        await page.keyboard.press("Enter");
+        await expect(exportButton(page)).toBeEnabled();
+        await expect.poll(() => focusedOf(page)).not.toBe("body");
+
+        await page.keyboard.press("Escape");
+
+        await expect(exportButton(page)).toHaveCount(0);
+        await expect(page.locator(`[data-copy="${id}"]`)).toBeFocused();
+    });
+
+    test("the share sheet takes Tab but never lets it into the room, and Escape closes it onto Export", async ({
+        page,
+    }) => {
+        await openCopy(page);
+        await exportButton(page).focus();
+        await page.keyboard.press("Enter");
+        await expect(page.getByRole("dialog")).toBeVisible();
+
+        await expectDialogLap(page, "[role=dialog]");
+        await page.keyboard.press("Escape");
+
+        await expect(page.getByRole("dialog")).toBeHidden();
+        await expect(exportButton(page)).toBeFocused();
+    });
+});
+
+test.describe("focus after a route change", () => {
+    const heading = (page: Page) => page.getByRole("main").getByRole("heading", { level: 1 });
+
+    test("Enter on a sidebar link puts focus on the new page's heading", async ({ page }) => {
+        await open(page, "/");
+        await sidebar(page).getByRole("link", { name: "Stats", exact: true }).focus();
+
+        await page.keyboard.press("Enter");
+
+        await expect(page).toHaveURL(/\/stats$/);
+        await expect(heading(page)).toBeFocused();
+    });
+
+    test("a page shortcut puts focus on the new page's heading", async ({ page }) => {
+        await open(page, "/");
+        await sidebar(page).getByRole("link", { name: "Home", exact: true }).focus();
+
+        await page.keyboard.press("Control+5");
+
+        await expect(page).toHaveURL(/\/match-history$/);
+        await expect(heading(page)).toBeFocused();
+    });
+
+    test("a Settings category puts focus on its heading, and Tab goes on into the page", async ({ page }) => {
+        await open(page, "/settings/appearance");
+        await page
+            .getByRole("navigation", { name: "Settings categories" })
+            .getByRole("link", { name: "Privacy" })
+            .focus();
+
+        await page.keyboard.press("Enter");
+
+        await expect(page).toHaveURL(/\/settings\/privacy$/);
+        await expect(heading(page)).toBeFocused();
+        await page.keyboard.press("Tab");
+        await expect(page.getByRole("main").locator(":focus")).toHaveCount(1);
+    });
+});
+
+test.describe("Escape in a Settings disclosure", () => {
+    test("closes the open disclosure and stays in Settings; the next Escape goes back", async ({ page }) => {
+        await open(page, "/demos");
+        await page.getByRole("link", { name: "Settings", exact: true }).click();
+        await page
+            .getByRole("navigation", { name: "Settings categories" })
+            .getByRole("link", { name: "Privacy" })
+            .click();
+        await expect(page).toHaveURL(/\/settings\/privacy$/);
+        const summary = page.locator("summary", { hasText: "Advanced" });
+        const details = page.locator("details", { has: summary });
+        await summary.focus();
+        await page.keyboard.press("Enter");
+        await expect(details).toHaveAttribute("open", "");
+        await page.keyboard.press("Tab");
+        await expect(details.getByRole("button")).toBeFocused();
+
+        await page.keyboard.press("Escape");
+
+        await expect(details).not.toHaveAttribute("open");
+        await expect(summary).toBeFocused();
+        expect(pathOf(page)).toBe("/settings/privacy");
+
+        await page.keyboard.press("Escape");
+
+        await expect(page).toHaveURL(/\/demos$/);
     });
 });

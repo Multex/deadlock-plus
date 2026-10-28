@@ -1,5 +1,6 @@
 {
     "settings": {
+        "save_failed": "Toast shown when a setting could not be saved. The switch or value went back to what it was before.",
         "language": {
             "label": "Setting label on Settings, Language section. Names the app language picker.",
             "description": "Setting description under the Language label. 'Follow system' is the name of an option in the list (see settings.language.system). Keep that wording consistent.",
@@ -58,7 +59,8 @@
             "ui_scale": "Setting label on Settings, Appearance. Names the slider for the size of the whole app interface.",
             "hardware_acceleration": "Setting label on Settings, Appearance. Names the switch for drawing the app with the graphics card.",
             "open_on_game_start": "Setting label on Settings, Startup. Names the switch for opening the app window when the game starts. Deadlock stays untranslated.",
-            "admin_access": "Setting label on Settings, Startup. Names the choice for running the app with Windows administrator rights."
+            "admin_access": "Setting label on Settings, Startup. Names the choice for running the app with Windows administrator rights.",
+            "dispatch_alerts": "Setting label on Settings, Notifications. Names the switch for alerts about new Dispatch editions. Dispatch is a newspaper style recap feature. Keep short, about 20 characters."
         },
         "nav": {
             "label": "Screen reader label for the settings sidebar navigation. Not visible.",
@@ -81,7 +83,8 @@
             "accent_hue": "Slider label in the accent colour editor. The colour position on the colour wheel. Keep short, about 5 characters.",
             "accent_vividness": "Slider label in the accent colour editor. How strong or saturated the colour is. Keep short, about 10 characters.",
             "accent_hex": "Label of the text input where you type a colour code like #FF8800. Keep short, about 10 characters.",
-            "accent_reset": "Button in the accent colour editor that restores the theme's default accent. Keep short, about 6 characters."
+            "accent_reset": "Button in the accent colour editor that restores the theme's default accent. Keep short, about 6 characters.",
+            "theme_option_aria": "Screen reader label for a control on a theme card in Settings, Appearance. {option} = what the control picks, e.g. Light or Dark. {theme} = theme name, e.g. Statlocker."
         },
         "themes": {
             "deadlock": {
@@ -203,6 +206,7 @@
             "overlay_notifications_button": "Button on Settings, Game overlay that jumps to the Notifications settings. Keep short, about 18 characters.",
             "overlay_test_button": "Button that shows a sample overlay notification. Keep short, about 9 characters.",
             "overlay_test_countdown": "Button text while the test notification counts down. {seconds} = seconds left, e.g. 3. Keep short, about 14 characters.",
+            "overlay_test_failed": "Toast shown on Settings, Notifications when the test notification in the game overlay could not be shown.",
             "overlay_seconds": "Slider value for overlay duration. {seconds} = number of seconds, e.g. 5. 's' is the unit for seconds. Keep short, about 5 characters.",
             "position": {
                 "top_left": "Option in the overlay position picker. Screen corner. Keep short, about 8 characters.",
@@ -222,6 +226,7 @@
             "break_reminder_description": "Setting description under Break reminder. Sessions is an app page name, keep consistent with it.",
             "front_page_after_match_description": "Setting description under Front page after each match. Front page is a newspaper style recap. Deadlock+ stays untranslated.",
             "front_page_modes": "Small label above a row of game mode toggle buttons, also read by screen readers before each mode name. Selects which match modes get a front page.",
+            "front_page_mode_aria": "Screen reader label for a toggle on Settings, Notifications. {mode} = game mode name, e.g. Ranked. Game mode names are Deadlock game terms.",
             "front_page_overlay_alert_description": "Setting description under Front page waiting. Deadlock+ stays untranslated.",
             "delivery_label": "Label of a dropdown on each notification row. Chooses how the notification is delivered. Keep short, about 9 characters.",
             "delivery": {
@@ -232,7 +237,8 @@
                 "center": "Option in the delivery dropdown. Only kept in the app's notification center, no popup. Keep short, about 25 characters."
             },
             "overlay_off_fallback": "Hint under a notification row when the game overlay is off. The notification goes to the desktop instead.",
-            "overlay_off_hidden": "Hint under a notification row when the game overlay is off. The notification is not shown at all."
+            "overlay_off_hidden": "Hint under a notification row when the game overlay is off. The notification is not shown at all.",
+            "dispatch_alerts_description": "Setting description under New Dispatch edition. Dispatch is a newspaper style recap. Deadlock+ stays untranslated."
         },
         "weekdays": {
             "monday": "Day name in the maintenance reminder weekday dropdown.",
@@ -279,6 +285,8 @@
             "client_other_name": "Name of an unknown Discord compatible app in the status line. {pipe} = connection slot number, e.g. 1. Discord stays untranslated.",
             "status_off": "Status line on the Discord presence page when presence is turned off. Keep short, about 3 characters.",
             "status_none": "Status line on the Discord presence page when no Discord app is open. Discord is a product name.",
+            "status_waiting": "Status line on Settings, Discord. Discord is running and the app is waiting for the game Deadlock to start.",
+            "status_connecting": "Status line on Settings, Discord. The app is connecting to Discord.",
             "status_showing": "Status line on the Discord presence page. {clients} = comma separated Discord app names, e.g. \"Discord, Discord PTB\"."
         },
         "discord_editor": {
@@ -328,6 +336,8 @@
             "exported": "Toast shown after the preset is copied to the clipboard in the Discord activity editor.",
             "export_failed": "Error toast shown when the preset could not be copied to the clipboard.",
             "imported": "Toast shown after a preset is imported in the Discord activity editor.",
+            "import_failed": "Error message. Shown in the Discord activity editor when an imported preset file could not be read.",
+            "save_failed": "Error message. Shown in the Discord activity editor when the changes could not be saved.",
             "state": {
                 "playing": "Name of an activity state in the Discord activity editor list. Shown while in a game. Keep short, about 10 characters.",
                 "mainMenu": "Name of an activity state in the Discord activity editor list. The game's main menu screen. Keep short, about 10 characters.",
@@ -435,12 +445,14 @@
             "party_size_aria": "Screen reader label for the switch that shows party size on the Discord card.",
             "party_size_hint": "Hint text next to the party size switch. The brackets show the format of the party count, e.g. \"(2 of 6)\".",
             "preview_party": "Party count in the Discord card preview. {size} = players in party, e.g. 2. {max} = largest party size, e.g. 6.",
-            "detailed_only": "Notice in the Discord activity editor when presence level is not Detailed. Basic and Detailed are presence levels, match their labels. \"Playing\" matches Discord's header."
+            "detailed_only": "Notice in the Discord activity editor when presence level is not Detailed. Basic and Detailed are presence levels, match their labels. \"Playing\" matches Discord's header.",
+            "load_error": "Error message. Shown in place of the Discord activity (presence) editor when it fails to load."
         },
         "privacy": {
             "telemetry_description": "Setting description on Settings > Privacy for the usage data toggle. Lists what is sent and what never is.",
             "telemetry_reset": "Button on Settings > Privacy. Replaces the random usage data ID with a new one.",
             "telemetry_reset_done": "Toast shown after the usage data ID was reset.",
+            "telemetry_reset_failed": "Toast shown on Settings, Privacy when resetting the anonymous usage data ID failed.",
             "ingest_waiting": "Status line on Settings > Privacy. Match sharing is waiting for the user to answer a prompt.",
             "ingest_off": "Status line on Settings > Privacy. Match sharing is turned off. Keep short, about 3 characters.",
             "ingest_no_cache": "Error status on Settings > Privacy. Steam's saved web data was not found on this PC. Steam is a product name and stays untranslated.",
@@ -472,7 +484,8 @@
                 "replay": "Table column header in the shared matches list. Shows whether the replay was sent. Keep short, about 6 characters.",
                 "sent": "Screen reader label for a check mark icon in the shared matches table. The data was sent.",
                 "not_sent": "Screen reader label for a dash icon in the shared matches table. The data was not sent.",
-                "empty": "Empty state text in the shared matches list on Settings > Privacy."
+                "empty": "Empty state text in the shared matches list on Settings > Privacy.",
+                "load_error": "Error message. Shown on Settings, Privacy when the list of shared matches could not be read."
             }
         },
         "about_page": {
@@ -483,7 +496,8 @@
             "check_now": "Button on Settings > About that checks for an app update right now. Keep short, about 10 characters.",
             "auto_check_label": "Setting label on Settings > About for the switch that checks for updates on its own.",
             "auto_check_description": "Setting description on Settings > About for automatic update checks. GitHub is a product name and stays untranslated.",
-            "whats_new_in": "Expandable heading on Settings > About for the release notes. {version} = version number, e.g. \"0.15.0\"."
+            "whats_new_in": "Expandable heading on Settings > About for the release notes. {version} = version number, e.g. \"0.15.0\".",
+            "version_error": "Error message. Shown on Settings, About in the version card when the app version could not be read."
         },
         "diagnostics": {
             "description": "Setting description on Settings > Diagnostics for the session log viewer.",
@@ -536,7 +550,8 @@
         "summary": {
             "total": "Label above the total size of all files found, in the Storage summary. Keep short, about 12 characters.",
             "can_clear": "Label above the size that can be cleared, in the Storage summary. Keep short, about 20 characters.",
-            "clear_regenerable": "Button in the Storage summary that clears every file the game rebuilds itself. Keep short, about 25 characters."
+            "clear_regenerable": "Button in the Storage summary that clears every file the game rebuilds itself. Keep short, about 25 characters.",
+            "total_at_least": "Total size shown on the Storage page when some folders could not be measured, so the real total is larger. {size} = size, e.g. 1.2 GB."
         },
         "entry": {
             "path_missing": "Text in a Storage entry row, shown in place of the file path when the folder does not exist on this PC.",
@@ -549,7 +564,8 @@
             "reveal_aria": "Screen reader label for the icon button that shows an entry in its folder. {label} = entry name, e.g. \"Shader cache\".",
             "reveal_title": "Tooltip on the icon button in a Storage entry row that opens the folder in File Explorer.",
             "clear_aria": "Screen reader label for the icon button that clears an entry. {label} = entry name, e.g. \"Shader cache\".",
-            "clear_title": "Tooltip on the icon button in a Storage entry row that deletes its files. Keep short, about 6 characters."
+            "clear_title": "Tooltip on the icon button in a Storage entry row that deletes its files. Keep short, about 6 characters.",
+            "unmeasured": "Size label on a Storage page row whose size could not be measured. Keep short, about 16 characters."
         },
         "dialog": {
             "cancel": "Cancel button in the Storage clear confirmation dialog. Keep short, about 8 characters.",
@@ -564,7 +580,8 @@
         "toast": {
             "freed": "Toast shown after clearing files. {size} = space freed, e.g. \"1.2 GB\".",
             "nothing": "Toast shown when clearing found no files to remove.",
-            "remove_failed": "Error toast when some files could not be removed. {count} = number of failures, e.g. 2. {first} = error message for the first failure."
+            "clear_failed": "Toast shown on the Storage page when clearing items failed. {count} = number of items that failed, e.g. 2.",
+            "reveal_failed": "Toast shown when a folder could not be opened in the file manager from the Storage page or the crash dialog."
         },
         "age": {
             "today": "Age text in a Storage entry row, used inside the oldest item note. Means the oldest file is from today. Lowercase.",
@@ -775,7 +792,14 @@
                 "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear shared matches?\".",
                 "description": "Description line of the shared matches entry. Deadlock+ and Deadlock API stay untranslated.",
                 "consequence": "Sentence shown in the clear dialog for shared matches. Deadlock+ stays untranslated."
+            },
+            "dispatch_editions": {
+                "label": "Row label on the Storage page for the saved Dispatch editions (newspaper style recaps). Keep short, about 17 characters.",
+                "clear_name": "Name of the Dispatch editions data, used in the clear confirmation dialog on the Storage page. Dispatch is a newspaper style recap feature.",
+                "description": "Row description on the Storage page. Says what the stored Dispatch editions are. Dispatch is a newspaper style recap. Deadlock+ stays untranslated.",
+                "consequence": "Warning in the clear confirmation on the Storage page. Clearing Dispatch editions cannot be undone, and past editions are not generated again."
             }
-        }
+        },
+        "list_error": "Error message. Shown on the Storage page when the list of data stored on this PC could not be read."
     }
 }

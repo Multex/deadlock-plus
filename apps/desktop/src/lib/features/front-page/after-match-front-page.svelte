@@ -1,17 +1,19 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onMount, tick, untrack } from "svelte";
+    import { goto } from "$app/navigation";
 
     import { getOverlayHost } from "@deadlock-plus/ui/overlay-host";
     import { MAIN_WINDOW, windowLabel } from "$lib/core/window-label";
     import { windowVisibility } from "$lib/core/window-visibility";
+    import { overlayHost } from "$lib/shell/overlay-host.svelte";
     import { live } from "$lib/features/live/live.svelte";
+    import { matchHref } from "$lib/features/match-history/components/list/view-model";
     import { settings } from "$lib/features/settings/settings.svelte";
-    import { onPostgameMatch } from "$lib/features/stats/postgame-api";
     import { steamAccount } from "$lib/features/steam-account/account.svelte";
     import type { MatchDetail } from "@deadlock-plus/match/detail";
-    import { rowMode } from "@deadlock-plus/match/list";
     import { notifyFrontPageWaiting } from "./api";
-    import { createAfterMatch } from "./after-match";
+    import { afterMatchDeps, createAfterMatch } from "./after-match";
+    import { captureFeed } from "./capture-feed.svelte";
     import FrontPageTakeover from "./front-page-takeover.svelte";
     import { readCapturedDetail } from "./load";
     import { createTakeover } from "./takeover";
@@ -36,26 +38,36 @@
     });
 
     // Never raises or focuses the window: a paper that arrives while the game has the focus waits for the user.
-    const afterMatch = createAfterMatch({
-        mainWindow: windowLabel() === MAIN_WINDOW,
-        enabled: (mode) => settings.frontPageAfterMatch && settings.frontPageModes[mode],
-        attended: () => document.hasFocus() && !windowVisibility.isHidden(),
-        show: (matchId) => {
-            void readCapturedDetail(matchId).then((found) => {
-                if (!found) return;
-                detail = found;
-                takeover.show();
-            });
-        },
-        waiting: () => {
-            if (settings.frontPageOverlayAlert) notifyFrontPageWaiting().catch(() => {});
-        },
-        update: (matchId) => {
-            if (!open || detail?.matchId !== matchId) return;
-            void readCapturedDetail(matchId).then((found) => {
-                if (found && open && detail?.matchId === matchId) detail = found;
-            });
-        },
+    const afterMatch = createAfterMatch(
+        afterMatchDeps(
+            {
+                mainWindow: windowLabel() === MAIN_WINDOW,
+                settings,
+                hasFocus: () => document.hasFocus(),
+                isHidden: () => windowVisibility.isHidden(),
+                dialogOpen: () => overlayHost.count > 0,
+                notifyWaiting: notifyFrontPageWaiting,
+            },
+            {
+                show: (matchId) => {
+                    void readCapturedDetail(matchId).then((found) => {
+                        if (!found) return;
+                        detail = found;
+                        takeover.show();
+                    });
+                },
+                update: (matchId) => {
+                    if (!open || detail?.matchId !== matchId) return;
+                    void readCapturedDetail(matchId).then((found) => {
+                        if (found && open && detail?.matchId === matchId) detail = found;
+                    });
+                },
+            },
+        ),
+    );
+
+    $effect(() => {
+        if (overlayHost.count === 0) untrack(() => afterMatch.attention());
     });
 
     $effect(() => {
@@ -64,21 +76,12 @@
     });
 
     onMount(() => {
-        let stopped = false;
-        let unlisten: (() => void) | null = null;
-        onPostgameMatch((match) => afterMatch.captured(match.matchId, rowMode(match))).then(
-            (stop) => {
-                if (stopped) stop();
-                else unlisten = stop;
-            },
-            () => {},
-        );
+        const stopCaptures = captureFeed.follow((c) => afterMatch.captured(c.matchId, c.mode));
         const attention = () => afterMatch.attention();
         window.addEventListener("focus", attention);
         const stopVisibility = windowVisibility.onVisibilityChange(attention);
         return () => {
-            stopped = true;
-            unlisten?.();
+            stopCaptures();
             window.removeEventListener("focus", attention);
             stopVisibility();
         };
@@ -86,5 +89,12 @@
 </script>
 
 {#if open && detail}
-    <FrontPageTakeover {detail} {ownAccountId} {takeover} requestGrade />
+    {@const matchId = detail.matchId}
+    <FrontPageTakeover
+        {detail}
+        {ownAccountId}
+        {takeover}
+        requestGrade
+        onopenmatch={() => takeover.leave(() => void goto(matchHref(matchId)))}
+    />
 {/if}

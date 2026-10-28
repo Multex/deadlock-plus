@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Heart, Search } from "@lucide/svelte";
     import { goto } from "$app/navigation";
+    import ArtImage from "@deadlock-plus/ui/art-image.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import PlayerNameMenu from "$lib/components/player-links/player-name-menu.svelte";
     import { formatDate, t, tn } from "$lib/core/i18n.svelte";
@@ -15,8 +16,6 @@
 
     const build = $derived(detail.build!);
     const hero = $derived(detail.hero);
-    let portraitFailed = $state(false);
-    const art = $derived(portraitFailed ? (hero?.icon ?? null) : (hero?.portrait ?? hero?.icon ?? null));
 
     const AUTHOR_SITES: readonly ProfileSite[] = ["steam", "statlocker", "buildlocker"];
 
@@ -40,17 +39,24 @@
               })
             : null,
     );
+    const heroArt = "size-full object-cover object-top";
 </script>
 
 <Card padding="none" class="overflow-hidden" data-testid="build-header">
     <div class="flex items-stretch gap-5 p-5">
         <div class="h-28 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
-            {#if art}
-                <img
-                    src={art}
+            {#if hero?.portrait && hero.icon}
+                <ArtImage src={hero.portrait} alt={hero.name} label={hero.name} class={heroArt}>
+                    {#snippet fallback()}
+                        <ArtImage src={hero.icon} alt="" label={hero.name} class={heroArt} />
+                    {/snippet}
+                </ArtImage>
+            {:else}
+                <ArtImage
+                    src={hero?.portrait ?? hero?.icon}
                     alt={hero?.name ?? ""}
-                    class="size-full object-cover object-top"
-                    onerror={() => (portraitFailed = true)}
+                    label={hero?.name}
+                    class={heroArt}
                 />
             {/if}
         </div>

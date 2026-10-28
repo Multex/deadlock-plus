@@ -8,13 +8,20 @@ export interface AccoladeInfo {
     trackedStat: string | null;
 }
 
+const isAccoladeEntry = (value: unknown): value is AccoladeEntry =>
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as AccoladeEntry).id === "number" &&
+    typeof (value as AccoladeEntry).name === "string";
+
 /** Name, description and tracked stat, from the installed game, of the accolade ids in `ids` it knows. */
 export async function resolveAccoladeInfo(ids: readonly number[], locale: string): Promise<Map<number, AccoladeInfo>> {
     const out = new Map<number, AccoladeInfo>();
     if (ids.length === 0) return out;
     let entries: AccoladeEntry[];
     try {
-        entries = await command<AccoladeEntry[]>("game_accolades", { locale });
+        const value = await command<unknown>("game_accolades", { locale });
+        entries = Array.isArray(value) ? value.filter(isAccoladeEntry) : [];
     } catch {
         return out;
     }

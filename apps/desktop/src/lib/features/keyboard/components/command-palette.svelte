@@ -79,9 +79,10 @@
             <Command.Input
                 placeholder={t("keyboard.palette_placeholder")}
                 aria-label={t("keyboard.palette_input_label")}
-                class="h-12 w-full border-b border-border bg-transparent px-4 text-sm outline-none placeholder:text-muted-foreground"
+                class="h-12 w-full rounded-t-lg border-b border-border bg-transparent px-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
             />
-            <Command.List class="max-h-80 overflow-y-auto p-2">
+            <!-- axe wants the scroller in the tab order; Chromium puts it there on its own, other engines may not. -->
+            <Command.List class="max-h-80 overflow-y-auto p-2" tabindex={0}>
                 <Command.Viewport>
                     <Command.Empty class="px-3 py-6 text-center text-sm text-muted-foreground">
                         {t("keyboard.no_match")}

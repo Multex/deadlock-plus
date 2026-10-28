@@ -36,8 +36,14 @@ describe("errorText", () => {
         expect(errorText({ nothing: true })).toBe(catalog.errors.common.internal);
     });
 
-    it("uses an Error's message", () => {
-        expect(errorText(new Error("boom"))).toBe("boom");
+    it("never shows a JavaScript Error's message", () => {
+        const error = new TypeError("Cannot read properties of null (reading 'exists')");
+        expect(errorText(error)).toBe(catalog.errors.common.internal);
+        expect(errorText(new Error("boom"))).toBe(catalog.errors.common.internal);
+    });
+
+    it("honours the catalog for a JavaScript Error", () => {
+        expect(errorText(new Error("boom"), { errors: { common: { internal: "Oops." } } })).toBe("Oops.");
     });
 });
 

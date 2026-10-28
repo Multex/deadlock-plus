@@ -2,9 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { en, i18n, lookup, SUPPORTED_LOCALES, t, type Catalog } from "./i18n.svelte";
 
 const englishAreas = import.meta.glob<Catalog>(
-    ["../../../../../locales/*/en.json", "!../../../../../locales/web/*.json"],
+    [
+        "../../../../../locales/*/en.json",
+        "!../../../../../locales/dispatch/*.json",
+        "!../../../../../locales/web/*.json",
+    ],
     { eager: true, import: "default" },
 );
+const allEnglishAreas = import.meta.glob(["../../../../../locales/*/en.json", "!../../../../../locales/web/*.json"]);
 const russianAreas = import.meta.glob<Catalog>(
     ["../../../../../locales/*/ru.json", "!../../../../../locales/web/*.json"],
     { eager: true, import: "default" },
@@ -29,15 +34,22 @@ describe("locale areas", () => {
     beforeEach(() => i18n.preload(["ru"]));
     afterEach(() => i18n.reset({ en }, "en"));
 
-    it("ships one English file per app area", () => {
-        expect(Object.keys(englishAreas).map(areaOf).sort()).toEqual([
+    it("ships one English file per app area, with Dispatch as its own area", () => {
+        expect(Object.keys(allEnglishAreas).map(areaOf).sort()).toEqual([
             "app",
             "builds",
+            "dispatch",
             "live",
             "matches",
             "settings",
             "tools",
         ]);
+    });
+
+    it("keeps every area but Dispatch in the startup catalog", () => {
+        const startup = Object.values(englishAreas).flatMap((catalog) => Object.keys(catalog));
+        expect(Object.keys(en).sort()).toEqual(startup.sort());
+        expect(en.dispatch).toBeUndefined();
     });
 
     it("does not load the translator notes as a locale", () => {

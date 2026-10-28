@@ -167,6 +167,7 @@ pub fn show_toast(app: &AppHandle, id: String, kind: NotificationKind, text: (St
 
 pub mod commands {
     use super::*;
+    use crate::command_panics::guarded;
 
     #[tauri::command]
     pub fn set_overlay_settings(app: AppHandle, settings: OverlaySettings, state: tauri::State<'_, OverlayService>) {
@@ -189,18 +190,21 @@ pub mod commands {
     /// `TEST_DELAY` first, so the user can bring the game forward.
     #[tauri::command]
     pub async fn show_overlay_test(app: AppHandle) -> Result<(), AppError> {
-        if app.state::<GameFocusService>().state().focus == GameFocus::Closed {
-            return Err(OverlayError::GameNotRunning.into());
-        }
-        tokio::time::sleep(TEST_DELAY).await;
-        let locale = app.state::<I18nState>().locale();
-        let text = (
-            translate_in(&locale, &format!("{TEST_KEY}.title"), &[]),
-            translate_in(&locale, &format!("{TEST_KEY}.body"), &[]),
-        );
-        let id = format!("overlay-test-{}", NEXT_TEST.fetch_add(1, Ordering::Relaxed));
-        show_toast(&app, id, NotificationKind::Alert, text, Placement::Corner);
-        Ok(())
+        guarded(async move {
+            if app.state::<GameFocusService>().state().focus == GameFocus::Closed {
+                return Err(OverlayError::GameNotRunning.into());
+            }
+            tokio::time::sleep(TEST_DELAY).await;
+            let locale = app.state::<I18nState>().locale();
+            let text = (
+                translate_in(&locale, &format!("{TEST_KEY}.title"), &[]),
+                translate_in(&locale, &format!("{TEST_KEY}.body"), &[]),
+            );
+            let id = format!("overlay-test-{}", NEXT_TEST.fetch_add(1, Ordering::Relaxed));
+            show_toast(&app, id, NotificationKind::Alert, text, Placement::Corner);
+            Ok(())
+        })
+        .await
     }
 
     #[tauri::command]

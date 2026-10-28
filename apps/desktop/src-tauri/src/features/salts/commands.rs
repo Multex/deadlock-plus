@@ -1,3 +1,5 @@
+use crate::command_panics::guarded_infallible;
+use crate::features::error::AppError;
 use dp_ingest::record::{Entry, SaltRecord, Source};
 use dp_ingest::salts::Salts;
 use tauri::Manager;
@@ -31,13 +33,18 @@ fn shown(record: &SaltRecord) -> Vec<SharedMatch> {
 }
 
 #[tauri::command]
-pub async fn shared_matches(app: tauri::AppHandle) -> Vec<SharedMatch> {
-    let Ok(app_data) = app.path().app_data_dir() else { return Vec::new() };
-    let read = tauri::async_runtime::spawn_blocking(move || app.state::<SaltRecordService>().read(&app_data, shown));
-    read.await.unwrap_or_else(|e| {
-        log::warn!("could not read the shared matches: {e}");
-        Vec::new()
+pub async fn shared_matches(app: tauri::AppHandle) -> Result<Vec<SharedMatch>, AppError> {
+    guarded_infallible(async move {
+        let Ok(app_data) = app.path().app_data_dir() else { return Vec::new() };
+        let read = crate::command_panics::spawn_blocking_guarded(move || {
+            app.state::<SaltRecordService>().read(&app_data, shown)
+        });
+        read.await.unwrap_or_else(|e| {
+            log::warn!("could not read the shared matches: {e}");
+            Vec::new()
+        })
     })
+    .await
 }
 
 /// What the record knows to load `match_id`'s details from Valve.
@@ -55,15 +62,18 @@ fn details_salts(record: &SaltRecord, match_id: u64) -> Option<Salts> {
 /// The match's details straight from Valve, when the record holds what is needed to load them. Cached like an
 /// API body, so the next open reads them from the cache.
 #[tauri::command]
-pub async fn fetch_match_details(match_id: u64, app: tauri::AppHandle) -> Option<serde_json::Value> {
-    let app_data = app.path().app_data_dir().ok()?;
-    let handle = app.clone();
-    let salts = tauri::async_runtime::spawn_blocking(move || {
-        handle.state::<SaltRecordService>().read(&app_data, |record| details_salts(record, match_id))
+pub async fn fetch_match_details(match_id: u64, app: tauri::AppHandle) -> Result<Option<serde_json::Value>, AppError> {
+    guarded_infallible(async move {
+        let app_data = app.path().app_data_dir().ok()?;
+        let handle = app.clone();
+        let salts = crate::command_panics::spawn_blocking_guarded(move || {
+            handle.state::<SaltRecordService>().read(&app_data, |record| details_salts(record, match_id))
+        })
+        .await
+        .ok()??;
+        details::fetch_detail(&app, &salts).await
     })
     .await
-    .ok()??;
-    details::fetch_detail(&app, &salts).await
 }
 
 #[cfg(test)]

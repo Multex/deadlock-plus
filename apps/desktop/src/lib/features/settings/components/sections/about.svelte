@@ -4,11 +4,9 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { toast } from "svelte-sonner";
-    import { ChevronRight, Copy, Download, RefreshCw } from "@lucide/svelte";
+    import { ChevronRight, Download, RefreshCw } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
-    import SupportButton from "$lib/components/support-button.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { updater } from "$lib/features/updates/updater.svelte";
     import { installUpdate } from "$lib/features/updates/banner.svelte";
@@ -17,11 +15,12 @@
     import ThanksCard from "$lib/features/thanks/thanks-card.svelte";
     import LicensesList from "$lib/features/settings/components/licenses-list.svelte";
     import { settingsUi } from "$lib/features/settings/ui.svelte";
-    import { aboutGroups, aboutText, getAppInfo, type AppInfo } from "$lib/features/settings/about";
+    import { aboutInfo } from "$lib/features/settings/about-info.svelte";
+    import VersionCard from "$lib/features/settings/components/version-card.svelte";
 
     let { show }: { show: (id: string) => boolean } = $props();
 
-    let info = $state<AppInfo | null>(null);
+    const info = $derived(aboutInfo.info);
     let licensesOpen = $state(false);
 
     $effect(() => {
@@ -29,20 +28,8 @@
     });
 
     onMount(() => {
-        getAppInfo()
-            .then((i) => (info = i))
-            .catch(() => {});
+        void aboutInfo.load();
     });
-
-    async function copyInfo() {
-        if (!info) return;
-        try {
-            await navigator.clipboard.writeText(aboutText(info));
-            toast.success(t("settings.about_page.copied"));
-        } catch {
-            toast.error(t("settings.about_page.copy_failed"));
-        }
-    }
 </script>
 
 {#if show("updates")}
@@ -99,32 +86,8 @@
     </Card>
 {/if}
 
-{#if show("version") && info}
-    <Card as="section">
-        <div class="flex items-center justify-between gap-4">
-            <h2 class="font-heading text-sm font-semibold tracking-wide">{t("settings.items.version")}</h2>
-            <div class="flex items-center gap-2">
-                <SupportButton />
-                <Button variant="outline" size="sm" onclick={copyInfo}>
-                    <Copy />
-                    {t("settings.about_page.copy")}
-                </Button>
-            </div>
-        </div>
-        <div class="mt-3 flex flex-col gap-4">
-            {#each aboutGroups(info) as group (group.title)}
-                <div>
-                    <h3 class="mb-1 text-xs uppercase tracking-widest text-muted-foreground/70">{group.title}</h3>
-                    <dl class="grid grid-cols-[8.5rem_1fr] gap-x-4 gap-y-1 text-sm">
-                        {#each group.rows as [label, value] (label)}
-                            <dt class="text-muted-foreground">{label}</dt>
-                            <dd class="min-w-0 break-words select-text">{value}</dd>
-                        {/each}
-                    </dl>
-                </div>
-            {/each}
-        </div>
-    </Card>
+{#if show("version")}
+    <VersionCard />
 {/if}
 
 {#if show("thanks")}
