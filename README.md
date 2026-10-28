@@ -13,7 +13,7 @@ Rich Presence, a server picker, live match stats, builds, your match history and
 
 ### [⬇️ Download for Windows](../../releases/latest) · [🌐 deadlockplus.app](https://deadlockplus.app) · [💬 Discord](https://discord.gg/652zsGZZgD)
 
-<img src="apps/web/static/screenshots/match.webp" alt="A finished match in Deadlock+: both teams' heroes, items and stats, with a replay map below" width="860">
+<img src="apps/web/src/lib/assets/screenshots/match.webp" alt="A finished match in Deadlock+: both teams' heroes, items and stats, with a replay map below" width="860">
 
 </div>
 
@@ -64,7 +64,7 @@ Rich Presence, a server picker, live match stats, builds, your match history and
 
 Show your hero, mode and match timer on your Discord profile, with your rank badge in ranked. Change what every state says.
 
-<img src="apps/web/static/screenshots/discord-presence.webp" alt="The Presence editor" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/discord-presence.webp" alt="The Presence editor" width="100%">
 
 </td>
 <td width="50%" valign="top">
@@ -73,7 +73,7 @@ Show your hero, mode and match timer on your Discord profile, with your rank bad
 
 Both teams in your current match: ranks, souls, K/D/A and damage. Plus your server, ping and packet loss.
 
-<img src="apps/web/static/screenshots/live.webp" alt="The Live page during a ranked match" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/live.webp" alt="The Live page during a ranked match" width="100%">
 
 </td>
 </tr>
@@ -84,7 +84,7 @@ Both teams in your current match: ranks, souls, K/D/A and damage. Plus your serv
 
 Browse public builds for your hero, with this week's favourites first. Open one to see its shop and ability order as the game draws them.
 
-<img src="apps/web/static/screenshots/builds.webp" alt="The Builds page listing public builds for a hero" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/builds.webp" alt="The Builds page listing public builds for a hero" width="100%">
 
 </td>
 <td valign="top">
@@ -93,7 +93,7 @@ Browse public builds for your hero, with this week's favourites first. Open one 
 
 Edit any build on a copy of the game's shop page and save it to your game files. A souls timeline shows when each item becomes affordable.
 
-<img src="apps/web/static/screenshots/build-editor.webp" alt="The build editor on a copy of the game's shop page" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/build-editor.webp" alt="The build editor on a copy of the game's shop page" width="100%">
 
 </td>
 </tr>
@@ -104,7 +104,7 @@ Edit any build on a copy of the game's shop page and save it to your game files.
 
 Block the server regions you don't want to play on. See your ping to each one first. Imports your blocks from ServerPickerX and CS2ServerPicker.
 
-<img src="apps/web/static/screenshots/server-picker.webp" alt="The Server Picker" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/server-picker.webp" alt="The Server Picker" width="100%">
 
 </td>
 <td valign="top">
@@ -113,7 +113,7 @@ Block the server regions you don't want to play on. See your ping to each one fi
 
 Every match grouped into play sessions, with plain notes on when you play best. Open any match for the full scoreboard and a replay map.
 
-<img src="apps/web/static/screenshots/match-history.webp" alt="Match History grouped into sessions" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/match-history.webp" alt="Match History grouped into sessions" width="100%">
 
 </td>
 </tr>
@@ -124,7 +124,7 @@ Every match grouped into play sessions, with plain notes on when you play best. 
 
 Progress to your next rank, demotion shields and what your next win or loss is worth. Win rate, streaks and numbers for each hero.
 
-<img src="apps/web/static/screenshots/stats.webp" alt="The Stats page" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/stats.webp" alt="The Stats page" width="100%">
 
 </td>
 <td valign="top">
@@ -133,7 +133,7 @@ Progress to your next rank, demotion shields and what your next win or loss is w
 
 Record FPS, your lowest dips and stutters. Check your mods for things that slow the game down. Compare two runs.
 
-<img src="apps/web/static/screenshots/performance.webp" alt="The Performance page" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/performance.webp" alt="The Performance page" width="100%">
 
 </td>
 </tr>
@@ -144,7 +144,7 @@ Record FPS, your lowest dips and stutters. Check your mods for things that slow 
 
 Browse your saved replays. Pin the ones to keep and clean up the rest.
 
-<img src="apps/web/static/screenshots/replays.webp" alt="The Replays page" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/replays.webp" alt="The Replays page" width="100%">
 
 </td>
 <td valign="top">
@@ -153,7 +153,7 @@ Browse your saved replays. Pin the ones to keep and clean up the rest.
 
 See how much space Deadlock and Deadlock+ use. Clear files the game makes again on its own.
 
-<img src="apps/web/static/screenshots/storage.webp" alt="Storage settings" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/storage.webp" alt="Storage settings" width="100%">
 
 </td>
 </tr>
@@ -164,7 +164,7 @@ See how much space Deadlock and Deadlock+ use. Clear files the game makes again 
 
 View, add, unmute, export and import muted players. A backup is made before every change.
 
-<img src="apps/web/static/screenshots/mutes.webp" alt="The Mutes page" width="100%">
+<img src="apps/web/src/lib/assets/screenshots/mutes.webp" alt="The Mutes page" width="100%">
 
 </td>
 <td valign="top">
@@ -294,12 +294,12 @@ Lines of code, updated on every push to `main`:
 <!-- loc:start -->
 | Language | Files | Lines |
 | --- | ---: | ---: |
-| TypeScript | 867 | 91,364 |
+| TypeScript | 870 | 91,488 |
 | Rust | 368 | 80,781 |
-| Svelte | 370 | 36,068 |
-| JavaScript | 33 | 2,455 |
-| CSS | 6 | 782 |
-| **Total** | **1,644** | **211,450** |
+| Svelte | 371 | 36,111 |
+| JavaScript | 34 | 2,492 |
+| CSS | 7 | 849 |
+| **Total** | **1,650** | **211,721** |
 <!-- loc:end -->
 
 Non-blank lines in tracked files, tests included. Translations and generated code left out.

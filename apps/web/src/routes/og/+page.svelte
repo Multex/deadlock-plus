@@ -2,6 +2,7 @@
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import { SITE_URL } from "@deadlock-plus/links/urls";
     import { OG_IMAGE } from "$lib/components/seo";
+    import { shotUrl } from "$lib/content/shots";
 </script>
 
 <svelte:head>
@@ -27,6 +28,6 @@
     <div
         class="h-[510px] w-[520px] shrink-0 overflow-hidden rounded-xl border border-brass/40 bg-chrome shadow-2xl shadow-black/60"
     >
-        <img src="/screenshots/match-mobile.webp" alt="" class="-mt-[7px] -ml-[7px] w-[532px] max-w-none" />
+        <img src={shotUrl("match-mobile")} alt="" class="-mt-[7px] -ml-[7px] w-[532px] max-w-none" />
     </div>
 </div>

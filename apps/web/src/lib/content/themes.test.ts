@@ -167,3 +167,28 @@ describe("app.html", () => {
         expect(at).toBeLessThan(html.indexOf("%sveltekit.head%"));
     });
 });
+
+describe("badge contrast", () => {
+    const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const luminance = (rgb: number[]) => {
+        const [r = 0, g = 0, b = 0] = rgb.map((v) => {
+            const c = v / 255;
+            return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a: number[], b: number[]) => {
+        const [hi = 0, lo = 0] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    };
+
+    // The download page's Recommended and Best-effort badges draw their colour as small text on a 15% tint of itself.
+    it.each(["success", "warning"])("keeps %s badge text at 4.5:1 on every theme's card", (token) => {
+        for (const theme of THEME_DATA) {
+            const text = channels(oklchToHex(theme.tokens[token] ?? ""));
+            const card = channels(oklchToHex(theme.tokens.card ?? ""));
+            const tint = card.map((c, i) => 0.15 * (text[i] ?? 0) + 0.85 * c);
+            expect(ratio(text, tint), theme.id).toBeGreaterThanOrEqual(4.5);
+        }
+    });
+});

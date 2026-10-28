@@ -1,12 +1,13 @@
 <script lang="ts">
     import { pushState } from "$app/navigation";
     import { page } from "$app/state";
+    import type { Component, ComponentProps } from "svelte";
     import { MediaQuery } from "svelte/reactivity";
 
-    import * as Dialog from "@deadlock-plus/ui/dialog";
     import { cn } from "@deadlock-plus/ui/utils";
 
-    import ShotViewer from "./shot-viewer.svelte";
+    import { shotUrl, smallShotUrl } from "$lib/content/shots";
+    import type ShotDialog from "./shot-dialog.svelte";
 
     type Props = {
         name: string;
@@ -28,8 +29,15 @@
     let leaving = false;
     let trigger = $state<HTMLButtonElement | null>(null);
 
-    const src = $derived(`/screenshots/${name}.webp`);
-    const detailSrc = $derived(detail ? `/screenshots/${detail}.webp` : undefined);
+    const src = $derived(shotUrl(name));
+    const detailSrc = $derived(detail ? shotUrl(detail) : undefined);
+    const smallDetailSrc = $derived(detail ? smallShotUrl(detail) : undefined);
+
+    // The viewer and its dialog load on the first open, so they stay out of the page's first download.
+    let Viewer = $state<Component<ComponentProps<typeof ShotDialog>> | null>(null);
+    $effect(() => {
+        if (open && !Viewer) import("./shot-dialog.svelte").then((module) => (Viewer = module.default));
+    });
 
     // The same width as the `sm` breakpoint, so the script and the styles agree on what a phone is.
     const PHONE = "(width < 40rem)";
@@ -69,7 +77,7 @@
     <!-- Every shot is cropped to the app's window shape from the top, so a taller capture shows its upper part. -->
     <picture>
         {#if detailSrc}
-            <source media={PHONE} srcset={detailSrc} width="4" height="5" />
+            <source media={PHONE} srcset={smallDetailSrc} width="4" height="5" />
         {/if}
         <img
             {src}
@@ -77,6 +85,7 @@
             width="1480"
             height="900"
             loading={eager ? "eager" : "lazy"}
+            fetchpriority={eager ? "high" : undefined}
             decoding="async"
             class={cn(
                 "w-full bg-chrome object-cover object-top",
@@ -88,12 +97,14 @@
     </picture>
 </button>
 
-<Dialog.Root bind:open={() => open, setOpen}>
-    <!-- Edge to edge on a phone. `touch-none` on the whole viewer keeps the browser's own pinch zoom out of it. -->
-    <Dialog.Content
-        class="inset-0 h-auto max-h-none w-auto max-w-none translate-x-0 translate-y-0 touch-none gap-0 overflow-hidden rounded-none border-0 bg-chrome p-0 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] outline-none select-none lg:inset-8 lg:rounded-lg lg:border"
+{#if Viewer}
+    <Viewer
+        {open}
+        onOpenChange={setOpen}
+        {src}
+        {detailSrc}
+        startOnDetail={closeUp}
+        {label}
         onCloseAutoFocus={refocusTrigger}
-    >
-        <ShotViewer {src} {detailSrc} startOnDetail={closeUp} {label} onclose={() => setOpen(false)} />
-    </Dialog.Content>
-</Dialog.Root>
+    />
+{/if}
