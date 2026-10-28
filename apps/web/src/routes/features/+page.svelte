@@ -53,7 +53,11 @@
             {/each}
         </Tabs.List>
         {#each GROUPS as item (item.id)}
-            <Tabs.Content value={item.id}>
+            <!-- The panel is a tab stop, so it needs a focus outline the shared component leaves off. -->
+            <Tabs.Content
+                value={item.id}
+                class="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring focus-visible:outline-solid"
+            >
                 <p class="mb-4 text-muted-foreground">{item.blurb}</p>
                 <div class="grid gap-3 md:grid-cols-2">
                     {#each featuresIn(item.id) as feature (feature.id)}
