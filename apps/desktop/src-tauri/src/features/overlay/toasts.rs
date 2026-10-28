@@ -50,6 +50,12 @@ impl Toasts {
         *self = Self::default();
     }
 
+    /// The game is gone but the page stays loaded, so it is still ready. Nothing queued is worth showing later.
+    pub(super) fn game_closed(&mut self) {
+        self.pending.clear();
+        self.hide_at = None;
+    }
+
     pub(super) fn hide_at(&self) -> Option<Instant> {
         self.hide_at
     }
@@ -151,6 +157,28 @@ mod tests {
         q.window_created();
         assert!(q.ready(t0).is_empty());
         assert_eq!(q.hide_at(), None);
+    }
+
+    #[test]
+    fn a_page_kept_through_a_game_close_stays_ready() {
+        let t0 = Instant::now();
+        let mut q = Toasts::default();
+        q.window_created();
+        q.ready(t0);
+        q.push(toast("a", 6000), t0);
+        q.game_closed();
+        assert_eq!(q.hide_at(), None);
+        assert_eq!(ids(&q.push(toast("b", 6000), t0)), ["b"], "the same page never says ready again");
+    }
+
+    #[test]
+    fn a_game_close_drops_what_was_queued_for_a_loading_page() {
+        let t0 = Instant::now();
+        let mut q = Toasts::default();
+        q.window_created();
+        q.push(toast("a", 6000), t0);
+        q.game_closed();
+        assert!(q.ready(t0).is_empty());
     }
 
     #[test]

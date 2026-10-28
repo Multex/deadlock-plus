@@ -131,6 +131,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- Deadlock+ no longer crashes when you shut down or sign out of Windows with the game open.
 - Deadlock+ no longer crashes now and then after picking up a match from the game.
 - The Live page no longer crashes when the game reports two players in the same lobby slot.
 - On Linux, the main window shows at startup instead of staying hidden.
