@@ -59,12 +59,15 @@ pub(super) fn next_status(current: OverlayStatus, focus: GameFocus, exclusive_no
 pub(super) enum Lifecycle {
     Create,
     Close,
+    Hide,
 }
 
-/// The window lives while the game runs, so WebView2 is warm before the first toast.
-pub(super) fn lifecycle(previous: GameFocus, next: GameFocus) -> Option<Lifecycle> {
+/// The window lives while the game runs, so WebView2 is warm before the first toast. A game closed by a shutdown or
+/// log off only hides it: tearing a WebView2 down while the session ends crashes tao.
+pub(super) fn lifecycle(previous: GameFocus, next: GameFocus, session_ending: bool) -> Option<Lifecycle> {
     match (previous == GameFocus::Closed, next == GameFocus::Closed) {
         (true, false) => Some(Lifecycle::Create),
+        (false, true) if session_ending => Some(Lifecycle::Hide),
         (false, true) => Some(Lifecycle::Close),
         _ => None,
     }
@@ -202,6 +205,7 @@ mod tests {
     #[test]
     fn the_window_opens_with_the_game_and_closes_with_it() {
         use GameFocus::*;
+        let lifecycle = |previous, next| lifecycle(previous, next, false);
         assert_eq!(lifecycle(Closed, Background), Some(Lifecycle::Create));
         assert_eq!(lifecycle(Closed, Focused), Some(Lifecycle::Create));
         assert_eq!(lifecycle(Focused, Background), None);
@@ -209,6 +213,15 @@ mod tests {
         assert_eq!(lifecycle(Focused, Closed), Some(Lifecycle::Close));
         assert_eq!(lifecycle(Background, Closed), Some(Lifecycle::Close));
         assert_eq!(lifecycle(Closed, Closed), None);
+    }
+
+    #[test]
+    fn a_game_closed_by_a_session_end_only_hides_the_window() {
+        use GameFocus::*;
+        assert_eq!(lifecycle(Focused, Closed, true), Some(Lifecycle::Hide));
+        assert_eq!(lifecycle(Background, Closed, true), Some(Lifecycle::Hide));
+        assert_eq!(lifecycle(Closed, Focused, true), Some(Lifecycle::Create));
+        assert_eq!(lifecycle(Focused, Background, true), None);
     }
 
     #[test]
