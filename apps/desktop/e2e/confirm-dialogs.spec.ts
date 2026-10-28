@@ -20,7 +20,7 @@ async function answer(page: Page, command: string, result: unknown) {
     );
 }
 
-/** Makes `command` fail from now on, as a backend error would. */
+/** Makes `command` fail from now on with a JavaScript error, whose message the app must never show. */
 async function fail(page: Page, command: string, message: string) {
     await page.evaluate(
         ([name, text]) =>
@@ -89,7 +89,10 @@ test("Presence editor: a reset that cannot be saved shows the error on the page"
         .click();
 
     await noQuestion(page);
-    await expect(page.getByRole("alert").filter({ hasText: "the settings file is read-only" })).toBeVisible();
+    await expect(
+        page.getByRole("alert").filter({ hasText: "Couldn't save your Discord activity changes. Try again." }),
+    ).toBeVisible();
+    await expect(page.getByText("the settings file is read-only")).toHaveCount(0);
 });
 
 const ROW_UNMUTE = /^Unmute (?!selected)/;
@@ -101,7 +104,8 @@ test("Mutes: a failed unmute says so, keeps the player and puts the question awa
     await page.getByRole("button", { name: ROW_UNMUTE }).first().click();
     await question(page, "Unmute 1 player?").getByRole("button", { name: "Unmute", exact: true }).click();
 
-    await expect(toast(page, /the file is locked/)).toBeVisible();
+    await expect(toast(page, "Couldn't save your mutes. Try again.")).toBeVisible();
+    await expect(page.getByText("the file is locked")).toHaveCount(0);
     await noQuestion(page);
     await expect(page.getByRole("button", { name: ROW_UNMUTE })).toHaveCount(MUTED_AT_START);
 });
@@ -137,7 +141,8 @@ test("Storage: a failed clear says so and puts the question away", async ({ page
     await page.getByRole("button", { name: "Clear Shader cache", exact: true }).click();
     await question(page, "Clear the shader cache?").getByRole("button", { name: "Clear", exact: true }).click();
 
-    await expect(toast(page, /Couldn't remove 1: .*access denied/)).toBeVisible();
+    await expect(toast(page, "Couldn't clear 1 item. Try again.")).toBeVisible();
+    await expect(page.getByText("access denied")).toHaveCount(0);
     await noQuestion(page);
 });
 
@@ -159,6 +164,7 @@ test("Replays: a failed delete says so and puts the question away", async ({ pag
         .last()
         .click();
 
-    await expect(toast(page, /the folder is gone/)).toBeVisible();
+    await expect(toast(page, "Couldn't delete those replays. Try again.")).toBeVisible();
+    await expect(page.getByText("the folder is gone")).toHaveCount(0);
     await noQuestion(page);
 });
