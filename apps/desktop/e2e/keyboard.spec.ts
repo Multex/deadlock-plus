@@ -421,18 +421,23 @@ test.describe("Tab order on Home", () => {
 // from the same `--ring` token with the same widths, so these three cover the dark, light and forced-colour
 // shapes the ring takes; the colour of the ring against each theme is the contrast check's job.
 const WALK_THEMES = ["deadlock", "daylight", "contrast"];
+const LONG_WALKS = ["match-detail"];
 
 for (const scenario of [...new Set(ROUTE_CALLS.map((route) => route.scenario))]) {
     test.describe(`keyboard walk on the ${scenario} scenario`, () => {
         // The routes were recorded as Windows, and some of them, like the overlay settings, exist only there.
         test.use({ scenario, userAgent: WINDOWS_UA });
-        // A match page has a few hundred stops, and each one is a key press and a look at the page.
+        // Each stop is a key press and a look at the page, and each of those waits on the page's next frame.
         test.describe.configure({ timeout: 120_000 });
         for (const route of ROUTE_CALLS.filter((r) => r.scenario === scenario)) {
             for (const theme of WALK_THEMES) {
                 test(`${route.name} under ${theme}: one lap of Tab reaches every control with a mark, Shift+Tab walks it back`, async ({
                     page,
                 }) => {
+                    test.slow(
+                        LONG_WALKS.includes(route.name),
+                        "about 360 stops, four times the next longest, and a CI runner draws each frame of it far slower",
+                    );
                     await seedTheme(page, theme);
                     await open(page, route.path);
                     await expect(page.locator(":root")).toHaveAttribute("data-theme", theme);
