@@ -2,7 +2,11 @@ import type { Catalog } from "./core";
 
 // Lazy, so each language is its own chunk and only its own pages fetch it.
 const loaders = import.meta.glob<Catalog>(
-    ["../../../../../locales/web/*.json", "!../../../../../locales/web/en.json"],
+    [
+        "../../../../../locales/web/*.json",
+        "!../../../../../locales/web/en.json",
+        "!../../../../../locales/web/*.notes.json",
+    ],
     { import: "default" },
 );
 

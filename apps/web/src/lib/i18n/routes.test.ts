@@ -6,6 +6,7 @@ import { reroute } from "../../hooks";
 import { languageHref, localeOf, localizedHref, unlocalizedPath } from "./routes";
 
 const LOCALE_FILES = readdirSync(fileURLToPath(new URL("../../../../../locales/web", import.meta.url)))
+    .filter((name) => name.endsWith(".json") && !name.endsWith(".notes.json"))
     .map((name) => name.replace(/\.json$/, ""))
     .filter((name) => name !== "en");
 
