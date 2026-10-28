@@ -1,12 +1,16 @@
 import { WEB_LOCALES } from "@deadlock-plus/links";
 import { SITE_URL } from "@deadlock-plus/links/urls";
+import { THEME_PAGES } from "$lib/content/theme-pages";
 import { LOCALIZED_PAGES, alternates, localizedHref } from "$lib/i18n/routes";
 import type { RequestHandler } from "./$types";
 
 const ENGLISH_ONLY = ["/privacy", "/transparency"];
 
 const PAGES = [
-    ...LOCALIZED_PAGES.flatMap((path) => [path, ...WEB_LOCALES.map((locale) => localizedHref(path, locale))]),
+    ...[...new Set([...LOCALIZED_PAGES, ...THEME_PAGES])].flatMap((path) => [
+        path,
+        ...WEB_LOCALES.map((locale) => localizedHref(path, locale)),
+    ]),
     ...ENGLISH_ONLY,
 ];
 

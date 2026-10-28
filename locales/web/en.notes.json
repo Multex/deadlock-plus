@@ -38,7 +38,78 @@
         "void": "Colour theme name in the website footer theme picker. A near black theme. Keep short, about 12 characters.",
         "deadchaps": "Colour theme name in the footer theme picker. Named after the DeadChaps community, a brand name, keep it untranslated.",
         "pretty_in_pink": "Colour theme name in the footer theme picker. A playful name for a pink theme, a free translation is fine. Keep short, about 16 characters.",
-        "catppuccin": "Colour theme name in the footer theme picker. Catppuccin is a known colour scheme brand, keep it untranslated."
+        "catppuccin": "Colour theme name in the footer theme picker. Catppuccin is a known colour scheme brand, keep it untranslated.",
+        "effects": "Label of the switch in the website footer theme picker that turns the theme's animated background on or off. Keep short, about 16 characters.",
+        "flavour": "Label of the menu in the website footer theme picker that picks one of Catppuccin's palettes (Latte, Frappé, Macchiato, Mocha). Keep short, about 10 characters.",
+        "based_on": "Credit line under a theme in the website footer theme picker, linking to what the theme is styled after. {source} is a name like \"Deadlock Night Shift on Twitch\", keep the placeholder as is.",
+        "sources": {
+            "deadlock": "Name of what the Deadlock theme is based on, shown as {source} in \"Based on {source}\". Deadlock and Steam are names, keep them untranslated.",
+            "nightshift": "Name of what the Nightshift theme is based on, shown as {source} in \"Based on {source}\". Deadlock Night Shift is a show name and Twitch a site, keep both untranslated.",
+            "deadlock_api": "Name of what the Deadlock API theme is based on, shown as {source} in \"Based on {source}\". A community project name, keep it untranslated.",
+            "statlocker": "Name of what the Statlocker theme is based on, shown as {source} in \"Based on {source}\". A site name, keep it untranslated.",
+            "deadchaps": "Name of what the DeadChaps theme is based on, shown as {source} in \"Based on {source}\". A community name, keep it untranslated.",
+            "catppuccin": "Name of what the Catppuccin theme is based on, shown as {source} in \"Based on {source}\". Catppuccin is a brand name, keep it untranslated; translate \"palette\"."
+        },
+        "all": "Link under the website footer theme picker to the page that lists every colour theme. Keep short, about 16 characters."
+    },
+    "themes_page": {
+        "title": "Browser tab and search result title of the website page that lists every colour theme. Keep Deadlock+, Nightshift and Catppuccin untranslated. At most 60 characters.",
+        "description": "Search result description of the website page that lists every colour theme. Nightshift and Catppuccin are theme names, keep them untranslated. Between 70 and 160 characters.",
+        "heading": "Main heading of the website page that lists every colour theme. Deadlock+ is the app name, keep it untranslated.",
+        "subtitle": "Line under the heading of the website's theme gallery. \"Settings, Appearance\" is the path to the theme setting in the app: use the app's own names for those two screens.",
+        "animated": "Small badge on a theme in the website's theme gallery, for a theme with an animated background. One word.",
+        "theme_title": "Browser tab and search result title of one colour theme's page on the website. {name} is the theme name, like \"Nightshift\". Keep the placeholder and Deadlock+ as is. At most 60 characters with a long name.",
+        "theme_description": "Search result description of one colour theme's page on the website. {description} is the theme's one-line description and {name} its name; keep both placeholders. Between 70 and 160 characters in total.",
+        "theme_heading": "Main heading of one colour theme's page on the website. {name} is the theme name, like \"Nightshift\"; keep the placeholder.",
+        "effects_heading": "Heading of the list of a theme's animated background layers on its page on the website. One word.",
+        "use": "Button on a theme's page on the website that switches the whole website to that theme. Keep short, about 20 characters.",
+        "in_use": "The same button once the website already uses that theme. Keep short, about 20 characters.",
+        "in_app_heading": "Heading on a theme's page on the website, above how to pick the theme in the desktop app. Keep short.",
+        "in_app_body": "How to pick the theme in the desktop app. \"Settings, Appearance\" is the path to the theme setting: use the app's own names for those two screens. {name} is the theme name; keep the placeholder.",
+        "og_alt": "Alt text of the picture shown when a link to a theme's page is shared. {name} is the theme name; keep the placeholder.",
+        "descriptions": {
+            "deadlock": "One-line description of the Deadlock colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "midnight": "One-line description of the Midnight colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "daylight": "One-line description of the Daylight colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "contrast": "One-line description of the High contrast colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "nightshift": "One-line description of the Nightshift colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "deadlock_api": "One-line description of the Deadlock API colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "statlocker": "One-line description of the Statlocker colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "flint_snow": "One-line description of the Flint Snow colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "void": "One-line description of the Void colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "deadchaps": "One-line description of the DeadChaps colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "pretty_in_pink": "One-line description of the Pretty in Pink colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence.",
+            "catppuccin": "One-line description of the Catppuccin colour theme, shown under its name in the website's theme gallery and on its theme page. Keep it to one short sentence."
+        },
+        "effects": {
+            "deadlock": "The animated background of the Deadlock colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "midnight": {
+                "fog": "Name of one animated layer of the Midnight colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "windows": "Name of one animated layer of the Midnight colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words."
+            },
+            "daylight": "The animated background of the Daylight colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "nightshift": {
+                "rain": "Name of one animated layer of the Nightshift colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "lights": "Name of one animated layer of the Nightshift colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "frames": "Name of one animated layer of the Nightshift colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "clock": "Name of one animated layer of the Nightshift colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words."
+            },
+            "deadlock_api": "The animated background of the Deadlock API colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "statlocker": "The animated background of the Statlocker colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "flint_snow": {
+                "snow": "Name of one animated layer of the Flint Snow colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "stars": "Name of one animated layer of the Flint Snow colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "tail": "Name of one animated layer of the Flint Snow colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "tracks": "Name of one animated layer of the Flint Snow colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words."
+            },
+            "void": "The animated background of the Void colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "deadchaps": "The animated background of the DeadChaps colour theme, listed under Effects on its page on the website. A short phrase, not a sentence.",
+            "pretty_in_pink": {
+                "clouds": "Name of one animated layer of the Pretty in Pink colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "hearts": "Name of one animated layer of the Pretty in Pink colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words.",
+                "bow": "Name of one animated layer of the Pretty in Pink colour theme, listed under Effects on its page on the website. Same as the layer's name in the app's Settings, Appearance. One or two words."
+            }
+        }
     },
     "home": {
         "title": "Home page title. Shown in search results and browser tabs. Keep short, about 60 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",

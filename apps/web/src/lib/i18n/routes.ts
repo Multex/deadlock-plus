@@ -2,7 +2,15 @@ import { WEB_LOCALES } from "@deadlock-plus/links";
 import { DEFAULT_LOCALE } from "./core";
 
 /** Pages served in every locale. Privacy and Transparency stay English only. */
-export const LOCALIZED_PAGES: readonly string[] = ["/", "/features", "/download", "/faq"];
+export const LOCALIZED_PAGES: readonly string[] = ["/", "/features", "/download", "/faq", "/themes"];
+
+// A pattern rather than the theme list, so the routing every page loads first never carries the theme data. An id
+// that is not a theme still reaches the route, which answers 404 in the visitor's language.
+const THEME_PAGE = /^\/themes\/[a-z0-9]+(-[a-z0-9]+)*$/;
+
+function isLocalizedPage(path: string): boolean {
+    return LOCALIZED_PAGES.includes(path) || THEME_PAGE.test(path);
+}
 
 function split(pathname: string): { locale: string; rest: string } | null {
     const [, first = "", ...more] = pathname.split("/");
@@ -18,7 +26,7 @@ export function localeOf(pathname: string): string {
 /** The English route that serves a localized path, or undefined when the path is not a localized page. */
 export function localizedRoute(pathname: string): string | undefined {
     const parts = split(pathname);
-    return parts && LOCALIZED_PAGES.includes(parts.rest) ? parts.rest : undefined;
+    return parts && isLocalizedPage(parts.rest) ? parts.rest : undefined;
 }
 
 /** The English path of a page, with any locale prefix taken off. */
@@ -31,7 +39,7 @@ export function localizedHref(href: string, locale: string): string {
     if (locale === DEFAULT_LOCALE || !href.startsWith("/") || href.startsWith("//")) return href;
     const end = href.search(/[?#]/);
     const path = end === -1 ? href : href.slice(0, end);
-    if (!LOCALIZED_PAGES.includes(path)) return href;
+    if (!isLocalizedPage(path)) return href;
     const suffix = end === -1 ? "" : href.slice(end);
     return `/${locale}${path === "/" ? "" : path}${suffix}`;
 }
@@ -39,7 +47,7 @@ export function localizedHref(href: string, locale: string): string {
 /** The page at `pathname` in `locale`. An English-only page has no translation, so it opens that language's home. */
 export function languageHref(pathname: string, search: string, locale: string): string {
     const path = unlocalizedPath(pathname);
-    const target = LOCALIZED_PAGES.includes(path) || locale === DEFAULT_LOCALE ? path : "/";
+    const target = isLocalizedPage(path) || locale === DEFAULT_LOCALE ? path : "/";
     return localizedHref(`${target}${search}`, locale);
 }
 
@@ -51,7 +59,7 @@ export interface Alternate {
 /** Every language's address for a localized page, with English as the default; none for an English-only page. */
 export function alternates(pathname: string): Alternate[] {
     const path = unlocalizedPath(pathname);
-    if (!LOCALIZED_PAGES.includes(path)) return [];
+    if (!isLocalizedPage(path)) return [];
     return [
         { hreflang: DEFAULT_LOCALE, path },
         ...WEB_LOCALES.map((locale) => ({ hreflang: locale, path: localizedHref(path, locale) })),

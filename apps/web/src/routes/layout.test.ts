@@ -34,6 +34,14 @@ describe("the language picker", () => {
     });
 });
 
+describe("the theme picker", () => {
+    it("links every theme's page from the footer", () => {
+        const body = layout("/", { locale: "en", catalogs: {} });
+        const footer = body.slice(body.indexOf("<footer"));
+        expect(footer.replace(/<!--.*?-->/g, "")).toMatch(/href="\/themes"[^>]*>[^<]*All themes\s*</);
+    });
+});
+
 describe("the layout in another language", () => {
     const body = layout("/de/features", {
         locale: "de",
@@ -46,7 +54,8 @@ describe("the layout in another language", () => {
     });
 
     it("links the localized pages in the same language", () => {
-        for (const path of ["/de", "/de/features", "/de/download", "/de/faq"]) expect(body).toContain(`href="${path}"`);
+        for (const path of ["/de", "/de/features", "/de/download", "/de/faq", "/de/themes"])
+            expect(body).toContain(`href="${path}"`);
         expect(body).not.toContain('href="/features"');
     });
 
