@@ -2,6 +2,7 @@
     import type { Snippet } from "svelte";
     import { Star, Trophy } from "@lucide/svelte";
     import ArtImage from "@deadlock-plus/ui/art-image.svelte";
+    import AfterPaint from "$lib/shell/after-paint.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import { formatDate, formatNumber, t, tn } from "$lib/core/i18n.svelte";
     import type { Hero } from "$lib/features/heroes/heroes";
@@ -156,5 +157,5 @@
     {/if}
 
     <ShopPanel {build} {catalog} {catalogFailed} {kit} />
-    <AbilityOrder order={build.abilityOrder} {kit} {build} {catalog} />
+    <AfterPaint><AbilityOrder order={build.abilityOrder} {kit} {build} {catalog} /></AfterPaint>
 </article>

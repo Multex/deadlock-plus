@@ -11,6 +11,7 @@
     import ExportControl from "$lib/features/match-history/components/detail/export-control.svelte";
     import FrontPageButton from "$lib/features/front-page/front-page-button.svelte";
     import DeepDive from "$lib/features/match-history/components/detail/deep-dive.svelte";
+    import AfterPaint from "$lib/shell/after-paint.svelte";
     import Ping from "$lib/features/match-history/components/detail/ping.svelte";
     import Replay from "$lib/features/match-history/components/detail/replay.svelte";
     import Scoreboard from "$lib/features/match-history/components/detail/scoreboard.svelte";
@@ -95,7 +96,7 @@
         </div>
         <Replay {detail} {ownAccountIds} />
         <Ping {detail} />
-        <DeepDive {detail} {ownAccountIds} />
+        <AfterPaint><DeepDive {detail} {ownAccountIds} /></AfterPaint>
     {:else}
         <EmptyState size="base" spacing="xl" role="status" class="flex items-center justify-center gap-2">
             <LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
