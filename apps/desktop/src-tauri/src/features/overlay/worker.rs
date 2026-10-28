@@ -77,18 +77,24 @@ impl Worker {
     fn handle(&mut self, msg: Msg, now: Instant) {
         match msg {
             Msg::Focus(next) => {
-                match lifecycle(self.focus.focus, next.focus) {
+                match lifecycle(self.focus.focus, next.focus, window::session_ending()) {
                     Some(Lifecycle::Create) => {
-                        self.toasts.window_created();
                         self.shown = None;
-                        if let Err(e) = window::create(&self.app) {
-                            log::warn!("could not create the overlay window: {e}");
+                        match window::create(&self.app) {
+                            Ok(true) => self.toasts.window_created(),
+                            Ok(false) => {}
+                            Err(e) => log::warn!("could not create the overlay window: {e}"),
                         }
                     }
                     Some(Lifecycle::Close) => {
                         self.toasts.window_closed();
                         self.shown = None;
                         window::destroy(&self.app);
+                    }
+                    Some(Lifecycle::Hide) => {
+                        self.toasts.game_closed();
+                        self.shown = None;
+                        window::hide(&self.app);
                     }
                     None => {}
                 }

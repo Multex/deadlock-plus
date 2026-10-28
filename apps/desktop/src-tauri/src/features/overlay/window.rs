@@ -3,7 +3,7 @@ use tauri::AppHandle;
 
 pub(super) const LABEL: &str = "overlay";
 
-pub(super) use platform::{create, destroy, exclusive_fullscreen, hide, platform_ready, raise, show};
+pub(super) use platform::{create, destroy, exclusive_fullscreen, hide, platform_ready, raise, session_ending, show};
 
 #[cfg(windows)]
 mod platform {
@@ -12,19 +12,21 @@ mod platform {
     use windows::Win32::Foundation::{COLORREF, HWND};
     use windows::Win32::UI::Shell::{SHQueryUserNotificationState, QUNS_RUNNING_D3D_FULL_SCREEN};
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongPtrW, SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_EXSTYLE,
-        HWND_TOPMOST, LWA_ALPHA, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
-        SW_SHOWNOACTIVATE, WS_EX_APPWINDOW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
-        WS_EX_TRANSPARENT,
+        GetSystemMetrics, GetWindowLongPtrW, SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPos, ShowWindow,
+        GWL_EXSTYLE, HWND_TOPMOST, LWA_ALPHA, SM_SHUTTINGDOWN, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
+        SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOWNOACTIVATE, WS_EX_APPWINDOW, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
     };
 
     use super::*;
 
     /// Never Tauri's `show()`/`hide()` on this window: tao activates a window on every show after the first, which
     /// would pull focus out of the game. Everything below goes through the HWND instead.
-    pub(crate) fn create(app: &AppHandle) -> tauri::Result<()> {
+    ///
+    /// `Ok(false)` when the window already exists, so no new page will say it is ready.
+    pub(crate) fn create(app: &AppHandle) -> tauri::Result<bool> {
         if app.get_webview_window(LABEL).is_some() {
-            return Ok(());
+            return Ok(false);
         }
         // With the undecorated shadow on, WebView2 paints an opaque white background.
         let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("overlay".into()))
@@ -48,7 +50,14 @@ mod platform {
                 log::warn!("overlay window ex style 0x{ex:08x} lacks 0x{:08x}", wanted_ex_style());
             }
         });
-        Ok(())
+        Ok(true)
+    }
+
+    /// Tearing down a WebView2 pumps sent messages inside tao's event handler. If that is when Windows delivers
+    /// `WM_ENDSESSION`, tao re-enters its own handler and panics, and a game closed by a shutdown or log off lands
+    /// the teardown right there. The process ends with the session, so the window can simply stay.
+    pub(crate) fn session_ending() -> bool {
+        unsafe { GetSystemMetrics(SM_SHUTTINGDOWN) != 0 }
     }
 
     pub(crate) fn destroy(app: &AppHandle) {
@@ -185,15 +194,15 @@ mod platform {
 
     /// An X11 override-redirect window (XWayland included): the window manager never focuses, frames, places or
     /// lists it. Tauri's `show()`/`hide()` are safe here: on GTK they map and unmap without asking for focus.
-    pub(crate) fn create(app: &AppHandle) -> tauri::Result<()> {
+    pub(crate) fn create(app: &AppHandle) -> tauri::Result<bool> {
         if app.get_webview_window(LABEL).is_some() {
-            return Ok(());
+            return Ok(false);
         }
         let checked = check(app);
         READY.store(checked.is_ok(), Ordering::Release);
         if let Err(reason) = checked {
             log::info!("no game overlay on this desktop: {reason:?}");
-            return Ok(());
+            return Ok(true);
         }
         let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("overlay".into()))
             .title("Deadlock+ overlay")
@@ -208,7 +217,11 @@ mod platform {
         // Queued before any show, so the hook is in place when the first show realizes and maps the window.
         let hooked = window.clone();
         window.run_on_main_thread(move || hook_realize(hooked))?;
-        Ok(())
+        Ok(true)
+    }
+
+    pub(crate) fn session_ending() -> bool {
+        false
     }
 
     pub(crate) fn destroy(app: &AppHandle) {
@@ -327,8 +340,12 @@ mod platform {
 mod platform {
     use super::*;
 
-    pub(crate) fn create(_app: &AppHandle) -> tauri::Result<()> {
-        Ok(())
+    pub(crate) fn create(_app: &AppHandle) -> tauri::Result<bool> {
+        Ok(true)
+    }
+
+    pub(crate) fn session_ending() -> bool {
+        false
     }
 
     pub(crate) fn destroy(_app: &AppHandle) {}
