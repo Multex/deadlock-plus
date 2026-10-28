@@ -119,6 +119,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- What's New opens on a big version header with the update's totals.
+- What's New lists each update as patch notes, with an index that jumps to every section.
 - The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.
 - Text in every theme now meets a 4.5:1 contrast ratio, most visibly Daylight's darker gold.
 - With reduced motion on, nothing moves on the page, including video previews and scrolling.

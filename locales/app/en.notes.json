@@ -836,7 +836,16 @@
         "subtitle": "Subtitle under the heading of the What's new page. \"Deadlock+\" stays untranslated.",
         "empty": "Empty state on the What's new page when there are no release notes.",
         "show_all": "Button at the bottom of the What's new page that shows older releases too. Keep short, about 20 characters.",
-        "back_home": "Button at the end of the What's new page that goes back to the Home page. Keep short, about 14 characters."
+        "back_home": "Button at the end of the What's new page that goes back to the Home page. Keep short, about 14 characters.",
+        "version": "Release heading on the What's new page, e.g. \"Version 0.15.0\". Shown over older releases and read out by screen readers over the newest.",
+        "count_added": "Count of new additions in a release, in a row of totals on the What's new page. Plural. {count} = number of bullets, e.g. 83.",
+        "count_changed": "Count of changes in a release, in a row of totals on the What's new page. Plural. {count} = number of bullets, e.g. 13.",
+        "count_fixed": "Count of bug fixes in a release, in a row of totals on the What's new page. Plural. {count} = number of bullets, e.g. 24.",
+        "index": "Heading of the list of sections that jumps to each part of a release on the What's new page; screen readers also read it as the list's name. Keep short.",
+        "section_general": "Section heading for a release's smaller new additions, as in the game's own patch notes. Keep short.",
+        "section_changes": "Section heading for a release's changes, as in the game's own patch notes. Keep short.",
+        "section_fixes": "Section heading for a release's bug fixes, as in the game's own patch notes. Keep short.",
+        "section_removed": "Section heading for things removed in a release, as in the game's own patch notes. Keep short."
     },
     "account": {
         "default_name": "Fallback name of the user's Steam account in the sidebar account chip, used when no profile name is known.",

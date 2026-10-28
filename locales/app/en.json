@@ -839,7 +839,19 @@
         "subtitle": "Release notes for Deadlock+, newest first.",
         "empty": "No release notes yet.",
         "show_all": "Show all releases",
-        "back_home": "Back to Home"
+        "back_home": "Back to Home",
+        "version": "Version {version}",
+        "count_added_one": "{count} new",
+        "count_added_other": "{count} new",
+        "count_changed_one": "{count} changed",
+        "count_changed_other": "{count} changed",
+        "count_fixed_one": "{count} fixed",
+        "count_fixed_other": "{count} fixed",
+        "index": "In this update",
+        "section_general": "General",
+        "section_changes": "Changes",
+        "section_fixes": "Fixes",
+        "section_removed": "Removed"
     },
     "account": {
         "default_name": "Steam account",

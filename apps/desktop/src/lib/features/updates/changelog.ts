@@ -17,8 +17,13 @@ export interface ChangelogEntry {
 
 const RELEASE_HEADING = /^##\s+\[?v?([^\]\s]+)\]?(?:\s+-\s+(\S+))?\s*$/;
 
-/** Reads Keep a Changelog markdown. Unreleased is skipped: it is not shipped. */
-export function parseChangelog(markdown: string): ChangelogEntry[] {
+export interface ParseOptions {
+    /** Reads Unreleased as this release instead of skipping it, to preview notes ahead of a release. */
+    unreleasedAs?: { version: string; date: string | null };
+}
+
+/** Reads Keep a Changelog markdown. Unreleased is skipped unless `unreleasedAs` names it: it is not shipped. */
+export function parseChangelog(markdown: string, options: ParseOptions = {}): ChangelogEntry[] {
     const entries: ChangelogEntry[] = [];
     let entry: ChangelogEntry | null = null;
     let section: ChangelogSection | null = null;
@@ -31,7 +36,9 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
             section = null;
             group = null;
             if (release[1].toLowerCase() === "unreleased") {
-                entry = null;
+                const as = options.unreleasedAs;
+                entry = as ? { version: as.version, date: as.date, sections: [] } : null;
+                if (entry) entries.push(entry);
                 continue;
             }
             entry = { version: release[1], date: release[2] ?? null, sections: [] };

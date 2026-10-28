@@ -52,6 +52,16 @@ describe("parseChangelog", () => {
         expect(last.sections).toEqual([{ title: "", items: ["First release"] }]);
     });
 
+    it("reads Unreleased as the version it is given, ahead of the releases", () => {
+        const entries = parseChangelog(md, { unreleasedAs: { version: "0.3.0", date: "2026-10-05" } });
+        expect(entries.map((e) => e.version)).toEqual(["0.3.0", "0.2.0", "0.1.1", "0.1.0"]);
+        expect(entries[0]).toEqual({
+            version: "0.3.0",
+            date: "2026-10-05",
+            sections: [{ title: "Added", items: ["Not shipped yet"] }],
+        });
+    });
+
     it("returns nothing for an empty log", () => {
         expect(parseChangelog("# Changelog\n\n## [Unreleased]\n")).toEqual([]);
     });
