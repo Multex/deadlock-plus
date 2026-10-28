@@ -66,15 +66,17 @@ interface Control {
 const main = (page: Page) => page.getByRole("main");
 
 function locate(page: Page, control: Control): Locator {
-    const role = control.kind === "select" ? "button" : control.kind;
-    const all = control.kind === "select" ? selectTriggers(page) : main(page).getByRole(role);
+    const all = control.kind === "select" ? selectTriggers(page) : main(page).getByRole(control.kind);
     return all.nth(control.index);
 }
 
-// A select menu's closed trigger is a button that says it is collapsed. Whether such a button really opens
-// a list of options is only known after clicking it, which `controlsOn` does. A trigger that is disabled
-// until another control turns it on, like the source of an image that is not shown, is not counted.
-const selectTriggers = (page: Page) => main(page).getByRole("button", { expanded: false, disabled: false });
+// A select menu's closed trigger is a combobox, or a button, that says it is collapsed. Whether such a button
+// really opens a list of options is only known after clicking it, which `controlsOn` does. A trigger that is
+// disabled until another control turns it on, like the source of an image that is not shown, is not counted.
+const selectTriggers = (page: Page) =>
+    main(page)
+        .getByRole("combobox", { expanded: false, disabled: false })
+        .or(main(page).getByRole("button", { expanded: false, disabled: false }));
 
 async function accessibleName(locator: Locator): Promise<string> {
     const line = (await locator.ariaSnapshot()).split("\n")[0] ?? "";
@@ -319,7 +321,7 @@ test("picking a Catppuccin flavour sets the root variant attribute at once and a
     await expect(root).toHaveAttribute("data-theme", "catppuccin");
     await expect(root).toHaveAttribute("data-theme-variant", "mocha");
 
-    await main(page).getByRole("button", { name: "Catppuccin Flavour" }).click();
+    await main(page).getByRole("combobox", { name: "Flavour for Catppuccin" }).click();
     await page.getByRole("listbox").getByRole("option", { name: "Latte" }).click();
     await expect(root).toHaveAttribute("data-theme-variant", "latte");
 
