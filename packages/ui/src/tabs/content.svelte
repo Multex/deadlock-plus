@@ -5,4 +5,11 @@
     let { class: className, ...rest }: Tabs.ContentProps = $props();
 </script>
 
-<Tabs.Content class={cn("mt-4 focus-visible:outline-none", className)} {...rest} />
+<!-- The panel is a tab stop, so it shows where focus is like every other stop. -->
+<Tabs.Content
+    class={cn(
+        "mt-4 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring focus-visible:outline-solid",
+        className,
+    )}
+    {...rest}
+/>
