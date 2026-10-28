@@ -1,7 +1,8 @@
 /**
- * The lines of every Dispatch print cell in `locales/en.json`, where a cell is a headline shape or a deck slot and its
- * lines are `dispatch.story.<cell>_<n>` from 1. A number is how many lines the cell holds, all printable; a list
- * holds each line's condition (`lineHolds` in `stories.ts`), empty for a line that always may print.
+ * The lines of every Dispatch print cell in `locales/dispatch/en.json`, where a cell is a headline shape or a deck
+ * slot and its lines are `dispatch.story.<cell>_<n>` from 1. A number is how many lines the cell holds, all
+ * printable; a list holds each line's condition (`lineHolds` in `stories.ts`), empty for a line that always may
+ * print.
  */
 export const STORY_LINES: Readonly<Record<string, number | readonly string[]>> = {
     "record.weekly.headline_winning_name": ["me", "me", "me", "me", "me, margin>=5"],
