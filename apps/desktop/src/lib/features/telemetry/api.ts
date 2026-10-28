@@ -20,6 +20,16 @@ export function trackUpdateInstallClicked(toVersion: string, source: "banner" | 
     return command("track_update_install_clicked", { toVersion, source });
 }
 
+const FLUSH_LIMIT_MS = 2000;
+
+/** Never rejects and never waits past the limit, so a caller about to lose the process can always await it. */
+export async function flushTelemetry(): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<void>((resolve) => (timer = setTimeout(resolve, FLUSH_LIMIT_MS)));
+    await Promise.race([command("flush_telemetry").catch(() => {}), limit]);
+    clearTimeout(timer);
+}
+
 export function resetTelemetryId() {
     return command("reset_telemetry_id");
 }
