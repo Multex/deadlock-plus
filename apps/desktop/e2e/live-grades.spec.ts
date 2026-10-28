@@ -185,6 +185,16 @@ for (const [what, change] of [
     });
 }
 
+test("the strip draws the lobby's rank art at 16 pixels", async ({ page }) => {
+    await page.goto("/live");
+    await settle(page);
+
+    const art = strip(page).locator('img[src*="/ranks/"]');
+    await expect(art).toHaveCount(1);
+    const box = await art.boundingBox();
+    expect({ width: box!.width, height: box!.height }).toEqual({ width: 16, height: 16 });
+});
+
 test("the Live page with the strip looks like its baseline and keeps both teams in the window", async ({ page }) => {
     test.skip(process.platform !== "win32", "baselines are made on Windows only; fonts render differently elsewhere");
     await openShot(page, LIVE);

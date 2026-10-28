@@ -49,7 +49,7 @@
 
 {#snippet tierArt()}
     {#each groupArt as art (art.tier)}
-        <ArtImage src={art.image} alt="" class="size-4 flex-none object-contain" width={16} height={16} />
+        <ArtImage src={art.image} alt="" class="size-[16px] flex-none object-contain" width={16} height={16} />
     {/each}
 {/snippet}
 
