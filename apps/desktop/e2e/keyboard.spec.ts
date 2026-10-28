@@ -555,7 +555,11 @@ test.describe("focus in open layers", () => {
         const before = await triggers.count();
         await triggers.nth(1).focus();
         await page.keyboard.press("Enter");
-        await page.getByRole("menuitem", { name: "Delete", exact: true }).focus();
+        // The menu moves focus to its first item on the frame after it opens; focus moved before then is taken back.
+        await expect(page.getByRole("menuitem").first()).toBeFocused();
+        const deleteItem = page.getByRole("menuitem", { name: "Delete", exact: true });
+        await deleteItem.focus();
+        await expect(deleteItem).toBeFocused();
         await page.keyboard.press("Enter");
         const question = page.getByRole("alertdialog");
         await expect(question).toBeVisible();
