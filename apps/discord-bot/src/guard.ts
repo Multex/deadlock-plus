@@ -1,5 +1,5 @@
-import type { AutocompleteHandler, CommandHandler, ModalHandler } from "discord-hono";
-import type { RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10";
+import type { AutocompleteHandler, CommandHandler, ComponentHandler, ModalHandler } from "discord-hono";
+import type { APIButtonComponentWithCustomId, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10";
 import type { BotEnv, Env } from "./env";
 
 const OUTSIDE = "This bot only works in the Deadlock+ server.";
@@ -19,6 +19,12 @@ export function staffOnly<T extends RESTPostAPIApplicationCommandsJSONBody>(
 }
 
 export function staffModal(handler: ModalHandler<BotEnv>): ModalHandler<BotEnv> {
+    return (c) => (inServer(c.env, c.interaction.guild_id) ? handler(c) : c.flags("EPHEMERAL").res(OUTSIDE));
+}
+
+type Button = ComponentHandler<BotEnv, APIButtonComponentWithCustomId>;
+
+export function staffButton(handler: Button): Button {
     return (c) => (inServer(c.env, c.interaction.guild_id) ? handler(c) : c.flags("EPHEMERAL").res(OUTSIDE));
 }
 

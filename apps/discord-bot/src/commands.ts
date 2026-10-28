@@ -95,11 +95,47 @@ export const landing = staffCommand("landing", "Short paths typed after the site
     ]),
 ]);
 
-export const announce = staffCommand("announce", "Post an announcement as the bot; the text is asked next").options([
-    makeChannelOption("channel", "The channel to post in")
-        .required(true)
-        .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
-    makeRoleOption("role", "The only role the post mentions; nobody if empty"),
+const time = (name: string, description: string) =>
+    makeStringOption(name, `${description}, as YYYY-MM-DD or 2026-10-28T18:00Z`).max_length(40);
+const pickAnnouncement = (description: string) =>
+    makeStringOption("id", description).required(true).autocomplete(true).max_length(64);
+
+// Limits match what the app accepts from the feed.
+export const announce = staffCommand("announce", "Announcements in a Discord channel or in the app").options([
+    makeSubCommand("discord", "Post in a Discord channel as the bot; the text is asked next").options([
+        makeChannelOption("channel", "The channel to post in")
+            .required(true)
+            .channel_types([ChannelType.GuildText, ChannelType.GuildAnnouncement]),
+        makeRoleOption("role", "The only role the post mentions; nobody if empty"),
+    ]),
+    makeSubCommand("post", "Show an announcement in the app; you see a preview first").options([
+        makeStringOption("title", "One line, plain text").required(true).max_length(80),
+        makeStringOption("body", "Plain text; type \n for a new line").required(true).max_length(1200),
+        makeStringOption("severity", "Critical cannot be dismissed while it matches")
+            .required(true)
+            .choices([
+                { name: "Info", value: "info" },
+                { name: "Warning", value: "warning" },
+                { name: "Critical", value: "critical" },
+            ]),
+        makeStringOption("versions", "App versions it shows to, e.g. >=0.13.0, <0.13.2; all if empty").max_length(100),
+        makeStringOption("platforms", "Where it shows; both if empty").choices([
+            { name: "Windows only", value: "windows" },
+            { name: "Linux only", value: "linux" },
+        ]),
+        time("starts", "When it shows from; now if empty"),
+        time("ends", "When it stops; when ended if empty"),
+        makeStringOption(
+            "link",
+            "A button to deadlockplus.app, a Discord invite or github.com/deadlock-plus",
+        ).max_length(512),
+        makeStringOption("label", "The button's text").max_length(40),
+    ]),
+    makeSubCommand("list", "Show every announcement in the app's feed"),
+    makeSubCommand("end", "Stop showing an announcement now").options([pickAnnouncement("The announcement to end")]),
+    makeSubCommand("remove", "Delete an announcement from the feed").options([
+        pickAnnouncement("The announcement to remove"),
+    ]),
 ]);
 
 export const commands = [cost, invite, landing, announce];
