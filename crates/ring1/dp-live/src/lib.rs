@@ -123,7 +123,7 @@ pub enum Side {
 /// One scoreboard row. Only what the in-game scoreboard shows; never items, modifiers, positions or stat breakdowns.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct BoardPlayer {
-    /// The lobby slot, stable for the whole match.
+    /// Unique within the board: the lobby slot, unless another row already holds it.
     pub key: u32,
     pub name: Option<String>,
     /// SteamID64; `None` for bots and unread rows.

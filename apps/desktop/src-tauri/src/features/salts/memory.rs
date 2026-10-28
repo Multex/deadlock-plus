@@ -312,22 +312,27 @@ impl Env for AppEnv {
     fn cdn_has(&mut self, salts: &Salts) -> bool {
         let Some(url) = meta_url(salts) else { return false };
         let http = self.app.state::<Http>().0.clone();
-        let head = tauri::async_runtime::block_on(http.head(&url).timeout(HEAD_TIMEOUT).send());
-        match head {
-            Ok(r) if r.status() == reqwest::StatusCode::OK => true,
-            Ok(r) => {
-                log::debug!("memory salts: CDN answered {} for match {}", r.status(), salts.match_id);
-                false
-            }
-            Err(e) => {
-                log::debug!("memory salts: CDN check failed for match {}: {e}", salts.match_id);
-                false
-            }
-        }
+        cdn_serves(&http, &url, salts.match_id)
     }
 
     fn send(&mut self, salts: &[Salts]) -> Sent {
         tauri::async_runtime::block_on(send(&self.app, salts, Source::Deadlock))
+    }
+}
+
+/// `send` arms the request's timer as soon as it is called, so it must run inside the runtime, not on the worker.
+fn cdn_serves(http: &reqwest::Client, url: &str, match_id: u64) -> bool {
+    let head = tauri::async_runtime::block_on(async { http.head(url).timeout(HEAD_TIMEOUT).send().await });
+    match head {
+        Ok(r) if r.status() == reqwest::StatusCode::OK => true,
+        Ok(r) => {
+            log::debug!("memory salts: CDN answered {} for match {match_id}", r.status());
+            false
+        }
+        Err(e) => {
+            log::debug!("memory salts: CDN check failed for match {match_id}: {e}");
+            false
+        }
     }
 }
 
@@ -675,6 +680,24 @@ mod tests {
         fake.toggles = GC;
         picker.tick(&mut fake, t0 + READ_INTERVAL, false);
         assert_eq!(fake.posted().len(), 1);
+    }
+
+    #[test]
+    fn the_cdn_check_runs_on_a_worker_thread_with_no_runtime() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/1.meta.bz2", listener.local_addr().unwrap());
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            let mut request = [0u8; 1024];
+            let n = stream.read(&mut request).unwrap();
+            stream.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n").unwrap();
+            String::from_utf8_lossy(&request[..n]).to_string()
+        });
+        let worker = std::thread::spawn(move || cdn_serves(&reqwest::Client::new(), &url, 1));
+        assert!(worker.join().expect("the CDN check panicked"));
+        assert!(server.join().unwrap().starts_with("HEAD /1.meta.bz2"));
     }
 
     #[test]

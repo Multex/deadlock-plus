@@ -19,6 +19,8 @@ const THEMES: string[] = JSON.parse(
 const WATCH_MS = 1200;
 /** A loop runs about 60 frames a second; a few one-off frames (layout reads, focus) are not motion. */
 const MAX_FRAMES = 6;
+/** An animation over sooner than one frame jumps to its end without drawing anything in between. */
+const FRAME_MS = 1000 / 60;
 
 const gameData = createGameDataCache({
     dir: cacheDir(
@@ -41,9 +43,14 @@ function seed({ scenario, theme }: { scenario: string; theme: string | null }) {
     const w = window as unknown as { __frames: number };
     w.__frames = 0;
     const raf = window.requestAnimationFrame.bind(window);
+    // Callbacks run in the same frame share its timestamp, so several parts measuring at once count as one frame.
+    let frame = -1;
     window.requestAnimationFrame = (callback) =>
         raf((now) => {
-            w.__frames++;
+            if (now !== frame) {
+                frame = now;
+                w.__frames++;
+            }
             callback(now);
         });
 }
@@ -102,7 +109,7 @@ async function settle(page: Page) {
 /** Everything still moving across the watch window, described well enough to find in the source. */
 async function motion(page: Page): Promise<string[]> {
     return page.evaluate(
-        async ({ watchMs, maxFrames }) => {
+        async ({ watchMs, maxFrames, frameMs }) => {
             const name = (el: Element | null) => {
                 if (!el) return "?";
                 const cls =
@@ -119,12 +126,16 @@ async function motion(page: Page): Promise<string[]> {
                           : "web animation";
                 return `${kind} on ${name(target)}`;
             };
+            // Reduced motion cuts every CSS animation to a single 0.01ms run, but one that starts during the watch,
+            // like a spinner mounting, still reads as running until the browser draws its first frame.
+            const moves = (a: Animation) => Number(a.effect?.getComputedTiming().activeDuration) >= frameMs;
             const found = new Set<string>();
             const w = window as unknown as { __frames: number };
             const startFrames = w.__frames;
             const until = performance.now() + watchMs;
             while (performance.now() < until) {
-                for (const a of document.getAnimations()) if (a.playState === "running") found.add(describe(a));
+                for (const a of document.getAnimations())
+                    if (a.playState === "running" && moves(a)) found.add(describe(a));
                 for (const v of document.querySelectorAll("video"))
                     if (!v.paused) found.add(`playing video ${name(v)}`);
                 await new Promise((r) => setTimeout(r, 150));
@@ -133,7 +144,7 @@ async function motion(page: Page): Promise<string[]> {
             if (frames > maxFrames) found.add(`${frames} animation frames in ${watchMs}ms`);
             return [...found];
         },
-        { watchMs: WATCH_MS, maxFrames: MAX_FRAMES },
+        { watchMs: WATCH_MS, maxFrames: MAX_FRAMES, frameMs: FRAME_MS },
     );
 }
 
@@ -203,4 +214,42 @@ test("nothing moves with the command palette open", async ({ open }) => {
     await page.keyboard.press("Control+k");
     await expect(page.getByRole("dialog", { name: "Quick search" })).toBeVisible();
     expect(await motion(page)).toEqual([]);
+});
+
+test.describe("the watch", () => {
+    test("several parts measuring in the same frame are one frame, not a loop", async ({ open }) => {
+        const page = await open("default", "/");
+        await page.evaluate(() =>
+            setTimeout(() => {
+                for (let i = 0; i < 8; i++) requestAnimationFrame(() => {});
+            }, 300),
+        );
+        expect(await motion(page)).toEqual([]);
+    });
+
+    test("a spinner that mounts while the page is watched is not motion", async ({ open }) => {
+        const page = await open("default", "/");
+        await page.evaluate(() => {
+            let mounted = 0;
+            const timer = setInterval(() => {
+                const spinner = document.createElement("div");
+                spinner.className = "animate-spin size-4";
+                document.querySelector("main")!.append(spinner);
+                if (++mounted === 10) clearInterval(timer);
+            }, 97);
+        });
+        expect(await motion(page)).toEqual([]);
+    });
+
+    test("an animation and a frame loop that ignore reduced motion are both caught", async ({ open }) => {
+        const page = await open("default", "/");
+        await page.evaluate(() => {
+            const el = document.createElement("div");
+            document.querySelector("main")!.append(el);
+            el.animate([{ opacity: 1 }, { opacity: 0.5 }], { duration: 2000, iterations: Infinity });
+            const loop = () => requestAnimationFrame(loop);
+            loop();
+        });
+        expect(await motion(page)).toEqual(["web animation on div", expect.stringMatching(/animation frames in/)]);
+    });
 });
