@@ -11,17 +11,17 @@
     ],
     "translators": [
         {
-            "name": "Nuzz",
-            "url": "https://crowdin.com/profile/Nuzz",
-            "languages": [
-                "pt-BR"
-            ]
-        },
-        {
             "name": "ostia",
             "url": "https://crowdin.com/profile/ostia",
             "languages": [
                 "ru"
+            ]
+        },
+        {
+            "name": "Nuzz",
+            "url": "https://crowdin.com/profile/Nuzz",
+            "languages": [
+                "pt-BR"
             ]
         },
         {
