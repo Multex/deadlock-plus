@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Dialog } from "bits-ui";
+    import { holdFocusOrigin } from "../focus-return";
     import { getOverlayHost } from "../overlay-host";
 
     let { open = $bindable(false), onOpenChange, ...rest }: Dialog.RootProps = $props();
@@ -12,6 +13,10 @@
             open = false;
             onOpenChange?.(false);
         });
+    });
+
+    $effect.pre(() => {
+        if (open) return holdFocusOrigin();
     });
 </script>
 
