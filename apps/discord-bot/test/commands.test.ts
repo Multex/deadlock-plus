@@ -41,6 +41,14 @@ describe("commands", () => {
         }
     });
 
+    it("keep every description on one line", () => {
+        for (const command of commands) {
+            walk((command.toJSON() as Option).options, (option) =>
+                expect(option.description, option.name).not.toMatch(/[\r\n]/),
+            );
+        }
+    });
+
     it("give sibling options different names", () => {
         for (const command of commands) {
             walk((command.toJSON() as Option).options, (_, siblings) => {

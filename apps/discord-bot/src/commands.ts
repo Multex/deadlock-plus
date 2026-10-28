@@ -110,7 +110,7 @@ export const announce = staffCommand("announce", "Announcements in a Discord cha
     ]),
     makeSubCommand("post", "Show an announcement in the app; you see a preview first").options([
         makeStringOption("title", "One line, plain text").required(true).max_length(80),
-        makeStringOption("body", "Plain text; type \n for a new line").required(true).max_length(1200),
+        makeStringOption("body", "Plain text; type \\n for a new line").required(true).max_length(1200),
         makeStringOption("severity", "Critical cannot be dismissed while it matches")
             .required(true)
             .choices([

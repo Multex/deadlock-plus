@@ -16,8 +16,7 @@ Every reply is private. `/cost`, `/invite`, `/landing` and `/announce post|end|r
 
 The app fetches `https://deadlockplus.app/announcements.json`, which the website serves straight from the `announcements` key. The bot is the only writer.
 
-- `/announce post` takes a title (80 characters), a text (600 characters, `
-` for a new line), a severity, and optionally a version range (Rust semver syntax, e.g. `>=0.13.0, <0.13.2`), a platform, start and end times, and a link with a label. Links may only go to `deadlockplus.app`, `discord.gg`, `discord.com/invite` or `github.com/deadlock-plus`.
+- `/announce post` takes a title (80 characters), a text (600 characters, `\n` for a new line), a severity, and optionally a version range (Rust semver syntax, e.g. `>=0.13.0, <0.13.2`), a platform, start and end times, and a link with a label. Links may only go to `deadlockplus.app`, `discord.gg`, `discord.com/invite` or `github.com/deadlock-plus`.
 - It answers with a preview and Confirm/Cancel. Nothing is written until Confirm. The preview's draft waits under `announce-draft:<id>` for an hour.
 - Confirm re-reads the feed, adds the announcement with an id made of the title and the day, and signs the whole feed again.
 - `/announce end <id>` sets its end to now. `/announce remove <id>` deletes it. `/announce list` shows every one.
