@@ -1,0 +1,634 @@
+{
+    "stats": {
+        "title": "Estatísticas",
+        "subtitle": "Calculado neste PC a partir do seu histórico de partidas na API do Deadlock.",
+        "refresh": "Atualizar",
+        "hero_fallback": "Herói {id}",
+        "unknown_hero": "Herói desconhecido",
+        "api_error": "A API do Deadlock retornou um erro ({status}).",
+        "cached_note": "Não foi possível acessar a API do Deadlock. Exibindo a cópia salva {time}.",
+        "gate": {
+            "no_account": "Nenhuma conta do Steam foi encontrada, então não há histórico para carregar.",
+            "error": "Não foi possível carregar seu histórico de partidas. {error}",
+            "loading": "Carregando seu histórico de partidas..."
+        },
+        "scope": {
+            "ranked": "Competitiva",
+            "unranked": "Sem divisão",
+            "all": "Todos os modos"
+        },
+        "outcome": {
+            "win": "Vitória",
+            "loss": "Derrota"
+        },
+        "record": "{wins}V {losses}D",
+        "record_unscored": "{wins}V {losses}D, {unscored} não contabilizadas",
+        "playtime_hm": "{hours}h {minutes}m",
+        "playtime_m": "{minutes}m",
+        "filter": {
+            "all_time": "Todo o período",
+            "days_one": "",
+            "days_other": ""
+        },
+        "summary": {
+            "winrate": "Taxa de vitórias",
+            "form_aria": "Últimas {count} partidas, mais antigas primeiro",
+            "streak": "Sequência",
+            "streak_best": "Melhor: {wins} vitórias; pior: {losses} derrotas",
+            "playtime": "Tempo de jogo",
+            "matches": "{count} partidas",
+            "streak_wins_one": "",
+            "streak_wins_other": "",
+            "streak_losses_one": "",
+            "streak_losses_other": ""
+        },
+        "highlights": {
+            "most_played": "Mais jogados",
+            "most_played_summary": "{games} partidas, {winrate} de taxa de vitórias",
+            "best": "Melhor taxa de vitórias (a partir de {min} partidas)",
+            "best_summary": "{winrate} em {games} jogos",
+            "best_empty": "Jogue {min} partidas com um herói para ver qual é a sua melhor taxa de vitórias."
+        },
+        "heroes": {
+            "heading": "Heróis",
+            "intro": "As estatísticas seguem os filtros acima. O progresso no quadro de heróis considera sempre os últimos {days} dias mais as vitórias no total, e também exige {games} partidas no total na sua conta.",
+            "eligible": "Elegível para o quadro de heróis",
+            "not_yet": "Ainda fora do quadro de heróis",
+            "games": "Jogos",
+            "kda": "KDA",
+            "avg_souls": "Média de almas",
+            "time": "Tempo",
+            "none": "Não há jogos nesta seleção.",
+            "none_lifetime": "Nenhuma partida nesta seleção. {games} partidas no total.",
+            "recent_games": "Jogos, últimos {days} dias",
+            "lifetime_wins": "Vitórias no total",
+            "builds": "",
+            "builds_label": ""
+        },
+        "region": {
+            "heading": "Ranking regional",
+            "eligible": "Elegível",
+            "not_eligible": "Ainda não elegível",
+            "note": "Aproximado. Conta suas partidas competitivas e sem divisão conhecidas pela API do Deadlock. A Valve não divulga quais filas são consideradas.",
+            "recent_games": "Jogos nos últimos {days} dias",
+            "total_games": "Total de jogos na sua conta"
+        },
+        "page": {
+            "matches_known": "{count} partidas conhecidas para esta conta. O que ainda não foi visto não é contabilizado.",
+            "empty": "Não há partidas nesta seleção."
+        },
+        "section": {
+            "games": "Seus jogos"
+        },
+        "syncing_one": "",
+        "syncing_other": "",
+        "syncing_hint_one": "",
+        "syncing_hint_other": ""
+    },
+    "rank": {
+        "title": "Classificação",
+        "empty": "Ainda não há divisão para exibir. Ela aparece assim que a API do Deadlock tiver uma partida competitiva sua após as partidas de colocação.",
+        "tier_fallback": "Nível {tier}",
+        "eta": {
+            "not_climbing": "Não está subindo no mesmo ritmo de antes",
+            "days_or_more": "{low} dias ou mais",
+            "range": "{low} a {high} dias",
+            "about_one": "",
+            "about_other": ""
+        },
+        "form": {
+            "next_win": "Próxima vitória",
+            "no_streak": "Sem sequência de vitórias",
+            "next_loss": "Próxima derrota",
+            "only_shield": "Apenas um escudo",
+            "plus_shield": "Mais um escudo",
+            "drops_subrank": "Sem escudo: perde uma subdivisão",
+            "no_shield_used": "Nenhum escudo usado",
+            "streak_one": "",
+            "streak_other": ""
+        },
+        "outlook": {
+            "hold_rank": "Taxa de vitórias para manter sua classificação",
+            "no_data": "As sequências de vitórias rendem mais do que as derrotas custam, então você não precisa de 50%.",
+            "climbing": "Você está com {winrate} nas suas últimas {count} partidas: subindo.",
+            "sliding": "Você está com {winrate} nas suas últimas {count} partidas: caindo.",
+            "forecast_none": "São necessárias cerca de 8 partidas competitivas nas últimas duas semanas.",
+            "hold": "{winrate} mantém sua divisão.",
+            "heading": "Perspectiva",
+            "your_last": "Suas últimas {count}",
+            "climbing_short": "Subindo",
+            "sliding_short": "Caindo",
+            "next_tier": "Próximo nível: {eta}"
+        },
+        "chart": {
+            "heading": "Progresso",
+            "last_n": "Últimas {count}",
+            "aria": "Progresso de divisão nas suas partidas competitivas recentes",
+            "range": "{from} a {to}",
+            "legend": "Pontos preenchidos: verde = vitória, vermelho = derrota. Ponto com anel: um escudo absorveu a derrota.",
+            "empty": "São necessárias pelo menos duas partidas competitivas para traçar uma linha.",
+            "legend_changes": "Os triângulos indicam uma promoção ou rebaixamento."
+        },
+        "changes": {
+            "promoted_from": "Promovido de {name}",
+            "demoted_from": "Rebaixado de {name}"
+        },
+        "summary": {
+            "top_tier": "Nível superior. As subclassificações aqui dependem de como você se compara a outros jogadores de ponta, portanto, não há barra de progresso.",
+            "progress": "{within} / {span} para {next}.",
+            "boundary": "Seu progresso acabou de ultrapassar um limite, mas a API do Deadlock ainda exibe o emblema antigo; portanto, não haverá barra até a próxima partida.",
+            "placement_left": "Restam {count} partidas de colocação.",
+            "estimated_one": "",
+            "estimated_other": "",
+            "progress_streak_one": "",
+            "progress_streak_other": ""
+        },
+        "shields": {
+            "heading": "Escudos de rebaixamento",
+            "not_reported": "Não informado",
+            "none_hint": "Uma derrota pode fazer você cair de divisão.",
+            "left_hint": "Cada um absorve uma derrota que faria você cair de divisão."
+        }
+    },
+    "sessions": {
+        "title": "Sessões",
+        "subtitle": "Partidas agrupadas em sessões. Uma nova sessão começa após 90 minutos sem jogo.",
+        "results": {
+            "heading": "O que seus resultados indicam",
+            "intro": "A linha em cada barra representa sua taxa de vitórias geral. Uma diferença só é contabilizada quando houver um número suficiente de partidas para comprová-la.",
+            "intro_detail": "A linha em cada barra representa sua taxa de vitórias geral, {winrate} em {games} jogos. Uma diferença só é contabilizada quando houver um número suficiente de jogos para comprová-la.",
+            "hide": "Ocultar",
+            "show": "Mostrar"
+        },
+        "break": {
+            "label": "Lembrete de intervalo",
+            "suggestion": "{count} derrotas seguidas nesta sessão. Talvez valha a pena fazer uma pausa rápida. Você decide."
+        },
+        "highlight": {
+            "best": "Sua melhor sessão recente",
+            "excellent": "Excelente última sessão. Muito bem jogado.",
+            "good": "Bom trabalho. Sua última sessão correu bem."
+        },
+        "row": {
+            "excellent": "Excelente sessão",
+            "good": "Boa sessão",
+            "bad": "Sessão difícil",
+            "neutral": "Sessão equilibrada",
+            "games": "Jogos",
+            "record": "V / D",
+            "length": "Duração",
+            "rank_change": "Mudança de classificação"
+        },
+        "findings": {
+            "games_one": "",
+            "games_other": ""
+        },
+        "insights": {
+            "unknown_after_loss": "Ainda não há partidas suficientes após uma derrota ({yes} e {no}; são necessárias {min} de cada).",
+            "after_losses": {
+                "title": "Após derrotas",
+                "unknown": "Ainda não há jogos suficientes após duas derrotas consecutivas ({games} de {min}).",
+                "worse": "Após duas derrotas seguidas, você vence {rate} das partidas, contra {rest} nas demais.",
+                "better": "Você se sai melhor depois de duas derrotas seguidas: {rate} contra {rest} nas demais.",
+                "same": "Duas derrotas seguidas não mudam a forma como você joga: {rate} contra {rest} nas demais.",
+                "bar_after": "Após duas derrotas consecutivas",
+                "bar_rest": ""
+            },
+            "session_length": {
+                "title": "Onde parar",
+                "bar": "Jogo {n}",
+                "bar_plus": "Jogo {n}+",
+                "points": "{amount} pontos",
+                "drop": "Seus resultados caem após o jogo {last}: {head} até então, {tail} a partir do jogo {from}.",
+                "hold": "Seus resultados se mantêm estáveis à medida que a sessão se prolonga.",
+                "unknown": "Ainda não há sessões longas suficientes ({games} jogos após o jogo 3, são necessários {min})."
+            },
+            "swap_hero": {
+                "title": "Mudar ou ficar",
+                "bar_switched": "Herói trocado",
+                "bar_same": "O mesmo herói",
+                "better": "Depois de uma derrota, trocar de herói é mais vantajoso para você: {yes} contra {no} quando você permanece com o mesmo herói.",
+                "worse": "Depois de uma derrota, continuar com o mesmo herói é mais vantajoso para você: {no} contra {yes} quando você troca.",
+                "same": "Trocar de herói após uma derrota ou permanecer com o mesmo não faz diferença significativa: {yes} e {no}."
+            },
+            "requeue": {
+                "title": "Velocidade de requeue",
+                "bar_quick": "Voltou à fila em até 10 minutos",
+                "bar_slow": "Esperou mais tempo",
+                "better": "Entrar na fila logo após uma derrota funciona melhor para você: {yes} contra {no} quando você espera mais tempo.",
+                "worse": "Esperar um pouco depois de uma derrota funciona melhor para você: {no} contra {yes} quando você volta direto para a fila.",
+                "same": "Entrar na fila novamente ou esperar após uma derrota não faz diferença: {yes} e {no}."
+            },
+            "time_of_day": {
+                "title": "Hora do dia",
+                "morning": "Manhã",
+                "afternoon": "Tarde",
+                "evening": "Noite",
+                "late_night": "Madrugada",
+                "phrase_morning": "de manhã",
+                "phrase_afternoon": "à tarde",
+                "phrase_evening": "à noite",
+                "phrase_late_night": "durante a madrugada",
+                "best_worst": "Você joga melhor {best} ({best_rate}) e pior {worst} ({worst_rate}), contra {overall} no geral.",
+                "best": "Você joga melhor {best}: {best_rate} contra {overall} no geral.",
+                "worst": "Você joga pior {worst}: {worst_rate} contra {overall} no geral.",
+                "none": "Nenhuma parte do dia se destaca claramente para você.",
+                "unknown": "Ainda não há jogos suficientes em cada parte do dia (são necessários {min} em cada uma)."
+            },
+            "day_type": {
+                "title": "Dias da semana e fins de semana",
+                "weekdays": "Dias da semana",
+                "weekends": "Fins de semana",
+                "unknown": "Ainda não há partidas suficientes em dias da semana e fins de semana ({weekday} e {weekend}; são necessárias {min} de cada).",
+                "better": "Você se sai melhor nos fins de semana: {weekend_rate} contra {weekday_rate} nos dias da semana.",
+                "worse": "Você se sai melhor nos dias de semana: {weekday_rate} a {weekend_rate} nos fins de semana.",
+                "same": "Não há diferença clara entre dias da semana e fins de semana: {weekday_rate} e {weekend_rate}."
+            }
+        }
+    },
+    "match_history": {
+        "api_error": "A API do Deadlock retornou um erro ({status}).",
+        "detail_invalid": "A API do Deadlock não retornou dados úteis para esta partida.",
+        "team": {
+            "hidden_king": "O Rei Oculto",
+            "archmother": "A Arquimãe"
+        },
+        "list": {
+            "title": "Histórico de partidas",
+            "subtitle": "Suas partidas da API do Deadlock e as capturadas do jogo.",
+            "empty": "Ainda não há partidas. Elas aparecem assim que a API do Deadlock tiver uma partida sua.",
+            "no_results": "Nenhuma partida corresponde a esses filtros.",
+            "provisional": "Não confirmado",
+            "provisional_hint": "Ainda não confirmado pela API do Deadlock",
+            "mode": {
+                "custom": "Personalizado",
+                "other": "Outros"
+            },
+            "outcome": {
+                "unscored": "Sem pontuação"
+            },
+            "filter": {
+                "label": "Filtros de partidas",
+                "mode": "Modo",
+                "hero": "Herói",
+                "outcome": "Resultado",
+                "window": "Período",
+                "any_hero": "Todos os heróis",
+                "any_outcome": "Todos os resultados",
+                "custom": "Partidas personalizadas",
+                "reset": "Limpar filtros"
+            },
+            "pager": {
+                "label": "Páginas do histórico de partidas"
+            },
+            "summary": {
+                "label": "Resumo das partidas nesta lista",
+                "matches": "Partidas"
+            },
+            "row": {
+                "souls": "Almas",
+                "duration": "Duração",
+                "kda_split": "Vítimas / mortes / assistências",
+                "kda_ratio": "{ratio} KDA"
+            },
+            "count_one": "",
+            "count_other": ""
+        },
+        "deep_dive": {
+            "not_available": "Não disponível para esta partida.",
+            "player": "Jogador",
+            "player_fallback": "Jogador {slot}",
+            "progress": {
+                "heading": "Almas e dano",
+                "souls": "Almas",
+                "damage": "Dano",
+                "lead_heading": "Vantagem da equipe ao longo do tempo",
+                "lead_aria": "Gráfico da vantagem da equipe ao longo do tempo",
+                "lead_hint": "Acima da linha: O Rei Oculto na frente. Abaixo: A Arquimãe na frente.",
+                "lead_even": "As equipes estão empatadas",
+                "others_range": "Outros jogadores, do menor para o maior",
+                "player_heading": "Jogador selecionado ao longo do tempo",
+                "player_aria": "Gráfico do jogador selecionado e de todos os demais ao longo do tempo",
+                "player_hint": "A linha grossa indica o jogador selecionado.",
+                "picker_aria": "Jogador para almas e dano"
+            },
+            "purchases": {
+                "heading": "Compras",
+                "slider_aria": "Etapa de compra",
+                "previous": "Ação anterior",
+                "next": "Próxima ação",
+                "step": "{current} de {total}",
+                "item_buy": "Comprou {name}",
+                "item_sell": "Vendeu {name}",
+                "ability_unlock": "Destravou {name}",
+                "ability_upgrade": "Aprimorou {name} ({count} de {total})",
+                "imbued": "Infundido em {ability}",
+                "holding": "Itens no inventário",
+                "no_items": "Nenhum item no inventário",
+                "abilities": "Habilidades",
+                "no_abilities": "Nenhuma habilidade destravada",
+                "ability_level_aria": "{count} de {total} aprimoramentos",
+                "list_aria": "Todas as ações",
+                "picker_aria": "Jogador para compras"
+            },
+            "damage": {
+                "heading": "Dano entre heróis",
+                "hint": "Cada linha corresponde ao jogador que causa o dano, e cada coluna, ao jogador que o recebe. O dano que o jogo atribui ao próprio causador é exibido como “Outros danos”.",
+                "dealer": "Causador",
+                "other": "Outros danos",
+                "target": "Alvo",
+                "other_hint": "Dano que o jogo atribui ao próprio causador, e não a outro jogador.",
+                "picker_aria": "Jogador para dano"
+            },
+            "objectives": {
+                "heading": "Objetivos",
+                "objective": "Objetivo",
+                "owner": "Proprietário",
+                "destroyed": "Destruído",
+                "players": "Dano ao jogador",
+                "creeps": "Dano de soldados",
+                "spirit": "Dano espiritual",
+                "standing": "De pé",
+                "mid_boss": "Chefe do Meio",
+                "killed_by": "eliminado por {team}",
+                "claimed_by": "conquistado por {team}",
+                "kind_core": "Núcleo",
+                "kind_guardian": "Guardião",
+                "kind_walker": "Andador",
+                "kind_patron": "Patrono",
+                "kind_shrine": "Santuário",
+                "kind_base_guardian": "Guardião da Base",
+                "kind_unknown": "Objetivo",
+                "indexed_name": "{name} {index}"
+            },
+            "accolades": {
+                "heading": "Conquistas",
+                "tier": "Nível {tier}",
+                "hint": "Cada conquista contabiliza uma estatística ao longo da partida. Os arquivos do jogo não informam os limites de cada nível.",
+                "picker_aria": "Jogador para conquistas"
+            },
+            "names": {
+                "item": "Item",
+                "ability": "Habilidade",
+                "accolade": "Conquista"
+            },
+            "lanes": {
+                "yellow": "Amarela",
+                "blue": "Azul",
+                "green": "Verde",
+                "street_yellow": "York",
+                "street_blue": "Broadway",
+                "street_green": "Greenwich",
+                "named": "Trilha {colour} ({street})",
+                "ordinal": "Trilha {n}"
+            }
+        },
+        "detail": {
+            "title": "Partida {id}",
+            "back": "Voltar ao histórico de partidas",
+            "loading": "Carregando a partida...",
+            "error": "Não foi possível carregar esta partida. {error}",
+            "invalid": "Esse não é um ID de partida válido.",
+            "summary": "Resumo da partida",
+            "bans": "Banimentos",
+            "you": "Você",
+            "player_fallback": "Jogador {slot}",
+            "item_unknown": "Item {id}",
+            "result": {
+                "unscored": "Sem pontuação",
+                "team_won": "{team} ganhou",
+                "unknown": "Resultado desconhecido"
+            },
+            "mode": {
+                "ranked": "Competitiva",
+                "unranked": "Padrão",
+                "streetBrawl": "Briga de Rua",
+                "custom": "Personalizado",
+                "bot": "Bots",
+                "other": "Outros"
+            },
+            "col": {
+                "items": "Itens",
+                "damage": "Dano"
+            },
+            "board": {
+                "label": "Placar",
+                "stat": "Estatística",
+                "best": "o melhor da partida",
+                "unranked": "Sem classificação"
+            },
+            "mvp": "MVP",
+            "key_player": "Jogador principal",
+            "avg_rank": "Divisão média",
+            "versus": {
+                "above": "Acima da média",
+                "below": "Abaixo da média",
+                "equal": "Perto da sua média",
+                "average": "média {value}",
+                "souls_rate": "média {value}/min",
+                "hint": "Sua média com este herói em outras {samples} partidas",
+                "summary": "Comparado com a sua média neste herói ({samples} outras partidas): melhor em {better}, pior em {worse}."
+            },
+            "export": {
+                "group": "Exportar placar",
+                "save": "Salvar imagem",
+                "copy": "Copiar imagem",
+                "working": "Gerando imagem...",
+                "saved": "Imagem do placar salva.",
+                "copied": "Imagem do placar copiada para a área de transferência.",
+                "save_failed": "Não foi possível salvar a imagem: {error}",
+                "copy_failed": "Não foi possível copiar a imagem: {error}",
+                "made_with": "Criado com",
+                "render_failed": "Não foi possível gerar a imagem do placar. Tente novamente."
+            },
+            "replay": {
+                "heading": "Replay",
+                "map_aria": "Minimapa com as posições dos jogadores",
+                "no_paths": "As posições dos jogadores não estão disponíveis para esta partida. A linha do tempo abaixo ainda mostra mortes, objetivos e compras de itens.",
+                "no_art": "A arte do minimapa não está disponível. As posições são desenhadas em um fundo liso.",
+                "no_events": "Nenhum evento foi registrado na linha do tempo para esta partida.",
+                "no_kinds": "Ative um tipo de evento para visualizá-lo na linha do tempo.",
+                "unknown": "Desconhecido",
+                "unknown_hero": "Herói desconhecido",
+                "dead": "Morto",
+                "dot_dead": "{label} (morto)",
+                "camps": "Acampamentos",
+                "shop": "Loja",
+                "teleporter": "Teletransportador",
+                "camps_hint": "O surgimento e a limpeza dos acampamentos são estimados com base nas regras de surgimento do jogo e no movimento dos jogadores.",
+                "mid_boss_hint": "Os horários do Chefe do Meio são estimados com base nas regras de surgimento do jogo.",
+                "mid_boss_last_kill": "Derrotado pela última vez em {time}",
+                "object_destroyed_at": "Destruído em {time}",
+                "object_damage": "Dano recebido ao longo da partida",
+                "damage_gun": "Balístico",
+                "damage_spirit": "Espiritual",
+                "damage_trooper": "Soldado",
+                "camp_weak": "Acampamento fraco",
+                "camp_medium": "Acampamento médio",
+                "camp_strong": "Acampamento forte",
+                "camp_vault": "Vault",
+                "play": "Reproduzir",
+                "pause": "Pausar",
+                "speed": "{speed}x",
+                "speed_aria": "Velocidade de reprodução",
+                "time": "{current} / {total}",
+                "scrubber_aria": "Tempo da partida",
+                "kinds_aria": "Tipos de eventos na linha do tempo",
+                "kind_death": "Mortes",
+                "kind_objective": "Objetivos",
+                "kind_mid_boss": "Chefe do Meio",
+                "kind_item_buy": "Compras de itens",
+                "kind_item_sell": "Vendas de itens",
+                "kind_swing": "Oscilações no patrimônio líquido",
+                "lane_death": "Mortes",
+                "lane_objective": "Objetivos",
+                "lane_mid_boss": "Chefe do Meio",
+                "lane_swing": "Oscilações",
+                "lane_item": "Itens",
+                "marker_death": "{victim} foi eliminado por {killer} em {time}",
+                "marker_objective": "{objective} de {team} destruído em {time}",
+                "marker_mid_boss": "Chefe do Meio derrotado, conquistado por {team}, em {time}",
+                "marker_item_buy": "{player} comprou {item} em {time}",
+                "marker_item_sell": "{player} vendeu {item} em {time}",
+                "marker_swing": "{team} abriu uma vantagem de {souls} almas em {time}",
+                "death_map": "Mapa de mortes",
+                "my_deaths": "Minhas mortes",
+                "death_step": "{index} / {total}",
+                "step_prev": "Morte anterior",
+                "step_next": "Próxima morte",
+                "step_show_all": "Mostrar tudo",
+                "stepper_aria": "Análise passo a passo das mortes",
+                "killer_slot": "Jogador {slot}",
+                "death_respawn": "Renasce em {seconds} s",
+                "death_position": "Posição {x}, {y}",
+                "death_marker": "Morte de {victim} em {time}",
+                "killed_by": "Morto por {killer}",
+                "filter_player": "Jogador",
+                "all_players": "Todos os jogadores",
+                "filter_role": "Mostrar mortes como",
+                "role_victim": "Vítima",
+                "role_killer": "Assassino",
+                "range_from": "De {time}",
+                "range_to": "Até {time}",
+                "step_start": "Passo a passo",
+                "no_deaths": "Sem mortes",
+                "death_map_player": "Jogador no mapa da morte",
+                "death_count_one": "",
+                "death_count_other": ""
+            },
+            "grade": {
+                "label": "Nota",
+                "aria": "Nota {letter}, pontuação {score}, {place}",
+                "leaver": "Alguém saiu desta partida antes do tempo, por isso todas as notas nela estão distorcidas.",
+                "unchecked": "Jogadores que saíram antes do fim não foram verificados: esta nota vem dos dados da partida fornecidos pelo próprio jogo.",
+                "farm_bonus": "Bônus de farm em equipe",
+                "metric": {
+                    "early_damage": "Dano inicial",
+                    "late_damage": "Dano tardio",
+                    "early_assists": "Assistências iniciais",
+                    "late_assists": "Assistências tardias",
+                    "prebase_objective": "Dano a objetivos",
+                    "base_objective": "Dano à base",
+                    "damage_absorbed": "Dano absorvido",
+                    "ally_healing": "Cura de aliados",
+                    "heal_prevented": "Cura impedida",
+                    "barriers": "Barreiras",
+                    "cs": "Finalizações",
+                    "kills": "Vítimas",
+                    "deaths": "Mortes",
+                    "cc": "CC"
+                },
+                "place_ordinal_one": "",
+                "place_ordinal_other": ""
+            },
+            "missing": {
+                "details": "Detalhes da partida",
+                "replay": "Replay",
+                "lead": "A API do Deadlock ainda não possui essa partida, portanto não há placar.",
+                "badge_missing": "Faltando",
+                "badge_recovering": "Recuperando",
+                "eta_seconds": "Faltam cerca de {count} s",
+                "eta_minutes": "Faltam cerca de {count} min",
+                "paused": "A recuperação está pausada.",
+                "recover": "Recuperar esta partida",
+                "recover_time": "Leva cerca de 20 segundos.",
+                "consent_note": "Apenas nesta partida. A recuperação em segundo plano permanece desativada.",
+                "open_in_game": "Abra esta partida no histórico de partidas do Deadlock e o Deadlock+ vai encontrá-la.",
+                "sharing_off": "Ative a opção “Compartilhar minhas partidas” e o Deadlock+ vai encontrá-la quando você abrir esta partida no histórico de partidas do Deadlock.",
+                "sharing_link": "Abrir configurações de compartilhamento de partidas",
+                "replay_available": "Disponível",
+                "replay_expired": "Expirado",
+                "replay_none": "Indisponível",
+                "replay_expired_note": "Os replays ficam disponíveis por cerca de 30 dias.",
+                "replay_none_note": "A API do Deadlock não possui replay para esta partida.",
+                "replay_recoverable": "Ainda não disponível",
+                "replay_recoverable_note": "A API do Deadlock ainda não tem o replay desta partida.",
+                "replay_unrecoverable": "Indisponível",
+                "replay_unrecoverable_note": "Este replay não pode mais ser recuperado.",
+                "replay_days_left_one": "",
+                "replay_days_left_other": ""
+            },
+            "replay_status": {
+                "available": "Replay disponível",
+                "recovering": "Recuperando o replay",
+                "recoverable": "Ainda não há replay",
+                "unrecoverable": "Não é possível recuperar o replay",
+                "expired": "Replay expirado",
+                "none": "Sem replay",
+                "recover": "Recuperar replay",
+                "recover_note": "Conta para o limite de 40 partidas por dia.",
+                "consent_note": "Apenas este replay. A recuperação em segundo plano continua desativada."
+            }
+        },
+        "ping": {
+            "heading": "Ping",
+            "source": "servidor (ICMP)",
+            "source_engine": "Conexão no jogo",
+            "source_icmp": "Ping do servidor",
+            "partial": "Gravado a partir do meio da partida",
+            "avg": "Média",
+            "worst": "Pior",
+            "samples": "Amostras",
+            "loading": "Carregando dados de ping...",
+            "empty": "Não há dados de ping para esta partida.",
+            "chart_aria": "Ping durante a partida",
+            "hint": "Ping, medido uma vez por segundo enquanto o Deadlock+ estava em execução."
+        },
+        "coverage": {
+            "label": "Cobertura da partida",
+            "details": "Detalhes completos",
+            "replays": "Replays dos últimos 30 dias",
+            "details_aria": "{full} de {total} partidas têm detalhes completos",
+            "replays_aria": "Replays: {replays} de {recent} partidas recentes",
+            "recover": "Recuperar ausentes ({count})",
+            "recovering": "Recuperando {done} / {total}",
+            "paused": "Pausado {done} / {total}"
+        },
+        "recovery": {
+            "title": "Recuperar partidas",
+            "close": "Fechar",
+            "consent": "Preenche as lacunas na API do Deadlock, tanto as suas quanto as de outros jogadores. Usa o login do Steam salvo neste PC.",
+            "missing": "ausente",
+            "badge_paused": "Pausado",
+            "badge_game": "O Deadlock está aberto",
+            "badge_limit": "Limite diário do Steam",
+            "eta_left": "Restam cerca de {time}",
+            "eta_total": "Cerca de {time}",
+            "duration_minutes": "{count} min",
+            "duration_hours": "{count}h",
+            "duration_hours_minutes": "{hours}h {minutes}min",
+            "progress_label": "Progresso da recuperação",
+            "accounts": "Contas do Steam, hoje",
+            "start": "Recuperar {count}",
+            "pause": "Pausar",
+            "resume": "Retomar",
+            "limit_note": "Continua amanhã, por conta própria",
+            "step_details": "Detalhes ausentes",
+            "step_replays": "Replays recentes"
+        },
+        "row_state": {
+            "missing": "Sem detalhes",
+            "recovering": "Recuperando"
+        }
+    }
+}

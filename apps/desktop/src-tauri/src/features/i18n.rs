@@ -3,23 +3,47 @@ use std::sync::{Mutex, OnceLock};
 
 const DEFAULT_LOCALE: &str = "en";
 
-macro_rules! embed_locales {
-    ($($code:literal),* $(,)?) => {
-        [$(($code, include_str!(concat!("../../../../../locales/", $code, ".json")))),*]
+const AREAS: [&str; 6] = ["app", "builds", "live", "matches", "settings", "tools"];
+
+macro_rules! embed_areas {
+    ($code:literal) => {
+        [
+            include_str!(concat!("../../../../../locales/app/", $code, ".json")),
+            include_str!(concat!("../../../../../locales/builds/", $code, ".json")),
+            include_str!(concat!("../../../../../locales/live/", $code, ".json")),
+            include_str!(concat!("../../../../../locales/matches/", $code, ".json")),
+            include_str!(concat!("../../../../../locales/settings/", $code, ".json")),
+            include_str!(concat!("../../../../../locales/tools/", $code, ".json")),
+        ]
     };
 }
 
-const SOURCES: [(&str, &str); 20] = embed_locales![
+macro_rules! embed_locales {
+    ($($code:literal),* $(,)?) => {
+        [$(($code, embed_areas!($code))),*]
+    };
+}
+
+const SOURCES: [(&str, [&str; AREAS.len()]); 20] = embed_locales![
     "en", "af", "cs", "de", "es", "fr", "hu", "id", "it", "ja", "ko", "pl", "pt", "pt-BR", "ru", "th", "tr", "uk",
     "zh-CN", "zh-TW",
 ];
 
-/// Parsed on first use so a session only pays for the languages it actually shows.
+/// Parsed on first use so a session only pays for the languages it actually shows. Each area file holds whole
+/// top-level namespaces, so joining their objects gives the full catalog.
 fn catalog(code: &str) -> Option<&'static Value> {
     static PARSED: [OnceLock<Value>; SOURCES.len()] = [const { OnceLock::new() }; SOURCES.len()];
     let index = SOURCES.iter().position(|(c, _)| *c == code)?;
     Some(PARSED[index].get_or_init(|| {
-        serde_json::from_str(SOURCES[index].1).unwrap_or_else(|e| panic!("locales/{code}.json is invalid: {e}"))
+        let mut merged = serde_json::Map::new();
+        for (area, source) in AREAS.iter().zip(SOURCES[index].1) {
+            match serde_json::from_str(source) {
+                Ok(Value::Object(namespaces)) => merged.extend(namespaces),
+                Ok(_) => panic!("locales/{area}/{code}.json is not an object"),
+                Err(e) => panic!("locales/{area}/{code}.json is invalid: {e}"),
+            }
+        }
+        Value::Object(merged)
     }))
 }
 
@@ -227,18 +251,43 @@ mod tests {
     }
 
     #[test]
-    fn every_locale_file_is_embedded() {
+    fn every_area_file_is_embedded() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../locales");
-        for entry in std::fs::read_dir(&dir).expect("locales dir exists") {
-            let path = entry.expect("readable entry").path();
-            if path.extension().and_then(|e| e.to_str()) != Some("json") {
-                continue;
+        let mut areas: Vec<String> = std::fs::read_dir(&dir)
+            .expect("locales dir exists")
+            .map(|entry| entry.expect("readable entry").path())
+            .filter(|path| path.is_dir())
+            .map(|path| path.file_name().and_then(|n| n.to_str()).expect("utf-8 dir name").to_string())
+            .collect();
+        areas.sort();
+        assert_eq!(areas, AREAS, "every locales/<area> dir is embedded");
+        for area in AREAS {
+            for entry in std::fs::read_dir(dir.join(area)).expect("area dir exists") {
+                let path = entry.expect("readable entry").path();
+                if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                    continue;
+                }
+                let code = path.file_stem().and_then(|s| s.to_str()).expect("utf-8 file name");
+                let on_disk: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("readable file"))
+                    .expect("locale file is valid JSON");
+                let embedded = catalog(code).unwrap_or_else(|| panic!("{code} is not embedded"));
+                for (namespace, value) in on_disk.as_object().expect("area file is an object") {
+                    assert_eq!(embedded.get(namespace), Some(value), "{area}/{code}.json {namespace}");
+                }
             }
-            let code = path.file_stem().and_then(|s| s.to_str()).expect("utf-8 file name");
-            let on_disk: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("readable file"))
-                .expect("locale file is valid JSON");
-            assert_eq!(catalog(code), Some(&on_disk), "{code} is not embedded");
         }
+    }
+
+    #[test]
+    fn translates_keys_from_every_area() {
+        assert_eq!(translate_in("en", "tray.quit", &[]), "Quit");
+        assert_eq!(translate_in("en", "storage.owners.deadlock.label", &[]), "Deadlock");
+        let blurb = translate_in("ru", "storage.owners.deadlock.blurb", &[]);
+        assert_eq!(
+            Some(blurb.as_str()),
+            lookup(catalog("ru").expect("ru is embedded"), "storage.owners.deadlock.blurb")
+        );
+        assert_ne!(blurb, translate_in("en", "storage.owners.deadlock.blurb", &[]));
     }
 
     #[test]

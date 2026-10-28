@@ -1,4 +1,3 @@
-import en from "../../../../../locales/en.json";
 import { command } from "./tauri";
 import { prefs } from "./prefs";
 
@@ -7,30 +6,34 @@ type Params = Record<string, string | number>;
 
 export const DEFAULT_LOCALE = "en";
 
-const loaders: Record<string, () => Promise<{ default: Catalog }>> = {
-    af: () => import("../../../../../locales/af.json"),
-    cs: () => import("../../../../../locales/cs.json"),
-    de: () => import("../../../../../locales/de.json"),
-    es: () => import("../../../../../locales/es.json"),
-    fr: () => import("../../../../../locales/fr.json"),
-    hu: () => import("../../../../../locales/hu.json"),
-    id: () => import("../../../../../locales/id.json"),
-    it: () => import("../../../../../locales/it.json"),
-    ja: () => import("../../../../../locales/ja.json"),
-    ko: () => import("../../../../../locales/ko.json"),
-    pl: () => import("../../../../../locales/pl.json"),
-    pt: () => import("../../../../../locales/pt.json"),
-    "pt-BR": () => import("../../../../../locales/pt-BR.json"),
-    ru: () => import("../../../../../locales/ru.json"),
-    th: () => import("../../../../../locales/th.json"),
-    tr: () => import("../../../../../locales/tr.json"),
-    uk: () => import("../../../../../locales/uk.json"),
-    "zh-CN": () => import("../../../../../locales/zh-CN.json"),
-    "zh-TW": () => import("../../../../../locales/zh-TW.json"),
-};
+// Each area file holds whole top-level namespaces and no namespace sits in two areas, so a shallow merge
+// gives the same catalog as one file per locale.
+const mergeAreas = (areas: Catalog[]): Catalog => Object.assign({}, ...areas);
+
+const localeOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1, -".json".length);
+
+export const en: Catalog = mergeAreas(
+    Object.values(import.meta.glob<Catalog>("../../../../../locales/*/en.json", { eager: true, import: "default" })),
+);
+
+const areaLoaders: Record<string, (() => Promise<Catalog>)[]> = {};
+for (const [path, load] of Object.entries(
+    import.meta.glob<Catalog>(["../../../../../locales/*/*.json", "!../../../../../locales/*/en.json"], {
+        import: "default",
+    }),
+)) {
+    (areaLoaders[localeOf(path)] ??= []).push(load);
+}
+
+const loaders: Record<string, () => Promise<Catalog>> = Object.fromEntries(
+    Object.entries(areaLoaders).map(([locale, areas]) => [
+        locale,
+        async () => mergeAreas(await Promise.all(areas.map((load) => load()))),
+    ]),
+);
 
 if (import.meta.env.DEV) {
-    loaders["en-XA"] = async () => ({ default: (await import("./i18n-pseudo")).pseudoLocalize(en) });
+    loaders["en-XA"] = async () => (await import("./i18n-pseudo")).pseudoLocalize(en);
 }
 
 export const SUPPORTED_LOCALES: readonly string[] = [DEFAULT_LOCALE, ...Object.keys(loaders)];
@@ -113,8 +116,8 @@ class I18n {
         const base = locale.split("-")[0];
         for (const code of new Set([locale, base])) {
             if (this.catalogs[code] || !loaders[code]) continue;
-            const module = await loaders[code]();
-            this.catalogs = { ...this.catalogs, [code]: module.default };
+            const catalog = await loaders[code]();
+            this.catalogs = { ...this.catalogs, [code]: catalog };
         }
     }
 

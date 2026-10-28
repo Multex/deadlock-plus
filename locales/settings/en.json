@@ -1,0 +1,796 @@
+{
+    "settings": {
+        "language": {
+            "label": "Language",
+            "description": "Pick the language the app uses. \"Follow system\" uses your OS language.",
+            "system": "Follow system",
+            "system_current": "Currently {language}",
+            "completion_hint": "The bar shows how much of the app is translated. Anything missing shows in English.",
+            "translated": "{percent}% translated",
+            "coming_soon": "Coming soon"
+        },
+        "categories": {
+            "appearance": "Appearance",
+            "language": "Language",
+            "startup": "Startup and background",
+            "notifications": "Notifications",
+            "overlay": "Game overlay",
+            "privacy": "Privacy",
+            "about": "About",
+            "diagnostics": "Diagnostics",
+            "sharing": "Match sharing",
+            "storage": "Storage"
+        },
+        "items": {
+            "theme": "Theme",
+            "theme_effects": "Theme effects",
+            "reduced_motion": "Reduced motion",
+            "accessible_font": "Accessible font",
+            "close_to_tray": "Keep running in the tray",
+            "background_jobs": "Background work",
+            "update_alerts": "Patch and news alerts",
+            "maintenance": "Steam maintenance reminder",
+            "discord_presence": "Discord presence",
+            "discord_clients": "Discord apps",
+            "discord_editor": "Presence editor",
+            "match_ingest": "Share my matches",
+            "telemetry": "Share anonymous usage data and error reports",
+            "gc_recovery": "Fill in missing match details",
+            "version": "Version",
+            "whats_new": "What's new",
+            "updates": "App updates",
+            "thanks": "Thanks",
+            "diagnostics": "Diagnostics",
+            "licenses": "Licenses",
+            "storage": "Disk usage",
+            "overlay": "Game overlay",
+            "overlay_position": "Overlay position",
+            "overlay_duration": "Overlay duration",
+            "overlay_test": "Test the overlay",
+            "overlay_notifications": "Overlay notifications",
+            "overlay_match_found": "Match found",
+            "overlay_queue_stopped": "Queue stopped",
+            "server_blocks_updated": "Server blocks updated",
+            "server_blocks_stale": "Server blocks out of date",
+            "break_reminder": "Break reminder",
+            "front_page_after_match": "Front page after each match",
+            "front_page_overlay_alert": "Front page waiting",
+            "ui_scale": "UI scale",
+            "hardware_acceleration": "Hardware acceleration",
+            "open_on_game_start": "Open with Deadlock",
+            "admin_access": "Admin access"
+        },
+        "nav": {
+            "label": "Settings categories",
+            "search": "Search settings",
+            "back": "Back",
+            "no_matches": "No settings match \"{query}\"."
+        },
+        "appearance": {
+            "theme_description": "Pick the colours the app uses.",
+            "effects_description": "Art and weather some themes draw behind the page, like Flint Snow's snowfall.",
+            "motion_description": "Turn off animations and transitions. \"Follow system\" uses your OS setting.",
+            "motion_system": "Follow system",
+            "motion_reduce": "Reduce",
+            "motion_full": "Full motion",
+            "font_description": "Swap the game-style fonts for Atkinson Hyperlegible, designed for low vision and easier reading.",
+            "scale_description": "Make everything in Deadlock+ larger or smaller.",
+            "hardware_acceleration_description": "Draws Deadlock+ with your graphics card. Turn it off if the window flickers or shows up black in screen captures.",
+            "restart_app": "Restart Deadlock+",
+            "accent": "Accent colour",
+            "accent_hue": "Hue",
+            "accent_vividness": "Vividness",
+            "accent_hex": "Hex colour",
+            "accent_reset": "Reset"
+        },
+        "themes": {
+            "deadlock": {
+                "label": "Deadlock",
+                "description": "Warm near-black with brass trim.",
+                "source": "Deadlock on Steam"
+            },
+            "midnight": {
+                "label": "Midnight",
+                "description": "Cool blue-black with a soft silver accent.",
+                "effects": {
+                    "fog": "Fog",
+                    "windows": "Windows"
+                }
+            },
+            "daylight": {
+                "label": "Daylight",
+                "description": "Warm paper light theme."
+            },
+            "contrast": {
+                "label": "High contrast",
+                "description": "Pure black and white with strong borders."
+            },
+            "nightshift": {
+                "label": "Nightshift",
+                "description": "Dark teal with gold art deco trim.",
+                "source": "Deadlock Night Shift on Twitch",
+                "effects": {
+                    "rain": "Rain",
+                    "lights": "Lights",
+                    "frames": "Frames",
+                    "clock": "Medallion"
+                }
+            },
+            "deadlock_api": {
+                "label": "Deadlock API",
+                "description": "OLED black with electric red glow.",
+                "source": "Deadlock API"
+            },
+            "statlocker": {
+                "label": "Statlocker",
+                "description": "Graphite panels with a mint-green accent.",
+                "source": "Statlocker"
+            },
+            "flint_snow": {
+                "label": "Flint Snow",
+                "description": "Coral fur on midnight navy with pink trim.",
+                "effects": {
+                    "snow": "Snow",
+                    "stars": "Stars",
+                    "tail": "Tail",
+                    "tracks": "Tracks"
+                }
+            },
+            "void": {
+                "label": "Void",
+                "description": "OLED black with electric violet trim."
+            },
+            "deadchaps": {
+                "label": "DeadChaps",
+                "description": "Near-black panels with DeadChaps purple.",
+                "source": "DeadChaps"
+            },
+            "pretty_in_pink": {
+                "label": "Pretty in Pink",
+                "description": "Candy pink and cream with pastel clouds and hearts.",
+                "effects": {
+                    "clouds": "Clouds",
+                    "hearts": "Hearts",
+                    "bow": "Bow"
+                }
+            },
+            "catppuccin": {
+                "label": "Catppuccin",
+                "description": "Soothing pastels in four flavours, with 14 accents to pick from.",
+                "source": "Catppuccin palette",
+                "variant": "Flavour",
+                "accent": "Accent"
+            }
+        },
+        "autostart": {
+            "title_windows": "Start with Windows",
+            "title_macos": "Start with macOS",
+            "title_linux": "Start at login",
+            "description_windows": "Launches Deadlock+ when you sign in to Windows.",
+            "description_macos": "Launches Deadlock+ when you log in to macOS.",
+            "description_linux": "Launches Deadlock+ when you log in to your desktop.",
+            "failed": "Couldn't change this setting. Check the log for details.",
+            "stale": "Startup is set up for a different copy of Deadlock+. Turn it off and on to use this one."
+        },
+        "startup": {
+            "tray_description": "Closing the window hides Deadlock+ instead of quitting, so monitoring keeps going. Quit from the tray icon.",
+            "jobs_description": "Deadlock+ scans your mods, gets patch notes ready to search and keeps your server blocks up to date in the background. These settings decide whether that work runs, and what it does while Deadlock is open.",
+            "all_jobs_label": "Allow background work",
+            "all_jobs_description": "Turn this off and no task starts by itself. You can still run a scan from the Performance page.",
+            "tasks_title": "Tasks",
+            "tasks_description": "Each task can run by itself or not, and can pause, slow down or keep running while Deadlock is open.",
+            "run_by_itself": "Run by itself",
+            "while_running": "While Deadlock runs",
+            "advanced": "Advanced",
+            "open_on_game_start_description": "Shows the Deadlock+ window when the game starts, even if Deadlock+ was in the tray.",
+            "admin_access_ask": "Ask each time",
+            "admin_access_description": "Server blocks, the connection monitor and frame times need Windows admin rights."
+        },
+        "notifications": {
+            "alerts_description": "Notifies you when a new Deadlock patch note or Steam announcement is posted. Checks the public Deadlock API every 15 minutes and sends nothing about you. Needs the app running, so pair it with the tray option.",
+            "maintenance_description": "Notifies you before Steam's weekly maintenance, which can drop or restart servers. Valve publishes no schedule, so this is the usual slot (Tuesday evening, around 00:00 UTC Wednesday), not an official one. It usually lasts 15 to 30 minutes. Change it if yours differs. Needs the app running, so pair it with the tray option.",
+            "day": "Day",
+            "time": "Time (UTC)",
+            "remind": "Remind me",
+            "lead_minutes": "{minutes} min before",
+            "lead_hours": "{hours} h before",
+            "overlay_description": "Show notifications on top of Deadlock while you play.",
+            "overlay_fullscreen": "Deadlock is in Full Screen mode. Switch to Borderless Window to see the overlay over the game.",
+            "overlay_position_description": "Where notifications appear over the game.",
+            "overlay_duration_description": "How long each notification stays on screen.",
+            "overlay_test_description": "Shows a sample notification over the game.",
+            "overlay_notifications_description": "Turn Match found and other notifications on or off in Notifications.",
+            "overlay_notifications_button": "Open Notifications",
+            "overlay_test_button": "Show test",
+            "overlay_test_countdown": "Showing in {seconds}",
+            "overlay_seconds": "{seconds} s",
+            "position": {
+                "top_left": "Top left",
+                "top_center": "Top center",
+                "top_right": "Top right",
+                "left": "Left",
+                "right": "Right",
+                "bottom_left": "Bottom left",
+                "bottom_center": "Bottom center",
+                "bottom_right": "Bottom right",
+                "center": "Match found"
+            },
+            "overlay_match_found_description": "Tells you when your queue pops, even if another window is in front.",
+            "overlay_queue_stopped_description": "Tells you when your queue stops without a match, even if another window is in front.",
+            "server_blocks_updated_description": "Tells you when Valve changes server addresses and Deadlock+ updates your Server Picker blocks to match.",
+            "server_blocks_stale_description": "Tells you when Deadlock+ could not update your Server Picker blocks, so some servers may not be blocked.",
+            "break_reminder_description": "Suggests a break after several losses in a row in one session. Same switch as on the Sessions page.",
+            "front_page_after_match_description": "Tosses a newspaper front page of the match onto the window when Deadlock+ captures the match at its end.",
+            "front_page_modes": "Match modes",
+            "front_page_overlay_alert_description": "Tells you in the game overlay when a front page is waiting in Deadlock+.",
+            "delivery_label": "Shows as",
+            "delivery": {
+                "both": "Overlay in game, else desktop",
+                "overlay": "Overlay only",
+                "os": "Desktop notification",
+                "quiet": "Desktop, not while in game",
+                "center": "Notification center only"
+            },
+            "overlay_off_fallback": "The game overlay is off, so this shows as a desktop notification.",
+            "overlay_off_hidden": "The game overlay is off, so this does not show."
+        },
+        "weekdays": {
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday",
+            "sunday": "Sunday"
+        },
+        "countdown": {
+            "days": "{days} d {hours} h",
+            "hours": "{hours} h {minutes} min",
+            "minutes": "{minutes} min",
+            "soon": "less than a minute"
+        },
+        "discord": {
+            "presence_description": "Show what you're playing on your Discord profile.",
+            "level_off": "Off",
+            "level_basic": "Basic",
+            "level_detailed": "Detailed",
+            "level_off_description": "Shows nothing.",
+            "level_basic_description": "Shows that you're in Deadlock.",
+            "level_detailed_description": "Shows your hero, mode, rank and match timer.",
+            "support_label": "Support Deadlock+",
+            "support_description": "Adds a \"Download Deadlock+\" button to your activity so others can find the app. Works with Basic and Detailed.",
+            "logo_label": "Show the Deadlock+ logo",
+            "logo_description": "Replaces the Deadlock logo on your activity whenever no other large image is shown.",
+            "delay_label": "Delay",
+            "delay_description": "Holds back what friends see on Discord by this long.",
+            "delay_off": "Off",
+            "delay_seconds": "{seconds} s",
+            "client_running": "Running",
+            "client_not_running": "Not running",
+            "client_other_hint": "Vesktop and other apps",
+            "clients_description": "Pick which Discord apps show your presence.",
+            "client_stable": "Discord",
+            "client_ptb": "Discord PTB",
+            "client_canary": "Discord Canary",
+            "client_other_label": "Other",
+            "client_stable_name": "Discord",
+            "client_ptb_name": "Discord PTB",
+            "client_canary_name": "Discord Canary",
+            "client_other_name": "Discord app {pipe}",
+            "status_off": "Off",
+            "status_none": "No running Discord found.",
+            "status_showing": "Showing on: {clients}."
+        },
+        "discord_editor": {
+            "description": "Change what each activity says. Pick a state, then edit its lines, images and timer. Anything you leave alone uses the built-in default.",
+            "loading": "Loading...",
+            "states": "Activity states",
+            "customised": "Customised",
+            "inherited": "Default",
+            "field_details": "Top line",
+            "field_state": "Bottom line",
+            "field_large_image": "Large image",
+            "field_large_text": "Large image hover text",
+            "field_small_image": "Small image",
+            "field_small_text": "Small image hover text",
+            "field_timer": "Timer",
+            "timer_aria": "Timer on Discord",
+            "reset_field": "Reset {field}",
+            "reset_scope": "Reset this state",
+            "reset_all": "Reset everything",
+            "reset_all_title": "Reset all presence settings?",
+            "reset_all_description": "Every change you made to Discord activity text, images and timers is removed. Deadlock+ goes back to its built-in defaults.",
+            "all_heroes": "Default (all heroes)",
+            "sample_hero": "Haze",
+            "image_enabled": "Show {image}",
+            "image_source": "{image} source",
+            "image_url": "{image} URL",
+            "source_heroPortrait": "Hero portrait",
+            "source_heroIcon": "Hero icon",
+            "source_rankBadge": "Rank badge",
+            "source_modeIcon": "Mode icon",
+            "source_customUrl": "Custom URL",
+            "timer_none": "No timer",
+            "timer_elapsedInState": "Time since Deadlock started",
+            "timer_matchTime": "Match time",
+            "preview": "Activity preview",
+            "preview_header": "Playing",
+            "preview_disabled": "This state sends no activity.",
+            "preview_failed": "Couldn't show the preview. Check this state's lines for a typo.",
+            "preview_large_text": "Large image: {text}",
+            "preview_small_text": "Small image: {text}",
+            "share": "Share a preset",
+            "share_description": "Copy preset puts your changes on the clipboard as text. Import replaces them with pasted text or a file.",
+            "import_label": "Preset text",
+            "import": "Import",
+            "import_file": "Import from file",
+            "export": "Copy preset",
+            "exported": "Copied preset",
+            "export_failed": "Couldn't copy to the clipboard",
+            "imported": "Imported preset",
+            "state": {
+                "playing": "Playing",
+                "mainMenu": "Main menu",
+                "hideout": "Hideout",
+                "findingMatch": "Finding a match",
+                "matchFound": "Match found",
+                "preGame": "Pre-game",
+                "inMatch": "In a match",
+                "streetBrawlRound": "Street Brawl round",
+                "paused": "Paused",
+                "spectating": "Spectating",
+                "postGame": "Post-game",
+                "privateLobby": "Private lobby",
+                "practice": "Practice"
+            },
+            "variant": {
+                "solo": "Solo",
+                "party": "Party",
+                "unranked": "Unranked",
+                "ranked": "Ranked",
+                "bots": "Bots",
+                "tutorial": "Tutorial",
+                "normal": "Normal",
+                "streetBrawl": "Street Brawl",
+                "sandbox": "Sandbox",
+                "exploreNyc": "Explore NYC",
+                "won": "Won",
+                "lost": "Lost",
+                "unscored": "Unscored"
+            },
+            "editing": "Hero",
+            "editing_default_hint": "Changes here apply to every hero. Pick a hero to override only that hero's lines.",
+            "editing_hero_hint": "Changes here apply only while you play {hero}. Fields you leave alone follow Default.",
+            "no_hero_layer": "This state can't be set per hero. Changes apply to every hero.",
+            "row_enabled": "Show {name} on Discord",
+            "no_top_line": "No top line",
+            "insert_variable": "Insert value",
+            "insert_into": "Into: {field}",
+            "sensitive": "Shows the match ID",
+            "syntax_help": "Syntax help",
+            "variables_hint": "Click a line, then insert a value into it.",
+            "placeholder": {
+                "hero": "Your hero",
+                "mode": "Match mode, such as Ranked",
+                "gameMode": "Game mode, such as Street Brawl",
+                "rank": "Your rank, in ranked matches",
+                "kills": "Your kills",
+                "deaths": "Your deaths",
+                "assists": "Your assists",
+                "souls": "Your souls, such as 24.1k",
+                "partySize": "Players in your party",
+                "partyMax": "Largest party size",
+                "round": "Street Brawl round",
+                "scoreAmber": "Amber score in Street Brawl",
+                "scoreSapphire": "Sapphire score in Street Brawl",
+                "elapsed": "Time in this state",
+                "queueTime": "How long you have queued",
+                "result": "Won or lost",
+                "matchId": "The match's ID",
+                "heroPresence": "Your hero's own hideout line"
+            },
+            "preview_game": "Deadlock",
+            "preview_logo": "Deadlock logo (Discord shows it when no large image is sent)",
+            "preview_large_image": "Large image",
+            "preview_small_image": "Small image",
+            "preview_elapsed": "{time} elapsed",
+            "preview_discord_row": "Added by Discord",
+            "preview_discord_sample": "Streak, Trending and playtime show here when Discord has them.",
+            "preview_support_button": "Download Deadlock+",
+            "syntax": {
+                "title": "How lines work",
+                "copied": "Copied example",
+                "copy_example": "Copy {text}",
+                "nothing": "(nothing)",
+                "no_sample": "no value in this preview",
+                "rules_title": "Good to know",
+                "rule_length": "Each line must be 2 to 128 characters. Short lines are padded. Long lines are cut with an ellipsis.",
+                "rule_empty": "A line you leave empty is hidden.",
+                "rule_unclosed": "Forgot to close a [[ ? It shows as plain text.",
+                "rule_unknown": "A misspelled variable shows as plain text.",
+                "privacy": "Only you and your team are available. The match ID is hidden in private lobbies and on Basic. While you spectate, it only shows if you type it.",
+                "intro": "Each line on your Discord card is short text. Mix plain words with values that fill themselves in.",
+                "you_see": "You see:",
+                "step1_title": "Fill in a value",
+                "step1_body": "Put a word in curly brackets. Deadlock+ swaps it for the real thing while you play. Click an example to copy it.",
+                "step2_title": "What if there is no value?",
+                "step2_body": "Sometimes the game doesn't know something yet, like your rank. That part is simply left out. The words next to it stay.",
+                "step3_title": "Show a part only when it works",
+                "step3_body": "Put double square brackets around a part. If any value inside is missing, the whole part vanishes.",
+                "step4_title": "Add a backup",
+                "step4_body": "Put two bars between choices. Deadlock+ shows the first choice that has all its values. End with plain words so there is always something to show.",
+                "list_title": "All values",
+                "list_body": "Copy any of these into a line, or use the Insert value button. The example column shows how it looks right now.",
+                "col_variable": "Value",
+                "col_shows": "What it shows",
+                "col_example": "Example",
+                "group_you": "You",
+                "group_match": "Match",
+                "group_party": "Party and queue",
+                "group_streetBrawl": "Street Brawl",
+                "group_misc": "Other"
+            },
+            "timer_queueTime": "Time in the queue",
+            "field_party_size": "Party size",
+            "party_size_aria": "Show party size",
+            "party_size_hint": "Adds the party count, like (2 of 6), when you are in a party of two or more.",
+            "preview_party": "({size} of {max})",
+            "detailed_only": "Only Detailed uses these states. Basic always shows Playing."
+        },
+        "privacy": {
+            "telemetry_description": "Sends which version and system you use, which pages you open, when you open the Discord invite, when an update is offered or started, and error reports. It uses a random ID that is not linked to you, and never sends paths, names, Steam IDs, IP addresses or match data.",
+            "telemetry_reset": "Reset usage data ID",
+            "telemetry_reset_done": "Usage data ID reset.",
+            "ingest_waiting": "Waiting for your answer.",
+            "ingest_off": "Off",
+            "ingest_no_cache": "Couldn't find Steam's saved web data on this PC. Is Steam installed?",
+            "ingest_failed": "The last upload failed. Check the log for details.",
+            "ingest_watching": "Watching for new matches. {count} shared this session.",
+            "ingest_description": "Gets your matches full details and replays on stat sites and in Match History.",
+            "gc_description": "Fills in matches the Deadlock API is missing, yours and other players'.",
+            "how_it_works": "How it works",
+            "ingest_how_find": "Deadlock+ finds what's needed to load each match, on this PC and in Deadlock while you play.",
+            "ingest_how_send": "It sends that, the match IDs and your Steam ID to the Deadlock API. Nothing else.",
+            "gc_how_login": "Signs in to Steam with the login saved on this PC. Your login never leaves this PC.",
+            "gc_how_limit": "Up to 40 matches per account a day.",
+            "gc_how_game": "While Deadlock is open, it picks up matches you look at in the game instead of signing in.",
+            "gc_how_send": "Sends only match IDs, Steam IDs and what's needed to load each match.",
+            "gc_own_label": "Recover my match history",
+            "gc_own_description": "Fills in every match in your history that the Deadlock API is missing.",
+            "advanced": "Advanced",
+            "gc_own_open": "Open in Match History",
+            "shared": {
+                "title": "Shared matches",
+                "source_steam": "Steam",
+                "source_deadlock": "Deadlock",
+                "source_login": "Steam login",
+                "with_replay": "{count} with replay",
+                "when": "When",
+                "match": "Match",
+                "from": "From",
+                "details": "Details",
+                "replay": "Replay",
+                "sent": "Sent",
+                "not_sent": "Not sent",
+                "empty": "Nothing shared yet."
+            }
+        },
+        "about_page": {
+            "copy": "Copy",
+            "copied": "Copied version details",
+            "copy_failed": "Couldn't copy to the clipboard",
+            "install": "Install {version}",
+            "check_now": "Check now",
+            "auto_check_label": "Check automatically",
+            "auto_check_description": "Asks GitHub for a newer release on launch and every hour after. Nothing installs without your click.",
+            "whats_new_in": "What's new in {version}"
+        },
+        "diagnostics": {
+            "description": "This session's log. Names in file paths are hidden when you copy or save it. Only needed when reporting a bug.",
+            "collapse": "Collapse",
+            "expand": "Expand"
+        },
+        "licenses": {
+            "read_full": "Read the full licence",
+            "terms_link": "Licence terms",
+            "copyright": "Copyright notice",
+            "fonts_heading": "Fonts and artwork",
+            "app_summary": "Deadlock+ is free software. You can use, share and change it under the GNU General Public License, version 3 or any later version.",
+            "app_warranty": "It comes with no warranty.",
+            "disclaimer": "Deadlock+ is an unofficial fan tool, not made by, affiliated with or endorsed by Valve Corporation. \"Deadlock\" and \"Steam\" are trademarks of Valve Corporation. The Deadlock fonts remain their owners' property and can be removed on request.",
+            "kind_font": "Font",
+            "kind_artwork": "Artwork",
+            "terms_not_open_source": "Not open source.",
+            "terms_valve_oracle": "The font file points to its licence metadata for details.",
+            "terms_valve_pulp": "Like other Valve game content, may be used to create Fan Art, as described in the Steam Subscriber Agreement.",
+            "terms_twemoji": "The npm package code is MIT.",
+            "dependencies_title": "Open-source dependencies",
+            "dependencies_description": "The packages Deadlock+ is built with, grouped by licence.",
+            "dependencies_failed": "Couldn't load the dependency licences.",
+            "dependencies_loading": "Loading...",
+            "dependencies_packages": "Packages",
+            "dependencies_rust": "Rust crates",
+            "dependencies_npm": "npm packages",
+            "dependencies_no_file": "These packages don't ship a licence file. Licence as declared by the authors: {title}."
+        },
+        "thanks": {
+            "intro": "Deadlock+ exists because of these people.",
+            "contributors": "Contributors",
+            "contributors_description": "Wrote code, docs or fixes.",
+            "translators": "Translators",
+            "translators_description": "Brought Deadlock+ to more languages.",
+            "donators": "Donators",
+            "donators_description": "Keep the app free.",
+            "others_one": "and {count} other",
+            "others_other": "and {count} others",
+            "anonymous_one": "{count} anonymous donator",
+            "anonymous_other": "{count} anonymous donators",
+            "nobody_yet": "Nobody listed yet."
+        }
+    },
+    "storage": {
+        "subtitle": "What Deadlock and Deadlock+ keep on this PC.",
+        "show_paths": "Show paths",
+        "hide_paths": "Hide paths",
+        "refresh": "Refresh",
+        "looking": "Looking around...",
+        "footnote": "Only things the game or Deadlock+ rebuild or keep for you can be cleared here. Everything else belongs to the game or your mod manager.",
+        "summary": {
+            "total": "Total found",
+            "can_clear": "Can be cleared here",
+            "clear_regenerable": "Clear rebuildable files"
+        },
+        "entry": {
+            "path_missing": "Not found on this PC",
+            "not_found": "Not found",
+            "retry_aria": "Retry measuring {label}",
+            "retry": "Retry",
+            "measuring": "Measuring",
+            "open_aria": "Open {label} page",
+            "open_title": "Open the {label} page",
+            "reveal_aria": "Show {label} in folder",
+            "reveal_title": "Show in folder",
+            "clear_aria": "Clear {label}",
+            "clear_title": "Clear"
+        },
+        "dialog": {
+            "cancel": "Cancel",
+            "clear": "Clear"
+        },
+        "clear": {
+            "title": "Clear {name}?",
+            "body": "Frees {size}. {consequence} This can't be undone.",
+            "all_title": "Clear all files that rebuild themselves?",
+            "all_body": "Frees {size} from: {names}. The game rebuilds these on its own. This can't be undone."
+        },
+        "toast": {
+            "freed": "Freed {size}",
+            "nothing": "Nothing to clear.",
+            "remove_failed": "Couldn't remove {count}: {first}"
+        },
+        "age": {
+            "today": "today",
+            "days_one": "{count} day",
+            "days_other": "{count} days",
+            "months_one": "{count} month",
+            "months_other": "{count} months",
+            "years_one": "{count} year",
+            "years_other": "{count} years"
+        },
+        "units_oldest": "{units}, oldest {age}",
+        "owners": {
+            "deadlock": {
+                "label": "Deadlock",
+                "blurb": "Files the game keeps on this PC."
+            },
+            "deadlock_plus": {
+                "label": "Deadlock+",
+                "blurb": "What this app keeps."
+            },
+            "mods": {
+                "label": "Mods and backups",
+                "blurb": "Handled by your mod tools. Not touched here."
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "Rebuilds itself",
+                "hint": "Rebuilt automatically when needed."
+            },
+            "history": {
+                "label": "History",
+                "hint": "A record of the past. Can't be rebuilt once deleted."
+            },
+            "backup": {
+                "label": "Backup",
+                "hint": "A safety copy. Only needed if something goes wrong."
+            },
+            "yours": {
+                "label": "Yours",
+                "hint": "Your own settings and data."
+            },
+            "managed": {
+                "label": "Managed by mods",
+                "hint": "Belongs to a mod or a mod manager."
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "Replays",
+                "clear_name": "replays",
+                "description": "Match replays saved by Deadlock.",
+                "consequence": "Deleted replays are gone for good. Pick which ones to remove on the Replays page.",
+                "units_one": "{count} replay",
+                "units_other": "{count} replays"
+            },
+            "hero_presence_cache": {
+                "label": "Hero presence cache",
+                "clear_name": "hero presence cache",
+                "description": "A small file the game rebuilds by itself.",
+                "consequence": "Rebuilt on the next launch. Too small to be worth clearing."
+            },
+            "shader_cache": {
+                "label": "Shader cache",
+                "clear_name": "the shader cache",
+                "description": "Compiled shaders, so the game doesn't rebuild them every match.",
+                "consequence": "The game rebuilds it. The first match after clearing may stutter."
+            },
+            "console_log": {
+                "label": "Console log",
+                "clear_name": "the console log",
+                "description": "The game's console output. Only exists when it starts with -condebug.",
+                "consequence": "Rewritten on every launch. Nothing you need is lost."
+            },
+            "voice_ban_backups": {
+                "label": "Mute list backups",
+                "clear_name": "your mute list backups",
+                "description": "Copies Deadlock+ makes each time you change your mute list.",
+                "consequence": "Clearing them removes your way back to an earlier mute list.",
+                "units_one": "{count} backup",
+                "units_other": "{count} backups"
+            },
+            "frame_runs": {
+                "label": "Frametime runs",
+                "clear_name": "frametime runs",
+                "description": "Your saved frametime captures.",
+                "consequence": "Can't be recaptured. Delete single runs on the Performance page."
+            },
+            "settings": {
+                "label": "Settings",
+                "clear_name": "settings",
+                "description": "Your Deadlock+ settings and window position.",
+                "consequence": "Not recoverable. Removing it resets your preferences."
+            },
+            "server_presets": {
+                "label": "Server presets",
+                "clear_name": "server presets",
+                "description": "Your saved Server Picker presets.",
+                "consequence": "Not recoverable. You would have to build them again."
+            },
+            "replay_rules": {
+                "label": "Replay pins and cleanup rules",
+                "clear_name": "replay pins and cleanup rules",
+                "description": "Replays you pinned and your cleanup rules.",
+                "consequence": "Without it, pinned replays lose their protection and cleanup rules reset."
+            },
+            "connection_history": {
+                "label": "Connection history",
+                "clear_name": "connection history",
+                "description": "Ping and route samples recorded on the Live page.",
+                "consequence": "Past samples can't be recorded again. New ones start piling up from scratch."
+            },
+            "notifications": {
+                "label": "Alerts and notifications",
+                "clear_name": "alerts and notifications",
+                "description": "Alerts and notifications shown in the app.",
+                "consequence": "Past entries are gone. Nothing else depends on them."
+            },
+            "patch_notes_index": {
+                "label": "Patch notes search",
+                "clear_name": "patch notes search",
+                "description": "Patch notes and the search index built from them.",
+                "consequence": "Downloaded and made searchable again on its own, which takes a while and uses CPU."
+            },
+            "stats_cache": {
+                "label": "Saved stats",
+                "clear_name": "saved stats",
+                "description": "Stats and match data fetched from the web.",
+                "consequence": "Fetched again the next time you open Stats."
+            },
+            "server_list_cache": {
+                "label": "Saved server list",
+                "clear_name": "saved server list",
+                "description": "The last server list Server Picker loaded.",
+                "consequence": "Fetched again the next time you open Server Picker."
+            },
+            "replay_info_cache": {
+                "label": "Saved replay details",
+                "clear_name": "saved replay details",
+                "description": "Match details looked up for your replays.",
+                "consequence": "Looked up again when you open a replay."
+            },
+            "match_cache": {
+                "label": "Saved match details",
+                "clear_name": "saved match details",
+                "description": "Full match scoreboards you opened in Match History.",
+                "consequence": "Fetched again the next time you open the match.",
+                "units_one": "{count} match",
+                "units_other": "{count} matches"
+            },
+            "other_app_files": {
+                "label": "Other app files",
+                "clear_name": "other app files",
+                "description": "Small files that don't fit anything above.",
+                "consequence": "Reminders and leftovers. Not worth touching."
+            },
+            "logs": {
+                "label": "App logs",
+                "clear_name": "old log archives",
+                "description": "This app's log files, one archive per day.",
+                "consequence": "Only useful for bug reports. Clearing removes old days; today's log stays.",
+                "units_one": "{count} log file",
+                "units_other": "{count} log files"
+            },
+            "addons": {
+                "label": "Installed mods",
+                "clear_name": "installed mods",
+                "description": "Files installed by mods or a mod manager, without the replays.",
+                "consequence": "Removing files here can break installed mods. Use your mod manager instead."
+            },
+            "addons_backups": {
+                "label": "Mod backups",
+                "clear_name": "mod backups",
+                "description": "Backup copies of mods made by a mod manager.",
+                "consequence": "Without them, you can't roll mods back to an earlier state.",
+                "units_one": "{count} backup",
+                "units_other": "{count} backups"
+            },
+            "config_backups": {
+                "label": "Config backups",
+                "clear_name": "config backups",
+                "description": "Config folders backed up by the game or a mod manager.",
+                "consequence": "Snapshots of your settings from before a change. Keep the latest one.",
+                "units_one": "{count} backup",
+                "units_other": "{count} backups"
+            },
+            "gameinfo_backups": {
+                "label": "gameinfo.gi backups",
+                "clear_name": "gameinfo.gi backups",
+                "description": "Copies of gameinfo.gi made by mod tools.",
+                "consequence": "Restore points for the file that loads mods. Keep at least one.",
+                "units_one": "{count} backup",
+                "units_other": "{count} backups"
+            },
+            "postgame_detail": {
+                "label": "Post-game match data",
+                "clear_name": "post-game match data",
+                "description": "Full scoreboards of matches Deadlock+ captured from the game, kept until the Deadlock API has them.",
+                "consequence": "Matches the Deadlock API does not have yet lose their detail view. Their summary row stays.",
+                "units_one": "{count} match",
+                "units_other": "{count} matches"
+            },
+            "match_ping": {
+                "label": "Match ping recordings",
+                "clear_name": "match ping recordings",
+                "description": "Ping, loss and jitter recorded while each match ran, shown on the match detail ping card.",
+                "consequence": "Matches lose their recorded ping graph. The match you are playing right now is kept.",
+                "units_one": "{count} match",
+                "units_other": "{count} matches"
+            },
+            "mvp_grades": {
+                "label": "Match grades",
+                "clear_name": "match grades",
+                "description": "The grades Deadlock+ worked out for your matches.",
+                "consequence": "Grades are worked out again on the next background run. Nothing else is lost.",
+                "units_one": "{count} match",
+                "units_other": "{count} matches"
+            },
+            "shared_matches": {
+                "label": "Shared matches",
+                "clear_name": "shared matches",
+                "description": "Matches Deadlock+ shared with the Deadlock API.",
+                "consequence": "Deadlock+ may share those matches again. Nothing else is lost."
+            }
+        }
+    }
+}

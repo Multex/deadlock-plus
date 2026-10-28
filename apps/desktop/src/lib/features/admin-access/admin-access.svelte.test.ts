@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync } from "svelte";
-import catalog from "../../../../../../locales/en.json";
+import catalog from "../../../../../../locales/app/en.json";
 import type { AdminAccessOutcome } from "@deadlock-plus/ipc-types/AdminAccessOutcome";
 import type { AdminAccessStatus } from "@deadlock-plus/ipc-types/AdminAccessStatus";
 import type { LiveState } from "@deadlock-plus/ipc-types/LiveState";

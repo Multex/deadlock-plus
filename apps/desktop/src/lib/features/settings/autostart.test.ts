@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import catalog from "../../../../../../locales/en.json";
+import catalog from "../../../../../../locales/app/en.json";
 import { t } from "$lib/core/i18n.svelte";
 import { autostartDescription, autostartLine, autostartTitle } from "./autostart";
 

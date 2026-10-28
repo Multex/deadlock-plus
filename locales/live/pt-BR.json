@@ -1,0 +1,252 @@
+{
+    "server_picker": {
+        "title": "Seletor de servidores do {game}",
+        "subtitle": "Ative o interruptor de uma região para bloqueá-la. Regiões bloqueadas não podem ser atribuídas a você, então a criação de partidas escolhe entre as que ficaram abertas.",
+        "presets_button": "Predefinições",
+        "ping_button": "Ping",
+        "unblock_all_button": "Desbloquear tudo ({count})",
+        "filter_placeholder": "Filtrar por região...",
+        "filter_aria": "Filtrar por região",
+        "loading": "Carregando servidores...",
+        "no_games": "Não foi possível carregar a lista de servidores. Reinicie o Deadlock+ e tente novamente.",
+        "no_match": "Nenhuma região corresponde a “{search}”.",
+        "external_fallback": "Outra ferramenta",
+        "unsupported": "O bloqueio de servidores ainda não está disponível na versão {platform}.",
+        "unblock_all": {
+            "title": "Desbloquear todos os servidores?",
+            "confirm": "Desbloquear tudo",
+            "description_one": "",
+            "description_other": ""
+        },
+        "import": {
+            "title": "Importar bloqueios de {source}?",
+            "description": "O Deadlock+ recriará esses bloqueios como regras próprias e, em seguida, excluirá as regras de {source} que eles substituem. Regras desse tipo que bloqueiem algo fora dessas regiões não serão alteradas.",
+            "confirm": "Importar"
+        },
+        "ping": {
+            "ms": "{value} ms",
+            "no_reply": "Sem resposta"
+        },
+        "external": {
+            "summary": "Encontradas {rules} bloqueando {regions}.",
+            "import": "Importar",
+            "rules_one": "",
+            "rules_other": "",
+            "regions_one": "",
+            "regions_other": ""
+        },
+        "game_running": {
+            "title": "O Deadlock está em execução",
+            "body": "Reinicie o jogo após alterar qualquer coisa nesta página. Os bloqueios se aplicam apenas às conexões estabelecidas após o início do jogo."
+        },
+        "sort": {
+            "by": "Ordenar por {label}",
+            "ascending": "crescente",
+            "descending": "descendente",
+            "region": "Região",
+            "ping": "Ping direto",
+            "blocked": "Bloqueado"
+        },
+        "presets": {
+            "title": "Predefinições",
+            "description": "Salve um conjunto de regiões para bloquear ou manter abertas e, em seguida, aplique-o com um clique. Útil para bloqueio de regiões, como uma predefinição exclusiva para a UE.",
+            "edit_title": "Editar predefinição",
+            "new_title": "Nova predefinição",
+            "edit_description": "Aplicar uma predefinição define todas as regiões de uma vez. Bloqueios de servidores individuais dentro de uma região são removidos.",
+            "name_placeholder": "Nome da predefinição, por exemplo, somente UE",
+            "name_aria": "Nome da predefinição",
+            "mode_aria": "Modo da predefinição",
+            "mode_allow_title": "Permitir apenas estas",
+            "mode_allow_note": "As regiões listadas permanecem abertas; todo o restante fica bloqueado.",
+            "mode_block_title": "Bloquear apenas estas",
+            "mode_block_note": "As regiões listadas estão bloqueadas; todo o restante está aberto.",
+            "filter_placeholder": "Filtrar regiões...",
+            "filter_aria": "Filtrar regiões",
+            "will_block": "{blocked} de {total} regiões serão bloqueadas, restando {open} abertas.",
+            "summary_allow": "Apenas {listed} abertas · bloqueia {blocked} de {total} regiões",
+            "summary_block": "{listed} bloqueadas · bloqueia {blocked} de {total} regiões",
+            "back": "Voltar",
+            "save": "Salvar predefinição",
+            "apply": "Aplicar",
+            "edit_label": "Editar {name}",
+            "delete_label": "Excluir {name}",
+            "empty": "Ainda não há predefinições.",
+            "save_current": "Salvar bloqueios atuais",
+            "new": "Nova predefinição",
+            "apply_label": "Aplicar predefinição {name}"
+        },
+        "row": {
+            "collapse": "Recolher servidores",
+            "expand": "Expandir servidores",
+            "partial": "{blocked}/{total} bloqueados",
+            "routing_aria": "Sobre o roteamento para {name}",
+            "unblockable": "A Valve não lista servidores para {names}, então isso não pode ser bloqueado aqui.",
+            "block_siblings": "Bloqueie também {names} para cobrir mais desta rota",
+            "no_reply_hint": "Sem resposta após várias tentativas. A região pode estar inacessível a partir da sua rede ou descartar tráfego de ping.",
+            "ping_region": "Ping direto para o servidor mais próximo desta região.",
+            "ping_relay": "Ping direto para este servidor.",
+            "applying": "Aplicando",
+            "blocked": "Bloqueado",
+            "open": "Aberta",
+            "block_aria": "Bloquear {name}",
+            "locked": "Bloqueada porque a região {region} inteira está bloqueada. Desbloqueie a região para alterar isso.",
+            "expand_aria": "Expandir servidores de {name}",
+            "collapse_aria": "Recolher servidores de {name}",
+            "ping_aria": "{name}: {ping}",
+            "relay_groups_one": "",
+            "relay_groups_other": "",
+            "relays_one": "",
+            "relays_other": ""
+        },
+        "toast": {
+            "refresh_failed": "Não foi possível atualizar a lista de servidores. Exibindo a última lista salva.",
+            "firewall_read_failed": "Não foi possível ler as regras atuais do firewall.",
+            "relays_moved": "A Valve mudou seus servidores. Bloqueios atualizados para {names}.",
+            "blocks_update_failed": "Não foi possível atualizar os bloqueios de {names}. Aplique-os novamente.",
+            "sync_failed": "Não foi possível comparar seus bloqueios com os servidores mais recentes da Valve. Verifique o log para mais detalhes.",
+            "unsupported": "O bloqueio de servidores ainda não é compatível com esta plataforma.",
+            "blocked": "Bloqueado {name}",
+            "unblocked": "Desbloqueado {name}",
+            "block_failed": "Não foi possível bloquear {name}. Verifique o log para mais detalhes.",
+            "unblock_failed": "Não foi possível desbloquear {name}. Verifique o log para mais detalhes.",
+            "siblings_failed": "Não foi possível bloquear os servidores relacionados. Verifique o log para obter mais detalhes.",
+            "unblock_all_failed": "Não foi possível desbloquear tudo. Verifique o log para obter mais detalhes.",
+            "preset_applied": "Aplicado “{name}”: {blocked} de {total} regiões bloqueadas",
+            "preset_apply_failed": "Não foi possível aplicar “{name}”. Verifique o log para obter detalhes.",
+            "preset_saved": "Salvo “{name}”",
+            "preset_save_failed": "Não foi possível salvar a predefinição. Verifique o log para obter mais detalhes.",
+            "preset_delete_failed": "Não foi possível excluir a predefinição. Verifique o log para obter mais detalhes.",
+            "import_failed": "Não foi possível importar os bloqueios existentes do firewall. Verifique o log para obter mais detalhes.",
+            "unblocked_rules_one": "",
+            "unblocked_rules_other": "",
+            "imported_one": "",
+            "imported_other": ""
+        },
+        "admin_needed": {
+            "block": "Não foi possível bloquear {name}.",
+            "unblock": "Não foi possível desbloquear {name}.",
+            "siblings": "Não foi possível bloquear os servidores relacionados.",
+            "unblock_all": "Não foi possível desbloquear tudo.",
+            "preset": "Não foi possível aplicar “{name}”.",
+            "import": "Não foi possível importar os bloqueios existentes do firewall.",
+            "description": "O Deadlock+ precisa de acesso de administrador para alterar as regras do firewall. A opção “Permitir” solicita autorização ao Windows uma vez para esta sessão. A opção “Sempre permitir” solicita autorização uma vez e, depois, nunca mais para esta conta do Windows."
+        }
+    },
+    "live": {
+        "state": {
+            "game_closed": "O Deadlock não está em execução",
+            "menus": "Nos menus",
+            "queuing": "Procurando uma partida",
+            "pregame": "Partida começando",
+            "in_match": "Em uma partida",
+            "post_match": "Partida encerrada",
+            "game_closed_hint": "Inicie o jogo e esta página acompanha o que acontece.",
+            "menus_hint": "Entre na fila ou em uma sala para ver a partida aqui.",
+            "queuing_hint": "O placar aparece assim que a partida for encontrada.",
+            "pregame_hint": "Jogadores e heróis aparecem conforme confirmam a escolha.",
+            "in_match_hint": "Lendo a partida.",
+            "post_match_hint": "Os resultados são salvos no seu histórico de partidas.",
+            "loading_match": "Lendo a partida",
+            "loading_match_hint": "Os dados do jogador serão exibidos em instantes."
+        },
+        "team": {
+            "amber": "O Rei Oculto",
+            "sapphire": "A Arquimãe"
+        },
+        "mode": {
+            "unranked": "Sem classificação",
+            "ranked": "Competitiva",
+            "privateLobby": "Sala privada",
+            "coopBot": "Contra bots",
+            "tutorial": "Tutorial",
+            "other": "Outros"
+        },
+        "game": {
+            "normal": "Padrão",
+            "streetBrawl": "Briga de Rua",
+            "sandbox": "Campo de testes",
+            "exploreNyc": "Explorar Nova Iorque",
+            "other": "Outros"
+        },
+        "col": {
+            "rank": "Classificação",
+            "souls": "Almas",
+            "souls_per_min": "Almas por minuto",
+            "kills": "Vítimas",
+            "deaths": "Mortes",
+            "assists": "Assistências",
+            "kill_participation": "Participação em vítimas",
+            "hero_damage": "Dano contra heróis",
+            "objective_damage": "Dano contra objetivos",
+            "healing": "Cura"
+        },
+        "rank_from_history": "{rank}, das partidas competitivas do jogador",
+        "paused": "Pausado",
+        "queue": {
+            "party": "Tamanho do grupo"
+        },
+        "swaps": {
+            "line": "{from} mudou para {to}",
+            "named": "{name} mudou de {from} para {to}",
+            "dismiss": "Fechar"
+        },
+        "grades": {
+            "label": {
+                "overall": "Geral",
+                "kills": "Vítimas",
+                "deaths": "Mortes",
+                "assists": "Assistências",
+                "souls": "Almas/min",
+                "damage": "Dano/min",
+                "objective_damage": "Dano obj./min",
+                "healing": "Cura"
+            },
+            "name": {
+                "kills": "Vítimas",
+                "deaths": "Mortes",
+                "assists": "Assistências",
+                "souls": "Almas por minuto",
+                "damage": "Dano por minuto",
+                "objective_damage": "Dano contra objetivos por minuto",
+                "healing": "Cura"
+            },
+            "too_early": "Muito cedo",
+            "too_early_long": "Ainda é cedo para avaliar",
+            "after_first_minute": "Notas após 1:00",
+            "no_targets": "Sem metas",
+            "frozen": "Alvos congelados",
+            "loading": "Carregando alvos",
+            "avg": "média",
+            "average": "Média: {value}",
+            "better_than": "Melhor do que {pct}%",
+            "fewer_deaths": "Menos mortes do que {pct}%",
+            "self_heal": "Autocura {n}",
+            "healing_teammates": "Cura de companheiros de equipe {n}",
+            "group": {
+                "rank": "vs média de {hero} em {rank}",
+                "range": "vs média de {hero} em {rankFrom}–{rankTo}",
+                "all_ranks": "vs média de {hero}, todas as divisões",
+                "street_brawl": "vs média de {hero} na Briga de Rua"
+            },
+            "reason": {
+                "offline": "Sem alvos: parece que você está offline.",
+                "api_down": "Sem alvos: a API do Deadlock não está respondendo.",
+                "rate_limited": "Sem alvos: número excessivo de solicitações à API do Deadlock.",
+                "empty_data": "Sem alvos: a API do Deadlock ainda não possui dados para este herói."
+            }
+        },
+        "ptrace": {
+            "title": "O Linux está impedindo o Deadlock+ de acessar o jogo",
+            "body": "A configuração do ptrace do seu kernel impede a exibição de dados em tempo real da partida e de resultados instantâneos.",
+            "fix": "Permitir acesso",
+            "fix_restart": "Permitir acesso e reiniciar",
+            "reboot": "Entra em vigor depois que você reiniciar o computador.",
+            "manual": "Execute o Steam e o Deadlock+ com o mesmo usuário, fora de uma sandbox do Flatpak ou do Snap.",
+            "failed": "Não foi possível alterar a configuração do ptrace."
+        },
+        "game_admin": {
+            "title": "O Deadlock está sendo executado como administrador",
+            "body": "Inicie o Steam normalmente ou reinicie o Deadlock+ como administrador."
+        }
+    }
+}

@@ -1,0 +1,634 @@
+{
+    "stats": {
+        "title": "",
+        "subtitle": "",
+        "refresh": "",
+        "hero_fallback": "",
+        "unknown_hero": "",
+        "api_error": "",
+        "cached_note": "",
+        "gate": {
+            "no_account": "",
+            "error": "",
+            "loading": ""
+        },
+        "scope": {
+            "ranked": "",
+            "unranked": "",
+            "all": ""
+        },
+        "outcome": {
+            "win": "",
+            "loss": ""
+        },
+        "record": "",
+        "record_unscored": "",
+        "playtime_hm": "",
+        "playtime_m": "",
+        "filter": {
+            "all_time": "",
+            "days_one": "",
+            "days_other": ""
+        },
+        "summary": {
+            "winrate": "",
+            "form_aria": "",
+            "streak": "",
+            "streak_best": "",
+            "playtime": "",
+            "matches": "",
+            "streak_wins_one": "",
+            "streak_wins_other": "",
+            "streak_losses_one": "",
+            "streak_losses_other": ""
+        },
+        "highlights": {
+            "most_played": "",
+            "most_played_summary": "",
+            "best": "",
+            "best_summary": "",
+            "best_empty": ""
+        },
+        "heroes": {
+            "heading": "Helde",
+            "intro": "",
+            "eligible": "",
+            "not_yet": "",
+            "games": "",
+            "kda": "KDA",
+            "avg_souls": "Gemiddelde souls",
+            "time": "Tyd",
+            "none": "",
+            "none_lifetime": "",
+            "recent_games": "",
+            "lifetime_wins": "",
+            "builds": "",
+            "builds_label": ""
+        },
+        "region": {
+            "heading": "",
+            "eligible": "",
+            "not_eligible": "",
+            "note": "",
+            "recent_games": "",
+            "total_games": ""
+        },
+        "page": {
+            "matches_known": "",
+            "empty": ""
+        },
+        "section": {
+            "games": ""
+        },
+        "syncing_one": "",
+        "syncing_other": "",
+        "syncing_hint_one": "",
+        "syncing_hint_other": ""
+    },
+    "rank": {
+        "title": "",
+        "empty": "",
+        "tier_fallback": "",
+        "eta": {
+            "not_climbing": "",
+            "days_or_more": "{low} dae of meer",
+            "range": "{low} tot {high} dae",
+            "about_one": "",
+            "about_other": ""
+        },
+        "form": {
+            "next_win": "Volgende oorwinning",
+            "no_streak": "",
+            "next_loss": "Volgende verlies",
+            "only_shield": "",
+            "plus_shield": "",
+            "drops_subrank": "",
+            "no_shield_used": "",
+            "streak_one": "",
+            "streak_other": ""
+        },
+        "outlook": {
+            "hold_rank": "",
+            "no_data": "",
+            "climbing": "",
+            "sliding": "",
+            "forecast_none": "",
+            "hold": "",
+            "heading": "",
+            "your_last": "",
+            "climbing_short": "",
+            "sliding_short": "",
+            "next_tier": ""
+        },
+        "chart": {
+            "heading": "Vooruitgang",
+            "last_n": "Laaste {count}",
+            "aria": "",
+            "range": "",
+            "legend": "",
+            "empty": "",
+            "legend_changes": ""
+        },
+        "changes": {
+            "promoted_from": "",
+            "demoted_from": ""
+        },
+        "summary": {
+            "top_tier": "",
+            "progress": "{within} / {span} tot {next}.",
+            "boundary": "",
+            "placement_left": "",
+            "estimated_one": "",
+            "estimated_other": "",
+            "progress_streak_one": "",
+            "progress_streak_other": ""
+        },
+        "shields": {
+            "heading": "",
+            "not_reported": "",
+            "none_hint": "",
+            "left_hint": ""
+        }
+    },
+    "sessions": {
+        "title": "Sessies",
+        "subtitle": "",
+        "results": {
+            "heading": "",
+            "intro": "",
+            "intro_detail": "",
+            "hide": "",
+            "show": ""
+        },
+        "break": {
+            "label": "",
+            "suggestion": ""
+        },
+        "highlight": {
+            "best": "",
+            "excellent": "",
+            "good": ""
+        },
+        "row": {
+            "excellent": "Uitstekende sessie",
+            "good": "Goeie sessie",
+            "bad": "Rowwe sessie",
+            "neutral": "Gemiddelde sessie",
+            "games": "",
+            "record": "W / L",
+            "length": "Lengte",
+            "rank_change": ""
+        },
+        "findings": {
+            "games_one": "",
+            "games_other": ""
+        },
+        "insights": {
+            "unknown_after_loss": "",
+            "after_losses": {
+                "title": "",
+                "unknown": "",
+                "worse": "",
+                "better": "",
+                "same": "",
+                "bar_after": "",
+                "bar_rest": ""
+            },
+            "session_length": {
+                "title": "Waar om op te hou",
+                "bar": "",
+                "bar_plus": "",
+                "points": "",
+                "drop": "",
+                "hold": "",
+                "unknown": ""
+            },
+            "swap_hero": {
+                "title": "",
+                "bar_switched": "",
+                "bar_same": "",
+                "better": "",
+                "worse": "",
+                "same": ""
+            },
+            "requeue": {
+                "title": "",
+                "bar_quick": "",
+                "bar_slow": "",
+                "better": "",
+                "worse": "",
+                "same": ""
+            },
+            "time_of_day": {
+                "title": "Tyd van die dag",
+                "morning": "Oggend",
+                "afternoon": "Middag",
+                "evening": "Aand",
+                "late_night": "Laataand",
+                "phrase_morning": "in die oggend",
+                "phrase_afternoon": "in die middag",
+                "phrase_evening": "in die aand",
+                "phrase_late_night": "",
+                "best_worst": "",
+                "best": "",
+                "worst": "",
+                "none": "",
+                "unknown": ""
+            },
+            "day_type": {
+                "title": "Weeksdae en naweke",
+                "weekdays": "Weeksdae",
+                "weekends": "Naweke",
+                "unknown": "",
+                "better": "",
+                "worse": "",
+                "same": ""
+            }
+        }
+    },
+    "match_history": {
+        "api_error": "",
+        "detail_invalid": "",
+        "team": {
+            "hidden_king": "",
+            "archmother": ""
+        },
+        "list": {
+            "title": "",
+            "subtitle": "",
+            "empty": "",
+            "no_results": "",
+            "provisional": "",
+            "provisional_hint": "",
+            "mode": {
+                "custom": "",
+                "other": ""
+            },
+            "outcome": {
+                "unscored": ""
+            },
+            "filter": {
+                "label": "",
+                "mode": "",
+                "hero": "",
+                "outcome": "",
+                "window": "",
+                "any_hero": "",
+                "any_outcome": "",
+                "custom": "",
+                "reset": ""
+            },
+            "pager": {
+                "label": ""
+            },
+            "summary": {
+                "label": "",
+                "matches": ""
+            },
+            "row": {
+                "souls": "",
+                "duration": "",
+                "kda_split": "",
+                "kda_ratio": ""
+            },
+            "count_one": "",
+            "count_other": ""
+        },
+        "deep_dive": {
+            "not_available": "",
+            "player": "",
+            "player_fallback": "",
+            "progress": {
+                "heading": "",
+                "souls": "",
+                "damage": "",
+                "lead_heading": "",
+                "lead_aria": "",
+                "lead_hint": "",
+                "lead_even": "",
+                "others_range": "",
+                "player_heading": "",
+                "player_aria": "",
+                "player_hint": "",
+                "picker_aria": ""
+            },
+            "purchases": {
+                "heading": "",
+                "slider_aria": "",
+                "previous": "",
+                "next": "",
+                "step": "",
+                "item_buy": "",
+                "item_sell": "",
+                "ability_unlock": "",
+                "ability_upgrade": "",
+                "imbued": "",
+                "holding": "",
+                "no_items": "",
+                "abilities": "",
+                "no_abilities": "",
+                "ability_level_aria": "",
+                "list_aria": "",
+                "picker_aria": ""
+            },
+            "damage": {
+                "heading": "",
+                "hint": "",
+                "dealer": "",
+                "other": "",
+                "target": "",
+                "other_hint": "",
+                "picker_aria": ""
+            },
+            "objectives": {
+                "heading": "",
+                "objective": "",
+                "owner": "",
+                "destroyed": "",
+                "players": "",
+                "creeps": "",
+                "spirit": "",
+                "standing": "",
+                "mid_boss": "",
+                "killed_by": "",
+                "claimed_by": "",
+                "kind_core": "",
+                "kind_guardian": "",
+                "kind_walker": "",
+                "kind_patron": "",
+                "kind_shrine": "",
+                "kind_base_guardian": "",
+                "kind_unknown": "",
+                "indexed_name": ""
+            },
+            "accolades": {
+                "heading": "",
+                "tier": "",
+                "hint": "",
+                "picker_aria": ""
+            },
+            "names": {
+                "item": "",
+                "ability": "",
+                "accolade": ""
+            },
+            "lanes": {
+                "yellow": "",
+                "blue": "",
+                "green": "",
+                "street_yellow": "",
+                "street_blue": "",
+                "street_green": "",
+                "named": "",
+                "ordinal": ""
+            }
+        },
+        "detail": {
+            "title": "",
+            "back": "",
+            "loading": "",
+            "error": "",
+            "invalid": "",
+            "summary": "",
+            "bans": "",
+            "you": "",
+            "player_fallback": "",
+            "item_unknown": "",
+            "result": {
+                "unscored": "",
+                "team_won": "",
+                "unknown": ""
+            },
+            "mode": {
+                "ranked": "",
+                "unranked": "",
+                "streetBrawl": "",
+                "custom": "",
+                "bot": "",
+                "other": ""
+            },
+            "col": {
+                "items": "",
+                "damage": ""
+            },
+            "board": {
+                "label": "",
+                "stat": "",
+                "best": "",
+                "unranked": ""
+            },
+            "mvp": "",
+            "key_player": "",
+            "avg_rank": "",
+            "versus": {
+                "above": "",
+                "below": "",
+                "equal": "",
+                "average": "",
+                "souls_rate": "",
+                "hint": "",
+                "summary": ""
+            },
+            "export": {
+                "group": "",
+                "save": "",
+                "copy": "",
+                "working": "",
+                "saved": "",
+                "copied": "",
+                "save_failed": "",
+                "copy_failed": "",
+                "made_with": "",
+                "render_failed": ""
+            },
+            "replay": {
+                "heading": "",
+                "map_aria": "",
+                "no_paths": "",
+                "no_art": "",
+                "no_events": "",
+                "no_kinds": "",
+                "unknown": "",
+                "unknown_hero": "",
+                "dead": "",
+                "dot_dead": "",
+                "camps": "",
+                "shop": "",
+                "teleporter": "",
+                "camps_hint": "",
+                "mid_boss_hint": "",
+                "mid_boss_last_kill": "",
+                "object_destroyed_at": "",
+                "object_damage": "",
+                "damage_gun": "",
+                "damage_spirit": "",
+                "damage_trooper": "",
+                "camp_weak": "",
+                "camp_medium": "",
+                "camp_strong": "",
+                "camp_vault": "",
+                "play": "",
+                "pause": "",
+                "speed": "",
+                "speed_aria": "",
+                "time": "",
+                "scrubber_aria": "",
+                "kinds_aria": "",
+                "kind_death": "",
+                "kind_objective": "",
+                "kind_mid_boss": "",
+                "kind_item_buy": "",
+                "kind_item_sell": "",
+                "kind_swing": "",
+                "lane_death": "",
+                "lane_objective": "",
+                "lane_mid_boss": "",
+                "lane_swing": "",
+                "lane_item": "",
+                "marker_death": "",
+                "marker_objective": "",
+                "marker_mid_boss": "",
+                "marker_item_buy": "",
+                "marker_item_sell": "",
+                "marker_swing": "",
+                "death_map": "",
+                "my_deaths": "",
+                "death_step": "",
+                "step_prev": "",
+                "step_next": "",
+                "step_show_all": "",
+                "stepper_aria": "",
+                "killer_slot": "",
+                "death_respawn": "",
+                "death_position": "",
+                "death_marker": "",
+                "killed_by": "",
+                "filter_player": "",
+                "all_players": "",
+                "filter_role": "",
+                "role_victim": "",
+                "role_killer": "",
+                "range_from": "",
+                "range_to": "",
+                "step_start": "",
+                "no_deaths": "",
+                "death_map_player": "",
+                "death_count_one": "",
+                "death_count_other": ""
+            },
+            "grade": {
+                "label": "",
+                "aria": "",
+                "leaver": "",
+                "unchecked": "",
+                "farm_bonus": "",
+                "metric": {
+                    "early_damage": "",
+                    "late_damage": "",
+                    "early_assists": "",
+                    "late_assists": "",
+                    "prebase_objective": "",
+                    "base_objective": "",
+                    "damage_absorbed": "",
+                    "ally_healing": "",
+                    "heal_prevented": "",
+                    "barriers": "",
+                    "cs": "",
+                    "kills": "",
+                    "deaths": "",
+                    "cc": ""
+                },
+                "place_ordinal_one": "",
+                "place_ordinal_other": ""
+            },
+            "missing": {
+                "details": "",
+                "replay": "",
+                "lead": "",
+                "badge_missing": "",
+                "badge_recovering": "",
+                "eta_seconds": "",
+                "eta_minutes": "",
+                "paused": "",
+                "recover": "",
+                "recover_time": "",
+                "consent_note": "",
+                "open_in_game": "",
+                "sharing_off": "",
+                "sharing_link": "",
+                "replay_available": "",
+                "replay_expired": "",
+                "replay_none": "",
+                "replay_expired_note": "",
+                "replay_none_note": "",
+                "replay_recoverable": "",
+                "replay_recoverable_note": "",
+                "replay_unrecoverable": "",
+                "replay_unrecoverable_note": "",
+                "replay_days_left_one": "",
+                "replay_days_left_other": ""
+            },
+            "replay_status": {
+                "available": "",
+                "recovering": "",
+                "recoverable": "",
+                "unrecoverable": "",
+                "expired": "",
+                "none": "",
+                "recover": "",
+                "recover_note": "",
+                "consent_note": ""
+            }
+        },
+        "ping": {
+            "heading": "",
+            "source": "",
+            "source_engine": "",
+            "source_icmp": "",
+            "partial": "",
+            "avg": "",
+            "worst": "",
+            "samples": "",
+            "loading": "",
+            "empty": "",
+            "chart_aria": "",
+            "hint": ""
+        },
+        "coverage": {
+            "label": "",
+            "details": "",
+            "replays": "",
+            "details_aria": "",
+            "replays_aria": "",
+            "recover": "",
+            "recovering": "",
+            "paused": ""
+        },
+        "recovery": {
+            "title": "",
+            "close": "",
+            "consent": "",
+            "missing": "",
+            "badge_paused": "",
+            "badge_game": "",
+            "badge_limit": "",
+            "eta_left": "",
+            "eta_total": "",
+            "duration_minutes": "",
+            "duration_hours": "",
+            "duration_hours_minutes": "",
+            "progress_label": "",
+            "accounts": "",
+            "start": "",
+            "pause": "",
+            "resume": "",
+            "limit_note": "",
+            "step_details": "",
+            "step_replays": ""
+        },
+        "row_state": {
+            "missing": "",
+            "recovering": ""
+        }
+    }
+}
