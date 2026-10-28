@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::LazyLock;
+use std::time::Instant;
 
 use dp_kv::KvStore;
 use serde::Deserialize;
 use serde_json::Value;
 use tauri::window::Color;
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
+
+pub mod startup_watch;
+
+use startup_watch::StartupWatch;
 
 pub const MAIN_WINDOW: &str = "main";
 const SETTINGS_STORE: &str = "app-settings";
@@ -230,7 +235,8 @@ pub fn on_game_probe(app: &AppHandle, last: Option<bool>, running: bool) {
 /// Stands in for Tauri's own creation of the config window (`"create": false`), so the stored settings can
 /// shape the webview before it exists. It is built hidden (`"visible": false`) and shown here once its saved
 /// bounds and zoom are in place; the theme colour covers it until the page paints.
-pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+pub fn build_main(app: &tauri::App, startup: &StartupWatch) -> Result<(), Box<dyn std::error::Error>> {
+    startup.step("reading the window settings");
     let dir = app.path().app_data_dir()?;
     let kv = app.state::<KvStore>();
     let read = |key: &str| {
@@ -252,10 +258,15 @@ pub fn build_main(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         app.config().app.windows.iter().find(|w| w.label == MAIN_WINDOW).ok_or("tauri.conf.json has no main window")?;
     let theme = theme_id(read(THEME_KEY).as_ref());
     let variant = variant_id(theme, read(THEME_OPTIONS_KEY).as_ref());
+    startup.step("building the main window");
+    log::debug!("building the main window");
+    let started = Instant::now();
     let window = WebviewWindowBuilder::from_config(app.handle(), config)?
         .background_color(window_background(theme, variant))
         .initialization_script(theme_script(theme, variant))
         .build()?;
+    startup.done();
+    log::debug!("main window built in {} ms", started.elapsed().as_millis());
     apply_zoom(&window, zoom_factor(read(UI_SCALE_KEY).as_ref()));
     crate::features::window_state::restore_main(&window);
     if !crate::features::tray::launched_hidden() {

@@ -87,8 +87,12 @@ pub fn run() {
             let log_dir = app.path().app_log_dir()?;
             app.handle().plugin(features::logging::plugin(&log_dir)?)?;
             features::logging::log_startup(app.handle());
+            let startup = {
+                use features::app_window::startup_watch::{warn_and_flush, StartupWatch, STARTUP_LIMIT};
+                StartupWatch::start("remembering the launch", STARTUP_LIMIT, warn_and_flush)
+            };
             features::notifications::remember_launch(app.handle(), std::env::args());
-            features::app_window::build_main(app)?;
+            features::app_window::build_main(app, &startup)?;
             match features::telemetry::init(app.handle()) {
                 Ok(service) => {
                     app.manage(service);
