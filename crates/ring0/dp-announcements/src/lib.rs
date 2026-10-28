@@ -29,7 +29,8 @@ pub struct PublicKey<'a> {
 }
 
 /// Keys a feed may be signed with. More than one may be listed so the signing key can be rotated.
-pub const KEYS: &[PublicKey<'static>] = &[];
+pub const KEYS: &[PublicKey<'static>] =
+    &[PublicKey { id: "2026-10", x: "DExI-lLMAK8Bv0x2meKZ1L0N7WQVkX7fChN5XDiqE78" }];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
