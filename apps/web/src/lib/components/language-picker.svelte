@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Component, ComponentProps } from "svelte";
+    import { tick, type Component, type ComponentProps } from "svelte";
     import { ChevronDown, Languages } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { useI18n } from "$lib/i18n";
@@ -13,10 +13,16 @@
     let Menu = $state<Component<ComponentProps<typeof LanguageMenu>> | null>(null);
     let open = $state(false);
     let loading: Promise<void> | null = null;
+    let picker: HTMLElement;
 
     function load(): Promise<void> {
-        loading ??= import("./language-menu.svelte").then((module) => {
+        loading ??= import("./language-menu.svelte").then(async (module) => {
+            // Swapping in the menu removes the focused stand-in, which would drop a keyboard user back to the page.
+            const focused = picker.contains(document.activeElement);
             Menu = module.default;
+            if (!focused) return;
+            await tick();
+            picker.querySelector<HTMLElement>("button")?.focus();
         });
         return loading;
     }
@@ -27,7 +33,7 @@
     }
 </script>
 
-<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+<div bind:this={picker} class="flex flex-wrap items-center gap-x-4 gap-y-2">
     <p class="font-heading text-sm font-semibold tracking-widest text-brass uppercase" aria-hidden="true">
         {t("language.label")}
     </p>
