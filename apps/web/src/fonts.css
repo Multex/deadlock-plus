@@ -1,0 +1,69 @@
+/*
+ * The site's own copies of the bundled fonts (see THIRD-PARTY-NOTICES.md): Latin only, WOFF2, and only the faces the
+ * site draws. `scripts/fonts.py` writes them from `packages/ui/src/fonts`, which the desktop app keeps loading whole.
+ */
+@font-face {
+    font-family: "Retail Demo";
+    src: url("./lib/assets/fonts/retaildemo-regular.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Retail Demo";
+    src: url("./lib/assets/fonts/retaildemo-medium.woff2") format("woff2");
+    font-weight: 500;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Retail Demo";
+    src: url("./lib/assets/fonts/retaildemo-semibold.woff2") format("woff2");
+    font-weight: 600;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Retail Demo";
+    src: url("./lib/assets/fonts/retaildemo-bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Valve Oracle";
+    src: url("./lib/assets/fonts/valveoracle-medium.woff2") format("woff2");
+    font-weight: 500;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Valve Oracle";
+    src: url("./lib/assets/fonts/valveoracle-semibold.woff2") format("woff2");
+    font-weight: 600;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Valve Pulp";
+    src: url("./lib/assets/fonts/valvepulp-bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+}
+
+/* Arial sized to each face's metrics, so the text does not jump when the real font arrives. */
+@font-face {
+    font-family: "Retail Demo Fallback";
+    src: local("Arial"), local("ArialMT");
+    size-adjust: 97.86%;
+    ascent-override: 111.69%;
+    descent-override: 25.55%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: "Valve Oracle Fallback";
+    src: local("Arial"), local("ArialMT");
+    size-adjust: 93.63%;
+    ascent-override: 106.8%;
+    descent-override: 32.04%;
+    line-gap-override: 0%;
+}
+
+:root {
+    --app-font: "Retail Demo", "Retail Demo Fallback", "Valve Oracle", var(--script-fallback);
+    --heading-font: "Valve Oracle", "Valve Oracle Fallback", var(--app-font);
+}

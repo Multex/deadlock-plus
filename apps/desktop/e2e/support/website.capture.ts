@@ -7,7 +7,8 @@ import { openShot, scrollInMain, SHOTS, type Detail } from "./shots";
 import { settle, test } from "./test";
 import { shotFile, webpQuality, type Kind } from "./webp";
 
-const OUT = process.env.SCREENSHOTS_OUT ?? fileURLToPath(new URL("../../../web/static/screenshots/", import.meta.url));
+const OUT =
+    process.env.SCREENSHOTS_OUT ?? fileURLToPath(new URL("../../../web/src/lib/assets/screenshots/", import.meta.url));
 const ONLY = process.env.SCREENSHOTS_ONLY;
 
 // A phone shows the detail about 360 px wide: a region this wide keeps the app's text at three quarters of

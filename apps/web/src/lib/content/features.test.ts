@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FEATURES, GROUPS, HERO_DETAIL_SHOT, HERO_SHOT, HIGHLIGHTS, featuresIn, highlights } from "./features";
-
-const SERVED = Object.keys(import.meta.glob("../../../static/screenshots/*.webp")).map((path) =>
-    path.slice(path.lastIndexOf("/") + 1, -".webp".length),
-);
+import { SHOT_NAMES as SERVED } from "./shots";
 
 describe("features", () => {
     it("gives every feature a unique id, usable as a page anchor", () => {
@@ -29,6 +26,11 @@ describe("features", () => {
         expect(crops.length).toBeGreaterThan(1);
         for (const crop of crops) expect(SERVED).toContain(crop);
         for (const feature of FEATURES) if (feature.detailShot) expect(feature.shot, feature.id).toBeTruthy();
+    });
+
+    it("ships no screenshot that no page shows", () => {
+        const used = [HERO_SHOT, HERO_DETAIL_SHOT, ...FEATURES.flatMap((f) => [f.shot, f.detailShot])];
+        for (const name of SERVED) expect(used, name).toContain(name);
     });
 
     it("gives every landing page highlight a screenshot", () => {

@@ -46,13 +46,18 @@
     </PageHeader>
 
     <Tabs.Root bind:value={group}>
-        <Tabs.List>
+        <!-- On a phone the names do not fit on one line, so they sit in two columns instead of running off the page. -->
+        <Tabs.List class="grid h-auto w-full grid-cols-2 sm:inline-flex sm:h-9 sm:w-auto">
             {#each GROUPS as item (item.id)}
-                <Tabs.Trigger value={item.id}>{item.name}</Tabs.Trigger>
+                <Tabs.Trigger value={item.id} class="h-8 sm:h-auto">{item.name}</Tabs.Trigger>
             {/each}
         </Tabs.List>
         {#each GROUPS as item (item.id)}
-            <Tabs.Content value={item.id}>
+            <!-- The panel is a tab stop, so it needs a focus outline the shared component leaves off. -->
+            <Tabs.Content
+                value={item.id}
+                class="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring focus-visible:outline-solid"
+            >
                 <p class="mb-4 text-muted-foreground">{item.blurb}</p>
                 <div class="grid gap-3 md:grid-cols-2">
                     {#each featuresIn(item.id) as feature (feature.id)}

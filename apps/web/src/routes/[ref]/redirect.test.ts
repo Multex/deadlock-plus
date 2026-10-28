@@ -24,7 +24,7 @@ beforeEach(() => resetLinks());
 describe("reserved landing paths", () => {
     it("include every page and static folder, which always win over a landing path", () => {
         const taken = [...topLevel(".."), ...topLevel("../../../static")];
-        expect(taken).toEqual(expect.arrayContaining(["features", "download", "discord", "screenshots"]));
+        expect(taken).toEqual(expect.arrayContaining(["features", "download", "discord"]));
         for (const name of taken) expect(RESERVED_PATHS, name).toContain(name);
     });
 });

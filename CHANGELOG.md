@@ -82,6 +82,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Discord shows the match clock in the Hideout by default.
 - The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
 - Exported scoreboard images have a new footer with the Deadlock+ logo on the left and deadlockplus.app on the right.
+- The website loads about half as much on a phone and keeps its pictures and fonts cached between visits.
 
 ### Fixed
 
@@ -97,6 +98,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - In the build editor, a category's note no longer runs under its size badge.
 - Nightshift's string lights no longer hang over page titles and buttons.
 - The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
+- The website no longer scrolls sideways on a phone.
+- Badges in the Pretty in Pink theme are easier to read.
 
 ## [0.14.0] - 2026-10-24
 
