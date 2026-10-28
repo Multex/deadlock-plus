@@ -8,3 +8,6 @@ export function previewLayout(params: URLSearchParams, demo: boolean): WhatsNewL
     const value = params.get("layout");
     return WHATS_NEW_LAYOUTS.find((l) => l === value) ?? null;
 }
+
+/** The version a demo preview gives the changelog's Unreleased section. */
+export const PREVIEW_VERSION = "0.15.0";
