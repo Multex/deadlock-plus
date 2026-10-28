@@ -28,6 +28,14 @@ const MIN_SPEED_SPAN_MS = 200;
 const FIRST_BYTE_LIMIT_MS = 30_000;
 const STALL_LIMIT_MS = 45_000;
 
+/** The plugin keeps every update a check finds until it is closed; a stale rid is harmless to close. */
+function release(update: Update | null) {
+    if (!update) return;
+    void Promise.resolve()
+        .then(() => update.close())
+        .catch(() => {});
+}
+
 class Updater {
     phase = $state<UpdatePhase>("idle");
     version = $state<string | null>(null);
@@ -72,6 +80,7 @@ class Updater {
             if (this.channel !== channel) return false;
         }
         if (this.phase === "downloading" || this.phase === "ready") return true;
+        release(this.update);
         this.update = null;
         this.version = null;
         this.notes = null;
@@ -98,9 +107,16 @@ class Updater {
                 this.error = "check";
                 return false;
             }
-            if (channel !== this.channel) continue;
+            if (channel !== this.channel) {
+                release(update);
+                continue;
+            }
             // A download started from the update this check began with; the answer must not reset its phase.
-            if (this.phase === "downloading" || this.phase === "ready") return true;
+            if (this.phase === "downloading" || this.phase === "ready") {
+                release(update);
+                return true;
+            }
+            if (this.update !== update) release(this.update);
             this.update = update;
             this.version = update?.version ?? null;
             this.notes = update?.body?.trim() ? update.body : null;

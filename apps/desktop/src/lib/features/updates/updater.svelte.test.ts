@@ -291,6 +291,57 @@ describe("updater", () => {
             }));
     });
 
+    describe("finished checks", () => {
+        const offer = (version: string) => ({
+            version,
+            download: vi.fn(),
+            install: vi.fn(),
+            close: vi.fn(async () => {}),
+        });
+
+        it("releases the update a newer check replaces", async () => {
+            const first = offer("9.9.8");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            await updater.check();
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("releases the update once a check finds nothing", async () => {
+            const first = offer("9.9.9");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(null);
+            await updater.check();
+            await updater.check();
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("releases the old channel's update on a switch", async () => {
+            const first = offer("9.9.9");
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(null);
+            await updater.check();
+            await updater.setChannel("beta");
+            expect(first.close).toHaveBeenCalledOnce();
+        });
+
+        it("keeps the update a download uses", async () => {
+            const first = { ...offer("9.9.9"), download: vi.fn(() => new Promise<void>(() => {})) };
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            void updater.download();
+            await updater.check();
+            await updater.setChannel("beta");
+            expect(first.close).not.toHaveBeenCalled();
+        });
+
+        it("still checks when releasing an old update fails", async () => {
+            const first = { ...offer("9.9.8"), close: vi.fn(async () => Promise.reject(new Error("bad rid"))) };
+            check.mockResolvedValueOnce(first).mockResolvedValueOnce(offer("9.9.9"));
+            await updater.check();
+            expect(await updater.check()).toBe(true);
+            expect(updater.version).toBe("9.9.9");
+        });
+    });
+
     describe("release notes", () => {
         it("keeps the found update's notes", async () => {
             check.mockResolvedValue({ version: "9.9.9", body: "### Fixed\n\n- Things", download: vi.fn() });
