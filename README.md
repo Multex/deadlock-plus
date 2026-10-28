@@ -294,12 +294,12 @@ Lines of code, updated on every push to `main`:
 <!-- loc:start -->
 | Language | Files | Lines |
 | --- | ---: | ---: |
-| TypeScript | 888 | 92,154 |
-| Rust | 368 | 80,834 |
-| Svelte | 375 | 36,332 |
-| JavaScript | 44 | 3,851 |
-| CSS | 7 | 849 |
-| **Total** | **1,682** | **214,020** |
+| TypeScript | 1,240 | 141,973 |
+| Rust | 373 | 83,713 |
+| Svelte | 445 | 48,376 |
+| JavaScript | 49 | 4,666 |
+| CSS | 7 | 860 |
+| **Total** | **2,114** | **279,588** |
 <!-- loc:end -->
 
 Non-blank lines in tracked files, tests included. Translations and generated code left out.
