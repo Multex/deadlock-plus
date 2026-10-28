@@ -1,5 +1,6 @@
 import { runBeforeExit } from "$lib/core/exit";
 import { check, type Update } from "$lib/core/updater";
+import { flushTelemetry } from "$lib/features/telemetry/api";
 
 export type UpdatePhase = "idle" | "checking" | "upToDate" | "available" | "downloading" | "error";
 export type UpdateFailure = "check" | "download";
@@ -47,7 +48,9 @@ class Updater {
                     this.progress = total > 0 ? Math.min(received / total, 1) : null;
                 }
             });
-            await runBeforeExit();
+            // The Windows installer ends the process without the backend's exit flush, so the queued
+            // install click would never leave the machine.
+            await Promise.all([runBeforeExit(), flushTelemetry()]);
             await update.install();
         } catch (e) {
             console.warn("update download failed:", e);

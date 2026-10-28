@@ -204,6 +204,7 @@ const SETTERS = [
     "track_discord_invite",
     "track_update_shown",
     "track_update_install_clicked",
+    "flush_telemetry",
     "reset_telemetry_id",
     "set_telemetry_settings",
     "set_ingest_enabled",

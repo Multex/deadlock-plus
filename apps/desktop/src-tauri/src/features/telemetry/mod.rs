@@ -91,6 +91,12 @@ impl TelemetryService {
         self.telemetry.update_install_clicked(to_version, source);
     }
 
+    /// For a caller about to lose the process without `shutdown` running, such as the update installer.
+    /// Bounded like the exit flush.
+    pub async fn flush_now(&self, http: &reqwest::Client) {
+        let _ = tokio::time::timeout(EXIT_FLUSH, self.telemetry.flush(http)).await;
+    }
+
     pub fn reset_install_id(&self, dir: &Path) {
         let id = self.telemetry.reset_install_id(dir);
         dp_telemetry::errors::set_install_id(&id);
@@ -140,6 +146,8 @@ pub mod commands {
     use tauri::{AppHandle, Manager, State};
 
     use super::TelemetryService;
+    use crate::command_panics::guarded_infallible;
+    use crate::features::error::AppError;
     use crate::http::Http;
 
     #[tauri::command]
@@ -173,6 +181,14 @@ pub mod commands {
     }
 
     #[tauri::command]
+    pub async fn flush_telemetry(
+        telemetry: State<'_, TelemetryService>,
+        http: State<'_, Http>,
+    ) -> Result<(), AppError> {
+        guarded_infallible(telemetry.flush_now(&http.0)).await
+    }
+
+    #[tauri::command]
     pub fn reset_telemetry_id(app: AppHandle, telemetry: State<'_, TelemetryService>) {
         if let Ok(dir) = app.path().app_data_dir() {
             telemetry.reset_install_id(&dir);
@@ -182,7 +198,102 @@ pub mod commands {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    use dp_telemetry::config::PostHogConfig;
+
     use super::*;
+
+    fn service_sending_to(listener: &TcpListener, name: &str) -> TelemetryService {
+        let dir = std::env::temp_dir().join(format!("dp-telemetry-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let host = format!("http://{}", listener.local_addr().unwrap());
+        let config = Config { posthog: Some(PostHogConfig { key: "phc_test".into(), host }), sentry_dsn: None };
+        TelemetryService::new(config, &dir, "0.12.0".into())
+    }
+
+    fn accept_within(listener: &TcpListener, limit: Duration) -> Option<std::net::TcpStream> {
+        listener.set_nonblocking(true).unwrap();
+        let deadline = Instant::now() + limit;
+        while Instant::now() < deadline {
+            if let Ok((stream, _)) = listener.accept() {
+                stream.set_nonblocking(false).unwrap();
+                return Some(stream);
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        None
+    }
+
+    fn read_request(stream: &mut std::net::TcpStream) -> String {
+        stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut request = Vec::new();
+        let mut chunk = [0u8; 4096];
+        loop {
+            let n = stream.read(&mut chunk).unwrap();
+            request.extend_from_slice(&chunk[..n]);
+            let text = String::from_utf8_lossy(&request).to_string();
+            if let Some((head, body)) = text.split_once("\r\n\r\n") {
+                let length = head
+                    .lines()
+                    .find_map(|line| {
+                        line.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().to_string())
+                    })
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap_or(0);
+                if body.len() >= length {
+                    return text;
+                }
+            }
+            if n == 0 {
+                return text;
+            }
+        }
+    }
+
+    #[test]
+    fn flush_now_sends_the_queued_install_click() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let service = service_sending_to(&listener, "flush-sends");
+        service.telemetry.set_enabled(true);
+        service.update_install_clicked("0.13.0", "about");
+        let server = std::thread::spawn(move || {
+            let mut stream = accept_within(&listener, Duration::from_secs(5)).expect("no batch was sent");
+            let request = read_request(&mut stream);
+            stream.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n").unwrap();
+            request
+        });
+        let started = Instant::now();
+        tauri::async_runtime::block_on(service.flush_now(&reqwest::Client::new()));
+        assert!(started.elapsed() < EXIT_FLUSH, "the reply was not read: waited {:?}", started.elapsed());
+        let request = server.join().unwrap();
+        assert!(request.starts_with("POST /batch/"), "{request}");
+        assert!(request.contains("\"update_install_clicked\""), "{request}");
+        assert!(request.contains("\"source\":\"about\""), "{request}");
+        assert_eq!(service.telemetry.pending(), 0);
+    }
+
+    #[test]
+    fn flush_now_gives_up_on_a_server_that_never_answers() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let service = service_sending_to(&listener, "flush-bounded");
+        service.telemetry.set_enabled(true);
+        service.update_install_clicked("0.13.0", "toast");
+        let started = Instant::now();
+        tauri::async_runtime::block_on(service.flush_now(&reqwest::Client::new()));
+        assert!(started.elapsed() < Duration::from_secs(2), "waited {:?}", started.elapsed());
+    }
+
+    #[test]
+    fn flush_now_sends_nothing_with_telemetry_off() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let service = service_sending_to(&listener, "flush-off");
+        service.update_install_clicked("0.13.0", "banner");
+        tauri::async_runtime::block_on(service.flush_now(&reqwest::Client::new()));
+        listener.set_nonblocking(true).unwrap();
+        assert_eq!(listener.accept().unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+    }
 
     #[test]
     fn shutdown_runs_off_the_async_runtime() {
