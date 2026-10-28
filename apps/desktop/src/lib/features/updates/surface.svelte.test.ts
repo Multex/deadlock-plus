@@ -26,7 +26,7 @@ function setup(updater: UpdaterStore, preview: UpdatePreview | null = null) {
     return { surface: new UpdateSurface(deps), deps };
 }
 
-const PAGE: UpdatePreview = { layout: "page", state: null, channel: null };
+const PAGE: UpdatePreview = { layout: "page", state: null, channel: null, chip: "plaque" };
 
 describe("update surface", () => {
     it("reads the live updater when no preview state is pinned", () => {
@@ -37,7 +37,7 @@ describe("update surface", () => {
 
     it("shows the pinned preview state and never touches the updater from it", async () => {
         const updater = store({ phase: "upToDate", version: null });
-        const { surface, deps } = setup(updater, { layout: "dialog", state: "ready", channel: null });
+        const { surface, deps } = setup(updater, { layout: "dialog", state: "ready", channel: null, chip: "plaque" });
         expect(surface.stage).toBe("ready");
         expect(surface.source.version).toBe("1.1.0");
         await surface.download();
@@ -99,7 +99,12 @@ describe("update surface", () => {
 
     it("keeps a preview's channel change on the page only", () => {
         const setChannel = vi.fn();
-        const { surface } = setup(store({ setChannel }), { layout: "page", state: "available", channel: "beta" });
+        const { surface } = setup(store({ setChannel }), {
+            layout: "page",
+            state: "available",
+            channel: "beta",
+            chip: "plaque",
+        });
         expect(surface.channel).toBe("beta");
         surface.setChannel("nightly");
         expect(surface.channel).toBe("nightly");
@@ -112,15 +117,19 @@ describe("update surface", () => {
         expect(page.deps.navigate).toHaveBeenCalledWith("/updates");
         expect(page.surface.open).toBe(false);
 
-        const dialog = setup(store(), { layout: "dialog", state: null, channel: null });
+        const dialog = setup(store(), { layout: "dialog", state: null, channel: null, chip: "plaque" });
         dialog.surface.show();
         expect(dialog.deps.navigate).not.toHaveBeenCalled();
         expect(dialog.surface.open).toBe(true);
     });
 
     it("opens a dialog or popover preview at once so it can be shot", () => {
-        expect(setup(store(), { layout: "popover", state: "downloading", channel: null }).surface.open).toBe(true);
-        expect(setup(store(), { layout: "page", state: "downloading", channel: null }).surface.open).toBe(false);
+        expect(
+            setup(store(), { layout: "popover", state: "downloading", channel: null, chip: "plaque" }).surface.open,
+        ).toBe(true);
+        expect(
+            setup(store(), { layout: "page", state: "downloading", channel: null, chip: "plaque" }).surface.open,
+        ).toBe(false);
     });
 
     it("sends the manual download to the page for the current channel", () => {

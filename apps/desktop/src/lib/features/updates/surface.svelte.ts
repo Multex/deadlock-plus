@@ -7,7 +7,15 @@ import {
     type UpdateStage,
 } from "./flow";
 import type { InstallSource } from "./nudge";
-import { DEFAULT_LAYOUT, PREVIEW_RATE, previewSource, type UpdateLayout, type UpdatePreview } from "./preview";
+import {
+    DEFAULT_CHIP,
+    DEFAULT_LAYOUT,
+    PREVIEW_RATE,
+    previewSource,
+    type ChipVariant,
+    type UpdateLayout,
+    type UpdatePreview,
+} from "./preview";
 
 export const UPDATES_ROUTE = "/updates";
 
@@ -46,6 +54,10 @@ export class UpdateSurface {
 
     get layout(): UpdateLayout {
         return this.deps.preview?.layout ?? DEFAULT_LAYOUT;
+    }
+
+    get chip(): ChipVariant {
+        return this.deps.preview?.chip ?? DEFAULT_CHIP;
     }
 
     /** A pinned preview state stands in for the updater: nothing it shows can act on the real one. */

@@ -18,11 +18,11 @@
 {:else if kind && !popover}
     <button
         type="button"
-        class="flex h-full items-center px-2 transition-colors hover:bg-accent/60"
+        class="flex h-full items-center transition-colors hover:bg-accent/60"
         aria-label={label}
         title={label}
         onclick={() => updateSurface.show()}
     >
-        <IndicatorFace {kind} {source} />
+        <IndicatorFace {kind} {source} variant={updateSurface.chip} />
     </button>
 {/if}

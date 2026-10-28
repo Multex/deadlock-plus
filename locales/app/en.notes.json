@@ -607,7 +607,14 @@
             "downloading": "Title bar button label while the update downloads. {percent} = whole number 0 to 100.",
             "downloading_plain": "Title bar button label while the update downloads and its size is unknown.",
             "ready": "Title bar button label once the update has downloaded.",
-            "failed": "Title bar button label after the update download failed."
+            "failed": "Title bar button label after the update download failed.",
+            "kicker": {
+                "available": "Small caps label above the version on the title bar update button. One short word.",
+                "downloading": "Small caps label above the download percentage on the title bar update button. One short word.",
+                "ready": "Small caps label on the title bar update button once the update has downloaded. One short word.",
+                "failed": "Small caps label on the title bar update button after the download failed. One short word, calm.",
+                "idle": "Small caps label on the title bar update button with no update waiting. One short word."
+            }
         },
         "about": {
             "view": "Button in Settings > About that opens the update's details."

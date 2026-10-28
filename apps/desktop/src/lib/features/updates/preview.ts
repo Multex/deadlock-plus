@@ -3,6 +3,10 @@ import { UPDATE_CHANNELS, type UpdateChannel, type UpdateSource } from "./flow";
 export type UpdateLayout = "page" | "dialog" | "popover";
 export type PreviewState = "available" | "downloading" | "ready" | "failed" | "check-failed" | "up-to-date";
 
+export type ChipVariant = "plaque" | "marks" | "tab";
+export const CHIP_VARIANTS: readonly ChipVariant[] = ["plaque", "marks", "tab"];
+export const DEFAULT_CHIP: ChipVariant = "plaque";
+
 export const UPDATE_LAYOUTS: readonly UpdateLayout[] = ["page", "dialog", "popover"];
 export const DEFAULT_LAYOUT: UpdateLayout = "page";
 export const PREVIEW_STATES: readonly PreviewState[] = [
@@ -19,6 +23,7 @@ export interface UpdatePreview {
     layout: UpdateLayout;
     state: PreviewState | null;
     channel: UpdateChannel | null;
+    chip: ChipVariant;
 }
 
 function oneOf<T extends string>(value: string | null, options: readonly T[]): T | null {
@@ -31,6 +36,7 @@ export function parseUpdatePreview(search: string): UpdatePreview {
         layout: oneOf(query.get("update-layout"), UPDATE_LAYOUTS) ?? DEFAULT_LAYOUT,
         state: oneOf(query.get("update-state"), PREVIEW_STATES),
         channel: oneOf(query.get("update-channel"), UPDATE_CHANNELS),
+        chip: oneOf(query.get("update-chip"), CHIP_VARIANTS) ?? DEFAULT_CHIP,
     };
 }
 

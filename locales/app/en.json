@@ -610,7 +610,14 @@
             "downloading": "Downloading update, {percent}%",
             "downloading_plain": "Downloading update",
             "ready": "Update ready, restart to install",
-            "failed": "Update download failed"
+            "failed": "Update download failed",
+            "kicker": {
+                "available": "Update",
+                "downloading": "Downloading",
+                "ready": "Ready",
+                "failed": "Paused",
+                "idle": "Updates"
+            }
         },
         "about": {
             "view": "View update"

@@ -1,20 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { byteProgress, failureStep, releaseHighlights, updateStage } from "./flow";
-import { DEFAULT_LAYOUT, PREVIEW_STATES, parseUpdatePreview, previewSource } from "./preview";
+import { DEFAULT_CHIP, DEFAULT_LAYOUT, PREVIEW_STATES, parseUpdatePreview, previewSource } from "./preview";
 
 describe("parseUpdatePreview", () => {
     it("reads the layout, state and channel from the first URL", () => {
         expect(
             parseUpdatePreview("?demo=default&update-layout=dialog&update-state=ready&update-channel=nightly"),
-        ).toEqual({ layout: "dialog", state: "ready", channel: "nightly" });
+        ).toEqual({ layout: "dialog", state: "ready", channel: "nightly", chip: DEFAULT_CHIP });
+        expect(parseUpdatePreview("?update-chip=marks").chip).toBe("marks");
     });
 
     it("keeps the shipped layout and the live updater for missing or unknown values", () => {
-        expect(parseUpdatePreview("")).toEqual({ layout: DEFAULT_LAYOUT, state: null, channel: null });
-        expect(parseUpdatePreview("?update-layout=carousel&update-state=exploded&update-channel=alpha")).toEqual({
+        expect(parseUpdatePreview("")).toEqual({
             layout: DEFAULT_LAYOUT,
             state: null,
             channel: null,
+            chip: DEFAULT_CHIP,
+        });
+        expect(
+            parseUpdatePreview("?update-layout=carousel&update-state=exploded&update-channel=alpha&update-chip=pill"),
+        ).toEqual({
+            layout: DEFAULT_LAYOUT,
+            state: null,
+            channel: null,
+            chip: DEFAULT_CHIP,
         });
     });
 });

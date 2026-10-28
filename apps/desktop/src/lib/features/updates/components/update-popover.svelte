@@ -41,11 +41,11 @@
 
 <Popover.Root open={surface.open} onOpenChange={(open) => (surface.open = open)}>
     <Popover.Trigger
-        class="flex h-full items-center px-2 transition-colors hover:bg-accent/60"
+        class="flex h-full items-center transition-colors hover:bg-accent/60"
         aria-label={label}
         title={label}
     >
-        <IndicatorFace {kind} {source} />
+        <IndicatorFace {kind} {source} variant={surface.chip} />
     </Popover.Trigger>
     <Popover.Portal>
         <Popover.Content
