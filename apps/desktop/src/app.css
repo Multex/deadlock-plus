@@ -59,3 +59,8 @@
     transition: none !important;
     scroll-behavior: auto !important;
 }
+
+/* The heading a page change moves focus to is not a control, so it takes no ring. */
+[data-route-focus]:focus {
+    outline: none;
+}
