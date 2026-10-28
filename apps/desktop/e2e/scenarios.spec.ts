@@ -402,22 +402,26 @@ test.describe("update-available", () => {
         await page.goto("/");
         await settle(page);
         await expect(page.getByText(`Deadlock+ ${NEXT_VERSION} is available`)).toBeVisible();
-        await page.getByRole("button", { name: `Update ${NEXT_VERSION} available` }).click();
-        await expect(page).toHaveURL(/\/settings\/about$/);
+        await page.getByRole("button", { name: `Deadlock+ ${NEXT_VERSION} is available` }).click();
+        await expect(page).toHaveURL(/\/updates$/);
     });
 
-    test("Settings offers the install, and a click starts the download", async ({ page }) => {
+    test("Settings points to the update, and its page starts the download", async ({ page }) => {
         await page.goto("/settings/about");
         await settle(page);
+        const settingsMain = page.getByRole("main");
+        await expect(settingsMain.getByText(`Version ${NEXT_VERSION} is available.`)).toBeVisible();
+        await expect(settingsMain.getByRole("button", { name: "Check now" })).toHaveCount(0);
+        await settingsMain.getByRole("button", { name: "View update" }).click();
+        await expect(page).toHaveURL(/\/updates$/);
+
         const main = page.getByRole("main");
-        await expect(main.getByText(`Version ${NEXT_VERSION} is available.`)).toBeVisible();
-        await expect(main.getByRole("button", { name: "Check now" })).toHaveCount(0);
+        await expect(main.getByText("Update available", { exact: true })).toBeVisible();
+        await main.getByRole("button", { name: "Update now" }).click();
 
-        await main.getByRole("button", { name: `Install ${NEXT_VERSION}` }).click();
-
-        await expect(main.getByText(`Downloading ${NEXT_VERSION}. Deadlock+ restarts when it finishes.`)).toBeVisible();
-        await expect(page.getByRole("button", { name: "Update downloading" })).toBeVisible();
-        await expect(main.getByRole("button", { name: "Check now" })).toBeDisabled();
+        await expect(main.getByText("Keep using Deadlock+ while it downloads.")).toBeVisible();
+        await expect(main.getByRole("progressbar", { name: "Update download" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Downloading update" })).toBeVisible();
     });
 });
 

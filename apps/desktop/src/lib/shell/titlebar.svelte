@@ -1,18 +1,16 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { goto } from "$app/navigation";
     import { t } from "$lib/core/i18n.svelte";
     import { currentWindow, type AppWindow } from "$lib/core/tauri";
-    import { Copy, Download, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from "@lucide/svelte";
+    import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from "@lucide/svelte";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import { sidebarState } from "./sidebar-state.svelte";
-    import { NotificationCenter, updater } from "$lib/features/registry";
+    import { NotificationCenter, UpdateIndicator } from "$lib/features/registry";
 
     // macOS keeps its native traffic lights (overlay title bar), so it only needs room on the left.
     const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform || navigator.userAgent);
 
     let maximized = $state(false);
-    const updateReady = $derived(updater.phase === "available" || updater.phase === "downloading");
 
     function run(action: (w: AppWindow) => Promise<unknown>) {
         try {
@@ -70,24 +68,7 @@
 
     <div data-tauri-drag-region class="h-full flex-1"></div>
 
-    {#if updateReady}
-        <button
-            type="button"
-            onclick={() => goto("/settings/about")}
-            aria-label={updater.phase === "downloading"
-                ? t("shell.titlebar.update_downloading")
-                : t("shell.titlebar.update_available", { version: updater.version ?? "" })}
-            title={updater.phase === "downloading"
-                ? t("shell.titlebar.downloading_update")
-                : t("shell.titlebar.update_available", { version: updater.version ?? "" })}
-            class="relative flex h-full w-11.5 items-center justify-center text-primary transition-colors hover:bg-accent/60"
-        >
-            <Download class="size-4 {updater.phase === 'downloading' ? 'animate-pulse' : ''}" />
-            {#if updater.phase === "available"}
-                <span class="absolute top-2.5 right-3 size-1.5 rounded-full bg-primary"></span>
-            {/if}
-        </button>
-    {/if}
+    <UpdateIndicator />
 
     <NotificationCenter />
 

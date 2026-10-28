@@ -255,3 +255,5 @@ export { needsOnboarding } from "./onboarding/onboarding";
 export { getAppInfo } from "./settings/about";
 export { updater } from "./updates/updater.svelte";
 export { default as NotificationCenter } from "./notifications/components/notification-center.svelte";
+export { default as UpdateIndicator } from "./updates/components/update-indicator.svelte";
+export { updateSurface } from "./updates/update-surface.svelte";
