@@ -267,8 +267,8 @@ Want a language that isn't there yet? [Open an issue](../../issues).
 
 - English is the source language.
 - Approved translations arrive as a pull request.
-- Do not edit `locales/<lang>.json` by hand. Crowdin overwrites it.
-- To fix English text, change `locales/en.json` in a pull request.
+- Do not edit `locales/<area>/<lang>.json` by hand. Crowdin overwrites them.
+- To fix English text, change `locales/<area>/en.json` in a pull request.
 
 How the sync works is in [CONTRIBUTING.md](CONTRIBUTING.md#translations).
 
@@ -294,12 +294,12 @@ Lines of code, updated on every push to `main`:
 <!-- loc:start -->
 | Language | Files | Lines |
 | --- | ---: | ---: |
-| TypeScript | 870 | 91,488 |
-| Rust | 368 | 80,781 |
+| TypeScript | 871 | 91,539 |
+| Rust | 368 | 80,827 |
 | Svelte | 371 | 36,111 |
-| JavaScript | 34 | 2,492 |
+| JavaScript | 34 | 2,547 |
 | CSS | 7 | 849 |
-| **Total** | **1,650** | **211,721** |
+| **Total** | **1,651** | **211,873** |
 <!-- loc:end -->
 
 Non-blank lines in tracked files, tests included. Translations and generated code left out.

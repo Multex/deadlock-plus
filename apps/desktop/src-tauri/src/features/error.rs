@@ -117,11 +117,11 @@ impl<K: ErrorKey> From<K> for AppError {
 }
 
 #[cfg(test)]
-const CATALOG: &str = include_str!("../../../../../locales/en.json");
+const CATALOG: &str = include_str!("../../../../../locales/app/en.json");
 
 #[cfg(test)]
 pub(crate) fn assert_catalogued<K: ErrorKey>() {
-    let catalog: serde_json::Value = serde_json::from_str(CATALOG).expect("locales/en.json is valid JSON");
+    let catalog: serde_json::Value = serde_json::from_str(CATALOG).expect("locales/app/en.json is valid JSON");
     for key in K::ALL {
         let present = catalog["errors"][K::FEATURE][key.name()].as_str().is_some_and(|text| !text.is_empty());
         assert!(present, "missing catalog key errors.{}.{}", K::FEATURE, key.name());

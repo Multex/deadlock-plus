@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { delimiter } from "node:path";
 import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
-import en from "../../../../../../../../../locales/en.json";
+import en from "../../../../../../../../../locales/dispatch/en.json";
 import { PERSONA_HEROES, PERSONAS, personaEdition } from "@deadlock-plus/stats/dispatch/personas.fixture";
 import { editionSignals } from "@deadlock-plus/stats/dispatch/signals";
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";

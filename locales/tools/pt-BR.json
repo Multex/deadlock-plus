@@ -1,0 +1,348 @@
+{
+    "performance": {
+        "title": "Desempenho",
+        "rules": {
+            "nulled_not_cancelled": "Temporizador descartado, mas ainda em execução",
+            "unguarded_rearm": "O temporizador pode acumular cópias de si mesmo"
+        },
+        "severity": {
+            "low": "Baixo",
+            "medium": "Médio",
+            "high": "Alto"
+        },
+        "addon": {
+            "gamebanana_mod": "Mod {id} do GameBanana",
+            "mod_id": "mod {id}",
+            "disabled": "Desativado"
+        },
+        "frame_capture": {
+            "note_windows": "Requer acesso de administrador, e o Windows solicita que você autorize isso.",
+            "note_linux": "No Linux, a captura lê uma camada Vulkan executada dentro do Deadlock. Instale-a abaixo e depois adicione a opção de inicialização ao Deadlock no Steam.",
+            "note_macos": "A captura de quadros não está disponível no macOS nem no Wine."
+        },
+        "runs": {
+            "default_label": "Execução {date}"
+        },
+        "metrics": {
+            "avg_fps": "FPS médio",
+            "low_1pct_fps": "FPS mínimo (1%)",
+            "low_01pct_fps": "FPS mínimo (0,1%)",
+            "median_frametime": "Mediana do tempo de quadro",
+            "p95": "95º percentil",
+            "p99": "99º percentil",
+            "spikes_per_minute": "Picos por minuto",
+            "spikes": "Picos",
+            "longest_frame": "Quadro mais longo"
+        },
+        "units": {
+            "ms": "{value} ms"
+        },
+        "only_on_in": "Ativados só em {run}: {addons}",
+        "same_addons": "As duas execuções tinham os mesmos mods ativados, então qualquer diferença vem de outro fator.",
+        "report": {
+            "title": "Comparação de tempos de quadro do Deadlock+",
+            "tie": "empate",
+            "run_length": "{minutes} min, {frames} quadros",
+            "run_a": "Execução A: {label} ({length})",
+            "run_b": "Execução B: {label} ({length})",
+            "better": "Melhor",
+            "disclaimer": "Diferenças abaixo de 3% contam como empate. O ritmo dos quadros varia de uma partida para outra, então uma diferença é compatível com um mod ser a causa, mas não prova isso."
+        },
+        "layer": {
+            "copied": "Opção de inicialização copiada",
+            "copy_failed": "Não foi possível copiar a opção de inicialização",
+            "installed": "Camada de quadros instalada",
+            "not_installed": "Camada de quadros não instalada",
+            "installed_hint": "Ela só é carregada em jogos iniciados com a opção de inicialização abaixo.",
+            "install_hint": "Instala uma pequena camada Vulkan na sua pasta pessoal. Ela não faz nada até que você adicione a opção de inicialização.",
+            "unavailable": "Esta versão do Deadlock+ não inclui a camada, portanto não pode ser instalada.",
+            "remove": "Remover",
+            "install": "Instalar",
+            "steps": "Steam, Deadlock, Propriedades, Opções de inicialização. Depois, inicie o jogo e clique em Iniciar aqui, no aplicativo.",
+            "copy": "Copiar"
+        },
+        "tabs": {
+            "frametimes": {
+                "title": "Tempos de quadro",
+                "blurb": "Grave uma sessão de jogo e veja sua taxa de quadros real, os mínimos de 1% e os picos de travamento."
+            },
+            "scripts": {
+                "title": "Scripts de mods",
+                "blurb": "Procure nos mods instalados padrões de script que podem prejudicar o desempenho."
+            },
+            "compare": {
+                "title": "Comparar",
+                "blurb": "Compare duas execuções salvas lado a lado, por exemplo, com um mod ativado e outro desativado."
+            }
+        },
+        "compare": {
+            "copied": "Comparação copiada",
+            "copy_failed": "Não foi possível copiar a comparação",
+            "saved": "Comparação salva",
+            "save_failed": "Não foi possível salvar a comparação. Verifique o log para obter mais detalhes.",
+            "file_filter": "Texto",
+            "pick_run": "Escolha uma execução",
+            "intro": "Compare duas execuções salvas lado a lado. Jogue o mesmo mapa por um tempo parecido em ambas, uma vez com o mod ativado e outra com ele desativado. O ritmo dos quadros varia de uma partida para outra, então uma diferença é compatível com o mod ser a causa, mas não prova isso.",
+            "empty_none": "Ainda não há execuções salvas.",
+            "empty_single": "",
+            "empty_hint": "Grave uma execução na aba Tempos de quadro e salve-a com um nome. Você precisa de duas para comparar.",
+            "run_a": "Execução A",
+            "run_b": "Execução B",
+            "pick_different": "Escolha duas execuções diferentes.",
+            "copy_report": "Copiar relatório",
+            "save_report": "Salvar relatório",
+            "legend": "O verde marca o melhor lado. Diferenças abaixo de 3% contam como empate. A execução A durou {a}, e a execução B, {b}.",
+            "no_difference": "Não há diferença evidente.",
+            "mixed": "Resultado misto: {a} a favor de A, {b} a favor de B.",
+            "favours_a": "Cada medida que difere favorece A.",
+            "favours_b": "Cada medida que difere favorece B.",
+            "addons_differ": "Mods diferentes entre as execuções",
+            "only_on_in": "Ativados só em {run}:",
+            "delete_run": "Excluir execução {label}",
+            "addons_on_one": "",
+            "addons_on_other": ""
+        },
+        "frametimes": {
+            "intro": "Registra a fluidez com que o Deadlock desenha os quadros. Inicie a gravação, jogue e depois pare para ver os números. Grave com um mod ativado e de novo com ele desativado para comparar.",
+            "start": "Iniciar",
+            "stop": "Parar",
+            "waiting": "Aguardando o início do Deadlock...",
+            "background": "O Deadlock está em segundo plano, sem contar os quadros",
+            "limit": "A gravação está completa. Pare para ver os resultados.",
+            "no_frames": "O Deadlock está em execução, mas o Deadlock+ não consegue ver os quadros dele. Reinicie o jogo e tente de novo.",
+            "none_recorded": "Nenhum quadro foi registrado.",
+            "left_out": "Foram ignorados {time} com o jogo fora de foco.",
+            "label_aria": "Nome da execução",
+            "label_placeholder": "Nome, por exemplo: Mod desativado",
+            "save": "Salvar execução",
+            "saved": "Salvo",
+            "spike_at": "em {time}",
+            "needs_admin": "Os tempos de quadro exigem acesso de administrador.",
+            "recording_one": "Gravando · {time} · {count} quadro",
+            "recording_other": "Gravando · {time} · {count} quadros",
+            "graph_caption_one": "Último {count} quadro · topo do gráfico {ms} ms",
+            "graph_caption_other": "Últimos {count} quadros · topo do gráfico {ms} ms",
+            "summary_one": "{count} quadro em {time}. Um pico é um quadro com pelo menos 33 ms e 2,5 vezes a mediana.",
+            "summary_other": "{count} quadros em {time}. Um pico é um quadro com pelo menos 33 ms e 2,5 vezes a mediana.",
+            "save_hint_one": "",
+            "save_hint_other": ""
+        },
+        "scripts": {
+            "intro": "Analisa os scripts contidos nos mods do Deadlock instalados em busca de padrões que possam prejudicar os tempos de quadro, como temporizadores que se acumulam. Nada é alterado ou executado.",
+            "run_now": "Verificar agora",
+            "scanning_button": "Verificando...",
+            "scan_again": "Verificar novamente",
+            "disclaimer": "Esta é uma verificação aproximada do texto dos scripts. Um alerta indica onde olhar com mais atenção, não prova que um mod deixa seu jogo lento. Um resultado limpo também não livra o mod de suspeitas. Só comparar os tempos de quadro com o mod ativado e desativado mostra a causa.",
+            "no_install": "Não foi possível localizar sua instalação do Deadlock, portanto não há mods para verificar.",
+            "none_installed": "Não há mods instalados.",
+            "finding": "Procurando mods...",
+            "progress": "Verificando mods... {done} de {total}",
+            "progress_paused": "Verificação pausada com o Deadlock aberto · {done} de {total}",
+            "progress_aria": "Progresso da verificação de mods",
+            "scripts_clean": "Scripts, sem resultados",
+            "no_scripts": "Sem scripts",
+            "worth_a_look": "Vale a pena dar uma olhada",
+            "could_not_read": "Não foi possível ler",
+            "scanned_clean": "Verificado, sem resultados",
+            "error_badge": "Erro",
+            "with_findings_one": "",
+            "with_findings_other": "",
+            "scripts_count_one": "",
+            "scripts_count_other": "",
+            "pending_one": "",
+            "pending_other": "",
+            "addons_without_scripts_one": "",
+            "addons_without_scripts_other": ""
+        },
+        "findings": {
+            "nulled_not_cancelled": "Este mod perde a referência a um temporizador sem pará-lo. Toda vez que {fn} for executado de novo, outro temporizador pode ser iniciado e continuar rodando.",
+            "unguarded_rearm": "{fn} reinicia o próprio temporizador e também é executado em um evento, sem parar antes o temporizador anterior. Cada evento pode adicionar um temporizador que nunca para."
+        }
+    },
+    "demos": {
+        "title": "Replays",
+        "subtitle": "Replays de partidas salvos pelo Deadlock neste PC.",
+        "open_folder": "Abrir pasta",
+        "clean_up": "Limpar",
+        "delete_selected": "Excluir selecionados ({count})",
+        "refresh": "Atualizar",
+        "reading": "Lendo replays...",
+        "no_folder": "Não foi possível encontrar a pasta de replays do Deadlock. Instale o Deadlock pelo Steam e assista ou baixe um replay no jogo.",
+        "select_page": "Selecionar esta página",
+        "empty_none": "Ainda não há replays salvos.",
+        "empty_filtered": "Não há replays com esse status.",
+        "reference_build": "A opção “Versão anterior” compara cada replay com a versão mais recente encontrada entre seus replays (versão {build}).",
+        "match_id": "Partida {id}",
+        "hero_id": "Herói {id}",
+        "status": {
+            "complete": {
+                "label": "Pronto",
+                "hint": "Corresponde à versão mais recente do replay disponível aqui."
+            },
+            "partial": {
+                "label": "Parcial",
+                "hint": "Um download incompleto. Não vai funcionar."
+            },
+            "outdated": {
+                "label": "Versão anterior",
+                "hint": "Gravado em uma versão mais antiga do jogo. Pode ser que não funcione."
+            },
+            "unknown": {
+                "label": "Desconhecido",
+                "hint": "Não foi possível ler este replay. O arquivo pode estar corrompido."
+            }
+        },
+        "filter": {
+            "all": "Tudo ({count})",
+            "pinned": "Fixados ({count})",
+            "status_count": "{label} ({count})",
+            "summary_one": "",
+            "summary_other": ""
+        },
+        "pager": {
+            "previous": "Página anterior",
+            "next": "Próxima página",
+            "page": "Página {page} de {count}"
+        },
+        "row": {
+            "select": "Selecionar partida {id}",
+            "unknown_hero": "Herói desconhecido",
+            "build": "versão {build}",
+            "not_in_api": "ainda não está na API do Deadlock",
+            "details_unavailable": "detalhes indisponíveis",
+            "win": "Vitória",
+            "loss": "Derrota",
+            "pin": "Fixar replay",
+            "pinned_hint": "Fixado: a exclusão e a limpeza o ignoram. Clique para desfixar.",
+            "unpinned_hint": "Fixar: protege contra exclusão e limpeza",
+            "more_actions": "Mais ações",
+            "open_statlocker": "Abrir no Statlocker",
+            "show_in_folder": "Mostrar na pasta",
+            "delete": "Excluir",
+            "delete_unpin_first": "Excluir (desfixar primeiro)",
+            "pin_match": "Fixar replay da partida {id}",
+            "more_actions_match": "Mais ações para a partida {id}"
+        },
+        "delete": {
+            "disabled": "A {trash} está desativada para esta unidade, então os replays só podem ser excluídos permanentemente. Essa ação não pode ser desfeita.",
+            "description": "Libera {size}. Os replays não têm backup no Steam Cloud.",
+            "method": "Método de exclusão",
+            "recycle": "Mover para {trash}",
+            "recycle_hint": "Você pode restaurá-lo a partir daí.",
+            "permanent": "Excluir definitivamente",
+            "permanent_hint": "Libera o espaço agora. Não é possível desfazer.",
+            "title_one": "",
+            "title_other": "",
+            "too_large_one": "",
+            "too_large_other": "",
+            "too_large_room_one": "",
+            "too_large_room_other": ""
+        },
+        "cleanup": {
+            "title": "Limpar replays",
+            "description": "Escolha o que conta como bagunça. Nada é excluído até você revisar a lista e confirmar. Replays fixados são sempre ignorados.",
+            "older_than": "Mais antigos que",
+            "days_label": "Dias",
+            "days_unit": "dias",
+            "larger_than": "Maiores que",
+            "gigabytes_label": "Gigabytes",
+            "gb_unit": "GB",
+            "turn_on": "Ative uma regra para ver o que ela removeria.",
+            "checking": "Verificando replays...",
+            "close": "Fechar",
+            "rule_larger_gb": "Maior que {size} GB",
+            "rule_larger_mb": "Maior que {size} MB",
+            "rule_outdated": "Versão mais antiga do jogo",
+            "rule_partial": "Downloads incompletos",
+            "matches_one": "",
+            "matches_other": "",
+            "review_one": "",
+            "review_other": "",
+            "rule_older_than_days_one": "",
+            "rule_older_than_days_other": ""
+        },
+        "toast": {
+            "deleted_one": "",
+            "deleted_other": "",
+            "delete_failed_one": "",
+            "delete_failed_other": ""
+        }
+    },
+    "voice_bans": {
+        "title": "Silenciados",
+        "subtitle": "Jogadores silenciados no Deadlock para {account}. Toda alteração salva antes uma cópia de backup do arquivo.",
+        "your_account": "sua conta",
+        "export_all": "Exportar tudo",
+        "export_selected": "Exportar selecionados ({count})",
+        "import": "Importar",
+        "reading": "Lendo sua lista de silenciados...",
+        "no_file": "Ainda não há lista de silenciados para esta conta. O Deadlock cria uma na primeira vez que você silencia alguém no jogo.",
+        "unknown_player": "Jogador desconhecido",
+        "profile_unknown": "Desconhecido",
+        "not_a_voice_ban": "Esta não é uma lista de silenciados do Deadlock.",
+        "unrecognised_import": "O Deadlock+ não consegue ler este arquivo. Escolha uma lista de silenciados exportada do Deadlock+.",
+        "api_error": "Não foi possível acessar a API do Deadlock (erro {status}).",
+        "game_running": {
+            "title": "O Deadlock está em execução",
+            "body": "Não é possível alterar os silenciados com o jogo aberto. O jogo reescreve o arquivo ao fechar e apagaria suas alterações. Feche o Deadlock para editar esta lista."
+        },
+        "add": {
+            "placeholder": "Silenciar por nome, link do perfil do Steam ou ID do Steam",
+            "aria": "Jogador a silenciar",
+            "mute": "Silenciar",
+            "search": "Pesquisar",
+            "none_found": "Nenhum jogador encontrado com esse nome.",
+            "muted": "Silenciado",
+            "mute_named": "Silenciar {name}"
+        },
+        "filter": {
+            "placeholder": "Filtrar por nome ou ID...",
+            "aria": "Filtrar por nome ou ID",
+            "unmute_selected": "Dessilenciar selecionados ({count})"
+        },
+        "list": {
+            "select_page": "Selecionar esta página",
+            "count": "{filtered} de {total} silenciados",
+            "empty": "Ninguém está silenciado.",
+            "no_match": "Ninguém corresponde a “{filter}”."
+        },
+        "row": {
+            "select": "Selecionar {name}",
+            "open_title": "Perfil do Statlocker",
+            "unmute": "Dessilenciar",
+            "unmute_named": "Dessilenciar {name}",
+            "open_named_aria": "Abrir perfil de {name} no Statlocker"
+        },
+        "pager": {
+            "previous": "Página anterior",
+            "next": "Próxima página",
+            "page": "Página {page} de {count}"
+        },
+        "unmute": {
+            "description": "Eles serão removidos da sua lista de silenciados. Um backup é salvo antes.",
+            "confirm": "Dessilenciar",
+            "title_one": "",
+            "title_other": ""
+        },
+        "import_dialog": {
+            "confirm": "Importar",
+            "title_one": "",
+            "title_other": "",
+            "description_one": "",
+            "description_other": ""
+        },
+        "toast": {
+            "backup": "Backup salvo. Encontre-o na página “Armazenamento”.",
+            "already_muted": "Já está silenciado.",
+            "not_recognised": "Não reconhecido. Use um link do perfil do Steam ou o ID do Steam.",
+            "search_failed": "Não foi possível procurar jogadores. Verifique sua conexão e tente novamente.",
+            "exported": "{count} silenciados exportados",
+            "export_failed": "Não foi possível exportar seus silenciados. Verifique o log para mais detalhes.",
+            "import_failed": "Não foi possível ler esse arquivo. Escolha uma lista de silenciados exportada do Deadlock+ ou o arquivo de silenciados do próprio jogo.",
+            "unmuted_one": "",
+            "unmuted_other": "",
+            "muted_one": "",
+            "muted_other": ""
+        }
+    }
+}

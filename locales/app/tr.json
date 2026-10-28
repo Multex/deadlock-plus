@@ -1,0 +1,920 @@
+{
+    "errors": {
+        "common": {
+            "io": "Dosya okunamadı veya yazılamadı. Detaylar için kayıtları kontrol edin.",
+            "network": "Ağ isteği başarısız. Bağlantınızı kontrol edip tekrar deneyin.",
+            "internal": "Bir şeyler yanlış gitti. Detaylar için kayıtları kontrol edin."
+        },
+        "demos": {
+            "replays_folder_not_found": "Tekrarlar klasörü bulunamadı.",
+            "invalid_match_id": "Geçersiz maç kimliği.",
+            "replay_missing": "Bu tekrar artık mevcut değil.",
+            "recycle_bin_full": "Geri Dönüşüm Kutusu bu tekrarları alamıyor.",
+            "reveal_failed": "Dosya yöneticisi açılamadı. Detaylar için kayıtları kontrol edin.",
+            "pin_save_failed": "Sabitlenmiş tekrarlar kaydedilemedi. Detaylar için kayıtları kontrol edin.",
+            "rules_save_failed": "Temizleme kuralları kaydedilemedi. Detaylar için kayıtları kontrol edin.",
+            "rules_duplicate_id": "",
+            "rules_zero_days": "Yaş sınırı en az 1 gün olmalı.",
+            "rules_zero_size": "Boyut sınırı 0'dan fazla olmalı.",
+            "not_a_replay": "Bu dosya bir tekrar değil.",
+            "replay_pinned": "Sabitlenmiş tekrarlar silinemez. Önce sabitlemelerini kaldırın.",
+            "delete_failed": "Bu tekrar silinemedi. Detaylar için kayıtları kontrol edin."
+        },
+        "about": {
+            "info_unavailable": "Uygulama bilgisi alınamadı. Detaylar için kayıtları kontrol edin."
+        },
+        "autostart": {
+            "entry_write_failed": "Başlangıç girişi yazılamadı. Detaylar için kayıtları kontrol edin.",
+            "entry_remove_failed": "Başlangıç girişi kaldırılamadı. Detaylar için kayıtları kontrol edin."
+        },
+        "crash": {
+            "unavailable": "Çökme raporlama kullanılamıyor.",
+            "bundle_write_failed": "Çökme raporu oluşturulamadı. Detaylar için kayıtları kontrol edin.",
+            "marker_read_failed": "Çökme detayları alınamadı. Detaylar için kayıtları kontrol edin.",
+            "marker_write_failed": "Çökme detayları kaydedilemedi. Detaylar için kayıtları kontrol edin.",
+            "reveal_failed": "Çökme raporu dosya yöneticisinde gösterilemedi. Detaylar için kayıtları kontrol edin.",
+            "open_issue_failed": "Sorun sayfası açılamadı. Detaylar için kayıtları kontrol edin."
+        },
+        "diagnostics": {
+            "frame_layer_linux_only": "Kare katmanı yalnızca Linux'ta kullanılabilir.",
+            "home_folder_not_found": "Ana klasörünüz bulunamadı.",
+            "frame_layer_missing": "Deadlock+'ın bu sürümü kare katmanı içermiyor.",
+            "frame_layer_install_failed": "Kare katmanı kurulamadı. Detaylar için kayıtları kontrol edin.",
+            "frame_layer_remove_failed": "Kare katmanı kaldırılamadı. Detaylar için kayıtları kontrol edin.",
+            "frame_trace_needs_admin": "",
+            "frames_read_failed": "",
+            "mod_unreadable": "",
+            "helper_out_of_date": ""
+        },
+        "export": {
+            "invalid_name": "Bu dosya adı kullanılamaz.",
+            "invalid_extension": "Bu dosya uzantısı kullanılamaz.",
+            "invalid_location": "Bir dosya konumu seçin, klasör değil.",
+            "save_failed": "Dosya kaydedilemedi. Detaylar için kayıtları kontrol edin."
+        },
+        "support": {
+            "build_failed": ""
+        },
+        "kv": {
+            "store_failed": "Ayarlarınız okunamadı ya da kaydedilemedi. Detaylar için kayıtları kontrol edin."
+        },
+        "gc": {
+            "steam_not_found": "Bu bilgisayarda Steam bulunamadı.",
+            "no_login": "",
+            "game_running": ""
+        },
+        "ingest": {
+            "rejected": "Deadlock API maç verisini reddetti.",
+            "request_failed": ""
+        },
+        "logging": {
+            "log_folder_unavailable": "Kayıt klasörü bulunamadı.",
+            "read_failed": "Kayıt dosyası okunamadı. Detaylar için kayıtları kontrol edin.",
+            "reveal_failed": "Kayıt klasörü açılamadı. Detaylar için kayıtları kontrol edin."
+        },
+        "patch_notes": {
+            "search_failed": "Yama araması başarısız oldu. Detaylar için kayıtları kontrol edin."
+        },
+        "server_picker": {
+            "unknown_game": "",
+            "invalid_request": "",
+            "no_relay_data": "",
+            "block_failed": "Sunucular engellenemedi. Detaylar için kayıtları kontrol edin.",
+            "unblock_failed": "Sunucu engelleri kaldırılamadı. Detaylar için kayıtları kontrol edin.",
+            "list_blocked_failed": "Engellenmiş sunucu bilgileri alınamadı. Detaylar için kayıtları kontrol edin.",
+            "sync_failed": "Engellenmiş sunucular güncellenemedi. Detaylar için kayıtları kontrol edin.",
+            "external_scan_failed": "Mevcut güvenlik duvarı engelleri taranamadı. Detaylar için kayıtları kontrol edin.",
+            "external_import_failed": "Mevcut güvenlik duvarı engelleri içe aktarılamadı. Detaylar için kayıtları kontrol edin.",
+            "needs_permission": "",
+            "helper_out_of_date": ""
+        },
+        "storage": {
+            "location_missing": "Bu konum bulunmuyor.",
+            "not_clearable": "Bu buradan temizlenemez.",
+            "game_running": "Deadlock çalışıyor. Dosyaları temizlemeden önce oyunu kapatın.",
+            "reveal_failed": "Konum dosya yöneticisinde gösterilemedi. Detaylar için kayıtları kontrol edin.",
+            "remove_failed": "{name} kaldırılamadı. Detaylar için kayıtları kontrol edin."
+        },
+        "voice_bans": {
+            "no_account": "Steam hesabı bulunamadı.",
+            "no_userdata": "",
+            "not_utf8": "",
+            "read_failed": "",
+            "game_running": "Deadlock çalışıyor. Susturmaları değiştirmeden önce oyunu kapatın.",
+            "not_a_mute_list": "",
+            "file_missing": "",
+            "no_backup_name": "",
+            "backup_failed": "",
+            "write_failed": ""
+        },
+        "builds": {
+            "no_account": "",
+            "no_userdata": "",
+            "read_failed": "",
+            "bad_file": "",
+            "no_backup_name": "",
+            "backup_failed": "",
+            "write_failed": "",
+            "bad_base": "",
+            "invalid_ability_order": "",
+            "abilities_unknown": "",
+            "published_delete_in_game": "",
+            "unknown_hero": "",
+            "no_local_id": "",
+            "build_not_found": "",
+            "history_failed": "",
+            "version_not_found": "",
+            "queue_failed": "",
+            "drafts_failed": "",
+            "code_empty": "",
+            "code_invalid": "",
+            "code_incomplete": "",
+            "code_damaged": ""
+        },
+        "match_history": {
+            "too_large": "",
+            "not_json": ""
+        },
+        "presence": {
+            "import_invalid": "",
+            "save_failed": ""
+        },
+        "overlay": {
+            "game_not_running": ""
+        },
+        "admin_access": {
+            "already_elevated": "",
+            "in_match": "",
+            "allow_failed": "",
+            "always_allow_blocked": "",
+            "always_allow_needs_install": "",
+            "remove_failed": "",
+            "unsupported": "",
+            "helper_out_of_date": "",
+            "restart_failed": ""
+        },
+        "ptrace": {
+            "unavailable": "",
+            "failed": ""
+        }
+    },
+    "tray": {
+        "show": "",
+        "quit": "",
+        "tooltip": ""
+    },
+    "notifications": {
+        "open_action": "",
+        "alert_new": {
+            "title": "",
+            "body": ""
+        },
+        "alert_new_more": {
+            "title": "",
+            "body": ""
+        },
+        "maintenance_soon": {
+            "title": "",
+            "body": ""
+        },
+        "server_blocks_updated": {
+            "title": "",
+            "body": ""
+        },
+        "server_blocks_stale": {
+            "title": "",
+            "body": ""
+        },
+        "break_reminder": {
+            "title": "",
+            "body": ""
+        },
+        "overlay_test": {
+            "title": "",
+            "body": ""
+        },
+        "match_found": {
+            "title": "",
+            "body": ""
+        },
+        "match_found_unknown": {
+            "title": "",
+            "body": ""
+        }
+    },
+    "admin_access": {
+        "allow": "",
+        "always_allow": "",
+        "after_match": "",
+        "nothing_changed": "",
+        "game_admin": {
+            "title": "",
+            "body": "",
+            "restart": "",
+            "restart_failed": ""
+        }
+    },
+    "common": {
+        "confirm": "Onayla",
+        "cancel": "İptal",
+        "open_link_failed": "Bağlantı açılamadı: {error}",
+        "link_open_failed": ""
+    },
+    "player_links": {
+        "menu": "",
+        "steam": "",
+        "statlocker": "",
+        "buildlocker": "",
+        "steam_of": "",
+        "statlocker_of": "",
+        "buildlocker_of": "",
+        "builds_by": "",
+        "build_on_buildlocker": ""
+    },
+    "platform": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+        "recycle_bin": "Geri Dönüşüm Kutusu",
+        "trash": "Çöp Kutusu"
+    },
+    "shell": {
+        "nav": {
+            "home": "Ana Sayfa",
+            "server_picker": "Sunucu Seçici",
+            "live": "Canlı",
+            "stats": "İstatistikler",
+            "alerts": "",
+            "performance": "Performans",
+            "voice_bans": "Susturmalar",
+            "demos": "Tekrarlar",
+            "match_history": "",
+            "presence": "",
+            "builds": ""
+        },
+        "sidebar": {
+            "unread": "{count} okunmamış",
+            "settings": "Ayarlar",
+            "support": "Deadlock+'ı Destekle",
+            "discord": "Discord'a Katıl",
+            "tools": ""
+        },
+        "titlebar": {
+            "expand_sidebar": "Kenar çubuğunu genişlet",
+            "collapse_sidebar": "Kenar çubuğunu daralt",
+            "update_downloading": "Güncelleme indiriliyor",
+            "downloading_update": "Güncelleme indiriliyor",
+            "update_available": "{version} güncellemesi mevcut",
+            "minimize": "Küçült",
+            "maximize": "Büyüt",
+            "restore": "Geri Yükle",
+            "close": "Kapat"
+        },
+        "statusbar": {
+            "ingest": {
+                "off": "",
+                "starting": "",
+                "no_steam_cache": "",
+                "error": "",
+                "active": ""
+            },
+            "api": {
+                "checking": "",
+                "checking_title": "",
+                "online": "",
+                "online_title": "",
+                "degraded": "",
+                "degraded_title": "",
+                "offline": "Deadlock API çevrimdışı",
+                "offline_title": "Deadlock API'ye erişilemiyor"
+            },
+            "game": {
+                "running": "Deadlock çalışıyor",
+                "stopped": "Deadlock çalışmıyor",
+                "running_title": "Deadlock çalışıyor",
+                "stopped_title": "Deadlock çalışmıyor"
+            },
+            "discord": {
+                "searching": "",
+                "searching_title": "",
+                "connected_title": "",
+                "off": "",
+                "off_title": ""
+            },
+            "live": {
+                "queuing": "",
+                "pregame": "",
+                "in_match": "",
+                "paused": "",
+                "post_match": "",
+                "open": ""
+            },
+            "tasks": "",
+            "run_now": "",
+            "open_performance": "",
+            "performance_issues": "",
+            "recovery": {
+                "running": "",
+                "reading": "",
+                "paused": "",
+                "waiting_game": "",
+                "waiting_limit": ""
+            }
+        },
+        "nav_description": {
+            "home": "",
+            "server_picker": "",
+            "live": "",
+            "stats": "",
+            "alerts": "",
+            "performance": "",
+            "voice_bans": "",
+            "demos": "",
+            "match_history": "",
+            "presence": "",
+            "builds": ""
+        }
+    },
+    "ui": {},
+    "alerts": {
+        "title": "",
+        "subtitle": "",
+        "search_aria": "",
+        "search_placeholder": "",
+        "clear_search": "",
+        "empty": "",
+        "empty_hint_enabled": "",
+        "empty_hint_disabled": "",
+        "new": "",
+        "read_full": "",
+        "indexing": "",
+        "searching": "",
+        "no_matches": "",
+        "no_matches_hint": "",
+        "source": {
+            "steam": "",
+            "forum": ""
+        }
+    },
+    "onboarding": {
+        "progress_label": "",
+        "skip": "",
+        "back": "",
+        "next": "",
+        "finish": "",
+        "autostart_error": "",
+        "welcome": {
+            "step_title": "",
+            "returning_title": "",
+            "returning_body": "",
+            "new_title": "",
+            "new_body": "",
+            "found": "",
+            "not_found": "",
+            "not_found_body": ""
+        },
+        "features": {
+            "title": ""
+        },
+        "groups": {
+            "play": "",
+            "progress": "",
+            "news": "",
+            "housekeeping": ""
+        },
+        "blurbs": {
+            "server_picker": "",
+            "live": "",
+            "stats": "",
+            "alerts": "",
+            "voice_bans": "",
+            "demos": "",
+            "performance": "",
+            "presence": ""
+        },
+        "permissions": {
+            "other_title": "",
+            "other_body": "",
+            "unavailable_label": "",
+            "unavailable": "",
+            "untested_label": "",
+            "untested": "",
+            "broken_label": "",
+            "broken": "",
+            "windows_title": "",
+            "windows_body": "",
+            "firewall_label": "",
+            "firewall": "",
+            "monitor_label": "",
+            "monitor": "",
+            "frametimes_label": "",
+            "frametimes": "",
+            "nothing_else": "",
+            "admin_title": "",
+            "admin_body": "",
+            "always_note": "",
+            "later": "",
+            "later_note": "",
+            "always_on": "",
+            "always_on_hint": ""
+        },
+        "steam": {
+            "title": "",
+            "body": "",
+            "signed_in": "",
+            "none_title": "",
+            "none_body": "",
+            "looking": ""
+        },
+        "sharing": {
+            "title": "",
+            "intro": "",
+            "consent": "",
+            "optional": "",
+            "telemetry_title": "",
+            "telemetry_body": "",
+            "telemetry_toggle": "",
+            "share": "",
+            "decline": "",
+            "saved_on": "",
+            "saved_off": "",
+            "skipped": ""
+        },
+        "extras": {
+            "title": "",
+            "intro": "",
+            "autostart_note": "",
+            "tray": "",
+            "tray_note": "",
+            "alerts": "",
+            "alerts_note": "",
+            "maintenance": "",
+            "maintenance_note": "",
+            "gc_recovery": "",
+            "gc_recovery_note": "",
+            "footer": "",
+            "presence": "",
+            "presence_note": ""
+        },
+        "done": {
+            "step_title": "",
+            "title": "",
+            "body": "",
+            "home": "",
+            "settings": "",
+            "whats_new": ""
+        }
+    },
+    "patch_notes": {
+        "no_link": "",
+        "loading": "",
+        "load_error": "",
+        "not_indexed": "",
+        "shallow_notice": "",
+        "read_full": "",
+        "expand_image": "",
+        "close_image": "",
+        "close": "",
+        "view_on": ""
+    },
+    "updates": {
+        "toast_available": "",
+        "status": {
+            "idle": "",
+            "checking": "",
+            "up_to_date": "",
+            "available": "",
+            "downloading": "",
+            "downloading_percent": "",
+            "check_failed": "",
+            "download_failed": ""
+        },
+        "banner": {
+            "title": "",
+            "body": "",
+            "install": "",
+            "dismiss": ""
+        }
+    },
+    "connection": {
+        "subtitle": "",
+        "unit_ms": "",
+        "ms": "",
+        "pkt_per_second": "",
+        "series": {
+            "ping": ""
+        },
+        "page": {
+            "title": "",
+            "deadlock_running": "",
+            "deadlock_not_running": "",
+            "direct_note": "",
+            "engine_note": "",
+            "waiting_server": ""
+        },
+        "current": {
+            "title": "",
+            "not_running": "",
+            "not_connected": "",
+            "unknown_relay": "",
+            "in": "",
+            "out": "",
+            "gap": ""
+        },
+        "history": {
+            "title": "",
+            "empty": "",
+            "chart_label": ""
+        },
+        "notices": {
+            "permission": "",
+            "allow": "",
+            "retry": "",
+            "admin_title": "",
+            "admin_body": "",
+            "helper_out_of_date": ""
+        },
+        "ping": {
+            "no_data": "",
+            "avg": "",
+            "min": "",
+            "max": "",
+            "jitter": "",
+            "loss": "",
+            "loss_down": "",
+            "loss_up": "",
+            "samples_one": "",
+            "samples_other": ""
+        }
+    },
+    "logging": {
+        "copied": "",
+        "copy_failed": "",
+        "save_filter": "",
+        "saved": "",
+        "save_failed": "",
+        "open_failed": "",
+        "min_level": "",
+        "search": "",
+        "search_label": "",
+        "auto_scroll": "",
+        "refresh": "",
+        "copy": "",
+        "save": "",
+        "open_folder": "",
+        "read_failed": "",
+        "loading": "",
+        "no_match": "",
+        "showing_latest": ""
+    },
+    "home": {
+        "today": "",
+        "yesterday": "",
+        "stats_error": "",
+        "stats_loading": "",
+        "tier": "",
+        "glance_label": "",
+        "tools": "",
+        "your_deadlock": "",
+        "game": {
+            "running": "",
+            "launch": ""
+        },
+        "maintenance": {
+            "title": "",
+            "line": "",
+            "note": "",
+            "reminder_on": "",
+            "reminder_off": ""
+        },
+        "tiles": {
+            "blocked": "",
+            "muted": "",
+            "replays": ""
+        },
+        "rank": {
+            "title": "",
+            "progress": "",
+            "empty": ""
+        },
+        "form": {
+            "title": "",
+            "summary": "",
+            "empty": ""
+        },
+        "update": {
+            "title": "",
+            "unread": "",
+            "empty": ""
+        },
+        "session": {
+            "title": "",
+            "summary": "",
+            "summary_delta": "",
+            "empty": ""
+        },
+        "verdict": {
+            "excellent": "",
+            "good": "",
+            "bad": "",
+            "neutral": ""
+        },
+        "greetings": {
+            "late_night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "early_morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "midday": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "afternoon": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "evening": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            }
+        },
+        "greetings_nameless": {
+            "late_night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "early_morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "midday": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "afternoon": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "evening": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            }
+        },
+        "days_ago_one": "",
+        "days_ago_other": ""
+    },
+    "keyboard": {
+        "settings_section": "",
+        "open_settings": "",
+        "check_updates": "",
+        "support": "",
+        "open_palette": "",
+        "jump": "",
+        "palette_title": "",
+        "palette_description": "",
+        "palette_placeholder": "",
+        "palette_input_label": "",
+        "no_match": "",
+        "groups": {
+            "pages": "",
+            "settings": "",
+            "actions": "",
+            "shortcuts": ""
+        },
+        "keywords": {
+            "page": "",
+            "settings": "",
+            "updates": "",
+            "support": "",
+            "palette": "",
+            "jump": ""
+        }
+    },
+    "crash": {
+        "heading_unclean": "",
+        "heading_error": "",
+        "detail_unclean": "",
+        "detail_error": "",
+        "attach_note": "",
+        "meta": "",
+        "privacy": "",
+        "dismiss": "",
+        "open_folder": "",
+        "report_github": ""
+    },
+    "notification_list": {
+        "title": "",
+        "unread": "",
+        "mark_all_read": "",
+        "mark_read": "",
+        "empty": "",
+        "relative": {
+            "now": "",
+            "minutes": "",
+            "hours": "",
+            "yesterday": "",
+            "days": ""
+        },
+        "unread_count_one": "",
+        "unread_count_other": ""
+    },
+    "error_page": {
+        "title": "",
+        "body": "",
+        "retry": "",
+        "copy": "",
+        "open_logs": "",
+        "copied": "",
+        "copy_failed": "",
+        "unknown": ""
+    },
+    "telemetry": {
+        "notice": "",
+        "notice_action": ""
+    },
+    "support": {
+        "nudge": "",
+        "action": ""
+    },
+    "connectivity": {
+        "offline": ""
+    },
+    "whats_new": {
+        "title": "",
+        "subtitle": "",
+        "empty": "",
+        "show_all": "",
+        "back_home": ""
+    },
+    "account": {
+        "default_name": "",
+        "none": "",
+        "none_found": "",
+        "tooltip": ""
+    },
+    "heroes": {},
+    "jobs": {
+        "catalog": {
+            "addon_scan": {
+                "title": "",
+                "description": ""
+            },
+            "patch_notes_index": {
+                "title": "",
+                "description": ""
+            },
+            "server_block_sync": {
+                "title": "",
+                "description": ""
+            },
+            "match_grades": {
+                "title": "",
+                "description": ""
+            }
+        },
+        "policy": {
+            "always": "",
+            "pause_in_game": "",
+            "slow_in_game": ""
+        },
+        "status": {
+            "paused": "",
+            "starting": "",
+            "progress": "",
+            "progress_labeled": ""
+        }
+    },
+    "gc": {
+        "status": {
+            "off": "",
+            "looking_for_login": "",
+            "last_pass_failed": "",
+            "using": "",
+            "accounts_one": "",
+            "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "",
+            "progress": "",
+            "nothing_missing": "",
+            "done": "",
+            "incomplete": "",
+            "rate_limited": "",
+            "stopped": "",
+            "paused": "",
+            "waiting_game": "",
+            "waiting_limit": "",
+            "continues_at": "",
+            "continues_tomorrow": "",
+            "continues_after_game": "",
+            "last_run": "",
+            "last_run_nothing_left": "",
+            "last_run_limit": "",
+            "last_run_failed": "",
+            "ago": {
+                "now": "",
+                "yesterday": "",
+                "minutes_one": "",
+                "minutes_other": "",
+                "hours_one": "",
+                "hours_other": "",
+                "days_one": "",
+                "days_other": ""
+            },
+            "matches_one": "",
+            "matches_other": ""
+        }
+    },
+    "api_health": {},
+    "steam_account": {},
+    "ingest": {},
+    "about": {
+        "version": "",
+        "dev_build": "",
+        "running_as": "",
+        "system": "",
+        "data_folder": "",
+        "game_build": "",
+        "game_built": "",
+        "source_revision": "",
+        "install_folder": "",
+        "administrator": "",
+        "standard_user": "",
+        "root": "",
+        "regular_user": ""
+    },
+    "support_report": {
+        "title": "",
+        "description": "",
+        "included": "",
+        "create": "",
+        "refresh": "",
+        "creating": "",
+        "preview": "",
+        "copy": "",
+        "copied": "",
+        "copy_failed": "",
+        "save": "",
+        "save_filter": "",
+        "saved": "",
+        "save_failed": "",
+        "build_failed": ""
+    }
+}

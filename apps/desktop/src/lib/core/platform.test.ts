@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import en from "../../../../../locales/en.json";
-import { i18n } from "./i18n.svelte";
+import { en, i18n } from "./i18n.svelte";
 import { detectPlatform, platformName, trashName } from "./platform";
 
 describe("detectPlatform", () => {

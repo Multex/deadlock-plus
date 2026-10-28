@@ -1,0 +1,794 @@
+{
+    "settings": {
+        "language": {
+            "label": "",
+            "description": "",
+            "system": "",
+            "system_current": "",
+            "completion_hint": "",
+            "translated": "",
+            "coming_soon": ""
+        },
+        "categories": {
+            "appearance": "",
+            "language": "",
+            "startup": "",
+            "notifications": "",
+            "overlay": "",
+            "privacy": "",
+            "about": "",
+            "diagnostics": "",
+            "sharing": "",
+            "storage": ""
+        },
+        "items": {
+            "theme": "",
+            "theme_effects": "",
+            "reduced_motion": "",
+            "accessible_font": "",
+            "close_to_tray": "",
+            "background_jobs": "",
+            "update_alerts": "",
+            "maintenance": "",
+            "discord_presence": "",
+            "discord_clients": "",
+            "discord_editor": "",
+            "match_ingest": "",
+            "telemetry": "",
+            "gc_recovery": "",
+            "version": "",
+            "whats_new": "",
+            "updates": "",
+            "thanks": "",
+            "diagnostics": "",
+            "licenses": "",
+            "storage": "",
+            "overlay": "",
+            "overlay_position": "",
+            "overlay_duration": "",
+            "overlay_test": "",
+            "overlay_notifications": "",
+            "overlay_match_found": "",
+            "server_blocks_updated": "",
+            "server_blocks_stale": "",
+            "break_reminder": "",
+            "ui_scale": "",
+            "hardware_acceleration": "",
+            "open_on_game_start": "",
+            "admin_access": ""
+        },
+        "nav": {
+            "label": "",
+            "search": "",
+            "back": "",
+            "no_matches": ""
+        },
+        "appearance": {
+            "theme_description": "",
+            "effects_description": "",
+            "motion_description": "",
+            "motion_system": "",
+            "motion_reduce": "",
+            "motion_full": "",
+            "font_description": "",
+            "scale_description": "",
+            "hardware_acceleration_description": "",
+            "restart_app": "",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
+        },
+        "themes": {
+            "deadlock": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "midnight": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
+            },
+            "daylight": {
+                "label": "",
+                "description": ""
+            },
+            "contrast": {
+                "label": "",
+                "description": ""
+            },
+            "nightshift": {
+                "label": "",
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
+            },
+            "deadlock_api": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
+            }
+        },
+        "autostart": {
+            "title_windows": "",
+            "title_macos": "",
+            "title_linux": "",
+            "description_windows": "",
+            "description_macos": "",
+            "description_linux": "",
+            "failed": "",
+            "stale": ""
+        },
+        "startup": {
+            "tray_description": "",
+            "jobs_description": "",
+            "all_jobs_label": "",
+            "all_jobs_description": "",
+            "tasks_title": "",
+            "tasks_description": "",
+            "run_by_itself": "",
+            "while_running": "",
+            "advanced": "",
+            "open_on_game_start_description": "",
+            "admin_access_ask": "",
+            "admin_access_description": ""
+        },
+        "notifications": {
+            "alerts_description": "",
+            "maintenance_description": "",
+            "day": "",
+            "time": "",
+            "remind": "",
+            "lead_minutes": "",
+            "lead_hours": "",
+            "overlay_description": "",
+            "overlay_fullscreen": "",
+            "overlay_position_description": "",
+            "overlay_duration_description": "",
+            "overlay_test_description": "",
+            "overlay_notifications_description": "",
+            "overlay_notifications_button": "",
+            "overlay_test_button": "",
+            "overlay_test_countdown": "",
+            "overlay_seconds": "",
+            "position": {
+                "top_left": "",
+                "top_center": "",
+                "top_right": "",
+                "left": "",
+                "right": "",
+                "bottom_left": "",
+                "bottom_center": "",
+                "bottom_right": "",
+                "center": ""
+            },
+            "overlay_match_found_description": "",
+            "server_blocks_updated_description": "",
+            "server_blocks_stale_description": "",
+            "break_reminder_description": "",
+            "delivery_label": "",
+            "delivery": {
+                "both": "",
+                "overlay": "",
+                "os": "",
+                "quiet": "",
+                "center": ""
+            },
+            "overlay_off_fallback": "",
+            "overlay_off_hidden": ""
+        },
+        "weekdays": {
+            "monday": "",
+            "tuesday": "",
+            "wednesday": "",
+            "thursday": "",
+            "friday": "",
+            "saturday": "",
+            "sunday": ""
+        },
+        "countdown": {
+            "days": "",
+            "hours": "",
+            "minutes": "",
+            "soon": ""
+        },
+        "discord": {
+            "presence_description": "",
+            "level_off": "",
+            "level_basic": "",
+            "level_detailed": "",
+            "level_off_description": "",
+            "level_basic_description": "",
+            "level_detailed_description": "",
+            "support_label": "",
+            "support_description": "",
+            "client_running": "",
+            "client_not_running": "",
+            "client_other_hint": "",
+            "clients_description": "",
+            "client_stable": "",
+            "client_ptb": "",
+            "client_canary": "",
+            "client_other_label": "",
+            "client_stable_name": "",
+            "client_ptb_name": "",
+            "client_canary_name": "",
+            "client_other_name": "",
+            "status_off": "",
+            "status_none": "",
+            "status_showing": ""
+        },
+        "discord_editor": {
+            "description": "",
+            "loading": "",
+            "states": "",
+            "customised": "",
+            "inherited": "",
+            "field_details": "",
+            "field_state": "",
+            "field_large_image": "",
+            "field_large_text": "",
+            "field_small_image": "",
+            "field_small_text": "",
+            "field_timer": "",
+            "reset_field": "",
+            "reset_scope": "",
+            "reset_all": "",
+            "reset_all_title": "",
+            "reset_all_description": "",
+            "all_heroes": "",
+            "sample_hero": "",
+            "image_enabled": "",
+            "image_source": "",
+            "image_url": "",
+            "source_heroPortrait": "",
+            "source_heroIcon": "",
+            "source_rankBadge": "",
+            "source_modeIcon": "",
+            "source_customUrl": "",
+            "timer_none": "",
+            "timer_elapsedInState": "",
+            "timer_matchTime": "",
+            "preview": "",
+            "preview_header": "",
+            "preview_disabled": "",
+            "preview_failed": "",
+            "preview_large_text": "",
+            "preview_small_text": "",
+            "share": "",
+            "share_description": "",
+            "import_label": "",
+            "import": "",
+            "import_file": "",
+            "export": "",
+            "exported": "",
+            "export_failed": "",
+            "imported": "",
+            "state": {
+                "playing": "",
+                "mainMenu": "",
+                "hideout": "",
+                "findingMatch": "",
+                "matchFound": "",
+                "preGame": "",
+                "inMatch": "",
+                "streetBrawlRound": "",
+                "paused": "",
+                "spectating": "",
+                "postGame": "",
+                "privateLobby": "",
+                "practice": ""
+            },
+            "variant": {
+                "solo": "",
+                "party": "",
+                "unranked": "",
+                "ranked": "",
+                "bots": "",
+                "tutorial": "",
+                "normal": "",
+                "streetBrawl": "",
+                "sandbox": "",
+                "exploreNyc": "",
+                "won": "",
+                "lost": "",
+                "unscored": ""
+            },
+            "editing": "",
+            "editing_default_hint": "",
+            "editing_hero_hint": "",
+            "no_hero_layer": "",
+            "row_enabled": "",
+            "no_top_line": "",
+            "insert_variable": "",
+            "insert_into": "",
+            "sensitive": "",
+            "syntax_help": "",
+            "variables_hint": "",
+            "placeholder": {
+                "hero": "",
+                "mode": "",
+                "gameMode": "",
+                "rank": "",
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "partySize": "",
+                "partyMax": "",
+                "round": "",
+                "scoreAmber": "",
+                "scoreSapphire": "",
+                "elapsed": "",
+                "queueTime": "",
+                "result": "",
+                "matchId": "",
+                "heroPresence": ""
+            },
+            "preview_game": "",
+            "preview_logo": "",
+            "preview_large_image": "",
+            "preview_small_image": "",
+            "preview_elapsed": "",
+            "preview_discord_row": "",
+            "preview_discord_sample": "",
+            "preview_support_button": "",
+            "syntax": {
+                "title": "",
+                "copied": "",
+                "copy_example": "",
+                "nothing": "",
+                "no_sample": "",
+                "rules_title": "",
+                "rule_length": "",
+                "rule_empty": "",
+                "rule_unclosed": "",
+                "rule_unknown": "",
+                "privacy": "",
+                "intro": "",
+                "you_see": "",
+                "step1_title": "",
+                "step1_body": "",
+                "step2_title": "",
+                "step2_body": "",
+                "step3_title": "",
+                "step3_body": "",
+                "step4_title": "",
+                "step4_body": "",
+                "list_title": "",
+                "list_body": "",
+                "col_variable": "",
+                "col_shows": "",
+                "col_example": "",
+                "group_you": "",
+                "group_match": "",
+                "group_party": "",
+                "group_streetBrawl": "",
+                "group_misc": ""
+            },
+            "timer_queueTime": "",
+            "field_party_size": "",
+            "party_size_hint": "",
+            "preview_party": "",
+            "detailed_only": ""
+        },
+        "privacy": {
+            "telemetry_description": "",
+            "telemetry_reset": "",
+            "telemetry_reset_done": "",
+            "ingest_waiting": "",
+            "ingest_off": "",
+            "ingest_no_cache": "",
+            "ingest_failed": "",
+            "ingest_watching": "",
+            "ingest_description": "",
+            "gc_description": "",
+            "how_it_works": "",
+            "ingest_how_find": "",
+            "ingest_how_send": "",
+            "gc_how_login": "",
+            "gc_how_limit": "",
+            "gc_how_game": "",
+            "gc_how_send": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "advanced": "",
+            "gc_own_open": "",
+            "shared": {
+                "title": "",
+                "source_steam": "",
+                "source_deadlock": "",
+                "source_login": "",
+                "with_replay": "",
+                "when": "",
+                "match": "",
+                "from": "",
+                "details": "",
+                "replay": "",
+                "sent": "",
+                "not_sent": "",
+                "empty": ""
+            }
+        },
+        "about_page": {
+            "copy": "",
+            "copied": "",
+            "copy_failed": "",
+            "install": "",
+            "check_now": "",
+            "auto_check_label": "",
+            "auto_check_description": "",
+            "whats_new_in": ""
+        },
+        "diagnostics": {
+            "description": "",
+            "collapse": "",
+            "expand": ""
+        },
+        "licenses": {
+            "read_full": "",
+            "terms_link": "",
+            "copyright": "",
+            "fonts_heading": "",
+            "app_summary": "",
+            "app_warranty": "",
+            "disclaimer": "",
+            "kind_font": "",
+            "kind_artwork": "",
+            "terms_not_open_source": "",
+            "terms_valve_oracle": "",
+            "terms_valve_pulp": "",
+            "terms_twemoji": "",
+            "dependencies_title": "",
+            "dependencies_description": "",
+            "dependencies_failed": "",
+            "dependencies_loading": "",
+            "dependencies_packages": "",
+            "dependencies_rust": "",
+            "dependencies_npm": "",
+            "dependencies_no_file": ""
+        },
+        "thanks": {
+            "intro": "",
+            "contributors": "",
+            "contributors_description": "",
+            "translators": "",
+            "translators_description": "",
+            "donators": "",
+            "donators_description": "",
+            "nobody_yet": "",
+            "others_one": "",
+            "others_few": "",
+            "others_many": "",
+            "others_other": "",
+            "anonymous_one": "",
+            "anonymous_few": "",
+            "anonymous_many": "",
+            "anonymous_other": ""
+        }
+    },
+    "storage": {
+        "subtitle": "",
+        "show_paths": "",
+        "hide_paths": "",
+        "refresh": "",
+        "looking": "",
+        "footnote": "",
+        "summary": {
+            "total": "",
+            "can_clear": "",
+            "clear_regenerable": ""
+        },
+        "entry": {
+            "path_missing": "",
+            "not_found": "",
+            "retry_aria": "",
+            "retry": "",
+            "measuring": "",
+            "open_aria": "",
+            "open_title": "",
+            "reveal_aria": "",
+            "reveal_title": "",
+            "clear_aria": "",
+            "clear_title": ""
+        },
+        "dialog": {
+            "cancel": "",
+            "clear": ""
+        },
+        "clear": {
+            "title": "",
+            "body": "",
+            "all_title": "",
+            "all_body": ""
+        },
+        "toast": {
+            "freed": "",
+            "nothing": ""
+        },
+        "age": {
+            "today": "",
+            "days_one": "",
+            "days_few": "",
+            "days_many": "",
+            "days_other": "",
+            "months_one": "",
+            "months_few": "",
+            "months_many": "",
+            "months_other": "",
+            "years_one": "",
+            "years_few": "",
+            "years_many": "",
+            "years_other": ""
+        },
+        "units_oldest": "",
+        "owners": {
+            "deadlock": {
+                "label": "",
+                "blurb": ""
+            },
+            "deadlock_plus": {
+                "label": "",
+                "blurb": ""
+            },
+            "mods": {
+                "label": "",
+                "blurb": ""
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "",
+                "hint": ""
+            },
+            "history": {
+                "label": "",
+                "hint": ""
+            },
+            "backup": {
+                "label": "",
+                "hint": ""
+            },
+            "yours": {
+                "label": "",
+                "hint": ""
+            },
+            "managed": {
+                "label": "",
+                "hint": ""
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "hero_presence_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "shader_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "console_log": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "voice_ban_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "frame_runs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "settings": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "server_presets": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_rules": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "connection_history": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "notifications": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "patch_notes_index": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "stats_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "server_list_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_info_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "match_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "other_app_files": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "logs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "addons": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "addons_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "config_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "gameinfo_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "match_ping": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "mvp_grades": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_few": "",
+                "units_many": "",
+                "units_other": ""
+            },
+            "shared_matches": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            }
+        }
+    }
+}

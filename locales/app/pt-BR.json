@@ -1,0 +1,920 @@
+{
+    "errors": {
+        "common": {
+            "io": "Não foi possível ler ou escrever o arquivo. Verifique o log para mais detalhes.",
+            "network": "Uma solicitação de rede falhou. Verifique sua conexão e tente novamente.",
+            "internal": "Algo deu errado. Verifique o log para mais detalhes."
+        },
+        "demos": {
+            "replays_folder_not_found": "Pasta de replays não encontrada.",
+            "invalid_match_id": "ID de partida inválido.",
+            "replay_missing": "Esse replay não existe mais.",
+            "recycle_bin_full": "A Lixeira não comporta estes replays.",
+            "reveal_failed": "Não foi possível abrir o gerenciador de arquivos. Verifique o log para mais detalhes.",
+            "pin_save_failed": "Não foi possível salvar os replays fixados. Verifique o log para mais detalhes.",
+            "rules_save_failed": "Não foi possível salvar as regras de limpeza. Verifique o log para mais detalhes.",
+            "rules_duplicate_id": "Duas regras de limpeza estão em conflito. Remova uma e tente novamente.",
+            "rules_zero_days": "O limite de idade deve ser de pelo menos 1 dia.",
+            "rules_zero_size": "O limite de tamanho deve ser maior que 0.",
+            "not_a_replay": "Esse arquivo não é um replay.",
+            "replay_pinned": "Replays fixados não podem ser excluídos. Desafixe-os primeiro.",
+            "delete_failed": "Não foi possível excluir este replay. Verifique o log para mais detalhes."
+        },
+        "about": {
+            "info_unavailable": "Não foi possível ler as informações do aplicativo. Verifique o log para mais detalhes."
+        },
+        "autostart": {
+            "entry_write_failed": "Não foi possível gravar a entrada de inicialização. Verifique o log para mais detalhes.",
+            "entry_remove_failed": "Não foi possível remover a entrada de inicialização. Verifique o log para mais detalhes."
+        },
+        "crash": {
+            "unavailable": "O envio de relatórios de falha não está disponível.",
+            "bundle_write_failed": "Não foi possível salvar o relatório de falha. Verifique o log para mais detalhes.",
+            "marker_read_failed": "Não foi possível ler os detalhes da falha. Verifique o log para mais detalhes.",
+            "marker_write_failed": "Não foi possível salvar os detalhes da falha. Verifique o log para mais detalhes.",
+            "reveal_failed": "Não foi possível exibir o relatório de falha no gerenciador de arquivos. Verifique o log para mais detalhes.",
+            "open_issue_failed": "Não foi possível abrir a página de problemas. Verifique o log para mais detalhes."
+        },
+        "diagnostics": {
+            "frame_layer_linux_only": "A camada de frames só está disponível no Linux.",
+            "home_folder_not_found": "Não foi possível encontrar sua pasta pessoal.",
+            "frame_layer_missing": "Esta versão do Deadlock+ não inclui a camada de frames.",
+            "frame_layer_install_failed": "Não foi possível instalar a camada de frames. Verifique o log para mais detalhes.",
+            "frame_layer_remove_failed": "Não foi possível remover a camada de frames. Verifique o log para mais detalhes.",
+            "frame_trace_needs_admin": "A gravação de quadros requer acesso de administrador.",
+            "frames_read_failed": "Não foi possível ler os frames do jogo. Reinicie o Deadlock e tente novamente.",
+            "mod_unreadable": "Não foi possível ler este mod. O arquivo pode estar corrompido ou em uso.",
+            "helper_out_of_date": "O utilitário do Deadlock+ está desatualizado. Reinstale o Deadlock+ para corrigir o problema."
+        },
+        "export": {
+            "invalid_name": "Esse nome de arquivo não é permitido.",
+            "invalid_extension": "Essa extensão de arquivo não é permitida.",
+            "invalid_location": "Escolha um local de arquivo, não uma pasta.",
+            "save_failed": "Não foi possível salvar o arquivo. Verifique o log para mais detalhes."
+        },
+        "support": {
+            "build_failed": "Não foi possível gerar o relatório de suporte. Verifique o log para mais detalhes."
+        },
+        "kv": {
+            "store_failed": "Não foi possível ler ou salvar suas configurações. Verifique o log para mais detalhes."
+        },
+        "gc": {
+            "steam_not_found": "O Steam não foi encontrado neste PC.",
+            "no_login": "Não foi possível usar seu login salvo do Steam. Entre no Steam neste PC com a opção “Lembrar de mim” marcada e tente novamente.",
+            "game_running": "Feche o Deadlock primeiro. A recuperação da partida não pode ser executada enquanto o jogo estiver aberto."
+        },
+        "ingest": {
+            "rejected": "A API do Deadlock rejeitou os dados da partida.",
+            "request_failed": "Não foi possível acessar a API do Deadlock (erro {status}). Tente novamente mais tarde."
+        },
+        "logging": {
+            "log_folder_unavailable": "Não foi possível encontrar a pasta de logs.",
+            "read_failed": "Não foi possível ler o arquivo de log. Verifique o log para mais detalhes.",
+            "reveal_failed": "Não foi possível abrir a pasta de logs. Verifique o log para mais detalhes."
+        },
+        "patch_notes": {
+            "search_failed": "A busca por patches falhou. Verifique o log para mais detalhes."
+        },
+        "server_picker": {
+            "unknown_game": "Não foi possível carregar os servidores do Deadlock. Reinicie o Deadlock+ e tente novamente.",
+            "invalid_request": "Essa alteração no servidor não funcionou. Atualize a lista e tente novamente.",
+            "no_relay_data": "A Valve enviou uma lista de servidores vazia. Tente novamente mais tarde.",
+            "block_failed": "Não foi possível bloquear os servidores. Verifique o log para mais detalhes.",
+            "unblock_failed": "Não foi possível desbloquear os servidores. Verifique o log para mais detalhes.",
+            "list_blocked_failed": "Não foi possível ler seus servidores bloqueados. Verifique o log para mais detalhes.",
+            "sync_failed": "Não foi possível atualizar seus servidores bloqueados. Verifique o log para mais detalhes.",
+            "external_scan_failed": "Não foi possível verificar os bloqueios de firewall existentes. Verifique o log para mais detalhes.",
+            "external_import_failed": "Não foi possível importar os bloqueios de firewall existentes. Verifique o log para mais detalhes.",
+            "needs_permission": "O Deadlock+ precisa de acesso de administrador para alterar as regras do firewall.",
+            "helper_out_of_date": "O utilitário do Deadlock+ está desatualizado. Reinstale o Deadlock+ para corrigir o problema."
+        },
+        "storage": {
+            "location_missing": "Esse local não existe.",
+            "not_clearable": "Isso não pode ser limpo por aqui.",
+            "game_running": "O Deadlock está em execução. Feche o jogo antes de limpar os arquivos.",
+            "reveal_failed": "Não foi possível mostrar esse local no gerenciador de arquivos. Verifique o log para mais detalhes.",
+            "remove_failed": "Não foi possível remover {name}. Verifique o log para mais detalhes."
+        },
+        "voice_bans": {
+            "no_account": "Nenhuma conta do Steam foi encontrada.",
+            "no_userdata": "Não foi possível encontrar os dados do Steam desta conta. Inicie o Deadlock com ela uma vez e tente novamente.",
+            "not_utf8": "Seu arquivo da lista de silenciados está corrompido, por isso o Deadlock+ não consegue lê-lo.",
+            "read_failed": "Não foi possível ler sua lista de silenciados. Verifique o log para mais detalhes.",
+            "game_running": "O Deadlock está em execução. Feche o jogo antes de alterar a lista de silenciados.",
+            "not_a_mute_list": "Isso não é uma lista de silenciados, portanto nada foi salvo.",
+            "file_missing": "O arquivo da sua lista de silenciados sumiu, portanto nada foi alterado. Silencie alguém no jogo para criar uma nova lista.",
+            "no_backup_name": "Não foi possível encontrar um nome de backup disponível. O arquivo não foi alterado.",
+            "backup_failed": "Não foi possível fazer backup da sua lista de silenciados, portanto, nenhuma alteração foi feita. Verifique o log para mais detalhes.",
+            "write_failed": "Não foi possível salvar sua lista de silenciados. Nenhuma alteração foi feita. Há um backup na página “Armazenamento”."
+        },
+        "builds": {
+            "no_account": "",
+            "no_userdata": "",
+            "read_failed": "",
+            "bad_file": "",
+            "no_backup_name": "",
+            "backup_failed": "",
+            "write_failed": "",
+            "bad_base": "",
+            "invalid_ability_order": "",
+            "abilities_unknown": "",
+            "published_delete_in_game": "",
+            "unknown_hero": "",
+            "no_local_id": "",
+            "build_not_found": "",
+            "history_failed": "",
+            "version_not_found": "",
+            "queue_failed": "",
+            "drafts_failed": "",
+            "code_empty": "",
+            "code_invalid": "",
+            "code_incomplete": "",
+            "code_damaged": ""
+        },
+        "match_history": {
+            "too_large": "Essa partida é grande demais para ser salva neste PC.",
+            "not_json": "Não foi possível ler os detalhes dessa partida. Tente novamente mais tarde."
+        },
+        "presence": {
+            "import_invalid": "Essa não é uma predefinição de presença do Deadlock+. Copie todo o texto exportado e tente novamente.",
+            "save_failed": "Não foi possível salvar suas configurações de presença no Discord. Verifique o log para mais detalhes."
+        },
+        "overlay": {
+            "game_not_running": "Inicie o Deadlock para testar a sobreposição."
+        },
+        "admin_access": {
+            "already_elevated": "O Deadlock+ já está sendo executado como administrador, portanto, não há nada a ser autorizado.",
+            "in_match": "Você pode alterar o acesso de administrador assim que a partida terminar.",
+            "allow_failed": "Não foi possível obter acesso de administrador.",
+            "always_allow_blocked": "A opção “Sempre permitir” não funcionou (bloqueada pelo software de segurança?). Você será solicitado a confirmar a cada vez.",
+            "always_allow_needs_install": "A opção “Sempre permitir” só funciona com o aplicativo Deadlock+ instalado. Você será solicitado a confirmar a cada vez.",
+            "remove_failed": "Não foi possível desativar a opção “Sempre permitir”.",
+            "unsupported": "O acesso de administrador é necessário apenas no Windows.",
+            "helper_out_of_date": "O utilitário do Deadlock+ está desatualizado. Reinstale o Deadlock+ para corrigir o problema.",
+            "restart_failed": "Não foi possível reiniciar o Deadlock+ como administrador."
+        },
+        "ptrace": {
+            "unavailable": "Não há correção disponível para este sistema.",
+            "failed": "Não foi possível alterar a configuração do ptrace. Verifique o log para mais detalhes."
+        }
+    },
+    "tray": {
+        "show": "Mostrar Deadlock+",
+        "quit": "Sair",
+        "tooltip": "Deadlock+"
+    },
+    "notifications": {
+        "open_action": "Abrir",
+        "alert_new": {
+            "title": "Nova atualização do Deadlock",
+            "body": "{title}"
+        },
+        "alert_new_more": {
+            "title": "Nova atualização do Deadlock",
+            "body": "{title} (+{count} mais)"
+        },
+        "maintenance_soon": {
+            "title": "Manutenção do Steam em breve",
+            "body": "A manutenção semanal do Steam geralmente começa em cerca de {minutes} min e dura de 15 a 30 min. Servidores do jogo, bate-papo e a loja podem cair."
+        },
+        "server_blocks_updated": {
+            "title": "Bloqueios de servidor atualizados",
+            "body": "A Valve alterou os endereços dos servidores de {servers}. Seus blocos foram atualizados."
+        },
+        "server_blocks_stale": {
+            "title": "Alguns bloqueios de servidor estão desatualizados",
+            "body": "O Deadlock+ não conseguiu atualizar os blocos de {servers}. Abra o Seletor de servidores e aplique-os novamente."
+        },
+        "break_reminder": {
+            "title": "Hora de uma pausa?",
+            "body": "{count} derrotas seguidas nesta sessão. Talvez valha a pena fazer uma pausa rápida."
+        },
+        "overlay_test": {
+            "title": "Teste de sobreposição",
+            "body": "As notificações do Deadlock+ são exibidas aqui enquanto você joga."
+        },
+        "match_found": {
+            "title": "Partida encontrada",
+            "body": "{mode}"
+        },
+        "match_found_unknown": {
+            "title": "Partida encontrada",
+            "body": "Sua partida está carregando."
+        }
+    },
+    "admin_access": {
+        "allow": "Permitir",
+        "always_allow": "Sempre permitir",
+        "after_match": "Disponível após esta partida",
+        "nothing_changed": "Nada mudou.",
+        "game_admin": {
+            "title": "O Deadlock está sendo executado como administrador",
+            "body": "O Deadlock+ não consegue ler o jogo, então dados de partida ao vivo, presença no Discord e “Partida encontrada” estão desativados. Inicie o Steam normalmente ou reinicie o Deadlock+ como administrador.",
+            "restart": "Reiniciar como administrador",
+            "restart_failed": "Não foi possível reiniciar como administrador."
+        }
+    },
+    "common": {
+        "confirm": "Confirmar",
+        "cancel": "Cancelar",
+        "open_link_failed": "Não foi possível abrir o link: {error}",
+        "link_open_failed": "Não foi possível abrir o link."
+    },
+    "player_links": {
+        "menu": "",
+        "steam": "",
+        "statlocker": "",
+        "buildlocker": "",
+        "steam_of": "",
+        "statlocker_of": "",
+        "buildlocker_of": "",
+        "builds_by": "",
+        "build_on_buildlocker": ""
+    },
+    "platform": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+        "recycle_bin": "Lixeira",
+        "trash": "Lixeira"
+    },
+    "shell": {
+        "nav": {
+            "home": "Início",
+            "server_picker": "Seletor de Servidores",
+            "live": "Live",
+            "stats": "Estatísticas",
+            "alerts": "Notícias",
+            "performance": "Desempenho",
+            "voice_bans": "Silenciados",
+            "demos": "Replays",
+            "match_history": "Histórico de partidas",
+            "presence": "Presença",
+            "builds": ""
+        },
+        "sidebar": {
+            "unread": "{count} não lidas",
+            "settings": "Configurações",
+            "support": "Apoiar o Deadlock+",
+            "discord": "Junte-se ao nosso Discord",
+            "tools": "Ferramentas"
+        },
+        "titlebar": {
+            "expand_sidebar": "Expandir barra lateral",
+            "collapse_sidebar": "Recolher barra lateral",
+            "update_downloading": "Download da atualização",
+            "downloading_update": "Baixando atualização",
+            "update_available": "Atualização {version} disponível",
+            "minimize": "Minimizar",
+            "maximize": "Maximizar",
+            "restore": "Restaurar",
+            "close": "Fechar"
+        },
+        "statusbar": {
+            "ingest": {
+                "off": "Compartilhamento de partidas desativado",
+                "starting": "Compartilhamento de partidas iniciando...",
+                "no_steam_cache": "Compartilhamento de partidas: dados do Steam não encontrados",
+                "error": "Falha ao compartilhar a partida",
+                "active": "Compartilhamento de partidas ativado · {count} enviadas"
+            },
+            "api": {
+                "checking": "Verificando API do Deadlock...",
+                "checking_title": "Verificando API do Deadlock",
+                "online": "API do Deadlock online",
+                "online_title": "Todos os serviços da API do Deadlock estão no ar",
+                "degraded": "API do Deadlock parcialmente indisponível",
+                "degraded_title": "Serviços da API do Deadlock fora do ar: {services}",
+                "offline": "API do Deadlock offline",
+                "offline_title": "A API do Deadlock está inacessível"
+            },
+            "game": {
+                "running": "Deadlock em execução",
+                "stopped": "Deadlock não está em execução",
+                "running_title": "O Deadlock está em execução",
+                "stopped_title": "O Deadlock não está em execução"
+            },
+            "discord": {
+                "searching": "Discord não encontrado",
+                "searching_title": "A presença no Discord está ativada, mas não foi encontrado nenhum Discord em execução",
+                "connected_title": "Exibindo sua atividade no Deadlock no Discord",
+                "off": "Discord desativado",
+                "off_title": "A presença no Discord está desativada. Clique para configurá-la."
+            },
+            "live": {
+                "queuing": "Procurando uma partida",
+                "pregame": "Início da partida",
+                "in_match": "Durante a partida",
+                "paused": "Partida em pausa",
+                "post_match": "Partida encerrada",
+                "open": "Abrir Live"
+            },
+            "tasks": "{count} tarefas em segundo plano",
+            "run_now": "Executar agora",
+            "open_performance": "Abrir Desempenho",
+            "performance_issues": "Possíveis problemas de desempenho encontrados",
+            "recovery": {
+                "running": "Recuperando {done} / {total}",
+                "reading": "Recuperando partidas",
+                "paused": "Recuperação pausada",
+                "waiting_game": "A recuperação aguarda o fechamento do Deadlock",
+                "waiting_limit": "Recuperação: limite diário do Steam"
+            }
+        },
+        "nav_description": {
+            "home": "Visão geral",
+            "server_picker": "Bloquear ou desbloquear regiões do servidor do Deadlock",
+            "live": "Ambas as equipes da sua partida, além do servidor e do ping",
+            "stats": "Taxa de vitória, sequências e estatísticas por herói do seu histórico de partidas",
+            "alerts": "Notas de atualização recentes do Deadlock e anúncios do Steam",
+            "performance": "Registre o FPS e verifique se há mods com scripts que causam travamentos",
+            "voice_bans": "Veja, adicione, dessilencie, exporte e importe seus jogadores silenciados",
+            "demos": "Navegue pelos seus replays salvos e veja quais estão desatualizados",
+            "match_history": "Todas as partidas disponíveis na API do Deadlock, com um placar completo para cada uma delas",
+            "presence": "Mostre seu herói, modo e cronômetro da partida no seu perfil do Discord",
+            "builds": ""
+        }
+    },
+    "ui": {},
+    "alerts": {
+        "title": "Notícias",
+        "subtitle": "Notas recentes sobre atualizações do Deadlock e anúncios no Steam.",
+        "search_aria": "Pesquisar notas de atualização",
+        "search_placeholder": "Pesquisar notas de atualização... tente um herói, um item ou descreva a alteração",
+        "clear_search": "Limpar pesquisa",
+        "empty": "Nenhuma atualização carregada.",
+        "empty_hint_enabled": "Verifique sua conexão ou reabra esta página para tentar novamente.",
+        "empty_hint_disabled": "Verifique sua conexão ou ative os alertas nas Configurações para ser avisado quando houver novos.",
+        "new": "Novo",
+        "read_full": "Ler notas completas",
+        "indexing": "Preparando as notas de atualização para pesquisa...",
+        "searching": "Pesquisando...",
+        "no_matches": "Nenhum resultado para “{query}”.",
+        "no_matches_hint": "Tente um nome de herói ou de item, ou descreva a alteração de outra forma.",
+        "source": {
+            "steam": "Steam",
+            "forum": "Fórum"
+        }
+    },
+    "onboarding": {
+        "progress_label": "Progresso da configuração",
+        "skip": "Pular",
+        "back": "Voltar",
+        "next": "Próximo",
+        "finish": "Concluir",
+        "autostart_error": "Não foi possível ativar o {name}. Verifique o log para obter detalhes.",
+        "welcome": {
+            "step_title": "Bem-vindo ao Deadlock+",
+            "returning_title": "O Deadlock+ tem uma nova configuração. Vamos começar.",
+            "returning_body": "Você verá isso apenas uma vez. Suas configurações permanecem como estão.",
+            "new_title": "Bem-vindo ao seu novo companheiro favorito do Deadlock",
+            "new_body": "O Deadlock+ está pronto para selecionar seus servidores, monitorar sua conexão e acompanhar todas as partidas.",
+            "found": "Deadlock encontrado",
+            "not_found": "Deadlock não encontrado",
+            "not_found_body": "Instale-o pelo Steam. Replays, Silenciados e Armazenamento exigem a pasta do jogo. O restante funciona sem ela."
+        },
+        "features": {
+            "title": "O que o Deadlock+ faz"
+        },
+        "groups": {
+            "play": "Jogar",
+            "progress": "Progresso",
+            "news": "Notícias",
+            "housekeeping": "Organização"
+        },
+        "blurbs": {
+            "server_picker": "Bloqueie as regiões do servidor que você não deseja.",
+            "live": "Ping e perda de pacotes em tempo real para a sua partida.",
+            "stats": "Taxa de vitórias e números de heróis do seu histórico de partidas.",
+            "alerts": "Notas de atualização e anúncios, pesquisáveis.",
+            "voice_bans": "Veja, adicione e dessilencie jogadores silenciados.",
+            "demos": "Navegue pelos seus replays salvos e identifique os desatualizados.",
+            "performance": "Analise mods em busca de scripts que possam prejudicar os tempos de quadro.",
+            "presence": "Mostre seu herói e sua partida no seu perfil do Discord."
+        },
+        "permissions": {
+            "other_title": "Em execução em {platform}",
+            "other_body": "O suporte à versão {platform} é feito na medida do possível e, em grande parte, não foi testado.",
+            "unavailable_label": "Ainda não disponível:",
+            "unavailable": "Tempos de quadro.",
+            "untested_label": "Não testado:",
+            "untested": "o Seletor de servidores e a página Live. Ambos solicitam sua senha.",
+            "broken_label": "Algum problema?",
+            "broken": "Por favor, relate o problema no GitHub. Uma correção seria muito bem-vinda.",
+            "windows_title": "Executando como administrador",
+            "windows_body": "Você iniciou o Deadlock+ como administrador, portanto, esses recursos funcionam sem solicitar permissão:",
+            "firewall_label": "Regras de firewall:",
+            "firewall": "o Seletor de servidores bloqueia as regiões selecionadas adicionando regras ao Firewall do Windows com o nome {rule}. Somente administradores podem fazer isso.",
+            "monitor_label": "Monitor de conexão:",
+            "monitor": "O ping em tempo real e a taxa de perda da sua partida são obtidos a partir do monitoramento do tráfego de rede, que também é restrito ao administrador.",
+            "frametimes_label": "Tempos de quadro:",
+            "frametimes": "Os tempos de quadro são obtidos observando-se como o jogo renderiza cada quadro, o que também é exclusivo para administradores.",
+            "nothing_else": "Nada mais requer direitos de administrador.",
+            "admin_title": "Acesso de administrador",
+            "admin_body": "Alguns recursos alteram configurações do Windows que somente um administrador pode modificar. O Deadlock+ solicita permissão ao Windows quando um desses recursos é utilizado.",
+            "always_note": "Aparecerá uma mensagem do Windows agora, e depois nunca mais nesta conta do Windows.",
+            "later": "Perguntar mais tarde",
+            "later_note": "O Deadlock+ pede permissão na primeira vez que um recurso precisar dela.",
+            "always_on": "A opção “Sempre permitir” está ativada. O Windows não perguntará de novo nesta conta.",
+            "always_on_hint": "Você pode desativá-lo em Configurações > Inicialização e segundo plano."
+        },
+        "steam": {
+            "title": "Sua conta do Steam",
+            "body": "As seções “Estatísticas”, “Classificação” e “Sessões” acessam seu histórico de partidas, por isso precisam da sua conta do Steam.",
+            "signed_in": "Conectado neste PC. Não é preciso configurar nada.",
+            "none_title": "Nenhuma conta do Steam encontrada",
+            "none_body": "Faça login no Steam neste PC e, em seguida, reabra o Deadlock+. Todo o resto funciona sem isso.",
+            "looking": "Procurando sua conta do Steam..."
+        },
+        "sharing": {
+            "title": "Quer ajudar a comunidade do Deadlock?",
+            "intro": "A API do Deadlock é um banco de dados gratuito, mantido pela comunidade, que está por trás de muitos sites de estatísticas e replays. Compartilhar suas partidas ajuda a mantê-lo completo para todos os jogadores.",
+            "consent": "Se você concordar, o Deadlock+ envia o que é necessário para carregar os detalhes e replays das suas partidas, além dos IDs das partidas e do seu ID do Steam. Nada mais sai do seu computador.",
+            "optional": "Opcional. Você pode alterar isso a qualquer momento em “Configurações”.",
+            "telemetry_title": "Dados de uso anônimos",
+            "telemetry_body": "O Deadlock+ também envia contagens anônimas de uso e relatórios de erros, para que possamos saber quantas pessoas o utilizam e o que está apresentando falhas. Ele envia a versão do aplicativo, informações sobre o seu sistema, quais páginas você abre, quando você abre o convite do Discord, quando uma atualização é oferecida ou iniciada e detalhes de erros. Ele usa um ID aleatório e nunca envia caminhos, nomes, IDs do Steam, endereços IP ou dados de partidas.",
+            "telemetry_toggle": "Compartilhar dados anônimos de uso e relatórios de erros",
+            "share": "Compartilhar minhas partidas",
+            "decline": "Não, obrigado",
+            "saved_on": "O compartilhamento está ativado. Salvo.",
+            "saved_off": "O compartilhamento está desativado. Salvo.",
+            "skipped": "Pule esta etapa e o compartilhamento permanecerá desativado até que você decida o contrário em Configurações."
+        },
+        "extras": {
+            "title": "Extras opcionais",
+            "intro": "Todas estão desativadas por padrão. Você pode alterar qualquer uma delas posteriormente.",
+            "autostart_note": "Inicia o Deadlock+ quando você faz login.",
+            "tray": "Manter em execução na bandeja do sistema",
+            "tray_note": "Fechar a janela a oculta, em vez de encerrar o aplicativo.",
+            "alerts": "Alertas de atualizações e novidades",
+            "alerts_note": "Uma notificação quando uma nova nota de atualização ou anúncio for publicada.",
+            "maintenance": "Lembrete de manutenção do Steam",
+            "maintenance_note": "Uma notificação antes da manutenção semanal de rotina.",
+            "gc_recovery": "Preencher detalhes ausentes das partidas",
+            "gc_recovery_note": "Completa partidas que faltam na API do Deadlock. Usa o login do Steam salvo neste PC.",
+            "footer": "Os alertas e lembretes só são exibidos enquanto o aplicativo está em execução, por isso combinam bem com a opção da bandeja.",
+            "presence": "Mostrar no Discord",
+            "presence_note": "Exibe seu herói, modo, classificação e cronômetro da partida no seu perfil do Discord."
+        },
+        "done": {
+            "step_title": "Pronto!",
+            "title": "Pronto.",
+            "body": "Vá para a página inicial ou acesse diretamente uma página.",
+            "home": "Página inicial",
+            "settings": "Configurações",
+            "whats_new": "Novidades"
+        }
+    },
+    "patch_notes": {
+        "no_link": "Esta atualização não possui um link válido.",
+        "loading": "Carregando todas as notas...",
+        "load_error": "Não foi possível carregar essas notas: {error}",
+        "not_indexed": "As notas completas desta atualização ainda não foram baixadas. Tente novamente daqui a um minuto.",
+        "shallow_notice": "Esta é uma prévia resumida do fórum, não a postagem completa.",
+        "read_full": "Leia a postagem completa em {source}",
+        "expand_image": "Ampliar imagem",
+        "close_image": "Fechar imagem ampliada",
+        "close": "Fechar",
+        "view_on": "Visualizar em {source}"
+    },
+    "updates": {
+        "toast_available": "O Deadlock+ {version} já está disponível",
+        "status": {
+            "idle": "Ainda não verificado.",
+            "checking": "Verificando...",
+            "up_to_date": "Você está na versão mais recente.",
+            "available": "A versão {version} já está disponível.",
+            "downloading": "Baixando {version}. O Deadlock+ reinicia quando o download terminar.",
+            "downloading_percent": "Baixando {version} ({percent}%). O Deadlock+ será reiniciado quando o download terminar.",
+            "check_failed": "Não foi possível verificar se há atualizações. Verifique sua conexão e tente novamente.",
+            "download_failed": "Não foi possível baixar a atualização. Tente novamente mais tarde."
+        },
+        "banner": {
+            "title": "O Deadlock+ {version} está pronto para instalação",
+            "body": "Você está usando uma versão mais antiga. A atualização leva um minuto e o Deadlock+ reinicia sozinho.",
+            "install": "Instalar agora",
+            "dismiss": "Não agora"
+        }
+    },
+    "connection": {
+        "subtitle": "Ambas as equipes da sua partida, além do seu servidor, ping e perda de pacotes.",
+        "unit_ms": "ms",
+        "ms": "{value} ms",
+        "pkt_per_second": "{value} pacotes/s",
+        "series": {
+            "ping": "Ping"
+        },
+        "page": {
+            "title": "Live",
+            "deadlock_running": "Deadlock em execução",
+            "deadlock_not_running": "O Deadlock não está em execução",
+            "direct_note": "Ping do seu PC direto ao servidor da Valve em que você está.",
+            "engine_note": "O que o próprio Deadlock mede entre você e o servidor do jogo.",
+            "waiting_server": "Aguardando um servidor de partidas."
+        },
+        "current": {
+            "title": "Servidor atual",
+            "not_running": "O Deadlock não está em execução.",
+            "not_connected": "Ainda não está conectado a um servidor de partidas. Inicie ou participe de uma partida.",
+            "unknown_relay": "Servidor desconhecido",
+            "in": "entrada",
+            "out": "saída",
+            "gap": "pausa mais longa nos dados recebidos (1 s)"
+        },
+        "history": {
+            "title": "Últimos {minutes} min",
+            "empty": "O histórico de ping é exibido assim que você entra em uma partida.",
+            "chart_label": "Histórico de ping"
+        },
+        "notices": {
+            "permission": "O monitoramento em tempo real precisa acompanhar o tráfego de rede enquanto o Deadlock estiver em execução. Seu sistema solicitará sua senha.",
+            "allow": "Permitir",
+            "retry": "Tentar novamente",
+            "admin_title": "O monitoramento em tempo real requer acesso de administrador",
+            "admin_body": "O monitoramento em tempo real precisa acompanhar o tráfego de rede enquanto o Deadlock estiver em execução.",
+            "helper_out_of_date": "O utilitário do Deadlock+ está desatualizado. Reinstale o Deadlock+ para corrigir o problema."
+        },
+        "ping": {
+            "no_data": "Ainda não há dados.",
+            "avg": "média",
+            "min": "mín",
+            "max": "máx",
+            "jitter": "jitter",
+            "loss": "perda",
+            "loss_down": "perda (recebido)",
+            "loss_up": "perda (enviado)",
+            "samples_one": "",
+            "samples_other": ""
+        }
+    },
+    "logging": {
+        "copied": "Log copiado",
+        "copy_failed": "Não foi possível copiar o log",
+        "save_filter": "Texto",
+        "saved": "Log salvo",
+        "save_failed": "Não foi possível salvar o log.",
+        "open_failed": "Não foi possível abrir a pasta de logs.",
+        "min_level": "Nível mínimo",
+        "search": "Pesquisar",
+        "search_label": "Pesquisar no log",
+        "auto_scroll": "Rolagem automática",
+        "refresh": "Atualizar",
+        "copy": "Copiar",
+        "save": "Salvar",
+        "open_folder": "Abrir pasta",
+        "read_failed": "Não foi possível ler o log.",
+        "loading": "Carregando...",
+        "no_match": "Nada encontrado.",
+        "showing_latest": "Exibindo os últimos {shown} de {total}."
+    },
+    "home": {
+        "today": "Hoje",
+        "yesterday": "Ontem",
+        "stats_error": "Não foi possível carregar. Tente novamente mais tarde.",
+        "stats_loading": "Carregando...",
+        "tier": "Nível {tier}",
+        "glance_label": "Visão geral",
+        "tools": "Ferramentas",
+        "your_deadlock": "Seu Deadlock",
+        "game": {
+            "running": "Em execução",
+            "launch": "Iniciar"
+        },
+        "maintenance": {
+            "title": "Manutenção do Steam",
+            "line": "Geralmente começa {day}, às {time}, daqui a {countdown}.",
+            "note": "{line} A Valve não divulga um cronograma, então isto é uma estimativa.",
+            "reminder_on": "O lembrete está ativado.",
+            "reminder_off": "O lembrete está desativado."
+        },
+        "tiles": {
+            "blocked": "Regiões bloqueadas",
+            "muted": "Jogadores silenciados",
+            "replays": "Replays salvos"
+        },
+        "rank": {
+            "title": "Classificação",
+            "progress": "{percent}% do caminho até {rank}",
+            "empty": "Ainda sem classificação."
+        },
+        "form": {
+            "title": "Desempenho recente",
+            "summary": "{wins}V {losses}D, {net} pontos de divisão, últimas {games} partidas competitivas",
+            "empty": "Ainda não há partidas competitivas."
+        },
+        "update": {
+            "title": "Última atualização",
+            "unread": "Novos: {count}",
+            "empty": "Ainda não há nada. Abra a seção “Notícias” para conferir."
+        },
+        "session": {
+            "title": "Última sessão",
+            "summary": "{verdict}: {wins}V {losses}D em {duration}",
+            "summary_delta": "{verdict}: {wins}V {losses}D em {duration}, {net}",
+            "empty": "Ainda não há partidas."
+        },
+        "verdict": {
+            "excellent": "Excelente sessão",
+            "good": "Boa sessão",
+            "bad": "Sessão difícil",
+            "neutral": "Sessão equilibrada"
+        },
+        "greetings": {
+            "late_night": {
+                "1": "Virando a noite, {name}?",
+                "2": "Ainda acordado, {name}?",
+                "3": "Entrando madrugada adentro, {name}?",
+                "4": "A rotina não para, né, {name}?",
+                "5": "Mais uma partida, {name}?"
+            },
+            "early_morning": {
+                "1": "Começando cedo, {name}?",
+                "2": "Acordou com o sol, {name}?",
+                "3": "Bom dia, {name}. Quer um café primeiro?",
+                "4": "Levante-se e mãos à obra, {name}."
+            },
+            "morning": {
+                "1": "Bom dia, {name}",
+                "2": "Bom dia, {name}",
+                "3": "Novo dia, nova fila, {name}?",
+                "4": "Olá, {name}",
+                "5": "Quando quiser, {name}"
+            },
+            "midday": {
+                "1": "Boa tarde, {name}",
+                "2": "Fila do intervalo para o almoço, {name}?",
+                "3": "Que tal uma partidinha rápida no meio do dia, {name}?",
+                "4": "Olá de novo, {name}"
+            },
+            "afternoon": {
+                "1": "Boa tarde, {name}",
+                "2": "Tarde tranquila por aí, {name}?",
+                "3": "Como está indo o dia, {name}?",
+                "4": "Pronto para uma partida, {name}?",
+                "5": "Que bom ter você de volta, {name}"
+            },
+            "evening": {
+                "1": "Boa noite, {name}",
+                "2": "Boa noite por aqui, {name}",
+                "3": "Horário nobre da fila, {name}?",
+                "4": "Que bom ter você de volta, {name}",
+                "5": "Relaxando ou esquentando os motores, {name}?"
+            },
+            "night": {
+                "1": "Boa noite, {name}",
+                "2": "Sessão noturna, {name}?",
+                "3": "Mais uma antes de dormir, {name}?",
+                "4": "Boa noite, {name}. Vamos lá!",
+                "5": "Ainda jogando, {name}?"
+            }
+        },
+        "greetings_nameless": {
+            "late_night": {
+                "1": "Tarde da noite?",
+                "2": "Ainda está acordado?",
+                "3": "Trabalhando até tarde da noite?",
+                "4": "A rotina nunca acaba, né?",
+                "5": "Mais uma partida?"
+            },
+            "early_morning": {
+                "1": "Começando cedo?",
+                "2": "Acordou com o sol?",
+                "3": "Bom dia. Quer um café primeiro?",
+                "4": "Levante-se e mãos à obra."
+            },
+            "morning": {
+                "1": "Bom dia",
+                "2": "Bom dia",
+                "3": "Um novo dia, uma nova fila?",
+                "4": "Olá",
+                "5": "Quando quiser"
+            },
+            "midday": {
+                "1": "Boa tarde",
+                "2": "Fila para o intervalo de almoço?",
+                "3": "Que tal uma partida rápida no meio do dia?",
+                "4": "Olá de novo"
+            },
+            "afternoon": {
+                "1": "Boa tarde",
+                "2": "Tarde tranquila por aí?",
+                "3": "Como está indo o seu dia?",
+                "4": "Pronto para uma partida?",
+                "5": "Que bom ter você de volta"
+            },
+            "evening": {
+                "1": "Boa noite",
+                "2": "Boa noite por aqui",
+                "3": "Horário nobre da fila?",
+                "4": "Que bom ter você de volta",
+                "5": "Relaxando ou esquentando os motores?"
+            },
+            "night": {
+                "1": "Boa noite",
+                "2": "Sessão noturna?",
+                "3": "Mais uma antes de dormir?",
+                "4": "Boa noite. Vamos lá!",
+                "5": "Ainda jogando?"
+            }
+        },
+        "days_ago_one": "",
+        "days_ago_other": ""
+    },
+    "keyboard": {
+        "settings_section": "Configurações: {section}",
+        "open_settings": "Abrir configurações",
+        "check_updates": "Verificar se há atualizações",
+        "support": "Apoiar o Deadlock+",
+        "open_palette": "Pesquisa rápida",
+        "jump": "Ir para uma página",
+        "palette_title": "Pesquisa rápida",
+        "palette_description": "Pesquisar páginas, configurações e ações.",
+        "palette_placeholder": "Pesquisar páginas, configurações e ações",
+        "palette_input_label": "Pesquisar comandos",
+        "no_match": "Nada encontrado.",
+        "groups": {
+            "pages": "Páginas",
+            "settings": "Configurações",
+            "actions": "Ações",
+            "shortcuts": "Atalhos de teclado"
+        },
+        "keywords": {
+            "page": "ir para abrir",
+            "settings": "preferências opções configurações",
+            "updates": "atualização upgrade versão lançamento",
+            "support": "doar doação gorjeta apoiar ko-fi",
+            "palette": "pesquisar comandos",
+            "jump": "navegar alternar"
+        }
+    },
+    "crash": {
+        "heading_unclean": "O Deadlock+ pode ter travado da última vez",
+        "heading_error": "O Deadlock+ encontrou um erro da última vez",
+        "detail_unclean": "O aplicativo não foi encerrado corretamente. Isso pode ocorrer após uma falha, um fechamento forçado ou uma queda de energia.",
+        "detail_error": "Um relatório foi salvo neste computador.",
+        "attach_note": "Anexe {file} ao seu relatório de bug. Ele está salvo em {path}.",
+        "meta": "{time} · Deadlock+ {version} · {os}",
+        "privacy": "O relatório permanece neste computador até que você o compartilhe. Relatórios de erro anônimos são enviados apenas enquanto essa opção estiver ativada nas Configurações.",
+        "dismiss": "Fechar",
+        "open_folder": "Abrir pasta de relatórios",
+        "report_github": "Relatar no GitHub"
+    },
+    "notification_list": {
+        "title": "Notificações",
+        "unread": "Não lidos:",
+        "mark_all_read": "Marcar tudo como lido",
+        "mark_read": "Marcar como lido",
+        "empty": "Ainda não há notificações.",
+        "relative": {
+            "now": "agora mesmo",
+            "minutes": "há {count} min",
+            "hours": "há {count} h",
+            "yesterday": "ontem",
+            "days": "há {count} d"
+        },
+        "unread_count_one": "",
+        "unread_count_other": ""
+    },
+    "error_page": {
+        "title": "Algo deu errado",
+        "body": "Ocorreu um erro nesta página. O restante do aplicativo continua funcionando.",
+        "retry": "Tentar novamente",
+        "copy": "Copiar detalhes",
+        "open_logs": "Abrir logs",
+        "copied": "Detalhes do erro copiados",
+        "copy_failed": "Não foi possível copiar para a área de transferência",
+        "unknown": "Erro desconhecido"
+    },
+    "telemetry": {
+        "notice": "O Deadlock+ envia dados anônimos de uso e relatórios de erros. Você pode desativar essa função em Configurações.",
+        "notice_action": "Abrir Configurações"
+    },
+    "support": {
+        "nudge": "Está gostando do Deadlock+? Ele é gratuito e foi desenvolvido por uma pequena equipe.",
+        "action": "Apoiar o Deadlock+"
+    },
+    "connectivity": {
+        "offline": "Você está offline. O Deadlock precisa de uma conexão, portanto, os dados em tempo real estão pausados e as cópias salvas são exibidas, quando disponíveis."
+    },
+    "whats_new": {
+        "title": "Novidades",
+        "subtitle": "Notas de lançamento do Deadlock+, com as mais recentes em primeiro lugar.",
+        "empty": "Ainda não há notas de lançamento.",
+        "show_all": "Mostrar todas as versões",
+        "back_home": "Voltar à página inicial"
+    },
+    "account": {
+        "default_name": "Conta do Steam",
+        "none": "Nenhuma conta do Steam",
+        "none_found": "Nenhuma conta do Steam encontrada",
+        "tooltip": "{name} ({id})"
+    },
+    "heroes": {},
+    "jobs": {
+        "catalog": {
+            "addon_scan": {
+                "title": "Verificando mods",
+                "description": "Verifica se os mods instalados têm scripts que podem prejudicar os tempos de quadro. Executa logo depois que o Deadlock+ abre."
+            },
+            "patch_notes_index": {
+                "title": "Preparando a pesquisa de notas de atualização",
+                "description": "Baixa as novas notas de atualização e as prepara para pesquisa. Utiliza a CPU enquanto está em execução."
+            },
+            "server_block_sync": {
+                "title": "Atualizando bloqueios de servidor",
+                "description": "Mantém suas regiões bloqueadas atualizadas quando a Valve altera os endereços de seus servidores. Edita apenas as regras de firewall já criadas pelo Deadlock+ e avisa quando altera alguma delas."
+            },
+            "match_grades": {
+                "title": "Atualizando as notas das partidas",
+                "description": "Baixa suas partidas recentes e avalia cada jogador nelas."
+            }
+        },
+        "policy": {
+            "always": "Continuar executando",
+            "pause_in_game": "Pausar",
+            "slow_in_game": "Reduzir velocidade"
+        },
+        "status": {
+            "paused": "{title} (pausado enquanto o Deadlock está em execução)",
+            "starting": "{title}...",
+            "progress": "{title}... {done}/{total}",
+            "progress_labeled": "{title}... {done}/{total} · {label}"
+        }
+    },
+    "gc": {
+        "status": {
+            "off": "Desativado",
+            "looking_for_login": "Procurando por um login salvo no Steam.",
+            "last_pass_failed": "A última verificação falhou: {error}",
+            "using": "Usando {accounts}. Enviadas nesta sessão: {delivered}.",
+            "accounts_one": "",
+            "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "Lendo seu histórico de partidas.",
+            "progress": "{delivered} de {missing} partidas ausentes enviadas. Cerca de 20 segundos cada.",
+            "nothing_missing": "Concluído. A API do Deadlock já contém todas as suas partidas.",
+            "done": "Concluído. Enviadas: {matches}.",
+            "incomplete": "Enviadas: {matches}. Não recuperadas: {failed}. Execute novamente para tentar de novo.",
+            "rate_limited": "Enviadas: {matches}. O limite diário do Steam foi atingido. Execute novamente amanhã para enviar o restante.",
+            "stopped": "Interrompido após {matches}. Execute novamente para continuar.",
+            "paused": "Pausado: restam {left}",
+            "waiting_game": "Restam {left}. Continua quando o Deadlock for fechado.",
+            "waiting_limit": "Limite diário do Steam atingido. {continues}.",
+            "continues_at": "Continua às {time}",
+            "continues_tomorrow": "Continua amanhã às {time}",
+            "continues_after_game": "Continua quando o Deadlock for fechado",
+            "last_run": "Última execução ({when}): {delivered} enviadas, restam {left}",
+            "last_run_nothing_left": "Última execução ({when}): {delivered} enviadas, nada pendente",
+            "last_run_limit": "Última execução ({when}): {delivered} enviadas, restam {left} (limite diário do Steam)",
+            "last_run_failed": "A última execução ({when}) falhou",
+            "ago": {
+                "now": "agora mesmo",
+                "yesterday": "ontem",
+                "minutes_one": "",
+                "minutes_other": "",
+                "hours_one": "",
+                "hours_other": "",
+                "days_one": "",
+                "days_other": ""
+            },
+            "matches_one": "",
+            "matches_other": ""
+        }
+    },
+    "api_health": {},
+    "steam_account": {},
+    "ingest": {},
+    "about": {
+        "version": "Versão",
+        "dev_build": "{version} (versão de desenvolvimento)",
+        "running_as": "Executando como",
+        "system": "Sistema",
+        "data_folder": "Pasta de dados",
+        "game_build": "Build do jogo",
+        "game_built": "Data da build do jogo",
+        "source_revision": "Revisão do código-fonte",
+        "install_folder": "Pasta de instalação",
+        "administrator": "Administrador",
+        "standard_user": "Usuário padrão",
+        "root": "Root",
+        "regular_user": "Usuário regular"
+    },
+    "support_report": {
+        "title": "Relatório de suporte",
+        "description": "Reúne as informações que o Deadlock+ possui sobre este PC em um único texto que você pode enviar ao suporte. Nada é enviado automaticamente: você lê aqui e, em seguida, copia ou salva.",
+        "included": "Inclui: versões do aplicativo e do sistema operacional, se o Deadlock foi encontrado, o estado dos recursos do Deadlock+ e das tarefas em segundo plano, suas configurações sem segredos, a nota mais recente sobre falhas e o final do log desta sessão. Os nomes de usuário nos caminhos são ocultados.",
+        "create": "Criar relatório de suporte",
+        "refresh": "Criar novamente",
+        "creating": "Gerando o relatório...",
+        "preview": "Pré-visualização do relatório",
+        "copy": "Copiar",
+        "copied": "Relatório copiado",
+        "copy_failed": "Não foi possível copiar o relatório",
+        "save": "Salvar",
+        "save_filter": "Texto",
+        "saved": "Relatório salvo",
+        "save_failed": "Não foi possível salvar o relatório. Verifique o log para obter mais detalhes.",
+        "build_failed": "Não foi possível gerar o relatório. Verifique o log para obter mais detalhes."
+    }
+}

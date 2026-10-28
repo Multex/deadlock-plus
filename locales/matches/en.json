@@ -1,0 +1,768 @@
+{
+    "stats": {
+        "title": "Stats",
+        "subtitle": "Worked out on this PC from your match history in the Deadlock API.",
+        "refresh": "Refresh",
+        "hero_fallback": "Hero {id}",
+        "unknown_hero": "Unknown hero",
+        "api_error": "The Deadlock API returned an error ({status}).",
+        "cached_note": "Couldn't reach the Deadlock API. Showing the copy saved {time}.",
+        "gate": {
+            "no_account": "No Steam account found, so there is no history to load.",
+            "error": "Could not load your match history. {error}",
+            "loading": "Loading your match history..."
+        },
+        "scope": {
+            "ranked": "Ranked",
+            "unranked": "Unranked",
+            "all": "All modes"
+        },
+        "syncing_one": "Syncing",
+        "syncing_other": "{count} syncing",
+        "syncing_hint_one": "Read from the game. The Deadlock API has not returned this match yet.",
+        "syncing_hint_other": "Read from the game. The Deadlock API has not returned these matches yet.",
+        "outcome": {
+            "win": "Win",
+            "loss": "Loss"
+        },
+        "record": "{wins}W {losses}L",
+        "record_unscored": "{wins}W {losses}L, {unscored} not scored",
+        "playtime_hm": "{hours}h {minutes}m",
+        "playtime_m": "{minutes}m",
+        "filter": {
+            "days_one": "{count} day",
+            "days_other": "{count} days",
+            "all_time": "All time"
+        },
+        "summary": {
+            "winrate": "Winrate",
+            "form_aria": "Last {count} games, oldest first",
+            "streak": "Streak",
+            "streak_wins_one": "{count} win",
+            "streak_wins_other": "{count} wins",
+            "streak_losses_one": "{count} loss",
+            "streak_losses_other": "{count} losses",
+            "streak_best": "Best {wins} wins, worst {losses} losses",
+            "playtime": "Playtime",
+            "matches": "{count} matches"
+        },
+        "highlights": {
+            "most_played": "Most played",
+            "most_played_summary": "{games} games, {winrate} winrate",
+            "best": "Best winrate ({min}+ games)",
+            "best_summary": "{winrate} over {games} games",
+            "best_empty": "Play {min} games on a hero to see your best winrate."
+        },
+        "heroes": {
+            "heading": "Heroes",
+            "intro": "Stats follow the filters above. Hero leaderboard progress is always the last {days} days plus lifetime wins, and also needs {games} total games on your account.",
+            "eligible": "Hero board eligible",
+            "not_yet": "Hero board not yet",
+            "games": "Games",
+            "kda": "KDA",
+            "avg_souls": "Avg souls",
+            "time": "Time",
+            "none": "No games in this selection.",
+            "none_lifetime": "No games in this selection. {games} lifetime games.",
+            "recent_games": "Games, last {days} days",
+            "lifetime_wins": "Lifetime wins",
+            "builds": "Builds",
+            "builds_label": "{hero} builds"
+        },
+        "region": {
+            "heading": "Region leaderboard",
+            "eligible": "Eligible",
+            "not_eligible": "Not yet eligible",
+            "note": "Approximate. Counts your ranked and unranked games known to the Deadlock API. Valve does not publish which queues count.",
+            "recent_games": "Games in the last {days} days",
+            "total_games": "Total games on your account",
+            "rank_error": "Couldn't load your rank.",
+            "games_error": "Couldn't load your match history."
+        },
+        "page": {
+            "matches_known": "{count} matches known for this account. Anything not seen yet is not counted.",
+            "empty": "No matches in this selection."
+        },
+        "section": {
+            "games": "Your games"
+        },
+        "captured_only": "Couldn't reach the Deadlock API. Showing only matches captured on this PC."
+    },
+    "rank": {
+        "title": "Rank",
+        "empty": "No rank to show yet. It appears once the Deadlock API has a ranked match of yours past placement games.",
+        "tier_fallback": "Tier {tier}",
+        "eta": {
+            "not_climbing": "Not climbing at your recent pace",
+            "days_or_more": "{low} days or more",
+            "about_one": "About {count} day",
+            "about_other": "About {count} days",
+            "range": "{low} to {high} days"
+        },
+        "form": {
+            "next_win": "Next win",
+            "no_streak": "No win streak",
+            "streak_one": "{count} win in a row",
+            "streak_other": "{count} wins in a row",
+            "next_loss": "Next loss",
+            "only_shield": "Only a shield",
+            "plus_shield": "Plus a shield",
+            "drops_subrank": "No shield: drops a subrank",
+            "no_shield_used": "No shield used"
+        },
+        "outlook": {
+            "hold_rank": "Winrate to hold your rank",
+            "no_data": "Win streaks pay more than losses cost, so you don't need 50%.",
+            "climbing": "You are at {winrate} over your last {count}: climbing.",
+            "sliding": "You are at {winrate} over your last {count}: sliding.",
+            "forecast_none": "Needs about 8 ranked games in the last two weeks.",
+            "hold": "{winrate} holds your rank.",
+            "heading": "Outlook",
+            "your_last": "Your last {count}",
+            "climbing_short": "Climbing",
+            "sliding_short": "Sliding",
+            "next_tier": "Next tier: {eta}"
+        },
+        "chart": {
+            "heading": "Progress",
+            "last_n": "Last {count}",
+            "aria": "Rank progress over your recent ranked matches",
+            "range": "{from} to {to}",
+            "legend": "Filled dots: green win, red loss. Ringed dot: a shield absorbed the loss.",
+            "empty": "Needs at least two ranked matches to draw a line.",
+            "legend_changes": "Triangles mark a promotion or demotion."
+        },
+        "changes": {
+            "promoted_from": "Promoted from {name}",
+            "demoted_from": "Demoted from {name}"
+        },
+        "summary": {
+            "estimated_one": "Estimated from the rank rules until the Deadlock API confirms your last match.",
+            "estimated_other": "Estimated from the rank rules until the Deadlock API confirms your last matches.",
+            "top_tier": "Top tier. Subranks here depend on how you compare to other top players, so there is no progress bar.",
+            "progress": "{within} / {span} to {next}.",
+            "progress_aria": "Progress to {next}",
+            "progress_streak_one": "{within} / {span} to {next}. {count} win in a row from here.",
+            "progress_streak_other": "{within} / {span} to {next}. {count} wins in a row from here.",
+            "boundary": "Your progress just crossed a boundary and the Deadlock API still shows the old badge, so there is no bar until the next match.",
+            "placement_left": "{count} placement games left."
+        },
+        "shields": {
+            "heading": "Demotion shields",
+            "not_reported": "Not reported",
+            "none_hint": "A loss can take you down a rank.",
+            "left_hint": "Each one absorbs a loss that would demote you."
+        }
+    },
+    "sessions": {
+        "title": "Sessions",
+        "subtitle": "Matches grouped into sessions. A new session starts after 90 minutes without playing.",
+        "results": {
+            "heading": "What your results say",
+            "intro": "The line on each bar is your overall winrate. A difference only counts once enough games back it up.",
+            "intro_detail": "The line on each bar is your overall winrate, {winrate} over {games} games. A difference only counts once enough games back it up.",
+            "hide": "Hide",
+            "show": "Show"
+        },
+        "break": {
+            "label": "Break reminder",
+            "suggestion": "{count} losses in a row this session. A short break might be worth it. Up to you."
+        },
+        "highlight": {
+            "best": "Your best recent session",
+            "excellent": "Excellent last session. Well played.",
+            "good": "Nice work. Your last session went well."
+        },
+        "row": {
+            "excellent": "Excellent session",
+            "good": "Good session",
+            "bad": "Rough session",
+            "neutral": "Even session",
+            "games": "Games",
+            "record": "W / L",
+            "length": "Length",
+            "rank_change": "Rank change"
+        },
+        "findings": {
+            "games_one": "{count} game",
+            "games_other": "{count} games"
+        },
+        "insights": {
+            "unknown_after_loss": "Not enough games after a loss yet ({yes} and {no}, {min} of each needed).",
+            "after_losses": {
+                "title": "After losses",
+                "unknown": "Not enough games after two losses in a row yet ({games} of {min}).",
+                "worse": "After two losses in a row you win {rate}, against {rest} otherwise.",
+                "better": "You do better after two losses in a row: {rate} against {rest} otherwise.",
+                "same": "Two losses in a row don't change how you play: {rate} against {rest} otherwise.",
+                "bar_after": "After two losses in a row",
+                "bar_rest": "Every other game"
+            },
+            "session_length": {
+                "title": "Where to stop",
+                "bar": "Game {n}",
+                "bar_plus": "Game {n}+",
+                "points": "{amount} pts",
+                "drop": "Your results drop after game {last}: {head} up to then, {tail} from game {from}.",
+                "hold": "Your results hold up as a session gets longer.",
+                "unknown": "Not enough long sessions yet ({games} games past game 3, {min} needed)."
+            },
+            "swap_hero": {
+                "title": "Switch or stay",
+                "bar_switched": "Switched hero",
+                "bar_same": "Same hero",
+                "better": "After a loss, switching heroes works better for you: {yes} against {no} when you stay on the same hero.",
+                "worse": "After a loss, staying on the same hero works better for you: {no} against {yes} when you switch.",
+                "same": "Switching heroes after a loss or staying makes no clear difference: {yes} and {no}."
+            },
+            "requeue": {
+                "title": "Requeue speed",
+                "bar_quick": "Queued within 10 minutes",
+                "bar_slow": "Waited longer",
+                "better": "Queueing straight back up after a loss goes better for you: {yes} against {no} when you wait longer.",
+                "worse": "Waiting a bit after a loss goes better for you: {no} against {yes} when you queue straight back up.",
+                "same": "Queueing straight back up or waiting after a loss makes no clear difference: {yes} and {no}."
+            },
+            "time_of_day": {
+                "title": "Time of day",
+                "morning": "Morning",
+                "afternoon": "Afternoon",
+                "evening": "Evening",
+                "late_night": "Late night",
+                "phrase_morning": "in the morning",
+                "phrase_afternoon": "in the afternoon",
+                "phrase_evening": "in the evening",
+                "phrase_late_night": "during the late night",
+                "best_worst": "You do best {best} ({best_rate}) and worst {worst} ({worst_rate}), against {overall} overall.",
+                "best": "You do best {best}: {best_rate} against {overall} overall.",
+                "worst": "You do worst {worst}: {worst_rate} against {overall} overall.",
+                "none": "No part of the day clearly stands out for you.",
+                "unknown": "Not enough games in each part of the day yet ({min} each needed)."
+            },
+            "day_type": {
+                "title": "Weekdays and weekends",
+                "weekdays": "Weekdays",
+                "weekends": "Weekends",
+                "unknown": "Not enough games on weekdays and weekends yet ({weekday} and {weekend}, {min} of each needed).",
+                "better": "You do better on weekends: {weekend_rate} against {weekday_rate} on weekdays.",
+                "worse": "You do better on weekdays: {weekday_rate} against {weekend_rate} on weekends.",
+                "same": "Weekdays and weekends make no clear difference: {weekday_rate} and {weekend_rate}."
+            }
+        }
+    },
+    "match_history": {
+        "api_error": "The Deadlock API returned an error ({status}).",
+        "detail_invalid": "The Deadlock API returned no usable data for this match.",
+        "team": {
+            "hidden_king": "The Hidden King",
+            "archmother": "The Archmother"
+        },
+        "list": {
+            "title": "Match History",
+            "subtitle": "Your matches from the Deadlock API and the ones captured from the game.",
+            "empty": "No matches yet. They appear once the Deadlock API has a match of yours.",
+            "no_results": "No matches fit these filters.",
+            "count_one": "{count} match",
+            "count_other": "{count} matches",
+            "provisional": "Unconfirmed",
+            "provisional_hint": "Not yet confirmed by the Deadlock API",
+            "mode": {
+                "custom": "Custom",
+                "other": "Other"
+            },
+            "outcome": {
+                "unscored": "Not scored"
+            },
+            "filter": {
+                "label": "Match filters",
+                "mode": "Mode",
+                "hero": "Hero",
+                "outcome": "Outcome",
+                "window": "Date window",
+                "any_hero": "All heroes",
+                "any_outcome": "All outcomes",
+                "custom": "Custom matches",
+                "reset": "Clear filters"
+            },
+            "pager": {
+                "label": "Match history pages"
+            },
+            "summary": {
+                "label": "Summary of the matches in this list",
+                "matches": "Matches"
+            },
+            "row": {
+                "souls": "Souls",
+                "duration": "Duration",
+                "kda_split": "Kills / deaths / assists",
+                "kda_ratio": "{ratio} KDA"
+            },
+            "error": "Couldn't load your matches."
+        },
+        "deep_dive": {
+            "not_available": "Not available for this match.",
+            "player": "Player",
+            "player_fallback": "Player {slot}",
+            "progress": {
+                "heading": "Souls and damage",
+                "souls": "Souls",
+                "damage": "Damage",
+                "lead_heading": "Team lead over time",
+                "lead_aria": "Chart of the team lead over time",
+                "lead_hint": "Above the line: The Hidden King ahead. Below: The Archmother ahead.",
+                "lead_even": "Teams are level",
+                "others_range": "Other players, lowest to highest",
+                "player_heading": "Selected player over time",
+                "player_aria": "Chart of the selected player and everyone else over time",
+                "player_hint": "The thick line is the selected player.",
+                "picker_aria": "Player for souls and damage"
+            },
+            "purchases": {
+                "heading": "Purchases",
+                "slider_aria": "Purchase step",
+                "previous": "Previous action",
+                "next": "Next action",
+                "step": "{current} of {total}",
+                "item_buy": "Bought {name}",
+                "item_sell": "Sold {name}",
+                "ability_unlock": "Unlocked {name}",
+                "ability_upgrade": "Upgraded {name} ({count} of {total})",
+                "imbued": "Imbued on {ability}",
+                "holding": "Items held",
+                "no_items": "No items held",
+                "abilities": "Abilities",
+                "no_abilities": "No abilities unlocked",
+                "ability_level_aria": "{count} of {total} upgrades",
+                "list_aria": "All actions",
+                "picker_aria": "Player for purchases"
+            },
+            "damage": {
+                "heading": "Damage between heroes",
+                "hint": "Each row is the player dealing damage, each column the player taking it. Damage the game credits to the dealer themselves shows as Other damage.",
+                "dealer": "Dealer",
+                "other": "Other damage",
+                "target": "Target",
+                "other_hint": "Damage the game credits to the dealer themselves, not another player.",
+                "picker_aria": "Player for damage"
+            },
+            "objectives": {
+                "heading": "Objectives",
+                "objective": "Objective",
+                "owner": "Owner",
+                "destroyed": "Destroyed",
+                "players": "Player damage",
+                "creeps": "Creep damage",
+                "spirit": "Spirit damage",
+                "standing": "Standing",
+                "mid_boss": "Mid boss",
+                "killed_by": "killed by {team}",
+                "claimed_by": "claimed by {team}",
+                "kind_core": "Core",
+                "kind_guardian": "Guardian",
+                "kind_walker": "Walker",
+                "kind_patron": "Patron",
+                "kind_shrine": "Shrine",
+                "kind_base_guardian": "Base Guardian",
+                "kind_unknown": "Objective",
+                "indexed_name": "{name} {index}"
+            },
+            "accolades": {
+                "heading": "Accolades",
+                "tier": "Tier {tier}",
+                "hint": "Each accolade counts one stat over the match. The game's files do not list the tier cut-offs.",
+                "picker_aria": "Player for accolades"
+            },
+            "names": {
+                "item": "Item",
+                "ability": "Ability",
+                "accolade": "Accolade"
+            },
+            "lanes": {
+                "yellow": "Yellow",
+                "blue": "Blue",
+                "green": "Green",
+                "street_yellow": "York",
+                "street_blue": "Broadway",
+                "street_green": "Greenwich",
+                "named": "{colour} lane ({street})",
+                "ordinal": "Lane {n}"
+            }
+        },
+        "detail": {
+            "title": "Match {id}",
+            "back": "Back to match history",
+            "loading": "Loading the match...",
+            "error": "Could not load this match. {error}",
+            "invalid": "That isn't a valid match ID.",
+            "summary": "Match summary",
+            "bans": "Bans",
+            "you": "You",
+            "player_fallback": "Player {slot}",
+            "item_unknown": "Item {id}",
+            "result": {
+                "unscored": "Not scored",
+                "team_won": "{team} won",
+                "unknown": "Result unknown"
+            },
+            "mode": {
+                "ranked": "Ranked",
+                "unranked": "Unranked",
+                "streetBrawl": "Street Brawl",
+                "custom": "Custom",
+                "bot": "Bots",
+                "other": "Other"
+            },
+            "col": {
+                "items": "Items",
+                "damage": "Damage"
+            },
+            "board": {
+                "label": "Scoreboard",
+                "stat": "Stat",
+                "best": "best in the match",
+                "unranked": "Unranked"
+            },
+            "mvp": "MVP",
+            "key_player": "Key player",
+            "avg_rank": "Avg rank",
+            "versus": {
+                "above": "Above your average",
+                "below": "Below your average",
+                "equal": "About your average",
+                "average": "avg {value}",
+                "souls_rate": "avg {value}/min",
+                "hint": "Your average on this hero over {samples} other matches",
+                "summary": "Versus your average on this hero ({samples} other matches): better on {better}, worse on {worse}."
+            },
+            "export": {
+                "group": "Export scoreboard",
+                "save": "Save image",
+                "copy": "Copy image",
+                "working": "Making image...",
+                "saved": "Scoreboard image saved.",
+                "copied": "Scoreboard image copied to the clipboard.",
+                "save_failed": "Could not save the image: {error}",
+                "copy_failed": "Could not copy the image: {error}",
+                "made_with": "Made with",
+                "render_failed": "Couldn't make the scoreboard image. Try again."
+            },
+            "replay": {
+                "heading": "Replay",
+                "map_aria": "Minimap with player positions",
+                "no_paths": "Player positions are not available for this match. The timeline below still shows deaths, objectives and item purchases.",
+                "no_art": "Minimap art is not available. Positions are drawn on a plain background.",
+                "no_events": "No timeline events were recorded for this match.",
+                "no_kinds": "Turn on an event type to see it on the timeline.",
+                "unknown": "Unknown",
+                "unknown_hero": "Unknown hero",
+                "dead": "Dead",
+                "dot_dead": "{label} (dead)",
+                "camps": "Camps",
+                "shop": "Shop",
+                "teleporter": "Teleporter",
+                "camps_hint": "Camp spawns and clears are estimated from the game's spawn rules and player movement.",
+                "mid_boss_hint": "Mid boss times are estimated from the game's spawn rules.",
+                "mid_boss_last_kill": "Last defeated at {time}",
+                "object_destroyed_at": "Destroyed at {time}",
+                "object_damage": "Damage taken over the match",
+                "damage_gun": "Gun",
+                "damage_spirit": "Spirit",
+                "damage_trooper": "Trooper",
+                "camp_weak": "Weak camp",
+                "camp_medium": "Medium camp",
+                "camp_strong": "Strong camp",
+                "camp_vault": "Vault",
+                "play": "Play",
+                "pause": "Pause",
+                "speed": "{speed}x",
+                "speed_aria": "Playback speed",
+                "time": "{current} / {total}",
+                "scrubber_aria": "Match time",
+                "kinds_aria": "Timeline event types",
+                "kind_death": "Deaths",
+                "kind_objective": "Objectives",
+                "kind_mid_boss": "Mid Boss",
+                "kind_item_buy": "Item buys",
+                "kind_item_sell": "Item sells",
+                "kind_swing": "Net worth swings",
+                "lane_death": "Deaths",
+                "lane_objective": "Objectives",
+                "lane_mid_boss": "Mid Boss",
+                "lane_swing": "Swings",
+                "lane_item": "Items",
+                "marker_death": "{victim} was killed by {killer} at {time}",
+                "marker_objective": "{objective} of {team} destroyed at {time}",
+                "marker_mid_boss": "Mid Boss defeated, claimed by {team}, at {time}",
+                "marker_item_buy": "{player} bought {item} at {time}",
+                "marker_item_sell": "{player} sold {item} at {time}",
+                "marker_swing": "{team} gained a {souls} souls lead at {time}",
+                "death_map": "Death map",
+                "my_deaths": "My deaths",
+                "death_step": "{index} / {total}",
+                "step_prev": "Previous death",
+                "step_next": "Next death",
+                "step_show_all": "Show all",
+                "stepper_aria": "Step through deaths",
+                "killer_slot": "Player {slot}",
+                "death_respawn": "Respawn {seconds} s",
+                "death_position": "Position {x}, {y}",
+                "death_marker": "Death of {victim} at {time}",
+                "killed_by": "Killed by {killer}",
+                "filter_player": "Player",
+                "all_players": "All players",
+                "filter_role": "Show deaths as",
+                "role_victim": "Victim",
+                "role_killer": "Killer",
+                "range_from": "From {time}",
+                "range_to": "To {time}",
+                "death_count_one": "{count} death",
+                "death_count_other": "{count} deaths",
+                "step_start": "Step through",
+                "no_deaths": "No deaths",
+                "death_map_player": "Player for death map"
+            },
+            "grade": {
+                "label": "Grade",
+                "place_ordinal_one": "{place}st",
+                "place_ordinal_two": "{place}nd",
+                "place_ordinal_few": "{place}rd",
+                "place_ordinal_other": "{place}th",
+                "aria": "Grade {letter}, score {score}, {place}",
+                "chip_aria": "Grade {letter}, {score}, {place}",
+                "leaver": "Someone left this match early, so every grade in it is skewed.",
+                "unchecked": "Early leavers not checked: this grade comes from the game's own match data.",
+                "farm_bonus": "Team farm bonus",
+                "metric": {
+                    "early_damage": "Early damage",
+                    "late_damage": "Late damage",
+                    "early_assists": "Early assists",
+                    "late_assists": "Late assists",
+                    "prebase_objective": "Objective damage",
+                    "base_objective": "Base damage",
+                    "damage_absorbed": "Damage absorbed",
+                    "ally_healing": "Ally healing",
+                    "heal_prevented": "Heal prevented",
+                    "barriers": "Barriers",
+                    "cs": "Last hits",
+                    "kills": "Kills",
+                    "deaths": "Deaths",
+                    "cc": "CC"
+                }
+            },
+            "missing": {
+                "details": "Match details",
+                "replay": "Replay",
+                "lead": "The Deadlock API doesn't have this match yet, so there's no scoreboard.",
+                "badge_missing": "Missing",
+                "badge_recovering": "Recovering",
+                "eta_seconds": "About {count} s left",
+                "eta_minutes": "About {count} min left",
+                "paused": "Recovery is paused.",
+                "recover": "Recover this match",
+                "recover_time": "Takes about 20 seconds.",
+                "consent_note": "Just this match. Background recovery stays off.",
+                "open_in_game": "Open this match in Deadlock's Match History and Deadlock+ will pick it up.",
+                "sharing_off": "Turn on Share my matches and Deadlock+ will pick it up when you open this match in Deadlock's Match History.",
+                "sharing_link": "Open Match sharing settings",
+                "replay_available": "Available",
+                "replay_expired": "Expired",
+                "replay_none": "Not available",
+                "replay_days_left_one": "Kept for {count} more day.",
+                "replay_days_left_other": "Kept for {count} more days.",
+                "replay_expired_note": "Replays are kept for about 30 days.",
+                "replay_none_note": "The Deadlock API has no replay for this match.",
+                "replay_recoverable": "Not available yet",
+                "replay_recoverable_note": "The Deadlock API has no replay for this match yet.",
+                "replay_unrecoverable": "Not available",
+                "replay_unrecoverable_note": "This replay can't be recovered anymore.",
+                "badge_not_applicable": "Not applicable",
+                "not_applicable": "Deadlock+ only recovers ranked, unranked and Street Brawl matches, so this one has no scoreboard."
+            },
+            "replay_status": {
+                "available": "Replay available",
+                "recovering": "Recovering replay",
+                "recoverable": "No replay yet",
+                "unrecoverable": "Replay can't be recovered",
+                "expired": "Replay expired",
+                "none": "No replay",
+                "recover": "Recover replay",
+                "recover_note": "Counts toward the 40 matches a day.",
+                "consent_note": "Just this replay. Background recovery stays off."
+            },
+            "load_error": "Couldn't load this match."
+        },
+        "ping": {
+            "heading": "Ping",
+            "source": "server (ICMP)",
+            "source_engine": "In-game connection",
+            "source_icmp": "Server ping",
+            "partial": "Recorded from mid-match",
+            "avg": "Average",
+            "worst": "Worst",
+            "samples": "Samples",
+            "loading": "Loading ping data...",
+            "empty": "No ping data for this match.",
+            "chart_aria": "Ping over the match",
+            "hint": "Ping, measured once per second while Deadlock+ was running."
+        },
+        "coverage": {
+            "label": "Match coverage",
+            "details": "Full details",
+            "replays": "Replays, last 30 days",
+            "details_aria": "{full} of {total} matches have full details",
+            "replays_aria": "Replays: {replays} of {recent} recent matches",
+            "recover": "Recover {count} missing",
+            "recovering": "Recovering {done} / {total}",
+            "paused": "Paused {done} / {total}"
+        },
+        "recovery": {
+            "title": "Recover matches",
+            "close": "Close",
+            "consent": "Fills in matches the Deadlock API is missing, yours and other players'. Uses the Steam login saved on this PC.",
+            "missing": "missing",
+            "badge_paused": "Paused",
+            "badge_game": "Deadlock is open",
+            "badge_limit": "Steam's daily limit",
+            "eta_left": "About {time} left",
+            "eta_total": "About {time}",
+            "duration_minutes": "{count} min",
+            "duration_hours": "{count} h",
+            "duration_hours_minutes": "{hours} h {minutes} min",
+            "progress_label": "Recovery progress",
+            "accounts": "Steam accounts, today",
+            "start": "Recover {count}",
+            "pause": "Pause",
+            "resume": "Resume",
+            "limit_note": "Continues tomorrow on its own",
+            "step_details": "Missing details",
+            "step_replays": "Recent replays",
+            "start_failed": "Couldn't start recovery. Try again.",
+            "pause_failed": "Couldn't pause recovery.",
+            "resume_failed": "Couldn't resume recovery.",
+            "cancel_failed": "Couldn't stop recovery.",
+            "match_failed": "Couldn't recover that match. Try again.",
+            "replay_failed": "Couldn't recover that replay. Try again."
+        },
+        "row_state": {
+            "missing": "No details",
+            "recovering": "Recovering"
+        }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "{hero} goes {kills}/{deaths}/{assists}",
+                "deck": "You finished on {net_worth} net worth.",
+                "deck_graded": "You finished on {net_worth} net worth. The critics gave you {letter}, {place} of {total}."
+            },
+            "comeback": {
+                "headline": "{team} wins from {deficit} down",
+                "deck": "Behind by {deficit} net worth at {time}, {team} still took the match."
+            },
+            "critics_top": {
+                "headline": "Critics crown {hero}",
+                "deck": "{player} tops the Deadlock+ grades with {letter}, first of {total}."
+            },
+            "first_blood": {
+                "headline": "{hero} draws first blood",
+                "deck": "{player} took down {victim_hero} at {time} for the match's first kill."
+            },
+            "mid_boss": {
+                "headline": "{team} claims the Mid Boss",
+                "deck": "{team} defeated it at {time} and claimed it.",
+                "deck_split": "{killer} defeated it at {time}, but {team} claimed it."
+            },
+            "guardian_fall": {
+                "headline": "{team} topples the first Guardian",
+                "deck": "{owner} lost a Guardian at {time}, the first to fall."
+            },
+            "walker_fall": {
+                "headline": "{team} brings down the first Walker",
+                "deck": "{owner} lost a Walker at {time}, the first to fall."
+            },
+            "base_guardian_fall": {
+                "headline": "{team} downs the first Base Guardian",
+                "deck": "{owner} lost a Base Guardian at {time}, the first to fall."
+            },
+            "shrine_fall": {
+                "headline": "{team} topples a Shrine",
+                "deck": "{owner} lost a Shrine at {time}, the first to fall."
+            },
+            "patron_fall": {
+                "headline": "{team} brings down the Patron",
+                "deck": "{owner} lost its Patron at {time}."
+            },
+            "top_damage": {
+                "headline": "{hero} leads the damage charts",
+                "deck": "{player} dealt {damage} player damage, the most in the match."
+            },
+            "top_healing": {
+                "headline": "{hero} keeps the team standing",
+                "deck": "{player} healed {healing}, more than anyone else."
+            },
+            "richest": {
+                "headline": "{hero} tops the rich list",
+                "deck": "{player} finished on {net_worth} net worth, the most in the match."
+            },
+            "most_last_hits": {
+                "headline_one": "{hero} reaps {count} last hit",
+                "headline_other": "{hero} reaps {count} last hits",
+                "deck": "{player} took more last hits than anyone."
+            }
+        },
+        "kit": {
+            "weather": "Weather",
+            "box_score": "Box score",
+            "critics": "The critics",
+            "lane_report": "Lane report",
+            "in_brief": "In brief",
+            "objectives": "Objectives",
+            "kills": "Kills",
+            "hero": "Hero",
+            "kda": "K/D/A",
+            "net_worth": "Net worth",
+            "grade": "Grade"
+        },
+        "open": "Front page",
+        "open_match": "Open full match",
+        "close": "Close",
+        "dialog": "Front page for match {id}",
+        "loading": "Printing the front page...",
+        "name": "Deadlock+ Dispatch",
+        "edition": "Extra! · No. {id}",
+        "kicker_viewer": "Your match",
+        "photo_caption": "{hero}, {kills}/{deaths}/{assists}. Hero art: Valve.",
+        "place_of": "{place} of {total}",
+        "critics_grading": "Grading...",
+        "critics_pending": "Grades pending",
+        "lane": {
+            "lead": "{team} +{amount} at 10:00",
+            "even": "Even at 10:00",
+            "matchup": "{hidden_king} vs {archmother}"
+        },
+        "weather": {
+            "forecast_clear": "Clear skies",
+            "forecast_fair": "Fair",
+            "forecast_overcast": "Overcast",
+            "forecast_storm": "Stormy",
+            "ping": "{avg} ms avg · {worst} worst",
+            "jitter": "{jitter} ms jitter"
+        },
+        "objective": {
+            "short_guardian": "G",
+            "short_walker": "W",
+            "short_base_guardian": "BG",
+            "short_shrine": "S",
+            "short_patron": "P",
+            "short_core": "C",
+            "short_mid_boss": "MB",
+            "short_unknown": "O"
+        },
+        "export": {
+            "group": "Export front page",
+            "saved": "Front page image saved.",
+            "copied": "Front page image copied to the clipboard.",
+            "render_failed": "Couldn't make the front page image. Try again."
+        }
+    }
+}

@@ -1,0 +1,764 @@
+{
+    "settings": {
+        "language": {
+            "label": "Langue",
+            "description": "",
+            "system": "",
+            "system_current": "Actuellement {language}",
+            "completion_hint": "",
+            "translated": "Traduction à {percent}%",
+            "coming_soon": "Bientôt disponible"
+        },
+        "categories": {
+            "appearance": "",
+            "language": "Langue",
+            "startup": "",
+            "notifications": "Notifications",
+            "overlay": "",
+            "privacy": "",
+            "about": "",
+            "diagnostics": "Diagnostic",
+            "sharing": "",
+            "storage": ""
+        },
+        "items": {
+            "theme": "Thème",
+            "theme_effects": "",
+            "reduced_motion": "",
+            "accessible_font": "",
+            "close_to_tray": "",
+            "background_jobs": "",
+            "update_alerts": "",
+            "maintenance": "",
+            "discord_presence": "",
+            "discord_clients": "",
+            "discord_editor": "",
+            "match_ingest": "",
+            "telemetry": "",
+            "gc_recovery": "",
+            "version": "Version",
+            "whats_new": "Nouveautés",
+            "updates": "",
+            "thanks": "Remerciements",
+            "diagnostics": "Diagnostic",
+            "licenses": "Licences",
+            "storage": "",
+            "overlay": "",
+            "overlay_position": "",
+            "overlay_duration": "",
+            "overlay_test": "",
+            "overlay_notifications": "",
+            "overlay_match_found": "",
+            "server_blocks_updated": "",
+            "server_blocks_stale": "",
+            "break_reminder": "",
+            "ui_scale": "",
+            "hardware_acceleration": "",
+            "open_on_game_start": "",
+            "admin_access": ""
+        },
+        "nav": {
+            "label": "",
+            "search": "",
+            "back": "",
+            "no_matches": ""
+        },
+        "appearance": {
+            "theme_description": "",
+            "effects_description": "",
+            "motion_description": "",
+            "motion_system": "",
+            "motion_reduce": "",
+            "motion_full": "",
+            "font_description": "",
+            "scale_description": "",
+            "hardware_acceleration_description": "",
+            "restart_app": "",
+            "accent": "",
+            "accent_hue": "",
+            "accent_vividness": "",
+            "accent_hex": "",
+            "accent_reset": ""
+        },
+        "themes": {
+            "deadlock": {
+                "label": "Deadlock",
+                "description": "",
+                "source": ""
+            },
+            "midnight": {
+                "label": "Minuit",
+                "description": "Bleu-noir froid avec un doux accent argenté.",
+                "effects": {
+                    "fog": "",
+                    "windows": ""
+                }
+            },
+            "daylight": {
+                "label": "",
+                "description": ""
+            },
+            "contrast": {
+                "label": "",
+                "description": ""
+            },
+            "nightshift": {
+                "label": "",
+                "description": "",
+                "source": "",
+                "effects": {
+                    "rain": "",
+                    "lights": "",
+                    "frames": "",
+                    "clock": ""
+                }
+            },
+            "deadlock_api": {
+                "label": "Deadlock API",
+                "description": "",
+                "source": ""
+            },
+            "statlocker": {
+                "label": "",
+                "description": "",
+                "source": ""
+            },
+            "flint_snow": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "snow": "",
+                    "stars": "",
+                    "tail": "",
+                    "tracks": ""
+                }
+            },
+            "void": {
+                "label": "",
+                "description": ""
+            },
+            "deadchaps": {
+                "label": "",
+                "description": "",
+                "source": ""
+            }
+        },
+        "autostart": {
+            "title_windows": "Lancer avec Windows",
+            "title_macos": "Lancer avec macOS",
+            "title_linux": "Lancer à l'ouverture de session",
+            "description_windows": "",
+            "description_macos": "",
+            "description_linux": "",
+            "failed": "",
+            "stale": ""
+        },
+        "startup": {
+            "tray_description": "",
+            "jobs_description": "",
+            "all_jobs_label": "",
+            "all_jobs_description": "",
+            "tasks_title": "",
+            "tasks_description": "",
+            "run_by_itself": "",
+            "while_running": "",
+            "advanced": "",
+            "open_on_game_start_description": "",
+            "admin_access_ask": "",
+            "admin_access_description": ""
+        },
+        "notifications": {
+            "alerts_description": "",
+            "maintenance_description": "",
+            "day": "Jour",
+            "time": "Heure (UTC)",
+            "remind": "",
+            "lead_minutes": "{minutes} min avant",
+            "lead_hours": "{hours} h avant",
+            "overlay_description": "",
+            "overlay_fullscreen": "",
+            "overlay_position_description": "",
+            "overlay_duration_description": "",
+            "overlay_test_description": "",
+            "overlay_notifications_description": "",
+            "overlay_notifications_button": "",
+            "overlay_test_button": "",
+            "overlay_test_countdown": "",
+            "overlay_seconds": "",
+            "position": {
+                "top_left": "",
+                "top_center": "",
+                "top_right": "",
+                "left": "",
+                "right": "",
+                "bottom_left": "",
+                "bottom_center": "",
+                "bottom_right": "",
+                "center": ""
+            },
+            "overlay_match_found_description": "",
+            "server_blocks_updated_description": "",
+            "server_blocks_stale_description": "",
+            "break_reminder_description": "",
+            "delivery_label": "",
+            "delivery": {
+                "both": "",
+                "overlay": "",
+                "os": "",
+                "quiet": "",
+                "center": ""
+            },
+            "overlay_off_fallback": "",
+            "overlay_off_hidden": ""
+        },
+        "weekdays": {
+            "monday": "Lundi",
+            "tuesday": "Mardi",
+            "wednesday": "Mercredi",
+            "thursday": "Jeudi",
+            "friday": "Vendredi",
+            "saturday": "Samedi",
+            "sunday": "Dimanche"
+        },
+        "countdown": {
+            "days": "{days} j {hours} h",
+            "hours": "{hours} h {minutes} min",
+            "minutes": "{minutes} min",
+            "soon": "moins d'une minute"
+        },
+        "discord": {
+            "presence_description": "",
+            "level_off": "",
+            "level_basic": "",
+            "level_detailed": "",
+            "level_off_description": "",
+            "level_basic_description": "",
+            "level_detailed_description": "",
+            "support_label": "",
+            "support_description": "",
+            "client_running": "",
+            "client_not_running": "",
+            "client_other_hint": "",
+            "clients_description": "",
+            "client_stable": "Discord",
+            "client_ptb": "",
+            "client_canary": "",
+            "client_other_label": "",
+            "client_stable_name": "Discord",
+            "client_ptb_name": "",
+            "client_canary_name": "",
+            "client_other_name": "",
+            "status_off": "",
+            "status_none": "",
+            "status_showing": ""
+        },
+        "discord_editor": {
+            "description": "",
+            "loading": "",
+            "states": "",
+            "customised": "",
+            "inherited": "Défaut",
+            "field_details": "",
+            "field_state": "",
+            "field_large_image": "",
+            "field_large_text": "",
+            "field_small_image": "",
+            "field_small_text": "",
+            "field_timer": "",
+            "reset_field": "",
+            "reset_scope": "",
+            "reset_all": "",
+            "reset_all_title": "",
+            "reset_all_description": "",
+            "all_heroes": "",
+            "sample_hero": "Nébula",
+            "image_enabled": "",
+            "image_source": "Source {image}",
+            "image_url": "URL {image}",
+            "source_heroPortrait": "Portrait de l'Occultiste",
+            "source_heroIcon": "Icône de l'Occultiste",
+            "source_rankBadge": "",
+            "source_modeIcon": "",
+            "source_customUrl": "",
+            "timer_none": "",
+            "timer_elapsedInState": "",
+            "timer_matchTime": "",
+            "preview": "",
+            "preview_header": "",
+            "preview_disabled": "",
+            "preview_failed": "",
+            "preview_large_text": "",
+            "preview_small_text": "",
+            "share": "",
+            "share_description": "",
+            "import_label": "",
+            "import": "Importer",
+            "import_file": "Importer depuis un fichier",
+            "export": "",
+            "exported": "",
+            "export_failed": "",
+            "imported": "",
+            "state": {
+                "playing": "",
+                "mainMenu": "Menu principal",
+                "hideout": "",
+                "findingMatch": "",
+                "matchFound": "",
+                "preGame": "",
+                "inMatch": "",
+                "streetBrawlRound": "",
+                "paused": "",
+                "spectating": "",
+                "postGame": "",
+                "privateLobby": "",
+                "practice": ""
+            },
+            "variant": {
+                "solo": "",
+                "party": "",
+                "unranked": "",
+                "ranked": "",
+                "bots": "",
+                "tutorial": "",
+                "normal": "",
+                "streetBrawl": "",
+                "sandbox": "",
+                "exploreNyc": "",
+                "won": "",
+                "lost": "",
+                "unscored": ""
+            },
+            "editing": "",
+            "editing_default_hint": "",
+            "editing_hero_hint": "",
+            "no_hero_layer": "",
+            "row_enabled": "",
+            "no_top_line": "",
+            "insert_variable": "",
+            "insert_into": "",
+            "sensitive": "",
+            "syntax_help": "",
+            "variables_hint": "",
+            "placeholder": {
+                "hero": "",
+                "mode": "",
+                "gameMode": "",
+                "rank": "",
+                "kills": "",
+                "deaths": "",
+                "assists": "",
+                "souls": "",
+                "partySize": "",
+                "partyMax": "",
+                "round": "",
+                "scoreAmber": "",
+                "scoreSapphire": "",
+                "elapsed": "",
+                "queueTime": "",
+                "result": "Victoire ou défaite",
+                "matchId": "",
+                "heroPresence": ""
+            },
+            "preview_game": "Deadlock",
+            "preview_logo": "",
+            "preview_large_image": "",
+            "preview_small_image": "",
+            "preview_elapsed": "",
+            "preview_discord_row": "",
+            "preview_discord_sample": "",
+            "preview_support_button": "",
+            "syntax": {
+                "title": "",
+                "copied": "",
+                "copy_example": "",
+                "nothing": "",
+                "no_sample": "",
+                "rules_title": "",
+                "rule_length": "",
+                "rule_empty": "",
+                "rule_unclosed": "",
+                "rule_unknown": "",
+                "privacy": "",
+                "intro": "",
+                "you_see": "",
+                "step1_title": "",
+                "step1_body": "",
+                "step2_title": "",
+                "step2_body": "",
+                "step3_title": "",
+                "step3_body": "",
+                "step4_title": "",
+                "step4_body": "",
+                "list_title": "",
+                "list_body": "",
+                "col_variable": "",
+                "col_shows": "",
+                "col_example": "",
+                "group_you": "Vous",
+                "group_match": "",
+                "group_party": "",
+                "group_streetBrawl": "",
+                "group_misc": ""
+            },
+            "timer_queueTime": "",
+            "field_party_size": "",
+            "party_size_hint": "",
+            "preview_party": "",
+            "detailed_only": ""
+        },
+        "privacy": {
+            "telemetry_description": "",
+            "telemetry_reset": "",
+            "telemetry_reset_done": "",
+            "ingest_waiting": "",
+            "ingest_off": "",
+            "ingest_no_cache": "",
+            "ingest_failed": "",
+            "ingest_watching": "",
+            "ingest_description": "",
+            "gc_description": "",
+            "how_it_works": "",
+            "ingest_how_find": "",
+            "ingest_how_send": "",
+            "gc_how_login": "",
+            "gc_how_limit": "",
+            "gc_how_game": "",
+            "gc_how_send": "",
+            "gc_own_label": "",
+            "gc_own_description": "",
+            "advanced": "",
+            "gc_own_open": "",
+            "shared": {
+                "title": "",
+                "source_steam": "",
+                "source_deadlock": "",
+                "source_login": "",
+                "with_replay": "",
+                "when": "",
+                "match": "",
+                "from": "",
+                "details": "",
+                "replay": "",
+                "sent": "",
+                "not_sent": "",
+                "empty": ""
+            }
+        },
+        "about_page": {
+            "copy": "Copier",
+            "copied": "",
+            "copy_failed": "",
+            "install": "",
+            "check_now": "",
+            "auto_check_label": "",
+            "auto_check_description": "",
+            "whats_new_in": ""
+        },
+        "diagnostics": {
+            "description": "",
+            "collapse": "",
+            "expand": ""
+        },
+        "licenses": {
+            "read_full": "",
+            "terms_link": "",
+            "copyright": "",
+            "fonts_heading": "",
+            "app_summary": "",
+            "app_warranty": "",
+            "disclaimer": "",
+            "kind_font": "",
+            "kind_artwork": "",
+            "terms_not_open_source": "",
+            "terms_valve_oracle": "",
+            "terms_valve_pulp": "",
+            "terms_twemoji": "",
+            "dependencies_title": "",
+            "dependencies_description": "",
+            "dependencies_failed": "",
+            "dependencies_loading": "Chargement...",
+            "dependencies_packages": "",
+            "dependencies_rust": "",
+            "dependencies_npm": "",
+            "dependencies_no_file": ""
+        },
+        "thanks": {
+            "intro": "",
+            "contributors": "Contributeurs",
+            "contributors_description": "",
+            "translators": "Traducteurs",
+            "translators_description": "Ont traduit Deadlock+ dans davantage de langues.",
+            "donators": "Donateurs",
+            "donators_description": "",
+            "nobody_yet": "",
+            "others_one": "",
+            "others_other": "",
+            "anonymous_one": "",
+            "anonymous_other": ""
+        }
+    },
+    "storage": {
+        "subtitle": "",
+        "show_paths": "",
+        "hide_paths": "",
+        "refresh": "",
+        "looking": "",
+        "footnote": "",
+        "summary": {
+            "total": "",
+            "can_clear": "",
+            "clear_regenerable": ""
+        },
+        "entry": {
+            "path_missing": "Introuvable sur cet ordinateur",
+            "not_found": "Introuvable",
+            "retry_aria": "",
+            "retry": "",
+            "measuring": "",
+            "open_aria": "",
+            "open_title": "",
+            "reveal_aria": "",
+            "reveal_title": "",
+            "clear_aria": "",
+            "clear_title": ""
+        },
+        "dialog": {
+            "cancel": "Annuler",
+            "clear": ""
+        },
+        "clear": {
+            "title": "",
+            "body": "",
+            "all_title": "",
+            "all_body": ""
+        },
+        "toast": {
+            "freed": "",
+            "nothing": ""
+        },
+        "age": {
+            "today": "aujourd'hui",
+            "days_one": "",
+            "days_other": "",
+            "months_one": "",
+            "months_other": "",
+            "years_one": "",
+            "years_other": ""
+        },
+        "units_oldest": "",
+        "owners": {
+            "deadlock": {
+                "label": "",
+                "blurb": ""
+            },
+            "deadlock_plus": {
+                "label": "",
+                "blurb": ""
+            },
+            "mods": {
+                "label": "",
+                "blurb": "Géré par vos outils de mods. Non modifié ici."
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "",
+                "hint": ""
+            },
+            "history": {
+                "label": "Historique",
+                "hint": ""
+            },
+            "backup": {
+                "label": "Sauvegarde",
+                "hint": ""
+            },
+            "yours": {
+                "label": "",
+                "hint": ""
+            },
+            "managed": {
+                "label": "",
+                "hint": ""
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "Rediffusions",
+                "clear_name": "rediffusions",
+                "description": "Rediffusions de matchs sauvegardées par Deadlock.",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "hero_presence_cache": {
+                "label": "Cache de présence des occultistes",
+                "clear_name": "cache de présence des occultistes",
+                "description": "",
+                "consequence": ""
+            },
+            "shader_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "console_log": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "voice_ban_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "frame_runs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "settings": {
+                "label": "Paramètres",
+                "clear_name": "paramètres",
+                "description": "",
+                "consequence": ""
+            },
+            "server_presets": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_rules": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "connection_history": {
+                "label": "Historique des connexions",
+                "clear_name": "historique des connexions",
+                "description": "",
+                "consequence": ""
+            },
+            "notifications": {
+                "label": "Alertes et notifications",
+                "clear_name": "alertes et notifications",
+                "description": "",
+                "consequence": ""
+            },
+            "patch_notes_index": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "stats_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "server_list_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "replay_info_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "match_cache": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "other_app_files": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "logs": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "addons": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            },
+            "addons_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "config_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "gameinfo_backups": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "postgame_detail": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "match_ping": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "mvp_grades": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": "",
+                "units_one": "",
+                "units_other": ""
+            },
+            "shared_matches": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
+            }
+        }
+    }
+}

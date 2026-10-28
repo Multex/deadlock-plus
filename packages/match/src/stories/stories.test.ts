@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import en from "../../../../locales/en.json";
+import en from "../../../../locales/matches/en.json";
 import { detectStories, rankStories, type Story, type StoryInput, type StoryKind } from "./stories";
 import { comebackGrading, comebackMatch, rankedMatch, stompGrading, stompMatch, swingMatch } from "./test-fixtures";
 

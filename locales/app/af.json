@@ -1,0 +1,920 @@
+{
+    "errors": {
+        "common": {
+            "io": "Kon nie 'n lêer lees of skryf nie. Sien die logboeke na vir besonderhede.",
+            "network": "'n Netwerkversoek het misluk. Kontroleer jou internetverbinding en probeer weer.",
+            "internal": "Iets het verkeerd geloop. Sien die logboeke na vir besonderhede."
+        },
+        "demos": {
+            "replays_folder_not_found": "Herhalingsvouer nie gevind.",
+            "invalid_match_id": "Ongeldige wedstryd-ID.",
+            "replay_missing": "Hierdie herhaling bestaan nie meer nie.",
+            "recycle_bin_full": "Die snippermandjie kan nie hierdie herhalings hou nie.",
+            "reveal_failed": "Kon nie die lêerbestuurder oopmaak nie. Sien die logboeke na vir besonderhede.",
+            "pin_save_failed": "Kon nie die vasgemaakte herhalings stoor nie. Sien die logboeke na vir besonderhede.",
+            "rules_save_failed": "Kon nie die opruimingsreëls stoor nie. Sien die logboeke na vir besonderhede.",
+            "rules_duplicate_id": "",
+            "rules_zero_days": "Die ouderdomsperk moet ten minste 1 dag wees.",
+            "rules_zero_size": "Die groottebeperking moet meer as 0 wees.",
+            "not_a_replay": "Hierdie lêer is nie 'n herhaling nie.",
+            "replay_pinned": "Vasgemaakte herhalings kan nie verwyder word nie. Ontpen hulle eers.",
+            "delete_failed": "Kon nie hierdie herhaling verwyder nie. Sien die logboeke na vir besonderhede."
+        },
+        "about": {
+            "info_unavailable": "Kon nie die toepinligting lees nie. Sien die logboeke na vir besonderhede."
+        },
+        "autostart": {
+            "entry_write_failed": "Kon nie die opstartinskrywing skryf nie. Sien die logboeke na vir besonderhede.",
+            "entry_remove_failed": "Kon nie die opstartinskrywing verwyder nie. Sien die logboeke na vir besonderhede."
+        },
+        "crash": {
+            "unavailable": "Instortingsverslag is nie beskikbaar nie.",
+            "bundle_write_failed": "Kon nie die instortingsverslag skryf nie. Sien die logboeke na vir besonderhede.",
+            "marker_read_failed": "Kon nie die instortingsbesonderhede lees nie. Sien die logboeke na vir besonderhede.",
+            "marker_write_failed": "Kon nie die instortingsbesonderhede stoor nie. Sien die logboeke na vir besonderhede.",
+            "reveal_failed": "Kon nie die instortingsverslag in die lêerbestuurder wys nie. Sien die logboeke na vir besonderhede.",
+            "open_issue_failed": "Kon nie die kwessiebladsy oopmaak nie. Sien die logboeke na vir besonderhede."
+        },
+        "diagnostics": {
+            "frame_layer_linux_only": "Die raamlaag is net beskikbaar op Linux.",
+            "home_folder_not_found": "Kon nie jou tuisvouer vind nie.",
+            "frame_layer_missing": "Hierdie weergawe van Deadlock+ bevat nie die raamlaag nie.",
+            "frame_layer_install_failed": "Kon nie die raamlaag installeer nie. Sien die logboeke na vir besonderhede.",
+            "frame_layer_remove_failed": "Kon nie die raamlaag verwyder nie. Sien die logboeke na vir besonderhede.",
+            "frame_trace_needs_admin": "",
+            "frames_read_failed": "",
+            "mod_unreadable": "",
+            "helper_out_of_date": ""
+        },
+        "export": {
+            "invalid_name": "Hierdie lêernaam is nie toegelaat nie.",
+            "invalid_extension": "Hierdie lêeruitbreiding is nie toegelaat nie.",
+            "invalid_location": "Kies 'n lêerligging, nie 'n vouer nie.",
+            "save_failed": "Kon nie die lêer stoor nie. Sien die logboeke na vir besonderhede."
+        },
+        "support": {
+            "build_failed": ""
+        },
+        "kv": {
+            "store_failed": "Kon nie jou instellings lees of stoor nie. Sien die logboeke na vir besonderhede."
+        },
+        "gc": {
+            "steam_not_found": "Steam was nie gevind op hierdie rekenaar nie.",
+            "no_login": "",
+            "game_running": ""
+        },
+        "ingest": {
+            "rejected": "Die Deadlock API het die wedstrydinligting verwerp.",
+            "request_failed": ""
+        },
+        "logging": {
+            "log_folder_unavailable": "Kon nie die logboekvouer vind nie.",
+            "read_failed": "Kon nie die logboeklêer lees nie. Sien die logboeke na vir besonderhede.",
+            "reveal_failed": "Kon nie die logboekvouer oopmaak nie. Sien die logboeke na vir besonderhede."
+        },
+        "patch_notes": {
+            "search_failed": "Opdateringsoektog het misluk. Sien die logboeke na vir besonderhede."
+        },
+        "server_picker": {
+            "unknown_game": "",
+            "invalid_request": "",
+            "no_relay_data": "",
+            "block_failed": "Kon nie die bedieners blokkeer nie. Sien die logboeke na vir besonderhede.",
+            "unblock_failed": "Kon nie die bedieners deblokkeer nie. Sien die logboeke na vir besonderhede.",
+            "list_blocked_failed": "Kon nie jou geblokkeerde bedieners lees nie. Sien die logboeke na vir besonderhede.",
+            "sync_failed": "Kon nie jou geblokkeerde bedieners opdateer nie. Sien die logboeke na vir besonderhede.",
+            "external_scan_failed": "Kon nie vir bestaande brandmuurblokkeringe skandeer nie. Sien die logboeke na vir besonderhede.",
+            "external_import_failed": "Kon nie bestaande brandmuurblokkeringe invoer nie. Sien die logboeke na vir besonderhede.",
+            "needs_permission": "",
+            "helper_out_of_date": ""
+        },
+        "storage": {
+            "location_missing": "Hierdie ligging bestaan nie.",
+            "not_clearable": "Dit kan nie van hier af uitgevee word nie.",
+            "game_running": "Deadlock loop tans. Maak die speletjie toe voordat jy lêers uitvee.",
+            "reveal_failed": "Kon nie die ligging in die lêerbestuurder wys nie. Sien die logboeke na vir besonderhede.",
+            "remove_failed": "Kon nie {name} verwyder nie. Sien die logboeke na vir besonderhede."
+        },
+        "voice_bans": {
+            "no_account": "Geen Steam-rekening gevind nie.",
+            "no_userdata": "",
+            "not_utf8": "",
+            "read_failed": "",
+            "game_running": "Deadlock loop tans. Maak die speletjie toe voordat jy dempings verander.",
+            "not_a_mute_list": "",
+            "file_missing": "",
+            "no_backup_name": "",
+            "backup_failed": "",
+            "write_failed": ""
+        },
+        "builds": {
+            "no_account": "",
+            "no_userdata": "",
+            "read_failed": "",
+            "bad_file": "",
+            "no_backup_name": "",
+            "backup_failed": "",
+            "write_failed": "",
+            "bad_base": "",
+            "invalid_ability_order": "",
+            "abilities_unknown": "",
+            "published_delete_in_game": "",
+            "unknown_hero": "",
+            "no_local_id": "",
+            "build_not_found": "",
+            "history_failed": "",
+            "version_not_found": "",
+            "queue_failed": "",
+            "drafts_failed": "",
+            "code_empty": "",
+            "code_invalid": "",
+            "code_incomplete": "",
+            "code_damaged": ""
+        },
+        "match_history": {
+            "too_large": "",
+            "not_json": ""
+        },
+        "presence": {
+            "import_invalid": "",
+            "save_failed": ""
+        },
+        "overlay": {
+            "game_not_running": ""
+        },
+        "admin_access": {
+            "already_elevated": "",
+            "in_match": "",
+            "allow_failed": "",
+            "always_allow_blocked": "",
+            "always_allow_needs_install": "",
+            "remove_failed": "",
+            "unsupported": "",
+            "helper_out_of_date": "",
+            "restart_failed": ""
+        },
+        "ptrace": {
+            "unavailable": "",
+            "failed": ""
+        }
+    },
+    "tray": {
+        "show": "Wys Deadlock+",
+        "quit": "Verlaat",
+        "tooltip": "Deadlock+"
+    },
+    "notifications": {
+        "open_action": "",
+        "alert_new": {
+            "title": "",
+            "body": "{title}"
+        },
+        "alert_new_more": {
+            "title": "Nuwe Deadlock-opdatering",
+            "body": "{title} (+{count} meer)"
+        },
+        "maintenance_soon": {
+            "title": "",
+            "body": ""
+        },
+        "server_blocks_updated": {
+            "title": "",
+            "body": ""
+        },
+        "server_blocks_stale": {
+            "title": "",
+            "body": ""
+        },
+        "break_reminder": {
+            "title": "",
+            "body": ""
+        },
+        "overlay_test": {
+            "title": "",
+            "body": ""
+        },
+        "match_found": {
+            "title": "",
+            "body": ""
+        },
+        "match_found_unknown": {
+            "title": "",
+            "body": ""
+        }
+    },
+    "admin_access": {
+        "allow": "",
+        "always_allow": "",
+        "after_match": "",
+        "nothing_changed": "",
+        "game_admin": {
+            "title": "",
+            "body": "",
+            "restart": "",
+            "restart_failed": ""
+        }
+    },
+    "common": {
+        "confirm": "Bevestig",
+        "cancel": "Kanselleer",
+        "open_link_failed": "",
+        "link_open_failed": ""
+    },
+    "player_links": {
+        "menu": "",
+        "steam": "",
+        "statlocker": "",
+        "buildlocker": "",
+        "steam_of": "",
+        "statlocker_of": "",
+        "buildlocker_of": "",
+        "builds_by": "",
+        "build_on_buildlocker": ""
+    },
+    "platform": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+        "recycle_bin": "Snippermandjie",
+        "trash": ""
+    },
+    "shell": {
+        "nav": {
+            "home": "Tuis",
+            "server_picker": "",
+            "live": "",
+            "stats": "",
+            "alerts": "",
+            "performance": "",
+            "voice_bans": "",
+            "demos": "Herhalings",
+            "match_history": "",
+            "presence": "",
+            "builds": ""
+        },
+        "sidebar": {
+            "unread": "",
+            "settings": "Instellings",
+            "support": "",
+            "discord": "",
+            "tools": ""
+        },
+        "titlebar": {
+            "expand_sidebar": "",
+            "collapse_sidebar": "",
+            "update_downloading": "",
+            "downloading_update": "",
+            "update_available": "",
+            "minimize": "",
+            "maximize": "",
+            "restore": "Herstel",
+            "close": ""
+        },
+        "statusbar": {
+            "ingest": {
+                "off": "",
+                "starting": "",
+                "no_steam_cache": "",
+                "error": "",
+                "active": ""
+            },
+            "api": {
+                "checking": "",
+                "checking_title": "",
+                "online": "",
+                "online_title": "",
+                "degraded": "",
+                "degraded_title": "",
+                "offline": "",
+                "offline_title": ""
+            },
+            "game": {
+                "running": "",
+                "stopped": "",
+                "running_title": "",
+                "stopped_title": ""
+            },
+            "discord": {
+                "searching": "",
+                "searching_title": "",
+                "connected_title": "",
+                "off": "",
+                "off_title": ""
+            },
+            "live": {
+                "queuing": "",
+                "pregame": "",
+                "in_match": "",
+                "paused": "",
+                "post_match": "",
+                "open": ""
+            },
+            "tasks": "",
+            "run_now": "",
+            "open_performance": "",
+            "performance_issues": "",
+            "recovery": {
+                "running": "",
+                "reading": "",
+                "paused": "",
+                "waiting_game": "",
+                "waiting_limit": ""
+            }
+        },
+        "nav_description": {
+            "home": "",
+            "server_picker": "",
+            "live": "",
+            "stats": "",
+            "alerts": "",
+            "performance": "",
+            "voice_bans": "",
+            "demos": "",
+            "match_history": "",
+            "presence": "",
+            "builds": ""
+        }
+    },
+    "ui": {},
+    "alerts": {
+        "title": "",
+        "subtitle": "",
+        "search_aria": "",
+        "search_placeholder": "",
+        "clear_search": "",
+        "empty": "",
+        "empty_hint_enabled": "",
+        "empty_hint_disabled": "",
+        "new": "Nuut",
+        "read_full": "",
+        "indexing": "",
+        "searching": "",
+        "no_matches": "",
+        "no_matches_hint": "",
+        "source": {
+            "steam": "Steam",
+            "forum": "Forum"
+        }
+    },
+    "onboarding": {
+        "progress_label": "",
+        "skip": "",
+        "back": "Terug",
+        "next": "Volgende",
+        "finish": "Voltooi",
+        "autostart_error": "",
+        "welcome": {
+            "step_title": "",
+            "returning_title": "",
+            "returning_body": "",
+            "new_title": "",
+            "new_body": "",
+            "found": "",
+            "not_found": "",
+            "not_found_body": ""
+        },
+        "features": {
+            "title": ""
+        },
+        "groups": {
+            "play": "",
+            "progress": "",
+            "news": "Nuus",
+            "housekeeping": ""
+        },
+        "blurbs": {
+            "server_picker": "",
+            "live": "",
+            "stats": "",
+            "alerts": "",
+            "voice_bans": "",
+            "demos": "",
+            "performance": "",
+            "presence": ""
+        },
+        "permissions": {
+            "other_title": "",
+            "other_body": "",
+            "unavailable_label": "Nog nie beskikbaar:",
+            "unavailable": "",
+            "untested_label": "",
+            "untested": "",
+            "broken_label": "Is iets stukkend?",
+            "broken": "",
+            "windows_title": "",
+            "windows_body": "",
+            "firewall_label": "",
+            "firewall": "",
+            "monitor_label": "",
+            "monitor": "",
+            "frametimes_label": "",
+            "frametimes": "",
+            "nothing_else": "",
+            "admin_title": "",
+            "admin_body": "",
+            "always_note": "",
+            "later": "",
+            "later_note": "",
+            "always_on": "",
+            "always_on_hint": ""
+        },
+        "steam": {
+            "title": "Jou Steam-rekening",
+            "body": "",
+            "signed_in": "",
+            "none_title": "Geen Steam-rekening gevind nie",
+            "none_body": "",
+            "looking": ""
+        },
+        "sharing": {
+            "title": "",
+            "intro": "",
+            "consent": "",
+            "optional": "",
+            "telemetry_title": "",
+            "telemetry_body": "",
+            "telemetry_toggle": "",
+            "share": "",
+            "decline": "Nee dankie",
+            "saved_on": "",
+            "saved_off": "",
+            "skipped": ""
+        },
+        "extras": {
+            "title": "",
+            "intro": "",
+            "autostart_note": "",
+            "tray": "",
+            "tray_note": "",
+            "alerts": "",
+            "alerts_note": "",
+            "maintenance": "",
+            "maintenance_note": "",
+            "gc_recovery": "",
+            "gc_recovery_note": "",
+            "footer": "",
+            "presence": "",
+            "presence_note": ""
+        },
+        "done": {
+            "step_title": "Jy is gereed",
+            "title": "Jy is gereed.",
+            "body": "",
+            "home": "Tuis",
+            "settings": "Instellings",
+            "whats_new": "Wat nuut is"
+        }
+    },
+    "patch_notes": {
+        "no_link": "",
+        "loading": "",
+        "load_error": "",
+        "not_indexed": "",
+        "shallow_notice": "",
+        "read_full": "",
+        "expand_image": "",
+        "close_image": "",
+        "close": "",
+        "view_on": ""
+    },
+    "updates": {
+        "toast_available": "",
+        "status": {
+            "idle": "",
+            "checking": "",
+            "up_to_date": "",
+            "available": "",
+            "downloading": "",
+            "downloading_percent": "",
+            "check_failed": "",
+            "download_failed": ""
+        },
+        "banner": {
+            "title": "",
+            "body": "",
+            "install": "",
+            "dismiss": ""
+        }
+    },
+    "connection": {
+        "subtitle": "",
+        "unit_ms": "ms",
+        "ms": "{value} ms",
+        "pkt_per_second": "",
+        "series": {
+            "ping": "Ping"
+        },
+        "page": {
+            "title": "",
+            "deadlock_running": "",
+            "deadlock_not_running": "",
+            "direct_note": "",
+            "engine_note": "",
+            "waiting_server": ""
+        },
+        "current": {
+            "title": "",
+            "not_running": "",
+            "not_connected": "",
+            "unknown_relay": "",
+            "in": "",
+            "out": "",
+            "gap": ""
+        },
+        "history": {
+            "title": "",
+            "empty": "",
+            "chart_label": ""
+        },
+        "notices": {
+            "permission": "",
+            "allow": "",
+            "retry": "",
+            "admin_title": "",
+            "admin_body": "",
+            "helper_out_of_date": ""
+        },
+        "ping": {
+            "no_data": "",
+            "avg": "",
+            "min": "min",
+            "max": "max",
+            "jitter": "",
+            "loss": "",
+            "loss_down": "",
+            "loss_up": "",
+            "samples_one": "",
+            "samples_other": ""
+        }
+    },
+    "logging": {
+        "copied": "",
+        "copy_failed": "",
+        "save_filter": "Teks",
+        "saved": "",
+        "save_failed": "",
+        "open_failed": "",
+        "min_level": "",
+        "search": "Soek",
+        "search_label": "",
+        "auto_scroll": "",
+        "refresh": "",
+        "copy": "",
+        "save": "Stoor",
+        "open_folder": "",
+        "read_failed": "",
+        "loading": "",
+        "no_match": "",
+        "showing_latest": ""
+    },
+    "home": {
+        "today": "Vandag",
+        "yesterday": "Gister",
+        "stats_error": "",
+        "stats_loading": "",
+        "tier": "",
+        "glance_label": "",
+        "tools": "",
+        "your_deadlock": "",
+        "game": {
+            "running": "",
+            "launch": ""
+        },
+        "maintenance": {
+            "title": "",
+            "line": "",
+            "note": "",
+            "reminder_on": "",
+            "reminder_off": ""
+        },
+        "tiles": {
+            "blocked": "",
+            "muted": "",
+            "replays": ""
+        },
+        "rank": {
+            "title": "",
+            "progress": "",
+            "empty": ""
+        },
+        "form": {
+            "title": "",
+            "summary": "",
+            "empty": ""
+        },
+        "update": {
+            "title": "",
+            "unread": "",
+            "empty": ""
+        },
+        "session": {
+            "title": "Laaste sessie",
+            "summary": "",
+            "summary_delta": "",
+            "empty": ""
+        },
+        "verdict": {
+            "excellent": "Uitstekende sessie",
+            "good": "Goeie sessie",
+            "bad": "Rowwe sessie",
+            "neutral": "Gemiddelde sessie"
+        },
+        "greetings": {
+            "late_night": {
+                "1": "Laat aand, {name}?",
+                "2": "Nog wakker, {name}?",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "early_morning": {
+                "1": "Vroeë begin, {name}?",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "midday": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "afternoon": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "evening": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            }
+        },
+        "greetings_nameless": {
+            "late_night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "early_morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "morning": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "midday": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": ""
+            },
+            "afternoon": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "evening": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            },
+            "night": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": ""
+            }
+        },
+        "days_ago_one": "",
+        "days_ago_other": ""
+    },
+    "keyboard": {
+        "settings_section": "",
+        "open_settings": "",
+        "check_updates": "",
+        "support": "",
+        "open_palette": "",
+        "jump": "",
+        "palette_title": "",
+        "palette_description": "",
+        "palette_placeholder": "",
+        "palette_input_label": "",
+        "no_match": "",
+        "groups": {
+            "pages": "Bladsye",
+            "settings": "Instellings",
+            "actions": "Aksies",
+            "shortcuts": ""
+        },
+        "keywords": {
+            "page": "",
+            "settings": "",
+            "updates": "",
+            "support": "",
+            "palette": "",
+            "jump": ""
+        }
+    },
+    "crash": {
+        "heading_unclean": "",
+        "heading_error": "",
+        "detail_unclean": "",
+        "detail_error": "",
+        "attach_note": "",
+        "meta": "",
+        "privacy": "",
+        "dismiss": "",
+        "open_folder": "",
+        "report_github": ""
+    },
+    "notification_list": {
+        "title": "",
+        "unread": "",
+        "mark_all_read": "",
+        "mark_read": "",
+        "empty": "",
+        "relative": {
+            "now": "nou net",
+            "minutes": "{count}m terug",
+            "hours": "{count}h terug",
+            "yesterday": "gister",
+            "days": "{count}d terug"
+        },
+        "unread_count_one": "",
+        "unread_count_other": ""
+    },
+    "error_page": {
+        "title": "",
+        "body": "",
+        "retry": "Probeer weer",
+        "copy": "",
+        "open_logs": "Maak logboeke oop",
+        "copied": "",
+        "copy_failed": "",
+        "unknown": ""
+    },
+    "telemetry": {
+        "notice": "",
+        "notice_action": ""
+    },
+    "support": {
+        "nudge": "",
+        "action": ""
+    },
+    "connectivity": {
+        "offline": ""
+    },
+    "whats_new": {
+        "title": "",
+        "subtitle": "",
+        "empty": "",
+        "show_all": "",
+        "back_home": ""
+    },
+    "account": {
+        "default_name": "Steam-rekening",
+        "none": "Geen Steam-rekening",
+        "none_found": "Geen Steam-rekening gevind nie",
+        "tooltip": "{name} ({id})"
+    },
+    "heroes": {},
+    "jobs": {
+        "catalog": {
+            "addon_scan": {
+                "title": "",
+                "description": ""
+            },
+            "patch_notes_index": {
+                "title": "",
+                "description": ""
+            },
+            "server_block_sync": {
+                "title": "",
+                "description": ""
+            },
+            "match_grades": {
+                "title": "",
+                "description": ""
+            }
+        },
+        "policy": {
+            "always": "",
+            "pause_in_game": "",
+            "slow_in_game": ""
+        },
+        "status": {
+            "paused": "",
+            "starting": "{title}...",
+            "progress": "{title}... {done}/{total}",
+            "progress_labeled": "{title}... {done}/{total} · {label}"
+        }
+    },
+    "gc": {
+        "status": {
+            "off": "Af",
+            "looking_for_login": "",
+            "last_pass_failed": "",
+            "using": "",
+            "accounts_one": "",
+            "accounts_other": ""
+        },
+        "own": {
+            "reading_history": "",
+            "progress": "",
+            "nothing_missing": "",
+            "done": "",
+            "incomplete": "",
+            "rate_limited": "",
+            "stopped": "",
+            "paused": "",
+            "waiting_game": "",
+            "waiting_limit": "",
+            "continues_at": "",
+            "continues_tomorrow": "",
+            "continues_after_game": "",
+            "last_run": "",
+            "last_run_nothing_left": "",
+            "last_run_limit": "",
+            "last_run_failed": "",
+            "ago": {
+                "now": "",
+                "yesterday": "",
+                "minutes_one": "",
+                "minutes_other": "",
+                "hours_one": "",
+                "hours_other": "",
+                "days_one": "",
+                "days_other": ""
+            },
+            "matches_one": "",
+            "matches_other": ""
+        }
+    },
+    "api_health": {},
+    "steam_account": {},
+    "ingest": {},
+    "about": {
+        "version": "",
+        "dev_build": "",
+        "running_as": "",
+        "system": "",
+        "data_folder": "",
+        "game_build": "",
+        "game_built": "",
+        "source_revision": "",
+        "install_folder": "",
+        "administrator": "",
+        "standard_user": "",
+        "root": "",
+        "regular_user": ""
+    },
+    "support_report": {
+        "title": "",
+        "description": "",
+        "included": "",
+        "create": "",
+        "refresh": "",
+        "creating": "",
+        "preview": "",
+        "copy": "",
+        "copied": "",
+        "copy_failed": "",
+        "save": "",
+        "save_filter": "",
+        "saved": "",
+        "save_failed": "",
+        "build_failed": ""
+    }
+}

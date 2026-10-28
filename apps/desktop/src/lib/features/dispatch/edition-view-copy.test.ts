@@ -1,7 +1,7 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { interpolate } from "$lib/core/i18n.svelte";
-import en from "../../../../../../locales/en.json";
+import en from "../../../../../../locales/dispatch/en.json";
 import { PERSONA_HEROES, PERSONAS, personaEdition, type Persona } from "@deadlock-plus/stats/dispatch/personas.fixture";
 import { cellConditions, HEADLINE_SHAPES, STORY_COPY, type HeadlineShape } from "@deadlock-plus/stats/dispatch/stories";
 import type { DispatchStoryKind, EditionKind } from "@deadlock-plus/stats/dispatch/types";

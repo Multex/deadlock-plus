@@ -125,7 +125,7 @@ if (process.argv.includes("--check")) {
  * chunk.
  */
 function dispatchProbes() {
-    const en = JSON.parse(readFileSync(new URL("../../../locales/en.json", import.meta.url), "utf8"));
+    const en = JSON.parse(readFileSync(new URL("../../../locales/dispatch/en.json", import.meta.url), "utf8"));
     const leaves = [];
     const walk = (node) => (typeof node === "string" ? leaves.push(node) : Object.values(node).forEach(walk));
     walk(en.dispatch);

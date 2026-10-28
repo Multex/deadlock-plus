@@ -83,7 +83,7 @@ From `apps/desktop/`: `pnpm check`, `pnpm test`, `pnpm format:check`, `pnpm laye
 
 ## Translations
 
-All user-facing text lives in `locales/en.json`. Never hardcode it in `.svelte` or `.ts` files.
+All user-facing text lives in `locales/<area>/en.json`, one file per app area (`app`, `settings`, `matches`, `builds`, `live`, `tools`, `dispatch`). `dispatch` loads only when the Dispatch page opens. Each top-level namespace belongs to exactly one area. Never hardcode text in `.svelte` or `.ts` files.
 
 - Keys are nested, snake_case, dotted: `t("settings.language.label")`. Placeholders are `{name}`.
 - Plurals use sibling keys with CLDR suffixes: `replays_count_one`, `replays_count_other`. Call `tn("replays_count", n)`.
@@ -91,11 +91,11 @@ All user-facing text lives in `locales/en.json`. Never hardcode it in `.svelte` 
 - Errors use `errors.<feature>.<name>`; the Rust side returns a code, the frontend renders it.
 - Rust formats only tray and notification text, through `features/i18n.rs`. Keep log lines and `detail` strings in English.
 - `pnpm i18n:check` (also in CI) fails on a missing key, a mismatched placeholder or a bad plural suffix.
-- Other languages go through Crowdin (`crowdin.yml`). Do not edit `locales/<lang>.json` by hand.
+- Other languages go through Crowdin (`crowdin.yml`). Do not edit `locales/<area>/<lang>.json` by hand.
 
 ### Crowdin flow
 
-- `locales/en.json` is the only source. A push to `main` that changes it uploads it to Crowdin (`.github/workflows/crowdin.yml`).
+- `locales/<area>/en.json` are the only sources. A push to `main` that changes one uploads them to Crowdin (`.github/workflows/crowdin.yml`).
 - The same workflow downloads translations on a weekly schedule and on manual runs. It opens a PR from `l10n_crowdin_translations`; it never pushes to `main`.
 - Language files are named `<code>.json` (`fr.json`). Regional variants that coexist use the full code (`pt-BR.json`, `zh-CN.json`); add new ones under `languages_mapping` in `crowdin.yml`.
 - The `en-XA` pseudo-locale is for local development only. It is never uploaded or downloaded.

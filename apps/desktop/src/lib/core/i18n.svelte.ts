@@ -1,4 +1,3 @@
-import en from "../../../../../locales/en.json?omit=dispatch";
 import { command } from "./tauri";
 import { prefs } from "./prefs";
 
@@ -7,37 +6,54 @@ type Params = Record<string, string | number>;
 
 export const DEFAULT_LOCALE = "en";
 
-const loaders: Record<string, () => Promise<{ default: Catalog }>> = {
-    af: () => import("../../../../../locales/af.json"),
-    cs: () => import("../../../../../locales/cs.json"),
-    de: () => import("../../../../../locales/de.json"),
-    es: () => import("../../../../../locales/es.json"),
-    fr: () => import("../../../../../locales/fr.json"),
-    hu: () => import("../../../../../locales/hu.json"),
-    id: () => import("../../../../../locales/id.json"),
-    it: () => import("../../../../../locales/it.json"),
-    ja: () => import("../../../../../locales/ja.json"),
-    ko: () => import("../../../../../locales/ko.json"),
-    pl: () => import("../../../../../locales/pl.json"),
-    pt: () => import("../../../../../locales/pt.json"),
-    "pt-BR": () => import("../../../../../locales/pt-BR.json"),
-    ru: () => import("../../../../../locales/ru.json"),
-    th: () => import("../../../../../locales/th.json"),
-    tr: () => import("../../../../../locales/tr.json"),
-    uk: () => import("../../../../../locales/uk.json"),
-    "zh-CN": () => import("../../../../../locales/zh-CN.json"),
-    "zh-TW": () => import("../../../../../locales/zh-TW.json"),
-};
+// Each area file holds whole top-level namespaces and no namespace sits in two areas, so a shallow merge
+// gives the same catalog as one file per locale.
+const mergeAreas = (areas: Catalog[]): Catalog => Object.assign({}, ...areas);
 
-/** English namespaces left out of the startup catalog; whatever reads one awaits `i18n.namespace` first. */
-const namespaces: Record<string, () => Promise<{ default: Catalog }>> = {
-    dispatch: () => import("../../../../../locales/en.json?pick=dispatch"),
+const localeOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1, -".json".length);
+
+export const en: Catalog = mergeAreas(
+    Object.values(
+        import.meta.glob<Catalog>(["../../../../../locales/*/en.json", "!../../../../../locales/dispatch/*.json"], {
+            eager: true,
+            import: "default",
+        }),
+    ),
+);
+
+const areaLoaders: Record<string, (() => Promise<Catalog>)[]> = {};
+for (const [path, load] of Object.entries(
+    import.meta.glob<Catalog>(
+        [
+            "../../../../../locales/*/*.json",
+            "!../../../../../locales/*/en.json",
+            "!../../../../../locales/dispatch/*.json",
+        ],
+        { import: "default" },
+    ),
+)) {
+    (areaLoaders[localeOf(path)] ??= []).push(load);
+}
+
+const loaders: Record<string, () => Promise<Catalog>> = Object.fromEntries(
+    Object.entries(areaLoaders).map(([locale, areas]) => [
+        locale,
+        async () => mergeAreas(await Promise.all(areas.map((load) => load()))),
+    ]),
+);
+
+const byLocale = (files: Record<string, () => Promise<Catalog>>): Record<string, () => Promise<Catalog>> =>
+    Object.fromEntries(Object.entries(files).map(([path, load]) => [localeOf(path), load]));
+
+/** Areas left out of the startup catalog, by locale; whatever reads one awaits `i18n.namespace` first. */
+const lazyAreas: Record<string, Record<string, () => Promise<Catalog>>> = {
+    dispatch: byLocale(import.meta.glob<Catalog>("../../../../../locales/dispatch/*.json", { import: "default" })),
 };
 
 if (import.meta.env.DEV) {
     loaders["en-XA"] = async () => {
-        const dispatch = (await namespaces.dispatch()).default;
-        return { default: (await import("./i18n-pseudo")).pseudoLocalize({ ...en, ...dispatch }) };
+        const lazy = await Promise.all(Object.values(lazyAreas).map((area) => area[DEFAULT_LOCALE]()));
+        return (await import("./i18n-pseudo")).pseudoLocalize(mergeAreas([en, ...lazy]));
     };
 }
 
@@ -91,17 +107,25 @@ class I18n {
 
     private namespaces = new Map<string, Promise<void>>();
 
-    /** Adds an English namespace to the catalog. Its keys read as raw keys until this settles. */
+    /** Adds a lazy area to English and every loaded locale. Its keys read as raw keys until this settles. */
     namespace(name: string): Promise<void> {
         let loading = this.namespaces.get(name);
         if (!loading) {
-            loading = namespaces[name]().then((module) => {
-                this.catalogs = { ...this.catalogs, en: { ...this.catalogs.en, ...module.default } };
-            });
+            loading = this.mergeArea(name, Object.keys(this.catalogs));
             loading.catch(() => this.namespaces.delete(name));
             this.namespaces.set(name, loading);
         }
         return loading;
+    }
+
+    private async mergeArea(name: string, codes: readonly string[]): Promise<void> {
+        const area = lazyAreas[name];
+        const parts = await Promise.all(
+            codes.filter((code) => area[code]).map(async (code) => [code, await area[code]()] as const),
+        );
+        const catalogs = { ...this.catalogs };
+        for (const [code, part] of parts) if (catalogs[code]) catalogs[code] = { ...catalogs[code], ...part };
+        this.catalogs = catalogs;
     }
 
     private localeListeners = new Set<(locale: string) => void>();
@@ -137,8 +161,9 @@ class I18n {
         const base = locale.split("-")[0];
         for (const code of new Set([locale, base])) {
             if (this.catalogs[code] || !loaders[code]) continue;
-            const module = await loaders[code]();
-            this.catalogs = { ...this.catalogs, [code]: module.default };
+            const catalog = await loaders[code]();
+            this.catalogs = { ...this.catalogs, [code]: catalog };
+            for (const name of this.namespaces.keys()) await this.mergeArea(name, [code]);
         }
     }
 

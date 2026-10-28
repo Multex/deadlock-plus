@@ -1,0 +1,362 @@
+{
+    "performance": {
+        "title": "Performance",
+        "rules": {
+            "nulled_not_cancelled": "Timer dropped but still running",
+            "unguarded_rearm": "Timer can pile up copies of itself"
+        },
+        "severity": {
+            "low": "Low",
+            "medium": "Medium",
+            "high": "High"
+        },
+        "addon": {
+            "gamebanana_mod": "GameBanana mod {id}",
+            "mod_id": "mod {id}",
+            "disabled": "Disabled"
+        },
+        "frame_capture": {
+            "note_windows": "Needs administrator access, which Windows asks you to allow.",
+            "note_linux": "On Linux this reads a Vulkan layer that runs inside Deadlock. Install it below, then add the launch option to Deadlock in Steam.",
+            "note_macos": "Frame capture is not available on macOS, or under Wine."
+        },
+        "runs": {
+            "default_label": "Run {date}",
+            "save_failed": "Couldn't save that run. Try again.",
+            "delete_failed": "Couldn't delete that run. Try again."
+        },
+        "metrics": {
+            "avg_fps": "Average FPS",
+            "low_1pct_fps": "1% low FPS",
+            "low_01pct_fps": "0.1% low FPS",
+            "median_frametime": "Median frametime",
+            "p95": "95th percentile",
+            "p99": "99th percentile",
+            "spikes_per_minute": "Spikes per minute",
+            "spikes": "Spikes",
+            "longest_frame": "Longest frame"
+        },
+        "units": {
+            "ms": "{value} ms"
+        },
+        "only_on_in": "Only on in {run}: {addons}",
+        "same_addons": "Both runs had the same mods on, so any difference comes from something else.",
+        "report": {
+            "title": "Deadlock+ frametime comparison",
+            "tie": "tie",
+            "run_length": "{minutes} min, {frames} frames",
+            "run_a": "Run A: {label} ({length})",
+            "run_b": "Run B: {label} ({length})",
+            "better": "Better",
+            "disclaimer": "Differences under 3% count as a tie. Frame pacing varies between matches, so a difference is consistent with a mod being the cause, not proof of it."
+        },
+        "layer": {
+            "copied": "Copied the launch option",
+            "copy_failed": "Couldn't copy the launch option",
+            "installed": "Frame layer installed",
+            "not_installed": "Frame layer not installed",
+            "installed_hint": "It only loads into games started with the launch option below.",
+            "install_hint": "Installs a small Vulkan layer into your home folder. It does nothing until you add the launch option.",
+            "unavailable": "This build of Deadlock+ does not include the layer, so it cannot be installed.",
+            "remove": "Remove",
+            "install": "Install",
+            "steps": "Steam, Deadlock, Properties, Launch options. Then start the game and press Start here.",
+            "copy": "Copy"
+        },
+        "tabs": {
+            "frametimes": {
+                "title": "Frametimes",
+                "blurb": "Record a play session and see your real frame pacing, 1% lows and stutter spikes."
+            },
+            "scripts": {
+                "title": "Mod scripts",
+                "blurb": "Check installed mods for script patterns that can hurt performance."
+            },
+            "compare": {
+                "title": "Compare",
+                "blurb": "Set two saved runs side by side, for example with a mod on and off."
+            }
+        },
+        "compare": {
+            "copied": "Copied the comparison",
+            "copy_failed": "Couldn't copy the comparison",
+            "saved": "Saved the comparison",
+            "save_failed": "Couldn't save the comparison. Check the log for details.",
+            "file_filter": "Text",
+            "pick_run": "Pick a run",
+            "intro": "Compare two saved runs side by side. Play the same map for a similar length of time in both, once with a mod on and once with it off. Frame pacing varies between matches, so a difference is consistent with the mod being the cause, not proof of it.",
+            "empty_none": "No saved runs yet.",
+            "empty_single": "One saved run so far.",
+            "empty_hint": "Record a run on the Frametimes tab and save it with a label. You need two to compare.",
+            "run_a": "Run A",
+            "run_b": "Run B",
+            "pick_different": "Pick two different runs.",
+            "copy_report": "Copy report",
+            "save_report": "Save report",
+            "legend": "Green marks the better side. Differences under 3% count as a tie. Run A was {a} long, run B {b}.",
+            "no_difference": "No clear difference.",
+            "mixed": "Mixed result: {a} measures favour A, {b} favour B.",
+            "favours_a": "Every measure that differs favours A.",
+            "favours_b": "Every measure that differs favours B.",
+            "addons_differ": "Mods that differ between the runs",
+            "only_on_in": "Only on in {run}:",
+            "addons_on_one": "{count} mod on",
+            "addons_on_other": "{count} mods on",
+            "delete_run": "Delete run {label}"
+        },
+        "frametimes": {
+            "intro": "Records how smoothly Deadlock draws frames. Start it, play, then stop to see the numbers. Run it with a mod on and again with it off to compare.",
+            "start": "Start",
+            "stop": "Stop",
+            "waiting": "Waiting for Deadlock to start...",
+            "recording_one": "Recording · {time} · {count} frame",
+            "recording_other": "Recording · {time} · {count} frames",
+            "background": "Deadlock is in the background, not counting frames",
+            "limit": "Recording is full. Stop to see the results.",
+            "graph_caption_one": "Last {count} frame · top of graph {ms} ms",
+            "graph_caption_other": "Last {count} frames · top of graph {ms} ms",
+            "no_frames": "Deadlock is running, but Deadlock+ can't see its frames. Restart the game and try again.",
+            "none_recorded": "No frames were recorded.",
+            "summary_one": "{count} frame over {time}. A spike is a frame at least 33 ms long and 2.5 times the median.",
+            "summary_other": "{count} frames over {time}. A spike is a frame at least 33 ms long and 2.5 times the median.",
+            "left_out": "Left out {time} spent tabbed out.",
+            "save_hint_one": "Save this run to compare later. It records the {count} mod that is on now.",
+            "save_hint_other": "Save this run to compare later. It records the {count} mods that are on now.",
+            "label_aria": "Run label",
+            "label_placeholder": "Label, e.g. Mod off",
+            "save": "Save run",
+            "saved": "Saved",
+            "spike_at": "at {time}",
+            "needs_admin": "Frame times need administrator access.",
+            "start_failed": "Couldn't start recording. Try again.",
+            "stop_failed": "Couldn't finish the recording. Try again.",
+            "read_failed": "Couldn't read frames just now."
+        },
+        "scripts": {
+            "intro": "Scans the scripts inside your installed Deadlock mods for patterns that can hurt frametimes, like timers that pile up. Nothing is changed or run.",
+            "run_now": "Run now",
+            "scanning_button": "Scanning...",
+            "scan_again": "Scan again",
+            "disclaimer": "This is a best-effort check on the script text. A finding is a hint to look closer, not proof that a mod slows your game. A clean result does not clear a mod either. Only comparing frametimes with the mod on and off shows the cause.",
+            "no_install": "Couldn't find your Deadlock install, so there are no mods to scan.",
+            "none_installed": "No mods are installed.",
+            "finding": "Finding mods...",
+            "progress": "Scanning mods... {done} of {total}",
+            "progress_paused": "Scan paused while Deadlock runs · {done} of {total}",
+            "progress_aria": "Mod scan progress",
+            "with_findings_one": "With findings ({count} finding)",
+            "with_findings_other": "With findings ({count} findings)",
+            "scripts_clean": "Scripts, no findings",
+            "no_scripts": "No scripts",
+            "worth_a_look": "Worth a look",
+            "could_not_read": "Could not read",
+            "scanned_clean": "Scanned, no findings",
+            "error_badge": "Error",
+            "scripts_count_one": "{count} script",
+            "scripts_count_other": "{count} scripts",
+            "pending_one": "Waiting to scan {count} more mod...",
+            "pending_other": "Waiting to scan {count} more mods...",
+            "addons_without_scripts_one": "{count} mod has no scripts",
+            "addons_without_scripts_other": "{count} mods have no scripts"
+        },
+        "findings": {
+            "nulled_not_cancelled": "This mod forgets a timer without stopping it. Each time {fn} runs again, another timer can start and keep running.",
+            "unguarded_rearm": "{fn} restarts its own timer and also runs on an event, without stopping the old timer first. Each event can add a timer that never stops."
+        }
+    },
+    "demos": {
+        "title": "Replays",
+        "subtitle": "Match replays saved by Deadlock on this PC.",
+        "open_folder": "Open folder",
+        "clean_up": "Clean up",
+        "delete_selected": "Delete selected ({count})",
+        "refresh": "Refresh",
+        "reading": "Reading replays...",
+        "no_folder": "Couldn't find Deadlock's replays folder. Install Deadlock through Steam and watch or download a replay in game.",
+        "select_page": "Select this page",
+        "empty_none": "No replays saved yet.",
+        "empty_filtered": "No replays with that status.",
+        "reference_build": "\"Older build\" compares each replay with the newest build found among your replays (build {build}).",
+        "match_id": "Match {id}",
+        "hero_id": "Hero {id}",
+        "status": {
+            "complete": {
+                "label": "Ready",
+                "hint": "Matches the newest replay build found here."
+            },
+            "partial": {
+                "label": "Partial",
+                "hint": "An unfinished download. It will not play."
+            },
+            "outdated": {
+                "label": "Older build",
+                "hint": "Recorded on an older game build. It may not play."
+            },
+            "unknown": {
+                "label": "Unknown",
+                "hint": "This replay couldn't be read. The file may be damaged."
+            }
+        },
+        "filter": {
+            "all": "All ({count})",
+            "pinned": "Pinned ({count})",
+            "status_count": "{label} ({count})",
+            "summary_one": "{count} replay, {size}",
+            "summary_other": "{count} replays, {size}"
+        },
+        "pager": {
+            "previous": "Previous page",
+            "next": "Next page",
+            "page": "Page {page} of {count}"
+        },
+        "row": {
+            "select": "Select match {id}",
+            "unknown_hero": "Unknown hero",
+            "build": "build {build}",
+            "not_in_api": "not in the Deadlock API yet",
+            "details_unavailable": "details unavailable",
+            "win": "Win",
+            "loss": "Loss",
+            "pin": "Pin replay",
+            "pinned_hint": "Pinned: delete and cleanup skip it. Click to unpin.",
+            "unpinned_hint": "Pin: protect from delete and cleanup",
+            "more_actions": "More actions",
+            "open_statlocker": "Open on Statlocker",
+            "show_in_folder": "Show in folder",
+            "delete": "Delete",
+            "delete_unpin_first": "Delete (unpin first)",
+            "pin_match": "Pin replay of match {id}",
+            "more_actions_match": "More actions for match {id}"
+        },
+        "delete": {
+            "title_one": "Delete {count} replay?",
+            "title_other": "Delete {count} replays?",
+            "disabled": "The {trash} is turned off for this drive, so replays can only be deleted permanently. This can't be undone.",
+            "too_large_one": "This file is too large to move to the {trash}. It can only be deleted permanently, and that can't be undone.",
+            "too_large_other": "These files are too large to move to the {trash}. They can only be deleted permanently, and that can't be undone.",
+            "too_large_room_one": "This file is too large to move to the {trash} ({needed} needed, {free} free there). It can only be deleted permanently, and that can't be undone.",
+            "too_large_room_other": "These files are too large to move to the {trash} ({needed} needed, {free} free there). They can only be deleted permanently, and that can't be undone.",
+            "description": "Frees {size}. Replays aren't backed up in Steam Cloud.",
+            "method": "Delete method",
+            "recycle": "Move to {trash}",
+            "recycle_hint": "You can restore it from there.",
+            "permanent": "Delete permanently",
+            "permanent_hint": "Frees the space now. Can't be undone."
+        },
+        "cleanup": {
+            "title": "Clean up replays",
+            "description": "Pick what counts as clutter. Nothing is deleted until you review the list and confirm. Pinned replays are always skipped.",
+            "older_than": "Older than",
+            "days_label": "Days",
+            "days_unit": "days",
+            "larger_than": "Larger than",
+            "gigabytes_label": "Gigabytes",
+            "load_failed": "Couldn't load the cleanup rules.",
+            "save_failed": "Couldn't save the cleanup rules. They were changed back.",
+            "check_failed": "Couldn't check which replays match.",
+            "gb_unit": "GB",
+            "turn_on": "Turn on a rule to see what it would remove.",
+            "checking": "Checking replays...",
+            "matches_one": "{count} replay match, {size}",
+            "matches_other": "{count} replays match, {size}",
+            "close": "Close",
+            "review_one": "Review {count} replay",
+            "review_other": "Review {count} replays",
+            "rule_older_than_days_one": "Older than {count} day",
+            "rule_older_than_days_other": "Older than {count} days",
+            "rule_larger_gb": "Larger than {size} GB",
+            "rule_larger_mb": "Larger than {size} MB",
+            "rule_outdated": "Older game build",
+            "rule_partial": "Unfinished downloads"
+        },
+        "toast": {
+            "deleted_one": "Deleted {count} replay",
+            "deleted_other": "Deleted {count} replays",
+            "delete_failed_one": "Couldn't delete {count} replay. Try again.",
+            "delete_failed_other": "Couldn't delete {count} replays. Try again.",
+            "delete_none": "Couldn't delete those replays. Try again.",
+            "pin_failed": "Couldn't pin that replay. Try again.",
+            "open_failed": "Couldn't open the replays folder."
+        },
+        "list_error": "Couldn't read your replays."
+    },
+    "voice_bans": {
+        "title": "Mutes",
+        "subtitle": "Players muted in Deadlock for {account}. Every change saves a backup copy of the file first.",
+        "your_account": "your account",
+        "export_all": "Export all",
+        "export_selected": "Export selected ({count})",
+        "import": "Import",
+        "reading": "Reading your mute list...",
+        "no_file": "No mute list for this account yet. Deadlock makes one the first time you mute someone in game.",
+        "unknown_player": "Unknown player",
+        "profile_unknown": "Unknown",
+        "not_a_voice_ban": "This isn't a Deadlock mute list.",
+        "unrecognised_import": "Deadlock+ can't read this file. Pick a mute list exported from Deadlock+.",
+        "api_error": "Couldn't reach the Deadlock API (error {status}).",
+        "game_running": {
+            "title": "Deadlock is running",
+            "body": "Mutes can't be changed while the game is open. It rewrites the file when it closes and would erase your changes. Close Deadlock to edit this list."
+        },
+        "add": {
+            "placeholder": "Mute by player name, Steam profile link or Steam ID",
+            "aria": "Player to mute",
+            "mute": "Mute",
+            "search": "Search",
+            "none_found": "No players found for that name.",
+            "muted": "Muted",
+            "mute_named": "Mute {name}"
+        },
+        "filter": {
+            "placeholder": "Filter by name or ID...",
+            "aria": "Filter by name or ID",
+            "unmute_selected": "Unmute selected ({count})"
+        },
+        "list": {
+            "select_page": "Select this page",
+            "count": "{filtered} of {total} muted",
+            "empty": "Nobody is muted.",
+            "no_match": "No one matches \"{filter}\"."
+        },
+        "row": {
+            "select": "Select {name}",
+            "open_title": "Statlocker profile",
+            "unmute": "Unmute",
+            "unmute_named": "Unmute {name}",
+            "open_named_aria": "Open Statlocker profile of {name}"
+        },
+        "pager": {
+            "previous": "Previous page",
+            "next": "Next page",
+            "page": "Page {page} of {count}"
+        },
+        "unmute": {
+            "title_one": "Unmute {count} player?",
+            "title_other": "Unmute {count} players?",
+            "description": "They are removed from your mute list. A backup is saved first.",
+            "confirm": "Unmute"
+        },
+        "import_dialog": {
+            "title_one": "Import {count} new mute?",
+            "title_other": "Import {count} new mutes?",
+            "description_one": "{count} player in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
+            "description_other": "{count} players in the file, {already} already muted. Existing mutes are kept. A backup copy is saved first.",
+            "confirm": "Import"
+        },
+        "toast": {
+            "unmuted_one": "Unmuted {count} player",
+            "unmuted_other": "Unmuted {count} players",
+            "muted_one": "Muted {count} player",
+            "muted_other": "Muted {count} players",
+            "backup": "Backup saved. Find it on the Storage page.",
+            "already_muted": "Already muted.",
+            "not_recognised": "Not recognised. Use a Steam profile link or Steam ID.",
+            "search_failed": "Couldn't search for players. Check your connection and try again.",
+            "exported": "Exported {count} mutes",
+            "export_failed": "Couldn't export your mutes. Try again.",
+            "save_failed": "Couldn't save your mutes. Try again.",
+            "import_failed": "Couldn't read that file. Pick a mute list exported from Deadlock+ or the game's own mute file."
+        },
+        "list_error": "Couldn't read your mute list."
+    }
+}

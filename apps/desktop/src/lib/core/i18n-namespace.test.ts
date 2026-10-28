@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import full from "../../../../../locales/en.json";
+import app from "../../../../../locales/app/en.json";
+import dispatch from "../../../../../locales/dispatch/en.json";
 import { i18n, t } from "./i18n.svelte";
 
 describe("lazy namespaces", () => {
@@ -10,15 +11,15 @@ describe("lazy namespaces", () => {
 
     it("resolves dispatch keys once the namespace loads", async () => {
         await i18n.namespace("dispatch");
-        expect(t("dispatch.masthead.name")).toBe(full.dispatch.masthead.name);
-        expect(t("common.cancel")).toBe(full.common.cancel);
+        expect(t("dispatch.masthead.name")).toBe(dispatch.dispatch.masthead.name);
+        expect(t("common.cancel")).toBe(app.common.cancel);
     });
 
     it("falls back to English dispatch text in another locale", async () => {
         i18n.catalogs = { ...i18n.catalogs, fr: { common: { cancel: "Annuler" } } };
         i18n.setLocale("fr");
         await i18n.namespace("dispatch");
-        expect(t("dispatch.masthead.name")).toBe(full.dispatch.masthead.name);
+        expect(t("dispatch.masthead.name")).toBe(dispatch.dispatch.masthead.name);
         expect(t("common.cancel")).toBe("Annuler");
         i18n.setLocale("en");
     });

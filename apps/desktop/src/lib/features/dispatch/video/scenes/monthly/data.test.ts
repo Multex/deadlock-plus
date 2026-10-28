@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import en from "../../../../../../../../../locales/en.json";
+import en from "../../../../../../../../../locales/dispatch/en.json";
 import { PERSONA_HEROES, PERSONAS, personaEdition } from "@deadlock-plus/stats/dispatch/personas.fixture";
 import type { Edition } from "@deadlock-plus/stats/dispatch/types";
 import { MUSIC_TRACKS } from "../../music";

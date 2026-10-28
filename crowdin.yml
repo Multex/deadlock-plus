@@ -4,11 +4,11 @@ base_path: "."
 preserve_hierarchy: true
 
 files:
-  - source: /locales/en.json
-    translation: /locales/%locale%.json
+  - source: /locales/*/en.json
+    translation: /%original_path%/%locale%.json
     type: i18next_json
     ignore:
-      - /locales/en-XA.json
+      - /locales/*/en-XA.json
     # %two_letters_code% is shared by pt and pt-BR, and by zh-CN and zh-TW, so
     # Crowdin refuses to export them. %locale% is unique per language; the
     # mapping shortens it to the file names the app loads.

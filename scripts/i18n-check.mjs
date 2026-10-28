@@ -114,6 +114,45 @@ export function checkCatalogs(catalogs, used, referenced = { literals: new Set()
     return { errors, warnings };
 }
 
+// The app and Crowdin both treat `locales/<area>/<locale>.json` as slices of one catalog per locale, which only
+// holds while every namespace lives in exactly one area and every locale agrees with en on which.
+export function mergeAreas(files) {
+    const errors = [];
+    const catalogs = {};
+    const homes = {};
+    for (const { area, locale, catalog } of files) {
+        const home = (homes[locale] ??= {});
+        for (const [namespace, value] of Object.entries(catalog)) {
+            if (home[namespace]) errors.push(`${locale}: ${namespace} is in both ${home[namespace]} and ${area}`);
+            home[namespace] = area;
+            (catalogs[locale] ??= {})[namespace] = value;
+        }
+    }
+    for (const [locale, home] of Object.entries(homes)) {
+        if (locale === "en") continue;
+        for (const [namespace, area] of Object.entries(home)) {
+            const english = homes.en?.[namespace];
+            if (english && english !== area)
+                errors.push(`${locale}: ${namespace} is in ${area} but en keeps it in ${english}`);
+        }
+    }
+    return { catalogs, errors };
+}
+
+function readAreas(localesDir) {
+    return readdirSync(localesDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .flatMap(({ name: area }) =>
+            readdirSync(path.join(localesDir, area))
+                .filter((f) => f.endsWith(".json"))
+                .map((f) => ({
+                    area,
+                    locale: path.basename(f, ".json"),
+                    catalog: JSON.parse(readFileSync(path.join(localesDir, area, f), "utf8")),
+                })),
+        );
+}
+
 function walk(dir) {
     return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
         const full = path.join(dir, entry.name);
@@ -132,12 +171,7 @@ export function sourceDirs(packageNames) {
 
 function main() {
     const root = fileURLToPath(new URL("..", import.meta.url));
-    const localesDir = path.join(root, "locales");
-    const catalogs = Object.fromEntries(
-        readdirSync(localesDir)
-            .filter((f) => f.endsWith(".json"))
-            .map((f) => [path.basename(f, ".json"), JSON.parse(readFileSync(path.join(localesDir, f), "utf8"))]),
-    );
+    const { catalogs, errors: areaErrors } = mergeAreas(readAreas(path.join(root, "locales")));
     const packageNames = readdirSync(path.join(root, "packages"), { withFileTypes: true })
         .filter((entry) => entry.isDirectory() && existsSync(path.join(root, "packages", entry.name, "src")))
         .map((entry) => entry.name);
@@ -154,7 +188,9 @@ function main() {
         prefixes: sources.flatMap(({ text }) => [...extractTemplatePrefixes(text), ...extractNamespacePrefixes(text)]),
         patterns: sources.flatMap(({ text }) => extractTemplatePatterns(text)),
     };
-    const { errors, warnings } = checkCatalogs(catalogs, used, referenced);
+    const checked = checkCatalogs(catalogs, used, referenced);
+    const errors = [...areaErrors, ...checked.errors];
+    const warnings = checked.warnings;
     for (const line of warnings) console.warn(`warning: ${line}`);
     for (const line of errors) console.error(line);
     if (errors.length) process.exit(1);
