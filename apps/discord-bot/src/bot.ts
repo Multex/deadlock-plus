@@ -1,12 +1,24 @@
 import { DEFAULT_LINKS, LINKS_KEY, parseLinks } from "@deadlock-plus/links";
-import { text } from "@deadlock-plus/discord-messages";
+import { COMPONENTS_V2, text } from "@deadlock-plus/discord-messages";
 import { MessageFlags } from "discord-api-types/v10";
 import { DiscordHono } from "discord-hono";
 import { ANNOUNCE_MODAL, draftFrom, modalFor, parseTarget, runAnnounce } from "./announce";
-import { costChoices, runCost } from "./cost";
+import { costChoices, runCost, type Input } from "./cost";
 import { discordApi } from "./discord";
 import { discordEnv, type BotEnv, type Env, type Verify } from "./env";
-import { staffModal, staffOnly, staffSuggestions } from "./guard";
+import {
+    CANCEL_BUTTON,
+    CONFIRM_BUTTON,
+    cancelPost,
+    confirmPost,
+    endAnnouncement,
+    feedChoices,
+    listFeed,
+    previewPost,
+    removeAnnouncement,
+    type FeedDeps,
+} from "./feed-command";
+import { staffButton, staffModal, staffOnly, staffSuggestions } from "./guard";
 import { inviteChoices, landingChoices, runInvite, runLanding, type InviteDeps } from "./invite";
 import { joinsByCode } from "./joins";
 import { pollInvites } from "./poll";
@@ -25,6 +37,15 @@ function inviteDeps(env: Env): InviteDeps {
         discord: discordApi(env.DISCORD_BOT_TOKEN, env.DISCORD_GUILD_ID),
         joins: (live) => joinsByCode(env, live),
     };
+}
+
+function feedDeps(env: Env): FeedDeps {
+    return { store: env.TRANSPARENCY, signingKey: env.ANNOUNCE_SIGNING_KEY, now: new Date() };
+}
+
+/** The preview is a components message, so its replacement must be one too. */
+function closePreview(reply: string) {
+    return { flags: COMPONENTS_V2, components: [text(reply)] };
 }
 
 export function createBot(options: BotOptions = {}) {
@@ -68,6 +89,38 @@ export function createBot(options: BotOptions = {}) {
         .command(
             "announce",
             staffOnly((c) => c.resModal(modalFor(c.var))),
+        )
+        .autocomplete(
+            "notice",
+            staffSuggestions(async (c) =>
+                c.resAutocomplete(await feedChoices(String(c.focused?.value ?? ""), c.env.TRANSPARENCY)),
+            ),
+            staffOnly(async (c) => {
+                const deps = feedDeps(c.env);
+                const input: Input = c.var;
+                switch (c.sub.command) {
+                    case "post": {
+                        const preview = await previewPost(c.var, c.interaction.id, deps);
+                        return typeof preview === "string" ? c.flags("EPHEMERAL").res(preview) : c.res(preview);
+                    }
+                    case "list":
+                        return c.flags("EPHEMERAL").res(await listFeed(deps));
+                    case "end":
+                        return c.flags("EPHEMERAL").res(await endAnnouncement(input.id, deps));
+                    default:
+                        return c.flags("EPHEMERAL").res(await removeAnnouncement(input.id, deps));
+                }
+            }),
+        )
+        .component(
+            CONFIRM_BUTTON,
+            staffButton(async (c) =>
+                c.update().res(closePreview(await confirmPost(c.ref.custom_value ?? "", feedDeps(c.env)))),
+            ),
+        )
+        .component(
+            CANCEL_BUTTON,
+            staffButton((c) => c.update().res(closePreview(cancelPost()))),
         )
         .modal(
             ANNOUNCE_MODAL,

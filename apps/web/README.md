@@ -116,6 +116,12 @@ A source that fails or has no secrets keeps its last stored number and time.
 - The page works out the monthly total and the amount spent so far from these dates.
 - One bad row rejects the whole list. The page then shows `costs:last-good`, which the hourly job copies from `costs` whenever it is valid.
 
+## App announcements
+
+`/announcements.json` serves the `announcements` key of the `TRANSPARENCY` KV namespace as it is stored, with `cache-control: public, max-age=300`. While the key is missing it answers 404, which the app reads as "no announcements".
+
+The Discord bot's `/announce` writes the key (see `apps/discord-bot/README.md`). Do not edit it by hand: it is a signed envelope, and the app drops a feed whose signature does not match or whose `issuedAt` is older than the last one it saw.
+
 ## Privacy
 
 - No cookies and no client-side tracking script.

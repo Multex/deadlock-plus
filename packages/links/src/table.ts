@@ -20,6 +20,7 @@ export const DEFAULT_REF = "website";
 
 /** The website's top-level pages and folders: a landing path with one of these names would never be reached. */
 export const RESERVED_PATHS: readonly string[] = [
+    "announcements.json",
     "discord",
     "download",
     "faq",

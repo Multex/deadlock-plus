@@ -381,3 +381,89 @@ describe("/announce", () => {
         expect(calls).toEqual([]);
     });
 });
+
+describe("/notice", () => {
+    const options = [
+        { type: 3, name: "title", value: "Update now" },
+        { type: 3, name: "body", value: "A fix is out." },
+        { type: 3, name: "severity", value: "warning" },
+    ];
+
+    async function feedEnv() {
+        const pair = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
+        const key = JSON.stringify(await crypto.subtle.exportKey("jwk", pair.privateKey));
+        const store = kv();
+        return { store, env: { ...ENV, TRANSPARENCY: store, ANNOUNCE_SIGNING_KEY: key } };
+    }
+
+    function button(customId: string, guild_id = GUILD): object {
+        return {
+            type: 3,
+            id: "2",
+            token: "itoken",
+            version: 1,
+            application_id: "app",
+            guild_id,
+            message: { id: "m", flags: 64 },
+            data: { custom_id: customId, component_type: 2 },
+        };
+    }
+
+    it("previews privately with Confirm and Cancel, without touching the feed", async () => {
+        const { store, env } = await feedEnv();
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(interaction(2, "notice", "post", options)),
+            env,
+        );
+        const body = (await res.json()) as { type: number; data: { flags: number } };
+        expect(body.type).toBe(4);
+        expect(body.data.flags & 64).toBe(64);
+        expect(JSON.stringify(body)).toContain('"custom_id":"notice-confirm;1"');
+        expect(store.data.has("announcements")).toBe(false);
+    });
+
+    it("writes the signed feed on Confirm and closes the preview", async () => {
+        const { store, env } = await feedEnv();
+        const bot = createBot({ verify: async () => true });
+        await bot.fetch(post(interaction(2, "notice", "post", options)), env);
+        const res = await bot.fetch(post(button("notice-confirm;1")), env);
+        const body = (await res.json()) as { type: number; data: { components: unknown[] } };
+        expect(body.type).toBe(7);
+        expect(JSON.stringify(body)).not.toContain("notice-confirm");
+        expect(JSON.parse(store.data.get("announcements")!)).toMatchObject({ keyId: "2026-10" });
+    });
+
+    it("writes nothing on Cancel", async () => {
+        const { store, env } = await feedEnv();
+        const bot = createBot({ verify: async () => true });
+        await bot.fetch(post(interaction(2, "notice", "post", options)), env);
+        const res = await bot.fetch(post(button("notice-cancel;1")), env);
+        expect(((await res.json()) as { type: number }).type).toBe(7);
+        expect(store.data.has("announcements")).toBe(false);
+    });
+
+    it("refuses the command and the buttons outside the Deadlock+ server", async () => {
+        const { store, env } = await feedEnv();
+        const bot = createBot({ verify: async () => true });
+        await bot.fetch(post(interaction(2, "notice", "post", options)), env);
+        const outside = { ...interaction(2, "notice", "remove", [{ type: 3, name: "id", value: "x" }]) };
+        const refused = await bot.fetch(post({ ...outside, guild_id: "999" }), env);
+        expect(JSON.stringify(await refused.json())).toContain("only works in the Deadlock+ server");
+        const clicked = await bot.fetch(post(button("notice-confirm;1", "999")), env);
+        const body = (await clicked.json()) as { type: number; data: { flags: number } };
+        expect(body.data.flags & 64).toBe(64);
+        expect(store.data.has("announcements")).toBe(false);
+    });
+
+    it("answers the post privately with an error when the signing key is missing", async () => {
+        const { store } = await feedEnv();
+        const res = await createBot({ verify: async () => true }).fetch(
+            post(interaction(2, "notice", "post", options)),
+            { ...ENV, TRANSPARENCY: store },
+        );
+        const body = (await res.json()) as { data: { content: string; flags: number } };
+        expect(body.data.flags & 64).toBe(64);
+        expect(body.data.content).toContain("ANNOUNCE_SIGNING_KEY");
+        expect(store.data.size).toBe(0);
+    });
+});

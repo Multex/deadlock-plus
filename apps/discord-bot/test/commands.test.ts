@@ -41,6 +41,14 @@ describe("commands", () => {
         }
     });
 
+    it("keep every description on one line", () => {
+        for (const command of commands) {
+            walk((command.toJSON() as Option).options, (option) =>
+                expect(option.description, option.name).not.toMatch(/[\r\n]/),
+            );
+        }
+    });
+
     it("give sibling options different names", () => {
         for (const command of commands) {
             walk((command.toJSON() as Option).options, (_, siblings) => {
@@ -57,5 +65,15 @@ describe("commands", () => {
                 expect(required).toEqual([...required].sort((a, b) => Number(b) - Number(a)));
             });
         }
+    });
+});
+
+describe("/announce and /notice", () => {
+    const names = (command: { toJSON(): unknown }) => ((command.toJSON() as Option).options ?? []).map((o) => o.name);
+    const named = (name: string) => commands.find((command) => command.toJSON().name === name)!;
+
+    it("keep the channel post and the app feed apart", () => {
+        expect(names(named("announce"))).toEqual(["channel", "role"]);
+        expect(names(named("notice"))).toEqual(["post", "list", "end", "remove"]);
     });
 });
