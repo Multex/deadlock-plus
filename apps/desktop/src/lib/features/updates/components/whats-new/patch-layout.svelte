@@ -31,7 +31,7 @@
 <article class="patch">
     <header class="banner">
         <div class="banner-art" aria-hidden="true"></div>
-        <BrandMark class="brand" />
+        <BrandMark class="brand" wordmark={false} />
         <h1>{t("whats_new.patch_title", { version: story.version })}</h1>
         {#if day}<p class="posted">{formatDate(day, { dateStyle: "long" })}</p>{/if}
     </header>
@@ -139,9 +139,13 @@
     }
 
     .banner :global(.brand) {
-        position: absolute;
-        top: clamp(14px, 2.4cqi, 24px);
-        left: clamp(16px, 4cqi, 48px);
+        margin-bottom: auto;
+        padding-bottom: 12px;
+    }
+
+    .banner :global(.brand img) {
+        width: 34px;
+        height: 34px;
     }
 
     .banner h1 {
