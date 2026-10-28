@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-28
+
+On 0.13.0 or 0.13.1? The in-app update does not work in those versions. Download this release from deadlockplus.app and install it over your current one. Your settings and match data are kept. Turn Start with Windows back on afterwards if you use it.
+
 ### Added
 
 - A "Queue stopped" alert in the game overlay tells you when your queue ends without a match while you're tabbed out.
