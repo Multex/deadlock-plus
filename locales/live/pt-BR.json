@@ -114,8 +114,8 @@
             "preset_applied": "Aplicado “{name}”: {blocked} de {total} regiões bloqueadas",
             "preset_apply_failed": "Não foi possível aplicar “{name}”. Verifique o log para obter detalhes.",
             "preset_saved": "Salvo “{name}”",
-            "preset_save_failed": "Não foi possível salvar a predefinição. Verifique o log para obter mais detalhes.",
-            "preset_delete_failed": "Não foi possível excluir a predefinição. Verifique o log para obter mais detalhes.",
+            "preset_save_failed": "",
+            "preset_delete_failed": "",
             "import_failed": "Não foi possível importar os bloqueios existentes do firewall. Verifique o log para obter mais detalhes.",
             "unblocked_rules_one": "",
             "unblocked_rules_other": "",
@@ -130,7 +130,8 @@
             "preset": "Não foi possível aplicar “{name}”.",
             "import": "Não foi possível importar os bloqueios existentes do firewall.",
             "description": "O Deadlock+ precisa de acesso de administrador para alterar as regras do firewall. A opção “Permitir” solicita autorização ao Windows uma vez para esta sessão. A opção “Sempre permitir” solicita autorização uma vez e, depois, nunca mais para esta conta do Windows."
-        }
+        },
+        "load_failed": ""
     },
     "live": {
         "state": {

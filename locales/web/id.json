@@ -1,1 +1,421 @@
-{}
+{
+    "site": {
+        "tagline": "",
+        "og_image_alt": "",
+        "home_label": ""
+    },
+    "nav": {
+        "main_label": "",
+        "footer_label": "",
+        "features": "",
+        "download": "",
+        "faq": "",
+        "privacy": "",
+        "transparency": "",
+        "join_discord": "",
+        "support": "",
+        "source_on_github": "",
+        "discord": "",
+        "source": ""
+    },
+    "footer": {
+        "product": "",
+        "community": "",
+        "legal": "",
+        "license": "",
+        "unofficial": "",
+        "theme": ""
+    },
+    "themes": {
+        "deadlock": "",
+        "midnight": "",
+        "daylight": "",
+        "contrast": "",
+        "nightshift": "",
+        "deadlock_api": "",
+        "statlocker": "",
+        "flint_snow": "",
+        "void": "",
+        "deadchaps": "",
+        "pretty_in_pink": "",
+        "catppuccin": "",
+        "effects": "",
+        "flavour": "",
+        "based_on": "",
+        "sources": {
+            "deadlock": "",
+            "nightshift": "",
+            "deadlock_api": "",
+            "statlocker": "",
+            "deadchaps": "",
+            "catppuccin": ""
+        },
+        "all": ""
+    },
+    "themes_page": {
+        "title": "",
+        "description": "",
+        "heading": "",
+        "subtitle": "",
+        "animated": "",
+        "theme_title": "",
+        "theme_description": "",
+        "theme_heading": "",
+        "effects_heading": "",
+        "use": "",
+        "in_use": "",
+        "in_app_heading": "",
+        "in_app_body": "",
+        "og_alt": "",
+        "descriptions": {
+            "deadlock": "",
+            "midnight": "",
+            "daylight": "",
+            "contrast": "",
+            "nightshift": "",
+            "deadlock_api": "",
+            "statlocker": "",
+            "flint_snow": "",
+            "void": "",
+            "deadchaps": "",
+            "pretty_in_pink": "",
+            "catppuccin": ""
+        },
+        "effects": {
+            "deadlock": "",
+            "midnight": {
+                "fog": "",
+                "windows": ""
+            },
+            "daylight": "",
+            "nightshift": {
+                "rain": "",
+                "lights": "",
+                "frames": "",
+                "clock": ""
+            },
+            "deadlock_api": "",
+            "statlocker": "",
+            "flint_snow": {
+                "snow": "",
+                "stars": "",
+                "tail": "",
+                "tracks": ""
+            },
+            "void": "",
+            "deadchaps": "",
+            "pretty_in_pink": {
+                "clouds": "",
+                "hearts": "",
+                "bow": ""
+            }
+        }
+    },
+    "home": {
+        "title": "",
+        "description": "",
+        "heading": "",
+        "intro": "",
+        "download_windows": "",
+        "platforms": "",
+        "platforms_linux": "",
+        "hero_label": "",
+        "what_it_does": "",
+        "every_feature": "",
+        "shot_label": "",
+        "safety_title": "",
+        "trust": {
+            "free": {
+                "title": "",
+                "body": ""
+            },
+            "local": {
+                "title": "",
+                "body": ""
+            },
+            "open": {
+                "title": "",
+                "body": ""
+            }
+        },
+        "read_code": "",
+        "ready_title": "",
+        "ready_body": ""
+    },
+    "features": {
+        "title": "",
+        "description": "",
+        "heading": "",
+        "subtitle": "",
+        "groups": {
+            "match": {
+                "name": "",
+                "blurb": ""
+            },
+            "builds": {
+                "name": "",
+                "blurb": ""
+            },
+            "progress": {
+                "name": "",
+                "blurb": ""
+            },
+            "upkeep": {
+                "name": "",
+                "blurb": ""
+            }
+        },
+        "items": {
+            "discord_presence": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": "",
+                    "4": ""
+                }
+            },
+            "server_picker": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": ""
+                }
+            },
+            "live": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": ""
+                }
+            },
+            "builds": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": "",
+                    "4": "",
+                    "5": "",
+                    "6": ""
+                }
+            },
+            "build_editor": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": "",
+                    "4": "",
+                    "5": "",
+                    "6": ""
+                }
+            },
+            "match_history": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": "",
+                    "4": "",
+                    "5": "",
+                    "6": ""
+                }
+            },
+            "stats": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": "",
+                    "4": "",
+                    "5": "",
+                    "6": ""
+                }
+            },
+            "mutes": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": ""
+                }
+            },
+            "replays": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": ""
+                }
+            },
+            "storage": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": ""
+                }
+            },
+            "performance": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": ""
+                }
+            },
+            "background": {
+                "name": "",
+                "summary": "",
+                "points": {
+                    "1": "",
+                    "2": "",
+                    "3": ""
+                }
+            }
+        }
+    },
+    "faq": {
+        "title": "",
+        "description": "",
+        "heading": "",
+        "subtitle": "",
+        "items": {
+            "free": {
+                "question": "",
+                "answer": ""
+            },
+            "discord": {
+                "question": "",
+                "answer": ""
+            },
+            "servers": {
+                "question": "",
+                "answer": ""
+            },
+            "platforms": {
+                "question": "",
+                "answer": ""
+            },
+            "stats": {
+                "question": "",
+                "answer": ""
+            },
+            "privacy": {
+                "question": "",
+                "answer": ""
+            },
+            "performance": {
+                "question": "",
+                "answer": ""
+            },
+            "open_source": {
+                "question": "",
+                "answer": ""
+            }
+        },
+        "links": {
+            "discord_presence": "",
+            "server_picker": "",
+            "linux_notes": "",
+            "app_privacy": "",
+            "read_code": ""
+        }
+    },
+    "download": {
+        "title": "",
+        "description": "",
+        "heading": "",
+        "subtitle": "",
+        "version": "",
+        "version_file": "",
+        "released": "",
+        "deb_note": "",
+        "appimage_note": "",
+        "older_versions": "",
+        "windows": {
+            "name": "",
+            "badge": "",
+            "for": "",
+            "button": "",
+            "older_label": "",
+            "fallback": "",
+            "step_open": "",
+            "step_start": "",
+            "step_admin": "",
+            "step_admin_yes": ""
+        },
+        "linux": {
+            "name": "",
+            "badge": "",
+            "for": "",
+            "button": "",
+            "choose_label": "",
+            "older_label": "",
+            "fallback": "",
+            "setup": "",
+            "setup_link": "",
+            "no_mac": ""
+        },
+        "smartscreen": {
+            "title": "",
+            "body": "",
+            "step": "",
+            "more_info": "",
+            "run_anyway": ""
+        },
+        "updates": {
+            "title": "",
+            "body": "",
+            "changes": ""
+        },
+        "check": {
+            "title": "",
+            "body": "",
+            "link": ""
+        }
+    },
+    "shot": {
+        "expand": "",
+        "alt": "",
+        "alt_close_up": "",
+        "close": "",
+        "zoom_hint": "",
+        "picture_label": "",
+        "detail": "",
+        "detail_hint": "",
+        "full": "",
+        "full_hint": "",
+        "zoom_out": "",
+        "zoom_in": "",
+        "zoom_reset": ""
+    },
+    "error": {
+        "not_found_title": "",
+        "not_found": "",
+        "failed": "",
+        "home": ""
+    },
+    "og": {
+        "title": "",
+        "tagline": ""
+    },
+    "language": {
+        "label": "",
+        "current": "",
+        "suggestion": "",
+        "switch": "",
+        "dismiss": ""
+    }
+}

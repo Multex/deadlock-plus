@@ -21,7 +21,9 @@
             "note_macos": "A captura de quadros não está disponível no macOS nem no Wine."
         },
         "runs": {
-            "default_label": "Execução {date}"
+            "default_label": "Execução {date}",
+            "save_failed": "",
+            "delete_failed": ""
         },
         "metrics": {
             "avg_fps": "FPS médio",
@@ -118,6 +120,9 @@
             "saved": "Salvo",
             "spike_at": "em {time}",
             "needs_admin": "Os tempos de quadro exigem acesso de administrador.",
+            "start_failed": "",
+            "stop_failed": "",
+            "read_failed": "",
             "recording_one": "Gravando · {time} · {count} quadro",
             "recording_other": "Gravando · {time} · {count} quadros",
             "graph_caption_one": "Último {count} quadro · topo do gráfico {ms} ms",
@@ -246,6 +251,9 @@
             "days_unit": "dias",
             "larger_than": "Maiores que",
             "gigabytes_label": "Gigabytes",
+            "load_failed": "",
+            "save_failed": "",
+            "check_failed": "",
             "gb_unit": "GB",
             "turn_on": "Ative uma regra para ver o que ela removeria.",
             "checking": "Verificando replays...",
@@ -262,11 +270,15 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
+            "delete_none": "",
+            "pin_failed": "",
+            "open_failed": "",
             "deleted_one": "",
             "deleted_other": "",
             "delete_failed_one": "",
             "delete_failed_other": ""
-        }
+        },
+        "list_error": ""
     },
     "voice_bans": {
         "title": "Silenciados",
@@ -337,12 +349,14 @@
             "not_recognised": "Não reconhecido. Use um link do perfil do Steam ou o ID do Steam.",
             "search_failed": "Não foi possível procurar jogadores. Verifique sua conexão e tente novamente.",
             "exported": "{count} silenciados exportados",
-            "export_failed": "Não foi possível exportar seus silenciados. Verifique o log para mais detalhes.",
+            "export_failed": "",
+            "save_failed": "",
             "import_failed": "Não foi possível ler esse arquivo. Escolha uma lista de silenciados exportada do Deadlock+ ou o arquivo de silenciados do próprio jogo.",
             "unmuted_one": "",
             "unmuted_other": "",
             "muted_one": "",
             "muted_other": ""
-        }
+        },
+        "list_error": ""
     }
 }

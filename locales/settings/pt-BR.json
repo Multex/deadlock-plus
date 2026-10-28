@@ -1,5 +1,6 @@
 {
     "settings": {
+        "save_failed": "",
         "language": {
             "label": "Idioma",
             "description": "Escolha o idioma usado pelo aplicativo. \"Seguir o sistema\" usa o idioma do seu sistema operacional.",
@@ -49,13 +50,17 @@
             "overlay_test": "Testar a sobreposição",
             "overlay_notifications": "Notificações da sobreposição",
             "overlay_match_found": "Partida encontrada",
+            "overlay_queue_stopped": "",
             "server_blocks_updated": "Blocos de servidor atualizados",
             "server_blocks_stale": "Blocos de servidor desatualizados",
             "break_reminder": "Lembrete de intervalo",
+            "front_page_after_match": "",
+            "front_page_overlay_alert": "",
             "ui_scale": "Escala da interface",
             "hardware_acceleration": "Aceleração de hardware",
             "open_on_game_start": "Abrir com o Deadlock",
-            "admin_access": "Acesso de administrador"
+            "admin_access": "Acesso de administrador",
+            "dispatch_alerts": ""
         },
         "nav": {
             "label": "Categorias de configurações",
@@ -78,7 +83,8 @@
             "accent_hue": "",
             "accent_vividness": "",
             "accent_hex": "",
-            "accent_reset": ""
+            "accent_reset": "",
+            "theme_option_aria": ""
         },
         "themes": {
             "deadlock": {
@@ -141,6 +147,22 @@
                 "label": "",
                 "description": "",
                 "source": ""
+            },
+            "pretty_in_pink": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "clouds": "",
+                    "hearts": "",
+                    "bow": ""
+                }
+            },
+            "catppuccin": {
+                "label": "",
+                "description": "",
+                "source": "",
+                "variant": "",
+                "accent": ""
             }
         },
         "autostart": {
@@ -184,6 +206,7 @@
             "overlay_notifications_button": "Abrir notificações",
             "overlay_test_button": "Mostrar teste",
             "overlay_test_countdown": "Exibindo em {seconds}",
+            "overlay_test_failed": "",
             "overlay_seconds": "{seconds}s",
             "position": {
                 "top_left": "Canto superior esquerdo",
@@ -197,9 +220,14 @@
                 "center": "Partida encontrada"
             },
             "overlay_match_found_description": "Avisa quando sua partida é encontrada, mesmo que outra janela esteja na frente.",
+            "overlay_queue_stopped_description": "",
             "server_blocks_updated_description": "Avisa quando a Valve altera os endereços dos servidores e o Deadlock+ atualiza seus blocos do Seletor de servidores.",
             "server_blocks_stale_description": "Avisa quando o Deadlock+ não conseguiu atualizar seus blocos do Seletor de servidores, então alguns servidores podem não estar bloqueados.",
             "break_reminder_description": "Sugere uma pausa após várias derrotas consecutivas em uma sessão. O mesmo botão da página “Sessões”.",
+            "front_page_after_match_description": "",
+            "front_page_modes": "",
+            "front_page_mode_aria": "",
+            "front_page_overlay_alert_description": "",
             "delivery_label": "Exibe como",
             "delivery": {
                 "both": "Sobreposição no jogo ou área de trabalho",
@@ -209,7 +237,8 @@
                 "center": "Apenas na Central de Notificações"
             },
             "overlay_off_fallback": "A sobreposição do jogo está desativada, por isso ela aparece como uma notificação na área de trabalho.",
-            "overlay_off_hidden": "A sobreposição do jogo está desativada, portanto isso não é exibido."
+            "overlay_off_hidden": "A sobreposição do jogo está desativada, portanto isso não é exibido.",
+            "dispatch_alerts_description": ""
         },
         "weekdays": {
             "monday": "Segunda-feira",
@@ -236,6 +265,12 @@
             "level_detailed_description": "Mostra seu herói, modo, classificação e cronômetro da partida.",
             "support_label": "Apoiar o Deadlock+",
             "support_description": "Adiciona um botão “Baixar Deadlock+” à sua atividade para que outras pessoas possam encontrar o aplicativo. Funciona com as versões Básica e Detalhada.",
+            "logo_label": "",
+            "logo_description": "",
+            "delay_label": "",
+            "delay_description": "",
+            "delay_off": "",
+            "delay_seconds": "",
             "client_running": "Em execução",
             "client_not_running": "Não está em execução",
             "client_other_hint": "Vesktop e outros aplicativos",
@@ -250,6 +285,8 @@
             "client_other_name": "Aplicativo Discord {pipe}",
             "status_off": "Desativado",
             "status_none": "Não foi encontrado nenhum Discord em execução.",
+            "status_waiting": "",
+            "status_connecting": "",
             "status_showing": "Exibindo: {clients}."
         },
         "discord_editor": {
@@ -265,6 +302,7 @@
             "field_small_image": "Imagem pequena",
             "field_small_text": "Texto ao passar o mouse (imagem pequena)",
             "field_timer": "Temporizador",
+            "timer_aria": "",
             "reset_field": "Redefinir {field}",
             "reset_scope": "Redefinir este estado",
             "reset_all": "Redefinir tudo",
@@ -298,6 +336,8 @@
             "exported": "Predefinição copiada",
             "export_failed": "Não foi possível copiar para a área de transferência",
             "imported": "Predefinição importada",
+            "import_failed": "",
+            "save_failed": "",
             "state": {
                 "playing": "Jogando",
                 "mainMenu": "Menu principal",
@@ -353,7 +393,7 @@
                 "round": "Rodada da Briga de Rua",
                 "scoreAmber": "Pontuação do Âmbar na Briga de Rua",
                 "scoreSapphire": "Pontuação da Safira na Briga de Rua",
-                "elapsed": "Tempo neste estado",
+                "elapsed": "",
                 "queueTime": "Há quanto tempo você está na fila",
                 "result": "Venceu ou perdeu",
                 "matchId": "O ID da partida",
@@ -402,14 +442,17 @@
             },
             "timer_queueTime": "Tempo na fila",
             "field_party_size": "Tamanho do grupo",
+            "party_size_aria": "",
             "party_size_hint": "Exibe o número de participantes do grupo, como (2 de 6), quando você estiver em um grupo de duas ou mais pessoas.",
             "preview_party": "({size} de {max})",
-            "detailed_only": "Apenas o modo “Detalhado” utiliza esses estados. O modo “Básico” sempre exibe “Jogando”."
+            "detailed_only": "Apenas o modo “Detalhado” utiliza esses estados. O modo “Básico” sempre exibe “Jogando”.",
+            "load_error": ""
         },
         "privacy": {
             "telemetry_description": "Envia informações sobre a versão e o sistema que você usa, quais páginas você abre, quando você abre o convite do Discord, quando uma atualização é oferecida ou iniciada, além de relatórios de erros. Ele usa um ID aleatório que não está vinculado a você e nunca envia caminhos, nomes, IDs do Steam, endereços IP ou dados de partidas.",
             "telemetry_reset": "Redefinir ID de dados de uso",
             "telemetry_reset_done": "ID de dados de uso redefinido.",
+            "telemetry_reset_failed": "",
             "ingest_waiting": "Aguardando sua resposta.",
             "ingest_off": "Desativado",
             "ingest_no_cache": "Não foi possível encontrar os dados da web salvos do Steam neste PC. O Steam está instalado?",
@@ -441,7 +484,8 @@
                 "replay": "Replay",
                 "sent": "Enviado",
                 "not_sent": "Não enviado",
-                "empty": "Ainda não foi compartilhado nada."
+                "empty": "Ainda não foi compartilhado nada.",
+                "load_error": ""
             }
         },
         "about_page": {
@@ -451,7 +495,8 @@
             "install": "Instalar {version}",
             "auto_check_label": "Verificar automaticamente",
             "auto_check_description": "Consulta o GitHub em busca de uma versão mais recente ao iniciar e a cada hora. Nada é instalado sem o seu clique.",
-            "whats_new_in": "Novidades na versão {version}"
+            "whats_new_in": "Novidades na versão {version}",
+            "version_error": ""
         },
         "diagnostics": {
             "description": "Log desta sessão. Nomes nos caminhos de arquivos são ocultados ao copiar ou salvar. Necessário apenas ao relatar um bug.",
@@ -506,7 +551,8 @@
         "summary": {
             "total": "Total encontrado",
             "can_clear": "Podem ser limpos aqui",
-            "clear_regenerable": "Limpar arquivos reconstruíveis"
+            "clear_regenerable": "Limpar arquivos reconstruíveis",
+            "total_at_least": ""
         },
         "entry": {
             "path_missing": "Não encontrado neste PC",
@@ -519,7 +565,8 @@
             "reveal_aria": "Mostrar {label} na pasta",
             "reveal_title": "Mostrar na pasta",
             "clear_aria": "Limpar {label}",
-            "clear_title": "Limpar"
+            "clear_title": "Limpar",
+            "unmeasured": ""
         },
         "dialog": {
             "cancel": "Cancelar",
@@ -533,7 +580,10 @@
         },
         "toast": {
             "freed": "{size} liberados",
-            "nothing": "Não há nada para limpar."
+            "nothing": "Não há nada para limpar.",
+            "reveal_failed": "",
+            "clear_failed_one": "",
+            "clear_failed_other": ""
         },
         "age": {
             "today": "hoje",
@@ -757,7 +807,14 @@
                 "clear_name": "partidas compartilhadas",
                 "description": "Partidas que o Deadlock+ compartilhou com a API do Deadlock.",
                 "consequence": "O Deadlock+ pode compartilhar essas partidas novamente. Nada mais se perde."
+            },
+            "dispatch_editions": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
             }
-        }
+        },
+        "list_error": ""
     }
 }

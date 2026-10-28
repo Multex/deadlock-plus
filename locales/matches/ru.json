@@ -30,7 +30,7 @@
             "days_one": "{count} день",
             "days_few": "{count} дня",
             "days_many": "{count} дней",
-            "days_other": "{count} дня"
+            "days_other": "{count} дн"
         },
         "summary": {
             "winrate": "Процент побед",
@@ -42,11 +42,11 @@
             "streak_wins_one": "{count} победа",
             "streak_wins_few": "{count} победы",
             "streak_wins_many": "{count} побед",
-            "streak_wins_other": "{count} победы",
+            "streak_wins_other": "{count} побед",
             "streak_losses_one": "{count} поражение",
             "streak_losses_few": "{count} поражения",
             "streak_losses_many": "{count} поражений",
-            "streak_losses_other": "{count} поражения"
+            "streak_losses_other": "{count} поражений"
         },
         "highlights": {
             "most_played": "Чаще всего играете",
@@ -77,7 +77,9 @@
             "not_eligible": "Пока недоступен",
             "note": "Приблизительно. Учитываются ваши ранговые игры и игры без ранга, известные Deadlock API. Valve не публикует, какие очереди учитываются.",
             "recent_games": "Игры за последние {days} дн.",
-            "total_games": "Всего игр на вашем аккаунте"
+            "total_games": "Всего игр на вашем аккаунте",
+            "rank_error": "",
+            "games_error": ""
         },
         "page": {
             "matches_known": "Для этого аккаунта известно матчей: {count}. То, что еще не найдено, не учитывается.",
@@ -86,10 +88,11 @@
         "section": {
             "games": "Ваши игры"
         },
+        "captured_only": "",
         "syncing_one": "{count} матч синхронизируется",
         "syncing_few": "{count} матча синхронизируются",
         "syncing_many": "{count} матчей синхронизируются",
-        "syncing_other": "{count} матча синхронизируются",
+        "syncing_other": "{count} матчей синхронизируются",
         "syncing_hint_one": "Данные прочитаны из игры. Deadlock API еще не вернул этот матч.",
         "syncing_hint_few": "Данные прочитаны из игры. Deadlock API еще не вернул эти матчи.",
         "syncing_hint_many": "Данные прочитаны из игры. Deadlock API еще не вернул эти матчи.",
@@ -106,7 +109,7 @@
             "about_one": "Примерно {count} день",
             "about_few": "Примерно {count} дня",
             "about_many": "Примерно {count} дней",
-            "about_other": "Примерно {count} дня"
+            "about_other": "Примерно {count} дней"
         },
         "form": {
             "next_win": "Следующая победа",
@@ -119,7 +122,7 @@
             "streak_one": "{count} победа подряд",
             "streak_few": "{count} победы подряд",
             "streak_many": "{count} побед подряд",
-            "streak_other": "{count} победы подряд"
+            "streak_other": "{count} побед подряд"
         },
         "outlook": {
             "hold_rank": "Процент побед для удержания ранга",
@@ -150,6 +153,7 @@
         "summary": {
             "top_tier": "Высший ранг. Подранги здесь зависят от того, как вы выглядите на фоне других игроков этого ранга, поэтому шкалы прогресса нет.",
             "progress": "{within} / {span} до {next}.",
+            "progress_aria": "",
             "boundary": "Ваш прогресс только что пересек границу, а Deadlock API все еще показывает старый значок, поэтому шкалы не будет до следующего матча.",
             "placement_left": "Осталось калибровочных матчей: {count}.",
             "estimated_one": "Оценено по правилам рангов, пока Deadlock API не подтвердит ваш последний матч.",
@@ -159,7 +163,7 @@
             "progress_streak_one": "{within} / {span} до {next}. Отсюда {count} победа подряд.",
             "progress_streak_few": "{within} / {span} до {next}. Отсюда {count} победы подряд.",
             "progress_streak_many": "{within} / {span} до {next}. Отсюда {count} побед подряд.",
-            "progress_streak_other": "{within} / {span} до {next}. Отсюда {count} победы подряд."
+            "progress_streak_other": "{within} / {span} до {next}. Отсюда {count} побед подряд."
         },
         "shields": {
             "heading": "Щиты от понижения",
@@ -201,7 +205,7 @@
             "games_one": "{count} матч",
             "games_few": "{count} матча",
             "games_many": "{count} матчей",
-            "games_other": "{count} матча"
+            "games_other": "{count} матчей"
         },
         "insights": {
             "unknown_after_loss": "Пока недостаточно матчей после поражения ({yes} и {no}, нужно по {min}).",
@@ -311,10 +315,11 @@
                 "kda_split": "Убийства / смерти / помощь",
                 "kda_ratio": "{ratio} KDA"
             },
+            "error": "",
             "count_one": "{count} матч",
             "count_few": "{count} матча",
             "count_many": "{count} матчей",
-            "count_other": "{count} матча"
+            "count_other": "{count} Матчи"
         },
         "deep_dive": {
             "not_available": "Недоступно для этого матча.",
@@ -538,11 +543,12 @@
                 "death_count_one": "{count} смерть",
                 "death_count_few": "{count} смерти",
                 "death_count_many": "{count} смертей",
-                "death_count_other": "{count} смерти"
+                "death_count_other": "{count} смертей"
             },
             "grade": {
                 "label": "Оценка",
                 "aria": "Оценка {letter}, счет {score}, {place}",
+                "chip_aria": "",
                 "leaver": "Кто-то покинул матч досрочно, поэтому все оценки в нем искажены.",
                 "unchecked": "Досрочные уходы не проверены: эта оценка основана на собственных данных матча из игры.",
                 "farm_bonus": "Бонус команды за фарм",
@@ -591,10 +597,12 @@
                 "replay_recoverable_note": "В Deadlock API пока нет повтора для этого матча.",
                 "replay_unrecoverable": "Недоступен",
                 "replay_unrecoverable_note": "Этот повтор больше нельзя восстановить.",
+                "badge_not_applicable": "",
+                "not_applicable": "",
                 "replay_days_left_one": "Хранится еще {count} день.",
                 "replay_days_left_few": "Хранится еще {count} дня.",
                 "replay_days_left_many": "Хранится еще {count} дней.",
-                "replay_days_left_other": "Хранится еще {count} дня."
+                "replay_days_left_other": "Хранится еще {count} дней."
             },
             "replay_status": {
                 "available": "Повтор доступен",
@@ -606,7 +614,8 @@
                 "recover": "Восстановить повтор",
                 "recover_note": "Учитывается в лимите 40 матчей в день.",
                 "consent_note": "Только этот повтор. Фоновое восстановление останется выключенным."
-            }
+            },
+            "load_error": ""
         },
         "ping": {
             "heading": "Пинг",
@@ -652,11 +661,136 @@
             "resume": "Продолжить",
             "limit_note": "Продолжится завтра автоматически",
             "step_details": "Отсутствующие детали",
-            "step_replays": "Последние повторы"
+            "step_replays": "Последние повторы",
+            "start_failed": "",
+            "pause_failed": "",
+            "resume_failed": "",
+            "cancel_failed": "",
+            "match_failed": "",
+            "replay_failed": ""
         },
         "row_state": {
             "missing": "Нет деталей",
             "recovering": "Восстановление"
+        }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "",
+                "deck": "",
+                "deck_graded": ""
+            },
+            "comeback": {
+                "headline": "",
+                "deck": ""
+            },
+            "critics_top": {
+                "headline": "",
+                "deck": ""
+            },
+            "first_blood": {
+                "headline": "",
+                "deck": ""
+            },
+            "mid_boss": {
+                "headline": "",
+                "deck": "",
+                "deck_split": ""
+            },
+            "guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "walker_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "base_guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "shrine_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "patron_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_damage": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_healing": {
+                "headline": "",
+                "deck": ""
+            },
+            "richest": {
+                "headline": "",
+                "deck": ""
+            },
+            "most_last_hits": {
+                "deck": "",
+                "headline_one": "",
+                "headline_few": "",
+                "headline_many": "",
+                "headline_other": ""
+            }
+        },
+        "kit": {
+            "weather": "",
+            "box_score": "",
+            "critics": "",
+            "lane_report": "",
+            "in_brief": "",
+            "objectives": "",
+            "kills": "",
+            "hero": "",
+            "kda": "",
+            "net_worth": "",
+            "grade": ""
+        },
+        "open": "",
+        "open_match": "",
+        "close": "",
+        "dialog": "",
+        "loading": "",
+        "name": "",
+        "edition": "",
+        "kicker_viewer": "",
+        "photo_caption": "",
+        "place_of": "",
+        "critics_grading": "",
+        "critics_pending": "",
+        "lane": {
+            "lead": "",
+            "even": "",
+            "matchup": ""
+        },
+        "weather": {
+            "forecast_clear": "",
+            "forecast_fair": "",
+            "forecast_overcast": "",
+            "forecast_storm": "",
+            "ping": "",
+            "jitter": ""
+        },
+        "objective": {
+            "short_guardian": "",
+            "short_walker": "",
+            "short_base_guardian": "",
+            "short_shrine": "",
+            "short_patron": "",
+            "short_core": "",
+            "short_mid_boss": "",
+            "short_unknown": ""
+        },
+        "export": {
+            "group": "",
+            "saved": "",
+            "copied": "",
+            "render_failed": ""
         }
     }
 }
