@@ -49,6 +49,66 @@
             "statlocker": "Statlocker",
             "deadchaps": "DeadChaps",
             "catppuccin": "Catppuccin palette"
+        },
+        "all": "All themes"
+    },
+    "themes_page": {
+        "title": "Themes for Deadlock+: Nightshift, Catppuccin and more",
+        "description": "Every colour theme in Deadlock+, from the game's own brass to Nightshift rain and Catppuccin pastels. Try each one here, then pick it in the app.",
+        "heading": "Deadlock+ themes",
+        "subtitle": "Try any theme on this site. The app has every one of them in Settings, Appearance.",
+        "animated": "Animated",
+        "theme_title": "{name} theme | Deadlock+",
+        "theme_description": "{description} See the {name} theme for Deadlock+ in motion, try it on this site and get it in the app.",
+        "theme_heading": "{name} theme",
+        "effects_heading": "Effects",
+        "use": "Use on this site",
+        "in_use": "In use on this site",
+        "in_app_heading": "Get it in the app",
+        "in_app_body": "In Deadlock+, open Settings, Appearance and pick {name}.",
+        "og_alt": "The {name} theme in Deadlock+",
+        "descriptions": {
+            "deadlock": "Warm near-black with brass trim.",
+            "midnight": "Cool blue-black with a soft silver accent.",
+            "daylight": "Warm paper light theme.",
+            "contrast": "Pure black and white with strong borders.",
+            "nightshift": "Dark teal with gold art deco trim.",
+            "deadlock_api": "OLED black with electric red glow.",
+            "statlocker": "Graphite panels with a mint-green accent.",
+            "flint_snow": "Coral fur on midnight navy with pink trim.",
+            "void": "OLED black with electric violet trim.",
+            "deadchaps": "Near-black panels with DeadChaps purple.",
+            "pretty_in_pink": "Candy pink and cream with pastel clouds and hearts.",
+            "catppuccin": "Soothing pastels in four flavours, with 14 accents to pick from."
+        },
+        "effects": {
+            "deadlock": "Dust drifting in the air",
+            "midnight": {
+                "fog": "Fog",
+                "windows": "Windows"
+            },
+            "daylight": "Sunlight through window blinds",
+            "nightshift": {
+                "rain": "Rain",
+                "lights": "Lights",
+                "frames": "Frames",
+                "clock": "Medallion"
+            },
+            "deadlock_api": "A red current running round the page",
+            "statlocker": "A climbing win-rate line",
+            "flint_snow": {
+                "snow": "Snow",
+                "stars": "Stars",
+                "tail": "Tail",
+                "tracks": "Tracks"
+            },
+            "void": "A black hole swallowing a swarm of light",
+            "deadchaps": "A sigil turning in the corner",
+            "pretty_in_pink": {
+                "clouds": "Clouds",
+                "hearts": "Hearts",
+                "bow": "Bow"
+            }
         }
     },
     "home": {

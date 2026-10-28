@@ -8,6 +8,6 @@ export const OG_IMAGE = {
     height: 630,
 };
 
-export function socialMeta(path: string): { url: string; image: string } {
-    return { url: `${SITE_URL}${path}`, image: `${SITE_URL}${OG_IMAGE.path}` };
+export function socialMeta(path: string, image = OG_IMAGE.path): { url: string; image: string } {
+    return { url: `${SITE_URL}${path}`, image: `${SITE_URL}${image}` };
 }

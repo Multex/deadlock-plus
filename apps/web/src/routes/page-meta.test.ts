@@ -10,6 +10,9 @@ import Features from "./features/+page.svelte";
 import Home from "./+page.svelte";
 import Privacy from "./privacy/+page.svelte";
 import Transparency from "./transparency/+page.svelte";
+import Themes from "./themes/+page.svelte";
+import ThemePage from "./themes/[id]/+page.svelte";
+import { THEMES } from "$lib/content/themes";
 
 const PAGES: [string, Component<any>, Record<string, unknown>][] = [
     ["/", Home, {}],
@@ -18,6 +21,12 @@ const PAGES: [string, Component<any>, Record<string, unknown>][] = [
     ["/faq", Faq, {}],
     ["/privacy", Privacy, {}],
     ["/transparency", Transparency, { data: { stats: {}, costs: null } }],
+    ["/themes", Themes, {}],
+    ...THEMES.map((theme): [string, Component<any>, Record<string, unknown>] => [
+        `/themes/${theme.id}`,
+        ThemePage,
+        { data: { id: theme.id } },
+    ]),
 ];
 
 const text = (html: string) =>
@@ -51,8 +60,16 @@ describe("page titles and headings", () => {
     it.each([
         ["/features", "Deadlock+ features"],
         ["/download", "Download Deadlock+"],
+        ["/themes", "Deadlock+ themes"],
     ])("names Deadlock+ in the %s heading", (path, h1) => {
         expect(all.find((page) => page.path === path)?.h1).toBe(h1);
+    });
+
+    it("names the theme in its page's title and heading", () => {
+        const nightshift = all.find((page) => page.path === "/themes/nightshift");
+        expect(nightshift?.title).toBe("Nightshift theme | Deadlock+");
+        expect(nightshift?.h1).toBe("Nightshift theme");
+        expect(nightshift?.description).toContain("Dark teal with gold art deco trim.");
     });
 
     it.each(all)("gives $path a title search results show in full", ({ title }) => {

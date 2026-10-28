@@ -29,6 +29,8 @@ export interface Theme {
     swatch: [string, string, string, string];
     /** Whether the theme draws animated decor behind the page. */
     effects: boolean;
+    /** Effect layers the app turns off one by one; empty when the effects are one piece. */
+    layers: string[];
     /** What the theme is based on, credited with a link. */
     source?: string;
     /** Empty for a theme that comes in one palette. */
@@ -67,6 +69,7 @@ export const THEMES: Theme[] = THEME_DATA.map((theme) => ({
     chrome: chromeHex(theme),
     swatch: themeSwatch(theme),
     effects: DECOR_THEMES.includes(theme.id),
+    layers: theme.effects,
     source: theme.source,
     variants: theme.variants.map((v) => {
         const drawn = themeVariant(theme, v.id);
