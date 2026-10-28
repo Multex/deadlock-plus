@@ -1,4 +1,5 @@
-// Uploads the screenshots `apps/desktop/e2e/support/crowdin-shots.mjs` wrote to Crowdin and tags the strings on them.
+// Uploads the screenshots a capture in `apps/desktop/e2e/support` wrote (`crowdin-shots.mjs` for the app, the default
+// folder, or `crowdin-web-shots.mjs` for the website) to Crowdin and tags the strings on them.
 // A screenshot that already exists under the same name is replaced, image and tags, so a rerun refreshes it.
 //   node scripts/crowdin-screenshots.mjs [--dry-run] [--dir <folder with tags.json>]
 // Needs CROWDIN_PERSONAL_TOKEN and CROWDIN_PROJECT_ID in the environment.
@@ -58,7 +59,7 @@ async function main() {
     const dir = path.resolve(option("--dir") ?? path.join(root, "apps/desktop/test-results/crowdin"));
     const tagsFile = path.join(dir, "tags.json");
     if (!existsSync(tagsFile))
-        throw new Error(`${tagsFile} is missing; run apps/desktop/e2e/support/crowdin-shots.mjs first`);
+        throw new Error(`${tagsFile} is missing; run a capture in apps/desktop/e2e/support first`);
     const shots = JSON.parse(readFileSync(tagsFile, "utf8"));
 
     const client = { token: config.token, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) };
