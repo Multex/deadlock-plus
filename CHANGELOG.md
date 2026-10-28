@@ -19,28 +19,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 #### Deadlock+ Dispatch
 
-- A new Dispatch page prints your Deadlock week and month as a newspaper.
+- A new Dispatch page prints your Deadlock matches as newspapers you can read, keep and share.
 - A Weekly Edition comes out every Monday and covers the week before.
 - A Monthly Edition comes out on the 1st and covers the month before.
 - A Collector's Copy in gold foil comes out when a ranked season ends and covers that season's ranked matches.
 - A Year-End Special in black and gold comes out on December 1 and covers the twelve months before it.
+- An edition needs at least three matches in what it covers.
 - Headlines cover your record, hours played, top hero, best streak, longest session, rank moves and more.
-- The game of the week is picked from your best matches by KDA, then by Deadlock+ grade.
+- Each edition's best game is picked from your top matches by KDA, then by Deadlock+ grade.
 - "The company you keep" names the friends you partied with most and the enemy who beat you most.
 - Editions lie on a coffee table: this week so far, the newest Weekly and Monthly, and any specials.
 - "This week so far" shows the current week's paper as it fills up.
-- Past weeks lie in a bundle per month.
+- Past Weekly Editions lie in a bundle per month.
 - Open a month's bundle to deal its copies out.
 - Pick up a copy to read it, and put it back with Escape or the Table button.
 - A Monthly Edition opens as a magazine.
 - Turn a Monthly Edition's pages with the arrow keys.
-- Save or copy the front page or any section as an image, in 9:16, 1:1 or 16:9.
+- Tear open a Collector's Copy's foil sleeve to read it.
+- A Year-End Special unfolds into a three-panel poster.
+- Save or copy a Dispatch front page or any of its sections as an image, in 9:16, 1:1 or 16:9.
+- Save a Monthly Edition, Collector's Copy or Year-End Special as a short video, in 9:16, 1:1 or 16:9.
+- A Dispatch video plays a track of the game's own music that you pick.
 - Every past edition back to your first recorded match can be printed when you want it.
 - Issued editions are kept as they were printed, so old papers never change.
-- An edition needs at least three matches in what it covers.
 - Dispatch editions are kept in their own file, listed on its own row in Settings > Storage.
-- A notification tells you when a new edition is out.
-- The new edition notification never shows in the game overlay.
+- A notification tells you when a new Dispatch edition is out.
+- The new Dispatch edition notification never shows in the game overlay.
 - Turn the new edition notification off with "New Dispatch edition" in Settings > Notifications.
 
 #### Match front page
@@ -54,33 +58,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A weather box shows your ping when Deadlock+ recorded it for that match.
 - If Deadlock+ is in the background when it captures a match, the front page waits until you come back to the window.
 - "Open full match" on an after-match front page takes you to that match's details.
-- Save or copy the front page as an image.
+- Save or copy a match front page as an image.
 - Close a front page with Escape, the Close button or a click on the table.
-- The paper lands on the table a different way each time.
-- With reduced motion, the paper simply fades in.
+- An after-match front page lands on the table a different way each time.
+- With reduced motion, an after-match front page simply fades in.
 - Turn the after-match front page off with "Front page after each match" in Settings > Notifications.
 - Pick which match modes get an after-match front page.
 - Bot matches and custom lobbies are left out of after-match front pages by default.
 - When a front page is waiting while you're in game, the game overlay tells you.
 - Turn the front page waiting alert off with "Front page waiting" in Settings > Notifications.
-
-#### Updates page
-
-- A new Updates page shows the next version, its headline features and what you have now.
-- The download shows its progress with size, speed and time left.
-- Updates download first, and a Restart now button installs them when you're ready.
-- A failed update says what happened and offers Try again or a manual download.
-- The Updates page lists recent releases and how often new ones come out.
-- The title bar shows the update's state at a glance and opens the Updates page.
-- Installing from the update notification or banner opens the Updates page and starts the download.
-- Settings > About shows the update status and channel, with a button to the Updates page.
-
-#### Update channels
-
-- Choose an update channel on the Updates page: Release, Beta or Nightly.
-- Beta gets the next release a few days early, for testing.
-- Nightly gets a new build of the latest code every night.
-- Moving to a more stable channel never installs an older version: Deadlock+ waits until that channel catches up.
 
 #### Theme effects
 
@@ -100,7 +86,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pretty in Pink ties a polka-dot bow on the corner that wiggles now and then.
 - Turn theme effects off with the Theme effects switch in Settings > Appearance.
 - Reduced motion keeps the still art and stops everything that moves.
-- Effects pause while the Deadlock+ window is hidden or not focused.
+- Theme effects pause while the Deadlock+ window is hidden or not focused.
 
 #### New themes
 
@@ -117,7 +103,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pick any of Catppuccin's four flavours: Latte, Frappé, Macchiato or Mocha.
 - Pick any of Catppuccin's 14 accents, like Mauve, Peach or Sapphire.
 - Catppuccin starts as Mocha with Mauve, Catppuccin's own defaults.
-- Where an accent is too faint to read as text, like most accents on Latte, text uses a darker or lighter shade of it.
+- Where a Catppuccin accent is too faint to read as text, like most accents on Latte, text uses a darker or lighter shade of it.
 - Catppuccin Mocha is also on the website's theme picker.
 
 #### Theme options
@@ -125,18 +111,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Each theme's card in Settings > Appearance now holds that theme's own options.
 - Pick an accent colour of your own for any theme but High contrast and Catppuccin.
 - A custom accent keeps text readable by shifting its lightness only as far as contrast needs.
-- Turn single effects off, like Nightshift's rain or Flint Snow's tail.
+- Turn single theme effects off, like Nightshift's rain or Flint Snow's tail.
 - Themes based on something link to it, like Deadlock API or Deadlock Night Shift on Twitch.
+
+#### Updates page
+
+- A new Updates page shows the next version, its headline features and what you have now.
+- An update's download shows its progress with size, speed and time left.
+- Updates download first, and a Restart now button installs them when you're ready.
+- A failed update says what happened and offers Try again or a manual download.
+- The Updates page lists recent releases and how often new ones come out.
+- The title bar shows the update's state at a glance and opens the Updates page.
+- Installing from the update notification or banner opens the Updates page and starts the download.
+- Settings > About shows the update status and channel, with a button to the Updates page.
+
+#### Update channels
+
+- Choose an update channel on the Updates page: Release, Beta or Nightly.
+- The Beta channel gets the next release a few days early, for testing.
+- The Nightly channel gets a new build of the latest code every night.
+- Moving to a more stable channel never installs an older version: Deadlock+ waits until that channel catches up.
 
 ### Changed
 
-- What's New opens on a big version header with the update's totals.
-- What's New lists each update as patch notes, with an index that jumps to every section.
 - The Nightshift theme now uses the dark teal and gold of the Deadlock Night Shift show.
 - Text in every theme now meets a 4.5:1 contrast ratio, most visibly Daylight's darker gold.
+- Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
+- What's New opens on a big version header with the update's totals.
+- What's New lists each update as patch notes, with an index that jumps to every section.
 - With reduced motion on, nothing moves on the page, including video previews and scrolling.
 - The Motion setting in Deadlock+ now wins over the Windows reduced motion setting everywhere.
-- Red buttons in the Deadlock, Midnight and High contrast themes now use dark text.
 - Discord shows the match clock in the Hideout by default.
 - The "Time in this state" timer is now called "Time since Deadlock started", which is what it measures.
 - Exported scoreboard images have a new footer with the Deadlock+ logo on the left and deadlockplus.app on the right.
@@ -151,14 +155,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
-- On Linux, Deadlock+ now restarts by itself after installing an update.
 - Deadlock+ no longer crashes when you shut down or sign out of Windows with the game open.
-- The first start after an update no longer gets stuck before the window opens.
 - Deadlock+ no longer crashes now and then after picking up a match from the game.
 - The Live page no longer crashes when the game reports two players in the same lobby slot.
+- The first start after an update no longer gets stuck before the window opens.
+- On Linux, Deadlock+ now restarts by itself after installing an update.
 - On Linux, the main window shows at startup instead of staying hidden.
 - Restart app no longer loses a Discord presence edit made just before.
-- The website no longer scrolls sideways on a phone.
 - The window opens in your theme's colour, with no white or dark flash first.
 - The app opens straight on your last page instead of switching to it.
 - Some labels that stayed in English can now be translated, such as "Every other game" in Stats insights.
@@ -167,6 +170,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - In the build editor, a category's note no longer runs under its size badge.
 - The faint glow at the top of the page now shows only in Deadlock and Midnight, not as a smudge on other themes.
 - Stats and Match History now say when the Deadlock API is busy instead of saying it could not be reached.
+- The website no longer scrolls sideways on a phone.
 
 #### Keyboard and screen readers
 
