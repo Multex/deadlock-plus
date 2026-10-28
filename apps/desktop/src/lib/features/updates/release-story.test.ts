@@ -112,9 +112,22 @@ describe("patchSections", () => {
         ]);
     });
 
-    it("lists a feature's lead before its points", () => {
-        const dispatch = patchSections(releaseStory(entry))[1];
-        expect(dispatch.lines).toEqual(["A Dispatch page prints your week.", "Weekly editions.", "Monthly editions."]);
+    it("opens a feature with its number and its first bullet as the deck, and keeps the rest as lines", () => {
+        const [, dispatch, front] = patchSections(releaseStory(entry));
+        expect(dispatch.feature).toEqual({ number: 1, deck: "A Dispatch page prints your week." });
+        expect(dispatch.lines).toEqual(["Weekly editions.", "Monthly editions."]);
+        expect(front.feature).toEqual({ number: 2, deck: "A front page lands after a match." });
+        expect(front.lines).toEqual([]);
+    });
+
+    it("counts a feature's deck among its lines in the index", () => {
+        const [, dispatch] = patchSections(releaseStory(entry));
+        expect(dispatch.count).toBe(3);
+    });
+
+    it("leaves sections that are not features without a number", () => {
+        const sections = patchSections(releaseStory(entry));
+        expect(sections.filter((s) => !s.feature).map((s) => s.count)).toEqual([2, 1, 2, 1]);
     });
 
     it("gives every section its own id", () => {
