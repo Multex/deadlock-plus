@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - locales/*/en.json
+      - locales/*/en.notes.json
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -57,5 +58,13 @@ jobs:
           commit_message: "chore(i18n): 🌐 update translations from Crowdin"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+
+      # Runs after the source upload so new strings already exist; the scheduled run uploads nothing.
+      - name: Push translator notes
+        if: steps.gate.outputs.enabled == 'true' && github.event_name != 'schedule'
+        run: node scripts/crowdin-context.mjs
+        env:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}

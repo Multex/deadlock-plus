@@ -97,6 +97,7 @@ All user-facing text lives in `locales/<area>/en.json`, one file per app area (`
 ### Crowdin flow
 
 - `locales/<area>/en.json` are the only sources. A push to `main` that changes one uploads them to Crowdin (`.github/workflows/crowdin.yml`).
+- The same push then sends the translator notes as Crowdin string context (`scripts/crowdin-context.mjs`; `--dry-run` only counts).
 - The same workflow downloads translations on a weekly schedule and on manual runs. It opens a PR from `l10n_crowdin_translations`; it never pushes to `main`.
 - Language files are named `<code>.json` (`fr.json`). Regional variants that coexist use the full code (`pt-BR.json`, `zh-CN.json`); add new ones under `languages_mapping` in `crowdin.yml`.
 - The `en-XA` pseudo-locale is for local development only. It is never uploaded or downloaded.
