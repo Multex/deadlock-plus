@@ -200,6 +200,30 @@
         "match_found_unknown": {
             "title": "Матч найден",
             "body": "Ваш матч загружается."
+        },
+        "queue_stopped": {
+            "title": "",
+            "body": ""
+        },
+        "front_page_waiting": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_weekly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_monthly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_collectors": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_year_end": {
+            "title": "",
+            "body": ""
         }
     },
     "admin_access": {
@@ -250,7 +274,8 @@
             "demos": "Повторы",
             "match_history": "История матчей",
             "presence": "Активность",
-            "builds": "Сборки"
+            "builds": "Сборки",
+            "dispatch": ""
         },
         "sidebar": {
             "unread": "Не прочитано: {count}",
@@ -283,7 +308,9 @@
                 "degraded": "Deadlock API работает частично",
                 "degraded_title": "Сервисы Deadlock API недоступны: {services}",
                 "offline": "Deadlock API недоступен",
-                "offline_title": "Deadlock API не отвечает"
+                "offline_title": "Deadlock API не отвечает",
+                "busy": "",
+                "busy_title": ""
             },
             "game": {
                 "running": "Deadlock запущен",
@@ -294,6 +321,11 @@
             "discord": {
                 "searching": "Discord не найден",
                 "searching_title": "Активность в Discord включена, но запущенный Discord не найден",
+                "checking": "",
+                "waiting": "",
+                "waiting_title": "",
+                "connecting": "",
+                "connecting_title": "",
                 "connected_title": "Ваша активность в Deadlock отображается в Discord",
                 "off": "Discord выключен",
                 "off_title": "Активность в Discord выключена. Нажмите, чтобы настроить."
@@ -329,7 +361,8 @@
             "demos": "Просмотр сохраненных повторов матчей с отметкой устаревших",
             "match_history": "Все матчи из Deadlock API с полной таблицей результатов для каждого",
             "presence": "Показ героя, режима и таймера матча в профиле Discord",
-            "builds": "Просматривайте, копируйте и изменяйте сборки героев с сохранением прямо в игру"
+            "builds": "Просматривайте, копируйте и изменяйте сборки героев с сохранением прямо в игру",
+            "dispatch": ""
         }
     },
     "ui": {},
@@ -481,8 +514,9 @@
             "checking": "Проверка...",
             "up_to_date": "У вас последняя версия.",
             "available": "Доступна новая версия {version}.",
-            "downloading": "Загрузка {version}. Deadlock+ перезапускается после завершения.",
-            "downloading_percent": "Загрузка {version} ({percent}%). Deadlock+ перезапускается после завершения.",
+            "downloading": "",
+            "downloading_percent": "",
+            "ready": "",
             "check_failed": "Не удалось проверить обновления. Проверьте подключение и попробуйте снова.",
             "download_failed": "Не удалось скачать обновление. Попробуйте позже."
         },
@@ -490,7 +524,105 @@
             "title": "Deadlock+ {version} готов к установке",
             "body": "У вас более старая версия. Обновление займет минуту, и Deadlock+ перезапустится самостоятельно.",
             "install": "Установить сейчас",
-            "dismiss": "Не сейчас"
+            "dismiss": "Не сейчас",
+            "view": ""
+        },
+        "surface": {
+            "title": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "checking": "",
+                "idle": ""
+            },
+            "from_version": "",
+            "body": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "up_to_date_plain": "",
+                "checking": "",
+                "idle": "",
+                "install_failed": ""
+            },
+            "action": {
+                "update": "",
+                "restart": "",
+                "retry": "",
+                "check": "",
+                "manual": "",
+                "notes": ""
+            },
+            "highlights_title": "",
+            "more_changes_one": "",
+            "more_changes_few": "",
+            "more_changes_many": "",
+            "more_changes_other": ""
+        },
+        "progress": {
+            "label": "",
+            "of": "",
+            "received": "",
+            "speed": "",
+            "percent": "",
+            "left_seconds_one": "",
+            "left_seconds_few": "",
+            "left_seconds_many": "",
+            "left_seconds_other": "",
+            "left_minutes_one": "",
+            "left_minutes_few": "",
+            "left_minutes_many": "",
+            "left_minutes_other": ""
+        },
+        "channel": {
+            "title": "",
+            "summary": "",
+            "release": {
+                "name": "",
+                "body": ""
+            },
+            "beta": {
+                "name": "",
+                "body": ""
+            },
+            "nightly": {
+                "name": "",
+                "body": ""
+            },
+            "nightly_warning": "",
+            "keeps_build": ""
+        },
+        "indicator": {
+            "available": "",
+            "downloading": "",
+            "downloading_plain": "",
+            "ready": "",
+            "failed": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": ""
+            }
+        },
+        "history": {
+            "title": "",
+            "installed": "",
+            "all": "",
+            "cadence_one": "",
+            "cadence_few": "",
+            "cadence_many": "",
+            "cadence_other": ""
+        },
+        "overview": {
+            "open": ""
         }
     },
     "connection": {
@@ -521,7 +653,9 @@
         "history": {
             "title": "Последние {minutes} мин",
             "empty": "История пингов появляется, когда вы находитесь в игре.",
-            "chart_label": "История пинга"
+            "chart_label": "История пинга",
+            "error_title": "",
+            "error_body": ""
         },
         "notices": {
             "permission": "Для мониторинга в реальном времени нужно отслеживать сетевой трафик, пока запущен Deadlock. Система запросит ваш пароль.",
@@ -719,7 +853,7 @@
         "days_ago_one": "{count} день назад",
         "days_ago_few": "{count} дня назад",
         "days_ago_many": "{count} дней назад",
-        "days_ago_other": "{count} дня назад"
+        "days_ago_other": "{count} дней назад"
     },
     "keyboard": {
         "settings_section": "Настройки: {section}",
@@ -758,7 +892,10 @@
         "privacy": "Отчет остается на этом компьютере, пока вы сами им не поделитесь. Анонимные отчеты об ошибках отправляются, только когда это включено в настройках.",
         "dismiss": "Закрыть",
         "open_folder": "Открыть папку отчетов",
-        "report_github": "Сообщить на GitHub"
+        "report_github": "Сообщить на GitHub",
+        "reveal_failed": "",
+        "issue_failed": "",
+        "dismiss_failed": ""
     },
     "notification_list": {
         "title": "Уведомления",
@@ -804,7 +941,25 @@
         "subtitle": "Примечания к релизам Deadlock+, сначала новые.",
         "empty": "Примечаний к релизам пока нет.",
         "show_all": "Показать все релизы",
-        "back_home": "Назад на главную"
+        "back_home": "Назад на главную",
+        "version": "",
+        "index": "",
+        "section_general": "",
+        "section_changes": "",
+        "section_fixes": "",
+        "section_removed": "",
+        "count_added_one": "",
+        "count_added_few": "",
+        "count_added_many": "",
+        "count_added_other": "",
+        "count_changed_one": "",
+        "count_changed_few": "",
+        "count_changed_many": "",
+        "count_changed_other": "",
+        "count_fixed_one": "",
+        "count_fixed_few": "",
+        "count_fixed_many": "",
+        "count_fixed_other": ""
     },
     "account": {
         "default_name": "Аккаунт Steam",
@@ -814,6 +969,7 @@
     },
     "heroes": {},
     "jobs": {
+        "run_failed": "",
         "catalog": {
             "addon_scan": {
                 "title": "Проверка модов",
@@ -853,7 +1009,7 @@
             "accounts_one": "{count} аккаунт Steam",
             "accounts_few": "{count} аккаунта Steam",
             "accounts_many": "{count} аккаунтов Steam",
-            "accounts_other": "{count} аккаунта Steam"
+            "accounts_other": "{count} аккаунтов Steam"
         },
         "own": {
             "reading_history": "Чтение истории матчей.",
@@ -879,20 +1035,20 @@
                 "minutes_one": "{count} минуту назад",
                 "minutes_few": "{count} минуты назад",
                 "minutes_many": "{count} минут назад",
-                "minutes_other": "{count} минуты назад",
+                "minutes_other": "{count} минут назад",
                 "hours_one": "{count} час назад",
                 "hours_few": "{count} часа назад",
                 "hours_many": "{count} часов назад",
-                "hours_other": "{count} часа назад",
+                "hours_other": "{count} часов назад",
                 "days_one": "{count} день назад",
                 "days_few": "{count} дня назад",
                 "days_many": "{count} дней назад",
-                "days_other": "{count} дня назад"
+                "days_other": "{count} дней назад"
             },
             "matches_one": "{count} матч",
             "matches_few": "{count} матча",
             "matches_many": "{count} матчей",
-            "matches_other": "{count} матча"
+            "matches_other": "{count} матчей"
         }
     },
     "api_health": {},
@@ -929,5 +1085,19 @@
         "saved": "Отчет сохранён",
         "save_failed": "Не удалось сохранить отчет. Подробнее в журнале.",
         "build_failed": "Не удалось сформировать отчет. Подробнее в журнале."
+    },
+    "api_busy": {
+        "waiting": "",
+        "retrying": "",
+        "try_now": ""
+    },
+    "region": {
+        "error_title": "",
+        "error_body": "",
+        "retry": "",
+        "page_title": ""
+    },
+    "announcements": {
+        "dismiss": ""
     }
 }

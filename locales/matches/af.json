@@ -70,7 +70,9 @@
             "not_eligible": "",
             "note": "",
             "recent_games": "",
-            "total_games": ""
+            "total_games": "",
+            "rank_error": "",
+            "games_error": ""
         },
         "page": {
             "matches_known": "",
@@ -79,6 +81,7 @@
         "section": {
             "games": ""
         },
+        "captured_only": "",
         "syncing_one": "",
         "syncing_other": "",
         "syncing_hint_one": "",
@@ -135,6 +138,7 @@
         "summary": {
             "top_tier": "",
             "progress": "{within} / {span} tot {next}.",
+            "progress_aria": "",
             "boundary": "",
             "placement_left": "",
             "estimated_one": "",
@@ -290,6 +294,7 @@
                 "kda_split": "",
                 "kda_ratio": ""
             },
+            "error": "",
             "count_one": "",
             "count_other": ""
         },
@@ -518,6 +523,7 @@
             "grade": {
                 "label": "",
                 "aria": "",
+                "chip_aria": "",
                 "leaver": "",
                 "unchecked": "",
                 "farm_bonus": "",
@@ -564,6 +570,8 @@
                 "replay_recoverable_note": "",
                 "replay_unrecoverable": "",
                 "replay_unrecoverable_note": "",
+                "badge_not_applicable": "",
+                "not_applicable": "",
                 "replay_days_left_one": "",
                 "replay_days_left_other": ""
             },
@@ -577,7 +585,8 @@
                 "recover": "",
                 "recover_note": "",
                 "consent_note": ""
-            }
+            },
+            "load_error": ""
         },
         "ping": {
             "heading": "",
@@ -623,11 +632,134 @@
             "resume": "",
             "limit_note": "",
             "step_details": "",
-            "step_replays": ""
+            "step_replays": "",
+            "start_failed": "",
+            "pause_failed": "",
+            "resume_failed": "",
+            "cancel_failed": "",
+            "match_failed": "",
+            "replay_failed": ""
         },
         "row_state": {
             "missing": "",
             "recovering": ""
+        }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "",
+                "deck": "",
+                "deck_graded": ""
+            },
+            "comeback": {
+                "headline": "",
+                "deck": ""
+            },
+            "critics_top": {
+                "headline": "",
+                "deck": ""
+            },
+            "first_blood": {
+                "headline": "",
+                "deck": ""
+            },
+            "mid_boss": {
+                "headline": "",
+                "deck": "",
+                "deck_split": ""
+            },
+            "guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "walker_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "base_guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "shrine_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "patron_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_damage": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_healing": {
+                "headline": "",
+                "deck": ""
+            },
+            "richest": {
+                "headline": "",
+                "deck": ""
+            },
+            "most_last_hits": {
+                "deck": "",
+                "headline_one": "",
+                "headline_other": ""
+            }
+        },
+        "kit": {
+            "weather": "",
+            "box_score": "",
+            "critics": "",
+            "lane_report": "",
+            "in_brief": "",
+            "objectives": "",
+            "kills": "",
+            "hero": "",
+            "kda": "",
+            "net_worth": "",
+            "grade": ""
+        },
+        "open": "",
+        "open_match": "",
+        "close": "",
+        "dialog": "",
+        "loading": "",
+        "name": "",
+        "edition": "",
+        "kicker_viewer": "",
+        "photo_caption": "",
+        "place_of": "",
+        "critics_grading": "",
+        "critics_pending": "",
+        "lane": {
+            "lead": "",
+            "even": "",
+            "matchup": ""
+        },
+        "weather": {
+            "forecast_clear": "",
+            "forecast_fair": "",
+            "forecast_overcast": "",
+            "forecast_storm": "",
+            "ping": "",
+            "jitter": ""
+        },
+        "objective": {
+            "short_guardian": "",
+            "short_walker": "",
+            "short_base_guardian": "",
+            "short_shrine": "",
+            "short_patron": "",
+            "short_core": "",
+            "short_mid_boss": "",
+            "short_unknown": ""
+        },
+        "export": {
+            "group": "",
+            "saved": "",
+            "copied": "",
+            "render_failed": ""
         }
     }
 }

@@ -21,7 +21,9 @@
             "note_macos": ""
         },
         "runs": {
-            "default_label": ""
+            "default_label": "",
+            "save_failed": "",
+            "delete_failed": ""
         },
         "metrics": {
             "avg_fps": "",
@@ -118,6 +120,9 @@
             "saved": "Enregistré",
             "spike_at": "",
             "needs_admin": "",
+            "start_failed": "",
+            "stop_failed": "",
+            "read_failed": "",
             "recording_one": "",
             "recording_other": "",
             "graph_caption_one": "",
@@ -246,6 +251,9 @@
             "days_unit": "jours",
             "larger_than": "Plus grand que",
             "gigabytes_label": "Gigaoctets",
+            "load_failed": "",
+            "save_failed": "",
+            "check_failed": "",
             "gb_unit": "Go",
             "turn_on": "",
             "checking": "",
@@ -262,11 +270,15 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
+            "delete_none": "",
+            "pin_failed": "",
+            "open_failed": "",
             "deleted_one": "",
             "deleted_other": "",
             "delete_failed_one": "",
             "delete_failed_other": ""
-        }
+        },
+        "list_error": ""
     },
     "voice_bans": {
         "title": "",
@@ -308,7 +320,6 @@
         },
         "row": {
             "select": "",
-            "open_aria": "",
             "open_title": "",
             "unmute": "",
             "unmute_named": "",
@@ -339,11 +350,13 @@
             "search_failed": "",
             "exported": "",
             "export_failed": "",
+            "save_failed": "",
             "import_failed": "",
             "unmuted_one": "",
             "unmuted_other": "",
             "muted_one": "",
             "muted_other": ""
-        }
+        },
+        "list_error": ""
     }
 }

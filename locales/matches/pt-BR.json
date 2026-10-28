@@ -70,7 +70,9 @@
             "not_eligible": "Ainda não elegível",
             "note": "Aproximado. Conta suas partidas competitivas e sem divisão conhecidas pela API do Deadlock. A Valve não divulga quais filas são consideradas.",
             "recent_games": "Jogos nos últimos {days} dias",
-            "total_games": "Total de jogos na sua conta"
+            "total_games": "Total de jogos na sua conta",
+            "rank_error": "",
+            "games_error": ""
         },
         "page": {
             "matches_known": "{count} partidas conhecidas para esta conta. O que ainda não foi visto não é contabilizado.",
@@ -79,6 +81,7 @@
         "section": {
             "games": "Seus jogos"
         },
+        "captured_only": "",
         "syncing_one": "",
         "syncing_other": "",
         "syncing_hint_one": "",
@@ -135,6 +138,7 @@
         "summary": {
             "top_tier": "Nível superior. As subclassificações aqui dependem de como você se compara a outros jogadores de ponta, portanto, não há barra de progresso.",
             "progress": "{within} / {span} para {next}.",
+            "progress_aria": "",
             "boundary": "Seu progresso acabou de ultrapassar um limite, mas a API do Deadlock ainda exibe o emblema antigo; portanto, não haverá barra até a próxima partida.",
             "placement_left": "Restam {count} partidas de colocação.",
             "estimated_one": "",
@@ -290,6 +294,7 @@
                 "kda_split": "Vítimas / mortes / assistências",
                 "kda_ratio": "{ratio} KDA"
             },
+            "error": "",
             "count_one": "",
             "count_other": ""
         },
@@ -518,6 +523,7 @@
             "grade": {
                 "label": "Nota",
                 "aria": "Nota {letter}, pontuação {score}, {place}",
+                "chip_aria": "",
                 "leaver": "Alguém saiu desta partida antes do tempo, por isso todas as notas nela estão distorcidas.",
                 "unchecked": "Jogadores que saíram antes do fim não foram verificados: esta nota vem dos dados da partida fornecidos pelo próprio jogo.",
                 "farm_bonus": "Bônus de farm em equipe",
@@ -564,6 +570,8 @@
                 "replay_recoverable_note": "A API do Deadlock ainda não tem o replay desta partida.",
                 "replay_unrecoverable": "Indisponível",
                 "replay_unrecoverable_note": "Este replay não pode mais ser recuperado.",
+                "badge_not_applicable": "",
+                "not_applicable": "",
                 "replay_days_left_one": "",
                 "replay_days_left_other": ""
             },
@@ -577,7 +585,8 @@
                 "recover": "Recuperar replay",
                 "recover_note": "Conta para o limite de 40 partidas por dia.",
                 "consent_note": "Apenas este replay. A recuperação em segundo plano continua desativada."
-            }
+            },
+            "load_error": ""
         },
         "ping": {
             "heading": "Ping",
@@ -623,11 +632,134 @@
             "resume": "Retomar",
             "limit_note": "Continua amanhã, por conta própria",
             "step_details": "Detalhes ausentes",
-            "step_replays": "Replays recentes"
+            "step_replays": "Replays recentes",
+            "start_failed": "",
+            "pause_failed": "",
+            "resume_failed": "",
+            "cancel_failed": "",
+            "match_failed": "",
+            "replay_failed": ""
         },
         "row_state": {
             "missing": "Sem detalhes",
             "recovering": "Recuperando"
+        }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "",
+                "deck": "",
+                "deck_graded": ""
+            },
+            "comeback": {
+                "headline": "",
+                "deck": ""
+            },
+            "critics_top": {
+                "headline": "",
+                "deck": ""
+            },
+            "first_blood": {
+                "headline": "",
+                "deck": ""
+            },
+            "mid_boss": {
+                "headline": "",
+                "deck": "",
+                "deck_split": ""
+            },
+            "guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "walker_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "base_guardian_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "shrine_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "patron_fall": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_damage": {
+                "headline": "",
+                "deck": ""
+            },
+            "top_healing": {
+                "headline": "",
+                "deck": ""
+            },
+            "richest": {
+                "headline": "",
+                "deck": ""
+            },
+            "most_last_hits": {
+                "deck": "",
+                "headline_one": "",
+                "headline_other": ""
+            }
+        },
+        "kit": {
+            "weather": "",
+            "box_score": "",
+            "critics": "",
+            "lane_report": "",
+            "in_brief": "",
+            "objectives": "",
+            "kills": "",
+            "hero": "",
+            "kda": "",
+            "net_worth": "",
+            "grade": ""
+        },
+        "open": "",
+        "open_match": "",
+        "close": "",
+        "dialog": "",
+        "loading": "",
+        "name": "",
+        "edition": "",
+        "kicker_viewer": "",
+        "photo_caption": "",
+        "place_of": "",
+        "critics_grading": "",
+        "critics_pending": "",
+        "lane": {
+            "lead": "",
+            "even": "",
+            "matchup": ""
+        },
+        "weather": {
+            "forecast_clear": "",
+            "forecast_fair": "",
+            "forecast_overcast": "",
+            "forecast_storm": "",
+            "ping": "",
+            "jitter": ""
+        },
+        "objective": {
+            "short_guardian": "",
+            "short_walker": "",
+            "short_base_guardian": "",
+            "short_shrine": "",
+            "short_patron": "",
+            "short_core": "",
+            "short_mid_boss": "",
+            "short_unknown": ""
+        },
+        "export": {
+            "group": "",
+            "saved": "",
+            "copied": "",
+            "render_failed": ""
         }
     }
 }

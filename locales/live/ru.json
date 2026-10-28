@@ -35,11 +35,11 @@
             "rules_one": "{count} правило {label}",
             "rules_few": "{count} правила {label}",
             "rules_many": "{count} правил {label}",
-            "rules_other": "{count} правила {label}",
+            "rules_other": "{count} правил {label}",
             "regions_one": "{count} регион",
             "regions_few": "{count} региона",
             "regions_many": "{count} регионов",
-            "regions_other": "{count} региона"
+            "regions_other": "{count} регионов"
         },
         "game_running": {
             "title": "Deadlock запущен",
@@ -102,11 +102,11 @@
             "relay_groups_one": "{count} группа серверов",
             "relay_groups_few": "{count} группы серверов",
             "relay_groups_many": "{count} групп серверов",
-            "relay_groups_other": "{count} группы серверов",
+            "relay_groups_other": "{count} групп серверов",
             "relays_one": "{count} сервер",
             "relays_few": "{count} сервера",
             "relays_many": "{count} серверов",
-            "relays_other": "{count} сервера"
+            "relays_other": "{count} серверов"
         },
         "toast": {
             "refresh_failed": "Не удалось обновить список серверов. Показан последний сохраненный список.",
@@ -124,17 +124,17 @@
             "preset_applied": "Применен пресет \"{name}\": заблокировано {blocked} из {total} регионов",
             "preset_apply_failed": "Не удалось применить \"{name}\". Подробнее в журнале.",
             "preset_saved": "Сохранен пресет \"{name}\"",
-            "preset_save_failed": "Не удалось сохранить пресет. Подробнее в журнале.",
-            "preset_delete_failed": "Не удалось удалить пресет. Подробнее в журнале.",
+            "preset_save_failed": "",
+            "preset_delete_failed": "",
             "import_failed": "Не удалось импортировать существующие блокировки брандмауэра. Подробнее в журнале.",
             "unblocked_rules_one": "Разблокировано {count} правило",
             "unblocked_rules_few": "Разблокировано {count} правила",
             "unblocked_rules_many": "Разблокировано {count} правил",
-            "unblocked_rules_other": "Разблокировано {count} правила",
+            "unblocked_rules_other": "Разблокировано {count} правил",
             "imported_one": "Импортирована {count} блокировка из {source}",
             "imported_few": "Импортировано {count} блокировки из {source}",
             "imported_many": "Импортировано {count} блокировок из {source}",
-            "imported_other": "Импортировано {count} блокировки из {source}"
+            "imported_other": "Импортировано {count} блокировок из {source}"
         },
         "admin_needed": {
             "block": "Не удалось заблокировать {name}.",
@@ -144,7 +144,8 @@
             "preset": "Не удалось применить \"{name}\".",
             "import": "Не удалось импортировать существующие блокировки брандмауэра.",
             "description": "Для изменения правил брандмауэра Deadlock+ нужны права администратора. При выборе \"Разрешить\" Windows спросит один раз за эту сессию. При выборе \"Всегда разрешать\" спросит один раз, и больше для этого аккаунта Windows спрашивать не будет."
-        }
+        },
+        "load_failed": ""
     },
     "live": {
         "state": {

@@ -21,7 +21,9 @@
             "note_macos": ""
         },
         "runs": {
-            "default_label": ""
+            "default_label": "",
+            "save_failed": "",
+            "delete_failed": ""
         },
         "metrics": {
             "avg_fps": "",
@@ -117,6 +119,9 @@
             "saved": "",
             "spike_at": "",
             "needs_admin": "",
+            "start_failed": "",
+            "stop_failed": "",
+            "read_failed": "",
             "recording_other": "",
             "graph_caption_other": "",
             "summary_other": "",
@@ -233,6 +238,9 @@
             "days_unit": "",
             "larger_than": "",
             "gigabytes_label": "",
+            "load_failed": "",
+            "save_failed": "",
+            "check_failed": "",
             "gb_unit": "",
             "turn_on": "",
             "checking": "",
@@ -246,9 +254,13 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
+            "delete_none": "",
+            "pin_failed": "",
+            "open_failed": "",
             "deleted_other": "",
             "delete_failed_other": ""
-        }
+        },
+        "list_error": ""
     },
     "voice_bans": {
         "title": "",
@@ -290,7 +302,6 @@
         },
         "row": {
             "select": "",
-            "open_aria": "",
             "open_title": "",
             "unmute": "",
             "unmute_named": "",
@@ -318,9 +329,11 @@
             "search_failed": "",
             "exported": "",
             "export_failed": "",
+            "save_failed": "",
             "import_failed": "",
             "unmuted_other": "",
             "muted_other": ""
-        }
+        },
+        "list_error": ""
     }
 }

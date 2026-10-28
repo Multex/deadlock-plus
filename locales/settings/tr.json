@@ -1,5 +1,6 @@
 {
     "settings": {
+        "save_failed": "",
         "language": {
             "label": "Dil",
             "description": "",
@@ -49,13 +50,17 @@
             "overlay_test": "",
             "overlay_notifications": "",
             "overlay_match_found": "",
+            "overlay_queue_stopped": "",
             "server_blocks_updated": "",
             "server_blocks_stale": "",
             "break_reminder": "",
+            "front_page_after_match": "",
+            "front_page_overlay_alert": "",
             "ui_scale": "",
             "hardware_acceleration": "",
             "open_on_game_start": "",
-            "admin_access": ""
+            "admin_access": "",
+            "dispatch_alerts": ""
         },
         "nav": {
             "label": "Ayar kategorileri",
@@ -78,7 +83,8 @@
             "accent_hue": "",
             "accent_vividness": "",
             "accent_hex": "",
-            "accent_reset": ""
+            "accent_reset": "",
+            "theme_option_aria": ""
         },
         "themes": {
             "deadlock": {
@@ -141,6 +147,22 @@
                 "label": "",
                 "description": "",
                 "source": ""
+            },
+            "pretty_in_pink": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "clouds": "",
+                    "hearts": "",
+                    "bow": ""
+                }
+            },
+            "catppuccin": {
+                "label": "",
+                "description": "",
+                "source": "",
+                "variant": "",
+                "accent": ""
             }
         },
         "autostart": {
@@ -184,6 +206,7 @@
             "overlay_notifications_button": "",
             "overlay_test_button": "",
             "overlay_test_countdown": "",
+            "overlay_test_failed": "",
             "overlay_seconds": "",
             "position": {
                 "top_left": "",
@@ -197,9 +220,14 @@
                 "center": ""
             },
             "overlay_match_found_description": "",
+            "overlay_queue_stopped_description": "",
             "server_blocks_updated_description": "",
             "server_blocks_stale_description": "",
             "break_reminder_description": "",
+            "front_page_after_match_description": "",
+            "front_page_modes": "",
+            "front_page_mode_aria": "",
+            "front_page_overlay_alert_description": "",
             "delivery_label": "",
             "delivery": {
                 "both": "",
@@ -209,7 +237,8 @@
                 "center": ""
             },
             "overlay_off_fallback": "",
-            "overlay_off_hidden": ""
+            "overlay_off_hidden": "",
+            "dispatch_alerts_description": ""
         },
         "weekdays": {
             "monday": "Pazartesi",
@@ -236,6 +265,12 @@
             "level_detailed_description": "",
             "support_label": "Deadlock+'ı destekle",
             "support_description": "Etkinliğinize \"Deadlock+ İndir\" düğmesi ekler, böylece diğerleri uygulamayı bulabilir. Temel ve Ayrıntılı seviyelerinde çalışır.",
+            "logo_label": "",
+            "logo_description": "",
+            "delay_label": "",
+            "delay_description": "",
+            "delay_off": "",
+            "delay_seconds": "",
             "client_running": "Çalışıyor",
             "client_not_running": "Çalışmıyor",
             "client_other_hint": "Vesktop ve diğer uygulamalar",
@@ -250,6 +285,8 @@
             "client_other_name": "",
             "status_off": "Kapalı",
             "status_none": "Discord bulunamadı.",
+            "status_waiting": "",
+            "status_connecting": "",
             "status_showing": ""
         },
         "discord_editor": {
@@ -265,6 +302,7 @@
             "field_small_image": "",
             "field_small_text": "",
             "field_timer": "",
+            "timer_aria": "",
             "reset_field": "",
             "reset_scope": "",
             "reset_all": "",
@@ -298,6 +336,8 @@
             "exported": "",
             "export_failed": "Panoya kopyalanamadı",
             "imported": "",
+            "import_failed": "",
+            "save_failed": "",
             "state": {
                 "playing": "Oynuyor",
                 "mainMenu": "Ana menü",
@@ -402,14 +442,17 @@
             },
             "timer_queueTime": "",
             "field_party_size": "",
+            "party_size_aria": "",
             "party_size_hint": "",
             "preview_party": "",
-            "detailed_only": ""
+            "detailed_only": "",
+            "load_error": ""
         },
         "privacy": {
             "telemetry_description": "",
             "telemetry_reset": "",
             "telemetry_reset_done": "",
+            "telemetry_reset_failed": "",
             "ingest_waiting": "",
             "ingest_off": "",
             "ingest_no_cache": "",
@@ -441,7 +484,8 @@
                 "replay": "",
                 "sent": "",
                 "not_sent": "",
-                "empty": ""
+                "empty": "",
+                "load_error": ""
             }
         },
         "about_page": {
@@ -451,7 +495,8 @@
             "install": "",
             "auto_check_label": "",
             "auto_check_description": "",
-            "whats_new_in": ""
+            "whats_new_in": "",
+            "version_error": ""
         },
         "diagnostics": {
             "description": "",
@@ -506,7 +551,8 @@
         "summary": {
             "total": "",
             "can_clear": "",
-            "clear_regenerable": ""
+            "clear_regenerable": "",
+            "total_at_least": ""
         },
         "entry": {
             "path_missing": "",
@@ -519,7 +565,8 @@
             "reveal_aria": "",
             "reveal_title": "",
             "clear_aria": "",
-            "clear_title": ""
+            "clear_title": "",
+            "unmeasured": ""
         },
         "dialog": {
             "cancel": "",
@@ -533,7 +580,10 @@
         },
         "toast": {
             "freed": "",
-            "nothing": ""
+            "nothing": "",
+            "reveal_failed": "",
+            "clear_failed_one": "",
+            "clear_failed_other": ""
         },
         "age": {
             "today": "",
@@ -757,7 +807,14 @@
                 "clear_name": "",
                 "description": "",
                 "consequence": ""
+            },
+            "dispatch_editions": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
             }
-        }
+        },
+        "list_error": ""
     }
 }

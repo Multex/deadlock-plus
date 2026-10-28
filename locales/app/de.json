@@ -200,6 +200,30 @@
         "match_found_unknown": {
             "title": "",
             "body": ""
+        },
+        "queue_stopped": {
+            "title": "",
+            "body": ""
+        },
+        "front_page_waiting": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_weekly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_monthly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_collectors": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_year_end": {
+            "title": "",
+            "body": ""
         }
     },
     "admin_access": {
@@ -250,7 +274,8 @@
             "demos": "",
             "match_history": "",
             "presence": "",
-            "builds": ""
+            "builds": "",
+            "dispatch": ""
         },
         "sidebar": {
             "unread": "",
@@ -283,7 +308,9 @@
                 "degraded": "",
                 "degraded_title": "",
                 "offline": "",
-                "offline_title": ""
+                "offline_title": "",
+                "busy": "",
+                "busy_title": ""
             },
             "game": {
                 "running": "",
@@ -294,6 +321,11 @@
             "discord": {
                 "searching": "",
                 "searching_title": "",
+                "checking": "",
+                "waiting": "",
+                "waiting_title": "",
+                "connecting": "",
+                "connecting_title": "",
                 "connected_title": "",
                 "off": "",
                 "off_title": ""
@@ -329,7 +361,8 @@
             "demos": "",
             "match_history": "",
             "presence": "",
-            "builds": ""
+            "builds": "",
+            "dispatch": ""
         }
     },
     "ui": {},
@@ -483,6 +516,7 @@
             "available": "",
             "downloading": "",
             "downloading_percent": "",
+            "ready": "",
             "check_failed": "",
             "download_failed": ""
         },
@@ -490,7 +524,97 @@
             "title": "",
             "body": "",
             "install": "",
-            "dismiss": ""
+            "dismiss": "",
+            "view": ""
+        },
+        "surface": {
+            "title": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "checking": "",
+                "idle": ""
+            },
+            "from_version": "",
+            "body": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "up_to_date_plain": "",
+                "checking": "",
+                "idle": "",
+                "install_failed": ""
+            },
+            "action": {
+                "update": "",
+                "restart": "",
+                "retry": "",
+                "check": "",
+                "manual": "",
+                "notes": ""
+            },
+            "highlights_title": "",
+            "more_changes_one": "",
+            "more_changes_other": ""
+        },
+        "progress": {
+            "label": "",
+            "of": "",
+            "received": "",
+            "speed": "",
+            "percent": "",
+            "left_seconds_one": "",
+            "left_seconds_other": "",
+            "left_minutes_one": "",
+            "left_minutes_other": ""
+        },
+        "channel": {
+            "title": "",
+            "summary": "",
+            "release": {
+                "name": "",
+                "body": ""
+            },
+            "beta": {
+                "name": "",
+                "body": ""
+            },
+            "nightly": {
+                "name": "",
+                "body": ""
+            },
+            "nightly_warning": "",
+            "keeps_build": ""
+        },
+        "indicator": {
+            "available": "",
+            "downloading": "",
+            "downloading_plain": "",
+            "ready": "",
+            "failed": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": ""
+            }
+        },
+        "history": {
+            "title": "",
+            "installed": "",
+            "all": "",
+            "cadence_one": "",
+            "cadence_other": ""
+        },
+        "overview": {
+            "open": ""
         }
     },
     "connection": {
@@ -521,7 +645,9 @@
         "history": {
             "title": "",
             "empty": "",
-            "chart_label": ""
+            "chart_label": "",
+            "error_title": "",
+            "error_body": ""
         },
         "notices": {
             "permission": "",
@@ -754,7 +880,10 @@
         "privacy": "",
         "dismiss": "",
         "open_folder": "",
-        "report_github": ""
+        "report_github": "",
+        "reveal_failed": "",
+        "issue_failed": "",
+        "dismiss_failed": ""
     },
     "notification_list": {
         "title": "",
@@ -798,7 +927,19 @@
         "subtitle": "",
         "empty": "",
         "show_all": "",
-        "back_home": ""
+        "back_home": "",
+        "version": "",
+        "index": "",
+        "section_general": "",
+        "section_changes": "",
+        "section_fixes": "",
+        "section_removed": "",
+        "count_added_one": "",
+        "count_added_other": "",
+        "count_changed_one": "",
+        "count_changed_other": "",
+        "count_fixed_one": "",
+        "count_fixed_other": ""
     },
     "account": {
         "default_name": "",
@@ -808,6 +949,7 @@
     },
     "heroes": {},
     "jobs": {
+        "run_failed": "",
         "catalog": {
             "addon_scan": {
                 "title": "",
@@ -913,5 +1055,19 @@
         "saved": "",
         "save_failed": "",
         "build_failed": ""
+    },
+    "api_busy": {
+        "waiting": "",
+        "retrying": "",
+        "try_now": ""
+    },
+    "region": {
+        "error_title": "",
+        "error_body": "",
+        "retry": "",
+        "page_title": ""
+    },
+    "announcements": {
+        "dismiss": ""
     }
 }
