@@ -246,6 +246,7 @@ pub fn run() {
             features::telemetry::commands::track_discord_invite,
             features::telemetry::commands::track_update_shown,
             features::telemetry::commands::track_update_install_clicked,
+            features::telemetry::commands::flush_telemetry,
             features::telemetry::commands::reset_telemetry_id,
             features::autostart::commands::autostart_status,
             features::autostart::commands::set_autostart,
