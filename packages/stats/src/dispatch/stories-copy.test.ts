@@ -137,10 +137,23 @@ describe("storyCopy", () => {
         expect(coreOf(p1, "best_game").angle).toBe("big_game");
         const p3 = personaEdition("P3", "monthly");
         expect(coreOf(p3, "record").angle).toBe("losing_then_winning");
-        expect(coreOf(p3, "record").params).toMatchObject({ wins: { value: 7 }, of: { value: 8 } });
+        expect(coreOf(p3, "record").params).toMatchObject({ run_wins: { value: 7 }, of: { value: 8 } });
         expect(coreOf(p3, "nemesis").angle).toBe("nemesis");
         expect(coreOf(p3, "played_with").angle).toBe("duo");
         expect(coreOf(p3, "longest_session").angle).toBe("marathon");
+    });
+
+    it("keeps the record's own wins and losses beside a comeback run", () => {
+        for (const kind of KINDS) {
+            const e = personaEdition("P3", kind);
+            const copy = coreOf(e, "record");
+            expect(copy.angle).toBe("losing_then_winning");
+            expect(copy.params).toMatchObject({
+                wins: { value: e.stats.wins },
+                losses: { value: e.stats.losses },
+                run_wins: { value: 7 },
+            });
+        }
     });
 
     it("keeps the generic line when nothing stands out", () => {

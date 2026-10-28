@@ -22,6 +22,9 @@ export const PERSONA_HEROES: Record<number, string> = {
     12: "Lash",
 };
 
+// Every persona match falls in October.
+const busiestMonth = (matches: number) => ({ monthStartS: october(1), matches });
+
 const tapeOf = (outcomes: Outcome[]): TapeMatch[] =>
     outcomes.map((o, i) => [october(1, 18) + i * 2400, 1, o, 5, 3, 7, 20000, 1800]);
 
@@ -76,14 +79,6 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
         combat: null,
         stories: [],
         rivals: [],
-        months:
-            kind === "year_end"
-                ? Array.from({ length: 12 }, (_, i) => ({
-                      monthStartS: at(2025, 12 + i, 1),
-                      matches: i === 9 ? 23 : 0,
-                      wins: i === 9 ? 12 : 0,
-                  }))
-                : undefined,
     };
     const stats = {
         unscored: 0,
@@ -94,7 +89,6 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
         longestMatchS: 2400,
         busiestDay: { dayStartS: october(4), matches: 5 },
         daysPlayed: 16,
-        busiestMonth: { monthStartS: october(1), matches: 23 },
     };
     let e: Omit<Edition, "stories">;
     if (persona === "P1") {
@@ -105,6 +99,7 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
             stats: {
                 ...stats,
                 matches: 23,
+                busiestMonth: busiestMonth(23),
                 wins: 15,
                 losses: 8,
                 winrate: 15 / 23,
@@ -142,6 +137,7 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
             stats: {
                 ...stats,
                 matches: 22,
+                busiestMonth: busiestMonth(22),
                 wins: 9,
                 losses: 13,
                 winrate: 9 / 22,
@@ -182,6 +178,7 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
             stats: {
                 ...stats,
                 matches: 23,
+                busiestMonth: busiestMonth(23),
                 wins: 12,
                 losses: 11,
                 winrate: 12 / 23,
@@ -212,5 +209,17 @@ export function personaEdition(persona: Persona, kind: EditionKind, n = 0): Edit
             tape: tapeOf([W, L, W, L, L, L, L, L, L, W, W, W, L, W, W, W, W, L, W, L, W, L, W]),
         };
     }
+    const { matches, wins } = e.stats;
+    e = {
+        ...e,
+        months:
+            kind === "year_end"
+                ? Array.from({ length: 12 }, (_, i) => ({
+                      monthStartS: at(2025, 12 + i, 1),
+                      matches: i === 9 ? matches : 0,
+                      wins: i === 9 ? wins : 0,
+                  }))
+                : undefined,
+    };
     return { ...e, stories: detectDispatchStories(e) } as Edition;
 }

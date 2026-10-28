@@ -254,13 +254,14 @@ const rankMove: Detector = ({ rank: r, window }) => {
     if (!r || r.delta === 0 || window.kind === "year_end") return [];
     if (window.kind === "collectors" && r.startBadge !== r.endBadge) return [];
     const variant = `${r.startBadge === r.endBadge ? "held_" : ""}${r.delta > 0 ? "up" : "down"}`;
+    const steps = Math.abs(step(r.endBadge) - step(r.startBadge));
     return [
         {
             kind: "rank_move",
-            extra: 2 * Math.abs(step(r.endBadge) - step(r.startBadge)),
+            extra: 2 * steps,
             headline: `headline_${variant}`,
             deck: `deck_${variant}`,
-            params: { from: rank(r.startBadge), to: rank(r.endBadge), peak: rank(r.peakBadge) },
+            params: { from: rank(r.startBadge), to: rank(r.endBadge), peak: rank(r.peakBadge), steps: number(steps) },
         },
     ];
 };
@@ -646,7 +647,8 @@ function angleOf(story: DispatchStory, part: string, signal: Signal): Angle | nu
             return { count: signal.facts.losses };
         case "losing_then_winning": {
             const f = signal.facts;
-            return { count: f.losses, params: { wins: number(f.wins), of: number(f.of) } };
+            // Its own name: the record's deck prints `wins` and `losses` for the whole window.
+            return { count: f.losses, params: { run_wins: number(f.wins), of: number(f.of) } };
         }
         case "big_game": {
             const g = signal.facts.game;

@@ -59,7 +59,7 @@ const STORIES: StoryShape[] = [
         decks: [c("deck")],
         angles: [c("angle_losing_then_winning")],
         versus: true,
-        params: ["wins", "losses", "winrate", "margin", "of", "played"],
+        params: ["wins", "losses", "winrate", "margin", "run_wins", "of", "played"],
     },
     {
         story: "hours",
@@ -133,7 +133,7 @@ const STORIES: StoryShape[] = [
         headlines: ["up", "down", "held_up", "held_down"].map((v) => p(`headline_${v}`)),
         decks: ["up", "down", "held_up", "held_down"].map((v) => p(`deck_${v}`)),
         angles: [c("angle_climb"), c("angle_slide")],
-        params: ["from", "to", "peak", "played"],
+        params: ["from", "to", "peak", "steps", "played"],
     },
     {
         story: "rank_move",
@@ -141,7 +141,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline_held_up"), p("headline_held_down")],
         decks: [p("deck_held_up"), p("deck_held_down")],
         angles: [],
-        params: ["from", "to", "peak", "played"],
+        params: ["from", "to", "peak", "steps", "played"],
     },
     {
         story: "played_with",
@@ -294,6 +294,7 @@ const VALUES: Record<string, string> = {
     wins: "15",
     losses: "8",
     margin: "7",
+    run_wins: "7",
     winrate: "65%",
     share: "52%",
     kills: "14",
@@ -456,6 +457,32 @@ describe("Dispatch print copy catalog", () => {
     it("never prints the old one-size phrases", () => {
         const old = storyLines().filter(({ key }) => /steals the show|runs the show/i.test(CATALOG[key] ?? ""));
         expect(old).toEqual([]);
+    });
+
+    it("says a single rung only on a one-subrank rank move", () => {
+        const bad = storyLines().filter(
+            ({ key, cond }) =>
+                key.includes(".rank_move.") &&
+                !key.includes(".angle_") &&
+                /\b(a|one) rung\b/i.test(CATALOG[key] ?? "") &&
+                !/(^|,)\s*steps=1\s*(,|$)/.test(cond),
+        );
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("never calls a total of playtime one unbroken sitting", () => {
+        const sitting =
+            /no breaks|door to door|start to finish|start the clock|clock started|sat down|pressed play|took the stage|later, still|“just one more,” \{count\} hours? later|hours? ago/i;
+        const bad = storyLines().filter(({ key }) => key.includes(".hours.") && sitting.test(CATALOG[key] ?? ""));
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("words the duo share as a share of matches", () => {
+        const bad = storyLines().filter(
+            ({ key }) =>
+                key.includes(".played_with.") && /\{share\} of the (week|month|season|year)\./.test(CATALOG[key] ?? ""),
+        );
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
     });
 });
 
