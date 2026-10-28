@@ -38,7 +38,18 @@
         "void": "Void",
         "deadchaps": "DeadChaps",
         "pretty_in_pink": "Pretty in Pink",
-        "catppuccin": "Catppuccin"
+        "catppuccin": "Catppuccin",
+        "effects": "Theme effects",
+        "flavour": "Flavour",
+        "based_on": "Based on {source}",
+        "sources": {
+            "deadlock": "Deadlock on Steam",
+            "nightshift": "Deadlock Night Shift on Twitch",
+            "deadlock_api": "Deadlock API",
+            "statlocker": "Statlocker",
+            "deadchaps": "DeadChaps",
+            "catppuccin": "Catppuccin palette"
+        }
     },
     "home": {
         "title": "Deadlock+ | Discord Rich Presence and Stats for Deadlock",

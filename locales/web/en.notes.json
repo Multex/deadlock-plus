@@ -38,7 +38,18 @@
         "void": "Colour theme name in the website footer theme picker. A near black theme. Keep short, about 12 characters.",
         "deadchaps": "Colour theme name in the footer theme picker. Named after the DeadChaps community, a brand name, keep it untranslated.",
         "pretty_in_pink": "Colour theme name in the footer theme picker. A playful name for a pink theme, a free translation is fine. Keep short, about 16 characters.",
-        "catppuccin": "Colour theme name in the footer theme picker. Catppuccin is a known colour scheme brand, keep it untranslated."
+        "catppuccin": "Colour theme name in the footer theme picker. Catppuccin is a known colour scheme brand, keep it untranslated.",
+        "effects": "Label of the switch in the website footer theme picker that turns the theme's animated background on or off. Keep short, about 16 characters.",
+        "flavour": "Label of the menu in the website footer theme picker that picks one of Catppuccin's palettes (Latte, Frappé, Macchiato, Mocha). Keep short, about 10 characters.",
+        "based_on": "Credit line under a theme in the website footer theme picker, linking to what the theme is styled after. {source} is a name like \"Deadlock Night Shift on Twitch\", keep the placeholder as is.",
+        "sources": {
+            "deadlock": "Name of what the Deadlock theme is based on, shown as {source} in \"Based on {source}\". Deadlock and Steam are names, keep them untranslated.",
+            "nightshift": "Name of what the Nightshift theme is based on, shown as {source} in \"Based on {source}\". Deadlock Night Shift is a show name and Twitch a site, keep both untranslated.",
+            "deadlock_api": "Name of what the Deadlock API theme is based on, shown as {source} in \"Based on {source}\". A community project name, keep it untranslated.",
+            "statlocker": "Name of what the Statlocker theme is based on, shown as {source} in \"Based on {source}\". A site name, keep it untranslated.",
+            "deadchaps": "Name of what the DeadChaps theme is based on, shown as {source} in \"Based on {source}\". A community name, keep it untranslated.",
+            "catppuccin": "Name of what the Catppuccin theme is based on, shown as {source} in \"Based on {source}\". Catppuccin is a brand name, keep it untranslated; translate \"palette\"."
+        }
     },
     "home": {
         "title": "Home page title. Shown in search results and browser tabs. Keep short, about 60 characters. \"Deadlock\" and \"Deadlock+\" stay untranslated.",
