@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LINKS, RESERVED_PATHS, WEB_LOCALES, parseLinks } from "@deadlock-plus/links";
 import { reroute } from "../../hooks";
-import { languageHref, localeOf, localizedHref, unlocalizedPath } from "./routes";
+import { alternates, languageHref, localeOf, localizedHref, unlocalizedPath } from "./routes";
 
 const LOCALE_FILES = readdirSync(fileURLToPath(new URL("../../../../../locales/web", import.meta.url)))
     .filter((name) => name.endsWith(".json") && !name.endsWith(".notes.json"))
@@ -40,12 +40,21 @@ describe("reroute", () => {
         ["/de/features", "/features"],
         ["/pt-BR/faq", "/faq"],
         ["/zh-TW/download", "/download"],
+        ["/de/themes", "/themes"],
+        ["/ja/themes/nightshift", "/themes/nightshift"],
+        ["/pt-BR/themes/pretty-in-pink", "/themes/pretty-in-pink"],
     ])("serves %s from the English route %s", (path, route) => {
         expect(rerouted(path)).toBe(route);
     });
 
     it("leaves English and the English-only pages alone", () => {
         for (const path of ["/", "/features", "/privacy", "/de/privacy", "/de/transparency", "/de/og"]) {
+            expect(rerouted(path), path).toBeUndefined();
+        }
+    });
+
+    it("leaves a path that only starts like a theme page alone", () => {
+        for (const path of ["/de/themes/", "/de/themes/nightshift/extra", "/de/themes/Night_Shift", "/de/themesx"]) {
             expect(rerouted(path), path).toBeUndefined();
         }
     });
@@ -81,6 +90,11 @@ describe("localizedHref", () => {
         expect(localizedHref("/download?ref=tt#linux", "pt-BR")).toBe("/pt-BR/download?ref=tt#linux");
     });
 
+    it("prefixes the theme gallery and each theme's page", () => {
+        expect(localizedHref("/themes", "de")).toBe("/de/themes");
+        expect(localizedHref("/themes/flint-snow?ref=tt", "de")).toBe("/de/themes/flint-snow?ref=tt");
+    });
+
     it("keeps English, English-only pages and other sites as they are", () => {
         expect(localizedHref("/features", "en")).toBe("/features");
         expect(localizedHref("/privacy", "de")).toBe("/privacy");
@@ -96,6 +110,7 @@ describe("languageHref", () => {
         expect(languageHref("/de/faq", "", "pt-BR")).toBe("/pt-BR/faq");
         expect(languageHref("/de/faq", "", "en")).toBe("/faq");
         expect(languageHref("/ja", "", "en")).toBe("/");
+        expect(languageHref("/de/themes/void", "", "ja")).toBe("/ja/themes/void");
     });
 
     it("opens the language's home page from an English-only page", () => {
@@ -110,5 +125,14 @@ describe("unlocalizedPath", () => {
         expect(unlocalizedPath("/de/faq")).toBe("/faq");
         expect(unlocalizedPath("/faq")).toBe("/faq");
         expect(unlocalizedPath("/privacy")).toBe("/privacy");
+    });
+});
+
+describe("alternates", () => {
+    it("names every language's copy of a theme page", () => {
+        const links = alternates("/de/themes/catppuccin");
+        expect(links).toContainEqual({ hreflang: "x-default", path: "/themes/catppuccin" });
+        expect(links).toContainEqual({ hreflang: "ja", path: "/ja/themes/catppuccin" });
+        expect(alternates("/themes")).toContainEqual({ hreflang: "de", path: "/de/themes" });
     });
 });
