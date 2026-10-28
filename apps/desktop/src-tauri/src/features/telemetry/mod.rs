@@ -234,11 +234,7 @@ mod tests {
             let n = stream.read(&mut chunk).unwrap();
             request.extend_from_slice(&chunk[..n]);
             let text = String::from_utf8_lossy(&request).to_string();
-            if let Some((head, body)) = text.split_once(
-                "
-
-",
-            ) {
+            if let Some((head, body)) = text.split_once("\r\n\r\n") {
                 let length = head
                     .lines()
                     .find_map(|line| {
@@ -265,18 +261,12 @@ mod tests {
         let server = std::thread::spawn(move || {
             let mut stream = accept_within(&listener, Duration::from_secs(5)).expect("no batch was sent");
             let request = read_request(&mut stream);
-            stream
-                .write_all(
-                    b"HTTP/1.1 200 OK
-content-length: 0
-connection: close
-
-",
-                )
-                .unwrap();
+            stream.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n").unwrap();
             request
         });
+        let started = Instant::now();
         tauri::async_runtime::block_on(service.flush_now(&reqwest::Client::new()));
+        assert!(started.elapsed() < EXIT_FLUSH, "the reply was not read: waited {:?}", started.elapsed());
         let request = server.join().unwrap();
         assert!(request.starts_with("POST /batch/"), "{request}");
         assert!(request.contains("\"update_install_clicked\""), "{request}");
