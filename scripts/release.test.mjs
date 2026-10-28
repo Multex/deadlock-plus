@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetName, changelogNotes, updaterManifest } from "./release.mjs";
+import { assetName, changelogNotes, channelOf, channelOutputs, releaseNotes, updaterManifest } from "./release.mjs";
 
 const md = `# Changelog
 
@@ -95,5 +95,95 @@ describe("updaterManifest", () => {
                 repo: "deadlock-plus/deadlock-plus",
             }),
         ).toThrow(/linux-x86_64-appimage/);
+    });
+});
+
+describe("channelOf", () => {
+    it("reads the channel from the version's prerelease label", () => {
+        expect(channelOf("0.15.0")).toBe("release");
+        expect(channelOf("0.15.0-beta.1")).toBe("beta");
+        expect(channelOf("0.15.0-nightly.20261028")).toBe("nightly");
+        expect(channelOf("0.15.0-nightly.20261028.2")).toBe("nightly");
+    });
+
+    it("accepts a tag with its v prefix", () => {
+        expect(channelOf("v0.15.0-beta.3")).toBe("beta");
+    });
+
+    it("rejects a prerelease label no channel ships", () => {
+        expect(() => channelOf("0.15.0-rc.1")).toThrow(/rc\.1/);
+        expect(() => channelOf("0.15.0-beta")).toThrow();
+        expect(() => channelOf("0.15")).toThrow();
+    });
+});
+
+describe("channelOutputs", () => {
+    it("keeps a release on the draft flow with no feed of its own", () => {
+        expect(channelOutputs("v0.15.0")).toBe("channel=release\nprerelease=false\nfeed=\n");
+    });
+
+    it("sends a beta to the beta feed as a prerelease", () => {
+        expect(channelOutputs("v0.15.0-beta.2")).toBe("channel=beta\nprerelease=true\nfeed=beta-feed\n");
+    });
+
+    it("sends a nightly to the nightly feed as a prerelease", () => {
+        expect(channelOutputs("v0.15.0-nightly.20261028")).toBe(
+            "channel=nightly\nprerelease=true\nfeed=nightly-feed\n",
+        );
+    });
+});
+
+describe("releaseNotes", () => {
+    const withUnreleased = `# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Update channels
+
+## [0.14.0] - 2026-10-20
+
+- Builds
+`;
+
+    it("needs the release's own entry", () => {
+        expect(releaseNotes(withUnreleased, "0.14.0")).toBe("- Builds");
+        expect(releaseNotes(withUnreleased, "0.15.0")).toBeNull();
+    });
+
+    it("gives a prerelease the unreleased changes when it has no entry of its own", () => {
+        expect(releaseNotes(withUnreleased, "0.15.0-beta.1")).toBe("### Added\n\n- Update channels");
+    });
+
+    it("prefers a prerelease's own entry", () => {
+        const own = withUnreleased.replace(
+            "## [0.14.0]",
+            "## [0.15.0-beta.1] - 2026-10-28\n\n- Beta notes\n\n## [0.14.0]",
+        );
+        expect(releaseNotes(own, "0.15.0-beta.1")).toBe("- Beta notes");
+    });
+
+    it("still names a prerelease built with nothing listed", () => {
+        expect(releaseNotes("# Changelog\n\n## [Unreleased]\n\n", "0.15.0-nightly.20261028")).toBe(
+            "Nightly build 0.15.0-nightly.20261028.",
+        );
+    });
+});
+
+describe("updaterManifest for one platform group", () => {
+    it("builds a feed with only the platforms asked for", () => {
+        const feed = updaterManifest({
+            version: "0.15.0-nightly.20261028",
+            notes: "x",
+            pubDate: "2026-10-28T03:00:00Z",
+            signatures: { "windows-x86_64": "c2ln" },
+            repo: "deadlock-plus/deadlock-plus",
+            platforms: ["windows-x86_64"],
+        });
+        expect(Object.keys(feed.platforms)).toEqual(["windows-x86_64"]);
+        expect(feed.platforms["windows-x86_64"].url).toBe(
+            "https://github.com/deadlock-plus/deadlock-plus/releases/download/v0.15.0-nightly.20261028/Deadlock-Plus_0.15.0-nightly.20261028_x64-setup.exe",
+        );
     });
 });
