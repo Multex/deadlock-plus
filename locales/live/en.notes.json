@@ -123,7 +123,8 @@
             "preset": "Title of the admin access dialog or error toast when applying a preset fails. {name} = preset name, e.g. \"EU only\".",
             "import": "Title of the admin access dialog or error toast when importing blocks fails.",
             "description": "Body of the admin access dialog. Contains the app name Deadlock+, keep it untranslated. \"Allow\" and \"Always allow\" must match the dialog's button labels."
-        }
+        },
+        "load_failed": "Error message. Shown on the server picker when the list of game servers could not be loaded."
     },
     "live": {
         "state": {
