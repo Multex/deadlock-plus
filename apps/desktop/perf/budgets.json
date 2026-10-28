@@ -20,7 +20,6 @@
         "longTaskOverridesMs": {
             "switch Match History": 400,
             "match-history list": 400,
-            "match detail": 160,
             "dispatch open edition": 300
         },
         "heapGrowthMB": 3
