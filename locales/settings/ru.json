@@ -1,5 +1,6 @@
 {
     "settings": {
+        "save_failed": "",
         "language": {
             "label": "Язык",
             "description": "Выберите язык приложения. Вариант \"Как в системе\" берет язык из операционной системы.",
@@ -49,13 +50,17 @@
             "overlay_test": "Проверить оверлей",
             "overlay_notifications": "Уведомления в оверлее",
             "overlay_match_found": "Матч найден",
+            "overlay_queue_stopped": "",
             "server_blocks_updated": "Правила блокировки серверов обновлены",
             "server_blocks_stale": "Правила блокировки серверов устарели",
             "break_reminder": "Напоминание о перерыве",
+            "front_page_after_match": "",
+            "front_page_overlay_alert": "",
             "ui_scale": "Масштаб интерфейса",
             "hardware_acceleration": "Аппаратное ускорение",
             "open_on_game_start": "Открывать вместе с Deadlock",
-            "admin_access": "Права администратора"
+            "admin_access": "Права администратора",
+            "dispatch_alerts": ""
         },
         "nav": {
             "label": "Категории настроек",
@@ -78,7 +83,8 @@
             "accent_hue": "",
             "accent_vividness": "",
             "accent_hex": "",
-            "accent_reset": ""
+            "accent_reset": "",
+            "theme_option_aria": ""
         },
         "themes": {
             "deadlock": {
@@ -141,6 +147,22 @@
                 "label": "",
                 "description": "",
                 "source": ""
+            },
+            "pretty_in_pink": {
+                "label": "",
+                "description": "",
+                "effects": {
+                    "clouds": "",
+                    "hearts": "",
+                    "bow": ""
+                }
+            },
+            "catppuccin": {
+                "label": "",
+                "description": "",
+                "source": "",
+                "variant": "",
+                "accent": ""
             }
         },
         "autostart": {
@@ -184,6 +206,7 @@
             "overlay_notifications_button": "Открыть уведомления",
             "overlay_test_button": "Показать пример",
             "overlay_test_countdown": "Показ через {seconds}",
+            "overlay_test_failed": "",
             "overlay_seconds": "{seconds} с",
             "position": {
                 "top_left": "Сверху слева",
@@ -197,9 +220,14 @@
                 "center": "Матч найден"
             },
             "overlay_match_found_description": "Сообщает, когда находится матч, даже если окно игры не в фокусе.",
+            "overlay_queue_stopped_description": "",
             "server_blocks_updated_description": "Сообщает, когда Valve меняет адреса серверов, а Deadlock+ обновляет правила блокировки в \"Выборе сервера\" под новые адреса.",
             "server_blocks_stale_description": "Сообщает, когда Deadlock+ не удалось обновить правила блокировки в \"Выборе сервера\", поэтому некоторые серверы могут оставаться незаблокированными.",
             "break_reminder_description": "Предлагает перерыв после нескольких поражений подряд в одной сессии. Тот же переключатель, что и на странице \"Сессии\".",
+            "front_page_after_match_description": "",
+            "front_page_modes": "",
+            "front_page_mode_aria": "",
+            "front_page_overlay_alert_description": "",
             "delivery_label": "Показывать как",
             "delivery": {
                 "both": "Оверлей в игре, иначе на рабочем столе",
@@ -209,7 +237,8 @@
                 "center": "Только центр уведомлений"
             },
             "overlay_off_fallback": "Игровой оверлей выключен, поэтому это показывается как уведомление на рабочем столе.",
-            "overlay_off_hidden": "Игровой оверлей выключен, поэтому это не отображается."
+            "overlay_off_hidden": "Игровой оверлей выключен, поэтому это не отображается.",
+            "dispatch_alerts_description": ""
         },
         "weekdays": {
             "monday": "Понедельник",
@@ -236,6 +265,12 @@
             "level_detailed_description": "Показывает вашего героя, режим, ранг и таймер матча.",
             "support_label": "Поддержать Deadlock+",
             "support_description": "Добавляет в вашу активность кнопку \"Скачать Deadlock+\", чтобы другие могли найти приложение. Работает с режимами \"Базовый\" и \"Подробный\".",
+            "logo_label": "",
+            "logo_description": "",
+            "delay_label": "",
+            "delay_description": "",
+            "delay_off": "",
+            "delay_seconds": "",
             "client_running": "Запущено",
             "client_not_running": "Не запущено",
             "client_other_hint": "Vesktop и другие приложения",
@@ -250,6 +285,8 @@
             "client_other_name": "Приложение Discord {pipe}",
             "status_off": "Выключено",
             "status_none": "Запущенный Discord не найден.",
+            "status_waiting": "",
+            "status_connecting": "",
             "status_showing": "Показывается в: {clients}."
         },
         "discord_editor": {
@@ -265,6 +302,7 @@
             "field_small_image": "Маленькое изображение",
             "field_small_text": "Текст при наведении на маленькое изображение",
             "field_timer": "Таймер",
+            "timer_aria": "",
             "reset_field": "Сбросить: {field}",
             "reset_scope": "Сбросить это состояние",
             "reset_all": "Сбросить всё",
@@ -298,6 +336,8 @@
             "exported": "Пресет скопирован",
             "export_failed": "Не удалось скопировать в буфер обмена",
             "imported": "Пресет импортирован",
+            "import_failed": "",
+            "save_failed": "",
             "state": {
                 "playing": "Играет",
                 "mainMenu": "Главное меню",
@@ -353,7 +393,7 @@
                 "round": "Раунд Уличной стычки",
                 "scoreAmber": "Счет Янтарных в Уличной стычке",
                 "scoreSapphire": "Счет Сапфировых в Уличной стычке",
-                "elapsed": "Время в этом состоянии",
+                "elapsed": "",
                 "queueTime": "Как долго вы ищете матч",
                 "result": "Победа или поражение",
                 "matchId": "ID матча",
@@ -402,14 +442,17 @@
             },
             "timer_queueTime": "Время в очереди",
             "field_party_size": "Размер группы",
+            "party_size_aria": "",
             "party_size_hint": "Добавляет число игроков в группе, например (2 из 6), если в группе двое или больше.",
             "preview_party": "({size} из {max})",
-            "detailed_only": "Эти состояния используются только в режиме \"Подробный\". Режим \"Базовый\" всегда показывает \"Играет\"."
+            "detailed_only": "Эти состояния используются только в режиме \"Подробный\". Режим \"Базовый\" всегда показывает \"Играет\".",
+            "load_error": ""
         },
         "privacy": {
             "telemetry_description": "Отправляет сведения о версии и системе, открываемых страницах, о том, когда вы открываете приглашение в Discord, когда предлагается или начинается обновление, а также отчеты об ошибках. Используется случайный ID, не связанный с вами; пути, имена, Steam ID, IP-адреса и данные матчей не отправляются никогда.",
             "telemetry_reset": "Сбросить ID данных об использовании",
             "telemetry_reset_done": "ID данных об использовании сброшен.",
+            "telemetry_reset_failed": "",
             "ingest_waiting": "Ожидание вашего ответа.",
             "ingest_off": "Выкл",
             "ingest_no_cache": "Не удалось найти сохраненные веб-данные Steam на этом ПК. Steam установлен?",
@@ -441,7 +484,8 @@
                 "replay": "Повтор",
                 "sent": "Передано",
                 "not_sent": "Не передано",
-                "empty": "Пока ничего не передано."
+                "empty": "Пока ничего не передано.",
+                "load_error": ""
             }
         },
         "about_page": {
@@ -451,7 +495,8 @@
             "install": "Установить {version}",
             "auto_check_label": "Проверять автоматически",
             "auto_check_description": "Запрашивает у GitHub более новую версию при запуске и далее каждый час. Без вашего нажатия ничего не устанавливается.",
-            "whats_new_in": "Что нового в {version}"
+            "whats_new_in": "Что нового в {version}",
+            "version_error": ""
         },
         "diagnostics": {
             "description": "Журнал этой сессии. Имена в путях к файлам скрываются при копировании или сохранении. Нужен только при сообщении об ошибке.",
@@ -510,7 +555,8 @@
         "summary": {
             "total": "Всего найдено",
             "can_clear": "Доступно для удаления",
-            "clear_regenerable": "Удалить файлы, создаваемые заново"
+            "clear_regenerable": "Удалить файлы, создаваемые заново",
+            "total_at_least": ""
         },
         "entry": {
             "path_missing": "Не найдено на этом компьютере",
@@ -523,7 +569,8 @@
             "reveal_aria": "Показать \"{label}\" в папке",
             "reveal_title": "Показать в папке",
             "clear_aria": "Удалить \"{label}\"",
-            "clear_title": "Удалить"
+            "clear_title": "Удалить",
+            "unmeasured": ""
         },
         "dialog": {
             "cancel": "Отмена",
@@ -537,7 +584,12 @@
         },
         "toast": {
             "freed": "Освобождено {size}",
-            "nothing": "Нечего удалять."
+            "nothing": "Нечего удалять.",
+            "reveal_failed": "",
+            "clear_failed_one": "",
+            "clear_failed_few": "",
+            "clear_failed_many": "",
+            "clear_failed_other": ""
         },
         "age": {
             "today": "сегодня",
@@ -548,11 +600,11 @@
             "months_one": "{count} месяц",
             "months_few": "{count} месяца",
             "months_many": "{count} месяцев",
-            "months_other": "{count} месяца",
+            "months_other": "{count} месяцев",
             "years_one": "{count} год",
             "years_few": "{count} года",
             "years_many": "{count} лет",
-            "years_other": "{count} года"
+            "years_other": "{count} лет"
         },
         "units_oldest": "{units}, старейший экземпляр: {age}",
         "owners": {
@@ -600,7 +652,7 @@
                 "units_one": "{count} повтор",
                 "units_few": "{count} повтора",
                 "units_many": "{count} повторов",
-                "units_other": "{count} повтора"
+                "units_other": "{count} повторов"
             },
             "hero_presence_cache": {
                 "label": "Кэш присутствия героев",
@@ -698,7 +750,7 @@
                 "units_one": "{count} матч",
                 "units_few": "{count} матча",
                 "units_many": "{count} матчей",
-                "units_other": "{count} матча"
+                "units_other": "{count} матчей"
             },
             "other_app_files": {
                 "label": "Прочие файлы приложения",
@@ -714,7 +766,7 @@
                 "units_one": "{count} файл журнала",
                 "units_few": "{count} файла журнала",
                 "units_many": "{count} файлов журнала",
-                "units_other": "{count} файла журнала"
+                "units_other": "{count} файлов журнала"
             },
             "addons": {
                 "label": "Установленные моды",
@@ -730,7 +782,7 @@
                 "units_one": "{count} резервная копия",
                 "units_few": "{count} резервные копии",
                 "units_many": "{count} резервных копий",
-                "units_other": "{count} резервные копии"
+                "units_other": "{count} резервных копий"
             },
             "config_backups": {
                 "label": "Резервные копии конфигурации",
@@ -740,7 +792,7 @@
                 "units_one": "{count} резервная копия",
                 "units_few": "{count} резервные копии",
                 "units_many": "{count} резервных копий",
-                "units_other": "{count} резервные копии"
+                "units_other": "{count} резервных копий"
             },
             "gameinfo_backups": {
                 "label": "резервные копии gameinfo.gi",
@@ -750,7 +802,7 @@
                 "units_one": "{count} резервная копия",
                 "units_few": "{count} резервные копии",
                 "units_many": "{count} резервных копий",
-                "units_other": "{count} резервные копии"
+                "units_other": "{count} резервных копий"
             },
             "postgame_detail": {
                 "label": "Данные матчей после игры",
@@ -760,7 +812,7 @@
                 "units_one": "{count} матч",
                 "units_few": "{count} матча",
                 "units_many": "{count} матчей",
-                "units_other": "{count} матча"
+                "units_other": "{count} матчей"
             },
             "match_ping": {
                 "label": "Записи пинга в матчах",
@@ -770,7 +822,7 @@
                 "units_one": "{count} матч",
                 "units_few": "{count} матча",
                 "units_many": "{count} матчей",
-                "units_other": "{count} матча"
+                "units_other": "{count} матчей"
             },
             "mvp_grades": {
                 "label": "Оценки матчей",
@@ -780,14 +832,21 @@
                 "units_one": "{count} матч",
                 "units_few": "{count} матча",
                 "units_many": "{count} матчей",
-                "units_other": "{count} матча"
+                "units_other": "{count} матчей"
             },
             "shared_matches": {
                 "label": "Переданные матчи",
                 "clear_name": "переданные матчи",
                 "description": "Матчи, которые Deadlock+ передал в Deadlock API.",
                 "consequence": "Deadlock+ может передать эти матчи снова. Больше ничего не потеряется."
+            },
+            "dispatch_editions": {
+                "label": "",
+                "clear_name": "",
+                "description": "",
+                "consequence": ""
             }
-        }
+        },
+        "list_error": ""
     }
 }

@@ -200,6 +200,30 @@
         "match_found_unknown": {
             "title": "Partida encontrada",
             "body": "Sua partida está carregando."
+        },
+        "queue_stopped": {
+            "title": "",
+            "body": ""
+        },
+        "front_page_waiting": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_weekly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_monthly": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_collectors": {
+            "title": "",
+            "body": ""
+        },
+        "dispatch_year_end": {
+            "title": "",
+            "body": ""
         }
     },
     "admin_access": {
@@ -250,7 +274,8 @@
             "demos": "Replays",
             "match_history": "Histórico de partidas",
             "presence": "Presença",
-            "builds": ""
+            "builds": "",
+            "dispatch": ""
         },
         "sidebar": {
             "unread": "{count} não lidas",
@@ -283,7 +308,9 @@
                 "degraded": "API do Deadlock parcialmente indisponível",
                 "degraded_title": "Serviços da API do Deadlock fora do ar: {services}",
                 "offline": "API do Deadlock offline",
-                "offline_title": "A API do Deadlock está inacessível"
+                "offline_title": "A API do Deadlock está inacessível",
+                "busy": "",
+                "busy_title": ""
             },
             "game": {
                 "running": "Deadlock em execução",
@@ -294,6 +321,11 @@
             "discord": {
                 "searching": "Discord não encontrado",
                 "searching_title": "A presença no Discord está ativada, mas não foi encontrado nenhum Discord em execução",
+                "checking": "",
+                "waiting": "",
+                "waiting_title": "",
+                "connecting": "",
+                "connecting_title": "",
                 "connected_title": "Exibindo sua atividade no Deadlock no Discord",
                 "off": "Discord desativado",
                 "off_title": "A presença no Discord está desativada. Clique para configurá-la."
@@ -329,7 +361,8 @@
             "demos": "Navegue pelos seus replays salvos e veja quais estão desatualizados",
             "match_history": "Todas as partidas disponíveis na API do Deadlock, com um placar completo para cada uma delas",
             "presence": "Mostre seu herói, modo e cronômetro da partida no seu perfil do Discord",
-            "builds": ""
+            "builds": "",
+            "dispatch": ""
         }
     },
     "ui": {},
@@ -481,8 +514,9 @@
             "checking": "Verificando...",
             "up_to_date": "Você está na versão mais recente.",
             "available": "A versão {version} já está disponível.",
-            "downloading": "Baixando {version}. O Deadlock+ reinicia quando o download terminar.",
-            "downloading_percent": "Baixando {version} ({percent}%). O Deadlock+ será reiniciado quando o download terminar.",
+            "downloading": "",
+            "downloading_percent": "",
+            "ready": "",
             "check_failed": "Não foi possível verificar se há atualizações. Verifique sua conexão e tente novamente.",
             "download_failed": "Não foi possível baixar a atualização. Tente novamente mais tarde."
         },
@@ -490,7 +524,97 @@
             "title": "O Deadlock+ {version} está pronto para instalação",
             "body": "Você está usando uma versão mais antiga. A atualização leva um minuto e o Deadlock+ reinicia sozinho.",
             "install": "Instalar agora",
-            "dismiss": "Não agora"
+            "dismiss": "Não agora",
+            "view": ""
+        },
+        "surface": {
+            "title": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "checking": "",
+                "idle": ""
+            },
+            "from_version": "",
+            "body": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": "",
+                "check_failed": "",
+                "up_to_date": "",
+                "up_to_date_plain": "",
+                "checking": "",
+                "idle": "",
+                "install_failed": ""
+            },
+            "action": {
+                "update": "",
+                "restart": "",
+                "retry": "",
+                "check": "",
+                "manual": "",
+                "notes": ""
+            },
+            "highlights_title": "",
+            "more_changes_one": "",
+            "more_changes_other": ""
+        },
+        "progress": {
+            "label": "",
+            "of": "",
+            "received": "",
+            "speed": "",
+            "percent": "",
+            "left_seconds_one": "",
+            "left_seconds_other": "",
+            "left_minutes_one": "",
+            "left_minutes_other": ""
+        },
+        "channel": {
+            "title": "",
+            "summary": "",
+            "release": {
+                "name": "",
+                "body": ""
+            },
+            "beta": {
+                "name": "",
+                "body": ""
+            },
+            "nightly": {
+                "name": "",
+                "body": ""
+            },
+            "nightly_warning": "",
+            "keeps_build": ""
+        },
+        "indicator": {
+            "available": "",
+            "downloading": "",
+            "downloading_plain": "",
+            "ready": "",
+            "failed": "",
+            "kicker": {
+                "available": "",
+                "downloading": "",
+                "ready": "",
+                "failed": ""
+            }
+        },
+        "history": {
+            "title": "",
+            "installed": "",
+            "all": "",
+            "cadence_one": "",
+            "cadence_other": ""
+        },
+        "overview": {
+            "open": ""
         }
     },
     "connection": {
@@ -521,7 +645,9 @@
         "history": {
             "title": "Últimos {minutes} min",
             "empty": "O histórico de ping é exibido assim que você entra em uma partida.",
-            "chart_label": "Histórico de ping"
+            "chart_label": "Histórico de ping",
+            "error_title": "",
+            "error_body": ""
         },
         "notices": {
             "permission": "O monitoramento em tempo real precisa acompanhar o tráfego de rede enquanto o Deadlock estiver em execução. Seu sistema solicitará sua senha.",
@@ -754,7 +880,10 @@
         "privacy": "O relatório permanece neste computador até que você o compartilhe. Relatórios de erro anônimos são enviados apenas enquanto essa opção estiver ativada nas Configurações.",
         "dismiss": "Fechar",
         "open_folder": "Abrir pasta de relatórios",
-        "report_github": "Relatar no GitHub"
+        "report_github": "Relatar no GitHub",
+        "reveal_failed": "",
+        "issue_failed": "",
+        "dismiss_failed": ""
     },
     "notification_list": {
         "title": "Notificações",
@@ -798,7 +927,19 @@
         "subtitle": "Notas de lançamento do Deadlock+, com as mais recentes em primeiro lugar.",
         "empty": "Ainda não há notas de lançamento.",
         "show_all": "Mostrar todas as versões",
-        "back_home": "Voltar à página inicial"
+        "back_home": "Voltar à página inicial",
+        "version": "",
+        "index": "",
+        "section_general": "",
+        "section_changes": "",
+        "section_fixes": "",
+        "section_removed": "",
+        "count_added_one": "",
+        "count_added_other": "",
+        "count_changed_one": "",
+        "count_changed_other": "",
+        "count_fixed_one": "",
+        "count_fixed_other": ""
     },
     "account": {
         "default_name": "Conta do Steam",
@@ -808,6 +949,7 @@
     },
     "heroes": {},
     "jobs": {
+        "run_failed": "",
         "catalog": {
             "addon_scan": {
                 "title": "Verificando mods",
@@ -913,5 +1055,19 @@
         "saved": "Relatório salvo",
         "save_failed": "Não foi possível salvar o relatório. Verifique o log para obter mais detalhes.",
         "build_failed": "Não foi possível gerar o relatório. Verifique o log para obter mais detalhes."
+    },
+    "api_busy": {
+        "waiting": "",
+        "retrying": "",
+        "try_now": ""
+    },
+    "region": {
+        "error_title": "",
+        "error_body": "",
+        "retry": "",
+        "page_title": ""
+    },
+    "announcements": {
+        "dismiss": ""
     }
 }

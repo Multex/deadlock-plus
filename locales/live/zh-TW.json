@@ -123,7 +123,8 @@
             "preset": "",
             "import": "",
             "description": ""
-        }
+        },
+        "load_failed": ""
     },
     "live": {
         "state": {

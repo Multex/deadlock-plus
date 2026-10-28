@@ -21,7 +21,9 @@
             "note_macos": ""
         },
         "runs": {
-            "default_label": ""
+            "default_label": "",
+            "save_failed": "",
+            "delete_failed": ""
         },
         "metrics": {
             "avg_fps": "",
@@ -120,6 +122,9 @@
             "saved": "",
             "spike_at": "",
             "needs_admin": "",
+            "start_failed": "",
+            "stop_failed": "",
+            "read_failed": "",
             "recording_one": "",
             "recording_few": "",
             "recording_many": "",
@@ -272,6 +277,9 @@
             "days_unit": "",
             "larger_than": "",
             "gigabytes_label": "",
+            "load_failed": "",
+            "save_failed": "",
+            "check_failed": "",
             "gb_unit": "",
             "turn_on": "",
             "checking": "",
@@ -294,6 +302,9 @@
             "rule_older_than_days_other": ""
         },
         "toast": {
+            "delete_none": "",
+            "pin_failed": "",
+            "open_failed": "",
             "deleted_one": "",
             "deleted_few": "",
             "deleted_many": "",
@@ -302,7 +313,8 @@
             "delete_failed_few": "",
             "delete_failed_many": "",
             "delete_failed_other": ""
-        }
+        },
+        "list_error": ""
     },
     "voice_bans": {
         "title": "",
@@ -344,7 +356,6 @@
         },
         "row": {
             "select": "",
-            "open_aria": "",
             "open_title": "",
             "unmute": "",
             "unmute_named": "",
@@ -381,6 +392,7 @@
             "search_failed": "",
             "exported": "",
             "export_failed": "",
+            "save_failed": "",
             "import_failed": "",
             "unmuted_one": "",
             "unmuted_few": "",
@@ -390,6 +402,7 @@
             "muted_few": "",
             "muted_many": "",
             "muted_other": ""
-        }
+        },
+        "list_error": ""
     }
 }

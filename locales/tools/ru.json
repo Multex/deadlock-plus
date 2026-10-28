@@ -21,7 +21,9 @@
             "note_macos": "Захват кадров недоступен на macOS и в Wine."
         },
         "runs": {
-            "default_label": "Замер {date}"
+            "default_label": "Замер {date}",
+            "save_failed": "",
+            "delete_failed": ""
         },
         "metrics": {
             "avg_fps": "Средний FPS",
@@ -120,6 +122,9 @@
             "saved": "Сохранено",
             "spike_at": "в {time}",
             "needs_admin": "Для фреймтайма нужны права администратора.",
+            "start_failed": "",
+            "stop_failed": "",
+            "read_failed": "",
             "recording_one": "Запись · {time} · кадров: {count}",
             "recording_few": "Запись · {time} · кадров: {count}",
             "recording_many": "Запись · {time} · кадров: {count}",
@@ -158,11 +163,11 @@
             "with_findings_one": "С проблемами ({count} проблема)",
             "with_findings_few": "С проблемами ({count} проблемы)",
             "with_findings_many": "С проблемами ({count} проблем)",
-            "with_findings_other": "С проблемами ({count} проблемы)",
+            "with_findings_other": "С проблемами ({count} проблем)",
             "scripts_count_one": "{count} скрипт",
             "scripts_count_few": "{count} скрипта",
             "scripts_count_many": "{count} скриптов",
-            "scripts_count_other": "{count} скрипта",
+            "scripts_count_other": "{count} скриптов",
             "pending_one": "Еще {count} мод ждет проверки...",
             "pending_few": "Еще {count} мода ждут проверки...",
             "pending_many": "Еще {count} модов ждут проверки...",
@@ -170,7 +175,7 @@
             "addons_without_scripts_one": "{count} мод без скриптов",
             "addons_without_scripts_few": "{count} мода без скриптов",
             "addons_without_scripts_many": "{count} модов без скриптов",
-            "addons_without_scripts_other": "{count} мода без скриптов"
+            "addons_without_scripts_other": "{count} модов без скриптов"
         },
         "findings": {
             "nulled_not_cancelled": "Этот мод забывает таймер, не останавливая его. Каждый раз, когда {fn} запускается снова, может запуститься еще один таймер и продолжить работать.",
@@ -217,7 +222,7 @@
             "summary_one": "{count} повтор, {size}",
             "summary_few": "{count} повтора, {size}",
             "summary_many": "{count} повторов, {size}",
-            "summary_other": "{count} повтора, {size}"
+            "summary_other": "{count} повторов, {size}"
         },
         "pager": {
             "previous": "Предыдущая страница",
@@ -254,7 +259,7 @@
             "title_one": "Удалить {count} повтор?",
             "title_few": "Удалить {count} повтора?",
             "title_many": "Удалить {count} повторов?",
-            "title_other": "Удалить {count} повтора?",
+            "title_other": "Удалить {count} повторов?",
             "too_large_one": "Этот файл слишком большой, чтобы переместить его в \"{trash}\". Его можно удалить только безвозвратно, и это нельзя отменить.",
             "too_large_few": "Эти файлы слишком большие, чтобы переместить их в \"{trash}\". Их можно удалить только безвозвратно, и это нельзя отменить.",
             "too_large_many": "Эти файлы слишком большие, чтобы переместить их в \"{trash}\". Их можно удалить только безвозвратно, и это нельзя отменить.",
@@ -272,6 +277,9 @@
             "days_unit": "дн",
             "larger_than": "Больше",
             "gigabytes_label": "Гигабайты",
+            "load_failed": "",
+            "save_failed": "",
+            "check_failed": "",
             "gb_unit": "ГБ",
             "turn_on": "Включите правило, чтобы увидеть, что оно удалит.",
             "checking": "Проверка повторов...",
@@ -283,26 +291,30 @@
             "matches_one": "{count} подходящий повтор, {size}",
             "matches_few": "{count} подходящих повтора, {size}",
             "matches_many": "{count} подходящих повторов, {size}",
-            "matches_other": "{count} подходящих повтора, {size}",
+            "matches_other": "{count} подходящих повторов, {size}",
             "review_one": "Просмотреть {count} повтор",
             "review_few": "Просмотреть {count} повтора",
             "review_many": "Просмотреть {count} повторов",
-            "review_other": "Просмотреть {count} повтора",
+            "review_other": "Просмотреть {count} повторов",
             "rule_older_than_days_one": "Старше {count} дня",
             "rule_older_than_days_few": "Старше {count} дней",
-            "rule_older_than_days_many": "Старше {count} дней",
+            "rule_older_than_days_many": "Старше {count} дня",
             "rule_older_than_days_other": "Старше {count} дня"
         },
         "toast": {
+            "delete_none": "",
+            "pin_failed": "",
+            "open_failed": "",
             "deleted_one": "Удален {count} повтор",
             "deleted_few": "Удалено {count} повтора",
             "deleted_many": "Удалено {count} повторов",
-            "deleted_other": "Удалено {count} повтора",
-            "delete_failed_one": "Не удалось удалить {count} повтор. Подробнее в журнале.",
-            "delete_failed_few": "Не удалось удалить {count} повтора. Подробнее в журнале.",
-            "delete_failed_many": "Не удалось удалить {count} повторов. Подробнее в журнале.",
-            "delete_failed_other": "Не удалось удалить {count} повтора. Подробнее в журнале."
-        }
+            "deleted_other": "Удалено {count} повторов",
+            "delete_failed_one": "",
+            "delete_failed_few": "",
+            "delete_failed_many": "",
+            "delete_failed_other": ""
+        },
+        "list_error": ""
     },
     "voice_bans": {
         "title": "Заглушенные",
@@ -359,7 +371,7 @@
             "confirm": "Снять заглушение",
             "title_one": "Снять заглушение с {count} игрока?",
             "title_few": "Снять заглушение с {count} игроков?",
-            "title_many": "Снять заглушение с {count} игроков?",
+            "title_many": "Снять заглушение с {count} игрока?",
             "title_other": "Снять заглушение с {count} игрока?"
         },
         "import_dialog": {
@@ -379,16 +391,18 @@
             "not_recognised": "Не распознано. Используйте ссылку на профиль Steam или Steam ID.",
             "search_failed": "Не удалось найти игроков. Проверьте подключение и попробуйте снова.",
             "exported": "Экспортировано заглушенных игроков: {count}",
-            "export_failed": "Не удалось экспортировать список заглушенных игроков. Подробнее в журнале.",
+            "export_failed": "",
+            "save_failed": "",
             "import_failed": "Не удалось прочитать этот файл. Выберите список заглушенных игроков, экспортированный из Deadlock+, или собственный файл игры.",
             "unmuted_one": "Заглушение снято с {count} игрока",
             "unmuted_few": "Заглушение снято с {count} игроков",
-            "unmuted_many": "Заглушение снято с {count} игроков",
+            "unmuted_many": "Заглушение снято с {count} игрока",
             "unmuted_other": "Заглушение снято с {count} игрока",
             "muted_one": "Заглушен {count} игрок",
             "muted_few": "Заглушено {count} игрока",
             "muted_many": "Заглушено {count} игроков",
-            "muted_other": "Заглушено {count} игрока"
-        }
+            "muted_other": "Заглушено {count} игроков"
+        },
+        "list_error": ""
     }
 }
