@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use deadlock_reader::snapshot::{Context as RContext, LiveSnapshot, Perspective as RPerspective, PlayerRow};
 use deadlock_reader::{GameMode as RGameMode, GameState, MatchMode as RMatchMode, Team};
 use deadlock_walker::QueueRequest;
@@ -80,6 +82,16 @@ fn offline_game_mode(context: RContext) -> Option<GameMode> {
     }
 }
 
+/// The lobby slot when no earlier row holds it, else a value derived from the controller address. The game can report
+/// one slot on two playing controllers, and the frontend keys rows and hero-swap tracking by this value.
+fn unique_key(taken: &mut HashSet<u32>, p: &PlayerRow) -> u32 {
+    let mut key = p.slot.filter(|s| !taken.contains(s)).unwrap_or(p.controller as u32);
+    while !taken.insert(key) {
+        key = key.wrapping_add(1);
+    }
+    key
+}
+
 pub fn board_from_snapshot(snap: &LiveSnapshot) -> Board {
     let perspective = match snap.perspective {
         RPerspective::Playing => Some(true),
@@ -93,6 +105,7 @@ pub fn board_from_snapshot(snap: &LiveSnapshot) -> Board {
     };
     let mut your_side = None;
     let mut teams = Vec::new();
+    let mut taken = HashSet::new();
     for (team, side) in [(Team::AMBER, Side::Amber), (Team::SAPPHIRE, Side::Sapphire)] {
         let mut rows: Vec<&PlayerRow> = snap.scoreboard().filter(|p| p.team == Some(team)).collect();
         if rows.is_empty() {
@@ -102,8 +115,7 @@ pub fn board_from_snapshot(snap: &LiveSnapshot) -> Board {
         let players: Vec<BoardPlayer> = rows
             .iter()
             .map(|p| BoardPlayer {
-                // Slots are 1..=12 for real players; the controller address only stands in when the slot read failed.
-                key: p.slot.unwrap_or(p.controller as u32),
+                key: unique_key(&mut taken, p),
                 name: p.name.clone(),
                 steam_id: p.steam_id.filter(|id| *id != 0),
                 hero_id: p.hero_id.filter(|h| h.is_some()).map(|h| h.get()),
@@ -670,6 +682,23 @@ mod tests {
         let keys: Vec<_> = b.teams[0].players.iter().map(|p| p.key).collect();
         assert_eq!(keys, [1, 2]);
         assert_eq!(b.teams[1].players.len(), 1);
+    }
+
+    #[test]
+    fn board_keys_stay_unique_when_the_game_repeats_a_lobby_slot() {
+        let mut s = lobby();
+        s.players.push(PlayerRow { controller: 0x2000, ..full_row(Team::AMBER, 2, "Twin", false, false) });
+        s.players.push(PlayerRow { controller: 0x3000, ..full_row(Team::SAPPHIRE, 1, "Cross", false, false) });
+        s.players.push(PlayerRow { controller: 2, slot: None, ..full_row(Team::SAPPHIRE, 9, "Unread", false, false) });
+        let b = board_from_snapshot(&s);
+        let keys: Vec<u32> = b.teams.iter().flat_map(|t| &t.players).map(|p| p.key).collect();
+        let mut unique = keys.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(keys.len(), 6);
+        assert_eq!(unique.len(), keys.len(), "duplicate keys in {keys:?}");
+        let amber: Vec<_> = b.teams[0].players.iter().map(|p| (p.key, p.name.as_deref())).collect();
+        assert_eq!(amber[..2], [(1, Some("Me")), (2, Some("Mate"))]);
     }
 
     #[test]

@@ -3,7 +3,7 @@ import type { LiveSide } from "./LiveSide";
 
 export type LivePlayer = { 
 /**
- * The lobby slot: stable for the whole match, so rows can be keyed and tracked across updates.
+ * Unique within the match: the lobby slot, unless another row already holds it. Rows are keyed and tracked by it.
  */
 key: number, side: LiveSide, name: string | null, 
 /**
