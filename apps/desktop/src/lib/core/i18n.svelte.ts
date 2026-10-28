@@ -25,10 +25,13 @@ export const en: Catalog = mergeAreas(
 const areaLoaders: Record<string, (() => Promise<Catalog>)[]> = {};
 for (const [path, load] of Object.entries(
     import.meta.glob<Catalog>(
-        ["../../../../../locales/*/*.json", "!../../../../../locales/*/en.json", "!../../../../../locales/web/*.json"],
-        {
-            import: "default",
-        },
+        [
+            "../../../../../locales/*/*.json",
+            "!../../../../../locales/*/en.json",
+            "!../../../../../locales/*/*.notes.json",
+            "!../../../../../locales/web/*.json",
+        ],
+        { import: "default" },
     ),
 )) {
     (areaLoaders[localeOf(path)] ??= []).push(load);

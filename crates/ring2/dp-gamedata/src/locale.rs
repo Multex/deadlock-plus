@@ -38,6 +38,7 @@ mod tests {
                 let path = e.ok()?.path();
                 (path.extension()? == "json").then(|| path.file_stem()?.to_str().map(str::to_string))?
             })
+            .filter(|code| !code.ends_with(".notes"))
             .collect();
         codes.sort();
         codes

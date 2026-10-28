@@ -90,12 +90,14 @@ All user-facing text lives in `locales/<area>/en.json`, one file per app area (`
 - No markup in strings. Split a sentence around a link or button into separate keys.
 - Errors use `errors.<feature>.<name>`; the Rust side returns a code, the frontend renders it.
 - Rust formats only tray and notification text, through `features/i18n.rs`. Keep log lines and `detail` strings in English.
-- `pnpm i18n:check` (also in CI) fails on a missing key, a mismatched placeholder or a bad plural suffix.
+- Every new string needs a translator note in `locales/<area>/en.notes.json`, under the same key (a plural set gets one note under its base key). Say where it shows, what each placeholder holds, and any length limit.
+- `pnpm i18n:check` (also in CI) fails on a missing key, a mismatched placeholder, a bad plural suffix, or a missing or stale translator note.
 - Other languages go through Crowdin (`crowdin.yml`). Do not edit `locales/<area>/<lang>.json` by hand.
 
 ### Crowdin flow
 
 - `locales/<area>/en.json` are the only sources. A push to `main` that changes one uploads them to Crowdin (`.github/workflows/crowdin.yml`).
+- The same push then sends the translator notes as Crowdin string context (`scripts/crowdin-context.mjs`; `--dry-run` only counts).
 - The same workflow downloads translations on a weekly schedule and on manual runs. It opens a PR from `l10n_crowdin_translations`; it never pushes to `main`.
 - Language files are named `<code>.json` (`fr.json`). Regional variants that coexist use the full code (`pt-BR.json`, `zh-CN.json`); add new ones under `languages_mapping` in `crowdin.yml`.
 - The `en-XA` pseudo-locale is for local development only. It is never uploaded or downloaded.

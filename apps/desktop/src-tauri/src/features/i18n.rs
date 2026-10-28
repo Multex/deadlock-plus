@@ -270,6 +270,10 @@ mod tests {
                     continue;
                 }
                 let code = path.file_stem().and_then(|s| s.to_str()).expect("utf-8 file name");
+                // Translator notes are Crowdin context, not a catalog.
+                if code.ends_with(".notes") {
+                    continue;
+                }
                 let on_disk: Value = serde_json::from_str(&std::fs::read_to_string(&path).expect("readable file"))
                     .expect("locale file is valid JSON");
                 let embedded = catalog(code).unwrap_or_else(|| panic!("{code} is not embedded"));

@@ -1,0 +1,920 @@
+{
+    "errors": {
+        "common": {
+            "io": "Error message. Generic file read or write failure. Mentions the app log.",
+            "network": "Error message. A network request failed. Tells the user to check their connection.",
+            "internal": "Error message. Generic fallback when something unexpected failed. Mentions the app log."
+        },
+        "demos": {
+            "replays_folder_not_found": "Error message. Shown on the Replays page when the game's replays folder is missing.",
+            "invalid_match_id": "Error message. Shown on the Replays page when a replay's match ID is not valid.",
+            "replay_missing": "Error message. Shown on the Replays page when a replay file was already removed.",
+            "recycle_bin_full": "Error message. Shown on the Replays page when replays can't be moved to the system bin (Recycle Bin on Windows).",
+            "reveal_failed": "Error message. Shown when showing a replay in the file manager failed. Mentions the app log.",
+            "pin_save_failed": "Error message. Shown on the Replays page when saving the pinned replays failed. Mentions the app log.",
+            "rules_save_failed": "Error message. Shown on the Replays page when saving the automatic cleanup rules failed. Mentions the app log.",
+            "rules_duplicate_id": "Error message. Shown on the Replays page when two cleanup rules share the same internal ID. Asks to remove one.",
+            "rules_zero_days": "Error message. Shown for a replay cleanup rule whose age limit is below 1 day.",
+            "rules_zero_size": "Error message. Shown for a replay cleanup rule whose size limit is 0 or less.",
+            "not_a_replay": "Error message. Shown on the Replays page when a chosen file is not a Deadlock replay file.",
+            "replay_pinned": "Error message. Shown on the Replays page when deleting a pinned replay. Tells the user to unpin it first.",
+            "delete_failed": "Error message. Shown on the Replays page when deleting a replay failed. Mentions the app log."
+        },
+        "about": {
+            "info_unavailable": "Error message. Shown on the About page when app details such as the version could not be read. Mentions the app log."
+        },
+        "autostart": {
+            "entry_write_failed": "Error message. Shown in Settings when adding the app to the system startup programs failed. Mentions the app log.",
+            "entry_remove_failed": "Error message. Shown in Settings when removing the app from the system startup programs failed. Mentions the app log."
+        },
+        "crash": {
+            "unavailable": "Error message. Shown when crash reporting can't be used in this build or setup.",
+            "bundle_write_failed": "Error message. Shown when saving the crash report file failed. Mentions the app log.",
+            "marker_read_failed": "Error message. Shown when reading the saved details of a previous crash failed. Mentions the app log.",
+            "marker_write_failed": "Error message. Shown when saving the details of a crash failed. Mentions the app log.",
+            "reveal_failed": "Error message. Shown when showing the crash report in the file manager failed. Mentions the app log.",
+            "open_issue_failed": "Error message. Shown when opening the bug report page in the browser failed. Mentions the app log."
+        },
+        "diagnostics": {
+            "frame_layer_linux_only": "Error message. Shown on the Performance page. The frame layer (a tool that records game frames) only exists on Linux.",
+            "home_folder_not_found": "Error message. Shown on the Performance page when the user's home folder could not be located.",
+            "frame_layer_missing": "Error message. Shown on the Performance page when the app build lacks the frame layer. \"Deadlock+\" stays untranslated.",
+            "frame_layer_install_failed": "Error message. Shown on the Performance page when installing the frame layer failed. Mentions the app log.",
+            "frame_layer_remove_failed": "Error message. Shown on the Performance page when removing the frame layer failed. Mentions the app log.",
+            "frame_trace_needs_admin": "Error message. Shown on the Performance page when recording frames (FPS) needs administrator rights.",
+            "frames_read_failed": "Error message. Shown on the Performance page when reading frame data from the game failed. Deadlock is the game name, untranslated.",
+            "mod_unreadable": "Error message. Shown on the Performance page when a game mod file could not be read.",
+            "helper_out_of_date": "Error message. Shown on the Performance page. The helper is a small background program of the app. Tells the user to reinstall. \"Deadlock+\" stays untranslated."
+        },
+        "export": {
+            "invalid_name": "Error message. Shown when saving an exported file with a file name that is not allowed.",
+            "invalid_extension": "Error message. Shown when saving an exported file with a file extension that is not allowed.",
+            "invalid_location": "Error message. Shown when saving an exported file and the chosen path is a folder, not a file.",
+            "save_failed": "Error message. Shown when saving an exported file failed. Mentions the app log."
+        },
+        "support": {
+            "build_failed": "Error message. Shown when creating the support report (diagnostic info for bug reports) failed. Mentions the app log."
+        },
+        "kv": {
+            "store_failed": "Error message. Shown when reading or saving the user's app settings failed. Mentions the app log."
+        },
+        "gc": {
+            "steam_not_found": "Error message. Shown during match recovery when Steam is not installed or not found on the PC.",
+            "no_login": "Error message. Shown during match recovery when the saved Steam login can't be used. \"Remember me\" is the tick box on Steam's sign in screen, match Steam's own translation.",
+            "game_running": "Error message. Shown when starting match recovery while the game is open. Deadlock is the game name, untranslated."
+        },
+        "ingest": {
+            "rejected": "Error message. Shown when match sharing is refused by the Deadlock API (a community match data service).",
+            "request_failed": "Error message. Shown when match sharing can't reach the Deadlock API. {status} = HTTP status code, e.g. 503."
+        },
+        "logging": {
+            "log_folder_unavailable": "Error message. Shown when the app's log folder can't be found.",
+            "read_failed": "Error message. Shown when reading the app log file failed. Mentions the app log.",
+            "reveal_failed": "Error message. Shown when opening the log folder in the file manager failed. Mentions the app log."
+        },
+        "patch_notes": {
+            "search_failed": "Error message. Shown on the News page when searching patch notes failed. Mentions the app log."
+        },
+        "server_picker": {
+            "unknown_game": "Error message. Shown on the Server Picker page when the game's server list could not be loaded. Deadlock is the game name. \"Deadlock+\" stays untranslated.",
+            "invalid_request": "Error message. Shown on the Server Picker page when a block or unblock request was invalid. Asks to refresh the list.",
+            "no_relay_data": "Error message. Shown on the Server Picker page when Valve's server list came back empty. Valve is a company name.",
+            "block_failed": "Error message. Shown on the Server Picker page when blocking game servers (firewall rules) failed. Mentions the app log.",
+            "unblock_failed": "Error message. Shown on the Server Picker page when unblocking game servers failed. Mentions the app log.",
+            "list_blocked_failed": "Error message. Shown on the Server Picker page when reading the currently blocked servers failed. Mentions the app log.",
+            "sync_failed": "Error message. Shown on the Server Picker page when updating the blocked servers to new addresses failed. Mentions the app log.",
+            "external_scan_failed": "Error message. Shown on the Server Picker page when scanning for firewall blocks made outside the app failed. Mentions the app log.",
+            "external_import_failed": "Error message. Shown on the Server Picker page when importing firewall blocks made outside the app failed. Mentions the app log.",
+            "needs_permission": "Error message. Shown on the Server Picker page when changing firewall rules needs administrator access. \"Deadlock+\" stays untranslated.",
+            "helper_out_of_date": "Error message. Shown on the Server Picker page. The helper is a small background program of the app. Tells the user to reinstall. \"Deadlock+\" stays untranslated."
+        },
+        "storage": {
+            "location_missing": "Error message. Shown on the Storage page when the chosen folder or file does not exist.",
+            "not_clearable": "Error message. Shown on the Storage page when the user tries to clear a location that can't be cleared.",
+            "game_running": "Error message. Shown on the Storage page when clearing files while the game runs. Deadlock is the game name, untranslated.",
+            "reveal_failed": "Error message. Shown on the Storage page when showing a location in the file manager failed. Mentions the app log.",
+            "remove_failed": "Error message. Shown on the Storage page when removing something failed. {name} = name of the item, e.g. \"Cache\". Mentions the app log."
+        },
+        "voice_bans": {
+            "no_account": "Error message. Shown on the Mutes page when no Steam account is found on this PC.",
+            "no_userdata": "Error message. Shown on the Mutes page when the account's Steam data folder is missing. Deadlock is the game name, untranslated.",
+            "not_utf8": "Error message. Shown on the Mutes page when the mute list file has broken text encoding. \"Deadlock+\" stays untranslated.",
+            "read_failed": "Error message. Shown on the Mutes page when reading the mute list file failed. Mentions the app log.",
+            "game_running": "Error message. Shown on the Mutes page when changing mutes while the game runs. Deadlock is the game name, untranslated.",
+            "not_a_mute_list": "Error message. Shown on the Mutes page when an imported file is not a mute list.",
+            "file_missing": "Error message. Shown on the Mutes page when the mute list file is gone. Tells the user to mute someone in game.",
+            "no_backup_name": "Error message. Shown on the Mutes page when no free file name for a backup copy exists. The mute list stayed unchanged.",
+            "backup_failed": "Error message. Shown on the Mutes page when backing up the mute list failed, so nothing was changed. Mentions the app log.",
+            "write_failed": "Error message. Shown on the Mutes page when saving the mute list failed. Says a backup exists on the Storage page."
+        },
+        "builds": {
+            "no_account": "Error message. Shown on the Builds page when no Steam account is found on this PC.",
+            "no_userdata": "Error message. Shown on the Builds page when the account's Steam data folder is missing. Deadlock is the game name, untranslated.",
+            "read_failed": "Error message. Shown on the Builds page when reading the build file failed. Mentions the app log.",
+            "bad_file": "Error message. Shown on the Builds page when the build file is damaged. \"Deadlock+\" stays untranslated.",
+            "no_backup_name": "Error message. Shown on the Builds page when no free file name for a backup copy exists. The file stayed unchanged.",
+            "backup_failed": "Error message. Shown on the Builds page when backing up the build file failed, so nothing was changed. Mentions the app log.",
+            "write_failed": "Error message. Shown on the Builds page when saving builds failed. Nothing was changed.",
+            "bad_base": "Error message. Shown on the Builds page when the build being edited can't be read. Asks to reload builds.",
+            "invalid_ability_order": "Error message. Shown in the build editor. {step} = step number in the ability order, e.g. 5. Ability is a Deadlock game term, match the game's translation.",
+            "abilities_unknown": "Error message. Shown in the build editor when the hero's abilities are not known to the app. Hero and ability are Deadlock game terms. \"Deadlock+\" stays untranslated.",
+            "published_delete_in_game": "Error message. Shown on the Builds page when deleting a published build. Tells the user to delete it in the game.",
+            "unknown_hero": "Error message. Shown on the Builds page when a build's hero is not known to the app. Hero is a Deadlock game term. \"Deadlock+\" stays untranslated.",
+            "no_local_id": "Error message. Shown on the Builds page when the user has too many local builds to create another.",
+            "build_not_found": "Error message. Shown on the Builds page when a build is no longer in the build file.",
+            "history_failed": "Error message. Shown on the Builds page when reading a build's saved versions failed. Mentions the app log.",
+            "version_not_found": "Error message. Shown on the Builds page when a saved version of a build is gone.",
+            "queue_failed": "Error message. Shown on the Builds page when updating builds that wait for the game to close failed. Mentions the app log.",
+            "drafts_failed": "Error message. Shown on the Builds page when saving or reading build drafts failed. Mentions the app log.",
+            "code_empty": "Error message. Shown when importing a build and the code field is empty. Asks to paste a build code.",
+            "code_invalid": "Error message. Shown when importing text that is not a build code. \"Copy build to clipboard\" is a button in the game, match the game's translation.",
+            "code_incomplete": "Error message. Shown when an imported build code is cut off or not from the game. Deadlock is the game name, untranslated.",
+            "code_damaged": "Error message. Shown when an imported build code is damaged. Deadlock is the game name, untranslated."
+        },
+        "match_history": {
+            "too_large": "Error message. Shown on the Match History page when a match is too big to store locally.",
+            "not_json": "Error message. Shown on the Match History page when a match's data could not be read."
+        },
+        "presence": {
+            "import_invalid": "Error message. Shown on the Presence page when importing a Discord presence preset with invalid text. \"Deadlock+\" stays untranslated.",
+            "save_failed": "Error message. Shown on the Presence page when saving Discord presence settings failed. Mentions the app log."
+        },
+        "overlay": {
+            "game_not_running": "Error message. Shown in Settings when testing the in game overlay while the game is closed. Deadlock is the game name, untranslated."
+        },
+        "admin_access": {
+            "already_elevated": "Error message. Shown when the user tries to allow administrator access but the app already runs as administrator. \"Deadlock+\" stays untranslated.",
+            "in_match": "Error message. Shown when changing administrator access during a match. Tells the user to wait until the match ends.",
+            "allow_failed": "Error message. Shown when granting administrator access failed, for example if the user declined the Windows prompt.",
+            "always_allow_blocked": "Error message. Shown when the \"Always allow\" option failed, maybe due to security software. Match the \"Always allow\" button text. Says the user will be asked each time.",
+            "always_allow_needs_install": "Error message. Shown when \"Always allow\" needs the installed app. Match the \"Always allow\" button text. \"Deadlock+\" stays untranslated.",
+            "remove_failed": "Error message. Shown when turning off the \"Always allow\" option failed. Match the \"Always allow\" button text.",
+            "unsupported": "Error message. Shown when administrator access is requested on a system other than Windows.",
+            "helper_out_of_date": "Error message. Shown in the administrator access flow. The helper is a small background program of the app. Tells the user to reinstall. \"Deadlock+\" stays untranslated.",
+            "restart_failed": "Error message. Shown when restarting the app as administrator failed. \"Deadlock+\" stays untranslated."
+        },
+        "ptrace": {
+            "unavailable": "Error message. Shown on Linux when no fix is available to change the ptrace setting (a Linux security setting) on this system.",
+            "failed": "Error message. Shown on Linux when changing the ptrace setting (a Linux security setting) failed. Mentions the app log."
+        }
+    },
+    "tray": {
+        "show": "Tray menu item (system tray icon context menu) that opens the main window. \"Deadlock+\" stays untranslated.",
+        "quit": "Tray menu item (system tray icon context menu) that quits the app. Keep short, about 6 characters.",
+        "tooltip": "Tooltip of the system tray icon. It is the app name only, do not translate. \"Deadlock+\" stays untranslated."
+    },
+    "notifications": {
+        "open_action": "Button on an OS notification that opens the app. Keep short, about 6 characters.",
+        "alert_new": {
+            "title": "Notification title (OS notification, in game overlay and notification list). A new Deadlock patch or announcement was published. Deadlock is the game name, untranslated.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {title} = headline of the new update, e.g. \"Update 12/05/2026\"."
+        },
+        "alert_new_more": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Several new Deadlock updates were published. Deadlock is the game name, untranslated.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {title} = headline of the newest update. {count} = number of further updates, e.g. 2."
+        },
+        "maintenance_soon": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Warns that Steam's weekly maintenance is near.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {minutes} = minutes until it starts, e.g. 30. \"min\" is short for minutes."
+        },
+        "server_blocks_updated": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Blocked game servers were updated automatically.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {servers} = server region names, e.g. \"Frankfurt, Warsaw\". Valve is a company name."
+        },
+        "server_blocks_stale": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Some blocked game servers are no longer correct.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {servers} = server region names, e.g. \"Frankfurt\". Server Picker is a page name, match its translation. \"Deadlock+\" stays untranslated."
+        },
+        "break_reminder": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Suggests the player take a break after losing.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {count} = number of losses in a row, e.g. 3."
+        },
+        "overlay_test": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Appears when the user tests the in game overlay in Settings.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Appears when the user tests the overlay. \"Deadlock+\" stays untranslated."
+        },
+        "match_found": {
+            "title": "Notification title (OS notification, in game overlay and notification list). A match was found while queuing. Match found is also a setting name, keep consistent.",
+            "body": "Notification body (OS notification, in game overlay and notification list). {mode} = game mode name, e.g. \"Street Brawl\". Game mode names are Deadlock game terms, match the game's own translation."
+        },
+        "match_found_unknown": {
+            "title": "Notification title (OS notification, in game overlay and notification list). A match was found, game mode unknown. Keep consistent with the other Match found title.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Used when the game mode is not known. Says the match is loading."
+        },
+        "queue_stopped": {
+            "title": "Notification title (OS notification, in game overlay and notification list). The player left the matchmaking queue.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Says the player is no longer in the queue."
+        },
+        "front_page_waiting": {
+            "title": "Notification title (OS notification, in game overlay and notification list). Newspaper style call, like a street seller shouting. Playful tone.",
+            "body": "Notification body (OS notification, in game overlay and notification list). Says the post match front page (a newspaper style recap) is ready. \"Deadlock+\" stays untranslated."
+        }
+    },
+    "admin_access": {
+        "allow": "Button on the administrator access prompt. Allows administrator access once. Keep short, about 6 characters.",
+        "always_allow": "Button on the administrator access prompt. Allows administrator access every time. Keep short, about 12 characters.",
+        "after_match": "Disabled button label when administrator access can only change after the current match. Keep short, about 25 characters.",
+        "nothing_changed": "Short status message shown when an administrator access action changed nothing.",
+        "game_admin": {
+            "title": "Warning banner title shown when the game runs as administrator, so the app can't read it. Deadlock is the game name, untranslated.",
+            "body": "Warning banner text under the title. Live match data, Discord presence and \"Match found\" are app features, match their translations. \"Deadlock+\" stays untranslated. Deadlock is the game name, untranslated.",
+            "restart": "Button in the warning banner. Restarts the app with administrator rights. Keep short, about 25 characters.",
+            "restart_failed": "Error message shown when the restart as administrator failed."
+        }
+    },
+    "common": {
+        "confirm": "Button in dialogs that confirms an action. Keep short, about 7 characters.",
+        "cancel": "Button in dialogs that cancels an action. Keep short, about 6 characters.",
+        "open_link_failed": "Error toast when opening a link in the browser failed. {error} = technical error text, e.g. \"No default browser\".",
+        "link_open_failed": "Error message when opening a link in the browser failed."
+    },
+    "player_links": {
+        "menu": "Screen reader label for a menu of external profile links of a player. {name} = player name, e.g. \"Sammi\".",
+        "steam": "Menu item that opens the player's Steam profile. Steam is a brand name. Keep short, about 13 characters.",
+        "statlocker": "Menu item that opens the player's profile on Statlocker, a stats website. Statlocker is a brand name, untranslated. Keep short, about 18 characters.",
+        "buildlocker": "Menu item that opens the player's profile on Buildlocker, a builds website. Buildlocker is a brand name, untranslated. Keep short, about 19 characters.",
+        "steam_of": "Screen reader label or tooltip for a link to a player's Steam profile. {name} = player name, e.g. \"Sammi\". Steam is a brand name.",
+        "statlocker_of": "Screen reader label or tooltip for a link to a player's page on Statlocker. {name} = player name, e.g. \"Sammi\". Statlocker is a brand name, untranslated.",
+        "buildlocker_of": "Screen reader label or tooltip for a link to a player's page on Buildlocker. {name} = player name, e.g. \"Sammi\". Buildlocker is a brand name, untranslated.",
+        "builds_by": "Menu item or tooltip for a link to the builds made by a player. {name} = player name, e.g. \"Sammi\".",
+        "build_on_buildlocker": "Link or button that opens a build on Buildlocker, a builds website. Buildlocker is a brand name, untranslated. Keep short, about 22 characters."
+    },
+    "platform": {
+        "windows": "Operating system name. Brand name, usually untranslated. Used inside other texts.",
+        "macos": "Operating system name. Brand name, usually untranslated. Used inside other texts.",
+        "linux": "Operating system name. Brand name, usually untranslated. Used inside other texts.",
+        "recycle_bin": "Name of the Windows bin where deleted files go. Should match the Windows translation. Used inside other texts.",
+        "trash": "Name of the bin where deleted files go on Linux and macOS. Should match the system's translation. Used inside other texts."
+    },
+    "shell": {
+        "nav": {
+            "home": "Sidebar navigation item and page name for the home page. Keep short, about 6 characters.",
+            "server_picker": "Sidebar navigation item for the page where users block game server regions. Keep short, about 14 characters.",
+            "live": "Sidebar navigation item for the page showing the live match. Keep short, about 6 characters.",
+            "stats": "Sidebar navigation item for the player statistics page. Keep short, about 7 characters.",
+            "alerts": "Sidebar navigation item for the page with patch notes and announcements. Keep short, about 6 characters.",
+            "performance": "Sidebar navigation item for the page that records FPS and checks mods. Keep short, about 12 characters.",
+            "voice_bans": "Sidebar navigation item for the page that manages muted players. Keep short, about 8 characters.",
+            "demos": "Sidebar navigation item for the page listing saved match replays. Keep short, about 8 characters.",
+            "match_history": "Sidebar navigation item for the list of past matches. Keep short, about 14 characters.",
+            "presence": "Sidebar navigation item for the Discord presence settings page. Keep short, about 10 characters.",
+            "builds": "Sidebar navigation item for the hero builds page. Hero is a Deadlock game term. Keep short, about 8 characters."
+        },
+        "sidebar": {
+            "unread": "Badge or screen reader text next to a sidebar item with unread entries. {count} = number of unread items, e.g. 3. Keep short, about 10 characters.",
+            "settings": "Sidebar button that opens the Settings page. Keep short, about 8 characters.",
+            "support": "Sidebar button that opens the page to support the project. \"Deadlock+\" stays untranslated.",
+            "discord": "Sidebar button that opens the project's Discord server invite. Discord is a brand name.",
+            "tools": "Section heading in the sidebar above the tool pages. Keep short, about 6 characters."
+        },
+        "titlebar": {
+            "expand_sidebar": "Tooltip and screen reader label for the title bar button that opens the sidebar.",
+            "collapse_sidebar": "Tooltip and screen reader label for the title bar button that hides the sidebar.",
+            "update_downloading": "Tooltip of a title bar indicator while an app update downloads.",
+            "downloading_update": "Screen reader label for the title bar update indicator while an update downloads.",
+            "update_available": "Tooltip of a title bar button that offers an app update. {version} = version number, e.g. \"0.15.0\".",
+            "minimize": "Tooltip and screen reader label for the window minimize button. Match the OS translation.",
+            "maximize": "Tooltip and screen reader label for the window maximize button. Match the OS translation.",
+            "restore": "Tooltip and screen reader label for the button that restores a maximized window to normal size. Match the OS translation.",
+            "close": "Tooltip and screen reader label for the window close button. Match the OS translation."
+        },
+        "statusbar": {
+            "ingest": {
+                "off": "Status bar item text. Sharing the player's matches with the Deadlock API is turned off. Keep short, about 18 characters.",
+                "starting": "Status bar item text. Sharing matches with the Deadlock API is starting. Keep the dots. Keep short, about 25 characters.",
+                "no_steam_cache": "Status bar item text. Match sharing can't run because Steam's data was not found. Keep short, about 35 characters.",
+                "error": "Status bar item text. Match sharing hit an error. Keep short, about 20 characters.",
+                "active": "Status bar item text. Match sharing is on. {count} = number of matches sent so far, e.g. 12. Keep the dot separator. Keep short, about 25 characters."
+            },
+            "api": {
+                "checking": "Status bar item text. The Deadlock API status is being checked. Deadlock API is a service name. Keep the dots. Keep short, about 25 characters.",
+                "checking_title": "Tooltip of the status bar item. The Deadlock API status is being checked.",
+                "online": "Status bar item text. The Deadlock API works. Keep short, about 20 characters.",
+                "online_title": "Tooltip of the status bar item. Says every Deadlock API service is up.",
+                "degraded": "Status bar item text. Some Deadlock API services are down. Keep short, about 25 characters.",
+                "degraded_title": "Tooltip of the status bar item. {services} = names of the services that are down, e.g. \"matches, players\".",
+                "offline": "Status bar item text. The Deadlock API can't be reached. Keep short, about 20 characters.",
+                "offline_title": "Tooltip of the status bar item. Says the Deadlock API can't be reached."
+            },
+            "game": {
+                "running": "Status bar item text. The game process is running. Deadlock is the game name, untranslated. Keep short, about 20 characters.",
+                "stopped": "Status bar item text. The game is closed. Deadlock is the game name, untranslated. Keep short, about 22 characters.",
+                "running_title": "Tooltip of the status bar item. The game is running. Deadlock is the game name, untranslated.",
+                "stopped_title": "Tooltip of the status bar item. The game is closed. Deadlock is the game name, untranslated."
+            },
+            "discord": {
+                "searching": "Status bar item text. Discord presence is on but no Discord app is running. Discord is a brand name. Keep short, about 20 characters.",
+                "searching_title": "Tooltip of the status bar item. Presence is on but no running Discord was found.",
+                "connected_title": "Tooltip of the status bar item. The player's game activity is shown on Discord. Deadlock is the game name.",
+                "off": "Status bar item text. Discord presence is turned off. Discord is a brand name. Keep short, about 12 characters.",
+                "off_title": "Tooltip of the status bar item. Discord presence is off. Tells the user to click to set it up."
+            },
+            "live": {
+                "queuing": "Status bar item text. The player is in the matchmaking queue. Keep short, about 22 characters.",
+                "pregame": "Status bar item text. The match is about to start. Keep short, about 15 characters.",
+                "in_match": "Status bar item text. The player is in a match. Keep short, about 10 characters.",
+                "paused": "Status bar item text. The current match is paused. Keep short, about 14 characters.",
+                "post_match": "Status bar item text. The match has ended. Keep short, about 15 characters.",
+                "open": "Tooltip of the status bar item. Clicking opens the Live page. Live is a page name, match its translation."
+            },
+            "tasks": "Status bar item text. Running background tasks. {count} = number of tasks, e.g. 2. Keep short, about 20 characters.",
+            "run_now": "Button in the background tasks popup that runs a scheduled task now. Keep short, about 8 characters.",
+            "open_performance": "Tooltip of the status bar item. Clicking opens the Performance page. Performance is a page name, match its translation.",
+            "performance_issues": "Tooltip of the status bar item. Warns that the app found things that may hurt game performance.",
+            "recovery": {
+                "running": "Status bar item text. Lost matches are being recovered. {done} = matches done, e.g. 12. {total} = total matches, e.g. 40. Keep short, about 20 characters.",
+                "reading": "Status bar item text. Match recovery is reading data. Keep short, about 20 characters.",
+                "paused": "Status bar item text. Match recovery is paused. Keep short, about 15 characters.",
+                "waiting_game": "Status bar item text. Match recovery waits until the game closes. Deadlock is the game name, untranslated. Keep short, about 35 characters.",
+                "waiting_limit": "Status bar item text. Match recovery is held by Steam's daily request limit. Keep the colon. Keep short, about 30 characters."
+            }
+        },
+        "nav_description": {
+            "home": "Short description of the Home page, shown with its sidebar entry or in a tooltip.",
+            "server_picker": "Short description of the Server Picker page, shown in a sidebar tooltip or home card. Deadlock is the game name, untranslated.",
+            "live": "Short description of the Live page, shown in a sidebar tooltip or home card.",
+            "stats": "Short description of the Stats page, shown in a sidebar tooltip or home card. Winrate means win percentage.",
+            "alerts": "Short description of the News page, shown in a sidebar tooltip or home card. Deadlock is the game name, untranslated.",
+            "performance": "Short description of the Performance page, shown in a sidebar tooltip or home card. FPS means frames per second.",
+            "voice_bans": "Short description of the Mutes page, shown in a sidebar tooltip or home card.",
+            "demos": "Short description of the Replays page, shown in a sidebar tooltip or home card. Outdated means made with an old game version.",
+            "match_history": "Short description of the Match History page, shown in a sidebar tooltip or home card. Deadlock API is a service name.",
+            "presence": "Short description of the Presence page, shown in a sidebar tooltip or home card. Hero is a Deadlock game term. Discord is a brand name.",
+            "builds": "Short description of the Builds page, shown in a sidebar tooltip or home card. Hero is a Deadlock game term."
+        }
+    },
+    "ui": {},
+    "alerts": {
+        "title": "Page heading of the News page. Shows patch notes and announcements. Match shell.nav.alerts.",
+        "subtitle": "Subtitle under the News page heading. Deadlock is the game name, untranslated.",
+        "search_aria": "Screen reader label for the search input on the News page.",
+        "search_placeholder": "Placeholder text in the patch notes search input on the News page. Hero and item are Deadlock game terms. Keep the dots.",
+        "clear_search": "Button or screen reader label that clears the patch notes search input on the News page.",
+        "empty": "Empty state text on the News page when no updates could be loaded.",
+        "empty_hint_enabled": "Hint under the News page empty state when alerts are on. Tells the user to check their connection or reopen the page.",
+        "empty_hint_disabled": "Hint under the News page empty state when alerts are off. Points to Settings to turn them on.",
+        "new": "Badge on a News entry the user has not seen yet. Keep short, about 4 characters.",
+        "read_full": "Link or button on a News entry that opens the full patch notes. Keep short, about 16 characters.",
+        "indexing": "Status text on the News page while patch notes are prepared for search. Keep the dots.",
+        "searching": "Status text on the News page while a patch notes search runs. Keep the dots.",
+        "no_matches": "Empty state on the News page when a search finds nothing. {query} = the user's search text, e.g. \"Haze\".",
+        "no_matches_hint": "Hint under the News search empty state. Hero and item are Deadlock game terms.",
+        "source": {
+            "steam": "Badge on a News entry showing it came from Steam announcements. Steam is a brand name. Keep short, about 5 characters.",
+            "forum": "Badge on a News entry showing it came from the Deadlock forum. Keep short, about 5 characters."
+        }
+    },
+    "onboarding": {
+        "progress_label": "Screen reader label for the step indicator at the top of the first run setup. Not shown visually.",
+        "skip": "Button in the first run setup that skips the current step. Keep short, about 6 characters.",
+        "back": "Button in the first run setup that goes to the previous step. Keep short, about 6 characters.",
+        "next": "Button in the first run setup that goes to the next step. Keep short, about 6 characters.",
+        "finish": "Button on the last step of the first run setup that closes the setup. Keep short, about 8 characters.",
+        "autostart_error": "Error toast in the first run setup when launching the app at sign in could not be turned on. {name} = name of that setting on this OS, e.g. \"Launch at Windows startup\".",
+        "welcome": {
+            "step_title": "Step name in the first run setup step indicator for the welcome step. Contains Deadlock+, keep it untranslated.",
+            "returning_title": "Heading on the welcome step for existing users who see the new setup once. Contains Deadlock+, keep it untranslated.",
+            "returning_body": "Subtext under the welcome heading for existing users. Reassures that their current settings are kept.",
+            "new_title": "Main heading on the welcome step for new users. Friendly tone. Deadlock is a game name, keep it untranslated.",
+            "new_body": "Intro text under the welcome heading for new users. Deadlock+ stays untranslated. Server picking, connection watching and match tracking are app features.",
+            "found": "Status line in a card on the welcome step, shown when the Deadlock game install was found. The game folder path is shown below it. Deadlock stays untranslated.",
+            "not_found": "Status line in a card on the welcome step, shown when the Deadlock game install was not found. Deadlock stays untranslated.",
+            "not_found_body": "Help text under the not found status on the welcome step. Replays, Mutes and Storage are page names in the app. Deadlock stays untranslated."
+        },
+        "features": {
+            "title": "Heading of the features overview step in the first run setup. Deadlock+ stays untranslated."
+        },
+        "groups": {
+            "play": "Group heading on the features step. Groups the server picker and live connection features. Keep short, about 6 characters.",
+            "progress": "Group heading on the features step. Groups the stats feature. Keep short, about 10 characters.",
+            "news": "Group heading on the features step. Groups the patch notes and announcements feature. Keep short, about 6 characters.",
+            "housekeeping": "Group heading on the features step. Groups tidy up tools like muted players, replays and mods. Keep short, about 14 characters."
+        },
+        "blurbs": {
+            "server_picker": "One line feature description on the features step for the Server Picker page. Regions are Deadlock game server regions.",
+            "live": "One line feature description on the features step for the Live page. Ping and packet loss are network terms.",
+            "stats": "One line feature description on the features step for the Stats page. Winrate and hero are Deadlock stats terms.",
+            "alerts": "One line feature description on the features step for the News page. Patch notes are Deadlock game updates.",
+            "voice_bans": "One line feature description on the features step for the Mutes page, which lists players muted in the game.",
+            "demos": "One line feature description on the features step for the Replays page. Replays are saved Deadlock match recordings.",
+            "performance": "One line feature description on the features step for the Performance page, which scans game mods. Frametimes means how long each frame takes to draw.",
+            "presence": "One line feature description on the features step for the Discord status feature. Hero is a Deadlock game term and should match the game's own translation."
+        },
+        "permissions": {
+            "other_title": "Heading on the permissions step shown on non Windows systems. {platform} = operating system name, e.g. \"Linux\".",
+            "other_body": "Body text under the heading on the permissions step for non Windows systems. {platform} = operating system name, e.g. \"Linux\".",
+            "unavailable_label": "Bold lead in label of a bullet on the non Windows permissions step. Followed by the next string. Ends with a colon.",
+            "unavailable": "Rest of the bullet after the label about what is not available on this OS. Names a feature (frame times). Reads as a continuation after the colon.",
+            "untested_label": "Bold lead in label of a bullet on the non Windows permissions step. Followed by the next string. Ends with a colon.",
+            "untested": "Rest of the bullet after the label about untested features. Names the Server Picker and Live pages, which ask for the user's password. Reads as a continuation after the colon.",
+            "broken_label": "Bold lead in label of a bullet on the non Windows permissions step. Followed by the next string. Ends with a question mark.",
+            "broken": "Rest of the bullet after the label, asking users to report problems on GitHub. GitHub stays untranslated. Friendly tone.",
+            "windows_title": "Heading on the permissions step when the app was started with administrator rights on Windows.",
+            "windows_body": "Intro text above a bullet list on the permissions step, for when the app runs as administrator. Deadlock+ stays untranslated. Ends with a colon.",
+            "firewall_label": "Bold lead in label of a bullet on the Windows permissions step. Followed by the next string. Ends with a colon.",
+            "firewall": "Rest of the bullet after the label. {rule} = firewall rule name pattern, e.g. \"deadlock_plus_*\". Do not translate it. Server Picker is a page name. Reads as a continuation after the colon.",
+            "monitor_label": "Bold lead in label of a bullet on the Windows permissions step, about the live connection monitor. Followed by the next string. Ends with a colon.",
+            "monitor": "Rest of the bullet after the label, explaining why live ping and loss need administrator rights. Reads as a continuation after the colon.",
+            "frametimes_label": "Bold lead in label of a bullet on the Windows permissions step, about frame times. Followed by the next string. Ends with a colon.",
+            "frametimes": "Rest of the bullet after the label, explaining why frame times need administrator rights. Reads as a continuation after the colon.",
+            "nothing_else": "Last bullet on the Windows permissions step with the administrator list. States that no other feature needs administrator rights.",
+            "admin_title": "Heading on the permissions step on Windows when the app is not running as administrator.",
+            "admin_body": "Intro text on the permissions step explaining that some features need administrator rights. Windows prompts via UAC. Deadlock+ stays untranslated.",
+            "always_note": "Description of the Always allow choice on the permissions step. Says there is one Windows prompt now and none later for this account.",
+            "later": "Title of the choice card on the permissions step to be asked later about administrator rights. Keep short, about 12 characters.",
+            "later_note": "Description of the Ask me later choice on the permissions step. Deadlock+ stays untranslated.",
+            "always_on": "Status message on the permissions step after the user chose to always allow administrator rights. Windows won't show its prompt again.",
+            "always_on_hint": "Hint after the Always allow status message. Points to Settings > Startup and background, where it can be turned off. Match the translated Settings page and section names."
+        },
+        "steam": {
+            "title": "Heading of the Steam account step in the first run setup. Steam is a product name.",
+            "body": "Intro text on the Steam account step. Stats, Rank and Sessions are page names in the app. Steam is a product name.",
+            "signed_in": "Status line on the Steam step under the account name when a Steam login was found on this PC.",
+            "none_title": "Status title on the Steam step when no Steam account was found on this PC. Steam is a product name.",
+            "none_body": "Help text under the no Steam account found status. Steam is a product name. Deadlock+ stays untranslated.",
+            "looking": "Loading text on the Steam step while the app searches for the Steam account. Ends with an ellipsis."
+        },
+        "sharing": {
+            "title": "Heading of the data sharing step in the first run setup. Deadlock stays untranslated.",
+            "intro": "Intro text on the data sharing step. Deadlock API is the name of a community service, keep it untranslated.",
+            "consent": "Consent text on the data sharing step explaining what data is sent to the Deadlock API. Deadlock+ stays untranslated. Steam ID is the user's Steam account number.",
+            "optional": "Small note on the data sharing step that sharing is optional and can be changed later in Settings.",
+            "telemetry_title": "Sub heading on the data sharing step for the anonymous usage data section.",
+            "telemetry_body": "Explanation on the data sharing step of what anonymous usage data and error reports are sent. Deadlock+ and Discord stay untranslated. Steam ID and IP address are technical terms.",
+            "telemetry_toggle": "Label of a checkbox on the data sharing step to opt in to anonymous usage data and error reports.",
+            "share": "Button on the data sharing step to agree to share matches with the Deadlock API. Keep short, about 18 characters.",
+            "decline": "Button on the data sharing step to decline sharing matches. Keep short, about 10 characters.",
+            "saved_on": "Status message on the data sharing step after the user chose to share. Confirms the choice was saved.",
+            "saved_off": "Status message on the data sharing step after the user declined. Confirms the choice was saved.",
+            "skipped": "Status message on the data sharing step when the user has not answered yet. Says sharing stays off until decided in Settings."
+        },
+        "extras": {
+            "title": "Heading of the optional extras step in the first run setup.",
+            "intro": "Intro text on the optional extras step. All the toggles below are off by default.",
+            "autostart_note": "Description under the autostart toggle on the optional extras step. Deadlock+ stays untranslated.",
+            "tray": "Toggle label on the optional extras step to keep the app running in the system tray.",
+            "tray_note": "Description under the tray toggle. Says closing the window hides the app instead of quitting it.",
+            "alerts": "Toggle label on the optional extras step for notifications about new patches and news.",
+            "alerts_note": "Description under the patch and news alerts toggle. Patch note means a Deadlock game update post.",
+            "maintenance": "Toggle label on the optional extras step for a reminder about Steam's weekly maintenance. Steam is a product name.",
+            "maintenance_note": "Description under the Steam maintenance reminder toggle. A notification is sent before the usual weekly maintenance.",
+            "gc_recovery": "Toggle label on the optional extras step to fill in match details that are missing from the Deadlock API.",
+            "gc_recovery_note": "Description under the missing match details toggle. Deadlock API is a service name, keep it untranslated. Steam is a product name.",
+            "footer": "Small footer note on the optional extras step. Says alerts and reminders only work while the app is running, so the tray option helps.",
+            "presence": "Toggle label on the optional extras step for showing game activity on Discord. Discord stays untranslated.",
+            "presence_note": "Description under the Discord toggle. Hero and rank are Deadlock game terms and should match the game's own translation. Discord stays untranslated."
+        },
+        "done": {
+            "step_title": "Step name in the first run setup step indicator for the final step. Short.",
+            "title": "Heading on the final step of the first run setup. Confirms setup is finished.",
+            "body": "Text under the final heading, pointing to the buttons below. Home is the home page name.",
+            "home": "Button on the final setup step that opens the Home page. Match the Home name used in the sidebar. Keep short, about 6 characters.",
+            "settings": "Button on the final setup step that opens the Settings page. Match the Settings name used in the sidebar. Keep short, about 10 characters.",
+            "whats_new": "Button on the final setup step that opens the What's New page with patch notes. Keep short, about 12 characters."
+        }
+    },
+    "patch_notes": {
+        "no_link": "Error toast shown in the patch notes dialog when the update post has no usable web link.",
+        "loading": "Loading text in the patch notes dialog while the full notes load. Ends with an ellipsis.",
+        "load_error": "Error message in the patch notes dialog. {error} = reason the load failed, e.g. \"network error\".",
+        "not_indexed": "Empty state in the patch notes dialog when the full notes are not available yet. Asks to try again soon.",
+        "shallow_notice": "Notice banner at the top of the patch notes dialog. Says the text shown is a short forum preview only.",
+        "read_full": "Link button in the patch notes dialog notice. {source} = where the post is hosted, e.g. \"Steam\" or \"Forum\".",
+        "expand_image": "Screen reader label for an image button in patch notes that opens the image larger. Not shown visually.",
+        "close_image": "Screen reader label for the button that closes the enlarged image in patch notes. Not shown visually.",
+        "close": "Button at the bottom of the patch notes dialog that closes it. Keep short, about 8 characters.",
+        "view_on": "Button at the bottom of the patch notes dialog that opens the post in the browser. {source} = where the post is hosted, e.g. \"Steam\" or \"Forum\"."
+    },
+    "updates": {
+        "toast_available": "Toast title when a new app version is available. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
+        "status": {
+            "idle": "Status text on Settings > Updates when no update check has run yet.",
+            "checking": "Status text on Settings > Updates while checking for a new version. Ends with an ellipsis.",
+            "up_to_date": "Status text on Settings > Updates when the installed version is the newest.",
+            "available": "Status text on Settings > Updates when a newer version exists. {version} = version number, e.g. \"0.15.0\".",
+            "downloading": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
+            "downloading_percent": "Status text on Settings > Updates while an update downloads. {version} = version number, e.g. \"0.15.0\". {percent} = whole number 0 to 100, e.g. 42. Deadlock+ stays untranslated.",
+            "check_failed": "Error status text on Settings > Updates when the update check failed, usually because of the network.",
+            "download_failed": "Error status text on Settings > Updates when the update download failed."
+        },
+        "banner": {
+            "title": "Title of the update banner shown in the app. {version} = version number, e.g. \"0.15.0\". Deadlock+ stays untranslated.",
+            "body": "Body text of the update banner. Says the update is quick and the app restarts by itself.",
+            "install": "Button on the update banner that installs the update now. Keep short, about 12 characters.",
+            "dismiss": "Tooltip and screen reader label of the icon button that dismisses the update banner. Means not now, so the banner can come back."
+        }
+    },
+    "connection": {
+        "subtitle": "Page subtitle under the Live page heading. Describes what the page shows for the current match.",
+        "unit_ms": "Unit label for milliseconds shown next to the big ping number. Keep short, about 2 characters.",
+        "ms": "Value with unit for milliseconds in a badge. {value} = number, e.g. \"12\". Keep short, about 8 characters.",
+        "pkt_per_second": "Packet rate value with unit. {value} = packets per second, e.g. \"34\". Keep short, about 14 characters.",
+        "series": {
+            "ping": "Card title and chart legend label for ping, the network delay in milliseconds. Keep short, about 4 characters."
+        },
+        "page": {
+            "title": "Page heading and sidebar name for the Live page, which shows live connection quality. Keep short, about 4 characters.",
+            "deadlock_running": "Badge on the Live page header when the Deadlock game is running. Deadlock stays untranslated. Keep short, about 16 characters.",
+            "deadlock_not_running": "Badge on the Live page header when the Deadlock game is not running. Deadlock stays untranslated. Keep short, about 20 characters.",
+            "direct_note": "Small note under the ping card title on the Live page. Explains this ping is measured from the user's PC to the Valve server.",
+            "engine_note": "Small note on the Live page ping card for values reported by the game itself, between the user and the match server.",
+            "waiting_server": "Empty state in the ping card on the Live page while no match server is connected yet."
+        },
+        "current": {
+            "title": "Section heading on the Live page for the game server the user is connected to.",
+            "not_running": "Empty state in the Current server section when the Deadlock game is not running. Deadlock stays untranslated.",
+            "not_connected": "Empty state in the Current server section when no match server is connected yet.",
+            "unknown_relay": "Fallback name in the Current server section when the server has no known description.",
+            "in": "Small label for incoming packets per second in the Current server section. Keep short, about 3 characters.",
+            "out": "Small label for outgoing packets per second in the Current server section. Keep short, about 3 characters.",
+            "gap": "Small label in the Current server section for the longest time without incoming data in the last second. Followed by a badge with a value in ms. The 1 s is a time span of one second."
+        },
+        "history": {
+            "title": "Heading of the ping history chart on the Live page. {minutes} = length of the time window, e.g. 5.",
+            "empty": "Empty state of the ping history chart on the Live page. Chart fills once a match is running.",
+            "chart_label": "Screen reader label for the ping history chart on the Live page. Not shown visually."
+        },
+        "notices": {
+            "permission": "Notice on the Live page asking for permission to watch network traffic. The OS asks for the user's password. Deadlock stays untranslated.",
+            "allow": "Button in the permission notice on the Live page that grants permission. Keep short, about 6 characters.",
+            "retry": "Button in an error notice on the Live page that tries live monitoring again. Keep short, about 6 characters.",
+            "admin_title": "Title of a notice on the Live page saying live monitoring needs administrator access.",
+            "admin_body": "Body of the administrator access notice on the Live page. Deadlock stays untranslated.",
+            "helper_out_of_date": "Error message on the Live page. The helper is a small background program installed with the app. Deadlock+ stays untranslated."
+        },
+        "ping": {
+            "no_data": "Empty state in the ping card on the Live page when no ping values exist yet.",
+            "avg": "Small label for the average ping value in the ping card. Keep short, about 3 characters.",
+            "min": "Small label for the lowest ping value in the ping card. Keep short, about 3 characters.",
+            "max": "Small label for the highest ping value in the ping card. Keep short, about 3 characters.",
+            "jitter": "Small label for ping jitter, the variation in delay, in the ping card. Keep short, about 6 characters.",
+            "loss": "Small label before a badge showing packet loss percentage in the ping card. Keep short, about 4 characters.",
+            "loss_down": "Small label for packet loss on incoming data in the ping card. Keep short, about 9 characters.",
+            "loss_up": "Small label for packet loss on outgoing data in the ping card. Keep short, about 7 characters.",
+            "samples": "Small text after the loss badge in the ping card, telling how many ping measurements the value covers. Plural. {count} = number, e.g. 20."
+        }
+    },
+    "logging": {
+        "copied": "Success toast after the log text was copied to the clipboard on the Logs view.",
+        "copy_failed": "Error toast when copying the log to the clipboard failed.",
+        "save_filter": "Name of the file type filter in the save file dialog for the log. Means plain text files. Keep short, about 4 characters.",
+        "saved": "Success toast after the log was saved to a file.",
+        "save_failed": "Error toast when saving the log to a file failed.",
+        "open_failed": "Error toast when opening the log folder in the file manager failed.",
+        "min_level": "Screen reader label for the dropdown that picks the lowest log level to show. Not shown visually.",
+        "search": "Placeholder text in the search input above the log list.",
+        "search_label": "Screen reader label for the log search input. Not shown visually.",
+        "auto_scroll": "Toggle label and screen reader label above the log list. Keeps the view scrolled to the newest entry. Keep short, about 11 characters.",
+        "refresh": "Screen reader label for the icon only button that reloads the log. Not shown visually.",
+        "copy": "Button above the log list that copies the log to the clipboard. Keep short, about 6 characters.",
+        "save": "Button above the log list that saves the log to a file. Keep short, about 6 characters.",
+        "open_folder": "Button above the log list that opens the log folder in the file manager. Keep short, about 12 characters.",
+        "read_failed": "Error message in the log view when the log could not be read.",
+        "loading": "Loading text in the log view while entries load. Ends with an ellipsis.",
+        "no_match": "Empty state in the log view when the search or level filter matches no entries.",
+        "showing_latest": "Note above the log list when the list is cut. {shown} = entries displayed, e.g. 500. {total} = entries that match, e.g. 2300."
+    },
+    "home": {
+        "today": "Relative date label on the Home page for something that happened today. Keep short, about 5 characters.",
+        "yesterday": "Relative date label on the Home page for something that happened yesterday. Keep short, about 9 characters.",
+        "days_ago": "Relative date label on the Home page. Plural. {count} = number of days, e.g. 3. Keep short, about 10 characters.",
+        "stats_error": "Error text in a Home page card when stats could not be loaded.",
+        "stats_loading": "Loading text in a Home page card while stats load.",
+        "tier": "Rank tier label on the Home page. {tier} = number from 1 to 6, e.g. 3. Ranks are Deadlock game terms and should match the game's own translation. Keep short, about 6 characters.",
+        "glance_label": "Screen reader label for the group of quick tiles at the top of the Home page. Not shown visually.",
+        "tools": "Section heading on the Home page for shortcuts to the app's tools. Also a screen reader label. Keep short, about 5 characters.",
+        "your_deadlock": "Section heading on the Home page for cards about the user's Deadlock progress. Deadlock stays untranslated.",
+        "game": {
+            "running": "Label on the Home page game tile when Deadlock is running. Deadlock is the game name. Keep short, about 7 characters.",
+            "launch": "Label on the Home page game tile, a button that starts the Deadlock game. Keep short, about 6 characters."
+        },
+        "maintenance": {
+            "title": "Card heading on the Home page for Steam's weekly maintenance. Steam is a product name.",
+            "line": "Sentence on the Home page about the next weekly maintenance. {day} = weekday name, e.g. \"Tuesday\". {time} = clock time, e.g. \"17:00\". {countdown} = time left, e.g. \"2 hours\".",
+            "note": "Text on the Home page card. {line} = the sentence about the next maintenance, a full sentence ending with a period. Valve is the game's company.",
+            "reminder_on": "Short status after the maintenance note on the Home page. Says the reminder notification is enabled.",
+            "reminder_off": "Short status after the maintenance note on the Home page. Says the reminder notification is disabled."
+        },
+        "tiles": {
+            "blocked": "Label of a quick tile on the Home page with the count of blocked server regions. Keep short, about 15 characters.",
+            "muted": "Label of a quick tile on the Home page with the count of muted players. Keep short, about 14 characters.",
+            "replays": "Label of a quick tile on the Home page with the count of saved replays. Keep short, about 14 characters."
+        },
+        "rank": {
+            "title": "Card title on the Home page for the user's rank. Rank is a Deadlock game term and should match the game's own translation. Keep short, about 4 characters.",
+            "progress": "Text in the rank card. {percent} = whole number, e.g. 60. {rank} = next rank name, e.g. \"Oracle 3\". Ranks are Deadlock game terms and should match the game's own translation.",
+            "empty": "Empty state in the rank card on the Home page when the user has no rank."
+        },
+        "form": {
+            "title": "Card title on the Home page for recent ranked results.",
+            "summary": "Summary in the recent form card. {wins} = wins, e.g. 6. {losses} = losses, e.g. 4. {net} = signed rank point change, e.g. \"+35\". {games} = number of matches, e.g. 10. W and L stand for win and loss.",
+            "empty": "Empty state in the recent form card when the user has no ranked matches."
+        },
+        "update": {
+            "title": "Card title on the Home page for the newest game update post.",
+            "unread": "Badge on the Latest update card. {count} = unread posts, e.g. 2. Keep short, about 8 characters.",
+            "empty": "Empty state in the Latest update card. News is the name of a page in the app."
+        },
+        "session": {
+            "title": "Card title on the Home page for the user's most recent play session.",
+            "summary": "Summary in the Last session card. {verdict} = session rating text, e.g. \"Good session\". {wins} = wins, e.g. 3. {losses} = losses, e.g. 2. {duration} = play time, e.g. \"1h 20m\". W and L stand for win and loss.",
+            "summary_delta": "Summary in the Last session card with rank change. {verdict} = session rating text, e.g. \"Good session\". {wins}, {losses} = e.g. 3, 2. {duration} = play time, e.g. \"1h 20m\". {net} = signed rank points, e.g. \"+25\".",
+            "empty": "Empty state in the Last session card when the user has no matches."
+        },
+        "verdict": {
+            "excellent": "Rating label for a play session on the Home page, the best of four ratings. Keep short, about 17 characters.",
+            "good": "Rating label for a play session on the Home page, second best of four ratings. Keep short, about 12 characters.",
+            "bad": "Rating label for a play session on the Home page, the worst of four ratings. Keep short, about 13 characters.",
+            "neutral": "Rating label for a play session on the Home page, for a balanced result. Keep short, about 12 characters."
+        },
+        "greetings": {
+            "late_night": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "early_morning": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "morning": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "midday": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "afternoon": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "evening": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            },
+            "night": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight. {name} = user's Steam name, e.g. \"Sam\". Casual tone, keep the question or joke feel."
+            }
+        },
+        "greetings_nameless": {
+            "late_night": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between midnight and 5 am, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "early_morning": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 5 am and 8 am, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "morning": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon, used when no name is known. Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 8 am and noon, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "midday": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between noon and 2 pm, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "afternoon": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 2 pm and 6 pm, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "evening": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm, used when no name is known. Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 6 pm and 10 pm, used when no name is known. Casual tone, keep the question or joke feel."
+            },
+            "night": {
+                "1": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight, used when no name is known. Casual tone, keep the question or joke feel.",
+                "2": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight, used when no name is known. Casual tone, keep the question or joke feel.",
+                "3": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight, used when no name is known. Casual tone, keep the question or joke feel.",
+                "4": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight, used when no name is known. Casual tone, keep the question or joke feel.",
+                "5": "Greeting heading on the Home page, one of several random variants shown between 10 pm and midnight, used when no name is known. Casual tone, keep the question or joke feel."
+            }
+        }
+    },
+    "keyboard": {
+        "settings_section": "Command palette entry that opens one Settings section. {section} = settings section name, e.g. \"Privacy\". Keep short, about 25 characters.",
+        "open_settings": "Command palette action that opens the Settings page. Keep short, about 15 characters.",
+        "check_updates": "Command palette action that checks for an app update. Keep short, about 20 characters.",
+        "support": "Command palette action that opens the support page. Contains \"Deadlock+\", which stays untranslated. Keep short, about 20 characters.",
+        "open_palette": "Command palette entry in the keyboard shortcuts group. Names the shortcut that opens this search box. Keep short, about 15 characters.",
+        "jump": "Command palette entry in the keyboard shortcuts group. Names the shortcut that jumps to a page by number. Keep short, about 15 characters.",
+        "palette_title": "Screen reader only title of the quick search dialog (command palette). Not visible on screen.",
+        "palette_description": "Screen reader only description of the quick search dialog (command palette). Not visible on screen.",
+        "palette_placeholder": "Placeholder text in the quick search input at the top of the command palette.",
+        "palette_input_label": "Screen reader label for the quick search input in the command palette.",
+        "no_match": "Empty state in the quick search list when no command matches what the user typed.",
+        "groups": {
+            "pages": "Group heading in the quick search list for page entries. Keep short, about 8 characters.",
+            "settings": "Group heading in the quick search list for settings entries. Keep short, about 10 characters.",
+            "actions": "Group heading in the quick search list for action entries. Keep short, about 10 characters.",
+            "shortcuts": "Group heading in the quick search list for entries that describe keyboard shortcuts. Keep short, about 20 characters."
+        },
+        "keywords": {
+            "page": "Hidden search keywords for page entries in quick search. Not shown. Space separated words people might type. Translate as synonyms, not as a sentence.",
+            "settings": "Hidden search keywords for settings entries in quick search. Not shown. Space separated words people might type. Translate as synonyms.",
+            "updates": "Hidden search keywords for the check for updates action in quick search. Not shown. Space separated words people might type. Translate as synonyms.",
+            "support": "Hidden search keywords for the support action in quick search. Not shown. Space separated words. Ko fi is a donation service name and stays as is.",
+            "palette": "Hidden search keywords for the quick search shortcut entry. Not shown. Space separated words people might type. Translate as synonyms.",
+            "jump": "Hidden search keywords for the jump to a page shortcut entry. Not shown. Space separated words people might type. Translate as synonyms."
+        }
+    },
+    "crash": {
+        "heading_unclean": "Heading of the crash dialog shown on launch after the app closed unexpectedly. Contains \"Deadlock+\", which stays untranslated.",
+        "heading_error": "Heading of the crash dialog shown on launch after the app hit an error. Contains \"Deadlock+\", which stays untranslated.",
+        "detail_unclean": "Body text in the crash dialog under the heading, for an unexpected close. \"It\" is the app.",
+        "detail_error": "Body text in the crash dialog under the heading, for an error. A crash report file was written to the user's PC.",
+        "attach_note": "Body text in the crash dialog telling the user to attach the report file to a bug report. {file} = file name, e.g. \"crash.txt\". {path} = full folder path on the PC.",
+        "meta": "Small info line in the crash dialog. {time} = date and time of the crash. {version} = app version, e.g. \"0.15.0\". {os} = operating system, e.g. \"Windows 11\". \"Deadlock+\" stays untranslated.",
+        "privacy": "Small privacy note at the bottom of the crash dialog. \"Settings\" refers to the Settings page, match its translation.",
+        "dismiss": "Button in the crash dialog that closes it. Keep short, about 8 characters.",
+        "open_folder": "Button in the crash dialog that opens the folder holding the crash report. Keep short, about 20 characters.",
+        "report_github": "Primary button in the crash dialog that opens a new bug report on GitHub. GitHub stays untranslated. Keep short, about 18 characters."
+    },
+    "notification_list": {
+        "title": "Tooltip and screen reader label of the bell button that opens the notifications menu in the app header.",
+        "unread_count": "Screen reader label of the notifications bell when some are unread. {count} = number of unread notifications, e.g. 3. Plural forms.",
+        "unread": "Screen reader only text before an unread notification in the list, marked by a red dot. Not visible. Ends with a colon.",
+        "mark_all_read": "Small button at the top of the notifications menu that marks every notification as read. Keep short, about 14 characters.",
+        "mark_read": "Tooltip and screen reader label of a button on one notification that marks it as read.",
+        "empty": "Empty state in the notifications menu when there are no notifications.",
+        "relative": {
+            "now": "Relative time on a notification, for less than a minute ago. Keep short, about 8 characters.",
+            "minutes": "Relative time on a notification. {count} = minutes ago, e.g. 5. Keep short, about 8 characters.",
+            "hours": "Relative time on a notification. {count} = hours ago, e.g. 3. Keep short, about 8 characters.",
+            "yesterday": "Relative time on a notification for one day ago. Keep short, about 9 characters.",
+            "days": "Relative time on a notification. {count} = days ago, e.g. 4, always 2 or more. Keep short, about 8 characters."
+        }
+    },
+    "error_page": {
+        "title": "Heading of the error screen shown in place of a page that crashed.",
+        "body": "Body text on the error screen under the heading. Says the rest of the app still works.",
+        "retry": "Button on the error screen that reloads the failed page. Keep short, about 10 characters.",
+        "copy": "Button on the error screen that copies the error details to the clipboard. Keep short, about 14 characters.",
+        "open_logs": "Button on the error screen that opens the logs in Settings > Diagnostics. Keep short, about 12 characters.",
+        "copied": "Toast shown after the error details were copied to the clipboard.",
+        "copy_failed": "Error toast shown when copying the error details to the clipboard failed.",
+        "unknown": "Fallback error message used in the error details when the error has no message."
+    },
+    "telemetry": {
+        "notice": "Toast shown once on first launch about anonymous usage data and error reports. \"Deadlock+\" stays untranslated. \"Settings\" refers to the Settings page.",
+        "notice_action": "Action button on the telemetry toast. Opens Settings > Privacy. Keep short, about 14 characters."
+    },
+    "support": {
+        "nudge": "Toast shown once after a number of launches asking for support. \"Deadlock+\" stays untranslated.",
+        "action": "Button (with a donation icon) that opens the support page, and the action button on the support toast. Contains \"Deadlock+\", which stays untranslated. Keep short, about 18 characters."
+    },
+    "connectivity": {
+        "offline": "Banner at the top of the app shown when the PC has no internet connection. \"Deadlock\" is the game and stays untranslated."
+    },
+    "whats_new": {
+        "title": "Page heading of the What's new page (release notes).",
+        "subtitle": "Subtitle under the heading of the What's new page. \"Deadlock+\" stays untranslated.",
+        "empty": "Empty state on the What's new page when there are no release notes.",
+        "show_all": "Button at the bottom of the What's new page that shows older releases too. Keep short, about 20 characters.",
+        "back_home": "Button at the end of the What's new page that goes back to the Home page. Keep short, about 14 characters."
+    },
+    "account": {
+        "default_name": "Fallback name of the user's Steam account in the sidebar account chip, used when no profile name is known.",
+        "none": "Text in the sidebar account chip when no Steam account was found. Keep short, about 16 characters.",
+        "none_found": "Tooltip on the sidebar account chip when no Steam account was found.",
+        "tooltip": "Tooltip on the sidebar account chip. {name} = Steam profile name, e.g. \"Sammi\". {id} = numeric Steam account ID, e.g. 123456789."
+    },
+    "heroes": {},
+    "jobs": {
+        "catalog": {
+            "addon_scan": {
+                "title": "Title of a background job in the jobs list. The job scans installed Deadlock mods. Keep short, about 15 characters.",
+                "description": "Description of the mod scan background job. Shown under its title. \"Deadlock+\" stays untranslated. Frametimes means time per frame in the game."
+            },
+            "patch_notes_index": {
+                "title": "Title of a background job in the jobs list. It prepares patch notes for search. Keep short, about 28 characters.",
+                "description": "Description of the patch note search background job. Shown under its title."
+            },
+            "server_block_sync": {
+                "title": "Title of a background job in the jobs list. It updates blocked server regions. Keep short, about 22 characters.",
+                "description": "Description of the server block update background job. Shown under its title. \"Valve\" and \"Deadlock+\" stay untranslated. Firewall rules are Windows firewall rules."
+            },
+            "match_grades": {
+                "title": "Title of a background job in the jobs list. It updates the grades of recent matches. Keep short, about 22 characters.",
+                "description": "Description of the match grades background job. Shown under its title. Grades are letter ratings given to players."
+            }
+        },
+        "policy": {
+            "always": "Option in a dropdown choosing what a background job does while Deadlock runs. This one lets it keep running at full speed. Deadlock is the game. Keep short, about 14 characters.",
+            "pause_in_game": "Option in a dropdown choosing what a background job does while Deadlock runs. This one pauses it. Deadlock is the game. Keep short, about 8 characters.",
+            "slow_in_game": "Option in a dropdown choosing what a background job does while Deadlock runs. This one runs it slower. Deadlock is the game. Keep short, about 12 characters."
+        },
+        "status": {
+            "paused": "Status line for a background job that is paused. {title} = job title, e.g. \"Scanning mods\". \"Deadlock\" is the game and stays untranslated.",
+            "starting": "Status line for a background job that just started, no progress yet. {title} = job title, e.g. \"Scanning mods\". Keep the three dots.",
+            "progress": "Status line for a running background job. {title} = job title, e.g. \"Scanning mods\". {done} = items finished, e.g. 12. {total} = items in all, e.g. 40.",
+            "progress_labeled": "Status line for a running job with a detail. {title} = job title. {done} = items finished, e.g. 12. {total} = items in all, e.g. 40. {label} = current item name, e.g. a file name."
+        }
+    },
+    "gc": {
+        "status": {
+            "off": "Status text on a setting for submitting missing matches to the Deadlock API. Means the feature is switched off. Keep short, about 5 characters.",
+            "looking_for_login": "Status line for the match submission feature. It is looking for a saved Steam login on this PC. Steam is the game platform.",
+            "last_pass_failed": "Status line for the match submission feature when its last check failed. {error} = reason text, e.g. \"No connection to Steam\".",
+            "accounts": "Plural part of a status line. {count} = number of Steam accounts used, e.g. 2. Inserted into the \"Using ...\" sentence.",
+            "using": "Status line for the match submission feature. {accounts} = phrase like \"2 Steam accounts\". {delivered} = number of matches sent this session, e.g. 5."
+        },
+        "own": {
+            "reading_history": "Status line while Deadlock+ reads the user's own match history to find matches the Deadlock API lacks. \"Deadlock+\" stays untranslated if present.",
+            "progress": "Progress line while submitting missing matches. {delivered} = matches sent so far, e.g. 3. {missing} = total missing matches, e.g. 12. Each takes about 20 seconds.",
+            "matches": "Plural phrase for a number of matches, inserted into other status sentences. {count} = number of matches, e.g. 5.",
+            "nothing_missing": "Final status line when the run finished and no match was missing. The Deadlock API is a service with match data and stays a name.",
+            "done": "Final status line when a run finished. {matches} = phrase like \"5 matches\" (from the plural phrase).",
+            "incomplete": "Final status line when a run ended with some matches not recovered. {matches} = phrase like \"5 matches\". {failed} = number of failed matches, e.g. 2.",
+            "rate_limited": "Final status line when Steam's daily limit stopped the run. {matches} = phrase like \"5 matches\" sent. Steam is the game platform.",
+            "stopped": "Final status line when a run was stopped. {matches} = phrase like \"5 matches\" sent before stopping.",
+            "paused": "Status line for a paused run. {left} = matches still to send, e.g. 7. Keep short, about 20 characters.",
+            "waiting_game": "Status line for a run waiting for the game to close. {left} = matches still to send, e.g. 7. Deadlock is the game and stays untranslated.",
+            "waiting_limit": "Status line when Steam's daily limit is reached. {continues} = phrase like \"Continues at 6:30 PM\" (from the continues sentences). Ends with a period.",
+            "continues_at": "Phrase telling when a waiting run continues, same day. {time} = clock time, e.g. \"6:30 PM\". Inserted into the daily limit sentence.",
+            "continues_tomorrow": "Phrase telling when a waiting run continues, next day. {time} = clock time, e.g. \"6:30 PM\". Inserted into the daily limit sentence.",
+            "continues_after_game": "Short status for a match that waits to be submitted until the game closes. Shown in the missing match panel and a status line. Deadlock is the game, untranslated.",
+            "last_run": "Status line about the previous submission run. {when} = time ago phrase, e.g. \"2 hours ago\". {delivered} = matches sent, e.g. 5. {left} = matches left, e.g. 3.",
+            "last_run_nothing_left": "Status line about the previous submission run that finished everything. {when} = time ago phrase, e.g. \"2 hours ago\". {delivered} = matches sent, e.g. 5.",
+            "last_run_limit": "Status line about the previous run that hit Steam's daily limit. {when} = time ago phrase, e.g. \"yesterday\". {delivered} = matches sent, e.g. 5. {left} = matches left, e.g. 3.",
+            "last_run_failed": "Status line about the previous submission run that failed. {when} = time ago phrase, e.g. \"2 hours ago\".",
+            "ago": {
+                "now": "Time ago phrase for less than a minute, used inside the last run sentences. Lowercase.",
+                "minutes": "Time ago phrase used inside the last run sentences. {count} = minutes, e.g. 5. Plural forms. Lowercase.",
+                "hours": "Time ago phrase used inside the last run sentences. {count} = hours, e.g. 3. Plural forms. Lowercase.",
+                "yesterday": "Time ago phrase for one day ago, used inside the last run sentences. Lowercase.",
+                "days": "Time ago phrase used inside the last run sentences. {count} = days, e.g. 4. Plural forms. Lowercase."
+            }
+        }
+    },
+    "api_health": {},
+    "steam_account": {},
+    "ingest": {},
+    "about": {
+        "version": "Row label in the About card on Settings for the app version. Keep short, about 8 characters.",
+        "dev_build": "Value in the About card for the app version of a development build. {version} = app version, e.g. \"0.15.0\".",
+        "running_as": "Row label in the About card for the Windows account type the app runs under. Value is Administrator or Standard user. Keep short, about 12 characters.",
+        "system": "Row label in the About card for operating system and CPU type. Keep short, about 8 characters.",
+        "data_folder": "Row label in the About card for the folder where Deadlock+ stores its data. \"Deadlock+\" stays untranslated. Keep short, about 12 characters.",
+        "game_build": "Row label in the About card, Deadlock section, for the game's build number. Deadlock is the game. Keep short, about 12 characters.",
+        "game_built": "Row label in the About card, Deadlock section, for the date the game build was made. Keep short, about 12 characters.",
+        "source_revision": "Row label in the About card, Deadlock section, for the game's source code revision number. Keep short, about 16 characters.",
+        "install_folder": "Row label in the About card, Deadlock section, for the folder where the game is installed. Keep short, about 14 characters.",
+        "administrator": "Value in the About card for the Windows Administrator account. Keep short, about 14 characters.",
+        "standard_user": "Value in the About card for a normal Windows account without administrator rights. Keep short, about 14 characters.",
+        "root": "Value in the About card for the root user on Linux. Keep short, about 6 characters.",
+        "regular_user": "Value in the About card for a normal Linux user without root rights. Keep short, about 14 characters."
+    },
+    "support_report": {
+        "title": "Section heading of the support report card in Settings.",
+        "description": "Description under the support report heading. Explains the report is built locally and nothing is sent automatically. \"Deadlock+\" stays untranslated.",
+        "included": "Text in the support report card listing what the report contains. \"Deadlock\" is the game and stays untranslated. \"Deadlock+\" stays untranslated.",
+        "create": "Button in the support report card that builds the report. Keep short, about 22 characters.",
+        "refresh": "Button in the support report card, replaces the create button after a report exists. Builds it again. Keep short, about 14 characters.",
+        "creating": "Button text in the support report card while the report is being built. Keep the three dots. Keep short, about 22 characters.",
+        "preview": "Screen reader label of the text box showing the built support report.",
+        "copy": "Button with a copy icon in the support report card that copies the report text. Keep short, about 6 characters.",
+        "copied": "Toast shown after the support report was copied to the clipboard.",
+        "copy_failed": "Error toast shown when copying the support report failed.",
+        "save": "Button with a save icon in the support report card that saves the report to a file. Keep short, about 6 characters.",
+        "save_filter": "File type name in the save file dialog for the support report, which is a .txt file. Keep short, about 6 characters.",
+        "saved": "Toast shown after the support report was saved to a file.",
+        "save_failed": "Error toast shown when saving the support report failed. The log is in Settings > Diagnostics.",
+        "build_failed": "Error toast shown when building the support report failed. The log is in Settings > Diagnostics."
+    }
+}
