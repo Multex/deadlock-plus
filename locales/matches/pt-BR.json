@@ -62,8 +62,8 @@
             "none_lifetime": "Nenhuma partida nesta seleção. {games} partidas no total.",
             "recent_games": "Jogos, últimos {days} dias",
             "lifetime_wins": "Vitórias no total",
-            "builds": "",
-            "builds_label": ""
+            "builds": "Guias",
+            "builds_label": "Guias de {hero}"
         },
         "region": {
             "heading": "Ranking regional",
@@ -196,7 +196,7 @@
                 "better": "Você se sai melhor depois de duas derrotas seguidas: {rate} contra {rest} nas demais.",
                 "same": "Duas derrotas seguidas não mudam a forma como você joga: {rate} contra {rest} nas demais.",
                 "bar_after": "Após duas derrotas consecutivas",
-                "bar_rest": ""
+                "bar_rest": "Todas as outras partidas"
             },
             "session_length": {
                 "title": "Onde parar",
@@ -649,118 +649,118 @@
     "front_page": {
         "story": {
             "viewer_line": {
-                "headline": "",
-                "deck": "",
-                "deck_graded": ""
+                "headline": "{hero} fecha com {kills}/{deaths}/{assists}",
+                "deck": "Você terminou com um patrimônio líquido de {net_worth}.",
+                "deck_graded": "Você terminou com um patrimônio líquido de {net_worth}. Os críticos deram a você {letter}, {place} de {total}."
             },
             "comeback": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} vira a partida após ficar {deficit} atrás",
+                "deck": "Em {time}, {team} estava {deficit} atrás em patrimônio líquido, mas ainda assim venceu a partida."
             },
             "critics_top": {
-                "headline": "",
-                "deck": ""
+                "headline": "Os críticos coroam {hero}",
+                "deck": "{player} lidera as notas do Deadlock+ com {letter}, em primeiro entre {total}."
             },
             "first_blood": {
-                "headline": "",
-                "deck": ""
+                "headline": "{hero} abre o placar",
+                "deck": "{player} derrotou {victim_hero} em {time} e fez a primeira vítima da partida."
             },
             "mid_boss": {
-                "headline": "",
-                "deck": "",
-                "deck_split": ""
+                "headline": "{team} conquista o Chefe do Meio",
+                "deck": "{team} o derrotou em {time} e o conquistou.",
+                "deck_split": "{killer} o derrotou em {time}, mas {team} o conquistou."
             },
             "guardian_fall": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} derruba o primeiro Guardião",
+                "deck": "{owner} perdeu um Guardião em {time}, o primeiro a cair."
             },
             "walker_fall": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} derruba o primeiro Andador",
+                "deck": "{owner} perdeu um Andador em {time}, o primeiro a cair."
             },
             "base_guardian_fall": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} derruba o primeiro Guardião da Base",
+                "deck": "{owner} perdeu um Guardião da Base em {time}, o primeiro a cair."
             },
             "shrine_fall": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} destrói um Santuário",
+                "deck": "{owner} perdeu um Santuário em {time}, o primeiro a cair."
             },
             "patron_fall": {
-                "headline": "",
-                "deck": ""
+                "headline": "{team} derruba o Patrono",
+                "deck": "{owner} perdeu seu Patrono em {time}."
             },
             "top_damage": {
-                "headline": "",
-                "deck": ""
+                "headline": "{hero} lidera as tabelas de dano",
+                "deck": "{player} causou {damage} de dano a jogadores, o maior valor da partida."
             },
             "top_healing": {
-                "headline": "",
-                "deck": ""
+                "headline": "{hero} mantém a equipe em pé",
+                "deck": "{player} curou {healing}, mais do que qualquer outro."
             },
             "richest": {
-                "headline": "",
-                "deck": ""
+                "headline": "{hero} lidera a lista dos mais ricos",
+                "deck": "{player} terminou com {net_worth} de patrimônio líquido, o maior valor da partida."
             },
             "most_last_hits": {
-                "deck": "",
+                "deck": "{player} fez mais finalizações do que qualquer outro jogador.",
                 "headline_one": "",
                 "headline_other": ""
             }
         },
         "kit": {
-            "weather": "",
-            "box_score": "",
-            "critics": "",
-            "lane_report": "",
-            "in_brief": "",
-            "objectives": "",
-            "kills": "",
-            "hero": "",
-            "kda": "",
-            "net_worth": "",
-            "grade": ""
+            "weather": "Clima",
+            "box_score": "Placar",
+            "critics": "Os críticos",
+            "lane_report": "Relatório de trilhas",
+            "in_brief": "Em resumo",
+            "objectives": "Objetivos",
+            "kills": "Vítimas",
+            "hero": "Herói",
+            "kda": "K/D/A",
+            "net_worth": "Patrimônio líquido",
+            "grade": "Nota"
         },
-        "open": "",
+        "open": "Primeira página",
         "open_match": "",
-        "close": "",
-        "dialog": "",
-        "loading": "",
-        "name": "",
-        "edition": "",
-        "kicker_viewer": "",
-        "photo_caption": "",
-        "place_of": "",
-        "critics_grading": "",
-        "critics_pending": "",
+        "close": "Fechar",
+        "dialog": "Primeira página da partida {id}",
+        "loading": "Imprimindo a primeira página...",
+        "name": "Deadlock+ Dispatch",
+        "edition": "Extra! · Nº {id}",
+        "kicker_viewer": "Sua partida",
+        "photo_caption": "{hero}, {kills}/{deaths}/{assists}. Arte do herói: Valve.",
+        "place_of": "{place} de {total}",
+        "critics_grading": "Avaliando...",
+        "critics_pending": "Notas pendentes",
         "lane": {
-            "lead": "",
-            "even": "",
-            "matchup": ""
+            "lead": "{team} +{amount} aos 10:00",
+            "even": "Empate aos 10:00",
+            "matchup": "{hidden_king} x {archmother}"
         },
         "weather": {
-            "forecast_clear": "",
-            "forecast_fair": "",
-            "forecast_overcast": "",
-            "forecast_storm": "",
-            "ping": "",
-            "jitter": ""
+            "forecast_clear": "Céu limpo",
+            "forecast_fair": "Razoável",
+            "forecast_overcast": "Nublado",
+            "forecast_storm": "Tempestade",
+            "ping": "{avg} ms em média · {worst} no pior caso",
+            "jitter": "{jitter} ms de instabilidade"
         },
         "objective": {
-            "short_guardian": "",
-            "short_walker": "",
-            "short_base_guardian": "",
-            "short_shrine": "",
-            "short_patron": "",
-            "short_core": "",
-            "short_mid_boss": "",
-            "short_unknown": ""
+            "short_guardian": "G",
+            "short_walker": "A",
+            "short_base_guardian": "GB",
+            "short_shrine": "S",
+            "short_patron": "P",
+            "short_core": "N",
+            "short_mid_boss": "CM",
+            "short_unknown": "O"
         },
         "export": {
-            "group": "",
-            "saved": "",
-            "copied": "",
-            "render_failed": ""
+            "group": "Exportar primeira página",
+            "saved": "Imagem da primeira página salva.",
+            "copied": "Imagem da primeira página copiada para a área de transferência.",
+            "render_failed": "Não foi possível criar a imagem da primeira página. Tente novamente."
         }
     }
 }

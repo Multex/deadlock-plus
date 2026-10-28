@@ -86,7 +86,7 @@
             "pick_run": "Escolha uma execução",
             "intro": "Compare duas execuções salvas lado a lado. Jogue o mesmo mapa por um tempo parecido em ambas, uma vez com o mod ativado e outra com ele desativado. O ritmo dos quadros varia de uma partida para outra, então uma diferença é compatível com o mod ser a causa, mas não prova isso.",
             "empty_none": "Ainda não há execuções salvas.",
-            "empty_single": "",
+            "empty_single": "Apenas uma execução salva até agora.",
             "empty_hint": "Grave uma execução na aba Tempos de quadro e salve-a com um nome. Você precisa de duas para comparar.",
             "run_a": "Execução A",
             "run_b": "Execução B",

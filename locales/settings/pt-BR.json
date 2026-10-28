@@ -24,7 +24,7 @@
         },
         "items": {
             "theme": "Tema",
-            "theme_effects": "",
+            "theme_effects": "Efeitos de tema",
             "reduced_motion": "Movimento reduzido",
             "accessible_font": "Fonte acessível",
             "close_to_tray": "Manter em execução na bandeja",
@@ -50,12 +50,12 @@
             "overlay_test": "Testar a sobreposição",
             "overlay_notifications": "Notificações da sobreposição",
             "overlay_match_found": "Partida encontrada",
-            "overlay_queue_stopped": "",
+            "overlay_queue_stopped": "Fila interrompida",
             "server_blocks_updated": "Blocos de servidor atualizados",
             "server_blocks_stale": "Blocos de servidor desatualizados",
             "break_reminder": "Lembrete de intervalo",
-            "front_page_after_match": "",
-            "front_page_overlay_alert": "",
+            "front_page_after_match": "Primeira página após cada partida",
+            "front_page_overlay_alert": "Primeira página aguardando",
             "ui_scale": "Escala da interface",
             "hardware_acceleration": "Aceleração de hardware",
             "open_on_game_start": "Abrir com o Deadlock",
@@ -70,7 +70,7 @@
         },
         "appearance": {
             "theme_description": "Escolha as cores usadas pelo aplicativo.",
-            "effects_description": "",
+            "effects_description": "Arte e clima que alguns temas desenham atrás da página, como a nevada do Flint Snow.",
             "motion_description": "Desative animações e transições. \"Seguir o sistema\" usa a configuração do seu sistema operacional.",
             "motion_system": "Seguir o sistema",
             "motion_reduce": "Reduzir",
@@ -79,25 +79,25 @@
             "scale_description": "Aumente ou diminua o tamanho de tudo no Deadlock+.",
             "hardware_acceleration_description": "O Deadlock+ é renderizado pela sua placa de vídeo. Desative essa opção se a janela piscar ou aparecer preta nas capturas de tela.",
             "restart_app": "Reiniciar o Deadlock+",
-            "accent": "",
-            "accent_hue": "",
-            "accent_vividness": "",
-            "accent_hex": "",
-            "accent_reset": "",
+            "accent": "Cor de destaque",
+            "accent_hue": "Matiz",
+            "accent_vividness": "Vivacidade",
+            "accent_hex": "Cor hexadecimal",
+            "accent_reset": "Redefinir",
             "theme_option_aria": ""
         },
         "themes": {
             "deadlock": {
                 "label": "Deadlock",
                 "description": "Quase-preto quente com detalhes em latão.",
-                "source": ""
+                "source": "Deadlock no Steam"
             },
             "midnight": {
                 "label": "Meia-noite",
                 "description": "Preto-azulado frio com um detalhe em prata suave.",
                 "effects": {
-                    "fog": "",
-                    "windows": ""
+                    "fog": "Névoa",
+                    "windows": "Janelas"
                 }
             },
             "daylight": {
@@ -110,59 +110,59 @@
             },
             "nightshift": {
                 "label": "Nightshift",
-                "description": "",
-                "source": "",
+                "description": "Azul-petróleo escuro com detalhes art déco dourados.",
+                "source": "Deadlock Night Shift no Twitch",
                 "effects": {
-                    "rain": "",
-                    "lights": "",
-                    "frames": "",
-                    "clock": ""
+                    "rain": "Chuva",
+                    "lights": "Luzes",
+                    "frames": "Quadros",
+                    "clock": "Medalhão"
                 }
             },
             "deadlock_api": {
                 "label": "Deadlock API",
                 "description": "Preto OLED com brilho vermelho elétrico.",
-                "source": ""
+                "source": "API do Deadlock"
             },
             "statlocker": {
-                "label": "",
-                "description": "",
-                "source": ""
+                "label": "Statlocker",
+                "description": "Painéis em grafite com detalhes em verde-menta.",
+                "source": "Statlocker"
             },
             "flint_snow": {
-                "label": "",
-                "description": "",
+                "label": "Flint Snow",
+                "description": "Pelo coral sobre azul-marinho meia-noite com detalhes em rosa.",
                 "effects": {
-                    "snow": "",
-                    "stars": "",
-                    "tail": "",
-                    "tracks": ""
+                    "snow": "Neve",
+                    "stars": "Estrelas",
+                    "tail": "Cauda",
+                    "tracks": "Pegadas"
                 }
             },
             "void": {
-                "label": "",
-                "description": ""
+                "label": "Vazio",
+                "description": "OLED preto com detalhes em violeta elétrico."
             },
             "deadchaps": {
-                "label": "",
-                "description": "",
-                "source": ""
+                "label": "DeadChaps",
+                "description": "Painéis quase pretos com o roxo do DeadChaps.",
+                "source": "DeadChaps"
             },
             "pretty_in_pink": {
-                "label": "",
-                "description": "",
+                "label": "Pretty in Pink",
+                "description": "Rosa-docinho e creme com nuvens e corações em tons pastéis.",
                 "effects": {
-                    "clouds": "",
-                    "hearts": "",
-                    "bow": ""
+                    "clouds": "Nuvens",
+                    "hearts": "Corações",
+                    "bow": "Laço"
                 }
             },
             "catppuccin": {
-                "label": "",
-                "description": "",
-                "source": "",
-                "variant": "",
-                "accent": ""
+                "label": "Catppuccin",
+                "description": "Tons pastéis suaves em quatro variações, com 14 opções de destaque para escolher.",
+                "source": "Paleta Catppuccin",
+                "variant": "Variação",
+                "accent": "Destaque"
             }
         },
         "autostart": {
@@ -224,10 +224,10 @@
             "server_blocks_updated_description": "Avisa quando a Valve altera os endereços dos servidores e o Deadlock+ atualiza seus blocos do Seletor de servidores.",
             "server_blocks_stale_description": "Avisa quando o Deadlock+ não conseguiu atualizar seus blocos do Seletor de servidores, então alguns servidores podem não estar bloqueados.",
             "break_reminder_description": "Sugere uma pausa após várias derrotas consecutivas em uma sessão. O mesmo botão da página “Sessões”.",
-            "front_page_after_match_description": "",
-            "front_page_modes": "",
+            "front_page_after_match_description": "Exibe a primeira página de um jornal sobre a partida na janela quando o Deadlock+ captura a partida ao final dela.",
+            "front_page_modes": "Modos de jogo",
             "front_page_mode_aria": "",
-            "front_page_overlay_alert_description": "",
+            "front_page_overlay_alert_description": "Avisa na sobreposição do jogo quando há uma primeira página aguardando no Deadlock+.",
             "delivery_label": "Exibe como",
             "delivery": {
                 "both": "Sobreposição no jogo ou área de trabalho",
@@ -265,12 +265,12 @@
             "level_detailed_description": "Mostra seu herói, modo, classificação e cronômetro da partida.",
             "support_label": "Apoiar o Deadlock+",
             "support_description": "Adiciona um botão “Baixar Deadlock+” à sua atividade para que outras pessoas possam encontrar o aplicativo. Funciona com as versões Básica e Detalhada.",
-            "logo_label": "",
-            "logo_description": "",
-            "delay_label": "",
-            "delay_description": "",
-            "delay_off": "",
-            "delay_seconds": "",
+            "logo_label": "Mostrar o logotipo do Deadlock+",
+            "logo_description": "Substitui o logotipo do Deadlock na sua atividade sempre que nenhuma outra imagem grande for exibida.",
+            "delay_label": "Atraso",
+            "delay_description": "Atrasa o que os amigos veem no Discord por esse tempo.",
+            "delay_off": "Desativado",
+            "delay_seconds": "{seconds} s",
             "client_running": "Em execução",
             "client_not_running": "Não está em execução",
             "client_other_hint": "Vesktop e outros aplicativos",
@@ -278,7 +278,7 @@
             "client_stable": "Discord",
             "client_ptb": "Discord PTB",
             "client_canary": "Discord Canary",
-            "client_other_label": "",
+            "client_other_label": "Outro",
             "client_stable_name": "Discord",
             "client_ptb_name": "Discord PTB",
             "client_canary_name": "Discord Canary",
@@ -302,7 +302,7 @@
             "field_small_image": "Imagem pequena",
             "field_small_text": "Texto ao passar o mouse (imagem pequena)",
             "field_timer": "Temporizador",
-            "timer_aria": "",
+            "timer_aria": "Cronômetro no Discord",
             "reset_field": "Redefinir {field}",
             "reset_scope": "Redefinir este estado",
             "reset_all": "Redefinir tudo",
@@ -319,7 +319,7 @@
             "source_modeIcon": "Ícone de modo",
             "source_customUrl": "URL personalizada",
             "timer_none": "Sem temporizador",
-            "timer_elapsedInState": "",
+            "timer_elapsedInState": "Tempo decorrido desde o início do Deadlock",
             "timer_matchTime": "Tempo da partida",
             "preview": "Pré-visualização da atividade",
             "preview_header": "Jogando",
@@ -438,11 +438,11 @@
                 "group_match": "Partida",
                 "group_party": "Grupo e fila",
                 "group_streetBrawl": "Briga de Rua",
-                "group_misc": ""
+                "group_misc": "Outros"
             },
             "timer_queueTime": "Tempo na fila",
             "field_party_size": "Tamanho do grupo",
-            "party_size_aria": "",
+            "party_size_aria": "Mostrar tamanho do grupo",
             "party_size_hint": "Exibe o número de participantes do grupo, como (2 de 6), quando você estiver em um grupo de duas ou mais pessoas.",
             "preview_party": "({size} de {max})",
             "detailed_only": "Apenas o modo “Detalhado” utiliza esses estados. O modo “Básico” sempre exibe “Jogando”.",
