@@ -206,6 +206,10 @@
         color: var(--foreground);
         text-decoration: underline;
     }
+    .author:focus-visible {
+        border-radius: 2px;
+        box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 60%, transparent);
+    }
     /* Over the row's bottom-right corner so showing it never moves the row's content. */
     .row :global(.links) {
         position: absolute;
