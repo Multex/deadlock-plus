@@ -519,6 +519,7 @@
             "available": "Version {version} is available.",
             "downloading": "Downloading {version}. Deadlock+ restarts when it finishes.",
             "downloading_percent": "Downloading {version} ({percent}%). Deadlock+ restarts when it finishes.",
+            "ready": "Version {version} is downloaded. Restart Deadlock+ to install it.",
             "check_failed": "Couldn't check for updates. Check your connection and try again.",
             "download_failed": "Couldn't download the update. Try again later."
         },
@@ -527,6 +528,92 @@
             "body": "You're on an older version. The update takes a minute and Deadlock+ restarts on its own.",
             "install": "Install now",
             "dismiss": "Not now"
+        },
+        "surface": {
+            "title": "Updates",
+            "close": "Close",
+            "kicker": {
+                "available": "Update available",
+                "downloading": "Downloading",
+                "ready": "Ready to install",
+                "failed": "Update paused",
+                "check_failed": "Can't check right now",
+                "up_to_date": "Up to date",
+                "checking": "Checking",
+                "idle": "Updates"
+            },
+            "from_version": "You have {version}",
+            "body": {
+                "available": "Deadlock+ downloads the update, then restarts to install it.",
+                "downloading": "Keep using Deadlock+ while it downloads.",
+                "ready": "Restart to finish. It takes a few seconds, and What's New opens when Deadlock+ is back.",
+                "failed": "Nothing on your PC changed. Try again, or get the installer yourself.",
+                "check_failed": "Deadlock+ couldn't reach the update server. Check your connection and try again.",
+                "up_to_date": "Deadlock+ {version} is the newest build on your channel.",
+                "up_to_date_plain": "You have the newest build on your channel.",
+                "checking": "Looking for a newer build...",
+                "idle": "Deadlock+ hasn't checked for updates yet."
+            },
+            "action": {
+                "update": "Update now",
+                "restart": "Restart now",
+                "retry": "Try again",
+                "check": "Check now",
+                "manual": "Download manually",
+                "later": "Later",
+                "notes": "Full release notes"
+            },
+            "highlights_title": "In this update",
+            "more_changes_one": "Plus {count} more change",
+            "more_changes_other": "Plus {count} more changes",
+            "version_title": "Deadlock+ {version}"
+        },
+        "progress": {
+            "label": "Update download",
+            "of": "{received} of {total} MB",
+            "received": "{received} MB",
+            "speed": "{speed} MB/s",
+            "left_seconds_one": "About {count} second left",
+            "left_seconds_other": "About {count} seconds left",
+            "left_minutes_one": "About {count} minute left",
+            "left_minutes_other": "About {count} minutes left",
+            "percent": "{percent}%"
+        },
+        "steps": {
+            "label": "Update steps",
+            "download": "Download",
+            "restart": "Restart",
+            "notes": "What's new",
+            "done": "{step}, done",
+            "current": "{step}, now"
+        },
+        "channel": {
+            "title": "Update channel",
+            "summary": "Channel: {channel}",
+            "release": {
+                "name": "Release",
+                "body": "The tested builds everyone gets."
+            },
+            "beta": {
+                "name": "Beta",
+                "body": "New features before Release, a little less polished."
+            },
+            "nightly": {
+                "name": "Nightly",
+                "body": "Built every night from the newest code."
+            },
+            "nightly_warning": "Nightly builds skip testing and can break things. Pick it only if you're happy to report bugs.",
+            "keeps_build": "You stay on {version} until {channel} has a newer build."
+        },
+        "indicator": {
+            "available": "Deadlock+ {version} is available",
+            "downloading": "Downloading update, {percent}%",
+            "downloading_plain": "Downloading update",
+            "ready": "Update ready, restart to install",
+            "failed": "Update download failed"
+        },
+        "about": {
+            "view": "View update"
         }
     },
     "connection": {
