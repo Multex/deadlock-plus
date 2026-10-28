@@ -122,8 +122,9 @@ export function saveTheme(storage: () => Pick<Storage, "setItem">, id: ThemeId):
     write(storage, THEME_STORAGE_KEY, id);
 }
 
-export function loadVariant(storage: () => Pick<Storage, "getItem">, theme: ThemeId): string | undefined {
-    return themeVariantAttr(theme, read(storage, VARIANT_STORAGE_KEY) ?? undefined);
+/** The flavour last picked, whichever theme is in use, so it comes back when its theme does. */
+export function storedVariant(storage: () => Pick<Storage, "getItem">): string | undefined {
+    return read(storage, VARIANT_STORAGE_KEY) ?? undefined;
 }
 
 export function saveVariant(storage: () => Pick<Storage, "setItem">, variant: string): void {

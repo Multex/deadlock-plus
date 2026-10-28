@@ -17,11 +17,11 @@ import {
     effectsOn,
     loadEffects,
     loadTheme,
-    loadVariant,
     resolveTheme,
     saveEffects,
     saveTheme,
     saveVariant,
+    storedVariant,
     themeKey,
     themePrepaint,
     themeStyle,
@@ -180,21 +180,20 @@ describe("stored theme", () => {
 
         expect(loadTheme(blocked)).toBe(DEFAULT_THEME);
         expect(() => saveTheme(blocked, "daylight")).not.toThrow();
-        expect(loadVariant(blocked, "catppuccin")).toBe("mocha");
+        expect(storedVariant(blocked)).toBeUndefined();
         expect(() => saveVariant(blocked, "latte")).not.toThrow();
         expect(loadEffects(blocked)).toBeNull();
         expect(() => saveEffects(blocked, false)).not.toThrow();
     });
 
-    it("reads back the saved flavour for a theme that has it", () => {
+    it("reads back the saved flavour, and nothing before one is saved", () => {
         const storage = fakeStorage();
+        expect(storedVariant(() => storage)).toBeUndefined();
 
         saveVariant(() => storage, "frappe");
 
         expect(storage.data.get(VARIANT_STORAGE_KEY)).toBe("frappe");
-        expect(loadVariant(() => storage, "catppuccin")).toBe("frappe");
-        expect(loadVariant(() => storage, "midnight")).toBeUndefined();
-        expect(loadVariant(() => fakeStorage({ [VARIANT_STORAGE_KEY]: "espresso" }), "catppuccin")).toBe("mocha");
+        expect(storedVariant(() => storage)).toBe("frappe");
     });
 
     it("remembers whether the visitor turned effects on or off, and nothing until they do", () => {

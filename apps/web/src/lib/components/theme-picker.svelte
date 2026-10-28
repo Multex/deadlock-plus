@@ -2,32 +2,17 @@
     import { onMount } from "svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import { radioTarget } from "@deadlock-plus/ui/radio-group";
-    import {
-        DEFAULT_THEME,
-        THEMES,
-        applyTheme,
-        loadTheme,
-        saveTheme,
-        themeKey,
-        type ThemeId,
-    } from "$lib/content/themes";
+    import { THEMES, themeKey, type ThemeId } from "$lib/content/themes";
+    import { themeState } from "$lib/content/theme-state.svelte";
     import { useI18n } from "$lib/i18n";
 
     const { t } = useI18n();
 
-    let current = $state<ThemeId>(DEFAULT_THEME);
+    const current = $derived(themeState.theme);
     const currentLabel = $derived(t(`themes.${themeKey(current)}`));
 
     function select(id: ThemeId) {
-        current = id;
-        applyTheme(
-            {
-                root: document.documentElement,
-                meta: document.querySelector<HTMLMetaElement>('meta[name="theme-color"]'),
-            },
-            id,
-        );
-        saveTheme(() => localStorage, id);
+        themeState.pick(id);
     }
 
     function onKeydown(e: KeyboardEvent) {
@@ -48,7 +33,7 @@
     }
 
     onMount(() => {
-        current = loadTheme(() => localStorage);
+        themeState.load();
     });
 </script>
 

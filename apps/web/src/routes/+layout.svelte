@@ -11,6 +11,7 @@
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import LanguageBanner from "$lib/components/language-banner.svelte";
     import LanguagePicker from "$lib/components/language-picker.svelte";
+    import ThemeBackdrop from "$lib/components/theme-backdrop.svelte";
     import ThemePicker from "$lib/components/theme-picker.svelte";
     import { provideI18n, useI18n } from "$lib/i18n";
     import { localizedHref } from "$lib/i18n/routes";
@@ -70,7 +71,10 @@
     ]);
 </script>
 
-<div class="flex min-h-dvh flex-col">
+<!-- Isolated, so the backdrop paints over the page background but under everything on it. -->
+<div class="relative isolate flex min-h-dvh flex-col" data-decor-scope>
+    <ThemeBackdrop />
+
     <header class="sticky top-0 z-(--z-local) border-b border-border bg-chrome/95 backdrop-blur">
         <div class="mx-auto flex h-14 max-w-5xl items-center gap-x-2 px-4 sm:px-8">
             <a
@@ -122,7 +126,7 @@
 
     <LanguageBanner />
 
-    <main class="noir-panel flex-1">
+    <main class="flex-1">
         {@render children()}
     </main>
 
