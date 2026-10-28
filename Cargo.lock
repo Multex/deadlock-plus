@@ -1206,6 +1206,7 @@ version = "0.14.0"
 dependencies = [
  "ab_glyph",
  "dp-alerts",
+ "dp-announcements",
  "dp-atomic",
  "dp-autostart",
  "dp-builds",
@@ -1524,6 +1525,19 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "ts-rs",
+]
+
+[[package]]
+name = "dp-announcements"
+version = "0.14.0"
+dependencies = [
+ "base64 0.23.1",
+ "ring",
+ "semver",
+ "serde",
+ "serde_json",
+ "time",
  "ts-rs",
 ]
 
