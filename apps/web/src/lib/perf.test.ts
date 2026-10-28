@@ -114,6 +114,11 @@ describe.skipIf(!existsSync(MANIFEST))("built bundle", () => {
         }
     });
 
+    it("keeps the code every page loads first within its byte budget", () => {
+        const bytes = [...firstLoad].reduce((sum, key) => sum + gzipSync(read(key)).length, 0);
+        expect(bytes).toBeLessThan(112_000);
+    });
+
     it("keeps each theme's decor, with what it brings along, within its byte budget", () => {
         const decors = Object.keys(manifest).filter((key) => /\/themes\/[\w-]+\/decor\.svelte$/.test(key));
         expect(decors.length).toBeGreaterThan(0);
