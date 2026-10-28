@@ -5,7 +5,8 @@ use crate::kind::{ClientKind, Pipe};
 pub(crate) enum Probe {
     Labelled(Option<ClientKind>),
     /// The endpoint exists but has no free instance, so it could not be inspected. Not remembered: opening a busy
-    /// pipe fails before Discord sees it, so asking again is cheap.
+    /// pipe fails before Discord sees it, so asking again is cheap. Only Windows named pipes run out of instances.
+    #[cfg_attr(not(windows), allow(dead_code))]
     Busy,
     Gone,
 }
