@@ -6,7 +6,7 @@ vi.mock("$app/state", () => ({ page: { url: new URL("https://deadlockplus.app/")
 import HomePage from "../../routes/+page.svelte";
 import FeaturesPage from "../../routes/features/+page.svelte";
 import Seo from "./seo.svelte";
-import { jsonLd } from "./structured-data";
+import { jsonLd, siteNodes, softwareApplication } from "./structured-data";
 
 type Node = Record<string, unknown> & { "@type": string };
 
@@ -68,6 +68,14 @@ describe("the home page", () => {
             downloadUrl: "https://deadlockplus.app/download",
             image: "https://deadlockplus.app/og.png",
         });
+    });
+
+    it("points a translated home page at its own language's pages", () => {
+        expect(softwareApplication("x", "de")).toMatchObject({
+            url: "https://deadlockplus.app/de",
+            downloadUrl: "https://deadlockplus.app/de/download",
+        });
+        expect(siteNodes("de").find((node) => node["@type"] === "WebSite")?.inLanguage).toBe("de");
     });
 
     it("claims no ratings and no version that could go stale", () => {

@@ -2,6 +2,7 @@
     import { page } from "$app/state";
 
     import { useI18n } from "$lib/i18n";
+    import { alternates } from "$lib/i18n/routes";
     import { OG_IMAGE, SITE_NAME, socialMeta } from "./seo";
     import { siteNodes, jsonLd, type SchemaNode } from "./structured-data";
 
@@ -15,6 +16,7 @@
     const { t, locale } = useI18n();
 
     const meta = $derived(socialMeta(page.url.pathname));
+    const languages = $derived(noindex ? [] : alternates(page.url.pathname));
     const preview = $derived(description ?? t("site.tagline"));
     const structuredData = $derived(jsonLd([...siteNodes(locale), ...schema]));
 </script>
@@ -28,6 +30,9 @@
         <meta name="robots" content="noindex" />
     {/if}
     <link rel="canonical" href={meta.url} />
+    {#each languages as alternate (alternate.hreflang)}
+        <link rel="alternate" hreflang={alternate.hreflang} href={socialMeta(alternate.path).url} />
+    {/each}
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={SITE_NAME} />

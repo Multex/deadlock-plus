@@ -35,3 +35,19 @@ export function localizedHref(href: string, locale: string): string {
     const suffix = end === -1 ? "" : href.slice(end);
     return `/${locale}${path === "/" ? "" : path}${suffix}`;
 }
+
+export interface Alternate {
+    hreflang: string;
+    path: string;
+}
+
+/** Every language's address for a localized page, with English as the default; none for an English-only page. */
+export function alternates(pathname: string): Alternate[] {
+    const path = unlocalizedPath(pathname);
+    if (!LOCALIZED_PAGES.includes(path)) return [];
+    return [
+        { hreflang: DEFAULT_LOCALE, path },
+        ...WEB_LOCALES.map((locale) => ({ hreflang: locale, path: localizedHref(path, locale) })),
+        { hreflang: "x-default", path },
+    ];
+}

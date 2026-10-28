@@ -1,6 +1,8 @@
 import { FALLBACK_CODE, inviteUrl } from "@deadlock-plus/links";
 import { REPO_URL, SITE_URL } from "@deadlock-plus/links/urls";
 
+import { localizedHref } from "$lib/i18n/routes";
+
 import { OG_IMAGE, SITE_NAME } from "./seo";
 
 export type SchemaNode = Record<string, unknown> & { "@type": string };
@@ -30,16 +32,16 @@ export function siteNodes(locale: string): SchemaNode[] {
 
 // No aggregateRating or review: there are none to cite, and invented ones break Google's rules.
 // No softwareVersion: the page would go stale on every release.
-export function softwareApplication(description: string): SchemaNode {
+export function softwareApplication(description: string, locale = "en"): SchemaNode {
     return {
         "@type": "SoftwareApplication",
         name: SITE_NAME,
         description,
-        url: `${SITE_URL}/`,
+        url: `${SITE_URL}${localizedHref("/", locale)}`,
         operatingSystem: "Windows, Linux",
         applicationCategory: "GameApplication",
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        downloadUrl: `${SITE_URL}/download`,
+        downloadUrl: `${SITE_URL}${localizedHref("/download", locale)}`,
         image: `${SITE_URL}${OG_IMAGE.path}`,
         publisher: { "@id": ORGANIZATION_ID },
     };

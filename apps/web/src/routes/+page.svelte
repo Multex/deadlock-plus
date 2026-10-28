@@ -35,7 +35,7 @@
     const [platformsBefore, platformsAfter] = around(t("home.platforms"), "linux");
 </script>
 
-<Seo title={t("home.title")} {description} schema={[softwareApplication(description)]} />
+<Seo title={t("home.title")} {description} schema={[softwareApplication(description, i18n.locale)]} />
 
 <Page>
     <header class="py-12 sm:py-20">
