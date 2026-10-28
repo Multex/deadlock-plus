@@ -4,11 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("$app/state", () => ({ page: { url: new URL("https://deadlockplus.app/faq"), status: 200, state: {} } }));
 
-import { FAQ } from "$lib/content/faq";
+import { faq } from "$lib/content/faq";
+import { english } from "$lib/i18n";
 import Home from "../+page.svelte";
 import Layout from "../+layout.svelte";
 import Faq from "./+page.svelte";
 
+const FAQ = faq(english);
 const { head, body } = render(Faq);
 
 const decode = (html: string) =>

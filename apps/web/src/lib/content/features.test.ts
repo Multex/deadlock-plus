@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { FEATURES, GROUPS, HERO_DETAIL_SHOT, HERO_SHOT, HIGHLIGHTS, featuresIn, highlights } from "./features";
+import { en, english } from "$lib/i18n";
+import { lookup } from "$lib/i18n/core";
+import {
+    FEATURES,
+    GROUPS,
+    HERO_DETAIL_SHOT,
+    HERO_SHOT,
+    HIGHLIGHTS,
+    featureText,
+    featuresIn,
+    highlights,
+} from "./features";
 import { SHOT_NAMES as SERVED } from "./shots";
 
 describe("features", () => {
@@ -55,6 +66,16 @@ describe("features", () => {
 
     it("fills every row of the landing grid at two and three columns", () => {
         expect(HIGHLIGHTS.length % 6).toBe(0);
+    });
+
+    it("finds English copy for every feature and each of its points, and no point it leaves out", () => {
+        for (const feature of FEATURES) {
+            const key = `features.items.${feature.id.replaceAll("-", "_")}`;
+            const text = featureText(english, feature);
+            for (const line of [text.name, text.summary, ...text.points])
+                expect(line, feature.id).not.toMatch(/^features\./);
+            expect(lookup(en, `${key}.points.${feature.points + 1}`), feature.id).toBeUndefined();
+        }
     });
 
     it("resolves every landing page highlight to a feature", () => {

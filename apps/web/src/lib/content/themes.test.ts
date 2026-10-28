@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { THEMES as THEME_DATA, chromeHex, oklchToHex, themeSwatch } from "@deadlock-plus/ui/themes";
 import { describe, expect, it } from "vitest";
+import { en } from "$lib/i18n";
+import { lookup } from "$lib/i18n/core";
 
 import {
     DEFAULT_THEME,
@@ -12,6 +14,7 @@ import {
     loadTheme,
     resolveTheme,
     saveTheme,
+    themeKey,
     themePrepaint,
 } from "./themes";
 
@@ -26,8 +29,8 @@ describe("THEMES", () => {
         expect(THEMES.map((t) => t.id)).toEqual(THEME_DATA.map((t) => t.id));
     });
 
-    it("names every theme", () => {
-        for (const theme of THEMES) expect(theme.label, theme.id).not.toBe("");
+    it("names every theme in English", () => {
+        for (const theme of THEMES) expect(lookup(en, `themes.${themeKey(theme.id)}`), theme.id).toBeTruthy();
     });
 
     it("draws each swatch from that theme's background, card, brass and primary", () => {

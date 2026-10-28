@@ -7,6 +7,7 @@
     import { cn } from "@deadlock-plus/ui/utils";
 
     import { shotUrl, smallShotUrl } from "$lib/content/shots";
+    import { useI18n } from "$lib/i18n";
     import type ShotDialog from "./shot-dialog.svelte";
 
     type Props = {
@@ -23,6 +24,7 @@
     let { name, label, detail, eager = false, framed = true, class: className }: Props = $props();
 
     const id = $props.id();
+    const { t } = useI18n();
 
     // The open viewer is a history entry of its own, so the Back gesture on a phone closes it and stays on the page.
     const open = $derived((page.state as { shot?: string }).shot === id);
@@ -69,7 +71,7 @@
 <button
     bind:this={trigger}
     type="button"
-    aria-label="Expand screenshot: {label}"
+    aria-label={t("shot.expand", { label })}
     aria-haspopup="dialog"
     class={cn("block w-full cursor-zoom-in -outline-offset-2", framed && "rounded-lg")}
     onclick={() => setOpen(true)}
@@ -81,7 +83,7 @@
         {/if}
         <img
             {src}
-            alt={closeUp ? `${label}, close-up, shown with sample data` : `${label}, shown with sample data`}
+            alt={closeUp ? t("shot.alt_close_up", { label }) : t("shot.alt", { label })}
             width="1480"
             height="900"
             loading={eager ? "eager" : "lazy"}

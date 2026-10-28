@@ -7,24 +7,26 @@ export type SchemaNode = Record<string, unknown> & { "@type": string };
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
-export const SITE_NODES: SchemaNode[] = [
-    {
-        "@type": "Organization",
-        "@id": ORGANIZATION_ID,
-        name: SITE_NAME,
-        url: `${SITE_URL}/`,
-        logo: `${SITE_URL}/icon-512.png`,
-        sameAs: [REPO_URL, inviteUrl(FALLBACK_CODE)],
-    },
-    {
-        "@type": "WebSite",
-        "@id": `${SITE_URL}/#website`,
-        name: SITE_NAME,
-        url: `${SITE_URL}/`,
-        inLanguage: "en",
-        publisher: { "@id": ORGANIZATION_ID },
-    },
-];
+export function siteNodes(locale: string): SchemaNode[] {
+    return [
+        {
+            "@type": "Organization",
+            "@id": ORGANIZATION_ID,
+            name: SITE_NAME,
+            url: `${SITE_URL}/`,
+            logo: `${SITE_URL}/icon-512.png`,
+            sameAs: [REPO_URL, inviteUrl(FALLBACK_CODE)],
+        },
+        {
+            "@type": "WebSite",
+            "@id": `${SITE_URL}/#website`,
+            name: SITE_NAME,
+            url: `${SITE_URL}/`,
+            inLanguage: locale,
+            publisher: { "@id": ORGANIZATION_ID },
+        },
+    ];
+}
 
 // No aggregateRating or review: there are none to cite, and invented ones break Google's rules.
 // No softwareVersion: the page would go stale on every release.

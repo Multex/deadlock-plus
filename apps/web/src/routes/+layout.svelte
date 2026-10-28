@@ -10,47 +10,54 @@
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import ThemePicker from "$lib/components/theme-picker.svelte";
+    import { useI18n } from "$lib/i18n";
 
     let { children } = $props();
+
+    const { t } = useI18n();
 
     const ref = $derived(currentRef(page.url));
 
     const NAV = [
-        { href: "/features", label: "Features" },
-        { href: "/download", label: "Download" },
-        { href: "/privacy", label: "Privacy" },
+        { href: "/features", label: t("nav.features") },
+        { href: "/download", label: t("nav.download") },
+        { href: "/privacy", label: t("nav.privacy") },
     ];
 
     const ICON_LINKS: { href: string; label: string; icon: Component<{ class?: string }>; tone: string }[] = $derived([
-        { href: discordHref(ref), label: "Join our Discord", icon: DiscordIcon, tone: "" },
-        { href: LINKS.support, label: "Support the project", icon: KofiIcon, tone: "text-kofi" },
-        { href: LINKS.repo, label: "Source code on GitHub", icon: Code, tone: "" },
+        { href: discordHref(ref), label: t("nav.join_discord"), icon: DiscordIcon, tone: "" },
+        { href: LINKS.support, label: t("nav.support"), icon: KofiIcon, tone: "text-kofi" },
+        { href: LINKS.repo, label: t("nav.source_on_github"), icon: Code, tone: "" },
     ]);
 
     const FOOTER_GROUPS: {
+        id: string;
         heading: string;
         links: { href: string; label: string; icon?: Component<{ class?: string }>; tone?: string; plain?: boolean }[];
     }[] = $derived([
         {
-            heading: "Product",
+            id: "product",
+            heading: t("footer.product"),
             links: [
-                { href: "/features", label: "Features" },
-                { href: "/download", label: "Download" },
-                { href: "/faq", label: "FAQ" },
+                { href: "/features", label: t("nav.features") },
+                { href: "/download", label: t("nav.download") },
+                { href: "/faq", label: t("nav.faq") },
             ],
         },
         {
-            heading: "Community",
+            id: "community",
+            heading: t("footer.community"),
             links: [
-                { href: discordHref(ref), label: "Discord", icon: DiscordIcon, plain: true },
-                { href: LINKS.repo, label: "Source code", icon: Code },
-                { href: "/transparency", label: "Transparency", icon: Eye },
-                { href: LINKS.support, label: "Support the project", icon: KofiIcon, tone: "text-kofi" },
+                { href: discordHref(ref), label: t("nav.discord"), icon: DiscordIcon, plain: true },
+                { href: LINKS.repo, label: t("nav.source"), icon: Code },
+                { href: "/transparency", label: t("nav.transparency"), icon: Eye },
+                { href: LINKS.support, label: t("nav.support"), icon: KofiIcon, tone: "text-kofi" },
             ],
         },
         {
-            heading: "Legal",
-            links: [{ href: "/privacy", label: "Privacy" }],
+            id: "legal",
+            heading: t("footer.legal"),
+            links: [{ href: "/privacy", label: t("nav.privacy") }],
         },
     ]);
 </script>
@@ -60,13 +67,13 @@
         <div class="mx-auto flex h-14 max-w-5xl items-center gap-x-2 px-4 sm:px-8">
             <a
                 href={withRef("/", ref)}
-                aria-label="Deadlock+ home"
+                aria-label={t("site.home_label")}
                 class="mr-auto flex h-10 min-h-[24px] min-w-[24px] items-center rounded-md sm:h-auto"
             >
                 <BrandMark wordmark={false} class="sm:hidden" />
                 <BrandMark class="hidden sm:inline-flex" />
             </a>
-            <nav aria-label="Main" class="flex items-center gap-1">
+            <nav aria-label={t("nav.main_label")} class="flex items-center gap-1">
                 {#each NAV as item (item.href)}
                     {@const active = page.url.pathname.startsWith(item.href)}
                     <a
@@ -115,23 +122,23 @@
                 <div class="space-y-3">
                     <a
                         href={withRef("/", ref)}
-                        aria-label="Deadlock+ home"
+                        aria-label={t("site.home_label")}
                         class="inline-flex min-h-[24px] items-center rounded-md"
                     >
                         <BrandMark />
                     </a>
-                    <p class="leading-relaxed text-foreground">A free companion app for Deadlock. No account needed.</p>
+                    <p class="leading-relaxed text-foreground">{t("site.tagline")}</p>
                 </div>
-                <nav aria-label="Footer" class="flex flex-wrap gap-x-14 gap-y-8">
-                    {#each FOOTER_GROUPS as group (group.heading)}
+                <nav aria-label={t("nav.footer_label")} class="flex flex-wrap gap-x-14 gap-y-8">
+                    {#each FOOTER_GROUPS as group (group.id)}
                         <div>
                             <p
-                                id="footer-{group.heading.toLowerCase()}"
+                                id="footer-{group.id}"
                                 class="font-heading text-sm font-semibold tracking-widest text-brass uppercase"
                             >
                                 {group.heading}
                             </p>
-                            <ul aria-labelledby="footer-{group.heading.toLowerCase()}" class="mt-3 space-y-1">
+                            <ul aria-labelledby="footer-{group.id}" class="mt-3 space-y-1">
                                 {#each group.links as link (link.href)}
                                     {@const Icon = link.icon}
                                     <li>
@@ -157,9 +164,9 @@
             <div
                 class="mt-6 flex flex-col gap-x-10 gap-y-2 border-t border-border pt-6 leading-relaxed text-muted-foreground md:flex-row md:justify-between"
             >
-                <p>Licensed under GPL-3.0-or-later.</p>
+                <p>{t("footer.license")}</p>
                 <p class="md:text-right">
-                    Unofficial fan tool. Not made by, affiliated with or endorsed by Valve Corporation.
+                    {t("footer.unofficial")}
                 </p>
             </div>
         </div>

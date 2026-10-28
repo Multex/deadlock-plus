@@ -6,8 +6,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
     plugins: [tailwindcss(), sveltekit()],
     resolve: { dedupe: peers },
-    // SvelteKit limits the dev server to this app's folders; the shared fonts and theme live outside them.
-    server: { fs: { allow: ["../../packages"] } },
+    // SvelteKit limits the dev server to this app's folders; the shared fonts, theme and catalogs live outside them.
+    server: { fs: { allow: ["../../packages", "../../locales"] } },
     test: {
         include: [
             "src/**/*.test.ts",
