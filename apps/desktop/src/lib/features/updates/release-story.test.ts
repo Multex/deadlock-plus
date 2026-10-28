@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseChangelog } from "./changelog";
-import { releaseStory, sectionKind } from "./release-story";
+import { patchSections, releaseStory, sectionKind } from "./release-story";
 
 const md = `## [0.15.0] - 2026-11-01
 
@@ -62,7 +62,9 @@ describe("releaseStory", () => {
     });
 
     it("drops a section left empty once its groups became headlines", () => {
-        const [only] = parseChangelog("## [1.0.0] - 2026-11-01\n\n### Added\n\n#### G\n\n- One.\n\n### Fixed\n\n- F.\n");
+        const [only] = parseChangelog(
+            "## [1.0.0] - 2026-11-01\n\n### Added\n\n#### G\n\n- One.\n\n### Fixed\n\n- F.\n",
+        );
         expect(releaseStory(only).briefs.map((b) => b.kind)).toEqual(["fixed"]);
     });
 
@@ -95,5 +97,33 @@ describe("sectionKind", () => {
 
     it("files anything else, and an untitled section, under other", () => {
         expect(["Security", "Deprecated", ""].map(sectionKind)).toEqual(["other", "other", "other"]);
+    });
+});
+
+describe("patchSections", () => {
+    it("runs loose additions first, then each feature, then the other sections and their groups", () => {
+        expect(patchSections(releaseStory(entry)).map((s) => s.heading)).toEqual([
+            { kind: "added", title: "Added" },
+            { name: "Dispatch" },
+            { name: "Front page" },
+            { kind: "changed", title: "Changed" },
+            { name: "Performance" },
+            { kind: "fixed", title: "Fixed" },
+        ]);
+    });
+
+    it("lists a feature's lead before its points", () => {
+        const dispatch = patchSections(releaseStory(entry))[1];
+        expect(dispatch.lines).toEqual(["A Dispatch page prints your week.", "Weekly editions.", "Monthly editions."]);
+    });
+
+    it("gives every section its own id", () => {
+        const ids = patchSections(releaseStory(entry)).map((s) => s.id);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("skips a section whose bullets all sit in groups", () => {
+        const [only] = parseChangelog("## [1.0.0] - 2026-11-01\n\n### Changed\n\n#### Speed\n\n- Fast.\n");
+        expect(patchSections(releaseStory(only)).map((s) => s.heading)).toEqual([{ name: "Speed" }]);
     });
 });

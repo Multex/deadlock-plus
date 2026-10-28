@@ -56,3 +56,25 @@ export function releaseStory(entry: ChangelogEntry): ReleaseStory {
 
     return { version: entry.version, date: entry.date, headlines, briefs, counts };
 }
+
+export type PatchHeading = { name: string } | { kind: SectionKind; title: string };
+
+export interface PatchSection {
+    id: string;
+    heading: PatchHeading;
+    lines: string[];
+}
+
+/** The release as patch notes: loose additions first, as the game's notes open with General, then each feature. */
+export function patchSections(story: ReleaseStory): PatchSection[] {
+    const out: Omit<PatchSection, "id">[] = [];
+    const added = story.briefs.filter((b) => b.kind === "added");
+    const rest = story.briefs.filter((b) => b.kind !== "added");
+    for (const brief of added) out.push({ heading: { kind: brief.kind, title: brief.title }, lines: brief.items });
+    for (const h of story.headlines) out.push({ heading: { name: h.title }, lines: [h.lead, ...h.points] });
+    for (const brief of rest) {
+        if (brief.items.length > 0) out.push({ heading: { kind: brief.kind, title: brief.title }, lines: brief.items });
+        for (const g of brief.groups) out.push({ heading: { name: g.title }, lines: g.items });
+    }
+    return out.map((s, i) => ({ id: `patch-${i}`, ...s }));
+}
