@@ -124,12 +124,40 @@ export function mergeAreas(files) {
     return { catalogs, errors };
 }
 
+export const NOTES_FILE = "en.notes.json";
+
+export const isCatalogFile = (name) => name.endsWith(".json") && !name.endsWith(".notes.json");
+
+// Crowdin shows one context per plural set, so a note covers the base key, never a single `_one`/`_other` form.
+export function checkNotes(area, en, notes) {
+    const keys = new Set(Object.keys(flatten(en)).map((key) => key.replace(PLURAL_SUFFIX, "")));
+    const written = flatten(notes);
+    const errors = [];
+    for (const key of keys)
+        if (!written[key]?.trim()) errors.push(`${area}: ${key} has no translator note in ${NOTES_FILE}`);
+    for (const key of Object.keys(written))
+        if (!keys.has(key)) errors.push(`${area}: ${NOTES_FILE} has a note for ${key}, which en.json does not have`);
+    return errors;
+}
+
+function readAreaNotes(localesDir) {
+    return readdirSync(localesDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .flatMap(({ name: area }) => {
+            const read = (file) => {
+                const full = path.join(localesDir, area, file);
+                return existsSync(full) ? JSON.parse(readFileSync(full, "utf8")) : {};
+            };
+            return checkNotes(area, read("en.json"), read(NOTES_FILE));
+        });
+}
+
 function readAreas(localesDir) {
     return readdirSync(localesDir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
         .flatMap(({ name: area }) =>
             readdirSync(path.join(localesDir, area))
-                .filter((f) => f.endsWith(".json"))
+                .filter(isCatalogFile)
                 .map((f) => ({
                     area,
                     locale: path.basename(f, ".json"),
@@ -173,7 +201,7 @@ function main() {
         prefixes: sources.flatMap(({ text }) => [...extractTemplatePrefixes(text), ...extractNamespacePrefixes(text)]),
     };
     const checked = checkCatalogs(catalogs, used, referenced);
-    const errors = [...areaErrors, ...checked.errors];
+    const errors = [...areaErrors, ...checked.errors, ...readAreaNotes(path.join(root, "locales"))];
     const warnings = checked.warnings;
     for (const line of warnings) console.warn(`warning: ${line}`);
     for (const line of errors) console.error(line);

@@ -1,0 +1,735 @@
+{
+    "stats": {
+        "title": "Page heading of the Stats page. Keep short, about 8 characters.",
+        "subtitle": "Subtitle under the Stats page heading. The Deadlock API is a service name and stays untranslated.",
+        "refresh": "Button on the Stats and Match history pages that reloads the match history. Keep short, about 10 characters.",
+        "hero_fallback": "Fallback hero label when a hero's name is unknown. {id} = numeric hero ID, e.g. 15. Hero is a Deadlock game term.",
+        "unknown_hero": "Fallback label for a hero that could not be identified, shown in a match row. Hero is a Deadlock game term.",
+        "api_error": "Error message when the Deadlock API answered with an error. {status} = HTTP status code, e.g. 500. The Deadlock API is a service name.",
+        "cached_note": "Note shown when the Deadlock API could not be reached and an older saved copy is shown. {time} = date and time of the saved copy, e.g. \"Oct 28, 6:30 PM\".",
+        "gate": {
+            "no_account": "Empty state on Stats and Match history pages when no Steam account is found. Steam is the game platform.",
+            "error": "Error state on Stats and Match history pages when the history could not be loaded. {error} = reason text, e.g. \"The Deadlock API returned an error (500).\"",
+            "loading": "Screen reader only text on the loading skeleton of the match history. Not visible. Keep the three dots."
+        },
+        "scope": {
+            "ranked": "Label for ranked matches, used as a match mode badge in match rows and as a filter option. Ranked is a Deadlock game mode, match the game. Keep short, about 8 characters.",
+            "unranked": "Label for unranked matches, used as a match mode badge in match rows and as a filter option. Match the game's own wording. Keep short, about 10 characters.",
+            "all": "Filter option in the match history mode dropdown that shows every game mode. Keep short, about 10 characters."
+        },
+        "syncing": "Small badge with a hover hint. {count} = number of matches still syncing, e.g. 3. Plural forms. One form has no number. Keep short, about 10 characters.",
+        "syncing_hint": "Tooltip on the syncing badge. Explains the match was read from the game and is not yet in the Deadlock API. Plural forms, one or several matches.",
+        "outcome": {
+            "win": "Stamp text on the match front page photo for a won match. Keep short, about 5 characters.",
+            "loss": "Stamp text on the match front page photo for a lost match. Keep short, about 5 characters."
+        },
+        "record": "Win and loss record in the match history summary strip. {wins} = wins, e.g. 12. {losses} = losses, e.g. 8. W and L are short for win and loss. Keep short, about 8 characters.",
+        "record_unscored": "Win and loss record in the summary strip with matches not scored. {wins} = wins, e.g. 12. {losses} = losses, e.g. 8. {unscored} = matches without a result, e.g. 2.",
+        "playtime_hm": "Play time on the Stats page. {hours} = whole hours, e.g. 25. {minutes} = minutes, e.g. 40. h and m are unit letters. Keep short, about 8 characters.",
+        "playtime_m": "Play time under one hour. {minutes} = minutes, e.g. 40. m is the unit letter. Keep short, about 4 characters.",
+        "filter": {
+            "days": "Option in the match history time range dropdown. {count} = number of days, e.g. 30. Plural forms. Keep short, about 8 characters.",
+            "all_time": "Option in the match history time range dropdown that removes the time limit. Keep short, about 8 characters."
+        },
+        "summary": {
+            "winrate": "Small label above a number in the summary strip. Percentage of games won. Keep short, about 8 characters.",
+            "form_aria": "Screen reader label of the row of recent win and loss dots. {count} = number of games shown, e.g. 10.",
+            "streak": "Label of a stat tile on the Stats page for the current win or loss streak. Keep short, about 8 characters.",
+            "streak_wins": "Value of the streak tile. {count} = wins in a row, e.g. 4. Plural forms. Keep short, about 8 characters.",
+            "streak_losses": "Value of the streak tile. {count} = losses in a row, e.g. 3. Plural forms. Keep short, about 9 characters.",
+            "streak_best": "Small text under the streak tile. {wins} = longest win streak, e.g. 7. {losses} = longest loss streak, e.g. 4.",
+            "playtime": "Label of a stat tile on the Stats page for total time played. Keep short, about 10 characters.",
+            "matches": "Small text under the playtime tile. {count} = number of matches, e.g. 42."
+        },
+        "highlights": {
+            "most_played": "Label above the user's most played hero in the summary strip and highlights. Hero is a Deadlock game term. Keep short, about 12 characters.",
+            "most_played_summary": "Text under the most played hero. {games} = number of games, e.g. 38. {winrate} = percent, e.g. \"54%\".",
+            "best": "Label above the hero with the best winrate. {min} = minimum games needed, e.g. 5. Hero is a Deadlock game term.",
+            "best_summary": "Text under the best winrate hero. {winrate} = percent, e.g. \"62%\". {games} = number of games, e.g. 14.",
+            "best_empty": "Empty hint where the best winrate hero would show. {min} = minimum games needed, e.g. 5. Hero is a Deadlock game term."
+        },
+        "heroes": {
+            "heading": "Section heading on the Stats page above the list of per hero stats. Hero is a Deadlock game term.",
+            "intro": "Intro text under the Heroes heading. {days} = number of days, e.g. 30. {games} = number of games, e.g. 50. Hero leaderboard is a Deadlock game term, match the game.",
+            "eligible": "Small status line on a hero card. The user qualifies for that hero's leaderboard. Hero leaderboard is a Deadlock game term, match the game.",
+            "not_yet": "Small status line on a hero card. The user does not yet qualify for that hero's leaderboard. Hero leaderboard is a Deadlock game term, match the game.",
+            "games": "Small label above a number on a hero card for number of games played. Keep short, about 8 characters.",
+            "kda": "Small label on a hero card and in the summary strip for the kills, deaths, assists ratio. Abbreviation, may stay KDA. Keep short, about 5 characters.",
+            "avg_souls": "Small label for average souls per game, on a hero card and in the summary strip. Souls is a Deadlock game term, match the game. Keep short, about 12 characters.",
+            "time": "Small label above a number on a hero card for time played. Keep short, about 6 characters.",
+            "none": "Empty state on a hero card when the hero has no games in the current filters.",
+            "none_lifetime": "Empty state on a hero card with no games in the current filters. {games} = lifetime games on that hero, e.g. 120.",
+            "recent_games": "Label of a progress bar on a hero card. {days} = number of days, e.g. 30. Counts games in that window.",
+            "lifetime_wins": "Label of a progress bar on a hero card for total wins ever on that hero.",
+            "builds": "Link on a hero card that opens the Builds page for that hero. Hero is a Deadlock game term. Keep short, about 8 characters.",
+            "builds_label": "Screen reader label of the builds link on a hero card. {hero} = hero name, e.g. \"Haze\". Hero is a Deadlock game term."
+        },
+        "region": {
+            "heading": "Card heading on the Stats page for the regional leaderboard.",
+            "eligible": "Status text in the region leaderboard card heading. The user qualifies. Keep short, about 10 characters.",
+            "not_eligible": "Status text in the region leaderboard card heading. The user does not qualify yet. Keep short, about 18 characters.",
+            "note": "Note under the region leaderboard heading. The Deadlock API is a service name. Valve is a company name and stays untranslated.",
+            "recent_games": "Label of a progress bar in the region leaderboard card. {days} = number of days, e.g. 30.",
+            "total_games": "Label of a progress bar in the region leaderboard card for all games ever played on the account."
+        },
+        "page": {
+            "matches_known": "Note on the Stats page. {count} = number of matches known, e.g. 120. The count may be 1 or more.",
+            "empty": "Empty state on the Stats page when no match fits the current filters."
+        },
+        "section": {
+            "games": "Section heading on the Stats page above the match list. Keep short, about 12 characters."
+        }
+    },
+    "rank": {
+        "title": "Section heading on the Stats page for the user's competitive rank. Match the game's own wording. Keep short, about 8 characters.",
+        "empty": "Empty state in the rank section when no rank data exists. The Deadlock API is a service name. Placement games are the first ranked games.",
+        "tier_fallback": "Fallback rank name when the tier name is unknown. {tier} = tier number, e.g. 7. Ranks are Deadlock game terms.",
+        "eta": {
+            "not_climbing": "Estimate text for when the user would reach the next rank. Used when the recent pace is not rising.",
+            "days_or_more": "Estimate text for reaching the next rank. {low} = minimum days, e.g. 14.",
+            "about": "Estimate text for reaching the next rank in about this many days. {count} = days, e.g. 10. Plural forms. Starts with a capital.",
+            "range": "Estimate text for reaching the next rank. {low} = fewest days, e.g. 10. {high} = most days, e.g. 20."
+        },
+        "form": {
+            "next_win": "Label of a stat tile in the rank section for the rank points gained by the next win. Keep short, about 10 characters.",
+            "no_streak": "Small text under the next win tile when the user has no current win streak.",
+            "streak": "Small text under the next win tile. {count} = current win streak, e.g. 3. Plural forms.",
+            "next_loss": "Label of a stat tile in the rank section for the rank points lost by the next loss. Keep short, about 10 characters.",
+            "only_shield": "Small text under the next loss tile. The next loss only uses up a demotion shield, no points lost. Shield is a Deadlock rank term, match the game.",
+            "plus_shield": "Small text under the next loss tile. The next loss costs points and also uses a demotion shield. Shield is a Deadlock rank term, match the game.",
+            "drops_subrank": "Small text under the next loss tile. The user has no shield, so a loss would drop one subrank. Shield is a Deadlock rank term.",
+            "no_shield_used": "Small text under the next loss tile. A loss would not use a demotion shield. Shield is a Deadlock rank term."
+        },
+        "outlook": {
+            "hold_rank": "Small label above a percentage in the Outlook card. The winrate needed to keep the current rank.",
+            "no_data": "Small explanation in the Outlook card. Shows when there is no recent form data. Winning streaks give more rank points than losses take.",
+            "climbing": "Sentence in the Outlook card. {winrate} = percent, e.g. \"58%\". {count} = number of recent games, e.g. 10. Says the user is gaining rank.",
+            "sliding": "Sentence in the Outlook card. {winrate} = percent, e.g. \"42%\". {count} = number of recent games, e.g. 10. Says the user is losing rank.",
+            "forecast_none": "Small text in the Outlook card when there are too few recent ranked games to forecast the next rank.",
+            "hold": "Sentence in the Outlook card. {winrate} = percent, e.g. \"45%\". The winrate that holds the current rank.",
+            "heading": "Card heading in the rank section for the forecast of rank progress. Keep short, about 10 characters.",
+            "your_last": "Small label in the Outlook card. {count} = number of recent games, e.g. 10. A percentage follows it.",
+            "climbing_short": "Short status word in the Outlook card, green. The user is gaining rank. Keep short, about 10 characters.",
+            "sliding_short": "Short status word in the Outlook card, red. The user is losing rank. Keep short, about 10 characters.",
+            "next_tier": "Small text in the Outlook card. {eta} = estimate phrase, e.g. \"About 10 days\" or \"10 to 20 days\"."
+        },
+        "chart": {
+            "heading": "Card heading of the rank progress chart. Keep short, about 10 characters.",
+            "last_n": "Toggle button above the rank chart choosing how many recent matches to show. {count} = number of matches, e.g. 25. Keep short, about 9 characters.",
+            "aria": "Screen reader label of the rank progress chart.",
+            "range": "Small caption under the rank chart. {from} = starting rank name, e.g. \"Ritualist 3\". {to} = ending rank name. Ranks are Deadlock game terms.",
+            "legend": "Legend line under the rank chart explaining dot colours and rings. A shield is the demotion shield. Shield is a Deadlock rank term.",
+            "empty": "Empty state of the rank chart when there are too few ranked matches.",
+            "legend_changes": "Legend line under the rank chart explaining triangle markers on the line."
+        },
+        "changes": {
+            "promoted_from": "Tooltip text on a chart marker. {name} = rank name before the promotion, e.g. \"Ritualist 3\". Ranks are Deadlock game terms.",
+            "demoted_from": "Tooltip text on a chart marker. {name} = rank name before the demotion, e.g. \"Ritualist 3\". Ranks are Deadlock game terms."
+        },
+        "summary": {
+            "estimated": "Small note in the rank section. Rank is a guess from the rules, not yet confirmed by the Deadlock API (a service name). Plural forms, one or several matches.",
+            "top_tier": "Note in the rank section shown at the highest rank. Subranks here depend on comparison with other top players, so no progress bar.",
+            "progress": "Progress text under the rank bar. {within} = points gained in this rank, e.g. 12. {span} = points needed, e.g. 20. {next} = next rank name, e.g. \"Ritualist 4\".",
+            "progress_streak": "Progress text under the rank bar with win streak info. {within} = points gained, e.g. 12. {span} = points needed, e.g. 20. {next} = next rank name. {count} = wins needed in a row, e.g. 3. Plural forms.",
+            "boundary": "Note in the rank section replacing the progress bar. The progress crossed a rank boundary but the Deadlock API (a service name) still shows the old badge.",
+            "placement_left": "Note in the rank section. {count} = placement games still to play, e.g. 4. Placement games are the first ranked games."
+        },
+        "shields": {
+            "heading": "Label of a stat tile in the rank section for demotion shields, which protect from rank loss. Shield is a Deadlock rank term, match the game. Keep short, about 18 characters.",
+            "not_reported": "Small text in the shields tile when the shield count is not known. Keep short, about 14 characters.",
+            "none_hint": "Small text in the shields tile when the user has none. Losing can lower the rank.",
+            "left_hint": "Small text in the shields tile when the user has some. Each shield blocks one demotion."
+        }
+    },
+    "sessions": {
+        "title": "Section heading on the Stats page above the play sessions analysis. A session is a block of matches played in a row.",
+        "subtitle": "Tooltip on the info icon next to the Sessions heading. Explains how matches are grouped into sessions.",
+        "results": {
+            "heading": "Section heading on the Stats page above the insight cards about the user's results.",
+            "intro": "Intro text under the results heading, explaining the winrate line on each bar chart. Winrate means share of games won.",
+            "intro_detail": "Intro text under the results heading. {winrate} = overall winrate, e.g. \"52%\". {games} = number of games, e.g. 120.",
+            "hide": "Button that collapses the results section on the Stats page. Keep short, about 6 characters.",
+            "show": "Button that expands the results section on the Stats page. Keep short, about 6 characters."
+        },
+        "break": {
+            "label": "Setting label next to a switch on the Sessions bar. Turns on a hint that suggests a break after losses.",
+            "suggestion": "Status message on the Sessions bar after a losing streak. {count} = number of losses in a row, e.g. 3. Friendly, not pushy."
+        },
+        "highlight": {
+            "best": "Title of a highlight card for the user's best recent play session.",
+            "excellent": "Message in a highlight card after a very good last session. Friendly tone.",
+            "good": "Message in a highlight card after a good last session. Friendly tone."
+        },
+        "row": {
+            "excellent": "Label on a session header in Match History for a session with very good results. Keep short, about 18 characters.",
+            "good": "Label on a session header in Match History for a good session. Keep short, about 14 characters.",
+            "bad": "Label on a session header in Match History for a bad session. Keep short, about 14 characters.",
+            "neutral": "Label on a session header in Match History for a session with average results. Keep short, about 14 characters.",
+            "games": "Column label in a Match History session header, above the number of games played. Keep short, about 6 characters.",
+            "record": "Column label in a Match History session header, above the wins and losses count. Keep short, about 7 characters.",
+            "length": "Column label in a Match History session header, above how long the session lasted. Keep short, about 7 characters.",
+            "rank_change": "Tooltip on the rank points change shown on a Match History row. Rank is a Deadlock game term."
+        },
+        "findings": {
+            "games": "Game count under a bar in the session insight charts, plural forms. {count} = number of games, e.g. 12."
+        },
+        "insights": {
+            "unknown_after_loss": "Insight text when there is too little data. {yes} and {no} = game counts, e.g. 4 and 7. {min} = minimum needed per group, e.g. 5.",
+            "after_losses": {
+                "title": "Title of an insight card about how the user plays after losses. Keep short, about 14 characters.",
+                "unknown": "Insight text when there is too little data. {games} = games counted so far, e.g. 2. {min} = games needed, e.g. 5.",
+                "worse": "Insight headline. {rate} = winrate after two losses, e.g. \"40%\". {rest} = winrate otherwise, e.g. \"52%\".",
+                "better": "Insight headline. {rate} = winrate after two losses, e.g. \"58%\". {rest} = winrate otherwise, e.g. \"50%\".",
+                "same": "Insight headline. {rate} = winrate after two losses, e.g. \"51%\". {rest} = winrate otherwise, e.g. \"50%\".",
+                "bar_after": "Bar label in an insight chart for games right after two losses in a row. Keep short, about 26 characters.",
+                "bar_rest": "Bar label in an insight chart for all other games. Keep short, about 16 characters."
+            },
+            "session_length": {
+                "title": "Title of an insight card about how results change as a session gets longer. Keep short, about 14 characters.",
+                "bar": "Bar label in an insight chart for one game in a session. {n} = game number in the session, e.g. 3. Keep short, about 8 characters.",
+                "bar_plus": "Bar label in an insight chart for a game number and every later game. {n} = game number, e.g. 6. Keep short, about 9 characters.",
+                "points": "Small note under a bar showing average rank points change. {amount} = signed number, e.g. \"+12\". Keep short, about 8 characters.",
+                "drop": "Insight headline. {last} = game number, e.g. 4. {head} = winrate up to then, e.g. \"55%\". {tail} = winrate after, e.g. \"42%\". {from} = next game number, e.g. 5.",
+                "hold": "Insight headline saying results stay steady in longer sessions.",
+                "unknown": "Insight text when there is too little data. {games} = number of games past game 3, e.g. 2. {min} = games needed, e.g. 5. Game 3 is a fixed number in the text."
+            },
+            "swap_hero": {
+                "title": "Title of an insight card about changing hero or staying after a loss. Keep short, about 16 characters.",
+                "bar_switched": "Bar label in an insight chart for games where the user changed hero. Keep short, about 14 characters.",
+                "bar_same": "Bar label in an insight chart for games with the same hero as before. Keep short, about 11 characters.",
+                "better": "Insight headline. {yes} = winrate after switching heroes, e.g. \"56%\". {no} = winrate when staying on the same hero, e.g. \"47%\".",
+                "worse": "Insight headline. {no} = winrate when staying on the same hero, e.g. \"55%\". {yes} = winrate when switching, e.g. \"46%\".",
+                "same": "Insight headline. {yes} and {no} = winrates after switching and after staying, e.g. \"50%\" and \"51%\"."
+            },
+            "requeue": {
+                "title": "Title of an insight card about how fast the user queues again after a loss. Keep short, about 14 characters.",
+                "bar_quick": "Bar label in an insight chart for games queued within 10 minutes of the last one. Keep short, about 24 characters.",
+                "bar_slow": "Bar label in an insight chart for games queued after a longer wait. Keep short, about 14 characters.",
+                "better": "Insight headline. {yes} = winrate when queueing straight back up, e.g. \"56%\". {no} = winrate when waiting longer, e.g. \"47%\".",
+                "worse": "Insight headline. {no} = winrate when waiting longer, e.g. \"55%\". {yes} = winrate when queueing straight back up, e.g. \"46%\".",
+                "same": "Insight headline. {yes} and {no} = winrates when queueing straight back and when waiting, e.g. \"50%\" and \"51%\"."
+            },
+            "time_of_day": {
+                "title": "Title of an insight card about results by time of day. Keep short, about 12 characters.",
+                "morning": "Bar label in an insight chart for games played in the morning. Keep short, about 8 characters.",
+                "afternoon": "Bar label in an insight chart for games played in the afternoon. Keep short, about 10 characters.",
+                "evening": "Bar label in an insight chart for games played in the evening. Keep short, about 8 characters.",
+                "late_night": "Bar label in an insight chart for games played late at night. Keep short, about 10 characters.",
+                "phrase_morning": "Phrase inserted into a sentence as {best} or {worst}, e.g. \"You do best in the morning\". Must fit after the verb.",
+                "phrase_afternoon": "Phrase inserted into a sentence as {best} or {worst}, e.g. \"You do best in the afternoon\". Must fit after the verb.",
+                "phrase_evening": "Phrase inserted into a sentence as {best} or {worst}, e.g. \"You do best in the evening\". Must fit after the verb.",
+                "phrase_late_night": "Phrase inserted into a sentence as {best} or {worst}, e.g. \"You do best during the late night\". Must fit after the verb.",
+                "best_worst": "Insight headline. {best} and {worst} = time of day phrases. {best_rate} and {worst_rate} = winrates, e.g. \"58%\". {overall} = overall winrate, e.g. \"51%\".",
+                "best": "Insight headline. {best} = time of day phrase, e.g. \"in the evening\". {best_rate} = winrate, e.g. \"58%\". {overall} = overall winrate, e.g. \"51%\".",
+                "worst": "Insight headline. {worst} = time of day phrase, e.g. \"in the morning\". {worst_rate} = winrate, e.g. \"44%\". {overall} = overall winrate, e.g. \"51%\".",
+                "none": "Insight headline when no time of day clearly stands out.",
+                "unknown": "Insight text when there is too little data. {min} = games needed in each part of the day, e.g. 5."
+            },
+            "day_type": {
+                "title": "Title of an insight card comparing weekdays and weekends. Keep short, about 22 characters.",
+                "weekdays": "Bar label in an insight chart for games played Monday to Friday. Keep short, about 10 characters.",
+                "weekends": "Bar label in an insight chart for games played on Saturday and Sunday. Keep short, about 10 characters.",
+                "unknown": "Insight text when there is too little data. {weekday} and {weekend} = game counts so far, e.g. 3 and 8. {min} = games needed in each, e.g. 5.",
+                "better": "Insight headline. {weekend_rate} and {weekday_rate} = winrates, e.g. \"56%\" and \"49%\".",
+                "worse": "Insight headline. {weekday_rate} and {weekend_rate} = winrates, e.g. \"56%\" and \"49%\".",
+                "same": "Insight headline. {weekday_rate} and {weekend_rate} = winrates, e.g. \"50%\" and \"51%\"."
+            }
+        }
+    },
+    "match_history": {
+        "api_error": "Error message when the Deadlock API fails. {status} = HTTP status code, e.g. 500. \"Deadlock\" stays untranslated.",
+        "detail_invalid": "Error message on the match detail page when the Deadlock API sends data that cannot be used. \"Deadlock\" stays untranslated.",
+        "team": {
+            "hidden_king": "Name of one of the two teams in a match. Deadlock game term, match the game's own translation.",
+            "archmother": "Name of one of the two teams in a match. Deadlock game term, match the game's own translation."
+        },
+        "list": {
+            "title": "Page heading of the Match History page.",
+            "subtitle": "Subtitle under the Match History page heading. \"Deadlock\" stays untranslated.",
+            "empty": "Empty state on the Match History page when the player has no matches yet. \"Deadlock\" stays untranslated.",
+            "no_results": "Empty state on the Match History page when the filters hide every match.",
+            "count": "Summary line counting matches in the list. Plural forms. {count} = number of matches, e.g. 3.",
+            "provisional": "Small badge on a match row captured from the game but not yet confirmed. Keep short, about 11 characters.",
+            "provisional_hint": "Tooltip on the Unconfirmed badge in a match row. \"Deadlock\" stays untranslated.",
+            "mode": {
+                "custom": "Match mode label in a match row, for custom matches. Keep short, about 6 characters.",
+                "other": "Match mode label in a match row, for modes that are not otherwise named. Keep short, about 5 characters."
+            },
+            "outcome": {
+                "unscored": "Outcome label in a match row when the match has no win or loss. Keep short, about 10 characters."
+            },
+            "filter": {
+                "label": "Screen reader label for the filter bar above the match list.",
+                "mode": "Label of the match mode filter (segmented control) above the match list. Keep short, about 4 characters.",
+                "hero": "Screen reader label of the hero filter dropdown above the match list. Hero is a Deadlock game term.",
+                "outcome": "Label of the win or loss filter (segmented control) above the match list. Keep short, about 7 characters.",
+                "window": "Label of the date range filter (segmented control) above the match list. Keep short, about 11 characters.",
+                "any_hero": "Dropdown option in the hero filter that removes the hero filter. Hero is a Deadlock game term.",
+                "any_outcome": "Option in the outcome filter that shows wins and losses. Keep short, about 12 characters.",
+                "custom": "Button above the match list that opens custom match settings. Keep short, about 14 characters.",
+                "reset": "Button above the match list that clears all filters. Keep short, about 13 characters."
+            },
+            "pager": {
+                "label": "Screen reader label for the page navigation under the match list."
+            },
+            "summary": {
+                "label": "Screen reader label for the totals block above the match list.",
+                "matches": "Label in the totals block above the match list, for the number of matches. Keep short, about 7 characters."
+            },
+            "row": {
+                "souls": "Tooltip on the souls figure in a match row. Souls is a Deadlock game term, match the game's own translation.",
+                "duration": "Tooltip on the match length in a match row.",
+                "kda_split": "Tooltip on the kills / deaths / assists figure in a match row. Keep the slashes.",
+                "kda_ratio": "Small text in a match row. {ratio} = kills plus assists per death, e.g. \"3.2\". KDA is the usual kills, deaths, assists abbreviation."
+            }
+        },
+        "deep_dive": {
+            "not_available": "Notice inside a match detail section when the data is missing for that match.",
+            "player": "UNUSED",
+            "player_fallback": "Name shown for a player whose name is unknown. {slot} = player number in the match, e.g. 4.",
+            "progress": {
+                "heading": "Section heading on the match detail page for charts of souls and damage over time. Souls is a Deadlock game term.",
+                "souls": "Toggle label that switches the progress charts to souls. Souls is a Deadlock game term. Keep short, about 5 characters.",
+                "damage": "Toggle label that switches the progress charts to damage. Keep short, about 6 characters.",
+                "lead_heading": "Small heading above the chart showing which team led over time.",
+                "lead_aria": "Screen reader label for the team lead chart.",
+                "lead_hint": "Caption under the team lead chart explaining the axis. Hidden King and Archmother are Deadlock game terms and should match the game's translation.",
+                "lead_even": "Chart tooltip text when neither team leads at that moment.",
+                "others_range": "Chart tooltip label for the value range of all players other than the selected one.",
+                "player_heading": "Small heading above the chart that follows the selected player.",
+                "player_aria": "Screen reader label for the chart showing the selected player against the rest.",
+                "player_hint": "Caption under the player chart explaining which line is the selected player.",
+                "picker_aria": "Screen reader label for the player picker in the souls and damage section. Souls is a Deadlock game term."
+            },
+            "purchases": {
+                "heading": "Section heading on the match detail page for item and ability purchases over time.",
+                "slider_aria": "Screen reader label for the slider that steps through purchases.",
+                "previous": "Tooltip and screen reader label of a button that goes to the previous purchase action.",
+                "next": "Tooltip and screen reader label of a button that goes to the next purchase action.",
+                "step": "Position counter next to the purchase slider. {current} = current step, e.g. 3. {total} = number of steps, e.g. 40.",
+                "item_buy": "Purchase list entry. {name} = item name. Item names are Deadlock game terms.",
+                "item_sell": "Purchase list entry. {name} = item name. Item names are Deadlock game terms.",
+                "ability_unlock": "Purchase list entry. {name} = ability name. Ability names are Deadlock game terms.",
+                "ability_upgrade": "Purchase list entry. {name} = ability name. {count} = upgrade level reached, e.g. 2. {total} = max upgrades, e.g. 3. Ability is a Deadlock game term.",
+                "imbued": "Small text on an item that was imbued on an ability. {ability} = ability name. Imbue and ability are Deadlock game terms.",
+                "holding": "Small heading above the list of items the player held at the selected moment.",
+                "no_items": "Empty state text when the player held no items at the selected moment.",
+                "abilities": "Small heading above the list of abilities the player had unlocked at the selected moment. Ability is a Deadlock game term.",
+                "no_abilities": "Empty state text when the player had no abilities unlocked yet. Ability is a Deadlock game term.",
+                "ability_level_aria": "Screen reader label for the upgrade pips on an ability. {count} = upgrades taken, e.g. 2. {total} = max upgrades, e.g. 3.",
+                "list_aria": "Screen reader label for the scrolling list of every purchase action.",
+                "picker_aria": "Screen reader label for the player picker in the purchases section."
+            },
+            "damage": {
+                "heading": "Section heading on the match detail page for the damage table between heroes. Hero is a Deadlock game term.",
+                "hint": "Help text and tooltip for the damage table. Rows are damage dealers, columns are targets. \"Other damage\" must match the column label.",
+                "dealer": "Corner header of the damage table for the rows, the player dealing damage. Keep short, about 6 characters.",
+                "other": "Table column header in the damage table, damage credited to the dealer themselves. Keep short, about 12 characters.",
+                "target": "Corner header of the damage table for the columns, the player taking damage. Keep short, about 6 characters.",
+                "other_hint": "Tooltip on the Other damage column header in the damage table.",
+                "picker_aria": "Screen reader label for the player picker in the damage section."
+            },
+            "objectives": {
+                "heading": "Section heading on the match detail page for the objectives table. Objectives are Deadlock game terms.",
+                "objective": "Table column header in the objectives table, the objective name. Keep short, about 9 characters.",
+                "owner": "Table column header in the objectives table, the team that owned the objective. Keep short, about 5 characters.",
+                "destroyed": "Table column header in the objectives table, the time it was destroyed. Keep short, about 9 characters.",
+                "players": "Table column header in the objectives table, damage from players. Keep short, about 13 characters.",
+                "creeps": "Table column header in the objectives table, damage from creeps (minions). Keep short, about 12 characters.",
+                "spirit": "Table column header in the objectives table, spirit damage. Spirit is a Deadlock game term. Keep short, about 13 characters.",
+                "standing": "Cell text in the objectives table for an objective that was still standing at the end of the match. Keep short, about 8 characters.",
+                "mid_boss": "Row label in the objectives table for the neutral boss. Mid Boss is a Deadlock game term, match the game's own translation.",
+                "killed_by": "Small text on the Mid Boss row. {team} = team name, e.g. \"The Archmother\". Team names are Deadlock game terms.",
+                "claimed_by": "Small text on the Mid Boss row. {team} = team name that picked up the reward, e.g. \"The Archmother\". Team names are Deadlock game terms.",
+                "kind_core": "Name of an objective type in the objectives table. Deadlock game term, match the game's own translation.",
+                "kind_guardian": "Name of an objective type in the objectives table. Guardian is a Deadlock game term, match the game's own translation.",
+                "kind_walker": "Name of an objective type in the objectives table. Walker is a Deadlock game term, match the game's own translation.",
+                "kind_patron": "Name of an objective type in the objectives table. Patron is a Deadlock game term, match the game's own translation.",
+                "kind_shrine": "Name of an objective type in the objectives table. Shrine is a Deadlock game term, match the game's own translation.",
+                "kind_base_guardian": "Name of an objective type in the objectives table. Base Guardian is a Deadlock game term, match the game's own translation.",
+                "kind_unknown": "Fallback name for an objective of unknown type in the objectives table.",
+                "indexed_name": "Objective name with a number to tell copies apart. {name} = objective type, e.g. \"Guardian\". {index} = number, e.g. 2."
+            },
+            "accolades": {
+                "heading": "Section heading on the match detail page for the accolades a player earned. Accolade is a Deadlock game term.",
+                "tier": "Small pill next to an accolade. {tier} = tier number, e.g. 2. Keep short, about 6 characters.",
+                "hint": "Help text under the accolades list. Accolade and tier are Deadlock game terms.",
+                "picker_aria": "Screen reader label for the player picker in the accolades section."
+            },
+            "names": {
+                "item": "Fallback name for an item the app cannot name. Item is a Deadlock game term. Keep short, about 4 characters.",
+                "ability": "Fallback name for an ability the app cannot name. Ability is a Deadlock game term. Keep short, about 7 characters.",
+                "accolade": "Fallback name for an accolade the app cannot name. Accolade is a Deadlock game term. Keep short, about 8 characters."
+            },
+            "lanes": {
+                "yellow": "Lane colour name in a lane chip. Deadlock game term, match the game's own translation. Keep short, about 6 characters.",
+                "blue": "Lane colour name in a lane chip. Deadlock game term, match the game's own translation. Keep short, about 4 characters.",
+                "green": "Lane colour name in a lane chip. Deadlock game term, match the game's own translation. Keep short, about 5 characters.",
+                "street_yellow": "Street name for the yellow lane, shown with the lane colour. Proper name from the game's map, match the game's own translation. Keep short, about 4 characters.",
+                "street_blue": "Street name for the blue lane, shown with the lane colour. Proper name from the game's map, match the game's own translation. Keep short, about 8 characters.",
+                "street_green": "Street name for the green lane, shown with the lane colour. Proper name from the game's map, match the game's own translation. Keep short, about 9 characters.",
+                "named": "Lane chip text. {colour} = lane colour name, e.g. \"Yellow\". {street} = street name, e.g. \"York\". Lane colours are Deadlock game terms.",
+                "ordinal": "Lane chip text when the colour is unknown. {n} = lane number, e.g. 2. Keep short, about 6 characters."
+            }
+        },
+        "detail": {
+            "title": "Page heading of the match detail page. {id} = match ID number, e.g. 12345678.",
+            "back": "Link at the top of the match detail page that goes back to the match list.",
+            "loading": "Loading message on the match detail page.",
+            "error": "Error message on the match detail page. {error} = reason text, e.g. \"Network error\".",
+            "invalid": "Error message on the match detail page when the match ID in the address is not valid.",
+            "summary": "Screen reader label for the summary block at the top of the match detail page.",
+            "bans": "Small label in the match summary before the list of banned heroes. Hero is a Deadlock game term. Keep short, about 4 characters.",
+            "you": "Small badge on the scoreboard row of the app user. Keep short, about 3 characters.",
+            "player_fallback": "Name shown on the scoreboard for a player whose name is unknown. {slot} = player number in the match, e.g. 4.",
+            "item_unknown": "Tooltip for an item slot with an unknown item. {id} = item ID number, e.g. 1234. Item is a Deadlock game term.",
+            "result": {
+                "unscored": "Result text in the match summary when the match has no win or loss.",
+                "team_won": "Result text in the match summary. {team} = team name, e.g. \"The Archmother\". Team names are Deadlock game terms.",
+                "unknown": "Result text in the match summary when the winner is not known."
+            },
+            "mode": {
+                "ranked": "Match mode label in the match summary. Deadlock game term, match the game's own translation.",
+                "unranked": "Match mode label in the match summary. Deadlock game term, match the game's own translation.",
+                "streetBrawl": "Match mode label in the match summary. Street Brawl is a Deadlock game mode, match the game's own translation.",
+                "custom": "Match mode label in the match summary, for custom matches.",
+                "bot": "Match mode label in the match summary, for matches against bots.",
+                "other": "Match mode label in the match summary for modes that are not otherwise named."
+            },
+            "col": {
+                "items": "Table column header on the scoreboard, the items a player ended with. Keep short, about 5 characters.",
+                "damage": "Table column header on the scoreboard, damage dealt. Keep short, about 6 characters."
+            },
+            "board": {
+                "label": "Screen reader label for the scoreboard table.",
+                "stat": "Screen reader label for the first column header of the scoreboard, which holds stat names.",
+                "best": "Screen reader and tooltip text marking a stat as the highest in the match.",
+                "unranked": "Screen reader label for a player with no rank badge. Deadlock rank term."
+            },
+            "mvp": "Small award badge on the scoreboard for the best player. Keep short, about 3 characters.",
+            "key_player": "Small award badge on the scoreboard for the key player of the losing team. Keep short, about 10 characters.",
+            "avg_rank": "Label next to a team's average rank badge on the scoreboard. Keep short, about 8 characters.",
+            "versus": {
+                "above": "Tooltip and screen reader text for a stat mark. The stat is higher than the user's own average on that hero. Hero is a Deadlock game term.",
+                "below": "Tooltip and screen reader text for a stat mark. The stat is lower than the user's own average on that hero. Hero is a Deadlock game term.",
+                "equal": "Tooltip and screen reader text for a stat mark. The stat is close to the user's own average on that hero.",
+                "average": "Small text under a stat. {value} = the user's average, e.g. \"12\". Keep short, about 8 characters.",
+                "souls_rate": "Small text under the souls stat. {value} = souls per minute average, e.g. \"850\". Souls is a Deadlock game term. Keep short, about 13 characters.",
+                "hint": "Tooltip on a stat comparison. {samples} = number of other matches on the same hero, e.g. 12. Hero is a Deadlock game term.",
+                "summary": "Summary line under the scoreboard. {samples} = number of other matches, e.g. 12. {better} = count of stats better, e.g. 3. {worse} = count of stats worse, e.g. 2."
+            },
+            "export": {
+                "group": "Screen reader label for the group of buttons that export the scoreboard as an image.",
+                "save": "Button on the match detail page that saves the scoreboard as an image file. Keep short, about 10 characters.",
+                "copy": "Button on the match detail page that copies the scoreboard image to the clipboard. Keep short, about 10 characters.",
+                "working": "Button text shown while the scoreboard image is being made. Keep short, about 15 characters.",
+                "saved": "Toast message after the scoreboard image was saved to a file.",
+                "copied": "Toast message after the scoreboard image was copied to the clipboard.",
+                "save_failed": "Error toast when saving the scoreboard image failed. {error} = reason text, e.g. \"Permission denied\".",
+                "copy_failed": "Error toast when copying the scoreboard image failed. {error} = reason text, e.g. \"Clipboard unavailable\".",
+                "made_with": "Credit text in the footer of the exported scoreboard image. The app name follows it. Keep short, about 9 characters.",
+                "render_failed": "Error toast when the scoreboard image could not be created."
+            },
+            "replay": {
+                "heading": "Section heading on the match detail page for the minimap replay and timeline. Keep short, about 6 characters.",
+                "map_aria": "Screen reader label for the minimap showing player positions.",
+                "no_paths": "Notice under the replay section when position data is missing. The timeline shows deaths, objectives and item purchases.",
+                "no_art": "Small notice on the minimap when the map picture is missing. Positions are drawn on a plain background.",
+                "no_events": "Empty state in the replay timeline when the match has no events.",
+                "no_kinds": "Empty state in the replay timeline when all event type toggles are off.",
+                "unknown": "Fallback label for an unknown team in the replay tooltip. Keep short, about 7 characters.",
+                "unknown_hero": "Fallback label for an unknown hero in the replay tooltip. Hero is a Deadlock game term. Keep short, about 12 characters.",
+                "dead": "Status text in the minimap tooltip for a dead player. Keep short, about 4 characters.",
+                "dot_dead": "Screen reader label for a dead player's dot on the minimap. {label} = player and hero name, e.g. \"Sam, Haze\". Hero is a Deadlock game term.",
+                "camps": "Toggle button above the replay map that shows or hides neutral jungle camps. Camp is a Deadlock game term. Keep short, about 5 characters.",
+                "shop": "Map tooltip title for the shop building on the replay map. Shop is a Deadlock game term and should match the game's own translation.",
+                "teleporter": "Map tooltip title for a teleporter on the replay map. Teleporter is a Deadlock game term and should match the game's own translation.",
+                "camps_hint": "Tooltip text for a neutral camp on the replay map, and for the Camps toggle button. Says camp timings are estimates.",
+                "mid_boss_hint": "Tooltip line for the Mid Boss on the replay map. Says respawn times are estimates. Mid Boss is a Deadlock game term.",
+                "mid_boss_last_kill": "Tooltip line for the Mid Boss on the replay map. {time} = match clock time, e.g. \"12:34\". Mid Boss is a Deadlock game term.",
+                "object_destroyed_at": "Tooltip line for a map objective (Guardian, Walker, etc.) in the replay map. {time} = match clock time, e.g. \"12:34\".",
+                "object_damage": "Small heading in a replay map objective tooltip, above a breakdown of damage by source (Gun, Spirit, Trooper).",
+                "damage_gun": "Label in a replay map objective tooltip for damage dealt by gun shots. Weapon damage is a Deadlock game term. Keep short, about 4 characters.",
+                "damage_spirit": "Label in a replay map objective tooltip for damage dealt by Spirit abilities. Spirit is a Deadlock game term. Keep short, about 6 characters.",
+                "damage_trooper": "Label in a replay map objective tooltip for damage dealt by troopers (lane minions). Trooper is a Deadlock game term. Keep short, about 8 characters.",
+                "camp_weak": "Replay map tooltip title for the lowest tier neutral camp. Camp is a Deadlock game term.",
+                "camp_medium": "Replay map tooltip title for the middle tier neutral camp. Camp is a Deadlock game term.",
+                "camp_strong": "Replay map tooltip title for the highest tier regular neutral camp. Camp is a Deadlock game term.",
+                "camp_vault": "Replay map tooltip title for the Vault, a special neutral camp. Vault is a Deadlock game term.",
+                "play": "Button label on the replay controls that starts playback. Keep short, about 4 characters.",
+                "pause": "Button label on the replay controls that pauses playback. Keep short, about 5 characters.",
+                "speed": "Option in the replay playback speed selector. {speed} = speed multiplier number, e.g. 2. Keep short, about 3 characters.",
+                "speed_aria": "Screen reader label for the playback speed selector in the replay controls.",
+                "time": "Replay time readout next to the scrubber. {current} = current match clock, e.g. \"12:34\". {total} = full match length, e.g. \"38:10\".",
+                "scrubber_aria": "Screen reader label for the time slider that scrubs through the match replay.",
+                "kinds_aria": "Screen reader label for the group of filter chips that choose which event types show on the replay timeline.",
+                "kind_death": "Filter chip on the replay timeline that toggles death events. Keep short, about 6 characters.",
+                "kind_objective": "Filter chip on the replay timeline that toggles objective events (Guardians, Walkers, etc.). Keep short, about 10 characters.",
+                "kind_mid_boss": "Filter chip on the replay timeline for Mid Boss events, also used as a label on the match front page. Mid Boss is a Deadlock game term.",
+                "kind_item_buy": "Filter chip on the replay timeline that toggles item purchase events. Keep short, about 9 characters.",
+                "kind_item_sell": "Filter chip on the replay timeline that toggles item sale events. Keep short, about 10 characters.",
+                "kind_swing": "Filter chip on the replay timeline that toggles big Soul lead changes between teams. Soul is a Deadlock game term. Keep short, about 16 characters.",
+                "lane_death": "Row label on the left of the replay timeline for the death events lane. Keep short, about 6 characters.",
+                "lane_objective": "Row label on the left of the replay timeline for the objective events lane. Keep short, about 10 characters.",
+                "lane_mid_boss": "Row label on the left of the replay timeline for the Mid Boss lane. Mid Boss is a Deadlock game term. Keep short, about 8 characters.",
+                "lane_swing": "Row label on the left of the replay timeline for the lane of big Soul lead changes. Keep short, about 6 characters.",
+                "lane_item": "Row label on the left of the replay timeline for the item buy and sell lane. Keep short, about 5 characters.",
+                "marker_death": "Screen reader and tooltip text for a death marker on the replay timeline. {victim} = player name, e.g. \"Sam\". {killer} = killer name or hero, e.g. \"Haze\". {time} = match clock, e.g. \"12:34\".",
+                "marker_objective": "Screen reader and tooltip text for an objective marker on the replay timeline. {objective} = objective name, e.g. \"Walker\". {team} = team name, e.g. \"Sapphire\". {time} = match clock, e.g. \"12:34\".",
+                "marker_mid_boss": "Screen reader and tooltip text for a Mid Boss marker on the replay timeline. {team} = team that claimed it, e.g. \"Amber\". {time} = match clock, e.g. \"12:34\". Mid Boss is a Deadlock game term.",
+                "marker_item_buy": "Screen reader and tooltip text for an item purchase marker on the replay timeline. {player} = player name, e.g. \"Sam\". {item} = item name, e.g. \"Spirit Lifesteal\". {time} = match clock, e.g. \"12:34\".",
+                "marker_item_sell": "Screen reader and tooltip text for an item sale marker on the replay timeline. {player} = player name, e.g. \"Sam\". {item} = item name, e.g. \"Spirit Lifesteal\". {time} = match clock, e.g. \"12:34\".",
+                "marker_swing": "Screen reader and tooltip text for a net worth swing marker on the replay timeline. {team} = team name, e.g. \"Amber\". {souls} = number of Souls, e.g. \"2,500\". {time} = match clock, e.g. \"12:34\". Souls is a Deadlock game term.",
+                "death_map": "Toggle button above the replay that opens the death map view, which shows where deaths happened. Keep short, about 9 characters.",
+                "my_deaths": "Option in the death map player selector for the user's own deaths. Keep short, about 10 characters.",
+                "death_step": "Position counter in the death stepper toolbar. {index} = current death number, e.g. 3. {total} = number of deaths, e.g. 8.",
+                "step_prev": "Tooltip and screen reader label of the icon button in the death stepper that jumps to the previous death.",
+                "step_next": "Tooltip and screen reader label of the icon button in the death stepper that jumps to the next death.",
+                "step_show_all": "Button in the death stepper that ends stepping and shows all deaths on the map again. Keep short, about 8 characters.",
+                "stepper_aria": "Screen reader label for the death stepper toolbar that moves through deaths one by one.",
+                "killer_slot": "Fallback name for a killer whose identity is unknown, shown in the death map details. {slot} = player slot number, e.g. 4.",
+                "death_respawn": "Detail line for a selected death on the death map. {seconds} = respawn wait in seconds, e.g. 24.",
+                "death_position": "Detail line for a selected death on the death map. {x} and {y} = map coordinates, e.g. 1200 and 340.",
+                "death_marker": "Screen reader label for a death marker on the death map. {victim} = player name, e.g. \"Sam\". {time} = match clock, e.g. \"12:34\".",
+                "killed_by": "Detail line for a selected death on the death map. {killer} = killer's player name and hero, e.g. \"Sam · Haze\".",
+                "filter_player": "Label above the player dropdown in the death map filters. Keep short, about 6 characters.",
+                "all_players": "Option in the death map player dropdown that shows deaths for every player. Keep short, about 11 characters.",
+                "filter_role": "Label above the selector that chooses whether the death map shows the chosen player as victim or killer.",
+                "role_victim": "Option in the death map role selector. Shows deaths where the chosen player died. Keep short, about 6 characters.",
+                "role_killer": "Option in the death map role selector. Shows deaths where the chosen player got the kill. Keep short, about 6 characters.",
+                "range_from": "Label above the start handle of the death map time range slider. {time} = match clock, e.g. \"05:00\".",
+                "range_to": "Label above the end handle of the death map time range slider. {time} = match clock, e.g. \"20:00\".",
+                "death_count": "Summary in the death stepper toolbar when not stepping. {count} = number of deaths, e.g. 5. Plural forms.",
+                "step_start": "Button in the death stepper that starts stepping through deaths one by one. Keep short, about 12 characters.",
+                "no_deaths": "Empty state text in the death stepper when the current filter has no deaths. Keep short, about 10 characters.",
+                "death_map_player": "Screen reader label for the player dropdown on the death map."
+            },
+            "grade": {
+                "label": "Label in the grade tooltip, next to the numeric score and letter, on a player's row in the match scoreboard. Keep short, about 5 characters.",
+                "place_ordinal": "Ordinal place in the match, used inside the grade label. {place} = number, e.g. 2 gives \"2nd\". Plural forms by ordinal category. Adjust each form to your language.",
+                "aria": "Screen reader label for the grade chip on a player's scoreboard row. {letter} = grade letter, e.g. \"B+\". {score} = number, e.g. 78. {place} = ordinal place, e.g. \"2nd\".",
+                "leaver": "Tooltip for a flag icon on the scoreboard. Warns that a player left early, which skews all grades in the match.",
+                "unchecked": "Tooltip for a flag icon on the scoreboard. Says leavers were not checked, so the grade uses the game's own match data.",
+                "farm_bonus": "Row label in the grade tooltip, followed by a number. A bonus score from the team's farming. Farm means collecting Souls from troopers and camps.",
+                "metric": {
+                    "early_damage": "Row label in the grade tooltip, followed by a number. Damage dealt to heroes in the early game.",
+                    "late_damage": "Row label in the grade tooltip, followed by a number. Damage dealt to heroes in the late game.",
+                    "early_assists": "Row label in the grade tooltip, followed by a number. Kill assists in the early game.",
+                    "late_assists": "Row label in the grade tooltip, followed by a number. Kill assists in the late game.",
+                    "prebase_objective": "Row label in the grade tooltip, followed by a number. Damage dealt to objectives such as Guardians and Walkers, before the base.",
+                    "base_objective": "Row label in the grade tooltip, followed by a number. Damage dealt to base objectives such as Base Guardians, Shrines and the Patron. Deadlock game terms.",
+                    "damage_absorbed": "Row label in the grade tooltip, followed by a number. Damage the player took in place of teammates.",
+                    "ally_healing": "Row label in the grade tooltip, followed by a number. Healing done to teammates.",
+                    "heal_prevented": "Row label in the grade tooltip, followed by a number. Enemy healing the player prevented.",
+                    "barriers": "Row label in the grade tooltip, followed by a number. Barrier (shield) amount the player gave to teammates.",
+                    "cs": "Row label in the grade tooltip, followed by a number. Last hits on troopers and camps (creep score).",
+                    "kills": "Row label in the grade tooltip, followed by a number. Hero kills. Keep short, about 5 characters.",
+                    "deaths": "Row label in the grade tooltip, followed by a number. Times the player died. Keep short, about 6 characters.",
+                    "cc": "Row label in the grade tooltip, followed by a number. Crowd control, the time enemies were stunned or slowed. Keep short, about 2 characters."
+                }
+            },
+            "missing": {
+                "details": "Section heading on the page for a match whose data is missing. Covers the scoreboard and match details.",
+                "replay": "Section heading on the page for a match whose data is missing. Covers the replay state.",
+                "lead": "Intro paragraph on the page for a match that has no scoreboard. The Deadlock API is a third party data service and stays untranslated.",
+                "badge_missing": "Badge next to the match details heading when details are missing. Keep short, about 7 characters.",
+                "badge_recovering": "Badge next to the match details heading while Deadlock+ is recovering the match. Keep short, about 10 characters.",
+                "eta_seconds": "Progress text while a match is recovering. {count} = seconds left, e.g. 15. Unit is seconds.",
+                "eta_minutes": "Progress text while a match is recovering. {count} = minutes left, e.g. 3. Unit is minutes.",
+                "paused": "Status text on the missing match page when match recovery is paused.",
+                "recover": "Button on the missing match page that starts recovering this one match. Keep short, about 18 characters.",
+                "recover_time": "Small note next to the Recover button. Says how long recovery takes.",
+                "consent_note": "Small note next to the Recover button when the user already agreed to recovery. Says only this match is recovered.",
+                "open_in_game": "Hint on the missing match page. Tells the user to open this match in the game's Match History. Deadlock and Deadlock+ stay untranslated.",
+                "sharing_off": "Hint on the missing match page. \"Share my matches\" is the name of a setting, keep it matching that setting's label. Deadlock and Deadlock+ stay untranslated.",
+                "sharing_link": "Link text on the missing match page that opens the Settings page for match sharing.",
+                "replay_available": "Badge in the replay section of the missing match page. Replay can be watched. Keep short, about 9 characters.",
+                "replay_expired": "Badge in the replay section of the missing match page. Replay is too old and was deleted. Keep short, about 7 characters.",
+                "replay_none": "Badge in the replay section of the missing match page. No replay exists for this match. Keep short, about 13 characters.",
+                "replay_days_left": "Note in the replay section of the missing match page. {count} = days left, e.g. 5. Plural forms.",
+                "replay_expired_note": "Note in the replay section of the missing match page, shown with the Expired badge. Says how long replays are kept.",
+                "replay_none_note": "Note in the replay section of the missing match page. The Deadlock API is a third party data service and stays untranslated.",
+                "replay_recoverable": "Badge in the replay section of the missing match page. Replay is not there yet but can be recovered. Keep short, about 17 characters.",
+                "replay_recoverable_note": "Note in the replay section of the missing match page. The Deadlock API is a third party data service and stays untranslated.",
+                "replay_unrecoverable": "Badge in the replay section of the missing match page. Replay can never be recovered. Keep short, about 13 characters.",
+                "replay_unrecoverable_note": "Note in the replay section of the missing match page, shown with the unrecoverable badge."
+            },
+            "replay_status": {
+                "available": "Badge on the match detail page. A replay can be watched. Keep short, about 16 characters.",
+                "recovering": "Badge on the match detail page with a spinner. The replay is being recovered. Keep short, about 17 characters.",
+                "recoverable": "Badge on the match detail page. No replay yet, but one can be recovered. Keep short, about 13 characters.",
+                "unrecoverable": "Badge on the match detail page. The replay can no longer be recovered. Keep short, about 25 characters.",
+                "expired": "Badge on the match detail page. The replay is too old and was deleted. Keep short, about 15 characters.",
+                "none": "Badge on the match detail page. No replay exists for this match. Keep short, about 9 characters.",
+                "recover": "Button next to the replay badge on the match detail page that starts recovering the replay. Keep short, about 14 characters.",
+                "recover_note": "Tooltip on the Recover replay button. Recovery uses part of a daily limit of 40 matches. Keep the number 40.",
+                "consent_note": "Tooltip on the Recover replay button when the user already agreed to recovery. Only this replay is recovered, background recovery stays off."
+            }
+        },
+        "ping": {
+            "heading": "Section heading on the match detail page above the ping chart. Ping is network latency in milliseconds.",
+            "source": "Short source label for ping data that came from pinging the game server over ICMP. ICMP stays untranslated.",
+            "source_engine": "Source label under the Ping heading. The data came from the game's own connection stats.",
+            "source_icmp": "Source label under the Ping heading. The data came from pinging the game server (ICMP). ICMP stays untranslated.",
+            "partial": "Note after the source label under the Ping heading. Data only covers part of the match, from when recording began.",
+            "avg": "Label above the average ping number in the ping section. Keep short, about 7 characters.",
+            "worst": "Label above the highest ping number in the ping section. Keep short, about 5 characters.",
+            "samples": "Label above the number of ping measurements in the ping section. Keep short, about 7 characters.",
+            "loading": "Loading state text in the ping section on the match detail page.",
+            "empty": "Empty state text in the ping section when no ping data was recorded for the match.",
+            "chart_aria": "Screen reader label for the ping line chart on the match detail page.",
+            "hint": "Small hint text under the ping chart. Says ping is sampled once per second while Deadlock+ ran. Deadlock+ stays untranslated."
+        },
+        "coverage": {
+            "label": "Screen reader label for the coverage summary strip at the top of the match history list.",
+            "details": "Label in the coverage strip above a number showing how many matches have full details. Keep short, about 12 characters.",
+            "replays": "Label in the coverage strip above a number showing how many matches have replays. Keep short, about 21 characters.",
+            "details_aria": "Screen reader label for the full details figure in the coverage strip. {full} = matches with details, e.g. 42. {total} = all matches, e.g. 50.",
+            "replays_aria": "Screen reader label for the replays figure in the coverage strip. {replays} = matches with a replay, e.g. 18. {recent} = recent matches counted, e.g. 30.",
+            "recover": "Button in the coverage strip that opens the recovery panel. {count} = number of missing matches, e.g. 12. Keep short, about 20 characters.",
+            "recovering": "Progress text in the coverage strip while recovery runs. {done} = matches recovered, e.g. 5. {total} = matches to recover, e.g. 12.",
+            "paused": "Progress text in the coverage strip while recovery is paused. {done} = matches recovered, e.g. 5. {total} = matches to recover, e.g. 12."
+        },
+        "recovery": {
+            "title": "Dialog title of the match recovery panel opened from match history.",
+            "close": "Screen reader label and tooltip of the close icon button in the recovery panel.",
+            "consent": "Consent text in the recovery panel and on a missing match page. Explains what recovery does and that it uses the Steam login saved on this PC. Steam is a brand name.",
+            "missing": "Small label after a big number in the recovery panel. Number of missing matches. Keep short, about 7 characters.",
+            "badge_paused": "Status badge in the recovery panel. Recovery is paused by the user. Keep short, about 6 characters.",
+            "badge_game": "Status badge in the recovery panel. Recovery waits because the game is running. Deadlock stays untranslated. Keep short, about 16 characters.",
+            "badge_limit": "Status badge in the recovery panel. Recovery waits because Steam's daily request limit was hit. Steam is a brand name. Keep short, about 19 characters.",
+            "eta_left": "Time estimate in the recovery panel and status bar. {time} = duration text, e.g. \"5 min\" or \"1 h 20 min\".",
+            "eta_total": "Time estimate in the recovery panel before starting. {time} = duration text, e.g. \"5 min\" or \"1 h 20 min\".",
+            "duration_minutes": "Duration in minutes. {count} = number of minutes, e.g. 15. Keep short, about 6 characters.",
+            "duration_hours": "Duration in whole hours. {count} = number of hours, e.g. 2. Keep short, about 5 characters.",
+            "duration_hours_minutes": "Duration in hours and minutes. {hours} = whole hours, e.g. 1. {minutes} = minutes, e.g. 20. Keep short, about 12 characters.",
+            "progress_label": "Screen reader label for the recovery progress bar group in the recovery panel.",
+            "accounts": "Small heading in the recovery panel above the list of Steam accounts and how many requests each used today. Steam is a brand name.",
+            "start": "Primary button in the recovery panel that starts recovery. {count} = number of matches to recover, e.g. 12. Keep short, about 14 characters.",
+            "pause": "Button in the recovery panel that pauses a running recovery. Keep short, about 5 characters.",
+            "resume": "Button in the recovery panel that continues a paused recovery. Keep short, about 6 characters.",
+            "limit_note": "Status note in the recovery panel when the daily limit was reached. Recovery restarts by itself the next day.",
+            "step_details": "Step label in the recovery panel progress. This step fills in missing match details. Keep short, about 15 characters.",
+            "step_replays": "Step label in the recovery panel progress. This step fetches replays of recent matches. Keep short, about 14 characters."
+        },
+        "row_state": {
+            "missing": "Small badge on a row in the match history list. The match has no scoreboard details. Keep short, about 10 characters.",
+            "recovering": "Small badge on a row in the match history list. The match is being recovered. Keep short, about 10 characters."
+        }
+    },
+    "front_page": {
+        "story": {
+            "viewer_line": {
+                "headline": "Newspaper headline for the app user's own match. {hero} = hero name, e.g. \"Haze\". {kills}, {deaths}, {assists} = counts, e.g. 8, 3, 12. Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline under a headline. {net_worth} = souls total, e.g. \"24.5k\". Net worth is counted in souls, a Deadlock game term.",
+                "deck_graded": "Newspaper sub headline. {net_worth} = souls total, e.g. \"24.5k\". {letter} = grade, e.g. \"B+\". {place} = rank number, e.g. 2. {total} = player count, e.g. 12."
+            },
+            "comeback": {
+                "headline": "Newspaper headline for a team that won after trailing. {team} = team name, e.g. \"The Archmother\". {deficit} = souls behind, e.g. \"8.2k\". Team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {deficit} = souls behind, e.g. \"8.2k\". {time} = match clock, e.g. \"24:10\". {team} = team name, e.g. \"The Archmother\". Team names are Deadlock game terms."
+            },
+            "critics_top": {
+                "headline": "Newspaper headline for the top graded player. {hero} = hero name, e.g. \"Haze\". Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = player name, e.g. \"Sam\". {letter} = grade, e.g. \"A\". {total} = player count, e.g. 12. \"Deadlock+\" stays untranslated."
+            },
+            "first_blood": {
+                "headline": "Newspaper headline for the first kill of the match. {hero} = hero name of the killer, e.g. \"Haze\". Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = killer name, e.g. \"Sam\". {victim_hero} = hero name of the victim, e.g. \"Seven\". {time} = match clock, e.g. \"3:20\". Hero is a Deadlock game term."
+            },
+            "mid_boss": {
+                "headline": "Newspaper headline for the team that claimed the Mid Boss. {team} = team name, e.g. \"The Archmother\". Mid Boss and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {team} = team name, e.g. \"The Archmother\". {time} = match clock, e.g. \"20:15\". \"It\" is the Mid Boss, a Deadlock game term.",
+                "deck_split": "Newspaper sub headline when one team killed the Mid Boss and the other claimed it. {killer} and {team} = team names. {time} = match clock, e.g. \"20:15\". Mid Boss is a Deadlock game term."
+            },
+            "guardian_fall": {
+                "headline": "Newspaper headline for the first Guardian destroyed. {team} = team name, e.g. \"The Archmother\". Guardian and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {owner} = team name that lost it, e.g. \"The Hidden King\". {time} = match clock, e.g. \"9:40\". Guardian is a Deadlock game term."
+            },
+            "walker_fall": {
+                "headline": "Newspaper headline for the first Walker destroyed. {team} = team name, e.g. \"The Archmother\". Walker and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {owner} = team name that lost it, e.g. \"The Hidden King\". {time} = match clock, e.g. \"14:05\". Walker is a Deadlock game term."
+            },
+            "base_guardian_fall": {
+                "headline": "Newspaper headline for the first Base Guardian destroyed. {team} = team name, e.g. \"The Archmother\". Base Guardian and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {owner} = team name that lost it, e.g. \"The Hidden King\". {time} = match clock, e.g. \"22:30\". Base Guardian is a Deadlock game term."
+            },
+            "shrine_fall": {
+                "headline": "Newspaper headline for a Shrine destroyed. {team} = team name, e.g. \"The Archmother\". Shrine and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {owner} = team name that lost it, e.g. \"The Hidden King\". {time} = match clock, e.g. \"26:00\". Shrine is a Deadlock game term."
+            },
+            "patron_fall": {
+                "headline": "Newspaper headline for the Patron destroyed, ending the match. {team} = team name, e.g. \"The Archmother\". Patron and team names are Deadlock game terms.",
+                "deck": "Newspaper sub headline. {owner} = team name that lost its Patron, e.g. \"The Hidden King\". {time} = match clock, e.g. \"35:12\". Patron is a Deadlock game term."
+            },
+            "top_damage": {
+                "headline": "Newspaper headline for the player with the most damage. {hero} = hero name, e.g. \"Haze\". Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = player name, e.g. \"Sam\". {damage} = player damage total, e.g. \"32.4k\"."
+            },
+            "top_healing": {
+                "headline": "Newspaper headline for the player with the most healing. {hero} = hero name, e.g. \"Dynamo\". Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = player name, e.g. \"Sam\". {healing} = healing total, e.g. \"18.1k\"."
+            },
+            "richest": {
+                "headline": "Newspaper headline for the player with the highest net worth. {hero} = hero name, e.g. \"Haze\". Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = player name, e.g. \"Sam\". {net_worth} = souls total, e.g. \"28.9k\". Souls is a Deadlock game term."
+            },
+            "most_last_hits": {
+                "headline": "Newspaper headline for the player with the most last hits. Plural forms. {hero} = hero name, e.g. \"Haze\". {count} = number of last hits, e.g. 240. Hero is a Deadlock game term.",
+                "deck": "Newspaper sub headline. {player} = player name, e.g. \"Sam\"."
+            }
+        },
+        "kit": {
+            "weather": "Small section heading on the front page newspaper for the connection quality box. Keep short, about 7 characters.",
+            "box_score": "Section heading and screen reader label on the front page newspaper for the table of teams and players.",
+            "critics": "Section heading on the front page newspaper for player grades. Plays on newspaper critics.",
+            "lane_report": "Section heading on the front page newspaper for lane results. Lane is a Deadlock game term.",
+            "in_brief": "Section heading on the front page newspaper for a list of short facts. Keep short, about 8 characters.",
+            "objectives": "Section heading on the front page newspaper for the objectives timeline. Objectives are Deadlock game terms.",
+            "kills": "Section heading and screen reader label on the front page newspaper for team kill totals.",
+            "hero": "Screen reader column header in the front page player table. Hero is a Deadlock game term.",
+            "kda": "Screen reader column header in the front page player table for kills/deaths/assists. Keep the slashes.",
+            "net_worth": "Screen reader column header in the front page player table for total souls. Souls is a Deadlock game term.",
+            "grade": "Screen reader column header in the front page player table for the letter grade."
+        },
+        "open": "Button on the match detail page that opens the newspaper style front page recap for the match. Keep short, about 10 characters.",
+        "close": "Button that closes the front page dialog. Keep short, about 5 characters.",
+        "dialog": "Screen reader label for the front page dialog. {id} = match ID number, e.g. 12345678.",
+        "loading": "Loading message while the front page newspaper is being built.",
+        "name": "Newspaper name at the top of the front page. \"Dispatch\" is the newspaper word. \"Deadlock+\" stays untranslated.",
+        "edition": "Edition line in the newspaper masthead. {id} = match ID number, e.g. 12345678. \"Extra!\" is the newspaper cry.",
+        "kicker_viewer": "Small tag above the main headline when the story is about the app user's own match. Keep short, about 10 characters.",
+        "photo_caption": "Photo caption under the hero picture. {hero} = hero name, e.g. \"Haze\". {kills}, {deaths}, {assists} = counts, e.g. 8, 3, 12. Valve is a company name, keep it untranslated.",
+        "place_of": "Rank in the player grades. {place} = rank, e.g. \"2\" or \"2nd\". {total} = player count, e.g. 12. Keep short, about 7 characters.",
+        "critics_grading": "Status text in the critics box while player grades are being worked out. Keep short, about 10 characters.",
+        "critics_pending": "Status text in the critics box when grades are not ready yet. Keep short, about 14 characters.",
+        "lane": {
+            "lead": "Lane report line. {team} = team name, e.g. \"The Archmother\". {amount} = souls lead, e.g. \"1.2k\". \"10:00\" is a match clock time. Team names are Deadlock game terms.",
+            "even": "Lane report line when the lane was tied at the 10 minute mark. \"10:00\" is a match clock time.",
+            "matchup": "Lane report line listing the two heroes. {hidden_king} = hero name on The Hidden King's side, e.g. \"Haze\". {archmother} = hero name on The Archmother's side. Hero is a Deadlock game term."
+        },
+        "weather": {
+            "forecast_clear": "Weather forecast word in the front page connection box, for a good connection. Keep short, about 11 characters.",
+            "forecast_fair": "Weather forecast word in the front page connection box, for an okay connection. Keep short, about 4 characters.",
+            "forecast_overcast": "Weather forecast word in the front page connection box, for a poor connection. Keep short, about 8 characters.",
+            "forecast_storm": "Weather forecast word in the front page connection box, for a bad connection. Keep short, about 6 characters.",
+            "ping": "Line in the front page connection box. {avg} = average ping in milliseconds, e.g. 42. {worst} = worst ping in milliseconds, e.g. 120. Keep \"ms\".",
+            "jitter": "Line in the front page connection box. {jitter} = ping variation in milliseconds, e.g. 8. Keep \"ms\"."
+        },
+        "objective": {
+            "short_guardian": "Tiny marker letter on the front page objectives timeline for a Guardian. Deadlock game term. Keep short, 1 to 2 characters.",
+            "short_walker": "Tiny marker letter on the front page objectives timeline for a Walker. Deadlock game term. Keep short, 1 to 2 characters.",
+            "short_base_guardian": "Tiny marker on the front page objectives timeline for a Base Guardian. Deadlock game term. Keep short, 2 characters.",
+            "short_shrine": "Tiny marker letter on the front page objectives timeline for a Shrine. Deadlock game term. Keep short, 1 to 2 characters.",
+            "short_patron": "Tiny marker letter on the front page objectives timeline for a Patron. Deadlock game term. Keep short, 1 to 2 characters.",
+            "short_core": "Tiny marker letter on the front page objectives timeline for a Core. Deadlock game term. Keep short, 1 to 2 characters.",
+            "short_mid_boss": "Tiny marker on the front page objectives timeline for the Mid Boss. Deadlock game term. Keep short, 2 characters.",
+            "short_unknown": "Tiny marker letter on the front page objectives timeline for an unknown objective. Keep short, 1 to 2 characters."
+        },
+        "export": {
+            "group": "Screen reader label for the group of buttons that export the front page as an image.",
+            "saved": "Toast message after the front page image was saved to a file.",
+            "copied": "Toast message after the front page image was copied to the clipboard.",
+            "render_failed": "Error toast when the front page image could not be created."
+        }
+    }
+}
