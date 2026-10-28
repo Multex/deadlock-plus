@@ -92,6 +92,8 @@ class Updater {
                 return false;
             }
             if (channel !== this.channel) continue;
+            // A download started from the update this check began with; the answer must not reset its phase.
+            if (this.phase === "downloading" || this.phase === "ready") return true;
             this.update = update;
             this.version = update?.version ?? null;
             this.notes = update?.body?.trim() ? update.body : null;

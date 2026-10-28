@@ -377,6 +377,28 @@ describe("updater", () => {
             expect(update.install).toHaveBeenCalledOnce();
         });
 
+        it("keeps a download that started while a recheck was out", async () => {
+            let finishDownload = () => {};
+            const found = {
+                version: "9.9.9",
+                download: vi.fn(() => new Promise<void>((resolve) => (finishDownload = resolve))),
+                install: vi.fn(),
+            };
+            check.mockResolvedValueOnce(found);
+            await updater.check();
+            let answer: (update: unknown) => void = () => {};
+            check.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+            const rechecking = updater.check();
+            const downloading = updater.download();
+            answer({ ...found, download: vi.fn(), install: vi.fn() });
+            await rechecking;
+            expect(updater.phase).toBe("downloading");
+            finishDownload();
+            expect(await downloading).toBe(true);
+            expect(updater.phase).toBe("ready");
+            expect(found.download).toHaveBeenCalledOnce();
+        });
+
         it("does nothing before a download finished", async () => {
             const { update, remove } = staged();
             await updater.check();
