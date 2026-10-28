@@ -4,6 +4,10 @@ on:
   push:
     tags: ["v*"]
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions: {}
 
 jobs:
@@ -11,6 +15,7 @@ jobs:
   # environment of the steps that sign; dependency install and tests never see it.
   build:
     runs-on: windows-latest
+    timeout-minutes: 120
     permissions:
       contents: read
     env:
@@ -97,6 +102,7 @@ jobs:
         with:
           name: unsigned-installer
           path: target/release/bundle/nsis/*-setup.exe
+          retention-days: 14
 
       - name: Sign installer with SignPath
         if: env.SIGNPATH_ENABLED == 'true'
@@ -132,10 +138,12 @@ jobs:
           name: release-windows
           path: release-windows
           if-no-files-found: error
+          retention-days: 14
 
   # Linux bundles are unsigned for the OS. Only the updater signature is made, with the same key as Windows.
   build-linux:
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
     permissions:
       contents: read
     env:
@@ -229,12 +237,14 @@ jobs:
           name: release-linux
           path: release-linux
           if-no-files-found: error
+          retention-days: 14
 
   # Builds the updater feed from every platform's signature. It fails when a platform is missing, so a release never
   # ships an update that skips a platform.
   assemble:
     needs: [build, build-linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -261,11 +271,13 @@ jobs:
           name: release-out
           path: release-out
           if-no-files-found: error
+          retention-days: 14
 
   # Runs no project code: it only publishes what the other jobs produced.
   publish:
     needs: assemble
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:

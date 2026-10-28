@@ -25,6 +25,7 @@ jobs:
               target/release/bundle/appimage/*.AppImage
               target/release/bundle/deb/*.deb
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
@@ -81,3 +82,4 @@ jobs:
           name: bundle-${{ matrix.name }}
           path: ${{ matrix.glob }}
           if-no-files-found: error
+          retention-days: 14

@@ -16,6 +16,7 @@ jobs:
     # The commit step rebases onto main and pushes HEAD, so another branch's commits would land on main.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:

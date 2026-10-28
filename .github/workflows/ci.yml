@@ -6,9 +6,10 @@ on:
   push:
     branches: [main]
 
+# A newer push cancels a pull request's stale run. Every main commit keeps its own run, so each merge gets a result.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions: {}
 
@@ -23,6 +24,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
@@ -69,6 +71,8 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: .
+          # Pull request caches are only visible to that pull request and push main's out of the size limit.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - run: pnpm install --frozen-lockfile --filter "deadlock-plus..."
       - run: pnpm version:check
@@ -123,6 +127,7 @@ jobs:
             target: x86_64-unknown-linux-musl
             musl: true
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -144,6 +149,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: .
+          save-if: ${{ github.ref == 'refs/heads/main' }}
           key: ${{ matrix.target }}
 
       - name: Check crates
@@ -155,6 +161,7 @@ jobs:
   # comparisons skip themselves here: their baselines are made on Windows.
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
@@ -206,6 +213,7 @@ jobs:
 
   crowdin-relay:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -235,6 +243,7 @@ jobs:
 
   discord-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -262,6 +271,7 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -294,6 +304,7 @@ jobs:
 
   discord-updates:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -312,6 +323,7 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:

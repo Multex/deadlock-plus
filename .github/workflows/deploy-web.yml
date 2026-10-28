@@ -20,6 +20,7 @@ jobs:
     # workflow_dispatch can pick any branch; only main goes live.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     # On the job, not the workflow, so a slow screenshot job never holds the next deploy back.
