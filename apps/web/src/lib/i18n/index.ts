@@ -1,6 +1,7 @@
 import { getContext, setContext } from "svelte";
 import error from "virtual:en/error";
 import footer from "virtual:en/footer";
+import language from "virtual:en/language";
 import nav from "virtual:en/nav";
 import shot from "virtual:en/shot";
 import site from "virtual:en/site";
@@ -9,8 +10,8 @@ import { createTranslator, type Catalog, type Translator } from "./core";
 
 export { around, type Catalog, type Translator } from "./core";
 
-/** The English copy every page shows: the layout, the screenshot viewer and the error page. */
-export const en: Catalog = { ...error, ...footer, ...nav, ...shot, ...site, ...themes };
+/** The English copy every page shows: the layout, the language banner, the screenshot viewer and the error page. */
+export const en: Catalog = { ...error, ...footer, ...language, ...nav, ...shot, ...site, ...themes };
 
 export interface I18nContext {
     locale: string;

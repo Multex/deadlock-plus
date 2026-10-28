@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LINKS, RESERVED_PATHS, WEB_LOCALES, parseLinks } from "@deadlock-plus/links";
 import { reroute } from "../../hooks";
-import { localeOf, localizedHref, unlocalizedPath } from "./routes";
+import { languageHref, localeOf, localizedHref, unlocalizedPath } from "./routes";
 
 const LOCALE_FILES = readdirSync(fileURLToPath(new URL("../../../../../locales/web", import.meta.url)))
     .map((name) => name.replace(/\.json$/, ""))
@@ -86,6 +86,20 @@ describe("localizedHref", () => {
         expect(localizedHref("/transparency?ref=tt", "de")).toBe("/transparency?ref=tt");
         expect(localizedHref("/discord/website", "de")).toBe("/discord/website");
         expect(localizedHref("https://github.com/x", "de")).toBe("https://github.com/x");
+    });
+});
+
+describe("languageHref", () => {
+    it("opens the same page in the other language, keeping the referral", () => {
+        expect(languageHref("/features", "?ref=tt", "de")).toBe("/de/features?ref=tt");
+        expect(languageHref("/de/faq", "", "pt-BR")).toBe("/pt-BR/faq");
+        expect(languageHref("/de/faq", "", "en")).toBe("/faq");
+        expect(languageHref("/ja", "", "en")).toBe("/");
+    });
+
+    it("opens the language's home page from an English-only page", () => {
+        expect(languageHref("/privacy", "", "de")).toBe("/de");
+        expect(languageHref("/transparency", "?ref=tt", "en")).toBe("/transparency?ref=tt");
     });
 });
 

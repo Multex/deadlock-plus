@@ -9,6 +9,8 @@
     import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
+    import LanguageBanner from "$lib/components/language-banner.svelte";
+    import LanguagePicker from "$lib/components/language-picker.svelte";
     import ThemePicker from "$lib/components/theme-picker.svelte";
     import { provideI18n, useI18n } from "$lib/i18n";
     import { localizedHref } from "$lib/i18n/routes";
@@ -118,6 +120,8 @@
         </div>
     </header>
 
+    <LanguageBanner />
+
     <main class="noir-panel flex-1">
         {@render children()}
     </main>
@@ -164,8 +168,9 @@
                     {/each}
                 </nav>
             </div>
-            <div class="mt-10">
+            <div class="mt-10 flex flex-wrap gap-x-10 gap-y-6">
                 <ThemePicker />
+                <LanguagePicker />
             </div>
             <div
                 class="mt-6 flex flex-col gap-x-10 gap-y-2 border-t border-border pt-6 leading-relaxed text-muted-foreground md:flex-row md:justify-between"

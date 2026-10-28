@@ -25,6 +25,15 @@ describe("the site layout", () => {
     });
 });
 
+describe("the language picker", () => {
+    it("sits in the footer beside the theme picker", () => {
+        const body = layout("/features", { locale: "en", catalogs: {} });
+        const footer = body.slice(body.indexOf("<footer"));
+        expect(footer).toContain("Theme");
+        expect(footer).toContain('aria-label="Language: English"');
+    });
+});
+
 describe("the layout in another language", () => {
     const body = layout("/de/features", {
         locale: "de",

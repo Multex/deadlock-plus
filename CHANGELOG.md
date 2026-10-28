@@ -19,6 +19,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Turning presence off or changing its level hides it at once, without waiting out the delay.
 - A "Queue stopped" alert in the game overlay tells you when your queue ends without a match while you're tabbed out.
 - Turn the "Queue stopped" alert off in Settings > Notifications.
+- The website comes in every language the app has, with a language picker in its footer.
+- The website offers your browser's language in a small banner you can dismiss.
 
 #### Theme options
 

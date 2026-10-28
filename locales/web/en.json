@@ -339,5 +339,12 @@
     "og": {
         "title": "Link preview image | Deadlock+",
         "tagline": "A free companion app for {game}"
+    },
+    "language": {
+        "label": "Language",
+        "current": "Language: {language}",
+        "suggestion": "This page is also in {language}.",
+        "switch": "Read it in {language}",
+        "dismiss": "Dismiss"
     }
 }

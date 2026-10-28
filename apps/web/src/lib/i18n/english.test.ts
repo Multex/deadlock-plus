@@ -14,7 +14,7 @@ describe("English by namespace", () => {
     });
 
     it("gives every page the shared copy, and no page's own", () => {
-        expect(Object.keys(en).sort()).toEqual(["error", "footer", "nav", "shot", "site", "themes"]);
+        expect(Object.keys(en).sort()).toEqual(["error", "footer", "language", "nav", "shot", "site", "themes"]);
         for (const namespace of Object.keys(en)) expect(en[namespace]).toEqual(full[namespace]);
     });
 });

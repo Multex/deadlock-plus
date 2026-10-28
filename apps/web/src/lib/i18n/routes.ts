@@ -36,6 +36,13 @@ export function localizedHref(href: string, locale: string): string {
     return `/${locale}${path === "/" ? "" : path}${suffix}`;
 }
 
+/** The page at `pathname` in `locale`. An English-only page has no translation, so it opens that language's home. */
+export function languageHref(pathname: string, search: string, locale: string): string {
+    const path = unlocalizedPath(pathname);
+    const target = LOCALIZED_PAGES.includes(path) || locale === DEFAULT_LOCALE ? path : "/";
+    return localizedHref(`${target}${search}`, locale);
+}
+
 export interface Alternate {
     hreflang: string;
     path: string;
