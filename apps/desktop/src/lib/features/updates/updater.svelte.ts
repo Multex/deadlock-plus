@@ -73,7 +73,10 @@ class Updater {
     private async runCheck(): Promise<boolean> {
         for (;;) {
             const channel = this.channel;
-            this.phase = "checking";
+            // A recheck with an update already found leaves it on show, so the banner neither blinks nor
+            // disappears when one hourly check fails.
+            const found = this.phase === "available" && this.update !== null;
+            if (!found) this.phase = "checking";
             this.error = null;
             let update: Update | null;
             try {
@@ -81,9 +84,10 @@ class Updater {
             } catch (e) {
                 if (channel !== this.channel) continue;
                 console.warn("update check failed:", e);
+                this.checkError = { message: failureText(e, t("updates.status.check_failed")), at: Date.now() };
+                if (found) return true;
                 this.phase = "error";
                 this.error = "check";
-                this.checkError = { message: failureText(e, t("updates.status.check_failed")), at: Date.now() };
                 return false;
             }
             if (channel !== this.channel) continue;

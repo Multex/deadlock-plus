@@ -370,6 +370,41 @@ describe("updater", () => {
     });
 
     describe("check errors", () => {
+        it("keeps an update already found when a later check fails", async () => {
+            check.mockResolvedValue({ version: "9.9.9", body: "notes", download: vi.fn() });
+            await updater.check();
+            check.mockRejectedValue(new Error("offline"));
+            expect(await updater.check()).toBe(true);
+            expect(updater.phase).toBe("available");
+            expect(updater.version).toBe("9.9.9");
+            expect(updater.notes).toBe("notes");
+            expect(updater.error).toBeNull();
+            expect(updater.checkError?.message).toBe(
+                "Couldn't check for updates. Check your connection and try again.",
+            );
+        });
+
+        it("stays available while rechecking, so the banner never blinks", async () => {
+            check.mockResolvedValue({ version: "9.9.9", download: vi.fn() });
+            await updater.check();
+            let answer: (update: unknown) => void = () => {};
+            check.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+            const rechecking = updater.check();
+            expect(updater.phase).toBe("available");
+            answer({ version: "9.9.10", download: vi.fn() });
+            await rechecking;
+            expect(updater.version).toBe("9.9.10");
+        });
+
+        it("still shows a failed check as an error when nothing was found", async () => {
+            check.mockResolvedValue(null);
+            await updater.check();
+            check.mockRejectedValue(new Error("offline"));
+            expect(await updater.check()).toBe(false);
+            expect(updater.phase).toBe("error");
+            expect(updater.error).toBe("check");
+        });
+
         it("keeps a failed check's text and time without showing anything", async () => {
             vi.useFakeTimers({ now: 1234 });
             try {
