@@ -1250,6 +1250,7 @@ dependencies = [
  "notify-rust",
  "raw-window-handle",
  "reqwest 0.12.28",
+ "semver",
  "serde",
  "serde_json",
  "sysinfo",

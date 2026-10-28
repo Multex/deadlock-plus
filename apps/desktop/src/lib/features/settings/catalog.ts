@@ -473,7 +473,8 @@ const BASE_ITEMS: SettingItem[] = [
         get description() {
             return t("settings.about_page.auto_check_description");
         },
-        keywords: "update upgrade check new version release download install automatic",
+        keywords:
+            "update upgrade check new version release download install automatic channel beta nightly prerelease early access",
     },
     {
         id: "thanks",

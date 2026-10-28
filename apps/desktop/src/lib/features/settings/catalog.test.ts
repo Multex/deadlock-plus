@@ -44,6 +44,11 @@ describe("catalog", () => {
         expect(cat("licenses")).toBe("about");
     });
 
+    it("finds the update channel by the words people search for", () => {
+        for (const words of ["beta", "nightly", "channel", "prerelease", "early access"])
+            expect(matchingItems(words)?.has("updates"), words).toBe(true);
+    });
+
     it("finds the UI scale by the words people search for", () => {
         expect(matchingItems("zoom")?.has("ui-scale")).toBe(true);
         expect(matchingItems("text size")?.has("ui-scale")).toBe(true);

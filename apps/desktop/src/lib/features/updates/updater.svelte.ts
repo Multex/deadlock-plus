@@ -1,6 +1,9 @@
 import { runBeforeExit } from "$lib/core/exit";
-import { check, type Update } from "$lib/core/updater";
+import type { Update } from "$lib/core/updater";
+import { settings } from "$lib/features/settings/settings.svelte";
 import { flushTelemetry } from "$lib/features/telemetry/api";
+import { checkUpdate } from "./api";
+import type { UpdateChannel } from "./channel";
 
 export type UpdatePhase = "idle" | "checking" | "upToDate" | "available" | "downloading" | "error";
 export type UpdateFailure = "check" | "download";
@@ -12,23 +15,58 @@ class Updater {
     error = $state<UpdateFailure | null>(null);
 
     private update: Update | null = null;
+    private checking: Promise<boolean> | null = null;
 
-    /** Returns true when a newer release was found. Never throws: failures land in `error`. */
-    async check(): Promise<boolean> {
-        if (this.phase === "checking" || this.phase === "downloading") return this.phase === "downloading";
-        this.phase = "checking";
-        this.error = null;
-        try {
-            this.update = await check();
-        } catch (e) {
-            console.warn("update check failed:", e);
-            this.phase = "error";
-            this.error = "check";
-            return false;
+    /** The update channel setting. */
+    get channel(): UpdateChannel {
+        return settings.updateChannel;
+    }
+
+    /**
+     * Returns true when the channel offers a build newer than the running one. Never throws: failures land in
+     * `error`. A call while a check runs waits for that check.
+     */
+    check(): Promise<boolean> {
+        if (this.phase === "downloading") return Promise.resolve(true);
+        return (this.checking ??= this.runCheck().finally(() => (this.checking = null)));
+    }
+
+    /**
+     * Saves the channel and checks it. Moving to a more stable channel never downgrades: until that channel has a
+     * newer build than the running one, the check finds nothing. A download already running is left alone.
+     */
+    async setChannel(channel: UpdateChannel): Promise<boolean> {
+        if (channel !== this.channel) {
+            await settings.setUpdateChannel(channel);
+            if (this.channel !== channel) return false;
         }
-        this.version = this.update?.version ?? null;
-        this.phase = this.update ? "available" : "upToDate";
-        return this.update !== null;
+        if (this.phase === "downloading") return true;
+        this.update = null;
+        this.version = null;
+        return this.check();
+    }
+
+    private async runCheck(): Promise<boolean> {
+        for (;;) {
+            const channel = this.channel;
+            this.phase = "checking";
+            this.error = null;
+            let update: Update | null;
+            try {
+                update = await checkUpdate(channel);
+            } catch (e) {
+                if (channel !== this.channel) continue;
+                console.warn("update check failed:", e);
+                this.phase = "error";
+                this.error = "check";
+                return false;
+            }
+            if (channel !== this.channel) continue;
+            this.update = update;
+            this.version = update?.version ?? null;
+            this.phase = update ? "available" : "upToDate";
+            return update !== null;
+        }
     }
 
     /** On Windows the installer takes over and the app exits, so a successful call rarely returns. */

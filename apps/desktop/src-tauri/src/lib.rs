@@ -236,6 +236,7 @@ pub fn run() {
             features::mvp::commands::mvp_grade_match,
             features::about::commands::app_info,
             features::about::commands::changelog,
+            features::updates::commands::check_update,
             features::logging::commands::read_logs,
             features::logging::commands::export_logs,
             features::logging::commands::open_log_dir,

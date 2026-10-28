@@ -19,8 +19,8 @@ export function nextVersion(version: string): string {
 }
 
 /**
- * What the updater plugin's `check` resolves with when a newer release exists. The frontend wraps it in an
- * `Update` and reads `version`; `rid` names the Rust-side resource a download would use.
+ * What the backend's `check_update` resolves with when a newer build exists. The frontend wraps it in the updater
+ * plugin's `Update` and reads `version`; `rid` names the Rust-side resource a download would use.
  */
 interface UpdateMetadata {
     rid: number;
@@ -31,19 +31,34 @@ interface UpdateMetadata {
     rawJson: Record<string, unknown>;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A newer build on each channel, so the channel picker can be tried without a network. */
+function offeredVersion(channel: unknown, next: string, now: number): string {
+    if (channel === "beta") return `${next}-beta.1`;
+    if (channel === "nightly")
+        return `${next}-nightly.${new Date(now - DAY_MS).toISOString().slice(0, 10).replaceAll("-", "")}`;
+    return next;
+}
+
 function updaterModule({ appVersion }: ScenarioOptions): Module {
     return {
         name: "updater",
+        overrides: ["check_update"],
         create({ now }) {
-            const update: UpdateMetadata = {
-                rid: 1,
-                currentVersion: appVersion,
-                version: nextVersion(appVersion),
-                date: new Date(now - RELEASED_BEFORE_MS).toISOString(),
-                body: "",
-                rawJson: {},
+            const next = nextVersion(appVersion);
+            return {
+                handlers: {
+                    check_update: (args): UpdateMetadata => ({
+                        rid: 1,
+                        currentVersion: appVersion,
+                        version: offeredVersion(args.channel, next, now),
+                        date: new Date(now - RELEASED_BEFORE_MS).toISOString(),
+                        body: "",
+                        rawJson: {},
+                    }),
+                },
             };
-            return { handlers: { "plugin:updater|check": () => update } };
         },
     };
 }

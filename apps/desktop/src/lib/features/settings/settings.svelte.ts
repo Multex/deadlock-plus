@@ -39,6 +39,7 @@ import {
 import type { RowMode } from "@deadlock-plus/match/list";
 import { DEFAULT_UI_SCALE, resolveHardwareAcceleration, resolveUiScale } from "./app-window";
 import { DEFAULT_OVERLAY, resolveOverlay, type OverlaySettings } from "./overlay";
+import { DEFAULT_UPDATE_CHANNEL, resolveUpdateChannel, type UpdateChannel } from "$lib/features/updates/channel";
 import { initialTheme, resolveMotionPreference, resolveTheme, type MotionPreference, type ThemeId } from "./themes";
 import {
     initialThemeOptions,
@@ -71,6 +72,7 @@ const DISPATCH_ALERTS_KEY = "dispatchAlerts";
 const THEME_KEY = "theme";
 const MOTION_KEY = "motion";
 const AUTO_UPDATE_KEY = "autoUpdateCheck";
+const UPDATE_CHANNEL_KEY = "updateChannel";
 const PRESENCE_KEY = "discordPresence";
 const TELEMETRY_KEY = "telemetry";
 const TELEMETRY_NOTICE_KEY = "telemetryNoticeShown";
@@ -126,6 +128,7 @@ class Settings {
     frontPageOverlayAlert = $state(true);
     dispatchAlerts = $state(true);
     autoUpdateCheck = $state(true);
+    updateChannel = $state<UpdateChannel>(DEFAULT_UPDATE_CHANNEL);
     presence = $state<PresenceSettings>(resolvePresence(DEFAULT_PRESENCE));
     uiScale = $state(DEFAULT_UI_SCALE);
     hardwareAcceleration = $state(true);
@@ -175,6 +178,7 @@ class Settings {
         this.theme = resolveTheme(await stored<string>(THEME_KEY));
         this.motion = resolveMotionPreference(await stored<string>(MOTION_KEY));
         this.autoUpdateCheck = (await stored<boolean>(AUTO_UPDATE_KEY)) ?? true;
+        this.updateChannel = resolveUpdateChannel(await stored<unknown>(UPDATE_CHANNEL_KEY));
         this.presence = resolvePresence(await stored<unknown>(PRESENCE_KEY));
         this.uiScale = resolveUiScale(await stored<unknown>(UI_SCALE_KEY));
         this.hardwareAcceleration = resolveHardwareAcceleration(await stored<unknown>(HARDWARE_ACCELERATION_KEY));
@@ -268,6 +272,11 @@ class Settings {
 
     setAutoUpdateCheck(value: boolean) {
         return this.save("autoUpdateCheck", value, AUTO_UPDATE_KEY);
+    }
+
+    /** Use `updater.setChannel`, which also checks the new channel. */
+    setUpdateChannel(value: UpdateChannel) {
+        return this.save("updateChannel", value, UPDATE_CHANNEL_KEY);
     }
 
     setBreakHint(value: boolean) {
