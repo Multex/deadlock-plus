@@ -6,7 +6,8 @@
         "hero_fallback": "Hero {id}",
         "unknown_hero": "Unknown hero",
         "api_error": "The Deadlock API returned an error ({status}).",
-        "cached_note": "Couldn't reach the Deadlock API. Showing the copy saved {time}.",
+        "cached_note_busy": "Showing what Deadlock+ saved {time} while the Deadlock API is busy. Fresh data loads on its own.",
+        "cached_note_down": "Deadlock+ can't reach the Deadlock API right now. Showing the copy saved {time}.",
         "gate": {
             "no_account": "No Steam account found, so there is no history to load.",
             "error": "Could not load your match history. {error}",

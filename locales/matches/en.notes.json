@@ -6,7 +6,8 @@
         "hero_fallback": "Fallback hero label when a hero's name is unknown. {id} = numeric hero ID, e.g. 15. Hero is a Deadlock game term.",
         "unknown_hero": "Fallback label for a hero that could not be identified, shown in a match row. Hero is a Deadlock game term.",
         "api_error": "Error message when the Deadlock API answered with an error. {status} = HTTP status code, e.g. 500. The Deadlock API is a service name.",
-        "cached_note": "Note shown when the Deadlock API could not be reached and an older saved copy is shown. {time} = date and time of the saved copy, e.g. \"Oct 28, 6:30 PM\".",
+        "cached_note_busy": "Note shown above the saved copy of the match history while the Deadlock API is busy and the app retries by itself. {time} = date and time of the saved copy, e.g. \"Oct 28, 6:30 PM\". Keep \"Deadlock+\" untranslated.",
+        "cached_note_down": "Note shown above the saved copy of the match history when the Deadlock API could not be reached and nothing retries by itself. {time} = date and time of the saved copy, e.g. \"Oct 28, 6:30 PM\". Keep \"Deadlock+\" untranslated.",
         "gate": {
             "no_account": "Empty state on Stats and Match history pages when no Steam account is found. Steam is the game platform.",
             "error": "Error state on Stats and Match history pages when the history could not be loaded. {error} = reason text, e.g. \"The Deadlock API returned an error (500).\"",

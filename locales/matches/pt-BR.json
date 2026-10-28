@@ -6,7 +6,6 @@
         "hero_fallback": "Herói {id}",
         "unknown_hero": "Herói desconhecido",
         "api_error": "A API do Deadlock retornou um erro ({status}).",
-        "cached_note": "Não foi possível acessar a API do Deadlock. Exibindo a cópia salva {time}.",
         "gate": {
             "no_account": "Nenhuma conta do Steam foi encontrada, então não há histórico para carregar.",
             "error": "Não foi possível carregar seu histórico de partidas. {error}",
