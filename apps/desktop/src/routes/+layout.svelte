@@ -19,6 +19,7 @@
     import { trackRoute } from "$lib/features/telemetry/track";
     import AppRegion from "$lib/shell/app-region.svelte";
     import { focusPageHeading } from "$lib/shell/route-focus";
+    import { startFocusRescue } from "$lib/shell/focus-rescue";
 
     let { children } = $props();
 
@@ -35,6 +36,7 @@
         useAppShell();
         setOverlayHost(overlayHost);
         onMount(startCaptureFeed);
+        onMount(startFocusRescue);
 
         afterNavigate(({ to, type }) => {
             if (to) trackRoute(to.url.pathname, trackFeature);
