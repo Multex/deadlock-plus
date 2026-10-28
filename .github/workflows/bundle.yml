@@ -5,8 +5,7 @@ name: Bundle
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   CARGO_TERM_COLOR: always
@@ -26,8 +25,13 @@ jobs:
               target/release/bundle/appimage/*.AppImage
               target/release/bundle/deb/*.deb
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Tauri Linux dependencies
         if: runner.os == 'Linux'
@@ -64,7 +68,7 @@ jobs:
       - name: Build Vulkan frame layer
         if: runner.os == 'Linux'
         run: |
-          pip install --user cargo-zigbuild ziglang
+          pip install --user --require-hashes --only-binary=:all: -r .github/zigbuild-requirements.txt
           export PATH="$HOME/.local/bin:$PATH"
           bash scripts/build-frames-layer.sh
 
@@ -78,3 +82,4 @@ jobs:
           name: bundle-${{ matrix.name }}
           path: ${{ matrix.glob }}
           if-no-files-found: error
+          retention-days: 14

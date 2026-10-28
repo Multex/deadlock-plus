@@ -4,20 +4,28 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
   # The build jobs hold the update signing key, so they get no write access to the repo. The key is only in the
   # environment of the steps that sign; dependency install and tests never see it.
   build:
     runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
     env:
       # Code signing runs only once the SignPath project exists and this variable is set.
       SIGNPATH_ENABLED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
       SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install protoc
         shell: pwsh
@@ -31,17 +39,19 @@ jobs:
           "PROTOC=$dir\bin\protoc.exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "PROTOC_INCLUDE=$dir\include" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
         with:
           version: 11
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
+        with:
+          toolchain: stable
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
@@ -90,10 +100,11 @@ jobs:
       - name: Upload unsigned installer
         if: env.SIGNPATH_ENABLED == 'true'
         id: unsigned
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: unsigned-installer
           path: target/release/bundle/nsis/*-setup.exe
+          retention-days: 14
 
       - name: Sign installer with SignPath
         if: env.SIGNPATH_ENABLED == 'true'
@@ -124,19 +135,25 @@ jobs:
       - name: Prepare release files
         run: node scripts/release.mjs prepare windows
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-windows
           path: release-windows
           if-no-files-found: error
+          retention-days: 14
 
   # Linux bundles are unsigned for the OS. Only the updater signature is made, with the same key as Windows.
   build-linux:
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
     env:
       SENTRY_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Tauri Linux dependencies
         run: |
@@ -145,17 +162,19 @@ jobs:
             build-essential pkg-config patchelf file protobuf-compiler libprotobuf-dev \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
         with:
           version: 11
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
+        with:
+          toolchain: stable
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
@@ -175,7 +194,7 @@ jobs:
       # glibc is too new for that, so the layer cannot be built with plain cargo here.
       - name: Build Vulkan frame layer
         run: |
-          pip install --user cargo-zigbuild ziglang
+          pip install --user --require-hashes --only-binary=:all: -r .github/zigbuild-requirements.txt
           export PATH="$HOME/.local/bin:$PATH"
           bash scripts/build-frames-layer.sh
 
@@ -217,25 +236,31 @@ jobs:
       - name: Prepare release files
         run: node scripts/release.mjs prepare linux
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-linux
           path: release-linux
           if-no-files-found: error
+          retention-days: 14
 
   # Builds the updater feed from every platform's signature. It fails when a platform is missing, so a release never
   # ships an update that skips a platform.
   assemble:
     needs: [build, build-linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: release-*
           path: release-parts
@@ -245,20 +270,22 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: node scripts/release.mjs manifest "${REPOSITORY}" release-parts
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-out
           path: release-out
           if-no-files-found: error
+          retention-days: 14
 
   # Runs no project code: it only publishes what the other jobs produced.
   publish:
     needs: assemble
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-out
           path: release-out
@@ -282,6 +309,8 @@ jobs:
   # waits on it, so it never makes a release slower, and a failure here never fails the release.
   crowdin-screenshots:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     continue-on-error: true
     timeout-minutes: 30
     steps:
@@ -300,6 +329,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: steps.gate.outputs.enabled == 'true'
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
         if: steps.gate.outputs.enabled == 'true'
