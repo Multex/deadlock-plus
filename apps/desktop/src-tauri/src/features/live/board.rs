@@ -51,7 +51,7 @@ pub enum LiveGameMode {
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct LivePlayer {
-    /// The lobby slot: stable for the whole match, so rows can be keyed and tracked across updates.
+    /// Unique within the match: the lobby slot, unless another row already holds it. Rows are keyed and tracked by it.
     pub key: u32,
     pub side: LiveSide,
     pub name: Option<String>,
