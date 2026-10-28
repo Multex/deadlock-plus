@@ -29,6 +29,9 @@ describe("scenario registry", () => {
             "recovery-replays",
             "recovery-game-open",
             "recovery-replay-run",
+            "announcements-info",
+            "announcements-warning",
+            "announcements-critical",
         ];
         expect(Object.keys(scenarios)).toEqual(ids);
         for (const id of ids) expect(scenarios[id]!(OPTIONS).id).toBe(id);
@@ -37,7 +40,7 @@ describe("scenario registry", () => {
 
     it("fails loudly on an id it does not know, and names the ones it does", () => {
         expect(() => scenarioFactory("nope")).toThrow(
-            '[demo] unknown scenario "nope" (known: default, new-user, live-match, offline, api-down, rate-limited, update-available, post-match, dispatch, dispatch-specials, dispatch-specials-lantern, dispatch-specials-moth, dispatch-specials-kettle, unelevated, unelevated-game-admin, recovery-missing, recovery-running, recovery-paused, recovery-limit, recovery-gc-off, recovery-replays, recovery-game-open, recovery-replay-run)',
+            '[demo] unknown scenario "nope" (known: default, new-user, live-match, offline, api-down, rate-limited, update-available, post-match, dispatch, dispatch-specials, dispatch-specials-lantern, dispatch-specials-moth, dispatch-specials-kettle, unelevated, unelevated-game-admin, recovery-missing, recovery-running, recovery-paused, recovery-limit, recovery-gc-off, recovery-replays, recovery-game-open, recovery-replay-run, announcements-info, announcements-warning, announcements-critical)',
         );
         expect(() => scenarioFactory("toString")).toThrow('[demo] unknown scenario "toString"');
     });

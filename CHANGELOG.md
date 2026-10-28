@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Turn the "Queue stopped" alert off in Settings > Notifications.
 - The website comes in every language the app has, with a language picker in its footer.
 - The website offers your browser's language in a small banner you can dismiss.
+- Deadlock+ can now show important notices from the team in a banner at the top of the app.
 
 #### Theme options
 

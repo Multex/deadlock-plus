@@ -1,0 +1,18 @@
+[package]
+name = "dp-announcements"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[package.metadata.dp]
+tier = 0
+
+[dependencies]
+base64 = "0.23.1"
+ring = "0.17.14"
+semver = "1.0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["parsing"] }
+ts-rs = "12"

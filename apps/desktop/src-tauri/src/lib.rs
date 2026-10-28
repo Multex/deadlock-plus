@@ -284,6 +284,7 @@ pub fn run() {
             features::jobs::commands::set_all_jobs_enabled,
             features::jobs::commands::force_run_job,
             features::patch_notes::commands::get_patch_notes,
+            features::announcements::commands::get_announcements,
             features::kv::commands::kv_get,
             features::kv::commands::kv_set,
             features::kv::commands::kv_delete,

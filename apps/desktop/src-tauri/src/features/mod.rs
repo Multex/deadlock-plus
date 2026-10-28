@@ -1,6 +1,7 @@
 pub mod about;
 pub mod admin_access;
 pub mod alerts;
+pub mod announcements;
 pub mod app_window;
 pub mod autostart;
 pub mod builds;

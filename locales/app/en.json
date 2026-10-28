@@ -966,5 +966,8 @@
         "error_body": "The rest of Deadlock+ still works.",
         "retry": "Retry",
         "page_title": "Couldn't show this page."
+    },
+    "announcements": {
+        "dismiss": "Hide this notice"
     }
 }

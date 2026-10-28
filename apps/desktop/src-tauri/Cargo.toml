@@ -64,6 +64,7 @@ dp-presence = { path = "../../../crates/ring2/dp-presence" }
 dp-gc = { path = "../../../crates/ring2/dp-gc" }
 dp-server-picker = { path = "../../../crates/ring2/dp-server-picker" }
 dp-alerts = { path = "../../../crates/ring2/dp-alerts" }
+dp-announcements = { path = "../../../crates/ring0/dp-announcements" }
 dp-patch-notes = { path = "../../../crates/ring2/dp-patch-notes" }
 dp-network = { path = "../../../crates/ring2/dp-network" }
 dp-diagnostics = { path = "../../../crates/ring2/dp-diagnostics" }
