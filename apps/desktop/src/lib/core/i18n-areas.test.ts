@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { en, i18n, lookup, t, type Catalog } from "./i18n.svelte";
+import { en, i18n, lookup, SUPPORTED_LOCALES, t, type Catalog } from "./i18n.svelte";
 
 const englishAreas = import.meta.glob<Catalog>(
     ["../../../../../locales/*/en.json", "!../../../../../locales/dispatch/*.json"],
@@ -43,6 +43,10 @@ describe("locale areas", () => {
         const startup = Object.values(englishAreas).flatMap((catalog) => Object.keys(catalog));
         expect(Object.keys(en).sort()).toEqual(startup.sort());
         expect(en.dispatch).toBeUndefined();
+    });
+
+    it("does not load the translator notes as a locale", () => {
+        expect(SUPPORTED_LOCALES.filter((code) => code.includes("notes"))).toEqual([]);
     });
 
     it("resolves an English key from every area", () => {

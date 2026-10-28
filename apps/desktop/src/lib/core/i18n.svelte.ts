@@ -28,6 +28,7 @@ for (const [path, load] of Object.entries(
             "../../../../../locales/*/*.json",
             "!../../../../../locales/*/en.json",
             "!../../../../../locales/dispatch/*.json",
+            "!../../../../../locales/*/*.notes.json",
         ],
         { import: "default" },
     ),
@@ -47,7 +48,12 @@ const byLocale = (files: Record<string, () => Promise<Catalog>>): Record<string,
 
 /** Areas left out of the startup catalog, by locale; whatever reads one awaits `i18n.namespace` first. */
 const lazyAreas: Record<string, Record<string, () => Promise<Catalog>>> = {
-    dispatch: byLocale(import.meta.glob<Catalog>("../../../../../locales/dispatch/*.json", { import: "default" })),
+    dispatch: byLocale(
+        import.meta.glob<Catalog>(
+            ["../../../../../locales/dispatch/*.json", "!../../../../../locales/*/*.notes.json"],
+            { import: "default" },
+        ),
+    ),
 };
 
 if (import.meta.env.DEV) {

@@ -1,0 +1,780 @@
+{
+    "settings": {
+        "language": {
+            "label": "Setting label on Settings, Language section. Names the app language picker.",
+            "description": "Setting description under the Language label. 'Follow system' is the name of an option in the list (see settings.language.system). Keep that wording consistent.",
+            "system": "Option title in the Language list. Picks the app language from the OS language. Shown with a globe icon.",
+            "system_current": "Small subtitle under the Follow system option. {language} = language name of the OS, e.g. \"Deutsch\".",
+            "completion_hint": "Hint text at the bottom of the language list card. Explains the translation progress bar next to each language. Untranslated text falls back to English.",
+            "translated": "Label under a progress bar in the language list. {percent} = share of the app translated, e.g. 87. Keep short, about 15 characters.",
+            "coming_soon": "Badge on a language in the Language list that is not available yet. Keep short, about 11 characters."
+        },
+        "categories": {
+            "appearance": "Settings sidebar category and section heading for theme and look options.",
+            "language": "Settings sidebar category and section heading for the app language.",
+            "startup": "Settings sidebar category and section heading for launch on login, tray and background work.",
+            "notifications": "Settings sidebar category and section heading for which notifications you get and how they show.",
+            "overlay": "Settings sidebar category and section heading for the overlay drawn over the game window.",
+            "privacy": "Settings sidebar category and section heading for data sharing options.",
+            "about": "Settings sidebar category and section heading for version, updates, credits and licenses.",
+            "diagnostics": "Settings sidebar category and section heading for troubleshooting tools and logs.",
+            "sharing": "Settings sidebar category and section heading for sharing your matches with the Deadlock+ service.",
+            "storage": "Settings sidebar category and section heading for disk space used and cache clearing."
+        },
+        "items": {
+            "theme": "Setting label on Settings, Appearance. Names the theme picker (colour schemes).",
+            "theme_effects": "Setting label on Settings, Appearance. Names the toggles for animated art some themes draw behind the page.",
+            "reduced_motion": "Setting label on Settings, Appearance. Names the option that turns animations and transitions off.",
+            "accessible_font": "Setting label on Settings, Appearance. Names the switch for a more readable font.",
+            "close_to_tray": "Setting label on Settings, Startup. Names the switch that keeps the app running in the system tray when the window closes.",
+            "background_jobs": "Setting label on Settings, Startup. Names the group of tasks that run in the background, like scans and updates.",
+            "update_alerts": "Setting label on Settings, Notifications. Names the switch for alerts about new Deadlock patch notes and Steam news.",
+            "maintenance": "Setting label on Settings, Notifications. Names the switch for a reminder before Steam's weekly maintenance.",
+            "discord_presence": "Page heading of the Discord presence page, also the screen reader label of its Off/Basic/Detailed option group. Discord is a product name.",
+            "discord_clients": "Section heading on the Discord presence page above the list of installed Discord apps. Discord is a product name.",
+            "discord_editor": "Section heading on the Discord presence page above the editor for the activity text shown on Discord.",
+            "match_ingest": "Setting label on Settings, Match sharing. Names the switch for sending your finished matches to the Deadlock+ service.",
+            "telemetry": "Setting label on Settings, Privacy. Names the switch for sending anonymous usage data and crash reports.",
+            "gc_recovery": "Setting label on Settings, Match sharing. Names the switch for looking up match details the app missed while you played.",
+            "version": "Setting row label on Settings, About. Names the row that shows the app version number.",
+            "whats_new": "Setting row label on Settings, About. Names the row that opens the changelog.",
+            "updates": "Setting row label on Settings, About. Names the row for checking and installing app updates.",
+            "thanks": "Setting row label on Settings, About. Names the credits row for contributors, translators and supporters.",
+            "diagnostics": "Setting row label on Settings, Diagnostics. Names the troubleshooting tools row.",
+            "licenses": "Setting row label on Settings, About. Names the row listing open source licenses of libraries the app uses.",
+            "storage": "Setting row label on Settings, Storage. Names the row showing how much disk space the app uses.",
+            "overlay": "Setting label on Settings, Game overlay. Names the master switch for the overlay drawn over the game.",
+            "overlay_position": "Setting label on Settings, Game overlay. Names the picker for where notifications appear on screen.",
+            "overlay_duration": "Setting label on Settings, Game overlay. Names the slider for how long each notification stays.",
+            "overlay_test": "Setting label on Settings, Game overlay. Names the row with a button that shows a sample notification.",
+            "overlay_notifications": "Setting label on Settings, Game overlay. Names the row that links to the Notifications settings.",
+            "overlay_match_found": "Setting label on Settings, Notifications. Names the notification that fires when your queue finds a match.",
+            "overlay_queue_stopped": "Setting label on Settings, Notifications. Names the notification that fires when your queue stops without a match.",
+            "server_blocks_updated": "Setting label on Settings, Notifications. Names the notification for when server blocks were refreshed. Server Picker is a feature name.",
+            "server_blocks_stale": "Setting label on Settings, Notifications. Names the notification for when server blocks could not be refreshed and are old.",
+            "break_reminder": "Setting label on Settings, Notifications. Names the notification that suggests a break after losses.",
+            "front_page_after_match": "Setting label on Settings, Notifications. Names the switch for the newspaper style recap page shown after a match.",
+            "front_page_overlay_alert": "Setting label on Settings, Notifications. Names the notification that says a recap front page is waiting.",
+            "ui_scale": "Setting label on Settings, Appearance. Names the slider for the size of the whole app interface.",
+            "hardware_acceleration": "Setting label on Settings, Appearance. Names the switch for drawing the app with the graphics card.",
+            "open_on_game_start": "Setting label on Settings, Startup. Names the switch for opening the app window when the game starts. Deadlock stays untranslated.",
+            "admin_access": "Setting label on Settings, Startup. Names the choice for running the app with Windows administrator rights."
+        },
+        "nav": {
+            "label": "Screen reader label for the settings sidebar navigation. Not visible.",
+            "search": "Placeholder text in the settings search input, also its screen reader label.",
+            "back": "Screen reader label for the back button at the bottom of the settings sidebar. Not visible text.",
+            "no_matches": "Empty state message on the settings page when search finds nothing. {query} = text the user typed, e.g. \"overlay\"."
+        },
+        "appearance": {
+            "theme_description": "Setting description under the Theme label on Settings, Appearance.",
+            "effects_description": "Setting description under Theme effects. Flint Snow is a theme name, the example is its snowfall effect.",
+            "motion_description": "Setting description under Reduced motion. 'Follow system' is an option name (see settings.appearance.motion_system). Keep wording consistent.",
+            "motion_system": "Option in the Reduced motion selector. Uses the OS accessibility setting. Keep short, about 14 characters.",
+            "motion_reduce": "Option in the Reduced motion selector. Turns animations off. Keep short, about 6 characters.",
+            "motion_full": "Option in the Reduced motion selector. Keeps all animations on. Keep short, about 11 characters.",
+            "font_description": "Setting description under Accessible font. Atkinson Hyperlegible is a font name, keep untranslated.",
+            "scale_description": "Setting description under UI scale. Deadlock+ stays untranslated.",
+            "hardware_acceleration_description": "Setting description under Hardware acceleration. Deadlock+ stays untranslated. Tells when to turn it off.",
+            "restart_app": "Button on Settings, Appearance that restarts the app to apply a change. Deadlock+ stays untranslated. Keep short, about 18 characters.",
+            "accent": "Heading of the accent colour editor in the theme card. Names the custom highlight colour.",
+            "accent_hue": "Slider label in the accent colour editor. The colour position on the colour wheel. Keep short, about 5 characters.",
+            "accent_vividness": "Slider label in the accent colour editor. How strong or saturated the colour is. Keep short, about 10 characters.",
+            "accent_hex": "Label of the text input where you type a colour code like #FF8800. Keep short, about 10 characters.",
+            "accent_reset": "Button in the accent colour editor that restores the theme's default accent. Keep short, about 6 characters."
+        },
+        "themes": {
+            "deadlock": {
+                "label": "Theme name in the theme picker. Deadlock stays untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: dark brownish black with brass coloured trim.",
+                "source": "Link text under the theme that points to the Deadlock page on Steam. Deadlock and Steam stay untranslated."
+            },
+            "midnight": {
+                "label": "Theme name in the theme picker. A dark blue theme.",
+                "description": "Theme description in the theme picker. Describes its colours: cool blue black with a soft silver accent.",
+                "effects": {
+                    "fog": "Toggle label for the fog effect of the Midnight theme. Keep short, about 5 characters.",
+                    "windows": "Toggle label for the lit building windows effect of the Midnight theme. Keep short, about 8 characters."
+                }
+            },
+            "daylight": {
+                "label": "Theme name in the theme picker. A light theme.",
+                "description": "Theme description in the theme picker. A light theme with warm paper like colours."
+            },
+            "contrast": {
+                "label": "Theme name in the theme picker. Accessibility theme with maximum contrast.",
+                "description": "Theme description in the theme picker. Pure black and white with strong borders."
+            },
+            "nightshift": {
+                "label": "Theme name in the theme picker. Named after the Deadlock Night Shift show. Brand name, keep untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: dark teal with gold art deco trim.",
+                "source": "Link text under the theme that points to the Deadlock Night Shift show on Twitch. Deadlock and Twitch stay untranslated.",
+                "effects": {
+                    "rain": "Toggle label for the rain effect of the Nightshift theme. Keep short, about 5 characters.",
+                    "lights": "Toggle label for the glowing lights effect of the Nightshift theme. Keep short, about 7 characters.",
+                    "frames": "Toggle label for the decorative frames effect of the Nightshift theme. Keep short, about 7 characters.",
+                    "clock": "Toggle label for the round clock medallion art of the Nightshift theme. Keep short, about 10 characters."
+                }
+            },
+            "deadlock_api": {
+                "label": "Theme name in the theme picker. Named after the Deadlock API website. Brand name, keep untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: OLED black with an electric red glow.",
+                "source": "Link text under the theme that points to the Deadlock API website. Brand name, keep untranslated."
+            },
+            "statlocker": {
+                "label": "Theme name in the theme picker. Brand name, keep untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: graphite grey panels with a mint green accent.",
+                "source": "Link text under the theme that points to its website. Brand name, keep untranslated."
+            },
+            "flint_snow": {
+                "label": "Theme name in the theme picker. Named after a creator persona, a fox. Name, keep untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: coral fur on midnight navy with pink trim.",
+                "effects": {
+                    "snow": "Toggle label for the falling snow effect of the Flint Snow theme. Keep short, about 4 characters.",
+                    "stars": "Toggle label for the stars effect of the Flint Snow theme. Keep short, about 5 characters.",
+                    "tail": "Toggle label for the fox tail art of the Flint Snow theme. Keep short, about 4 characters.",
+                    "tracks": "Toggle label for the animal footprint art of the Flint Snow theme. Keep short, about 6 characters."
+                }
+            },
+            "void": {
+                "label": "Theme name in the theme picker. An OLED black theme. Keep short, about 4 characters.",
+                "description": "Theme description in the theme picker. Describes its colours: OLED black with electric violet trim."
+            },
+            "deadchaps": {
+                "label": "Theme name in the theme picker. Named after the DeadChaps community. Brand name, keep untranslated.",
+                "description": "Theme description in the theme picker. Describes its colours: near black panels with the purple of the DeadChaps brand. DeadChaps stays untranslated.",
+                "source": "Link text under the theme that points to the DeadChaps website. Brand name, keep untranslated."
+            },
+            "pretty_in_pink": {
+                "label": "Theme name in the theme picker. A playful pink theme. Name, may be adapted.",
+                "description": "Theme description in the theme picker. Describes its colours: candy pink and cream with pastel clouds and hearts.",
+                "effects": {
+                    "clouds": "Toggle label for the clouds effect of the Pretty in Pink theme. Keep short, about 6 characters.",
+                    "hearts": "Toggle label for the hearts effect of the Pretty in Pink theme. Keep short, about 6 characters.",
+                    "bow": "Toggle label for the ribbon bow art of the Pretty in Pink theme. Keep short, about 3 characters."
+                }
+            },
+            "catppuccin": {
+                "label": "Theme name in the theme picker. Brand name of a colour palette project, keep untranslated.",
+                "description": "Theme description in the theme picker. Soft pastel colours. The palette comes in four variants (flavours) and 14 accent colours.",
+                "source": "Link text under the theme that points to the Catppuccin palette website. Catppuccin stays untranslated.",
+                "variant": "Label of the picker for the Catppuccin palette variant, like Latte or Mocha. Flavour here means variant. Keep short, about 7 characters.",
+                "accent": "Label of the picker for the Catppuccin accent colour. Keep short, about 6 characters."
+            }
+        },
+        "autostart": {
+            "title_windows": "Setting label on Settings, Startup. Names the switch to launch the app at Windows sign in. Windows is a product name.",
+            "title_macos": "Setting label for the launch at login switch on macOS. macOS is a product name.",
+            "title_linux": "Setting label for the launch at login switch on Linux desktops.",
+            "description_windows": "Setting description under the autostart switch on Windows. Deadlock+ stays untranslated. Windows is a product name.",
+            "description_macos": "Setting description under the autostart switch on macOS. Deadlock+ stays untranslated. macOS is a product name.",
+            "description_linux": "Setting description under the autostart switch on Linux. Deadlock+ stays untranslated.",
+            "failed": "Error message under the autostart switch when changing it failed. Points to the app log.",
+            "stale": "Warning under the autostart switch. Launch on login points to another installed copy of the app. Deadlock+ stays untranslated."
+        },
+        "startup": {
+            "tray_description": "Setting description under the tray switch. Deadlock+ stays untranslated. The tray is the system tray icon area of the taskbar.",
+            "jobs_description": "Setting description under Background work. Deadlock+ and Deadlock stay untranslated. Mods are game modifications. Server blocks are a Server Picker feature.",
+            "all_jobs_label": "Switch label in the Background work card. Master switch for all background tasks.",
+            "all_jobs_description": "Description under the master background tasks switch. Performance is the name of an app page. Keep it matching that page name.",
+            "tasks_title": "Small heading above the list of individual background tasks in Settings, Startup.",
+            "tasks_description": "Description under the Tasks heading. Deadlock stays untranslated. Describes the per task options: run alone, and what to do while the game is open.",
+            "run_by_itself": "Small switch label on each task row. Whether the task starts on its own without you asking.",
+            "while_running": "Small label of a dropdown on each task row. Chooses behaviour while the game runs (pause, slow down or keep running). Deadlock stays untranslated.",
+            "advanced": "Label of a collapsible section toggle in Settings, Startup that reveals extra options. Keep short, about 8 characters.",
+            "open_on_game_start_description": "Setting description under Open with Deadlock. Deadlock and Deadlock+ stay untranslated. The tray is the system tray.",
+            "admin_access_ask": "Option in the admin access selector. The app asks every time it needs admin rights. Keep short, about 14 characters.",
+            "admin_access_description": "Setting description under Admin access. Server blocks, connection monitor and frame times are feature names. Admin rights means Windows administrator."
+        },
+        "notifications": {
+            "alerts_description": "Setting description under Patch and news alerts. Deadlock and Steam stay untranslated. The tray option is another setting in Startup.",
+            "maintenance_description": "Setting description under Steam maintenance reminder. Mentions the usual UTC time slot and 15 to 30 minutes. Steam and Valve stay untranslated.",
+            "day": "Label of the weekday dropdown for the Steam maintenance reminder. Keep short, about 4 characters.",
+            "time": "Label of the time of day input for the maintenance reminder. Time is in UTC. Keep short, about 10 characters.",
+            "remind": "Label of the dropdown for how long before maintenance to notify. Keep short, about 10 characters.",
+            "lead_minutes": "Dropdown option for the maintenance reminder lead time. {minutes} = number of minutes, e.g. 30. Keep short, about 14 characters.",
+            "lead_hours": "Dropdown option for the maintenance reminder lead time. {hours} = number of hours, e.g. 2. Keep short, about 14 characters.",
+            "overlay_description": "Setting description under the Game overlay switch. Deadlock stays untranslated.",
+            "overlay_fullscreen": "Warning under the overlay switch when the game runs in exclusive Full Screen. Full Screen mode and Borderless Window are Deadlock video setting names. Match the game's own translation.",
+            "overlay_position_description": "Setting description under Overlay position.",
+            "overlay_duration_description": "Setting description under Overlay duration.",
+            "overlay_test_description": "Setting description under Test the overlay.",
+            "overlay_notifications_description": "Setting description under Overlay notifications. 'Match found' and 'Notifications' are names of other settings, keep them consistent.",
+            "overlay_notifications_button": "Button on Settings, Game overlay that jumps to the Notifications settings. Keep short, about 18 characters.",
+            "overlay_test_button": "Button that shows a sample overlay notification. Keep short, about 9 characters.",
+            "overlay_test_countdown": "Button text while the test notification counts down. {seconds} = seconds left, e.g. 3. Keep short, about 14 characters.",
+            "overlay_seconds": "Slider value for overlay duration. {seconds} = number of seconds, e.g. 5. 's' is the unit for seconds. Keep short, about 5 characters.",
+            "position": {
+                "top_left": "Option in the overlay position picker. Screen corner. Keep short, about 8 characters.",
+                "top_center": "Option in the overlay position picker. Top middle of the screen. Keep short, about 10 characters.",
+                "top_right": "Option in the overlay position picker. Screen corner. Keep short, about 9 characters.",
+                "left": "Option in the overlay position picker. Middle of the left screen edge. Keep short, about 4 characters.",
+                "right": "Option in the overlay position picker. Middle of the right screen edge. Keep short, about 5 characters.",
+                "bottom_left": "Option in the overlay position picker. Screen corner. Keep short, about 11 characters.",
+                "bottom_center": "Option in the overlay position picker. Bottom middle of the screen. Keep short, about 13 characters.",
+                "bottom_right": "Option in the overlay position picker. Screen corner. Keep short, about 12 characters.",
+                "center": "Label in the middle of the overlay position picker. It marks where the Match found notification shows, in the screen center. Keep short, about 12 characters."
+            },
+            "overlay_match_found_description": "Setting description under the Match found notification setting. Queue is the matchmaking queue.",
+            "overlay_queue_stopped_description": "Setting description under the Queue stopped notification setting. Queue is the matchmaking queue.",
+            "server_blocks_updated_description": "Setting description under Server blocks updated. Valve stays untranslated. Server Picker is a feature name, keep consistent.",
+            "server_blocks_stale_description": "Setting description under Server blocks out of date. Server Picker is a feature name, keep consistent.",
+            "break_reminder_description": "Setting description under Break reminder. Sessions is an app page name, keep consistent with it.",
+            "front_page_after_match_description": "Setting description under Front page after each match. Front page is a newspaper style recap. Deadlock+ stays untranslated.",
+            "front_page_modes": "Small label above a row of game mode toggle buttons, also read by screen readers before each mode name. Selects which match modes get a front page.",
+            "front_page_overlay_alert_description": "Setting description under Front page waiting. Deadlock+ stays untranslated.",
+            "delivery_label": "Label of a dropdown on each notification row. Chooses how the notification is delivered. Keep short, about 9 characters.",
+            "delivery": {
+                "both": "Option in the delivery dropdown. Shows in the game overlay while playing, otherwise as a desktop notification. Keep short, about 30 characters.",
+                "overlay": "Option in the delivery dropdown. Only the in game overlay. Keep short, about 14 characters.",
+                "os": "Option in the delivery dropdown. A normal operating system desktop notification. Keep short, about 20 characters.",
+                "quiet": "Option in the delivery dropdown. Desktop notification, but suppressed while the game is running. Keep short, about 26 characters.",
+                "center": "Option in the delivery dropdown. Only kept in the app's notification center, no popup. Keep short, about 25 characters."
+            },
+            "overlay_off_fallback": "Hint under a notification row when the game overlay is off. The notification goes to the desktop instead.",
+            "overlay_off_hidden": "Hint under a notification row when the game overlay is off. The notification is not shown at all."
+        },
+        "weekdays": {
+            "monday": "Day name in the maintenance reminder weekday dropdown.",
+            "tuesday": "Day name in the maintenance reminder weekday dropdown.",
+            "wednesday": "Day name in the maintenance reminder weekday dropdown.",
+            "thursday": "Day name in the maintenance reminder weekday dropdown.",
+            "friday": "Day name in the maintenance reminder weekday dropdown.",
+            "saturday": "Day name in the maintenance reminder weekday dropdown.",
+            "sunday": "Day name in the maintenance reminder weekday dropdown."
+        },
+        "countdown": {
+            "days": "Short countdown text for time until maintenance. {days} = whole days, e.g. 2. {hours} = hours, e.g. 5. 'd' and 'h' are unit abbreviations. Keep short, about 10 characters.",
+            "hours": "Short countdown text for time until maintenance. {hours} = hours, e.g. 3. {minutes} = minutes, e.g. 20. Keep short, about 14 characters.",
+            "minutes": "Short countdown text for time until maintenance. {minutes} = minutes, e.g. 45. Keep short, about 8 characters.",
+            "soon": "Countdown text used when under one minute is left until maintenance. Fits into a sentence."
+        },
+        "discord": {
+            "presence_description": "Page subtitle on the Discord presence page. Discord is a product name.",
+            "level_off": "Option title in the presence level picker. Presence is hidden. Keep short, about 3 characters.",
+            "level_basic": "Option title in the presence level picker. Minimal info shown. Keep short, about 5 characters.",
+            "level_detailed": "Option title in the presence level picker. Full info shown. Keep short, about 8 characters.",
+            "level_off_description": "Option description under the Off level in the presence picker.",
+            "level_basic_description": "Option description under the Basic level in the presence picker. Deadlock stays untranslated.",
+            "level_detailed_description": "Option description under the Detailed level in the presence picker. Hero, mode and rank are Deadlock game terms, match the game's own translation.",
+            "support_label": "Setting label on the Discord presence page. Deadlock+ stays untranslated.",
+            "support_description": "Setting description. Download Deadlock+ is the text on a button added to your Discord activity. Deadlock+ and Discord stay untranslated.",
+            "logo_label": "Setting label on the Discord presence page. Deadlock+ stays untranslated.",
+            "logo_description": "Setting description. Deadlock stays untranslated. The large image is the big picture on a Discord activity card.",
+            "delay_label": "Setting label on the Discord presence page. Names the slider for how long Discord status waits before updating.",
+            "delay_description": "Setting description under Delay. Friends see your Discord status late by the chosen time.",
+            "delay_off": "Value shown on the delay slider when there is no delay. Keep short, about 3 characters.",
+            "delay_seconds": "Value shown on the delay slider. {seconds} = number of seconds, e.g. 30. 's' is the unit for seconds. Keep short, about 5 characters.",
+            "client_running": "Status text under a Discord app in the list. The app is open now. Keep short, about 7 characters.",
+            "client_not_running": "Status text under a Discord app in the list. The app is not open. Keep short, about 11 characters.",
+            "client_other_hint": "Subtitle under the Other entry in the Discord apps list. Vesktop is a third party Discord app name, keep untranslated.",
+            "clients_description": "Description under the Discord apps heading. Discord is a product name. Lists which installed Discord apps show your presence.",
+            "client_stable": "Name of the standard Discord app in the apps list. Product name, keep untranslated.",
+            "client_ptb": "Name of Discord's Public Test Build app in the apps list. Product name, keep untranslated.",
+            "client_canary": "Name of Discord's Canary app in the apps list. Product name, keep untranslated.",
+            "client_other_label": "Name of the entry for any other Discord compatible app in the Discord apps list. Keep short, about 5 characters.",
+            "client_stable_name": "Name of the standard Discord app used in the status line. Product name, keep untranslated.",
+            "client_ptb_name": "Name of Discord's Public Test Build app used in the status line. Product name, keep untranslated.",
+            "client_canary_name": "Name of Discord's Canary app used in the status line. Product name, keep untranslated.",
+            "client_other_name": "Name of an unknown Discord compatible app in the status line. {pipe} = connection slot number, e.g. 1. Discord stays untranslated.",
+            "status_off": "Status line on the Discord presence page when presence is turned off. Keep short, about 3 characters.",
+            "status_none": "Status line on the Discord presence page when no Discord app is open. Discord is a product name.",
+            "status_showing": "Status line on the Discord presence page. {clients} = comma separated Discord app names, e.g. \"Discord, Discord PTB\"."
+        },
+        "discord_editor": {
+            "description": "Description under the Presence editor heading. Activity means the Discord status card. States, lines, images and timer are parts of that card.",
+            "loading": "Loading text shown in place of the Discord activity editor on Settings > Discord until it is ready.",
+            "states": "Screen reader label for the list of activity states (Main menu, In a match, etc.) in the Discord activity editor.",
+            "customised": "Small status text next to a field in the Discord activity editor. Means you changed this field. Keep short, about 10 characters.",
+            "inherited": "Small status text next to a field in the Discord activity editor. Means the field still uses the default value. Keep short, about 7 characters.",
+            "field_details": "Field label in the Discord activity editor for the first text line of the Discord card.",
+            "field_state": "Field label in the Discord activity editor for the second text line of the Discord card.",
+            "field_large_image": "Field label in the Discord activity editor for the big picture on the Discord card.",
+            "field_large_text": "Field label in the Discord activity editor for the text shown when hovering the large image on Discord.",
+            "field_small_image": "Field label in the Discord activity editor for the small round picture on the Discord card.",
+            "field_small_text": "Field label in the Discord activity editor for the text shown when hovering the small image on Discord.",
+            "field_timer": "Field label in the Discord activity editor for the timer shown on the Discord card.",
+            "timer_aria": "Screen reader label for the dropdown that picks which timer Discord shows.",
+            "reset_field": "Screen reader label and tooltip on a reset icon button in the Discord activity editor. {field} = field name, e.g. \"Top line\".",
+            "reset_scope": "Button in the Discord activity editor that resets the currently selected state to its defaults.",
+            "reset_all": "Button in the Discord activity editor that resets all presence settings. Opens a confirmation dialog.",
+            "reset_all_title": "Title of the confirmation dialog opened by the Reset everything button in the Discord activity editor.",
+            "reset_all_description": "Body text of the reset confirmation dialog in the Discord activity editor. Contains \"Deadlock+\", which stays untranslated.",
+            "all_heroes": "Option in the hero dropdown of the Discord activity editor. Means the default that applies to every hero. Hero is a Deadlock game term.",
+            "sample_hero": "Sample hero name used only in the Discord card preview. Use the game's own translation of the hero Haze. Deadlock game term.",
+            "image_enabled": "Screen reader label for a switch that shows or hides an image on the Discord card. {image} = image field name, e.g. \"Large image\".",
+            "image_source": "Screen reader label for the dropdown that picks where an image comes from. {image} = image field name, e.g. \"Small image\".",
+            "image_url": "Screen reader label for the text input holding an image web address. {image} = image field name, e.g. \"Large image\".",
+            "source_heroPortrait": "Dropdown option for an image source on the Discord activity editor. Picture of the hero you play. Hero is a Deadlock game term.",
+            "source_heroIcon": "Dropdown option for an image source on the Discord activity editor. Small icon of the hero you play. Hero is a Deadlock game term.",
+            "source_rankBadge": "Dropdown option for an image source on the Discord activity editor. Badge image of your rank. Rank is a Deadlock game term.",
+            "source_modeIcon": "Dropdown option for an image source on the Discord activity editor. Icon of the current game mode.",
+            "source_customUrl": "Dropdown option for an image source on the Discord activity editor. You type your own image web address.",
+            "timer_none": "Dropdown option for the Discord timer. Means no timer is shown.",
+            "timer_elapsedInState": "Dropdown option for the Discord timer. Counts time since the current activity state began. Contains \"Deadlock\", which stays untranslated.",
+            "timer_matchTime": "Dropdown option for the Discord timer. Shows the running match time.",
+            "preview": "Screen reader label for the Discord card preview group in the Discord activity editor.",
+            "preview_header": "Small uppercase header on the Discord card preview. Copies Discord's own \"Playing\" header. Keep short, about 7 characters.",
+            "preview_disabled": "Message in the Discord card preview when the selected state sends no activity to Discord.",
+            "preview_failed": "Error message in the Discord card preview when it can't be drawn. Tells the user to check the lines for a typo.",
+            "preview_large_text": "Line in the Discord card preview showing the large image hover text. {text} = the hover text, e.g. \"Haze\".",
+            "preview_small_text": "Line in the Discord card preview showing the small image hover text. {text} = the hover text, e.g. \"Ranked\".",
+            "share": "Section heading in the Discord activity editor for sharing presets (export and import of settings).",
+            "share_description": "Description under the Share a preset heading in the Discord activity editor. Names the Copy preset button and the Import button; match their labels.",
+            "import_label": "Label of the text box where the user pastes preset text in the Discord activity editor.",
+            "import": "Button in the Discord activity editor. Imports pasted preset text. Keep short, about 6 characters.",
+            "import_file": "Button in the Discord activity editor. Opens a file picker to import a preset from a file. Keep short, about 16 characters.",
+            "export": "Button in the Discord activity editor. Copies your preset to the clipboard as text. Keep short, about 11 characters.",
+            "exported": "Toast shown after the preset is copied to the clipboard in the Discord activity editor.",
+            "export_failed": "Error toast shown when the preset could not be copied to the clipboard.",
+            "imported": "Toast shown after a preset is imported in the Discord activity editor.",
+            "state": {
+                "playing": "Name of an activity state in the Discord activity editor list. Shown while in a game. Keep short, about 10 characters.",
+                "mainMenu": "Name of an activity state in the Discord activity editor list. The game's main menu screen. Keep short, about 10 characters.",
+                "hideout": "Name of an activity state in the Discord activity editor list. Hideout is a Deadlock game term, match the game's own translation.",
+                "findingMatch": "Name of an activity state in the Discord activity editor list. Shown while searching for a match. Keep short, about 16 characters.",
+                "matchFound": "Name of an activity state in the Discord activity editor list. Shown when a match was found. Keep short, about 11 characters.",
+                "preGame": "Name of an activity state in the Discord activity editor list. The phase before a match starts, like hero pick. Keep short, about 8 characters.",
+                "inMatch": "Name of an activity state in the Discord activity editor list. Shown during a match. Keep short, about 10 characters.",
+                "streetBrawlRound": "Name of an activity state in the Discord activity editor list. Street Brawl is a Deadlock game mode, match the game's own translation.",
+                "paused": "Name of an activity state in the Discord activity editor list. Shown while the match is paused. Keep short, about 6 characters.",
+                "spectating": "Name of an activity state in the Discord activity editor list. Shown while watching someone else's match. Keep short, about 10 characters.",
+                "postGame": "Name of an activity state in the Discord activity editor list. The phase after a match ends. Keep short, about 9 characters.",
+                "privateLobby": "Name of an activity state in the Discord activity editor list. A private lobby with friends. Keep short, about 13 characters.",
+                "practice": "Name of an activity state in the Discord activity editor list. Shown in practice mode. Keep short, about 8 characters."
+            },
+            "variant": {
+                "solo": "Name of a variant of an activity state in the Discord activity editor. You queue alone. Keep short, about 4 characters.",
+                "party": "Name of a variant of an activity state in the Discord activity editor. You queue in a group. Keep short, about 5 characters.",
+                "unranked": "Name of a variant of an activity state in the Discord activity editor. A non ranked match. Ranked is a Deadlock game term. Keep short, about 8 characters.",
+                "ranked": "Name of a variant of an activity state in the Discord activity editor. A ranked match. Deadlock game term, match the game's translation. Keep short, about 6 characters.",
+                "bots": "Name of a variant of an activity state in the Discord activity editor. A match against bots. Keep short, about 4 characters.",
+                "tutorial": "Name of a variant of an activity state in the Discord activity editor. The tutorial. Keep short, about 8 characters.",
+                "normal": "Name of a variant of an activity state in the Discord activity editor. A standard match. Keep short, about 6 characters.",
+                "streetBrawl": "Name of a variant of an activity state in the Discord activity editor. Street Brawl is a Deadlock game mode, match the game's own translation.",
+                "sandbox": "Name of a variant of an activity state in the Discord activity editor. Sandbox is a Deadlock game mode, match the game's own translation.",
+                "exploreNyc": "Name of a variant of an activity state in the Discord activity editor. Explore NYC is a Deadlock game mode, match the game's own translation.",
+                "won": "Name of a variant of an activity state in the Discord activity editor. A match you won. Keep short, about 3 characters.",
+                "lost": "Name of a variant of an activity state in the Discord activity editor. A match you lost. Keep short, about 4 characters.",
+                "unscored": "Name of a variant of an activity state in the Discord activity editor. A match without a win or loss result. Keep short, about 8 characters."
+            },
+            "editing": "Label of the hero dropdown in the Discord activity editor. Picks which hero's lines you edit. Hero is a Deadlock game term.",
+            "editing_default_hint": "Hint text under the hero dropdown in the Discord activity editor when the default is selected. Hero is a Deadlock game term.",
+            "editing_hero_hint": "Hint text under the hero dropdown in the Discord activity editor. {hero} = hero name, e.g. \"Haze\". \"Default\" names the Default option, match it.",
+            "no_hero_layer": "Hint text in the Discord activity editor for states that can't differ per hero. Hero is a Deadlock game term.",
+            "row_enabled": "Screen reader label for the switch on an activity state row. {name} = state name, e.g. \"Main menu\". Discord stays untranslated.",
+            "no_top_line": "Secondary text on an activity state row when its top line is empty. Top line names the first text line field, match it.",
+            "insert_variable": "Button in the Discord activity editor that opens a menu of values to add into a line. Keep short, about 12 characters.",
+            "insert_into": "Small heading in the insert value menu. {field} = name of the text field that gets the value, e.g. \"Top line\".",
+            "sensitive": "Warning badge on a value in the syntax help, meaning it reveals the match ID to others. Keep short, about 20 characters.",
+            "syntax_help": "Menu item in the insert value menu that opens the syntax help card.",
+            "variables_hint": "Hint text next to the Insert value button in the Discord activity editor.",
+            "placeholder": {
+                "hero": "Short description of a value you can insert, shown in lists. The hero you play. Hero is a Deadlock game term.",
+                "mode": "Short description of a value you can insert. The match mode, e.g. \"Ranked\". Ranked is a Deadlock game term.",
+                "gameMode": "Short description of a value you can insert. The game mode, e.g. \"Street Brawl\". Deadlock game term, match the game's translation.",
+                "rank": "Short description of a value you can insert. Your rank in ranked matches. Ranks are Deadlock game terms.",
+                "kills": "Short description of a value you can insert. The number of kills you have in the match.",
+                "deaths": "Short description of a value you can insert. The number of deaths you have in the match.",
+                "assists": "Short description of a value you can insert. The number of assists you have in the match.",
+                "souls": "Short description of a value you can insert. Your souls, e.g. \"24.1k\". Souls is a Deadlock game term, match the game's translation.",
+                "partySize": "Short description of a value you can insert. How many players are in your party.",
+                "partyMax": "Short description of a value you can insert. The largest size the party can be.",
+                "round": "Short description of a value you can insert. The Street Brawl round number. Street Brawl is a Deadlock game term.",
+                "scoreAmber": "Short description of a value you can insert. The Amber team score in Street Brawl. Amber and Street Brawl are Deadlock game terms.",
+                "scoreSapphire": "Short description of a value you can insert. The Sapphire team score in Street Brawl. Sapphire and Street Brawl are Deadlock game terms.",
+                "elapsed": "Short description of a value you can insert. Time spent in the current activity state.",
+                "queueTime": "Short description of a value you can insert. How long you have been in the matchmaking queue.",
+                "result": "Short description of a value you can insert. Whether you won or lost the match.",
+                "matchId": "Short description of a value you can insert. The number that identifies the match.",
+                "heroPresence": "Short description of a value you can insert. A line of text belonging to your hero, used in the Hideout. Hero and Hideout are Deadlock game terms."
+            },
+            "preview_game": "Game name shown on the Discord card preview. \"Deadlock\" stays untranslated.",
+            "preview_logo": "Tooltip on the logo in the Discord card preview. Explains Discord shows the Deadlock logo when no large image is sent. \"Deadlock\" stays untranslated.",
+            "preview_large_image": "Screen reader text for the large image in the Discord card preview.",
+            "preview_small_image": "Screen reader text for the small image in the Discord card preview.",
+            "preview_elapsed": "Timer line on the Discord card preview. {time} = elapsed clock time, e.g. \"12:34\".",
+            "preview_discord_row": "Small badge in the Discord card preview for extras Discord adds itself. Keep short, about 18 characters.",
+            "preview_discord_sample": "Note in the Discord card preview about extras Discord adds on its own, like Streak and Trending. These are Discord's own terms, match Discord's translation.",
+            "preview_support_button": "Fake button in the Discord card preview. Imitates the button on the Discord card. Contains \"Deadlock+\", which stays untranslated.",
+            "syntax": {
+                "title": "Heading of the syntax help card in the Discord activity editor.",
+                "copied": "Toast shown after a syntax example is copied to the clipboard.",
+                "copy_example": "Screen reader label for a clickable example that copies it to the clipboard. {text} = the example text, e.g. \"{kills}\".",
+                "nothing": "Shown in the syntax help when an example result is an empty line.",
+                "no_sample": "Shown in the values table of the syntax help when the preview has no sample for that value.",
+                "rules_title": "Section heading in the syntax help card above a short list of rules.",
+                "rule_length": "Bullet point in the syntax help rules list. Discord limits each line to 2 to 128 characters.",
+                "rule_empty": "Bullet point in the syntax help rules list about an empty line.",
+                "rule_unclosed": "Bullet point in the syntax help rules list. Keep the \"[[\" characters as written.",
+                "rule_unknown": "Bullet point in the syntax help rules list about a mistyped value name.",
+                "privacy": "Paragraph at the end of the syntax help card about which values are available and when the match ID is hidden. Basic and Detailed are presence levels, match those labels.",
+                "intro": "Intro paragraph under the heading of the syntax help card. Contains \"Discord\", which stays untranslated.",
+                "you_see": "Label before the result of an example in the syntax help, shown only on narrow windows. Keep short, about 8 characters.",
+                "step1_title": "Heading of step 1 in the syntax help. Explains writing a value name in curly brackets.",
+                "step1_body": "Body of step 1 in the syntax help. Curly brackets are literal characters. Contains \"Deadlock+\", which stays untranslated.",
+                "step2_title": "Heading of step 2 in the syntax help. Explains what happens when a value is unknown.",
+                "step2_body": "Body of step 2 in the syntax help. Explains a missing value is left out.",
+                "step3_title": "Heading of step 3 in the syntax help. Explains optional parts in double square brackets.",
+                "step3_body": "Body of step 3 in the syntax help. Double square brackets are literal characters.",
+                "step4_title": "Heading of step 4 in the syntax help. Explains fallback choices.",
+                "step4_body": "Body of step 4 in the syntax help. Two bars are the literal characters \"||\". Contains \"Deadlock+\", which stays untranslated.",
+                "list_title": "Section heading in the syntax help above the table of all insertable values.",
+                "list_body": "Intro text above the values table in the syntax help. \"Insert value\" names a button, match its label.",
+                "col_variable": "Table column header in the syntax help values table. Names the value you insert. Keep short, about 5 characters.",
+                "col_shows": "Table column header in the syntax help values table. Describes what the value displays. Keep short, about 13 characters.",
+                "col_example": "Table column header in the syntax help values table. Shows a sample result. Keep short, about 7 characters.",
+                "group_you": "Group heading in the syntax help values table for values about you. Keep short, about 3 characters.",
+                "group_match": "Group heading in the syntax help values table for values about the match. Keep short, about 5 characters.",
+                "group_party": "Group heading in the syntax help values table for party and queue values. Keep short, about 15 characters.",
+                "group_streetBrawl": "Group heading in the syntax help values table. Street Brawl is a Deadlock game mode, match the game's own translation.",
+                "group_misc": "Group heading in the syntax help values table for all other values. Keep short, about 5 characters."
+            },
+            "timer_queueTime": "Dropdown option for the Discord timer. Counts time spent in the matchmaking queue.",
+            "field_party_size": "Field label in the Discord activity editor for the switch that shows the party size.",
+            "party_size_aria": "Screen reader label for the switch that shows party size on the Discord card.",
+            "party_size_hint": "Hint text next to the party size switch. The brackets show the format of the party count, e.g. \"(2 of 6)\".",
+            "preview_party": "Party count in the Discord card preview. {size} = players in party, e.g. 2. {max} = largest party size, e.g. 6.",
+            "detailed_only": "Notice in the Discord activity editor when presence level is not Detailed. Basic and Detailed are presence levels, match their labels. \"Playing\" matches Discord's header."
+        },
+        "privacy": {
+            "telemetry_description": "Setting description on Settings > Privacy for the usage data toggle. Lists what is sent and what never is.",
+            "telemetry_reset": "Button on Settings > Privacy. Replaces the random usage data ID with a new one.",
+            "telemetry_reset_done": "Toast shown after the usage data ID was reset.",
+            "ingest_waiting": "Status line on Settings > Privacy. Match sharing is waiting for the user to answer a prompt.",
+            "ingest_off": "Status line on Settings > Privacy. Match sharing is turned off. Keep short, about 3 characters.",
+            "ingest_no_cache": "Error status on Settings > Privacy. Steam's saved web data was not found on this PC. Steam is a product name and stays untranslated.",
+            "ingest_failed": "Error status on Settings > Privacy. The last match upload failed and the user can check the log.",
+            "ingest_watching": "Status line on Settings > Privacy. {count} = number of matches shared in this app session, e.g. 3.",
+            "ingest_description": "Setting description on Settings > Privacy for the toggle that shares matches with the Deadlock API. Detail means full match data.",
+            "gc_description": "Setting description on Settings > Privacy for the toggle that fills in matches the Deadlock API is missing. Contains \"Deadlock\", which stays untranslated.",
+            "how_it_works": "Expandable summary label on Settings > Privacy. Opens a short list explaining how a sharing option works.",
+            "ingest_how_find": "Bullet in the How it works list for match sharing. Explains where Deadlock+ finds match data. Contains \"Deadlock+\" and \"Deadlock\", which stay untranslated.",
+            "ingest_how_send": "Bullet in the How it works list for match sharing. Says what is sent. Contains \"Deadlock API\", a service name, which stays untranslated.",
+            "gc_how_login": "Bullet in the How it works list for the Steam login option. Steam stays untranslated.",
+            "gc_how_limit": "Bullet in the How it works list for the Steam login option. States a daily limit per account.",
+            "gc_how_game": "Bullet in the How it works list for the Steam login option. Contains \"Deadlock\", which stays untranslated.",
+            "gc_how_send": "Bullet in the How it works list for the Steam login option. Says what is sent. Steam stays untranslated.",
+            "gc_own_label": "Setting label on Settings > Privacy for a sub setting that recovers the user's own match history.",
+            "gc_own_description": "Setting description under Recover my match history. Contains \"Deadlock API\", a service name, which stays untranslated.",
+            "advanced": "Expandable section heading on Settings > Privacy that holds advanced options. Keep short, about 8 characters.",
+            "gc_own_open": "Link button on Settings > Privacy that goes to the Match History page. Match the Match History page name.",
+            "shared": {
+                "title": "Expandable section heading on Settings > Privacy listing matches the user has shared.",
+                "source_steam": "Table cell on the shared matches list showing the source of the data. Steam is a product name and stays untranslated.",
+                "source_deadlock": "Table cell on the shared matches list showing the source of the data was the game. \"Deadlock\" stays untranslated.",
+                "source_login": "Table cell on the shared matches list showing the source of the data was a Steam login. Steam stays untranslated.",
+                "with_replay": "Badge in the shared matches heading. {count} = number of shared matches with a replay, e.g. 12. Keep short, about 15 characters.",
+                "when": "Table column header in the shared matches list for the time of the match. Keep short, about 4 characters.",
+                "match": "Table column header in the shared matches list for the match ID. Keep short, about 5 characters.",
+                "from": "Table column header in the shared matches list for where the data came from. Keep short, about 4 characters.",
+                "details": "Table column header in the shared matches list. Shows whether match details were sent. Keep short, about 7 characters.",
+                "replay": "Table column header in the shared matches list. Shows whether the replay was sent. Keep short, about 6 characters.",
+                "sent": "Screen reader label for a check mark icon in the shared matches table. The data was sent.",
+                "not_sent": "Screen reader label for a dash icon in the shared matches table. The data was not sent.",
+                "empty": "Empty state text in the shared matches list on Settings > Privacy."
+            }
+        },
+        "about_page": {
+            "copy": "Button on Settings > About. Copies version details to the clipboard. Keep short, about 4 characters.",
+            "copied": "Toast shown after version details were copied on Settings > About.",
+            "copy_failed": "Error toast shown when version details could not be copied to the clipboard.",
+            "install": "Button on Settings > About that installs an available update. {version} = version number, e.g. \"0.15.0\".",
+            "check_now": "Button on Settings > About that checks for an app update right now. Keep short, about 10 characters.",
+            "auto_check_label": "Setting label on Settings > About for the switch that checks for updates on its own.",
+            "auto_check_description": "Setting description on Settings > About for automatic update checks. GitHub is a product name and stays untranslated.",
+            "whats_new_in": "Expandable heading on Settings > About for the release notes. {version} = version number, e.g. \"0.15.0\"."
+        },
+        "diagnostics": {
+            "description": "Setting description on Settings > Diagnostics for the session log viewer.",
+            "collapse": "Button on the log viewer that makes it smaller. Keep short, about 8 characters.",
+            "expand": "Button on the log viewer that makes it bigger. Keep short, about 6 characters."
+        },
+        "licenses": {
+            "read_full": "Link button on Settings > Licenses that opens the full licence of the app on the web. Licence here is the legal document.",
+            "terms_link": "Small link on a font or artwork entry in Settings > Licenses. Opens the licence terms on the web.",
+            "copyright": "Expandable summary label on a licence entry. Opens the copyright notice text.",
+            "fonts_heading": "Section heading on Settings > Licenses above the list of fonts and artwork used in the app.",
+            "app_summary": "Short licence summary on Settings > Licenses. Contains \"Deadlock+\", which stays untranslated. Use the official name of the GNU General Public License in your language.",
+            "app_warranty": "Short sentence under the licence summary on Settings > Licenses. Means no warranty is given.",
+            "disclaimer": "Legal disclaimer on Settings > Licenses. \"Deadlock+\", \"Deadlock\", \"Steam\" and \"Valve Corporation\" stay untranslated.",
+            "kind_font": "Small tag on a Settings > Licenses entry saying it is a font. Keep short, about 4 characters.",
+            "kind_artwork": "Small tag on a Settings > Licenses entry saying it is artwork. Keep short, about 7 characters.",
+            "terms_not_open_source": "Short licence note on a font entry in Settings > Licenses. The font license is not open source.",
+            "terms_valve_oracle": "Short licence note on the VALVE Oracle font entry in Settings > Licenses.",
+            "terms_valve_pulp": "Short licence note on the Valve Pulp font entry in Settings > Licenses. \"Steam Subscriber Agreement\" is a legal document name, use Valve's official translation if one exists.",
+            "terms_twemoji": "Short licence note on the Twemoji flag artwork entry in Settings > Licenses. MIT is a licence name and stays untranslated.",
+            "dependencies_title": "Expandable heading on Settings > Licenses for the list of open source packages used.",
+            "dependencies_description": "Description under the dependencies heading on Settings > Licenses.",
+            "dependencies_failed": "Error message on Settings > Licenses when the dependency licences could not be loaded.",
+            "dependencies_loading": "Loading text in the dependencies list on Settings > Licenses.",
+            "dependencies_packages": "Label under a number in a three column summary on Settings > Licenses. Total of all packages. Keep short, about 8 characters.",
+            "dependencies_rust": "Label under a number in a three column summary on Settings > Licenses. Rust is a programming language name. Keep short, about 11 characters.",
+            "dependencies_npm": "Label under a number in a three column summary on Settings > Licenses. npm is a package manager name. Keep short, about 12 characters.",
+            "dependencies_no_file": "Note under a group of packages on Settings > Licenses. {title} = licence name, e.g. \"MIT\"."
+        },
+        "thanks": {
+            "intro": "Intro text on the Thanks card in Settings. Contains \"Deadlock+\", which stays untranslated.",
+            "contributors": "Section heading on the Thanks card in Settings. People who contributed code or docs.",
+            "contributors_description": "Short description under the Contributors heading on the Thanks card.",
+            "translators": "Section heading on the Thanks card in Settings. People who translated the app.",
+            "translators_description": "Short description under the Translators heading on the Thanks card. Contains \"Deadlock+\", which stays untranslated.",
+            "donators": "Section heading on the Thanks card in Settings. People who donated money.",
+            "donators_description": "Short description under the Donators heading on the Thanks card.",
+            "others": "Plural text at the end of the donators list on the Thanks card. {count} = number of further named donators, e.g. 4.",
+            "anonymous": "Plural text on the Thanks card when all donators are anonymous. {count} = number of anonymous donators, e.g. 3.",
+            "nobody_yet": "Empty state text on the Thanks card when no names are listed."
+        }
+    },
+    "storage": {
+        "subtitle": "Description under the Storage page heading. Deadlock and Deadlock+ stay untranslated.",
+        "show_paths": "Button on the Storage page that reveals file paths under each entry. Keep short, about 12 characters.",
+        "hide_paths": "Button on the Storage page that hides the file paths again. Keep short, about 12 characters.",
+        "refresh": "Button on the Storage page that measures file sizes again. Keep short, about 10 characters.",
+        "looking": "Loading text shown on the Storage page while it scans folders. Casual tone.",
+        "footnote": "Footnote at the bottom of the Storage page about what can be cleared. Deadlock and Deadlock+ stay untranslated.",
+        "summary": {
+            "total": "Label above the total size of all files found, in the Storage summary. Keep short, about 12 characters.",
+            "can_clear": "Label above the size that can be cleared, in the Storage summary. Keep short, about 20 characters.",
+            "clear_regenerable": "Button in the Storage summary that clears every file the game rebuilds itself. Keep short, about 25 characters."
+        },
+        "entry": {
+            "path_missing": "Text in a Storage entry row, shown in place of the file path when the folder does not exist on this PC.",
+            "not_found": "Short status in a Storage entry row, shown on the right when the folder does not exist. Keep short, about 10 characters.",
+            "retry_aria": "Screen reader label for the Retry button in a Storage entry row. {label} = entry name, e.g. \"Replays\".",
+            "retry": "Small link button in a Storage entry row, shown when measuring its size failed. Keep short, about 6 characters.",
+            "measuring": "Screen reader label for the spinner in a Storage entry row while its size is measured.",
+            "open_aria": "Screen reader label for the icon button that opens the page for an entry. {label} = entry name, e.g. \"Replays\".",
+            "open_title": "Tooltip on the icon button that opens the page for an entry. {label} = entry name, e.g. \"Replays\".",
+            "reveal_aria": "Screen reader label for the icon button that shows an entry in its folder. {label} = entry name, e.g. \"Shader cache\".",
+            "reveal_title": "Tooltip on the icon button in a Storage entry row that opens the folder in File Explorer.",
+            "clear_aria": "Screen reader label for the icon button that clears an entry. {label} = entry name, e.g. \"Shader cache\".",
+            "clear_title": "Tooltip on the icon button in a Storage entry row that deletes its files. Keep short, about 6 characters."
+        },
+        "dialog": {
+            "cancel": "Cancel button in the Storage clear confirmation dialog. Keep short, about 8 characters.",
+            "clear": "Red confirm button in the Storage clear confirmation dialog that deletes the files. Keep short, about 6 characters."
+        },
+        "clear": {
+            "title": "Title of the confirmation dialog for clearing one Storage entry. {name} = lowercase entry name, e.g. \"replays\" or \"the shader cache\".",
+            "body": "Body of the clear confirmation dialog. {size} = size freed, e.g. \"1.2 GB\". {consequence} = a sentence on what happens after clearing, shown as is.",
+            "all_title": "Title of the confirmation dialog for clearing all rebuildable Storage entries at once.",
+            "all_body": "Body of the clear all dialog. {size} = size freed, e.g. \"1.2 GB\". {names} = comma separated entry names, e.g. \"Shader cache, Console log\"."
+        },
+        "toast": {
+            "freed": "Toast shown after clearing files. {size} = space freed, e.g. \"1.2 GB\".",
+            "nothing": "Toast shown when clearing found no files to remove."
+        },
+        "age": {
+            "today": "Age text in a Storage entry row, used inside the oldest item note. Means the oldest file is from today. Lowercase.",
+            "days": "Age text in a Storage entry row for the oldest file, plural forms. {count} = days, e.g. 5. Lowercase.",
+            "months": "Age text in a Storage entry row for the oldest file, plural forms. {count} = months, e.g. 3. Lowercase.",
+            "years": "Age text in a Storage entry row for the oldest file, plural forms. {count} = years, e.g. 2. Lowercase."
+        },
+        "units_oldest": "Detail line in a Storage entry row. {units} = item count text, e.g. \"12 replays\". {age} = age of the oldest item, e.g. \"3 months\".",
+        "owners": {
+            "deadlock": {
+                "label": "Group heading on the Storage page for files kept by the game. Deadlock is the game name and stays untranslated.",
+                "blurb": "Description under the Deadlock group heading on the Storage page. Deadlock is the game name and stays untranslated."
+            },
+            "deadlock_plus": {
+                "label": "Group heading on the Storage page for files kept by this app. Deadlock+ is the app name and stays untranslated.",
+                "blurb": "Description under the Deadlock+ group heading on the Storage page. It means files this app keeps."
+            },
+            "mods": {
+                "label": "Group heading on the Storage page for mod files and their backups.",
+                "blurb": "Description under the mods group heading on the Storage page. Says Deadlock+ does not clear these files."
+            }
+        },
+        "kinds": {
+            "regenerates": {
+                "label": "Badge on a Storage entry for files that are rebuilt automatically. Keep short, about 16 characters.",
+                "hint": "Tooltip for the Rebuilds itself badge on a Storage entry."
+            },
+            "history": {
+                "label": "Badge on a Storage entry for records of past activity. Keep short, about 8 characters.",
+                "hint": "Tooltip for the History badge on a Storage entry. Warns the data cannot be rebuilt once deleted."
+            },
+            "backup": {
+                "label": "Badge on a Storage entry for safety copies. Keep short, about 8 characters.",
+                "hint": "Tooltip for the Backup badge on a Storage entry."
+            },
+            "yours": {
+                "label": "Badge on a Storage entry for the user's own data. Keep short, about 6 characters.",
+                "hint": "Tooltip for the Yours badge on a Storage entry."
+            },
+            "managed": {
+                "label": "Badge on a Storage entry for files owned by mods or a mod manager. Keep short, about 16 characters.",
+                "hint": "Tooltip for the Managed by mods badge on a Storage entry."
+            }
+        },
+        "entries": {
+            "replays": {
+                "label": "Storage entry name for saved match replays. Row heading on the Storage page.",
+                "clear_name": "Lowercase name of the replays entry, inserted into the clear dialog title as {name}, e.g. \"Clear replays?\".",
+                "description": "Description line of the replays entry on the Storage page. Deadlock stays untranslated.",
+                "consequence": "Sentence shown in the clear dialog for replays. Replays is a page name in this app.",
+                "units": "Count shown in the replays Storage row, plural forms. {count} = number of replays, e.g. 14."
+            },
+            "hero_presence_cache": {
+                "label": "Storage entry name for a small cache file about heroes. Row heading on the Storage page.",
+                "clear_name": "Lowercase name of this entry, inserted into the clear dialog title as {name}, e.g. \"Clear hero presence cache?\".",
+                "description": "Description line of the hero presence cache entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for the hero presence cache."
+            },
+            "shader_cache": {
+                "label": "Storage entry name for the game's compiled shader cache. Row heading on the Storage page.",
+                "clear_name": "Name of the shader cache, inserted into the clear dialog title as {name}, e.g. \"Clear the shader cache?\". Keep the article.",
+                "description": "Description line of the shader cache entry on the Storage page. Shaders are GPU programs.",
+                "consequence": "Sentence shown in the clear dialog for the shader cache. Stutter means brief frame rate drops."
+            },
+            "console_log": {
+                "label": "Storage entry name for the game's console log file. Row heading on the Storage page.",
+                "clear_name": "Name of the console log, inserted into the clear dialog title as {name}, e.g. \"Clear the console log?\". Keep the article.",
+                "description": "Description line of the console log entry. Keep the condebug launch option, with its leading dash, exactly as written in English.",
+                "consequence": "Sentence shown in the clear dialog for the console log."
+            },
+            "voice_ban_backups": {
+                "label": "Storage entry name for backups of the voice chat mute list. Row heading on the Storage page.",
+                "clear_name": "Name of the mute list backups, inserted into the clear dialog title as {name}, e.g. \"Clear your mute list backups?\".",
+                "description": "Description line of the mute list backups entry. Deadlock+ stays untranslated.",
+                "consequence": "Sentence shown in the clear dialog for mute list backups.",
+                "units": "Count shown in the mute list backups row, plural forms. {count} = number of backups, e.g. 6."
+            },
+            "frame_runs": {
+                "label": "Storage entry name for saved frametime captures from the Performance page. Row heading on the Storage page.",
+                "clear_name": "Lowercase name of the frametime runs, inserted into the clear dialog title as {name}, e.g. \"Clear frametime runs?\".",
+                "description": "Description line of the frametime runs entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for frametime runs. Performance is a page name in this app."
+            },
+            "settings": {
+                "label": "Storage entry name for the app's own settings file. Row heading on the Storage page.",
+                "clear_name": "Lowercase name of the settings, inserted into the clear dialog title as {name}, e.g. \"Clear settings?\".",
+                "description": "Description line of the settings entry on the Storage page. Deadlock+ stays untranslated.",
+                "consequence": "Sentence shown in the clear dialog for settings. Warns that preferences reset."
+            },
+            "server_presets": {
+                "label": "Storage entry name for saved presets of the Server Picker feature. Row heading on the Storage page.",
+                "clear_name": "Lowercase name of the server presets, inserted into the clear dialog title as {name}, e.g. \"Clear server presets?\".",
+                "description": "Description line of the server presets entry. Server Picker is a feature name in this app.",
+                "consequence": "Sentence shown in the clear dialog for server presets."
+            },
+            "replay_rules": {
+                "label": "Storage entry name for pinned replays and cleanup rules. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear replay pins and cleanup rules?\".",
+                "description": "Description line of the replay pins and cleanup rules entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog. Pinned replays are protected from automatic cleanup."
+            },
+            "connection_history": {
+                "label": "Storage entry name for recorded ping and route samples. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear connection history?\".",
+                "description": "Description line of the connection history entry. Live is a page name in this app.",
+                "consequence": "Sentence shown in the clear dialog for connection history."
+            },
+            "notifications": {
+                "label": "Storage entry name for the in app alerts and notifications list. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear alerts and notifications?\".",
+                "description": "Description line of the alerts and notifications entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for alerts and notifications."
+            },
+            "patch_notes_index": {
+                "label": "Storage entry name for downloaded patch notes and their search index. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear patch notes search?\".",
+                "description": "Description line of the patch notes search entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for patch notes search. CPU means processor use."
+            },
+            "stats_cache": {
+                "label": "Storage entry name for stats and match data cached from the web. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear saved stats?\".",
+                "description": "Description line of the saved stats entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for saved stats. Stats is a page name in this app."
+            },
+            "server_list_cache": {
+                "label": "Storage entry name for the cached server list of Server Picker. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear saved server list?\".",
+                "description": "Description line of the saved server list entry. Server Picker is a feature name in this app.",
+                "consequence": "Sentence shown in the clear dialog for the saved server list. Server Picker is a feature name."
+            },
+            "replay_info_cache": {
+                "label": "Storage entry name for cached match details of replays. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear saved replay details?\".",
+                "description": "Description line of the saved replay details entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for saved replay details."
+            },
+            "match_cache": {
+                "label": "Storage entry name for cached full match scoreboards. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear saved match details?\".",
+                "description": "Description line of the saved match details entry. Match History is a page name in this app.",
+                "consequence": "Sentence shown in the clear dialog for saved match details.",
+                "units": "Count shown in the saved match details row, plural forms. {count} = number of matches, e.g. 40."
+            },
+            "other_app_files": {
+                "label": "Storage entry name for small leftover app files. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear other app files?\".",
+                "description": "Description line of the other app files entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for other app files."
+            },
+            "logs": {
+                "label": "Storage entry name for the app's log files. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear old log archives?\".",
+                "description": "Description line of the app logs entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for app logs. Logs are used when reporting bugs.",
+                "units": "Count shown in the app logs row, plural forms. {count} = number of log files, e.g. 12."
+            },
+            "addons": {
+                "label": "Storage entry name for files installed by mods or a mod manager. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear installed mods?\".",
+                "description": "Description line of the installed mods entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for installed mods. Warns it can break them."
+            },
+            "addons_backups": {
+                "label": "Storage entry name for mod backups made by a mod manager. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear mod backups?\".",
+                "description": "Description line of the mod backups entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for mod backups.",
+                "units": "Count shown in the mod backups row, plural forms. {count} = number of backups, e.g. 3."
+            },
+            "config_backups": {
+                "label": "Storage entry name for backups of config folders. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear config backups?\".",
+                "description": "Description line of the config backups entry on the Storage page.",
+                "consequence": "Sentence shown in the clear dialog for config backups.",
+                "units": "Count shown in the config backups row, plural forms. {count} = number of backups, e.g. 3."
+            },
+            "gameinfo_backups": {
+                "label": "Storage entry name for backups of the gameinfo.gi file. Row heading on the Storage page. Keep gameinfo.gi as is.",
+                "clear_name": "Name inserted into the clear dialog title as {name}, e.g. \"Clear gameinfo.gi backups?\". Keep gameinfo.gi as is.",
+                "description": "Description line of the gameinfo.gi backups entry on the Storage page. Keep gameinfo.gi as is.",
+                "consequence": "Sentence shown in the clear dialog for gameinfo.gi backups. The file loads mods in the game.",
+                "units": "Count shown in the gameinfo.gi backups row, plural forms. {count} = number of backups, e.g. 3."
+            },
+            "postgame_detail": {
+                "label": "Storage entry name for full scoreboards captured right after a match. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear post game match data?\".",
+                "description": "Description line of the post game match data entry. Deadlock+ and Deadlock API stay untranslated.",
+                "consequence": "Sentence shown in the clear dialog. Deadlock API is a service name and stays untranslated.",
+                "units": "Count shown in the post game match data row, plural forms. {count} = number of matches, e.g. 20."
+            },
+            "match_ping": {
+                "label": "Storage entry name for ping recordings made during matches. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear match ping recordings?\".",
+                "description": "Description line of the match ping recordings entry. Refers to the ping card on the match detail page.",
+                "consequence": "Sentence shown in the clear dialog for match ping recordings.",
+                "units": "Count shown in the match ping recordings row, plural forms. {count} = number of matches, e.g. 20."
+            },
+            "mvp_grades": {
+                "label": "Storage entry name for the match grades the app computes. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear match grades?\".",
+                "description": "Description line of the match grades entry on the Storage page. Deadlock+ stays untranslated.",
+                "consequence": "Sentence shown in the clear dialog for match grades.",
+                "units": "Count shown in the match grades row, plural forms. {count} = number of matches, e.g. 20."
+            },
+            "shared_matches": {
+                "label": "Storage entry name for the record of matches the app shared with the Deadlock API. Row heading on the Storage page.",
+                "clear_name": "Lowercase name inserted into the clear dialog title as {name}, e.g. \"Clear shared matches?\".",
+                "description": "Description line of the shared matches entry. Deadlock+ and Deadlock API stay untranslated.",
+                "consequence": "Sentence shown in the clear dialog for shared matches. Deadlock+ stays untranslated."
+            }
+        }
+    }
+}
