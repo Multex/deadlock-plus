@@ -22,6 +22,15 @@
     const current = $derived(aboutInfo.info?.appVersion ?? null);
     const steps = $derived(stepStates(stage));
     const STEP_KEYS = ["download", "restart", "notes"] as const;
+
+    let body = $state<HTMLElement | null>(null);
+
+    // Without an action to take (mid-download), focus waits on the drawer itself instead of a release notes link.
+    function focusAction(e: Event) {
+        e.preventDefault();
+        const action = body?.querySelector<HTMLElement>(".actions button:not(:disabled)");
+        (action ?? body?.closest<HTMLElement>(".drawer"))?.focus();
+    }
     const showsUpdate = $derived(
         stage === "available" ||
             stage === "downloading" ||
@@ -44,6 +53,8 @@
             sideOffset={2}
             collisionPadding={8}
             aria-labelledby="{id}-title"
+            onOpenAutoFocus={focusAction}
+            tabindex={-1}
             class="drawer z-(--z-popover) data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
         >
             <header class="drawer-head">
@@ -58,7 +69,7 @@
                 {/if}
             </header>
 
-            <div class="drawer-body">
+            <div class="drawer-body" bind:this={body}>
                 {#if showsUpdate}
                     <ol class="rail" aria-label={t("updates.steps.label")}>
                         {#each STEP_KEYS as key, i (key)}
@@ -87,7 +98,7 @@
                     <UpdateProgress {source} pinnedRate={surface.pinnedRate} size="sm" />
                 {/if}
 
-                <UpdateActions {surface} size="sm" />
+                <div class="actions"><UpdateActions {surface} size="sm" /></div>
 
                 {#if showsUpdate && source.version}
                     <UpdateHighlights

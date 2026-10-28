@@ -11,14 +11,14 @@
 
 <span class="face" data-kind={kind} aria-hidden="true">
     {#if kind === "downloading"}
-        <svg class="ring" viewBox="0 0 16 16">
-            <circle cx="8" cy="8" r="6" class="ring-track" />
+        <svg class="dial" viewBox="0 0 16 16">
+            <circle cx="8" cy="8" r="6" class="dial-track" />
             {#if fraction !== null}
                 <circle
                     cx="8"
                     cy="8"
                     r="6"
-                    class="ring-fill"
+                    class="dial-fill"
                     stroke-dasharray={RING}
                     stroke-dashoffset={RING * (1 - fraction)}
                 />
@@ -70,17 +70,17 @@
         --tone: var(--warning);
     }
 
-    .ring {
+    .dial {
         width: 1rem;
         height: 1rem;
         transform: rotate(-90deg);
     }
-    .ring-track {
+    .dial-track {
         fill: none;
         stroke: color-mix(in oklch, var(--tone) 25%, transparent);
         stroke-width: 2.5;
     }
-    .ring-fill {
+    .dial-fill {
         fill: none;
         stroke: var(--tone);
         stroke-width: 2.5;

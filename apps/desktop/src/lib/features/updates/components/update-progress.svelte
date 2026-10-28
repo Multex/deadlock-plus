@@ -41,7 +41,8 @@
         return () => clearInterval(timer);
     });
 
-    const rate = $derived(pinnedRate !== undefined ? pinnedRate : downloadRate(samples, now));
+    const finished = $derived(progress.fraction === 1);
+    const rate = $derived(finished ? null : pinnedRate !== undefined ? pinnedRate : downloadRate(samples, now));
     const left = $derived(progress.received === null ? null : secondsLeft(progress.received, progress.total, rate));
 
     const mb = (bytes: number) =>

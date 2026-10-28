@@ -21,10 +21,20 @@
         source.version !== null &&
             (stage === "available" || stage === "downloading" || stage === "ready" || stage === "failed"),
     );
+
+    let foot = $state<HTMLElement | null>(null);
+
+    // Opening on the close button would greet the user with its tooltip; the stage's own action is the next step.
+    function focusAction(e: Event) {
+        const action = foot?.querySelector<HTMLElement>("button:not(:disabled)");
+        if (!action) return;
+        e.preventDefault();
+        action.focus();
+    }
 </script>
 
 <Dialog.Root open={surface.open} onOpenChange={(open) => (surface.open = open)}>
-    <Dialog.Content class="slip max-w-2xl gap-0 overflow-hidden p-0">
+    <Dialog.Content class="slip max-w-3xl gap-0 overflow-hidden p-0" onOpenAutoFocus={focusAction}>
         <header class="slip-head">
             <div class="min-w-0">
                 <p class="kicker">{stageKicker(source)}</p>
@@ -43,10 +53,6 @@
         </header>
 
         <div class="slip-body" data-has-notes={showsUpdate}>
-            {#if showsUpdate && source.version}
-                <UpdateHighlights version={source.version} notes={source.notes} channel={surface.channel} />
-            {/if}
-
             <div class="status">
                 <Dialog.Description class="text-sm text-muted-foreground">
                     <span aria-live="polite">{stageBody(source, current)}</span>
@@ -55,9 +61,15 @@
                     <UpdateProgress {source} pinnedRate={surface.pinnedRate} />
                 {/if}
             </div>
+
+            {#if showsUpdate && source.version}
+                <div class="notes">
+                    <UpdateHighlights version={source.version} notes={source.notes} channel={surface.channel} />
+                </div>
+            {/if}
         </div>
 
-        <footer class="slip-foot">
+        <footer class="slip-foot" bind:this={foot}>
             <details class="channel">
                 <summary>
                     <ChevronRight class="chev size-3.5" aria-hidden="true" />
@@ -154,9 +166,26 @@
         overflow-y: auto;
         min-height: 0;
     }
-    @media (min-width: 44rem) {
+    @media (min-width: 52rem) {
         .slip-body[data-has-notes="true"] {
-            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        }
+        .notes {
+            order: -1;
+        }
+    }
+    @media (max-height: 30rem) {
+        .slip-head {
+            padding: 0.875rem 1rem 0.625rem;
+        }
+        :global(.slip-title) {
+            font-size: 1.35rem !important;
+        }
+        .slip-body {
+            padding: 1rem;
+        }
+        .slip-foot {
+            padding: 0.625rem 1rem;
         }
     }
 
