@@ -31,6 +31,7 @@ const LOG_TAIL_BYTES: u64 = 256 * 1024;
 /// Set once at startup. The panic hook reads it without locking; a panic before it is set leaves no marker.
 static CONTEXT: OnceLock<CrashContext> = OnceLock::new();
 static WEBVIEW_MARKERS: AtomicUsize = AtomicUsize::new(0);
+static UPDATED_FROM: OnceLock<Option<String>> = OnceLock::new();
 
 /// The last `max_bytes` of a file as text, starting at a line boundary. Empty when the file is missing.
 fn read_tail(path: &Path, max_bytes: u64) -> String {
@@ -73,9 +74,16 @@ pub fn begin(app: &tauri::AppHandle) {
     };
     let previous_log = app.path().app_log_dir().map(|dir| read_tail(&dir.join(LOG_FILE), LOG_TAIL_BYTES));
     let ctx = CONTEXT.get_or_init(|| ctx);
+    let _ = UPDATED_FROM.set(dp_crash::updated_from(&ctx.dir, &ctx.version));
     if let Err(e) = dp_crash::begin_session(ctx, &previous_log.unwrap_or_default()) {
         eprintln!("could not start the crash session: {e}");
     }
+}
+
+/// The version this launch replaced, when the previous run was another build that the updater ended.
+#[cfg(windows)]
+pub fn updated_from() -> Option<&'static str> {
+    UPDATED_FROM.get()?.as_deref()
 }
 
 /// Removes the sentinel. The app calls this from `RunEvent::Exit`, which both the tray's Quit item and

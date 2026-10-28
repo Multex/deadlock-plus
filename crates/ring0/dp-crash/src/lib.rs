@@ -14,7 +14,7 @@ pub use issue::{issue_url, ISSUE_REPO, MAX_URL_LEN};
 pub use redact::{redact, redact_secrets, redact_user_paths};
 pub use store::{
     begin_session, bundle_path, dismiss_all, end_session, is_valid_id, list_markers, pending, prune, read_marker,
-    record_panic, write_bundle, write_marker, KEEP_MARKERS,
+    record_panic, updated_from, write_bundle, write_marker, KEEP_MARKERS,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
