@@ -4,8 +4,9 @@
     import { OG_IMAGE } from "$lib/components/seo";
     import { shotUrl } from "$lib/content/shots";
     import { around, useI18n } from "$lib/i18n";
+    import og from "virtual:en/og";
 
-    const { t } = useI18n();
+    const { t } = useI18n(og);
     const [taglineBefore, taglineAfter] = around(t("og.tagline"), "game");
 </script>
 

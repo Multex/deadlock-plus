@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { en, english } from "$lib/i18n";
-import { lookup } from "$lib/i18n/core";
+import features from "virtual:en/features";
+import { createTranslator, lookup } from "$lib/i18n/core";
 import {
     FEATURES,
     GROUPS,
@@ -71,10 +71,10 @@ describe("features", () => {
     it("finds English copy for every feature and each of its points, and no point it leaves out", () => {
         for (const feature of FEATURES) {
             const key = `features.items.${feature.id.replaceAll("-", "_")}`;
-            const text = featureText(english, feature);
+            const text = featureText(createTranslator("en", { en: features }), feature);
             for (const line of [text.name, text.summary, ...text.points])
                 expect(line, feature.id).not.toMatch(/^features\./);
-            expect(lookup(en, `${key}.points.${feature.points + 1}`), feature.id).toBeUndefined();
+            expect(lookup(features, `${key}.points.${feature.points + 1}`), feature.id).toBeUndefined();
         }
     });
 

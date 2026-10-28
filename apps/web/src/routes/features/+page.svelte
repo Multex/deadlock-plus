@@ -7,16 +7,20 @@
     import { currentRef, withRef } from "$lib/content/ref";
     import { FEATURES, GROUPS, featureText, featuresIn, groupText, type GroupId } from "$lib/content/features";
     import { useI18n } from "$lib/i18n";
+    import features from "virtual:en/features";
+    import { localizedHref } from "$lib/i18n/routes";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import * as Tabs from "@deadlock-plus/ui/tabs";
 
-    const i18n = useI18n();
+    const i18n = useI18n(features);
     const { t } = i18n;
 
     const ref = $derived(currentRef(page.url));
+
+    const local = (href: string) => localizedHref(withRef(href, ref), i18n.locale);
 
     let group = $state<GroupId>("match");
 
@@ -36,7 +40,7 @@
 <Page>
     <PageHeader title={t("features.heading")} subtitle={t("features.subtitle")}>
         {#snippet actions()}
-            <a href={withRef("/download", ref)} class={buttonVariants()}>
+            <a href={local("/download")} class={buttonVariants()}>
                 <Download />
                 {t("nav.download")}
             </a>

@@ -5,12 +5,14 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("$app/state", () => ({ page: { url: new URL("https://deadlockplus.app/faq"), status: 200, state: {} } }));
 
 import { faq } from "$lib/content/faq";
-import { english } from "$lib/i18n";
+import faqCopy from "virtual:en/faq";
+import { en } from "$lib/i18n";
+import { createTranslator } from "$lib/i18n/core";
 import Home from "../+page.svelte";
 import Layout from "../+layout.svelte";
 import Faq from "./+page.svelte";
 
-const FAQ = faq(english);
+const FAQ = faq(createTranslator("en", { en: { ...en, ...faqCopy } }));
 const { head, body } = render(Faq);
 
 const decode = (html: string) =>
@@ -70,7 +72,7 @@ describe("the FAQ page", () => {
 describe("links to the FAQ", () => {
     it("sit in the footer", () => {
         const children = createRawSnippet(() => ({ render: () => "<p>page</p>" }));
-        const html = render(Layout, { props: { children } }).body;
+        const html = render(Layout, { props: { children, data: { locale: "en", catalogs: {} } } }).body;
         expect(html.slice(html.indexOf("<footer"))).toMatch(/href="\/faq"/);
     });
 

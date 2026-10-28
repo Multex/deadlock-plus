@@ -12,6 +12,7 @@
     import PageHeader from "@deadlock-plus/ui/page-header.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
     import { around, useI18n } from "$lib/i18n";
+    import download from "virtual:en/download";
 
     interface Choice {
         href: string;
@@ -21,7 +22,7 @@
 
     let { data } = $props();
 
-    const { t, locale } = useI18n();
+    const { t, locale } = useI18n(download);
 
     const ref = $derived(currentRef(page.url));
 

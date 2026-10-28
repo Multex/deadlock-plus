@@ -21,6 +21,7 @@ export {
     type LinksResult,
 } from "./edit";
 export { LANDINGS, type Landing } from "./landing";
+export { WEB_LOCALES } from "./locales";
 export {
     DEFAULT_LINKS,
     DEFAULT_REF,

@@ -4,8 +4,10 @@
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import { useI18n } from "$lib/i18n";
+    import { localizedHref } from "$lib/i18n/routes";
 
-    const { t } = useI18n();
+    const i18n = useI18n();
+    const { t } = i18n;
     const missing = $derived(page.status === 404);
 </script>
 
@@ -14,5 +16,5 @@
 <Page class="items-center justify-center text-center">
     <p class="text-sm font-semibold tracking-widest text-brass">{page.status}</p>
     <h1 class="text-3xl">{missing ? t("error.not_found") : t("error.failed")}</h1>
-    <a href="/" class={buttonVariants()}>{t("error.home")}</a>
+    <a href={localizedHref("/", i18n.locale)} class={buttonVariants()}>{t("error.home")}</a>
 </Page>

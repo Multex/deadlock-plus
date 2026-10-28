@@ -10,11 +10,17 @@
     import BrandMark from "@deadlock-plus/ui/brand-mark.svelte";
     import * as Tooltip from "@deadlock-plus/ui/tooltip";
     import ThemePicker from "$lib/components/theme-picker.svelte";
-    import { useI18n } from "$lib/i18n";
+    import { provideI18n, useI18n } from "$lib/i18n";
+    import { localizedHref } from "$lib/i18n/routes";
 
-    let { children } = $props();
+    let { children, data } = $props();
 
-    const { t } = useI18n();
+    const context = $derived({ locale: data.locale, catalogs: data.catalogs });
+    provideI18n(() => context);
+    const i18n = useI18n();
+    const { t } = i18n;
+
+    const local = (href: string) => localizedHref(withRef(href, ref), i18n.locale);
 
     const ref = $derived(currentRef(page.url));
 
@@ -66,7 +72,7 @@
     <header class="sticky top-0 z-(--z-local) border-b border-border bg-chrome/95 backdrop-blur">
         <div class="mx-auto flex h-14 max-w-5xl items-center gap-x-2 px-4 sm:px-8">
             <a
-                href={withRef("/", ref)}
+                href={local("/")}
                 aria-label={t("site.home_label")}
                 class="mr-auto flex h-10 min-h-[24px] min-w-[24px] items-center rounded-md sm:h-auto"
             >
@@ -75,9 +81,9 @@
             </a>
             <nav aria-label={t("nav.main_label")} class="flex items-center gap-1">
                 {#each NAV as item (item.href)}
-                    {@const active = page.url.pathname.startsWith(item.href)}
+                    {@const active = page.url.pathname.startsWith(localizedHref(item.href, i18n.locale))}
                     <a
-                        href={withRef(item.href, ref)}
+                        href={local(item.href)}
                         aria-current={active ? "page" : undefined}
                         class="flex h-10 items-center rounded-md px-3 font-heading sm:h-9 text-sm font-semibold tracking-wide transition-colors {active
                             ? 'bg-accent text-foreground'
@@ -121,7 +127,7 @@
             <div class="flex flex-col gap-10 md:flex-row md:justify-between">
                 <div class="space-y-3">
                     <a
-                        href={withRef("/", ref)}
+                        href={local("/")}
                         aria-label={t("site.home_label")}
                         class="inline-flex min-h-[24px] items-center rounded-md"
                     >
@@ -143,7 +149,7 @@
                                     {@const Icon = link.icon}
                                     <li>
                                         <a
-                                            href={link.plain ? link.href : withRef(link.href, ref)}
+                                            href={link.plain ? link.href : local(link.href)}
                                             class="-mx-2 inline-flex h-9 items-center gap-2 rounded-md px-2 whitespace-nowrap text-foreground transition-colors hover:bg-accent/50 hover:text-brass focus-visible:bg-accent/50 focus-visible:text-brass"
                                         >
                                             {#if Icon}

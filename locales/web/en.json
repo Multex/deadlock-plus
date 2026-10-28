@@ -255,8 +255,11 @@
             }
         },
         "links": {
+            "discord_presence": "Discord Rich Presence",
+            "server_picker": "Server Picker",
             "linux_notes": "Linux notes",
-            "app_privacy": "The app's privacy list"
+            "app_privacy": "The app's privacy list",
+            "read_code": "Read the code"
         }
     },
     "download": {

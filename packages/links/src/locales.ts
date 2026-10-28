@@ -1,0 +1,22 @@
+/** Languages the website serves under `/<code>/`, named like the app's locale files. English sits at `/`. */
+export const WEB_LOCALES: readonly string[] = [
+    "af",
+    "cs",
+    "de",
+    "es",
+    "fr",
+    "hu",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "pl",
+    "pt",
+    "pt-BR",
+    "ru",
+    "th",
+    "tr",
+    "uk",
+    "zh-CN",
+    "zh-TW",
+];

@@ -6,8 +6,8 @@ export type FaqItem = { question: string; answer: string; links?: FaqLink[] };
 
 const ITEMS: readonly { id: string; links?: { href: string; label: string }[] }[] = [
     { id: "free" },
-    { id: "discord", links: [{ href: "/features#discord-presence", label: "features.items.discord_presence.name" }] },
-    { id: "servers", links: [{ href: "/features#server-picker", label: "features.items.server_picker.name" }] },
+    { id: "discord", links: [{ href: "/features#discord-presence", label: "faq.links.discord_presence" }] },
+    { id: "servers", links: [{ href: "/features#server-picker", label: "faq.links.server_picker" }] },
     { id: "platforms", links: [{ href: LINKS.linux, label: "faq.links.linux_notes" }] },
     { id: "stats" },
     {
@@ -21,7 +21,7 @@ const ITEMS: readonly { id: string; links?: { href: string; label: string }[] }[
     {
         id: "open_source",
         links: [
-            { href: LINKS.repo, label: "home.read_code" },
+            { href: LINKS.repo, label: "faq.links.read_code" },
             { href: "/transparency", label: "nav.transparency" },
         ],
     },

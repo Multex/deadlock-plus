@@ -9,15 +9,20 @@
     import { currentRef, discordHref, withRef } from "$lib/content/ref";
     import { page } from "$app/state";
     import { around, useI18n } from "$lib/i18n";
+    import features from "virtual:en/features";
+    import home from "virtual:en/home";
+    import { localizedHref } from "$lib/i18n/routes";
     import { buttonVariants } from "@deadlock-plus/ui/button.svelte";
     import Card from "@deadlock-plus/ui/card.svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
     import Section from "@deadlock-plus/ui/section.svelte";
 
-    const i18n = useI18n();
+    const i18n = useI18n(home, features);
     const { t } = i18n;
 
     const ref = $derived(currentRef(page.url));
+
+    const local = (href: string) => localizedHref(withRef(href, ref), i18n.locale);
 
     const description = t("home.description");
 
@@ -41,7 +46,7 @@
             {t("home.intro")}
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
-            <a href={withRef("/download", ref)} class={buttonVariants({ size: "lg" })}>
+            <a href={local("/download")} class={buttonVariants({ size: "lg" })}>
                 <Download />
                 {t("home.download_windows")}
             </a>
@@ -51,7 +56,7 @@
             </a>
         </div>
         <p class="mt-3 text-sm text-muted-foreground">
-            {platformsBefore}<a href={withRef("/download#linux", ref)} class="underline hover:text-foreground"
+            {platformsBefore}<a href={local("/download#linux")} class="underline hover:text-foreground"
                 >{t("home.platforms_linux")}</a
             >{platformsAfter}
         </p>
@@ -68,7 +73,7 @@
     <section>
         <div class="mb-3 flex items-end justify-between gap-3">
             <h2 class="text-2xl">{t("home.what_it_does")}</h2>
-            <a href={withRef("/features", ref)} class={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <a href={local("/features")} class={buttonVariants({ variant: "ghost", size: "sm" })}>
                 {t("home.every_feature")}
                 <ArrowRight />
             </a>
@@ -89,10 +94,7 @@
                                 framed={false}
                             />
                         {/if}
-                        <a
-                            href={withRef(`/features#${feature.id}`, ref)}
-                            class="block flex-1 border-t border-border p-4"
-                        >
+                        <a href={local(`/features#${feature.id}`)} class="block flex-1 border-t border-border p-4">
                             <h3 class="text-base font-semibold text-brass">{text.name}</h3>
                             <p class="mt-1 text-sm text-muted-foreground">{text.summary}</p>
                         </a>
@@ -113,13 +115,12 @@
         </ul>
         <div class="mt-5 flex flex-wrap gap-2">
             <a href={LINKS.repo} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("home.read_code")}</a>
-            <a href={withRef("/privacy", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}
-                >{t("nav.privacy")}</a
+            <a href={local("/privacy")} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("nav.privacy")}</a
             >
-            <a href={withRef("/transparency", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}
+            <a href={local("/transparency")} class={buttonVariants({ variant: "outline", size: "sm" })}
                 >{t("nav.transparency")}</a
             >
-            <a href={withRef("/faq", ref)} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("nav.faq")}</a>
+            <a href={local("/faq")} class={buttonVariants({ variant: "outline", size: "sm" })}>{t("nav.faq")}</a>
         </div>
     </Section>
 
@@ -130,7 +131,7 @@
                 {t("home.ready_body")}
             </p>
         </div>
-        <a href={withRef("/download", ref)} class={buttonVariants()}>
+        <a href={local("/download")} class={buttonVariants()}>
             <Download />
             {t("nav.download")}
         </a>
