@@ -348,6 +348,35 @@ describe("updater", () => {
             expect(steps).toEqual(["download", "flush_telemetry", "install", "save", "restart_app"]);
         });
 
+        it("on Windows still hands over to the installer when a before-exit task never settles", async () => {
+            vi.useFakeTimers();
+            try {
+                const { update, remove } = staged();
+                const removeStuck = onBeforeExit(() => new Promise(() => {}));
+                await updater.check();
+                await updater.download();
+                const restarting = updater.restart();
+                await vi.advanceTimersByTimeAsync(2900);
+                expect(update.install).not.toHaveBeenCalled();
+                await vi.advanceTimersByTimeAsync(100);
+                await restarting;
+                removeStuck();
+                remove();
+                expect(update.install).toHaveBeenCalledOnce();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it("starts the installer once when Restart is pressed again while it starts", async () => {
+            const { update, remove } = staged();
+            await updater.check();
+            await updater.download();
+            await Promise.all([updater.restart(), updater.restart()]);
+            remove();
+            expect(update.install).toHaveBeenCalledOnce();
+        });
+
         it("does nothing before a download finished", async () => {
             const { update, remove } = staged();
             await updater.check();

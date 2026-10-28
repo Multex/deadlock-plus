@@ -1,5 +1,5 @@
 import { failureText } from "$lib/core/errors";
-import { restartAfterSaves, runBeforeExit } from "$lib/core/exit";
+import { restartAfterSaves, runBeforeExitWithinLimit } from "$lib/core/exit";
 import { t } from "$lib/core/i18n.svelte";
 import { platform } from "$lib/core/platform";
 import type { Update } from "$lib/core/updater";
@@ -38,6 +38,7 @@ class Updater {
 
     private update: Update | null = null;
     private checking: Promise<boolean> | null = null;
+    private finishing: Promise<void> | null = null;
     private samples: { at: number; received: number }[] = [];
 
     /** The update channel setting. */
@@ -113,7 +114,7 @@ class Updater {
      */
     async restart() {
         if (this.phase !== "ready") return;
-        await this.finish("install");
+        await (this.finishing ??= this.finish("install").finally(() => (this.finishing = null)));
     }
 
     /** Download and restart in one step. On Windows a successful call rarely returns. */
@@ -166,7 +167,7 @@ class Updater {
             if (platform === "windows") {
                 // The Windows installer ends the process without the backend's exit flush, so the queued
                 // install click would never leave the machine.
-                await Promise.all([runBeforeExit(), flushTelemetry()]);
+                await Promise.all([runBeforeExitWithinLimit(), flushTelemetry()]);
                 await update.install();
             } else {
                 await flushTelemetry();

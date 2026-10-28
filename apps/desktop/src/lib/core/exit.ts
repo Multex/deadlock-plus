@@ -17,12 +17,19 @@ export async function runBeforeExit(): Promise<void> {
 
 const RESTART_SAVE_LIMIT_MS = 3000;
 
-/** A restart has no backend grace period like a quit, so a task that never settles is cut off after a short limit. */
-export async function restartAfterSaves(): Promise<void> {
+/**
+ * For exits with no backend grace period like a quit's (a restart, the update installer): a task that never
+ * settles is cut off after a short limit.
+ */
+export async function runBeforeExitWithinLimit(): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const limit = new Promise<void>((resolve) => (timer = setTimeout(resolve, RESTART_SAVE_LIMIT_MS)));
     await Promise.race([runBeforeExit(), limit]);
     clearTimeout(timer);
+}
+
+export async function restartAfterSaves(): Promise<void> {
+    await runBeforeExitWithinLimit();
     await command("restart_app");
 }
 
