@@ -10,9 +10,9 @@ export function stageKicker(s: UpdateSource): string {
         case "ready":
             return t("updates.surface.kicker.ready");
         case "failed":
-            return failureStep(s) === "download"
-                ? t("updates.surface.kicker.failed")
-                : t("updates.surface.kicker.check_failed");
+            return failureStep(s) === "check"
+                ? t("updates.surface.kicker.check_failed")
+                : t("updates.surface.kicker.failed");
         case "upToDate":
             return t("updates.surface.kicker.up_to_date");
         case "checking":
@@ -31,9 +31,14 @@ export function stageBody(s: UpdateSource, currentVersion: string | null): strin
         case "ready":
             return t("updates.surface.body.ready");
         case "failed":
-            return failureStep(s) === "download"
-                ? t("updates.surface.body.failed")
-                : t("updates.surface.body.check_failed");
+            switch (failureStep(s)) {
+                case "install":
+                    return t("updates.surface.body.install_failed");
+                case "download":
+                    return t("updates.surface.body.failed");
+                default:
+                    return t("updates.surface.body.check_failed");
+            }
         case "upToDate":
             return currentVersion
                 ? t("updates.surface.body.up_to_date", { version: currentVersion })
@@ -56,7 +61,7 @@ export function indicatorLabel(s: UpdateSource): string {
         case "ready":
             return t("updates.indicator.ready");
         case "failed":
-            return t("updates.indicator.failed");
+            return t("updates.indicator.failed", { version: s.version ?? "" });
         default:
             return t("updates.indicator.available", { version: s.version ?? "" });
     }

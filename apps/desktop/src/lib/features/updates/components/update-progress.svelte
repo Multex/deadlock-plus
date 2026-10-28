@@ -1,48 +1,13 @@
 <script lang="ts">
-    import { untrack } from "svelte";
     import { formatNumber, t, tn } from "$lib/core/i18n.svelte";
-    import {
-        byteProgress,
-        downloadRate,
-        mebibytes,
-        secondsLeft,
-        timeLeft,
-        type RateSample,
-        type UpdateSource,
-    } from "../flow";
+    import { byteProgress, mebibytes, secondsLeft, timeLeft, type UpdateSource } from "../flow";
 
-    type Props = {
-        source: UpdateSource;
-        /** Stands in for the measured speed, for a preview that never downloads. */
-        pinnedRate?: number | null;
-        size?: "lg" | "sm";
-    };
-
-    let { source, pinnedRate, size = "lg" }: Props = $props();
-
-    const RATE_TICK_MS = 1000;
+    let { source }: { source: UpdateSource } = $props();
 
     const progress = $derived(byteProgress(source));
     const percent = $derived(progress.fraction === null ? null : Math.round(progress.fraction * 100));
-
-    let samples = $state<RateSample[]>([]);
-    let now = $state(Date.now());
-
-    $effect(() => {
-        const bytes = progress.received;
-        if (bytes === null || pinnedRate !== undefined) return;
-        const at = Date.now();
-        untrack(() => (samples = [...samples.filter((s) => at - s.at <= 10_000), { at, bytes }]));
-    });
-
-    $effect(() => {
-        if (progress.received === null || pinnedRate !== undefined) return;
-        const timer = setInterval(() => (now = Date.now()), RATE_TICK_MS);
-        return () => clearInterval(timer);
-    });
-
     const finished = $derived(progress.fraction === 1);
-    const rate = $derived(finished ? null : pinnedRate !== undefined ? pinnedRate : downloadRate(samples, now));
+    const rate = $derived(finished ? null : (source.speed ?? null));
     const left = $derived(progress.received === null ? null : secondsLeft(progress.received, progress.total, rate));
 
     const mb = (bytes: number) =>
@@ -62,7 +27,7 @@
     });
 </script>
 
-<div class="update-progress" data-size={size}>
+<div class="update-progress">
     <div
         class="track"
         role="progressbar"
@@ -104,9 +69,6 @@
         border-radius: 2px;
         background: color-mix(in oklch, var(--foreground) 6%, var(--background));
         box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
-    }
-    [data-size="sm"] .track {
-        height: 0.5rem;
     }
 
     .fill {
@@ -165,19 +127,12 @@
         color: var(--muted-foreground);
         font-variant-numeric: tabular-nums;
     }
-    [data-size="sm"] .numbers {
-        font-size: 0.75rem;
-        gap: 0.125rem 0.625rem;
-    }
 
     .pct {
         font-family: "Valve Pulp", var(--font-heading);
         font-size: 1.05rem;
         line-height: 1;
         color: var(--foreground);
-    }
-    [data-size="sm"] .pct {
-        font-size: 0.9rem;
     }
 
     .left {

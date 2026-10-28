@@ -262,9 +262,6 @@
         "titlebar": {
             "expand_sidebar": "Развернуть боковую панель",
             "collapse_sidebar": "Свернуть боковую панель",
-            "update_downloading": "Обновление загружается",
-            "downloading_update": "Загрузка обновления",
-            "update_available": "Доступно обновление {version}",
             "minimize": "Свернуть",
             "maximize": "Развернуть",
             "restore": "Восстановить",

@@ -262,9 +262,6 @@
         "titlebar": {
             "expand_sidebar": "Kenar çubuğunu genişlet",
             "collapse_sidebar": "Kenar çubuğunu daralt",
-            "update_downloading": "Güncelleme indiriliyor",
-            "downloading_update": "Güncelleme indiriliyor",
-            "update_available": "{version} güncellemesi mevcut",
             "minimize": "Küçült",
             "maximize": "Büyüt",
             "restore": "Geri Yükle",

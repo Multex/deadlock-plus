@@ -287,9 +287,6 @@
         "titlebar": {
             "expand_sidebar": "Expand sidebar",
             "collapse_sidebar": "Collapse sidebar",
-            "update_downloading": "Update downloading",
-            "downloading_update": "Downloading update",
-            "update_available": "Update {version} available",
             "minimize": "Minimize",
             "maximize": "Maximize",
             "restore": "Restore",
@@ -517,8 +514,8 @@
             "checking": "Checking...",
             "up_to_date": "You're on the latest version.",
             "available": "Version {version} is available.",
-            "downloading": "Downloading {version}. Deadlock+ restarts when it finishes.",
-            "downloading_percent": "Downloading {version} ({percent}%). Deadlock+ restarts when it finishes.",
+            "downloading": "Downloading {version}. Restart when it is done to install it.",
+            "downloading_percent": "Downloading {version} ({percent}%). Restart when it is done to install it.",
             "ready": "Version {version} is downloaded. Restart Deadlock+ to install it.",
             "check_failed": "Couldn't check for updates. Check your connection and try again.",
             "download_failed": "Couldn't download the update. Try again later."
@@ -527,11 +524,11 @@
             "title": "Deadlock+ {version} is ready to install",
             "body": "You're on an older version. The update takes a minute and Deadlock+ restarts on its own.",
             "install": "Install now",
-            "dismiss": "Not now"
+            "dismiss": "Not now",
+            "view": "View update"
         },
         "surface": {
             "title": "Updates",
-            "close": "Close",
             "kicker": {
                 "available": "Update available",
                 "downloading": "Downloading",
@@ -552,7 +549,8 @@
                 "up_to_date": "Deadlock+ {version} is the newest build on your channel.",
                 "up_to_date_plain": "You have the newest build on your channel.",
                 "checking": "Looking for a newer build...",
-                "idle": "Deadlock+ hasn't checked for updates yet."
+                "idle": "Deadlock+ hasn't checked for updates yet.",
+                "install_failed": "The installer didn't finish, so Deadlock+ is still on the version you had. Try again, or get the installer yourself."
             },
             "action": {
                 "update": "Update now",
@@ -560,13 +558,11 @@
                 "retry": "Try again",
                 "check": "Check now",
                 "manual": "Download manually",
-                "later": "Later",
                 "notes": "Full release notes"
             },
             "highlights_title": "In this update",
             "more_changes_one": "Plus {count} more change",
-            "more_changes_other": "Plus {count} more changes",
-            "version_title": "Deadlock+ {version}"
+            "more_changes_other": "Plus {count} more changes"
         },
         "progress": {
             "label": "Update download",
@@ -578,14 +574,6 @@
             "left_minutes_one": "About {count} minute left",
             "left_minutes_other": "About {count} minutes left",
             "percent": "{percent}%"
-        },
-        "steps": {
-            "label": "Update steps",
-            "download": "Download",
-            "restart": "Restart",
-            "notes": "What's new",
-            "done": "{step}, done",
-            "current": "{step}, now"
         },
         "channel": {
             "title": "Update channel",
@@ -610,17 +598,23 @@
             "downloading": "Downloading update, {percent}%",
             "downloading_plain": "Downloading update",
             "ready": "Update ready, restart to install",
-            "failed": "Update download failed",
+            "failed": "Update {version} didn't finish",
             "kicker": {
                 "available": "Update",
                 "downloading": "Downloading",
                 "ready": "Ready",
-                "failed": "Paused",
-                "idle": "Updates"
+                "failed": "Paused"
             }
         },
-        "about": {
-            "view": "View update"
+        "history": {
+            "title": "Recent releases",
+            "installed": "Installed",
+            "cadence_one": "A new release about every day",
+            "cadence_other": "A new release about every {count} days",
+            "all": "All release notes"
+        },
+        "overview": {
+            "open": "Open updates"
         }
     },
     "connection": {

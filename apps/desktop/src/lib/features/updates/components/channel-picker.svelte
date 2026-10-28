@@ -8,8 +8,8 @@
         value: UpdateChannel;
         onchange: (channel: UpdateChannel) => void;
         currentVersion: string | null;
-        /** `cards` lays the three channels side by side with their lines; `row` is one strip for tight spaces. */
-        variant?: "cards" | "row";
+        /** `cards` lays the three channels side by side; `stack` lists them one under another for a narrow column. */
+        variant?: "cards" | "stack";
         /** Hides the heading when the surrounding surface already names the picker. */
         showTitle?: boolean;
     };
@@ -57,7 +57,7 @@
                 type="button"
                 role="radio"
                 aria-checked={checked}
-                aria-describedby={variant === "cards" ? `${id}-${channel}` : undefined}
+                aria-describedby="{id}-{channel}"
                 tabindex={checked ? 0 : -1}
                 class="option"
                 data-channel={channel}
@@ -67,16 +67,10 @@
                     <Icon class="size-4 shrink-0" aria-hidden="true" />
                     <span class="name">{t(`updates.channel.${channel}.name`)}</span>
                 </span>
-                {#if variant === "cards"}
-                    <span id="{id}-{channel}" class="body">{t(`updates.channel.${channel}.body`)}</span>
-                {/if}
+                <span id="{id}-{channel}" class="body">{t(`updates.channel.${channel}.body`)}</span>
             </button>
         {/each}
     </div>
-
-    {#if variant === "row"}
-        <p class="row-body">{t(`updates.channel.${value}.body`)}</p>
-    {/if}
 
     {#if value === "nightly"}
         <p class="note warning" role="note">
@@ -118,13 +112,6 @@
         grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
         gap: 0.5rem;
     }
-    [data-variant="row"] .options {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-    }
 
     .option {
         position: relative;
@@ -141,6 +128,19 @@
             border-color 150ms,
             background-color 150ms,
             color 150ms;
+    }
+    [data-variant="stack"] .options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    [data-variant="stack"] .option {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.75rem;
+        padding: 0.625rem 0.875rem;
+    }
+    [data-variant="stack"] .head {
+        flex-shrink: 0;
+        width: 6.5rem;
     }
     .option:hover {
         border-color: color-mix(in oklch, var(--brass) 50%, var(--border));
@@ -168,17 +168,6 @@
         color: var(--warning);
     }
 
-    [data-variant="row"] .option {
-        border: 0;
-        border-left: 1px solid var(--border);
-        border-radius: 0;
-        padding: 0.5rem 0.625rem;
-        align-items: center;
-    }
-    [data-variant="row"] .option:first-child {
-        border-left: 0;
-    }
-
     .head {
         display: flex;
         align-items: center;
@@ -191,12 +180,8 @@
         font-weight: 600;
         letter-spacing: 0.04em;
     }
-    [data-variant="row"] .name {
-        font-size: 0.85rem;
-    }
 
-    .body,
-    .row-body {
+    .body {
         font-size: 0.8rem;
         line-height: 1.35;
         color: var(--muted-foreground);

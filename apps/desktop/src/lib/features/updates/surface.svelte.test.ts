@@ -8,8 +8,11 @@ function store(over: Partial<UpdaterStore> = {}): UpdaterStore {
         version: "1.1.0",
         progress: null,
         error: null,
+        channel: "release",
         check: vi.fn(async () => true),
-        install: vi.fn(async () => {}),
+        download: vi.fn(async () => true),
+        restart: vi.fn(async () => {}),
+        setChannel: vi.fn(async () => true),
         ...over,
     };
 }
@@ -26,110 +29,86 @@ function setup(updater: UpdaterStore, preview: UpdatePreview | null = null) {
     return { surface: new UpdateSurface(deps), deps };
 }
 
-const PAGE: UpdatePreview = { layout: "page", state: null, channel: null, chip: "plaque" };
-
 describe("update surface", () => {
     it("reads the live updater when no preview state is pinned", () => {
-        const { surface } = setup(store({ phase: "downloading", version: "1.1.0" }), PAGE);
+        const { surface } = setup(store({ phase: "downloading" }), { state: null, channel: null });
         expect(surface.stage).toBe("downloading");
         expect(surface.source.version).toBe("1.1.0");
     });
 
     it("shows the pinned preview state and never touches the updater from it", async () => {
         const updater = store({ phase: "upToDate", version: null });
-        const { surface, deps } = setup(updater, { layout: "dialog", state: "ready", channel: null, chip: "plaque" });
+        const { surface, deps } = setup(updater, { state: "ready", channel: null });
         expect(surface.stage).toBe("ready");
         expect(surface.source.version).toBe("1.1.0");
         await surface.download();
         await surface.restart();
         await surface.retry();
+        await surface.check();
         expect(deps.track).not.toHaveBeenCalled();
-        expect(updater.install).not.toHaveBeenCalled();
+        expect(updater.download).not.toHaveBeenCalled();
+        expect(updater.restart).not.toHaveBeenCalled();
         expect(updater.check).not.toHaveBeenCalled();
     });
 
-    it("downloads through the store's own download step when it has one, and reports the click", async () => {
-        const download = vi.fn(async () => {});
-        const updater = store({ download });
-        const { surface, deps } = setup(updater);
-        await surface.download();
-        expect(download).toHaveBeenCalledOnce();
-        expect(updater.install).not.toHaveBeenCalled();
-        expect(deps.track).toHaveBeenCalledWith("1.1.0", "panel");
-    });
-
-    it("falls back to the store's install, which downloads and restarts in one go", async () => {
+    it("downloads without installing, and reports the click", async () => {
         const updater = store();
         const { surface, deps } = setup(updater);
         await surface.download();
-        expect(updater.install).toHaveBeenCalledOnce();
+        expect(updater.download).toHaveBeenCalledOnce();
+        expect(updater.restart).not.toHaveBeenCalled();
         expect(deps.track).toHaveBeenCalledWith("1.1.0", "panel");
     });
 
+    it("sends a toast or banner install to the page, where the download starts", async () => {
+        const updater = store();
+        const { surface, deps } = setup(updater);
+        await surface.startFrom("toast");
+        expect(deps.navigate).toHaveBeenCalledWith("/updates");
+        expect(updater.download).toHaveBeenCalledOnce();
+        expect(deps.track).toHaveBeenCalledWith("1.1.0", "toast");
+    });
+
     it("restarts through the store once the update is downloaded", async () => {
-        const restart = vi.fn(async () => {});
-        const { surface } = setup(store({ phase: "ready", restart }));
-        await surface.restart();
-        expect(restart).toHaveBeenCalledOnce();
+        const updater = store({ phase: "ready" });
+        await setup(updater).surface.restart();
+        expect(updater.restart).toHaveBeenCalledOnce();
     });
 
-    it("retries the step that failed", async () => {
-        const check = vi.fn(async () => true);
-        const failedCheck = setup(store({ phase: "error", error: "check", check }));
-        await failedCheck.surface.retry();
-        expect(check).toHaveBeenCalledOnce();
+    it("retries a failed check by checking, and a failed download or install by downloading again", async () => {
+        const failedCheck = store({ phase: "error", error: "check" });
+        await setup(failedCheck).surface.retry();
+        expect(failedCheck.check).toHaveBeenCalledOnce();
+        expect(failedCheck.download).not.toHaveBeenCalled();
 
-        const download = vi.fn(async () => {});
-        const failedDownload = setup(store({ phase: "error", error: "download", download }));
-        await failedDownload.surface.retry();
-        expect(download).toHaveBeenCalledOnce();
+        for (const error of ["download", "install"]) {
+            const failed = store({ phase: "error", error });
+            await setup(failed).surface.retry();
+            expect(failed.download).toHaveBeenCalledOnce();
+        }
     });
 
-    it("is on Release until the store knows a channel", () => {
-        expect(setup(store()).surface.channel).toBe("release");
-        expect(setup(store({ channel: "beta" })).surface.channel).toBe("beta");
-    });
-
-    it("hands a channel change to the store", () => {
-        const setChannel = vi.fn();
-        const { surface } = setup(store({ channel: "release", setChannel }));
+    it("reads and changes the store's channel", () => {
+        const updater = store({ channel: "beta" });
+        const { surface } = setup(updater);
+        expect(surface.channel).toBe("beta");
         surface.setChannel("nightly");
-        expect(setChannel).toHaveBeenCalledWith("nightly");
+        expect(updater.setChannel).toHaveBeenCalledWith("nightly");
     });
 
     it("keeps a preview's channel change on the page only", () => {
-        const setChannel = vi.fn();
-        const { surface } = setup(store({ setChannel }), {
-            layout: "page",
-            state: "available",
-            channel: "beta",
-            chip: "plaque",
-        });
+        const updater = store();
+        const { surface } = setup(updater, { state: "available", channel: "beta" });
         expect(surface.channel).toBe("beta");
         surface.setChannel("nightly");
         expect(surface.channel).toBe("nightly");
-        expect(setChannel).not.toHaveBeenCalled();
+        expect(updater.setChannel).not.toHaveBeenCalled();
     });
 
-    it("opens the page layout by route and the others in place", () => {
-        const page = setup(store(), PAGE);
-        page.surface.show();
-        expect(page.deps.navigate).toHaveBeenCalledWith("/updates");
-        expect(page.surface.open).toBe(false);
-
-        const dialog = setup(store(), { layout: "dialog", state: null, channel: null, chip: "plaque" });
-        dialog.surface.show();
-        expect(dialog.deps.navigate).not.toHaveBeenCalled();
-        expect(dialog.surface.open).toBe(true);
-    });
-
-    it("opens a dialog or popover preview at once so it can be shot", () => {
-        expect(
-            setup(store(), { layout: "popover", state: "downloading", channel: null, chip: "plaque" }).surface.open,
-        ).toBe(true);
-        expect(
-            setup(store(), { layout: "page", state: "downloading", channel: null, chip: "plaque" }).surface.open,
-        ).toBe(false);
+    it("opens the updates page", () => {
+        const { surface, deps } = setup(store());
+        surface.show();
+        expect(deps.navigate).toHaveBeenCalledWith("/updates");
     });
 
     it("sends the manual download to the page for the current channel", () => {

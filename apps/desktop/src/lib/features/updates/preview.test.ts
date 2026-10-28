@@ -1,29 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { byteProgress, failureStep, releaseHighlights, updateStage } from "./flow";
-import { DEFAULT_CHIP, DEFAULT_LAYOUT, PREVIEW_STATES, parseUpdatePreview, previewSource } from "./preview";
+import { PREVIEW_STATES, parseUpdatePreview, previewSource } from "./preview";
 
 describe("parseUpdatePreview", () => {
-    it("reads the layout, state and channel from the first URL", () => {
-        expect(
-            parseUpdatePreview("?demo=default&update-layout=dialog&update-state=ready&update-channel=nightly"),
-        ).toEqual({ layout: "dialog", state: "ready", channel: "nightly", chip: DEFAULT_CHIP });
-        expect(parseUpdatePreview("?update-chip=marks").chip).toBe("marks");
+    it("reads the state and channel from the first URL", () => {
+        expect(parseUpdatePreview("?demo=default&update-state=ready&update-channel=nightly")).toEqual({
+            state: "ready",
+            channel: "nightly",
+        });
     });
 
-    it("keeps the shipped layout and the live updater for missing or unknown values", () => {
-        expect(parseUpdatePreview("")).toEqual({
-            layout: DEFAULT_LAYOUT,
+    it("keeps the live updater for missing or unknown values", () => {
+        expect(parseUpdatePreview("")).toEqual({ state: null, channel: null });
+        expect(parseUpdatePreview("?update-state=exploded&update-channel=alpha")).toEqual({
             state: null,
             channel: null,
-            chip: DEFAULT_CHIP,
-        });
-        expect(
-            parseUpdatePreview("?update-layout=carousel&update-state=exploded&update-channel=alpha&update-chip=pill"),
-        ).toEqual({
-            layout: DEFAULT_LAYOUT,
-            state: null,
-            channel: null,
-            chip: DEFAULT_CHIP,
         });
     });
 });
@@ -50,6 +41,7 @@ describe("previewSource", () => {
         expect(fraction).toBeLessThan(0.9);
         expect(received).toBeGreaterThan(0);
         expect(total).toBeGreaterThan(received!);
+        expect(previewSource("downloading", "0.14.0").speed).toBeGreaterThan(0);
     });
 
     it("covers every state the brief asks to show", () => {

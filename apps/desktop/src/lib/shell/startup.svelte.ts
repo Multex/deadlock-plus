@@ -57,7 +57,7 @@ export function useAppShell() {
     });
 
     $effect(() => {
-        const available = updater.phase === "available" || updater.phase === "downloading";
+        const available = updater.phase === "available" || updater.phase === "downloading" || updater.phase === "ready";
         command("set_update_badge", { available }).catch(() => {});
     });
 

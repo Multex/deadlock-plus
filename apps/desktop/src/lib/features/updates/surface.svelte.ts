@@ -7,29 +7,19 @@ import {
     type UpdateStage,
 } from "./flow";
 import type { InstallSource } from "./nudge";
-import {
-    DEFAULT_CHIP,
-    DEFAULT_LAYOUT,
-    PREVIEW_RATE,
-    previewSource,
-    type ChipVariant,
-    type UpdateLayout,
-    type UpdatePreview,
-} from "./preview";
+import { previewSource, type UpdatePreview } from "./preview";
 
 export const UPDATES_ROUTE = "/updates";
 
-/**
- * The updater store as the update surfaces use it. `download`, `restart`, `channel` and `setChannel` are optional:
- * without a separate download step, `install` downloads, installs and restarts in one go.
- */
+/** The updater store as the updates page uses it. */
 export interface UpdaterStore extends UpdateSource {
-    readonly channel?: UpdateChannel;
+    readonly channel: UpdateChannel;
     check(): Promise<unknown>;
-    install(): Promise<unknown>;
-    download?(): Promise<unknown>;
-    restart?(): Promise<unknown>;
-    setChannel?(channel: UpdateChannel): unknown;
+    /** Downloads and verifies the update, ending in "ready"; nothing installs yet. */
+    download(): Promise<unknown>;
+    /** Installs a "ready" update and starts the new version. */
+    restart(): Promise<unknown>;
+    setChannel(channel: UpdateChannel): unknown;
 }
 
 export interface SurfaceDeps {
@@ -42,32 +32,17 @@ export interface SurfaceDeps {
 }
 
 export class UpdateSurface {
-    open = $state(false);
     private previewChannel = $state<UpdateChannel | null>(null);
     private readonly deps: SurfaceDeps;
 
     constructor(deps: SurfaceDeps) {
         this.deps = deps;
         this.previewChannel = deps.preview?.channel ?? null;
-        this.open = this.pinned && this.layout !== "page";
-    }
-
-    get layout(): UpdateLayout {
-        return this.deps.preview?.layout ?? DEFAULT_LAYOUT;
-    }
-
-    get chip(): ChipVariant {
-        return this.deps.preview?.chip ?? DEFAULT_CHIP;
     }
 
     /** A pinned preview state stands in for the updater: nothing it shows can act on the real one. */
     get pinned(): boolean {
         return this.deps.preview?.state != null;
-    }
-
-    /** The download speed a pinned preview shows; undefined means measure the real one. */
-    get pinnedRate(): number | undefined {
-        return this.pinned ? PREVIEW_RATE : undefined;
     }
 
     get source(): UpdateSource {
@@ -80,8 +55,7 @@ export class UpdateSurface {
     }
 
     get channel(): UpdateChannel {
-        if (this.deps.preview) return this.previewChannel ?? this.deps.updater.channel ?? "release";
-        return this.deps.updater.channel ?? "release";
+        return (this.deps.preview && this.previewChannel) || this.deps.updater.channel;
     }
 
     setChannel(channel: UpdateChannel) {
@@ -89,12 +63,11 @@ export class UpdateSurface {
             this.previewChannel = channel;
             return;
         }
-        this.deps.updater.setChannel?.(channel);
+        this.deps.updater.setChannel(channel);
     }
 
     show() {
-        if (this.layout === "page") this.deps.navigate(UPDATES_ROUTE);
-        else this.open = true;
+        this.deps.navigate(UPDATES_ROUTE);
     }
 
     async check() {
@@ -102,23 +75,29 @@ export class UpdateSurface {
         await this.deps.updater.check();
     }
 
-    async download() {
+    async download(source: InstallSource = "panel") {
         if (this.pinned) return;
         const { updater } = this.deps;
-        if (updater.version) this.deps.track(updater.version, "panel");
-        await (updater.download ? updater.download() : updater.install());
+        if (updater.version) this.deps.track(updater.version, source);
+        await updater.download();
+    }
+
+    /** An install from a toast or the banner runs on the page, so the user sees the download and the restart step. */
+    async startFrom(source: InstallSource) {
+        this.show();
+        await this.download(source);
     }
 
     async restart() {
         if (this.pinned) return;
-        const { updater } = this.deps;
-        await (updater.restart ? updater.restart() : updater.install());
+        await this.deps.updater.restart();
     }
 
+    /** A failed install leaves no download to retry from, so it downloads again like a failed download. */
     async retry() {
         if (this.pinned) return;
-        if (failureStep(this.source) === "download") await this.download();
-        else await this.check();
+        if (failureStep(this.source) === "check") await this.check();
+        else await this.download();
     }
 
     openManualDownload() {

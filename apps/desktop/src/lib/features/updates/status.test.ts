@@ -11,13 +11,13 @@ describe("updateLine", () => {
 
     it("shows a percentage while downloading", () => {
         expect(updateLine({ phase: "downloading", version: "0.2.0", progress: 0.426, error: null })).toBe(
-            "Downloading 0.2.0 (43%). Deadlock+ restarts when it finishes.",
+            "Downloading 0.2.0 (43%). Restart when it is done to install it.",
         );
     });
 
     it("omits the percentage when the size is unknown", () => {
         expect(updateLine({ phase: "downloading", version: "0.2.0", progress: null, error: null })).toBe(
-            "Downloading 0.2.0. Deadlock+ restarts when it finishes.",
+            "Downloading 0.2.0. Restart when it is done to install it.",
         );
     });
 

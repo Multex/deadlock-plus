@@ -23,6 +23,19 @@ describe("stageBody", () => {
         expect(stageBody({ ...base, phase: "upToDate" }, null)).toBe("You have the newest build on your channel.");
     });
 
+    it("tells a failed install from a failed download", () => {
+        expect(stageBody({ ...base, phase: "error", error: "install" }, "0.14.0")).toBe(
+            "The installer didn't finish, so Deadlock+ is still on the version you had. Try again, or get the installer yourself.",
+        );
+        expect(stageKicker({ ...base, phase: "error", error: "install" })).toBe("Update paused");
+    });
+
+    it("words the title bar label for any failure that is not a check", () => {
+        expect(indicatorLabel({ ...base, phase: "error", error: "install", version: "0.15.0" })).toBe(
+            "Update 0.15.0 didn't finish",
+        );
+    });
+
     it("reassures after a failed download", () => {
         expect(stageBody({ ...base, phase: "error", error: "download" }, "0.14.0")).toBe(
             "Nothing on your PC changed. Try again, or get the installer yourself.",

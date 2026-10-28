@@ -1,13 +1,12 @@
 import { REPO_URL, SITE_URL } from "@deadlock-plus/links";
-import { parseChangelog } from "./changelog";
+import { compareVersions, parseChangelog, type ChangelogEntry } from "./changelog";
+import { UPDATE_CHANNELS, type UpdateChannel } from "./channel";
 
-export type UpdateChannel = "release" | "beta" | "nightly";
+export { UPDATE_CHANNELS, type UpdateChannel };
+
 export type UpdateStage = "idle" | "checking" | "upToDate" | "available" | "downloading" | "ready" | "failed";
-export type FailureStep = "check" | "download";
+export type FailureStep = "check" | "download" | "install";
 export type IndicatorKind = "available" | "downloading" | "ready" | "failed";
-
-/** Steadiest first: the order the channel picker lists them in. */
-export const UPDATE_CHANNELS: readonly UpdateChannel[] = ["release", "beta", "nightly"];
 
 /**
  * What the update surfaces read from the updater store. The optional fields are ones the store may not report;
@@ -22,17 +21,16 @@ export interface UpdateSource {
     readonly notes?: string | null;
     readonly received?: number | null;
     readonly total?: number | null;
+    /** Bytes per second over the last few seconds; null until there is enough to measure. */
+    readonly speed?: number | null;
+    /** Why the last check failed, already worded for the user. */
+    readonly checkError?: { readonly message: string } | null;
 }
 
 export interface ByteProgress {
     fraction: number | null;
     received: number | null;
     total: number | null;
-}
-
-export interface RateSample {
-    at: number;
-    bytes: number;
 }
 
 export interface Headline {
@@ -61,6 +59,7 @@ export function updateStage(s: UpdateSource): UpdateStage {
 
 export function failureStep(s: UpdateSource): FailureStep | null {
     if (updateStage(s) !== "failed") return null;
+    if (s.error === "install") return "install";
     return s.error === "download" ? "download" : "check";
 }
 
@@ -74,20 +73,6 @@ export function byteProgress(s: UpdateSource): ByteProgress {
 
 export function mebibytes(bytes: number): number {
     return Math.round((bytes / (1024 * 1024)) * 10) / 10;
-}
-
-const RATE_WINDOW_MS = 4000;
-const MIN_RATE_SPAN_MS = 500;
-
-/** Bytes per second over the last few seconds, so a stall shows soon and one fast chunk does not swing it. */
-export function downloadRate(samples: RateSample[], now: number, windowMs = RATE_WINDOW_MS): number | null {
-    const recent = samples.filter((sample) => now - sample.at <= windowMs);
-    if (recent.length < 2) return null;
-    const first = recent[0];
-    const last = recent[recent.length - 1];
-    const span = last.at - first.at;
-    if (span < MIN_RATE_SPAN_MS) return null;
-    return ((last.bytes - first.bytes) / span) * 1000;
 }
 
 export function secondsLeft(received: number, total: number | null, rate: number | null): number | null {
@@ -132,7 +117,7 @@ export function indicatorKind(s: UpdateSource): IndicatorKind | null {
         case "ready":
             return "ready";
         case "failed":
-            return failureStep(s) === "download" ? "failed" : null;
+            return failureStep(s) === "check" ? null : "failed";
         default:
             return null;
     }
@@ -152,21 +137,55 @@ export function releaseNotesUrl(channel: UpdateChannel, version: string): string
     return channel === "release" ? `${REPO_URL}/releases/tag/v${version}` : `${REPO_URL}/releases`;
 }
 
-export type StepState = "todo" | "current" | "done";
-
 export function timeLeft(seconds: number): { unit: "seconds" | "minutes"; count: number } {
     return seconds < 60 ? { unit: "seconds", count: seconds } : { unit: "minutes", count: Math.ceil(seconds / 60) };
 }
 
-/** The download, restart and release notes steps. A failed download is still the step the user is on. */
-export function stepStates(stage: UpdateStage): StepState[] {
-    switch (stage) {
-        case "downloading":
-        case "failed":
-            return ["current", "todo", "todo"];
-        case "ready":
-            return ["done", "current", "todo"];
-        default:
-            return ["todo", "todo", "todo"];
-    }
+export interface RecentRelease {
+    version: string;
+    date: string | null;
+    headlines: string[];
+    installed: boolean;
+}
+
+/** Feature headings are short; a release without them is named by its first line alone, which can run long. */
+const RELEASE_HEADLINES = 2;
+
+export function recentReleases(history: ChangelogEntry[], current: string, limit: number): RecentRelease[] {
+    return [...history]
+        .sort((a, b) => compareVersions(b.version, a.version))
+        .slice(0, limit)
+        .map((entry) => {
+            const groups = entry.sections.flatMap((section) => (section.groups ?? []).map((group) => group.title));
+            const lines =
+                groups.length > 0
+                    ? groups.slice(0, RELEASE_HEADLINES)
+                    : entry.sections.flatMap((section) => section.items).slice(0, 1);
+            return {
+                version: entry.version,
+                date: entry.date,
+                headlines: lines,
+                installed: compareVersions(entry.version, current) === 0,
+            };
+        });
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const CADENCE_RELEASES = 6;
+
+/** The median days between the last few dated releases; one long gap (a holiday) does not skew it. */
+export function releaseCadenceDays(history: ChangelogEntry[]): number | null {
+    const dates = [...history]
+        .sort((a, b) => compareVersions(b.version, a.version))
+        .map((entry) => (entry.date ? Date.parse(entry.date) : Number.NaN))
+        .filter((at) => !Number.isNaN(at))
+        .slice(0, CADENCE_RELEASES);
+    if (dates.length < 3) return null;
+    const gaps = dates
+        .slice(1)
+        .map((at, i) => (dates[i] - at) / DAY_MS)
+        .sort((a, b) => a - b);
+    const mid = Math.floor(gaps.length / 2);
+    const median = gaps.length % 2 ? gaps[mid] : (gaps[mid - 1] + gaps[mid]) / 2;
+    return Math.max(1, Math.round(median));
 }

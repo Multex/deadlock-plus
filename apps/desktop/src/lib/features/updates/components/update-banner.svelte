@@ -16,7 +16,7 @@
             <p class="text-xs text-muted-foreground">{t("updates.banner.body")}</p>
         </div>
         <Button size="sm" variant="outline" onclick={() => updateSurface.show()}>
-            {t("updates.about.view")}
+            {t("updates.banner.view")}
         </Button>
         <Button size="sm" onclick={() => installUpdate("banner")}>
             <Download />

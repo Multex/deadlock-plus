@@ -449,7 +449,6 @@
             "copied": "Detalhes da versão copiados",
             "copy_failed": "Não foi possível copiar para a área de transferência",
             "install": "Instalar {version}",
-            "check_now": "Verificar agora",
             "auto_check_label": "Verificar automaticamente",
             "auto_check_description": "Consulta o GitHub em busca de uma versão mais recente ao iniciar e a cada hora. Nada é instalado sem o seu clique.",
             "whats_new_in": "Novidades na versão {version}"

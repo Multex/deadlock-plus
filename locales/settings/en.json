@@ -493,7 +493,6 @@
             "copied": "Copied version details",
             "copy_failed": "Couldn't copy to the clipboard",
             "install": "Install {version}",
-            "check_now": "Check now",
             "auto_check_label": "Check automatically",
             "auto_check_description": "Asks GitHub for a newer release on launch and every hour after. Nothing installs without your click.",
             "whats_new_in": "What's new in {version}",

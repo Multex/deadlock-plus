@@ -262,9 +262,6 @@
         "titlebar": {
             "expand_sidebar": "",
             "collapse_sidebar": "",
-            "update_downloading": "",
-            "downloading_update": "",
-            "update_available": "",
             "minimize": "",
             "maximize": "",
             "restore": "",

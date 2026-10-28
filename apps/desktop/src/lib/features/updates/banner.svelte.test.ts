@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { trackUpdateInstallClicked, trackUpdateShown, fakeUpdater } = vi.hoisted(() => ({
-    trackUpdateInstallClicked: vi.fn(async () => {}),
+const { trackUpdateShown, fakeUpdater, startFrom } = vi.hoisted(() => ({
     trackUpdateShown: vi.fn(async () => {}),
-    fakeUpdater: { phase: "available", version: "0.12.0" as string | null, install: vi.fn(async () => {}) },
+    fakeUpdater: { phase: "available", version: "0.12.0" as string | null },
+    startFrom: vi.fn(async () => {}),
 }));
-vi.mock("$lib/features/telemetry/api", () => ({ trackUpdateInstallClicked, trackUpdateShown }));
+vi.mock("$lib/features/telemetry/api", () => ({ trackUpdateShown }));
 vi.mock("./updater.svelte", () => ({ updater: fakeUpdater }));
+vi.mock("./update-surface.svelte", () => ({ updateSurface: { startFrom } }));
 
 import { UpdateBanner, installUpdate, type BannerDeps } from "./banner.svelte";
 import { BANNER_AFTER_MS, createShownTracker, type FirstSeenStore } from "./nudge";
@@ -79,20 +80,10 @@ describe("update banner", () => {
 });
 
 describe("installUpdate", () => {
-    beforeEach(() => {
-        trackUpdateInstallClicked.mockClear();
-        fakeUpdater.install.mockClear();
-    });
+    beforeEach(() => startFrom.mockClear());
 
-    it("records the click with its source and runs the same install as Settings", async () => {
+    it("starts the download on the updates page, naming where the click came from", async () => {
         await installUpdate("banner");
-        expect(trackUpdateInstallClicked).toHaveBeenCalledWith("0.12.0", "banner");
-        expect(fakeUpdater.install).toHaveBeenCalledTimes(1);
-    });
-
-    it("still installs when the event cannot be sent", async () => {
-        trackUpdateInstallClicked.mockRejectedValueOnce(new Error("no ipc"));
-        await installUpdate("about");
-        expect(fakeUpdater.install).toHaveBeenCalledTimes(1);
+        expect(startFrom).toHaveBeenCalledWith("banner");
     });
 });

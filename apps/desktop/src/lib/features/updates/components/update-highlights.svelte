@@ -8,21 +8,18 @@
         version: string;
         notes: string | null | undefined;
         channel: UpdateChannel;
-        /** `ledger` numbers each headline in large type; `list` is a tight list for small surfaces. */
-        variant?: "ledger" | "list";
-        limit?: number;
     };
 
-    let { version, notes, channel, variant = "ledger", limit }: Props = $props();
+    let { version, notes, channel }: Props = $props();
 
     const id = $props.id();
     const highlights = $derived(releaseHighlights(version, notes));
-    const shown = $derived(limit === undefined ? highlights.headlines : highlights.headlines.slice(0, limit));
+    const shown = $derived(highlights.headlines);
     const more = $derived(Math.max(highlights.total - shown.length, 0));
 </script>
 
 {#if shown.length > 0}
-    <section class="highlights" data-variant={variant} aria-labelledby="{id}-title">
+    <section class="highlights" aria-labelledby="{id}-title">
         <h3 id="{id}-title" class="kicker">{t("updates.surface.highlights_title")}</h3>
         <ol>
             {#each shown as headline, i (i)}
@@ -30,7 +27,7 @@
                     <span class="num" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
                     <div class="min-w-0">
                         <p class="title">{headline.title}</p>
-                        {#if headline.lead && variant === "ledger"}
+                        {#if headline.lead}
                             <p class="lead">{headline.lead}</p>
                         {/if}
                     </div>
@@ -112,20 +109,6 @@
         margin-top: 0.125rem;
         font-size: 0.85rem;
         color: var(--muted-foreground);
-    }
-
-    [data-variant="list"] li {
-        padding: 0.375rem 0;
-        gap: 0.625rem;
-    }
-    [data-variant="list"] .num {
-        font-size: 0.9rem;
-    }
-    [data-variant="list"] .title {
-        font-family: var(--font-sans);
-        font-size: 0.85rem;
-        font-weight: 500;
-        letter-spacing: 0;
     }
 
     .foot {

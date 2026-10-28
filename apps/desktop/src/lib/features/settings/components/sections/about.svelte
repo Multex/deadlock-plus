@@ -4,14 +4,13 @@
     import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { ChevronRight, RefreshCw } from "@lucide/svelte";
+    import { ChevronRight } from "@lucide/svelte";
     import Button from "@deadlock-plus/ui/button.svelte";
     import Switch from "@deadlock-plus/ui/switch.svelte";
     import { settings } from "$lib/features/settings/settings.svelte";
     import { indicatorKind } from "$lib/features/updates/flow";
     import { updateLine } from "$lib/features/updates/status";
     import { updateSurface } from "$lib/features/updates/update-surface.svelte";
-    import ChannelPicker from "$lib/features/updates/components/channel-picker.svelte";
     import { WHATS_NEW_ROUTE } from "$lib/features/updates/whats-new";
     import ThanksCard from "$lib/features/thanks/thanks-card.svelte";
     import LicensesList from "$lib/features/settings/components/licenses-list.svelte";
@@ -39,30 +38,18 @@
             <div class="flex flex-col gap-1">
                 <h2 class="font-heading text-sm font-semibold tracking-wide">{t("settings.items.updates")}</h2>
                 <p class="text-sm text-muted-foreground" aria-live="polite">{updateLine(updateSurface.source)}</p>
+                <p class="text-xs text-muted-foreground">
+                    {t("updates.channel.summary", { channel: t(`updates.channel.${updateSurface.channel}.name`) })}
+                </p>
             </div>
-            {#if indicatorKind(updateSurface.source)}
-                <Button size="sm" onclick={() => updateSurface.show()}>
-                    {t("updates.about.view")}
-                    <ChevronRight />
-                </Button>
-            {:else}
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={updateSurface.stage === "checking"}
-                    onclick={() => void updateSurface.check()}
-                >
-                    <RefreshCw />
-                    {t("settings.about_page.check_now")}
-                </Button>
-            {/if}
-        </div>
-        <div class="mt-4 border-t pt-4">
-            <ChannelPicker
-                value={updateSurface.channel}
-                onchange={(c) => updateSurface.setChannel(c)}
-                currentVersion={info?.appVersion ?? null}
-            />
+            <Button
+                size="sm"
+                variant={indicatorKind(updateSurface.source) ? "default" : "outline"}
+                onclick={() => updateSurface.show()}
+            >
+                {t("updates.overview.open")}
+                <ChevronRight />
+            </Button>
         </div>
         <SettingRow
             class="mt-4 border-t pt-4"

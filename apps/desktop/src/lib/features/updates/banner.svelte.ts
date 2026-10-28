@@ -1,6 +1,7 @@
 import { prefs } from "$lib/core/prefs";
-import { trackUpdateInstallClicked, trackUpdateShown } from "$lib/features/telemetry/api";
+import { trackUpdateShown } from "$lib/features/telemetry/api";
 import { bannerDue, createShownTracker, firstSeenAt, type FirstSeenStore, type InstallSource } from "./nudge";
+import { updateSurface } from "./update-surface.svelte";
 import { updater, type UpdatePhase } from "./updater.svelte";
 
 export const reportUpdateShown = createShownTracker((version) => {
@@ -8,8 +9,7 @@ export const reportUpdateShown = createShownTracker((version) => {
 });
 
 export function installUpdate(source: InstallSource) {
-    if (updater.version) trackUpdateInstallClicked(updater.version, source).catch(() => {});
-    return updater.install();
+    return updateSurface.startFrom(source);
 }
 
 export interface BannerDeps {

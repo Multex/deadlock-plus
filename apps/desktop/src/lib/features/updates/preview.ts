@@ -1,14 +1,7 @@
 import { UPDATE_CHANNELS, type UpdateChannel, type UpdateSource } from "./flow";
 
-export type UpdateLayout = "page" | "dialog" | "popover";
 export type PreviewState = "available" | "downloading" | "ready" | "failed" | "check-failed" | "up-to-date";
 
-export type ChipVariant = "plaque" | "marks" | "tab";
-export const CHIP_VARIANTS: readonly ChipVariant[] = ["plaque", "marks", "tab"];
-export const DEFAULT_CHIP: ChipVariant = "plaque";
-
-export const UPDATE_LAYOUTS: readonly UpdateLayout[] = ["page", "dialog", "popover"];
-export const DEFAULT_LAYOUT: UpdateLayout = "page";
 export const PREVIEW_STATES: readonly PreviewState[] = [
     "available",
     "downloading",
@@ -18,12 +11,10 @@ export const PREVIEW_STATES: readonly PreviewState[] = [
     "up-to-date",
 ];
 
-/** Demo builds only: picks the update surface's layout and pins the updater to one state for screenshots. */
+/** Demo builds only: pins the updater to one state for screenshots and tests. */
 export interface UpdatePreview {
-    layout: UpdateLayout;
     state: PreviewState | null;
     channel: UpdateChannel | null;
-    chip: ChipVariant;
 }
 
 function oneOf<T extends string>(value: string | null, options: readonly T[]): T | null {
@@ -33,10 +24,8 @@ function oneOf<T extends string>(value: string | null, options: readonly T[]): T
 export function parseUpdatePreview(search: string): UpdatePreview {
     const query = new URLSearchParams(search);
     return {
-        layout: oneOf(query.get("update-layout"), UPDATE_LAYOUTS) ?? DEFAULT_LAYOUT,
         state: oneOf(query.get("update-state"), PREVIEW_STATES),
         channel: oneOf(query.get("update-channel"), UPDATE_CHANNELS),
-        chip: oneOf(query.get("update-chip"), CHIP_VARIANTS) ?? DEFAULT_CHIP,
     };
 }
 
@@ -70,7 +59,7 @@ const SAMPLE_NOTES = [
 ].join("\n");
 
 /** A steady 3.4 MB/s, so the preview shows a speed and time left. */
-export const PREVIEW_RATE = 3_565_158;
+const PREVIEW_RATE = 3_565_158;
 
 const SAMPLE_TOTAL = 40_507_392;
 const SAMPLE_RECEIVED = 25_165_824;
@@ -89,6 +78,7 @@ export function previewSource(state: PreviewState, currentVersion: string): Upda
                 error: null,
                 received: SAMPLE_RECEIVED,
                 total: SAMPLE_TOTAL,
+                speed: PREVIEW_RATE,
             };
         case "ready":
             return {

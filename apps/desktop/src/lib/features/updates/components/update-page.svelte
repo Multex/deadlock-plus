@@ -1,11 +1,17 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Page from "@deadlock-plus/ui/page.svelte";
+    import SettingRow from "@deadlock-plus/ui/setting-row.svelte";
+    import Switch from "@deadlock-plus/ui/switch.svelte";
     import { t } from "$lib/core/i18n.svelte";
     import { aboutInfo } from "$lib/features/settings/about-info.svelte";
+    import { settings } from "$lib/features/settings/settings.svelte";
     import { stageBody, stageKicker } from "../copy";
+    import { byteProgress, failureStep, releaseHighlights } from "../flow";
+    import { whatsNew } from "../whats-new.svelte";
     import type { UpdateSurface } from "../surface.svelte";
     import ChannelPicker from "./channel-picker.svelte";
+    import ReleaseHistory from "./release-history.svelte";
     import UpdateActions from "./update-actions.svelte";
     import UpdateHighlights from "./update-highlights.svelte";
     import UpdateProgress from "./update-progress.svelte";
@@ -20,13 +26,26 @@
             (stage === "available" || stage === "downloading" || stage === "ready" || stage === "failed"),
     );
     const numeral = $derived(showsUpdate ? source.version : current);
+    const body = $derived(stageBody(source, current));
+    const hasHighlights = $derived(
+        showsUpdate && source.version !== null && releaseHighlights(source.version, source.notes).headlines.length > 0,
+    );
+    // A finished download of unknown size has nothing to measure, so the bar only shows while it means something.
+    const showsProgress = $derived(
+        stage === "downloading" || (stage === "ready" && byteProgress(source).total !== null),
+    );
+    // The store's message is worded for the user; it only adds something when it says more than the body does.
+    const checkDetail = $derived.by(() => {
+        const message = failureStep(source) === "check" ? source.checkError?.message : undefined;
+        return message && message !== t("updates.status.check_failed") ? message : null;
+    });
 
     onMount(() => {
         if (!aboutInfo.info) void aboutInfo.load();
     });
 </script>
 
-<Page class="max-w-4xl">
+<Page class="max-w-5xl">
     <h1 class="sr-only">{t("updates.surface.title")}</h1>
 
     <section class="sheet" data-stage={stage} aria-labelledby="update-plate-version">
@@ -47,25 +66,50 @@
                 <span class="badge" data-channel={surface.channel}>{t(`updates.channel.${surface.channel}.name`)}</span>
             </div>
 
-            <p class="body" aria-live="polite">{stageBody(source, current)}</p>
+            <p class="body" aria-live="polite">{body}</p>
+            {#if checkDetail}<p class="detail">{checkDetail}</p>{/if}
 
-            {#if stage === "downloading" || stage === "ready"}
-                <UpdateProgress {source} pinnedRate={surface.pinnedRate} />
+            {#if showsProgress}
+                <UpdateProgress {source} />
             {/if}
 
             <UpdateActions {surface} size="lg" />
         </div>
 
-        {#if showsUpdate && source.version}
+        {#if hasHighlights && source.version}
             <div class="ledger">
                 <UpdateHighlights version={source.version} notes={source.notes} channel={surface.channel} />
             </div>
         {/if}
     </section>
 
-    <section class="channels">
-        <ChannelPicker value={surface.channel} onchange={(c) => surface.setChannel(c)} currentVersion={current} />
-    </section>
+    <div class="lower" data-has-history={whatsNew.history.length > 0 && current !== null}>
+        {#if whatsNew.history.length > 0 && current}
+            <div class="panel">
+                <ReleaseHistory history={whatsNew.history} {current} />
+            </div>
+        {/if}
+        <div class="panel channels">
+            <ChannelPicker
+                value={surface.channel}
+                onchange={(c) => surface.setChannel(c)}
+                currentVersion={current}
+                variant={whatsNew.history.length > 0 && current ? "stack" : "cards"}
+            />
+            <SettingRow
+                class="border-t pt-4"
+                label={t("settings.about_page.auto_check_label")}
+                for="updates-auto-check"
+                description={t("settings.about_page.auto_check_description")}
+            >
+                <Switch
+                    id="updates-auto-check"
+                    checked={settings.autoUpdateCheck}
+                    onCheckedChange={(v) => settings.setAutoUpdateCheck(v)}
+                />
+            </SettingRow>
+        </div>
+    </div>
 </Page>
 
 <style>
@@ -204,10 +248,33 @@
         background: color-mix(in oklch, var(--foreground) 2%, transparent);
     }
 
-    .channels {
-        padding: 1.25rem;
+    .detail {
+        margin-top: -0.375rem;
+        font-size: 0.8rem;
+        color: var(--muted-foreground);
+    }
+
+    .lower {
+        display: grid;
+        gap: 1.25rem;
+    }
+    @media (min-width: 52rem) {
+        .lower[data-has-history="true"] {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: start;
+        }
+    }
+
+    .panel {
+        padding: 1.25rem 1.5rem;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--card);
+    }
+
+    .channels {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 </style>

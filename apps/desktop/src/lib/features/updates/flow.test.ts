@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
     byteProgress,
-    downloadRate,
     failureStep,
     indicatorKind,
     keepsCurrentBuild,
     manualDownloadUrl,
     mebibytes,
+    recentReleases,
+    releaseCadenceDays,
     releaseNotesUrl,
     releaseHighlights,
     secondsLeft,
-    stepStates,
     timeLeft,
     updateStage,
     type UpdateSource,
@@ -65,6 +65,7 @@ describe("failureStep", () => {
     it("names the step that failed, and nothing outside a failure", () => {
         expect(failureStep(source({ phase: "error", error: "check" }))).toBe("check");
         expect(failureStep(source({ phase: "error", error: "download" }))).toBe("download");
+        expect(failureStep(source({ phase: "error", error: "install" }))).toBe("install");
         expect(failureStep(source({ phase: "available", error: "download" }))).toBeNull();
     });
 });
@@ -95,39 +96,6 @@ describe("mebibytes", () => {
     it("rounds to one decimal, as Windows counts sizes", () => {
         expect(mebibytes(38_273_024)).toBe(36.5);
         expect(mebibytes(0)).toBe(0);
-    });
-});
-
-describe("downloadRate", () => {
-    it("is the bytes per second across the recent samples", () => {
-        const samples = [
-            { at: 0, bytes: 0 },
-            { at: 1000, bytes: 2_000_000 },
-            { at: 2000, bytes: 4_000_000 },
-        ];
-        expect(downloadRate(samples, 2000)).toBe(2_000_000);
-    });
-
-    it("forgets samples older than the window", () => {
-        const samples = [
-            { at: 0, bytes: 0 },
-            { at: 9000, bytes: 1_000_000 },
-            { at: 10_000, bytes: 3_000_000 },
-        ];
-        expect(downloadRate(samples, 10_000, 4000)).toBe(2_000_000);
-    });
-
-    it("waits for enough time to pass before guessing", () => {
-        expect(downloadRate([{ at: 0, bytes: 0 }], 0)).toBeNull();
-        expect(
-            downloadRate(
-                [
-                    { at: 0, bytes: 0 },
-                    { at: 200, bytes: 100 },
-                ],
-                200,
-            ),
-        ).toBeNull();
     });
 });
 
@@ -177,6 +145,7 @@ describe("indicatorKind", () => {
         expect(indicatorKind(source({ phase: "downloading" }))).toBe("downloading");
         expect(indicatorKind(source({ phase: "ready" }))).toBe("ready");
         expect(indicatorKind(source({ phase: "error", error: "download" }))).toBe("failed");
+        expect(indicatorKind(source({ phase: "error", error: "install" }))).toBe("failed");
     });
 
     it("stays away when nothing is waiting or a background check failed", () => {
@@ -223,11 +192,47 @@ describe("timeLeft", () => {
     });
 });
 
-describe("stepStates", () => {
-    it("lights the download, then the restart, as the update moves on", () => {
-        expect(stepStates("available")).toEqual(["todo", "todo", "todo"]);
-        expect(stepStates("downloading")).toEqual(["current", "todo", "todo"]);
-        expect(stepStates("ready")).toEqual(["done", "current", "todo"]);
-        expect(stepStates("failed")).toEqual(["current", "todo", "todo"]);
+const entry = (version: string, date: string | null, groups: string[] = [], items: string[] = []) => ({
+    version,
+    date,
+    sections: [{ title: "Added", items, groups: groups.map((title) => ({ title, items: ["x"] })) }],
+});
+
+describe("recentReleases", () => {
+    const history = [
+        entry("0.12.0", "2026-10-01", [], ["Grades.", "Ranks.", "Maps."]),
+        entry("0.14.0", "2026-10-23", ["Build editor"], ["Small thing."]),
+        entry("0.13.0", "2026-10-10", ["Overlay", "Presence", "Themes"]),
+        entry("0.11.0", "2026-09-20"),
+    ];
+
+    it("lists the newest releases first, up to the limit, marking the one installed", () => {
+        const releases = recentReleases(history, "0.14.0", 3);
+        expect(releases.map((r) => r.version)).toEqual(["0.14.0", "0.13.0", "0.12.0"]);
+        expect(releases.map((r) => r.installed)).toEqual([true, false, false]);
+    });
+
+    it("names each release by up to two feature headings, else by its first line", () => {
+        const releases = recentReleases(history, "0.14.0", 3);
+        expect(releases[0].headlines).toEqual(["Build editor"]);
+        expect(releases[1].headlines).toEqual(["Overlay", "Presence"]);
+        expect(releases[2].headlines).toEqual(["Grades."]);
+    });
+});
+
+describe("releaseCadenceDays", () => {
+    it("is the median gap in days between the recent dated releases", () => {
+        const history = [
+            entry("0.10.0", "2026-09-01"),
+            entry("0.11.0", "2026-09-11"),
+            entry("0.12.0", "2026-09-25"),
+            entry("0.13.0", "2026-10-05"),
+            entry("0.14.0", null),
+        ];
+        expect(releaseCadenceDays(history)).toBe(10);
+    });
+
+    it("needs at least three dated releases", () => {
+        expect(releaseCadenceDays([entry("0.1.0", "2026-01-01"), entry("0.2.0", "2026-01-11")])).toBeNull();
     });
 });

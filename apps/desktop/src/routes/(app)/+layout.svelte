@@ -8,7 +8,6 @@
     import AnnouncementsBanner from "$lib/features/announcements/components/announcements-banner.svelte";
     import GameAdminBanner from "$lib/features/admin-access/components/game-admin-banner.svelte";
     import UpdateBanner from "$lib/features/updates/components/update-banner.svelte";
-    import UpdateSurfaceHost from "$lib/features/updates/components/update-surface-host.svelte";
     import CrashDialog from "$lib/features/crash/components/crash-dialog.svelte";
 
     let { children } = $props();
@@ -26,5 +25,4 @@
         {@render children?.()}
     </AppRegion>
     <AppRegion name="crash-dialog" quiet><CrashDialog /></AppRegion>
-    <AppRegion name="update-dialog" quiet><UpdateSurfaceHost /></AppRegion>
 </Frame>

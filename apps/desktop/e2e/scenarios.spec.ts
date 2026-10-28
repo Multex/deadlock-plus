@@ -412,16 +412,17 @@ test.describe("update-available", () => {
         const settingsMain = page.getByRole("main");
         await expect(settingsMain.getByText(`Version ${NEXT_VERSION} is available.`)).toBeVisible();
         await expect(settingsMain.getByRole("button", { name: "Check now" })).toHaveCount(0);
-        await settingsMain.getByRole("button", { name: "View update" }).click();
+        await settingsMain.getByRole("button", { name: "Open updates" }).click();
         await expect(page).toHaveURL(/\/updates$/);
 
         const main = page.getByRole("main");
         await expect(main.getByText("Update available", { exact: true })).toBeVisible();
         await main.getByRole("button", { name: "Update now" }).click();
 
-        await expect(main.getByText("Keep using Deadlock+ while it downloads.")).toBeVisible();
-        await expect(main.getByRole("progressbar", { name: "Update download" })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Downloading update" })).toBeVisible();
+        // The demo's download finishes at once, so the page moves straight on to the restart step.
+        await expect(main.getByText("Ready to install", { exact: true })).toBeVisible();
+        await expect(main.getByRole("button", { name: "Restart now" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Update ready, restart to install" })).toBeVisible();
     });
 });
 
@@ -430,7 +431,7 @@ test.describe("default, for contrast", () => {
         await page.goto("/settings/about");
         await settle(page);
         await expect(page.getByRole("main").getByText("You're on the latest version.")).toBeVisible();
-        await expect(page.getByRole("button", { name: /^Update .* available$/ })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: /is available$/ })).toHaveCount(0);
     });
 
     test("Stats falls back to its saved copy when the API drops mid-session", async ({ page }) => {
