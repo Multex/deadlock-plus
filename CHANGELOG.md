@@ -76,13 +76,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A Year-End Special in black and gold comes out on December 1 and covers the twelve months before it.
 - An edition needs at least three matches in what it covers.
 - "This week so far" shows the current week's paper as it fills up.
-- Editions stand on a newsstand rack beside the paper, one shelf for each kind.
+- Editions lie on a coffee table: this week so far, the newest Weekly and Monthly, and any specials.
+- Past weeks lie in a bundle per month; open a bundle to deal its copies out.
+- Pick up a copy to read it, and put it back with Escape or the Table button.
 - Headlines cover your record, hours played, top hero, best streak, longest session, rank moves and more.
 - The game of the week is picked from your best matches by KDA, then by Deadlock+ grade.
 - "The company you keep" names the friends you partied with most and the enemy who beat you most.
 - Issued editions are kept as they were printed, so old papers never change.
-- The rack holds every past edition back to your first recorded match; print any of them when you want.
-- Read an edition as a story, one tall card at a time.
+- Every past edition back to your first recorded match can be printed when you want it.
+- A Monthly Edition opens as a magazine; turn its pages with the arrow keys.
 - Save or copy the front page or any section as an image, in 9:16, 1:1 or 16:9.
 - A notification tells you when a new edition is out; it never shows in the game overlay.
 - Turn that notification off with "New Dispatch edition" in Settings > Notifications.
