@@ -3,7 +3,7 @@
 // Writes `<name>.png` files and `tags.json`; `scripts/crowdin-screenshots.mjs` uploads them.
 import { chromium } from "@playwright/test";
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -33,7 +33,10 @@ const PARAMS = {
 };
 const SKIPPED = new Set(["/onboarding"]);
 
-const matcher = buildMatcher(readSourceStrings(path.resolve(DESKTOP, "../../locales")));
+const LOCALES = path.resolve(DESKTOP, "../../locales");
+// The website's strings never show in the app; matching them too would leave shared words like "Download" untagged.
+const appAreas = readdirSync(LOCALES).filter((area) => area !== "web");
+const matcher = buildMatcher(readSourceStrings(LOCALES, appAreas));
 const gameData = createGameDataCache({
     dir: cacheDir(
         path.join(DESKTOP, "e2e/.cache/game-data/"),
