@@ -308,6 +308,18 @@ describe("rank move", () => {
         expect(held?.deck.key).toBe("dispatch.story.rank_move.deck_held_up");
     });
 
+    it("counts the subranks moved, across a tier boundary too", () => {
+        const across = story(
+            edition({ rank: { startBadge: 41, endBadge: 35, peakBadge: 41, delta: -300 } }),
+            "rank_move",
+        );
+        expect(across?.params.steps).toEqual({ type: "number", value: 2 });
+        const one = story(edition({ rank: { startBadge: 81, endBadge: 82, peakBadge: 82, delta: 300 } }), "rank_move");
+        expect(one?.params.steps).toEqual({ type: "number", value: 1 });
+        const held = story(edition({ rank: { startBadge: 81, endBadge: 81, peakBadge: 81, delta: 120 } }), "rank_move");
+        expect(held?.params.steps).toEqual({ type: "number", value: 0 });
+    });
+
     it("scores a bigger move higher", () => {
         const one = story(edition({ rank: { startBadge: 81, endBadge: 82, peakBadge: 82, delta: 300 } }), "rank_move")!;
         const two = story(edition({ rank: { startBadge: 81, endBadge: 83, peakBadge: 83, delta: 600 } }), "rank_move")!;

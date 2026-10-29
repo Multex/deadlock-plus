@@ -59,7 +59,7 @@ const STORIES: StoryShape[] = [
         decks: [c("deck")],
         angles: [c("angle_losing_then_winning")],
         versus: true,
-        params: ["wins", "losses", "winrate", "margin", "of", "played"],
+        params: ["wins", "losses", "winrate", "margin", "run_wins", "of", "played"],
     },
     {
         story: "hours",
@@ -92,7 +92,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [p("deck"), p("deck_graded")],
         angles: [p("angle_big_game")],
-        params: ["hero", "kills", "deaths", "assists", "net_worth", "date", "when", "letter"],
+        params: ["hero", "kills", "deaths", "assists", "net_worth", "date", "when", "letter", "played"],
     },
     {
         story: "best_streak",
@@ -133,7 +133,7 @@ const STORIES: StoryShape[] = [
         headlines: ["up", "down", "held_up", "held_down"].map((v) => p(`headline_${v}`)),
         decks: ["up", "down", "held_up", "held_down"].map((v) => p(`deck_${v}`)),
         angles: [c("angle_climb"), c("angle_slide")],
-        params: ["from", "to", "peak", "played"],
+        params: ["from", "to", "peak", "steps", "played"],
     },
     {
         story: "rank_move",
@@ -141,7 +141,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline_held_up"), p("headline_held_down")],
         decks: [p("deck_held_up"), p("deck_held_down")],
         angles: [],
-        params: ["from", "to", "peak", "played"],
+        params: ["from", "to", "peak", "steps", "played"],
     },
     {
         story: "played_with",
@@ -157,7 +157,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [c("angle_nemesis")],
-        params: ["player", "matches"],
+        params: ["player", "matches", "played"],
     },
     {
         story: "damage",
@@ -165,7 +165,7 @@ const STORIES: StoryShape[] = [
         headlines: [p("headline")],
         decks: [c("deck")],
         angles: [],
-        params: ["damage", "games"],
+        params: ["damage", "games", "played"],
     },
     {
         story: "mvp_count",
@@ -173,7 +173,7 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck")],
         angles: [c("angle_mvp")],
-        params: ["rated"],
+        params: ["rated", "played"],
     },
     {
         story: "night_owl",
@@ -213,7 +213,7 @@ const STORIES: StoryShape[] = [
         headlines: [c("headline")],
         decks: [p("deck"), c("deck_new")],
         angles: [c("angle_explorer")],
-        params: ["heroes"],
+        params: ["heroes", "played"],
     },
     {
         story: "busiest_month",
@@ -294,6 +294,7 @@ const VALUES: Record<string, string> = {
     wins: "15",
     losses: "8",
     margin: "7",
+    run_wins: "7",
     winrate: "65%",
     share: "52%",
     kills: "14",
@@ -457,7 +458,191 @@ describe("Dispatch print copy catalog", () => {
         const old = storyLines().filter(({ key }) => /steals the show|runs the show/i.test(CATALOG[key] ?? ""));
         expect(old).toEqual([]);
     });
+
+    it("says a single rung only on a one-subrank rank move", () => {
+        const bad = storyLines().filter(
+            ({ key, cond }) =>
+                key.includes(".rank_move.") &&
+                !key.includes(".angle_") &&
+                /\b(a|one) rung\b/i.test(CATALOG[key] ?? "") &&
+                !/(^|,)\s*steps=1\s*(,|$)/.test(cond),
+        );
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("never calls a total of playtime one unbroken sitting", () => {
+        const sitting =
+            /no breaks|door to door|start to finish|start the clock|clock started|sat down|pressed play|took the stage|later, still|“just one more,” \{count\} hours? later|hours? ago/i;
+        const bad = storyLines().filter(({ key }) => key.includes(".hours.") && sitting.test(CATALOG[key] ?? ""));
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("words the duo share as a share of matches", () => {
+        const bad = storyLines().filter(
+            ({ key }) =>
+                key.includes(".played_with.") && /\{share\} of the (week|month|season|year)\./.test(CATALOG[key] ?? ""),
+        );
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("gives every deck a fact its headline lacks", () => {
+        const bad: string[] = [];
+        for (const pair of deckPairs()) {
+            const { story, base, head, deck } = pair;
+            for (const hk of headKeys(pair)) {
+                const h = new Set(lineFacts(story.story, head.part, hk));
+                const countOnly = holdsAll(h, story, deck);
+                for (const dk of lineKeys(`${base}.${deck.part}`, deck.counted)) {
+                    const fresh = lineFacts(story.story, deck.part, dk).filter(
+                        (f) => !h.has(f) && f !== "me" && (f !== "played" || countOnly),
+                    );
+                    if (!fresh.length) bad.push(`${dk} adds nothing to ${hk}: ${CATALOG[dk]} | ${CATALOG[hk]}`);
+                }
+            }
+        }
+        if (REPORT) appendFileSync(REPORT, `${bad.join("\n")}\n`);
+        expect(bad.slice(0, 20)).toEqual([]);
+        expect(bad.length).toBe(0);
+    });
+
+    it("prints the match count in few decks that have another fact to add", () => {
+        // A deck under a headline that already prints every other fact can only add the match count.
+        const forced = new Set(
+            deckPairs()
+                .filter((pair) =>
+                    headKeys(pair).some((hk) =>
+                        holdsAll(new Set(lineFacts(pair.story.story, pair.head.part, hk)), pair.story, pair.deck),
+                    ),
+                )
+                .map(({ base, deck }) => `${base}.${deck.part}`),
+        );
+        const share = KINDS.map((kind) => {
+            const decks = storyLines().filter(
+                ({ key, role }) =>
+                    role === "deck" &&
+                    key.split(".")[3] === kind &&
+                    !key.endsWith("_one") &&
+                    !forced.has(key.slice("dispatch.story.".length).replace(/_\d+(_other)?$/, "")),
+            );
+            const counting = decks.filter(({ key, story }) =>
+                lineFacts(story.story, partOfKey(key), key).includes("played"),
+            );
+            return { kind, counting: counting.length, decks: decks.length };
+        });
+        if (REPORT) appendFileSync(REPORT, `${share.map((s) => `${s.kind} ${s.counting}/${s.decks}`).join("\n")}\n`);
+        expect(share.filter((s) => s.counting > s.decks * MATCH_COUNT_DECK_SHARE)).toEqual([]);
+    });
+
+    it("says what a share is of, and words grades and rankings plainly", () => {
+        const awkward =
+            /of them all|\b(performance|outing|showing)( \{when\})? for \{hero\}|every other month|came first/i;
+        const bad = storyLines().filter(({ key }) => awkward.test(CATALOG[key] ?? ""));
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
+
+    it("says the duo share is a share of matches", () => {
+        const counted = /\{share\} of (the )?(\w+'s )?(ranked )?(matches|games)\b/;
+        const bad = storyLines().filter(({ key }) => {
+            const tpl = CATALOG[key] ?? "";
+            return key.includes(".played_with.") && tpl.includes("{share}") && !counted.test(tpl);
+        });
+        expect(bad.map(({ key }) => `${key}: ${CATALOG[key]}`)).toEqual([]);
+    });
 });
+
+/** At most this share of a kind's decks may print the period's match count when they have another fact to add. */
+const MATCH_COUNT_DECK_SHARE = 1 / 10;
+
+interface DeckPair {
+    story: StoryShape;
+    base: string;
+    head: Part;
+    deck: Part;
+}
+
+/** Each deck cell with every headline and angle cell it can print under. */
+function deckPairs(): DeckPair[] {
+    return STORIES.flatMap((story) =>
+        story.kinds.flatMap((kind) => {
+            const base = `${story.story}.${kind}`;
+            return [...story.headlines, ...story.angles].flatMap((head) => {
+                const own = story.decks.filter((d) => d.part === head.part.replace("headline_", "deck_"));
+                return (own.length ? own : story.decks).map((deck) => ({ story, base, head, deck }));
+            });
+        }),
+    );
+}
+
+const headKeys = ({ base, head }: DeckPair) =>
+    HEADLINE_SHAPES.flatMap((shape) => lineKeys(`${base}.${head.part}_${shape}`, head.counted));
+
+/** Every key of a cell's lines, both plural forms for a counted cell. */
+const lineKeys = (cell: string, counted?: boolean) =>
+    cellConditions(cell).flatMap((_, i) => forms(`dispatch.story.${cell}_${i + 1}`, counted));
+
+/** The part of a story line's key, such as `deck_graded`. */
+const partOfKey = (key: string) => key.split(".")[4].replace(/_\d+(_one|_other)?$/, "");
+
+/** Story params that only some decks receive (`stories.ts` detectors); empty for facts only an angle brings. */
+const ONLY_IN: Record<string, Record<string, readonly string[]>> = {
+    record: { run_wins: [], of: [] },
+    hours: { days: ["deck_days"] },
+    new_hero: { games: [] },
+    best_game: { letter: ["deck_graded"] },
+    played_with: { share: [] },
+    season_climb: { low: [] },
+};
+
+/** The facts a deck could print besides the match count: its story's numbers and names, and its own count. */
+function printable(story: StoryShape, deck: Part): string[] {
+    const only = ONLY_IN[story.story] ?? {};
+    const facts = story.params
+        .filter((f) => !only[f] || only[f].includes(deck.part))
+        .map((f) => (f === "hours" ? "playtime" : f));
+    if (deck.counted) facts.push(named(story.story, deck.part, "{count}").slice(1, -1));
+    return [...new Set(facts)].filter((f) => f !== "played");
+}
+
+/** Whether a headline's facts leave a deck nothing to add but the match count. */
+const holdsAll = (head: Set<string>, story: StoryShape, deck: Part) => printable(story, deck).every((f) => head.has(f));
+
+/** The facts a line gives; a singular form of a counted line gives its count unprinted ("First Lash match on record"). */
+function lineFacts(story: string, part: string, key: string): string[] {
+    const facts = factsIn(named(story, part, CATALOG[key] ?? ""));
+    const other = CATALOG[key.replace(/_one$/, "_other")] ?? "";
+    if (key.endsWith("_one") && other.includes("{count}")) facts.push(named(story, part, "{count}").slice(1, -1));
+    return facts;
+}
+
+/** What `{count}` holds in each story's cells, by part; `*` for the rest. */
+const COUNT_AS: Record<string, Record<string, string>> = {
+    record: { deck: "played", "*": "run_losses" },
+    hours: { deck_days: "days", "*": "playtime" },
+    top_hero: { "*": "games" },
+    new_hero: { angle_explorer: "heroes", "*": "fresh" },
+    best_streak: { "*": "wins" },
+    longest_session: { "*": "session" },
+    busiest_day: { "*": "day_matches" },
+    rank_move: { "*": "steps" },
+    played_with: { "*": "together" },
+    nemesis: { "*": "losses" },
+    damage: { "*": "games" },
+    mvp_count: { "*": "mvps" },
+    night_owl: { "*": "games" },
+    season_climb: { "*": "steps" },
+    days_played: { "*": "days" },
+    heroes_tried: { deck_new: "fresh", "*": "heroes" },
+    busiest_month: { "*": "month_matches" },
+};
+
+/** `tpl` with `{count}` and `{hours}` named for what they hold in that story's cell. */
+function named(story: string, part: string, tpl: string): string {
+    const count = COUNT_AS[story]?.[part] ?? COUNT_AS[story]?.["*"] ?? "count";
+    return tpl.replace(/\{count\}/g, `{${count}}`).replace(/\{hours\}/g, "{playtime}");
+}
+
+/** The facts a line prints, the time of day among them. */
+const factsIn = (tpl: string) => [...tpl.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
 
 const t = (key: string, params?: Record<string, string | number>) => interpolate(CATALOG[key] ?? key, params);
 const tn = (key: string, count: number, params?: Record<string, string | number>) =>
