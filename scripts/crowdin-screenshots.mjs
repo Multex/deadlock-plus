@@ -26,25 +26,44 @@ export function sourceFiles(localesDir) {
 /**
  * Crowdin tags for one screenshot. `stringIds` maps `<source file>#<identifier>` to a Crowdin string id.
  * Text that more than one string renders as gets no tag: a wrong tag misleads more than a missing one.
+ * Boxes are measured on the PNG (`size`); `stored` is the size Crowdin keeps the image at, which is smaller when it
+ * downscales a large upload, and it checks every box against that size.
  */
-export function screenshotTags(tags, stringIds, size) {
+export function screenshotTags(tags, stringIds, size, stored = size) {
+    const sx = stored.width / size.width;
+    const sy = stored.height / size.height;
     const seen = new Set();
     const out = [];
     for (const tag of tags) {
         if (tag.ambiguous) continue;
         const stringId = stringIds.get(`${tag.source}#${tag.identifier}`);
         if (stringId === undefined) continue;
-        // Crowdin rejects a box that runs past the image edge.
-        const x = Math.max(0, Math.round(tag.x));
-        const y = Math.max(0, Math.round(tag.y));
-        const width = Math.min(Math.round(tag.x + tag.width), size.width) - x;
-        const height = Math.min(Math.round(tag.y + tag.height), size.height) - y;
+        // Crowdin rejects a box that runs past the image edge, so clip it. A sliver under 2 px marks nothing a
+        // translator can see, the same floor the capture uses.
+        const x = Math.max(0, Math.round(tag.x * sx));
+        const y = Math.max(0, Math.round(tag.y * sy));
+        const width = Math.min(Math.round((tag.x + tag.width) * sx), stored.width) - x;
+        const height = Math.min(Math.round((tag.y + tag.height) * sy), stored.height) - y;
         const key = `${stringId}@${x},${y}`;
-        if (width < 1 || height < 1 || seen.has(key)) continue;
+        if (width < 2 || height < 2 || seen.has(key)) continue;
         seen.add(key);
         out.push({ stringId, position: { x, y, width, height } });
     }
     return out;
+}
+
+/** Runs `upload` for every shot; a shot that throws is reported and the rest still go. Returns the failed files. */
+export async function uploadEach(shots, upload, report) {
+    const failed = [];
+    for (const shot of shots) {
+        try {
+            await upload(shot);
+        } catch (error) {
+            failed.push(shot.file);
+            report(`${shot.file}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    return failed;
 }
 
 function option(name) {
@@ -82,30 +101,40 @@ async function main() {
 
     let uploaded = 0;
     let tagCount = 0;
-    for (const shot of shots) {
-        const png = readFileSync(path.join(dir, shot.file));
-        const tags = screenshotTags(shot.tags, stringIds, pngSize(png));
-        if (!tags.length) continue;
-        tagCount += tags.length;
-        if (dryRun) continue;
-        const storage = await api("POST", "/storages", new Uint8Array(png), {
-            "Content-Type": "image/png",
-            "Crowdin-API-FileName": shot.file,
-        });
-        const body = { storageId: storage.data.id, name: shot.file };
-        const prior = existing.get(shot.file);
-        const screenshot = prior
-            ? await api("PUT", `${project}/screenshots/${prior}`, body)
-            : await api("POST", `${project}/screenshots`, body);
-        await api("PUT", `${project}/screenshots/${screenshot.data.id}/tags`, tags);
-        uploaded++;
-        console.log(`${prior ? "replaced" : "added"} ${shot.file} (${tags.length} tags)`);
-    }
+    const failed = await uploadEach(
+        shots,
+        async (shot) => {
+            const png = readFileSync(path.join(dir, shot.file));
+            const size = pngSize(png);
+            const local = screenshotTags(shot.tags, stringIds, size).length;
+            if (!local) return;
+            if (dryRun) {
+                tagCount += local;
+                return;
+            }
+            const storage = await api("POST", "/storages", new Uint8Array(png), {
+                "Content-Type": "image/png",
+                "Crowdin-API-FileName": shot.file,
+            });
+            const body = { storageId: storage.data.id, name: shot.file };
+            const prior = existing.get(shot.file);
+            const screenshot = prior
+                ? await api("PUT", `${project}/screenshots/${prior}`, body)
+                : await api("POST", `${project}/screenshots`, body);
+            const tags = screenshotTags(shot.tags, stringIds, size, screenshot.data.size ?? size);
+            if (tags.length) await api("PUT", `${project}/screenshots/${screenshot.data.id}/tags`, tags);
+            uploaded++;
+            tagCount += tags.length;
+            console.log(`${prior ? "replaced" : "added"} ${shot.file} (${tags.length} tags)`);
+        },
+        (message) => console.error(message),
+    );
     console.log(
         dryRun
             ? `dry run: ${tagCount} tags on ${shots.length} screenshots`
             : `${uploaded} screenshots, ${tagCount} tags`,
     );
+    if (failed.length) throw new Error(`${failed.length} screenshots failed: ${failed.join(", ")}`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
