@@ -568,7 +568,7 @@
         }
     }
 
-    /* Narrow: the index turns into a strip above the notes that scrolls sideways. */
+    /* Narrow: the index turns into chips above the notes, wrapping onto as many rows as the release needs. */
     @container (max-width: 760px) {
         .featured .layout {
             grid-template-columns: minmax(0, 1fr);
@@ -589,15 +589,13 @@
 
         .index ol {
             display: flex;
+            flex-wrap: wrap;
             gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 6px;
-            scrollbar-width: thin;
-            mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
         }
 
         .index li {
             flex: none;
+            max-width: 100%;
         }
 
         .index button {
@@ -605,7 +603,6 @@
             border: 1px solid color-mix(in oklch, var(--brass) 35%, transparent);
             background: color-mix(in oklch, var(--card) 80%, transparent);
             font-size: 12px;
-            white-space: nowrap;
         }
 
         .totals li {

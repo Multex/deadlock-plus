@@ -44,8 +44,23 @@ const gameData = createGameDataCache({
     offline: process.env.E2E_OFFLINE === "1",
 });
 
-function seed({ scenario, css }: { scenario: string; css: string }) {
-    (window as unknown as Record<string, unknown>).__DEADLOCK_PLUS_DEMO__ = { scenario };
+type DemoHook = { scenario?: string; handle?: { set(command: string, handler: () => unknown): void } };
+
+function seed({ scenario, css, changelog }: { scenario: string; css: string; changelog?: string }) {
+    let hook: DemoHook | undefined = { scenario };
+    if (changelog === undefined) {
+        (window as unknown as Record<string, unknown>).__DEADLOCK_PLUS_DEMO__ = hook;
+    } else {
+        Object.defineProperty(window, "__DEADLOCK_PLUS_DEMO__", {
+            configurable: true,
+            get: () => hook,
+            // The app assigns the running demo here once, right after it starts and before any page code runs.
+            set(next: DemoHook | undefined) {
+                hook = next;
+                next?.handle?.set("changelog", () => changelog);
+            },
+        });
+    }
     document.addEventListener("DOMContentLoaded", () => {
         const style = document.createElement("style");
         style.textContent = css;
@@ -53,7 +68,13 @@ function seed({ scenario, css }: { scenario: string; css: string }) {
     });
 }
 
-async function openPage(browser: Browser, baseURL: string, size: (typeof SIZES)[number], r: RouteCalls) {
+async function openPage(
+    browser: Browser,
+    baseURL: string,
+    size: (typeof SIZES)[number],
+    r: RouteCalls,
+    changelog?: string,
+) {
     const context = await browser.newContext({
         baseURL,
         viewport: { width: size.width, height: size.height },
@@ -64,7 +85,7 @@ async function openPage(browser: Browser, baseURL: string, size: (typeof SIZES)[
         reducedMotion: "reduce",
         userAgent: WINDOWS_UA,
     });
-    await context.addInitScript(seed, { scenario: r.scenario, css: STILL });
+    await context.addInitScript(seed, { scenario: r.scenario, css: STILL, changelog });
     const own = new URL(baseURL).host;
     await context.route("**/*", async (request) => {
         const url = new URL(request.request().url());
@@ -304,11 +325,13 @@ async function problems(page: Page, scope: string): Promise<string[]> {
     );
 }
 
-const test = base.extend<{ open: (size: (typeof SIZES)[number], r: RouteCalls) => Promise<Page> }>({
+const test = base.extend<{
+    open: (size: (typeof SIZES)[number], r: RouteCalls, changelog?: string) => Promise<Page>;
+}>({
     open: async ({ browser, baseURL }, use) => {
         const pages: Page[] = [];
-        await use(async (size, r) => {
-            const page = await openPage(browser, baseURL!, size, r);
+        await use(async (size, r, changelog) => {
+            const page = await openPage(browser, baseURL!, size, r, changelog);
             pages.push(page);
             return page;
         });
@@ -384,6 +407,26 @@ const OPEN_STATES: OpenState[] = [
     },
 ];
 
+/** Unreleased notes with more section headings than a strip of them fits in one row of a narrow window. */
+const MANY_SECTIONS = [
+    "# Changelog",
+    "## [Unreleased]",
+    "### Added",
+    "- A loose addition that opens the General section.",
+    ...Array.from({ length: 12 }, (_, i) => [
+        `#### Feature with a longer name ${i + 1}`,
+        `- The feature's opening line ${i + 1}.`,
+        "- A point about it.",
+    ]).flat(),
+    "### Changed",
+    "- A change.",
+    "### Fixed",
+    "#### Keyboard and screen readers",
+    "- A fix.",
+    "#### Small windows and zoom",
+    "- Another fix.",
+].join("\n\n");
+
 /** `ZOOM_SHOTS=<dir>` keeps a picture of every page as checked, to compare a fix by eye. */
 async function shoot(page: Page, size: (typeof SIZES)[number], name: string) {
     const dir = process.env.ZOOM_SHOTS;
@@ -402,6 +445,13 @@ for (const size of SIZES) {
                 expect(found).toEqual([]);
             });
         }
+        test("whats-new for a release with many sections", async ({ open }) => {
+            const page = await open(size, { ...route("whats-new"), path: "/whats-new?preview=9.9.9" }, MANY_SECTIONS);
+            await expect(page.getByRole("navigation", { name: "In this update" }).getByRole("button")).toHaveCount(16);
+            const found = await problems(page, "body");
+            await shoot(page, size, "whats-new-many-sections");
+            expect(found).toEqual([]);
+        });
         for (const state of OPEN_STATES) {
             test(`${state.route.name} with the ${state.name} open`, async ({ open }) => {
                 const page = await open(size, state.route);
