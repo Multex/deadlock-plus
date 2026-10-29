@@ -1,4 +1,7 @@
 {
+    "build": {
+        "beforeBundleCommand": "bash ../../scripts/prepare-appimage.sh"
+    },
     "bundle": {
         "targets": ["appimage", "deb"],
         "linux": {

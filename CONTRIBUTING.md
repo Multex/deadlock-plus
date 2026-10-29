@@ -45,6 +45,7 @@ CI also runs `pnpm audit --prod` and `cargo audit`, and fails if `packages/ipc-t
 - Firewall rules are named `deadlock_plus_<id>_tcp` and `_udp`; the prefix stays. The bundle identifier `app.deadlockplus` names the app data folder, so changing it orphans users' data.
 - `tauri.linux.conf.json` sets the Linux targets (AppImage, deb) and installs `libdp_frames_layer.so` into `/usr/lib/deadlock-plus/`. The layer is built against glibc 2.31 so it loads in Steam's Linux runtime.
 - `release.yml` builds Windows, Linux AppImage and Linux deb on a tag. All three are in `latest.json` (`windows-x86_64`, `linux-x86_64-appimage`, `linux-x86_64-deb`) and update in place. `bundle.yml` is a manual, secret-free Linux test build.
+- Linux bundling pins linuxdeploy through `scripts/prepare-appimage.sh`. Both bundle workflows reject bundled Wayland client libraries and test AppImage startup in Ubuntu 22.04 and Debian 12 containers. Screenshots and logs are kept as artifacts; a failed startup blocks release publication. These use software rendering on Xvfb; hardware drivers and Wayland still need desktop testing.
 - Tailwind's `@theme inline` inlines values. To make a token overridable at runtime, point it at a `:root` variable.
 - The consent text for uploading match salts to the Deadlock API is worded deliberately; do not change it without discussion.
 - Moving the repo breaks `node_modules` and `target` (absolute paths). Reinstall and rebuild.

@@ -77,9 +77,20 @@ jobs:
         run: pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}' ${{ matrix.args }}
         working-directory: apps/desktop
 
+      - name: Check AppImage libraries
+        run: bash scripts/check-appimage.sh target/release/bundle/appimage/*.AppImage
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bundle-${{ matrix.name }}
           path: ${{ matrix.glob }}
           if-no-files-found: error
           retention-days: 14
+
+  appimage-startup:
+    needs: bundle
+    permissions:
+      contents: read
+    uses: ./.github/workflows/appimage-smoke.yml
+    with:
+      artifact: bundle-linux-x64

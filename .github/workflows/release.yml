@@ -226,6 +226,9 @@ jobs:
         run: pnpm tauri bundle
         working-directory: apps/desktop
 
+      - name: Check AppImage libraries
+        run: bash scripts/check-appimage.sh target/release/bundle/appimage/*.AppImage
+
       - name: Upload debug files to Sentry
         if: env.SENTRY_UPLOAD == 'true'
         env:
@@ -246,10 +249,18 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  appimage-startup:
+    needs: build-linux
+    permissions:
+      contents: read
+    uses: ./.github/workflows/appimage-smoke.yml
+    with:
+      artifact: release-linux
+
   # Builds the updater feed from every platform's signature. It fails when a platform is missing, so a release never
   # ships an update that skips a platform.
   assemble:
-    needs: [build, build-linux]
+    needs: [build, build-linux, appimage-startup]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

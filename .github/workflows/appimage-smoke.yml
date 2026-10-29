@@ -1,0 +1,66 @@
+name: AppImage startup
+
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  startup:
+    name: startup (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-22.04
+            image: ubuntu:22.04@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
+          - distro: debian-12
+            image: debian:12-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+    container:
+      image: ${{ matrix.image }}
+      options: --shm-size=256m
+    defaults:
+      run:
+        shell: bash
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    steps:
+      - name: Install desktop runtime
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates dbus-x11 xvfb xauth x11-utils x11-apps imagemagick \
+            fonts-dejavu-core libgtk-3-0 libayatana-appindicator3-1 libxdo3 \
+            libegl1 libgles2 libgl1-mesa-dri
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ${{ inputs.artifact }}
+          path: appimage-bundle
+
+      - name: Start the packaged app
+        run: |
+          mapfile -t images < <(find appimage-bundle -type f -iname '*.appimage')
+          [[ ${#images[@]} -eq 1 ]] || { echo "Expected one AppImage" >&2; exit 1; }
+          chmod +x "${images[0]}"
+          bash scripts/smoke-appimage.sh "${images[0]}" startup-results
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: appimage-startup-${{ matrix.distro }}
+          path: startup-results
+          if-no-files-found: ignore
+          retention-days: 14
