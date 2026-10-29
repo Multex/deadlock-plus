@@ -6,6 +6,8 @@
         "hero_fallback": "Герой {id}",
         "unknown_hero": "Неизвестный герой",
         "api_error": "Deadlock API вернул ошибку ({status}).",
+        "cached_note_busy": "",
+        "cached_note_down": "",
         "gate": {
             "no_account": "Аккаунт Steam не найден, поэтому истории для загрузки нет.",
             "error": "Не удалось загрузить историю матчей. {error}",

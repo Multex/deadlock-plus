@@ -6,6 +6,8 @@
         "hero_fallback": "Occultiste {id}",
         "unknown_hero": "",
         "api_error": "",
+        "cached_note_busy": "",
+        "cached_note_down": "",
         "gate": {
             "no_account": "",
             "error": "",
