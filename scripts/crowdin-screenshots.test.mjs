@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { pngSize, screenshotTags, sourceFiles } from "./crowdin-screenshots.mjs";
+import { pngSize, screenshotTags, sourceFiles, uploadEach } from "./crowdin-screenshots.mjs";
 
 const APP = "locales/app/en.json";
 
@@ -44,6 +44,35 @@ describe("screenshotTags", () => {
         ]);
     });
 
+    it("scales boxes to the size Crowdin stored the image at and never sends one outside it", () => {
+        const png = { width: 1480, height: 900 };
+        const stored = { width: 1110, height: 675 };
+        const tags = [
+            tag({ x: 51, y: 801, width: 101, height: 17 }),
+            tag({ identifier: "nav.stats", x: 583, y: 652, width: 149, height: 33 }),
+            tag({ x: 1357, y: 879, width: 112, height: 15 }),
+            tag({ identifier: "nav.stats", x: 1400, y: 899, width: 200, height: 40 }),
+        ];
+        const out = screenshotTags(tags, ids, png, stored);
+        expect(out.map((t) => t.position)).toEqual([
+            { x: 38, y: 601, width: 76, height: 13 },
+            { x: 437, y: 489, width: 112, height: 25 },
+            { x: 1018, y: 659, width: 84, height: 12 },
+        ]);
+        for (const { position: p } of out) {
+            expect(p.x + p.width).toBeLessThanOrEqual(stored.width);
+            expect(p.y + p.height).toBeLessThanOrEqual(stored.height);
+        }
+    });
+
+    it("drops a clipped box with less than 2 px left on a side", () => {
+        expect(screenshotTags([tag({ x: 99, y: 0 })], ids, size)).toEqual([]);
+        expect(screenshotTags([tag({ x: 0, y: 49 })], ids, size)).toEqual([]);
+        expect(screenshotTags([tag({ x: 98, y: 47 })], ids, size)).toEqual([
+            { stringId: 11, position: { x: 98, y: 47, width: 2, height: 3 } },
+        ]);
+    });
+
     it("leaves out ambiguous text and strings Crowdin does not have", () => {
         expect(screenshotTags([tag({ ambiguous: true }), tag({ identifier: "gone" })], ids, size)).toEqual([]);
     });
@@ -55,6 +84,24 @@ describe("screenshotTags", () => {
             [12, 10],
             [11, 30],
         ]);
+    });
+});
+
+describe("uploadEach", () => {
+    it("reports a screenshot that fails and carries on with the rest", async () => {
+        const done = [];
+        const errors = [];
+        const failed = await uploadEach(
+            [{ file: "a.png" }, { file: "b.png" }, { file: "c.png" }],
+            async (shot) => {
+                if (shot.file === "b.png") throw new Error("PUT tags -> 400");
+                done.push(shot.file);
+            },
+            (message) => errors.push(message),
+        );
+        expect(done).toEqual(["a.png", "c.png"]);
+        expect(failed).toEqual(["b.png"]);
+        expect(errors).toEqual(["b.png: PUT tags -> 400"]);
     });
 });
 
