@@ -160,10 +160,11 @@ jobs:
         with:
           node-version: 24
 
+      # A lone artifact unpacks straight into path, and manifest reads one subfolder per artifact.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: release-*
-          path: release-parts
+          name: release-windows
+          path: release-parts/release-windows
 
       - name: Build updater feed
         env:
