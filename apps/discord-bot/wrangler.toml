@@ -7,7 +7,7 @@ routes = [{ pattern = "discord-bot.deadlockplus.app", custom_domain = true }]
 # The website's namespace: the transparency page reads the cost list the bot writes.
 [[kv_namespaces]]
 binding = "TRANSPARENCY"
-id = "f91351f4f4dc4d2fa8c0d6236b26533f"
+id = "144c79a974eb48abab31bad9c7f3b798"
 
 [observability]
 enabled = true
