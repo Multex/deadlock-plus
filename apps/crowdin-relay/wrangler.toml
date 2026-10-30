@@ -1,7 +1,8 @@
 name = "crowdin-relay"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
-workers_dev = true
+workers_dev = false
+routes = [{ pattern = "crowdin-relay.deadlockplus.app", custom_domain = true }]
 
 # SQLite-backed so it runs on the Workers free plan.
 [[durable_objects.bindings]]

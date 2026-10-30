@@ -43,7 +43,7 @@ A Durable Object (`Relay`, SQLite-backed, so it runs on the Workers free plan) h
     The first deploy has to exist before `secret put` works: run `pnpm deploy` once, or let the deploy workflow do it.
 4. Deploy: push a change under `apps/crowdin-relay/` to `main`, or run `pnpm deploy`.
 5. In Crowdin, open the project's Tools > Webhooks and add a webhook:
-    - URL: `https://crowdin-relay.<your-subdomain>.workers.dev/<PATH_SECRET>`
+    - URL: `https://crowdin-relay.deadlockplus.app/<PATH_SECRET>`
     - Method: `POST`, content type: `application/json`
     - Events: the file, source string and suggestion events you want
     - Batch webhooks: either works
