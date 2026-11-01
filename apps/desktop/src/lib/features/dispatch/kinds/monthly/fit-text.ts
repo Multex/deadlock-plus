@@ -50,7 +50,8 @@ function flush() {
     // The fallback face measures differently; fit again once the real fonts land, unless they already had.
     if (document.fonts.status !== "loaded") {
         void document.fonts.ready.then(() => {
-            for (const job of jobs) if (current.get(job.node) === job) enqueue(job);
+            // WebKit can still report loading here; re-enqueuing would keep the microtask queue busy forever.
+            fitAll(jobs.filter((job) => current.get(job.node) === job));
         });
     }
 }

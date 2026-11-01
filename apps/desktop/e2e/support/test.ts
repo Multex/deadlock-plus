@@ -7,6 +7,7 @@ import { cacheDir, createGameDataCache } from "./game-data-cache";
 export interface DemoOptions {
     /** Id of the demo scenario the page starts on. */
     scenario: string;
+    freezeAnimations: boolean;
 }
 
 // The demo still reads public game data and art at run time. Anything else leaving the page is a leak.
@@ -37,23 +38,26 @@ interface Fixtures {
 
 export const test = base.extend<DemoOptions & Fixtures>({
     scenario: ["default", { option: true }],
+    freezeAnimations: [true, { option: true }],
 
     served: async ({}, use) => use([]),
 
     problems: [
-        async ({ context, baseURL, scenario, served }, use) => {
+        async ({ context, baseURL, scenario, served, freezeAnimations }, use) => {
             const problems: string[] = [];
             const own = new URL(baseURL!).host;
 
             await context.addInitScript((id) => {
                 (window as unknown as Record<string, unknown>).__DEADLOCK_PLUS_DEMO__ = { scenario: id };
             }, scenario);
-            await context.addInitScript((css) => {
-                const style = document.createElement("style");
-                style.textContent = css;
-                // The script runs before the document has a root element.
-                document.addEventListener("DOMContentLoaded", () => document.head.append(style));
-            }, STILL);
+            if (freezeAnimations) {
+                await context.addInitScript((css) => {
+                    const style = document.createElement("style");
+                    style.textContent = css;
+                    // The script runs before the document has a root element.
+                    document.addEventListener("DOMContentLoaded", () => document.head.append(style));
+                }, STILL);
+            }
 
             await context.route("**/*", async (route) => {
                 const request = route.request();

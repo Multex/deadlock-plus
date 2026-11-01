@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { fitAll, type FitNode } from "./fit-text";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fitAll, fitText, type FitNode } from "./fit-text";
 
 /** A box whose content grows linearly with the font size, counting each layout-forcing read. */
 function fakeNode(box: { w: number; h: number }, perPx: { w: number; h: number }) {
@@ -83,5 +83,56 @@ describe("fitAll", () => {
         const fakes = specs.map((s) => fakeNode(s.box, s.perPx));
         fitAll(specs.map((s, i) => ({ node: fakes[i].node, max: s.max, min: s.min })));
         specs.forEach((s, i) => expect(fakes[i].size()).toBe(linearAnswer(s.box, s.perPx, s.max, s.min)));
+    });
+});
+
+describe("fitText font loading", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("stops refitting when font readiness resolves with a stale loading status", async () => {
+        const tasks: VoidFunction[] = [];
+        vi.stubGlobal("queueMicrotask", (task: VoidFunction) => tasks.push(task));
+        vi.stubGlobal("document", { fonts: { status: "loading", ready: Promise.resolve() } });
+        const fake = fakeNode({ w: 1000, h: 1000 }, { w: 1, h: 1 });
+        const detach = fitText(46, 22)(fake.node as HTMLElement);
+        try {
+            tasks.shift()!();
+            await Promise.resolve();
+            while (tasks.length && fake.reads() < 20) {
+                tasks.shift()!();
+                await Promise.resolve();
+            }
+            expect(tasks).toHaveLength(0);
+            expect(fake.reads()).toBeLessThanOrEqual(4);
+        } finally {
+            detach();
+            while (tasks.length) tasks.shift()!();
+        }
+    });
+
+    it("fits again after fonts load, but leaves detached nodes alone", async () => {
+        const tasks: VoidFunction[] = [];
+        let ready!: () => void;
+        const fonts = { status: "loading", ready: new Promise<void>((resolve) => (ready = resolve)) };
+        vi.stubGlobal("queueMicrotask", (task: VoidFunction) => tasks.push(task));
+        vi.stubGlobal("document", { fonts });
+        const live = fakeNode({ w: 1000, h: 1000 }, { w: 1, h: 1 });
+        const removed = fakeNode({ w: 1000, h: 1000 }, { w: 1, h: 1 });
+        const detachLive = fitText(46, 22)(live.node as HTMLElement);
+        const detachRemoved = fitText(46, 22)(removed.node as HTMLElement);
+        try {
+            tasks.shift()!();
+            const reads = removed.reads();
+            detachRemoved();
+            fonts.status = "loaded";
+            ready();
+            await Promise.resolve();
+            while (tasks.length) tasks.shift()!();
+            expect(live.reads()).toBe(4);
+            expect(removed.reads()).toBe(reads);
+        } finally {
+            detachLive();
+            detachRemoved();
+        }
     });
 });

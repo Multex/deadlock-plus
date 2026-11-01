@@ -190,6 +190,10 @@ jobs:
           key: e2e-game-data-${{ hashFiles('apps/desktop/e2e/support/game-data.version') }}-
           restore-keys: e2e-game-data-${{ hashFiles('apps/desktop/e2e/support/game-data.version') }}-
 
+      - run: pnpm exec playwright install --with-deps chromium webkit
+        working-directory: apps/desktop
+      - run: pnpm exec playwright test --config playwright.dispatch.config.ts
+        working-directory: apps/desktop
       - run: pnpm e2e
         working-directory: apps/desktop
       # Reads the demo build `pnpm e2e` just made; budgets live in perf/budgets.json.

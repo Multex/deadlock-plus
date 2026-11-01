@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- Opening a monthly Dispatch no longer gets stuck repeatedly fitting text while fonts load.
+
 ## [0.15.0] - 2026-10-29
 
 ### Added
